@@ -37,7 +37,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
   USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
   USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
-  USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
   USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
   USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
   USE POPs_Mod,                ONLY : Cleanup_POPs
@@ -53,6 +52,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
+  USE VDiff_Mod,               ONLY : Cleanup_Vdiff
 #ifdef BPCH_DIAG
   USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
   USE DIAG_MOD,                ONLY : CLEANUP_DIAG
@@ -80,7 +80,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input options
   TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
   LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error?
-
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -152,7 +151,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_DUST()
   CALL CLEANUP_ISORROPIAII()
   CALL CLEANUP_MAP_A2A()
-  CALL CLEANUP_PBL_MIX()
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()
   CALL CLEANUP_SEASALT()
@@ -243,6 +241,13 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_POPs( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_POPs"!'
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+     RETURN
+  ENDIF
+
+  CALL CleanUp_Vdiff( RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_Vdiff"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF

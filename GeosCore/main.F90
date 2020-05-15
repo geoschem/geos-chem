@@ -660,15 +660,15 @@ PROGRAM GEOS_Chem
   ENDIF
 #endif
 
-  !-----------------------------------------------------------------
-  ! Initialize the hybrid pressure module.  Define Ap and Bp.
-  !-----------------------------------------------------------------
-  CALL Init_Pressure( Input_Opt, State_Grid, RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Init_Pressure"!'
-     CALL Error_Stop( ErrMsg, ThisLoc )
-  ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INIT_PRESSURE' )
+!  !-----------------------------------------------------------------
+!  ! Initialize the hybrid pressure module.  Define Ap and Bp.
+!  !-----------------------------------------------------------------
+!  CALL Init_Pressure( Input_Opt, State_Grid, RC )
+!  IF ( RC /= GC_SUCCESS ) THEN
+!     ErrMsg = 'Error encountered in "Init_Pressure"!'
+!     CALL Error_Stop( ErrMsg, ThisLoc )
+!  ENDIF
+!  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INIT_PRESSURE' )
 
   !-----------------------------------------------------------------
   ! Register the horizontal and vertical grid information so that
@@ -796,15 +796,12 @@ PROGRAM GEOS_Chem
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
-     ! Initialize PBL quantities but do not do mixing
-     ! Add option for non-local PBL (Lin, 03/31/09)
-     CALL Init_Mixing( Input_Opt,  State_Chm, State_Diag, &
-                       State_Grid, State_Met, RC )
-
-     ! Trap potential errors
+     ! Initialize PBL quantities from the initial met fields
+     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in Init_Mixing!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
+        ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
+        CALL GC_Error( ErrMsg, RC, ThisLoc )
+        RETURN
      ENDIF
   ENDIF
 
@@ -1423,7 +1420,7 @@ PROGRAM GEOS_Chem
           ! Move this call from the PBL mixing routines because the PBL
           ! height is used by drydep and some of the emissions routines.
           ! (ckeller, 3/5/15)
-          CALL Compute_PBL_Height( State_Grid, State_Met, RC )
+          CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

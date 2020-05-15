@@ -11,18 +11,17 @@
 !\\
 ! !INTERFACE:
 !
-MODULE MIXING_MOD
+MODULE Mixing_Mod
 !
 ! !USES:
 !
-  USE PRECISION_MOD
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: INIT_MIXING
   PUBLIC :: DO_MIXING
   PUBLIC :: DO_TEND
 !
@@ -32,133 +31,7 @@ MODULE MIXING_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_mixing
-!
-! !DESCRIPTION: Subroutine INIT\_MIXING initialized the pbl mixing wrapper
-! module.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE INIT_MIXING ( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,   ONLY : OptInput
-    USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
-    USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
-    USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Diag_Mod,  ONLY : DgnState
-    USE State_Grid_Mod,  ONLY : GrdState
-    USE State_Met_Mod,   ONLY : MetState
-    USE VDIFF_MOD,       ONLY : DO_PBL_MIX_2
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm   ! Chemistry State
-    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag  ! Diagnostics State
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met   ! Meteorology State
-    INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
-!
-! !REMARKS
-!  (A) While all dry deposition rates are calculated either in
-!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still
-!      computed in the dust/seasalt modules.
-!
-! !REVISION HISTORY:
-!  04 Mar 2015 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! INIT_MIXING begins here!
-    !=======================================================================
-
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
-
-    !-----------------------------------------------------------------------
-    ! Initialize PBL mixing scheme
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%LNLPBL ) THEN
-
-       ! Initialize non-local PBL mixing scheme
-       CALL DO_PBL_MIX_2( .FALSE.,    Input_Opt,  State_Chm, &
-                          State_Diag, State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ELSE
-
-       ! Initialize full PBL mixing scheme
-       CALL DO_PBL_MIX( .FALSE.,    Input_Opt, State_Chm,  &
-                        State_Diag, State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
-    !-----------------------------------------------------------------------
-    ! Compute the various PBL quantities with the initial met fields.
-    ! This is needed so that HEMCO won't be passed a zero PBL height
-    ! (bmy, 10/26/16)
-    !
-    ! In ESMF mode this routine should not be called during the init
-    ! stage: the required met quantities are not yet defined.
-    ! (ckeller, 11/23/16)
-    !
-    ! In GC-WRF, which uses the same entry-point as the GEOS-5 GCM, the
-    ! required met quantities are also not defined until GIGC_Chunk_Run,
-    ! so also skip this here (hplin, 8/9/18)
-    !-----------------------------------------------------------------------
-    CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
-  END SUBROUTINE INIT_MIXING
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -172,19 +45,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING( Input_Opt,  State_Chm, State_Diag, &
+  SUBROUTINE Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_MOd,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE Pbl_Mix_Mod,    ONLY : Do_Full_Pbl_Mixing
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Vdiff_Mod,      ONLY : Do_Vdiff
 !
 ! !INPUT PARAMETERS:
 !
@@ -251,10 +124,10 @@ CONTAINS
        ENDIF
 
        ! Non-local mixing
-       CALL DO_PBL_MIX_2( Input_Opt%LTURB, Input_Opt,  State_Chm, &
-                          State_Diag,      State_Grid, State_Met, RC )
+       CALL Do_Vdiff( Input_Opt,  State_Chm, State_Diag,                     &
+                      State_Grid, State_Met, RC                             )
 
-       ! Trap potential error
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountred in "DO_PBL_MIX_2"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -310,8 +183,8 @@ CONTAINS
        ENDIF
 
        ! Full PBL mixing
-       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt,  State_Chm, &
-                        State_Diag,      State_Grid, State_Met, RC )
+       CALL Do_Full_Pbl_Mixing( Input_Opt,  State_Chm, State_Diag,            &
+                                State_Grid, State_Met, RC                    )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN

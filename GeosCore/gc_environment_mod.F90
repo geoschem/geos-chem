@@ -434,6 +434,7 @@ CONTAINS
     USE Mercury_Mod,        ONLY : Init_Mercury
     USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
     USE POPs_Mod,           ONLY : Init_POPs
+    USE Pressure_Mod,       ONLY : Init_Pressure
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -442,7 +443,7 @@ CONTAINS
     USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Toms_Mod,           ONLY : Init_Toms
-    USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
+    USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
     USE Diag03_Mod,         ONLY : Init_Diag03
@@ -569,13 +570,23 @@ CONTAINS
     !=================================================================
 
     !-----------------------------------------------------------------
+    ! Initialize the hybrid pressure module.  Define Ap and Bp.
+    !-----------------------------------------------------------------
+    CALL Init_Pressure( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_Pressure"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------
     ! Call SET_VDIFF_VALUES so that we can pass several values from
     ! Input_Opt to the vdiff_mod.F90. This has to be called
     ! after the input.geos file has been read from disk.
     !-----------------------------------------------------------------
-    CALL Set_Vdiff_Values( Input_Opt, State_Chm, RC )
+    CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Set_Vdiff_Values"!'
+       ErrMsg = 'Error encountered in "Init_Vdiff"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

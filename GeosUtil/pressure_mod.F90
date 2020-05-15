@@ -575,7 +575,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: AS
     INTEGER :: L
 
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
@@ -588,33 +587,41 @@ CONTAINS
     RC      = GC_SUCCESS
     ThisLoc = ' -> at Init_Pressure (in GeosUtil/pressure_mod.F90)'
 
-    ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_DRY' )
+    ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_DRY', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     PFLT_DRY = 0e+0_fp
 
-    ALLOCATE( PFLT_WET( State_Grid%NX, State_Grid%NY ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_WET' )
+    ALLOCATE( PFLT_WET( State_Grid%NX, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_WET', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     PFLT_WET = 0e+0_fp
 
-    ALLOCATE( AP( State_Grid%NZ+1 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP' )
+    ALLOCATE( AP( State_Grid%NZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:AP', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     AP = 1e+0_fp
 
-    ALLOCATE( BP( State_Grid%NZ+1 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
+    ALLOCATE( BP( State_Grid%NZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:BP', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     BP = 0e+0_fp
 
-    ALLOCATE( AP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP_FULLGRID' )
+    ALLOCATE( AP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:AP_FULLGRID', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     AP = 1e+0_fp
 
-    ALLOCATE( BP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
+    ALLOCATE( BP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:BP_FULLGRID', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     BP = 0e+0_fp
 
 #if defined( ESMF_ ) || defined( MODEL_ )
     ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), &
-              STAT=AS )
+              STAT=RC )
+    CALL GC_CheckVar( 'vdiff_mod.F90:EXTERNAL_PEDGE', 2, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
     EXTERNAL_PEDGE = 0e+0_fp
 #endif

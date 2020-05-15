@@ -254,8 +254,10 @@ MODULE State_Met_Mod
                                                 !  and 13 local solar time?
 
      !----------------------------------------------------------------------
-     ! Scalars
+     ! Fields for boundary layer mixing
      !----------------------------------------------------------------------
+     INTEGER,  POINTER :: IMIX          (:,:  ) ! Integer and fractional level
+     REAL(fp), POINTER :: FPBL          (:,:  ) !  where PBL top occurs
      INTEGER           :: PBL_MAX_L             ! Max level where PBL top occurs
 
      !----------------------------------------------------------------------
@@ -481,6 +483,8 @@ CONTAINS
     State_Met%IsLocalNoon    => NULL()
     State_Met%LocalSolarTime => NULL()
     State_Met%AgeOfAir       => NULL()
+    State_Met%IMIX           => NULL()
+    State_Met%FPBL           => NULL()
 
     !=======================================================================
     ! Exit if this is a dry-run simulation
@@ -1258,6 +1262,23 @@ CONTAINS
     CALL Register_MetField( Input_Opt, 'Z0', State_Met%Z0, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! IMIX [1] and FPBL [1]
+    ! Local vars for PBL mix
+    ! Do not register these
+    !-------------------------
+    IF ( Input_Opt%LTURB ) THEN
+       ALLOCATE( State_Met%IMIX( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IMIX = 0
+
+       ALLOCATE( State_Met%FPBL( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FPBL = 0.0_fp
+    ENDIF
 
     !=======================================================================
     ! Allocate 3-D Arrays
@@ -2528,6 +2549,20 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IREG', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IREG => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IMIX) ) THEN
+       DEALLOCATE( State_Met%IMIX, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%IMIX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IMIX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FPBL ) ) THEN
+       DEALLOCATE( State_Met%FPBL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%FPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FPBL => NULL()
     ENDIF
 
     !========================================================================
