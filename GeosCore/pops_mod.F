@@ -609,7 +609,7 @@
       IF ( FIRST ) THEN
 
          ! OC
-         CALL HCO_GetPtr( am_I_root, HcoState, 'GLOBAL_OC', C_OC, RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_OC', C_OC, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -617,7 +617,7 @@
          ENDIF
 
          ! BC
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_BC', C_BC, RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_BC', C_BC, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_BC!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -625,7 +625,7 @@
          ENDIF
 
          ! OH
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -633,7 +633,7 @@
          ENDIF
 
          ! O3
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', O3,   RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_O3', O3,   RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )

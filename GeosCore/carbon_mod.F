@@ -568,15 +568,15 @@
 
             IF ( LSOA ) THEN
                ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
-               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,  RC )
+               call HCO_GetPtr( HcoState, 'GLOBAL_OH',  OH,  RC )
                IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
 
-               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3, RC )
+               call HCO_GetPtr( HcoState, 'GLOBAL_NO3', NO3, RC )
                IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
 
-               CALL HCO_GetPtr( aIR, HcoState, 'O3',         O3,  RC )
+               call HCO_GetPtr( HcoState, 'O3',         O3,  RC )
                IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
             ENDIF
@@ -5533,7 +5533,7 @@ ccc
       ! (ramnarine 12/27/2018)
       IF ( FIRST ) THEN
          ! Get a pointer to the fire number field if in use
-         CALL HCO_GetPtr( am_I_root, HcoState, 'FINN_DAILY_NUMBER',
+         call HCO_GetPtr(  HcoState, 'FINN_DAILY_NUMBER',
      &        FIRE_NUM, RC, FOUND=FND )
             !if biomass burning subgrid coagulation is in use,
             !FIRE_NUM will not be NULL() and therefore will not be ASSOCIATED()

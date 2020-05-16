@@ -3705,7 +3705,7 @@ CONTAINS
       v_name = 'TMPU'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -3731,7 +3731,7 @@ CONTAINS
       v_name = 'SPHU'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -3757,7 +3757,7 @@ CONTAINS
       v_name = 'PSWET'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -3783,7 +3783,7 @@ CONTAINS
       v_name = 'PSDRY'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -3809,7 +3809,7 @@ CONTAINS
       v_name = 'DELPDRY'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4061,7 +4061,7 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D,     RC,       FOUND=FOUND )
 
       ! Check if species data is in file
@@ -4381,7 +4381,7 @@ CONTAINS
       v_name = 'KPP_HVALUE'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4414,7 +4414,7 @@ CONTAINS
       v_name = 'WETDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr2D,     RC,       FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4440,7 +4440,7 @@ CONTAINS
       v_name = 'DRYDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4474,7 +4474,7 @@ CONTAINS
       v_name = 'H2O2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4500,7 +4500,7 @@ CONTAINS
       v_name = 'SO2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4533,7 +4533,7 @@ CONTAINS
       v_name = 'STATE_PSC'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D,     RC,       FOUND=FOUND )
 
       ! Check if variable is in file
@@ -4595,7 +4595,7 @@ CONTAINS
          v_name = 'OCEAN_' // TRIM( HgSpc )
 
          ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+         call HCO_GetPtr(  HcoState, TRIM(v_name), &
                           Ptr2D, RC, FOUND=FOUND )
 
          ! Check if variable is in file
@@ -4655,7 +4655,7 @@ CONTAINS
                         '_'      // TRIM( Hg_Cat_Name(N) )
 
                ! Get variable from HEMCO and store in local array
-               CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+               call HCO_GetPtr(  HcoState, TRIM(v_name), &
                                 Ptr2D, RC, FOUND=FOUND )
 
                ! Check if variable is in file
@@ -4721,7 +4721,7 @@ CONTAINS
             ENDIF
 
             ! Get variable from HEMCO and store in local array
-            CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+            call HCO_GetPtr(  HcoState, TRIM(v_name), &
                              Ptr2D, RC, FOUND=FOUND )
 
             ! Check if variable is in file
@@ -4907,7 +4907,7 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+      call HCO_GetPtr(  HcoState, TRIM(v_name), &
                        Ptr3D,     RC,       FOUND=FOUND )
 
       ! Check if BCs are found

@@ -108,6 +108,7 @@ CONTAINS
 !
     INTEGER  :: cYr, cMt, cDy, cHr, cMin, cSec, cDOY
 
+#if !defined( MODEL_CESM )
     !=================================================================
     ! SetHcoTime begins here
     !=================================================================
@@ -122,6 +123,7 @@ CONTAINS
 
     CALL HcoClock_Set ( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
                         cMin, cSec, cDoy, IsEmisTime=TimeForEmis, RC=RC )
+#endif
 
   END SUBROUTINE SetHcoTime
 !EOC
@@ -165,6 +167,7 @@ CONTAINS
 !BOC
     INTEGER   :: HcoID, tID
 
+#if !defined( MODEL_CESM )
     !=================================================================
     ! GetHcoVal begins here
     !=================================================================
@@ -195,6 +198,7 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#endif
 
   END SUBROUTINE GetHcoVal
 !EOC
@@ -305,6 +309,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
+#if !defined( MODEL_CESM )
     !=======================================================================
     ! GetHcoDiagn begins here
     !=======================================================================
@@ -386,6 +391,7 @@ CONTAINS
 
     ! Free pointer
     DgnCont  => NULL()
+#endif
 
     ! Leave with success
     RC = HCO_SUCCESS

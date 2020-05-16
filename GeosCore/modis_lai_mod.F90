@@ -140,7 +140,7 @@ CONTAINS
        ! (variable names are XLAI00, XLAI01, .. XLAI72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'XLAI' , i2.2 )
-       CALL HCO_GetPtr( am_I_Root, HcoState, Name, Ptr2D, RC )
+       call HCO_GetPtr(  HcoState, Name, Ptr2D, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

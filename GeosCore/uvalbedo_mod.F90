@@ -128,7 +128,7 @@ CONTAINS
     Ptr2D => NULL()
 
     ! Get the pointer to the UV albedo data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
+    call HCO_GetPtr(  HcoState, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN

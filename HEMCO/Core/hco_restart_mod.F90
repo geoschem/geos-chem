@@ -338,7 +338,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
+       call HCO_GetPtr(  HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually pass data
@@ -494,7 +494,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
+       call HCO_GetPtr(  HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually pass data

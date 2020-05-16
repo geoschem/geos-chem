@@ -317,7 +317,7 @@
          ! Get a pointer to the CO2 production from CO oxidation
          ! This is now listed in the NON-EMISSIONS DATA section of
          ! the HEMCO configuration file. (bmy, 4/17/15)
-         CALL HCO_GetPtr( am_I_Root,   HcoState,
+         call HCO_GetPtr(    HcoState,
      &                   'CO2_COPROD', CO2_COPROD, RC )
 
          IF ( RC /= GC_SUCCESS ) THEN

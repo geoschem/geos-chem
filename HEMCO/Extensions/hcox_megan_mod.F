@@ -3519,7 +3519,7 @@
       IF ( RC /= HCO_SUCCESS ) RETURN
 
 ! ---> Now compute EF maps for acetone (dbm, 12/2012)
-!     CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_ACET', AEF_ACET, RC )
+!     call HCO_GetPtr(  HcoState, 'MEGAN_AEF_ACET', AEF_ACET, RC )
 !     IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
 
@@ -3531,7 +3531,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
 ! ---> Now compute EF maps for a-pinene and myrcene (dbm, 12/2012)
-!         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_APIN',AEF_APIN, RC )
+!         call HCO_GetPtr(  HcoState, 'MEGAN_AEF_APIN',AEF_APIN, RC )
 !         IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
          CALL HCO_EvalFld( am_I_Root, HcoState,
@@ -3550,7 +3550,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
 ! ---> Now compute EF maps for a-pinene and myrcene (dbm, 12/2012)
-!         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_MYRC',AEF_MYRC, RC )
+!         call HCO_GetPtr(  HcoState, 'MEGAN_AEF_MYRC',AEF_MYRC, RC )
 !         IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
 

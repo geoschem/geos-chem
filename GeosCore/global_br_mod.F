@@ -189,7 +189,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GC', Br_GC,  RC )
+         call HCO_GetPtr(  HcoState, 'Br_GC', Br_GC,  RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -206,7 +206,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GC', BrO_GC, RC )
+         call HCO_GetPtr(  HcoState, 'BrO_GC', BrO_GC, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -225,7 +225,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root,  HcoState,
+         CALL HCO_GetPtr(   HcoState,
      &                   'Br_TOMCAT', Br_TOMCAT, RC )
 
          ! Trap potential errors
@@ -243,7 +243,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root,   HcoState,
+         CALL HCO_GetPtr(    HcoState,
      &                   'BrO_TOMCAT', BrO_TOMCAT, RC )
 
          ! Trap potential errors
@@ -263,7 +263,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GMI', Br_GMI, RC )
+      call HCO_GetPtr(  HcoState, 'Br_GMI', Br_GMI, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -280,7 +280,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GMI', BrO_GMI, RC )
+      call HCO_GetPtr(  HcoState, 'BrO_GMI', BrO_GMI, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -329,7 +329,7 @@
 !$OMP END PARALLEL DO
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'JBrO', JBrO, RC )
+      call HCO_GetPtr(  HcoState, 'JBrO', JBrO, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN

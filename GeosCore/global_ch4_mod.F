@@ -820,7 +820,7 @@
 
          ! Import CH4 loss frequencies from HEMCO. The target will be
          ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LOSS', CH4LOSS, RC )
+         call HCO_GetPtr(  HcoState, 'CH4_LOSS', CH4LOSS, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -837,7 +837,7 @@
       IF ( FIRSTCHEM ) THEN
 
          ! Get pointer to GLOBAL_OH
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', BOH, RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_OH', BOH, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -847,7 +847,7 @@
          ENDIF
 
          ! Get pointer to GLOBAL_Cl
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_Cl', BCl, RC )
+         call HCO_GetPtr(  HcoState, 'GLOBAL_Cl', BCl, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN

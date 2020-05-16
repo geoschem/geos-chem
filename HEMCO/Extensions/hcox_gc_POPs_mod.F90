@@ -290,19 +290,19 @@ CONTAINS
     !=======================================================================
     IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'TOT_POP',     Inst%POP_TOT_EM, RC )
+       call HCO_GetPtr( HcoState, 'TOT_POP',     Inst%POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OC',   Inst%C_OC,       RC )
+       call HCO_GetPtr( HcoState, 'GLOBAL_OC',   Inst%C_OC,       RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_BC',   Inst%C_BC,       RC )
+       call HCO_GetPtr( HcoState, 'GLOBAL_BC',   Inst%C_BC,       RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'SURF_POP',    Inst%POP_SURF,   RC )
+       call HCO_GetPtr( HcoState, 'SURF_POP',    Inst%POP_SURF,   RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'SOIL_CARBON', Inst%F_OC_SOIL,  RC )
+       call HCO_GetPtr( HcoState, 'SOIL_CARBON', Inst%F_OC_SOIL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Convert F_OC_SOIL from kg/m2 to fraction

@@ -490,42 +490,42 @@
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
 
-            CALL HCO_GetPtr( aIR, HcoState, 'O3', O3m, RC )
+            call HCO_GetPtr( HcoState, 'O3', O3m, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to O3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'PH2O2', PH2O2m, RC )
+            call HCO_GetPtr( HcoState, 'PH2O2', PH2O2m, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg =  'Cannot get pointer to PH2O2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'JH2O2', JH2O2,  RC )
+            call HCO_GetPtr( HcoState, 'JH2O2', JH2O2,  RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to JH2O2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,    RC )
+            call HCO_GetPtr( HcoState, 'GLOBAL_OH',  OH,    RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3,   RC )
+            call HCO_GetPtr( HcoState, 'GLOBAL_NO3', NO3,   RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_NO3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
+            call HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_HNO3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )

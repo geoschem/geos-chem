@@ -423,7 +423,7 @@ CONTAINS
        ! (variable names are LANDTYPE00, LANDTYPE01 .. LANDTYPE72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'LANDTYPE', i2.2 )
-       CALL HCO_GetPtr( am_I_Root, HcoState, Name, Ptr2D, RC )
+       CALL HCO_GetPtr(  HcoState, Name, Ptr2D, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

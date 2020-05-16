@@ -438,7 +438,7 @@
          IDacet   = Ind_( 'COacet'  )
 
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr(  HcoState, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -446,7 +446,7 @@
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, HcoState,
+         CALL HCO_GetPtr(  HcoState,
      &                   'GMI_PROD_CO', GMI_PROD_CO, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
@@ -455,7 +455,7 @@
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, HcoState,
+         CALL HCO_GetPtr(  HcoState,
      &                   'GMI_LOSS_CO', GMI_LOSS_CO, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
@@ -465,7 +465,7 @@
 
          ! Get pointer to trop P(CO) from CH4 if needed
          IF ( LPCO_CH4 ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,
+            CALL HCO_GetPtr(  HcoState,
      &                      'PCO_CH4', PCO_CH4, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_CH4!'
@@ -475,7 +475,7 @@
          ENDIF
 
          IF ( LPCO_NMVOC ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,
+            CALL HCO_GetPtr(  HcoState,
      &                      'PCO_NMVOC', PCO_NMVOC, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
@@ -485,7 +485,7 @@
          ENDIF
 
          ! Get pointer to surface CH4 data
-         CALL HCO_GetPtr( am_I_Root, HcoState,
+         CALL HCO_GetPtr(  HcoState,
      &                    'NOAA_GMD_CH4', SFC_CH4, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
