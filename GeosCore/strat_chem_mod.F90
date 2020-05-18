@@ -636,8 +636,11 @@ CONTAINS
 
           ! Do Linoz or Synoz
           IF ( LLINOZ ) THEN
-             CALL Do_Linoz( am_I_Root,  Input_Opt, State_Chm,           &
-                            State_Grid, State_Met, RC=errCode )
+              IF ( am_I_Root ) THEN
+                  Write(6,*) " Bypassing LINOZ for now"
+              ENDIF
+             !CALL Do_Linoz( am_I_Root,  Input_Opt, State_Chm,           &
+             !               State_Grid, State_Met, RC=errCode )
           ELSE
              CALL Do_Synoz( am_I_Root,  Input_Opt, State_Chm,           &
                             State_Grid, State_Met, RC=errCode )
