@@ -82,7 +82,6 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	ucx_mod.F90
 	uvalbedo_mod.F90
 	vdiff_mod.F90
-	vdiff_pre_mod.F90
 	wetscav_mod.F90
 	YuIMN_Code.F90
 

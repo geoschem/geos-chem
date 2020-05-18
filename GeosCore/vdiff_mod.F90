@@ -53,18 +53,18 @@ MODULE Vdiff_Mod
   REAL(fp), PARAMETER   :: tfh2o  = 273.16_fp
   REAL(fp), PARAMETER   :: rair   = Rd
   REAL(fp), PARAMETER   :: rh2o   = Rv
+  REAL(fp), PARAMETER   :: g      = G0
   REAL(fp), PARAMETER   :: gravit = g0
   REAL(fp), PARAMETER   :: zvir   = rh2o/rair - 1 !.0_fp
   REAL(fp), PARAMETER   :: cappa  = Rd/cpair
+  REAL(fp), PARAMETER   :: r_g    = Rdg0
 
   ! PBL constants
   REAL(fp), PARAMETER   :: betam  = 15.0_fp  ! For wind gradient expression
   REAL(fp), PARAMETER   :: betas  = 5.0_fp   ! For surface layer gradient
   REAL(fp), PARAMETER   :: betah  = 15.0_fp  ! For temperature gradient
   REAL(fp), PARAMETER   :: fak    = 8.50_fp  ! For surface temperature excess
-  REAL(fp), PARAMETER   :: g      = G0
   REAL(fp), PARAMETER   :: fakn   = 7.20_fp  ! For turbulent prandtl number
-  REAL(fp), PARAMETER   :: r_g    = Rdg0
   REAL(fp), PARAMETER   :: ricr   = 0.3_fp   ! For critical richardson number
   REAL(fp), PARAMETER   :: sffrac = 0.1_fp   ! For surface layer fraction of BL
   REAL(fp), PARAMETER   :: vk     = VON_KARMAN 
@@ -1800,22 +1800,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER          :: I,     J,     L,     N
     INTEGER          :: NN,    D,     NA,    nAdvect
     INTEGER          :: ND,    nDryDep
-    real(fp) :: vtemp
-    real(fp) :: dtime
-    real(fp) :: wk1, wk2
-    real(fp) :: soilflux
-    integer  :: pbl_top
-
-    REAL(fp) :: DEP_KG
-
-
-
-    ! Scalars
-
-  
+    real(fp)         :: vtemp
+    real(fp)         :: dtime
+    real(fp)         :: wk1, wk2
+    real(fp)         :: soilflux
+    integer          :: pbl_top
+    REAL(fp)         :: DEP_Kg
 
     ! Arrays
     REAL(fp), TARGET :: pblh    (State_Grid%NX,State_Grid%NY)
@@ -1840,10 +1834,6 @@ CONTAINS
     REAL(fp), TARGET :: sflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
     REAL(fp), TARGET :: eflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
     REAL(fp), TARGET :: dflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
-
-
-    ! Array to store a single level of the AS2 array,
-    ! so as not to blow up the parallelization (ccc, 12/22.10)
 
     ! Pointers
     REAL(fp),  POINTER :: p_um1   (:,:,:  )
@@ -1933,25 +1923,25 @@ CONTAINS
     DEPSAV  => State_Chm%DryDepSav
 
     ! Initialize local arrays. (ccc, 12/21/10)
-    pmid    = 0e+0_fp
-    rpdel   = 0e+0_fp
-    rpdeli  = 0e+0_fp
-    zm      = 0e+0_fp
-    pint    = 0e+0_fp
-    sflx     = 0e+0_fp
-    eflx     = 0e+0_fp
-    dflx     = 0e+0_fp
-    soilflux = 0e+0_fp
-    cgs     = 0e+0_fp
-    kvh     = 0e+0_fp
-    kvm     = 0e+0_fp
-    pblh    = 0e+0_fp
-    tpert   = 0e+0_fp
-    qpert   = 0e+0_fp
-    thp     = 0e+0_fp
-    shflx   = 0e+0_fp
-    t1      = 0e+0_fp
-    as2_scal= 0e+0_fp
+    pmid     = 0.0_fp
+    rpdel    = 0.0_fp
+    rpdeli   = 0.0_fp
+    zm       = 0.0_fp
+    pint     = 0.0_fp
+    sflx     = 0.0_fp
+    eflx     = 0.0_fp
+    dflx     = 0.0_fp
+    soilflux = 0.0_fp
+    cgs      = 0.0_fp
+    kvh      = 0.0_fp
+    kvm      = 0.0_fp
+    pblh     = 0.0_fp
+    tpert    = 0.0_fp
+    qpert    = 0.0_fp
+    thp      = 0.0_fp
+    shflx    = 0.0_fp
+    t1       = 0.0_fp
+    as2_scal = 0.0_fp 
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
@@ -1987,62 +1977,6 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
-!! (Turn off parallelization for now, skim 6/20/12)
-!
-!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
-!    do J = 1, State_Grid%NY
-!    do I = 1, State_Grid%NX
-!
-!    ! calculate variables related to pressure
-!    do L = 1, State_Grid%NZ
-!       pmid(I,J,L) = State_Met%PMID(I,J,L)*100.e+0_fp  ! hPa -> Pa
-!       pint(I,J,L) = State_Met%PEDGE(I,J,L)*100.e+0_fp ! hPa -> Pa
-!       ! calculate potential temperature
-!       thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
-!    enddo
-!    pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)
-!
-!    enddo
-!    enddo
-!!$OMP END PARALLEL DO
-!
-!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
-!    do J = 1, State_Grid%NY
-!    do I = 1, State_Grid%NX
-!    do L = 1, State_Grid%NZ
-!       ! Corrected calculation of zm.
-!       ! Box height calculation now uses virtual temperature.
-!       ! Therefore, use virtual temperature in hypsometric equation.
-!       ! (ewl, 3/3/15)
-!       zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
-!                 - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-!                 * r_g * State_Met%TV(I,J,L)
-!
-!    enddo
-!    enddo
-!    enddo
-!!$OMP END PARALLEL DO
-!
-!    ! Have to separate the calculations of pmid/pint and rpdel/rpdeli.
-!    ! (Lin, 06/02/08)
-!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
-!    do J = 1, State_Grid%NY
-!    do I = 1, State_Grid%NX
-!       do L = 1, State_Grid%NZ
-!          rpdel(I,J,L) = 1.e+0_fp / (pint(I,J,L) - pint(I,J,L+1))
-!       enddo
-!
-!       !rpdeli(I,J,1) = 1.e+0_fp / (PS(I,J) - pmid(I,J,1))
-!       rpdeli(I,J,1) = 0.e+0_fp ! follow mozart setup (shown in mo_physlic.F90)
-!
-!       do L = 2, State_Grid%NZ
-!          rpdeli(I,J,L) = 1.e+0_fp / (pmid(I,J,L-1) - pmid(I,J,L))
-!       enddo
-!    enddo
-!    enddo
-!!$OMP END PARALLEL DO
-!
-!############################################################################
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED )  &
 !$OMP PRIVATE( I, J, L ) 
@@ -2053,20 +1987,14 @@ CONTAINS
 
           ! Convert PMID and PEDGE from hPa to Pa
           pmid(I,J,L) = State_Met%PMID(I,J,L)  * 100.0_fp
-
-          ! 
           pint(I,J,L) = State_Met%PEDGE(I,J,L) * 100.0_fp
           
           ! Potential temperature [K]
           thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
-          IF ( I==23 .and. J==34 ) THEN
-             print*, "@@@ thp   : ", L, thp(I,J,L), State_Met%Theta(I,J,L)
-          ENDIF
        ENDDO
 
-       !!
+       ! PEDGE at the top of the atmosphere
        pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)
-
 
        ! Corrected calculation of zm.
        ! Box height calculation now uses virtual temperature.
@@ -2077,24 +2005,17 @@ CONTAINS
                     - log( pmid(I,J,L)/pint(I,J,L+1) )                      &
                     * r_g * State_Met%TV(I,J,L)
 
-    enddo
-
-       do L = 1, State_Grid%NZ
-          rpdel(I,J,L) = 1.e+0_fp / (pint(I,J,L) - pint(I,J,L+1))
+          rpdel(I,J,L) = 1.0_fp / (pint(I,J,L) - pint(I,J,L+1))
        enddo
 
        !rpdeli(I,J,1) = 1.e+0_fp / (PS(I,J) - pmid(I,J,1))
        rpdeli(I,J,1) = 0.e+0_fp ! follow mozart setup (shown in mo_physlic.F90)
-
        do L = 2, State_Grid%NZ
           rpdeli(I,J,L) = 1.e+0_fp / (pmid(I,J,L-1) - pmid(I,J,L))
        enddo
     enddo
     enddo
 !$OMP END PARALLEL DO
-
-!############################################################################
-
 
     !!! calculate surface flux = emissions - dry deposition !!!
 
