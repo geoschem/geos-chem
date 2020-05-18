@@ -27,7 +27,7 @@ MODULE Vdiff_Mod
   PUBLIC :: Cleanup_Vdiff
   PUBLIC :: Do_Vdiff
   PUBLIC :: Init_Vdiff
-
+  PUBLIC :: Max_PblHt_For_Vdiff
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -1613,8 +1613,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE PRESSURE_MOD,   ONLY : Get_Ap
-    USE PRESSURE_MOD,   ONLY : Get_Bp
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Grid_Mod, ONLY : GrdState
 !
@@ -1633,60 +1631,22 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-    REAL(fp), PARAMETER :: pbl_press = 400.e2     ! pressure cap for pbl (pa)
-!
-! !LOCAL VARIABLES
-!
-    ! Scalars
-    integer  :: K, M
-
-    ! Arrays
-    real(fp) :: ref_pmid(State_Grid%NZ)
 
     !=================================================================
     ! Init_Vdiff begins here!
     !=================================================================
 
-    ! Initialize
+    ! Assume success
     RC       = GC_SUCCESS
+
+    ! Exit if this is a dry-run simulation
+    IF ( Input_Opt%DryRun ) RETURN
+
+    ! Initialize
     plev     = State_Grid%NZ           ! # of levels
     plevp    = State_Grid%NZ + 1       ! # of level edges
     pcnst    = State_Chm%nAdvect       ! # of s pecies
     zkmin    = 0.01_fp                 ! = minimum k = kneutral * f(ri)
-
-    ! Set physical constants for vertical diffusion and pbl
-    ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being
-    ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
-    ref_pmid = 0.0_fp
-    DO k = 1, plev
-       ref_pmid(plev-k+1) = 0.5_fp * ( GET_AP(k  ) * 100.0_fp                &
-                          +            GET_BP(k  ) * 1.e+5_fp                &
-                          +            GET_AP(k+1) * 100.e+0_fp              &
-                          +            GET_BP(k+1) * 1.e+5_fp               )
-    ENDDO
-
-    ! Derived constants
-    ! ntopfl = top level to which v-diff is applied
-    ! npbl   = max number of levels (from bottom) in pbl
-    DO k = plev,1,-1
-       IF( ref_pmid(k) < pbl_press ) then
-          EXIT
-       ENDIF
-    enddo
-
-    npbl = MAX( 1,plev - k )
-    IF ( Input_Opt%AmIRoot ) THEN
-       write(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
-            ' model levels. top is ',1.e-2_fp*ref_pmid(plevp-npbl),' hpa'
-    ENDIF
-    if( plev == 1 ) then
-       ntopfl = 0
-    else
-       ntopfl = 1
-    end if
 
     ! Set the square of the mixing lengths
     ALLOCATE( ml2(plevp), STAT=RC )
@@ -1712,6 +1672,119 @@ CONTAINS
 #endif
 
   END SUBROUTINE Init_Vdiff
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: max_pblht_for_vdiff
+!
+! !DESCRIPTION: Computes the maximum boundary layer height variables
+!  for the non-local mixing.  This was rewritten to avoid assuming the
+!  a specific grid configuration.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Max_PblHt_For_Vdiff( Input_Opt, State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    TYPE(GrdState), INTENT(IN)  :: State_Grid
+    TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT) :: RC
+!
+! !REMARKS:
+!  This routine contains code that was originally in Init_Vdiff.  But it
+!  has to be separated so that it can be called after the initial met fields 
+!  are read from disk.  This allows us to use the surface pressure field
+!  instead of referencing the Ap and Bp parameters directly.
+!
+! !REVISION HISTORY:
+!  18 May 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+    REAL(fp), PARAMETER :: pbl_press = 400.0_fp   ! pressure cap for pbl (Pa)
+!
+! !LOCAL VARIABLES
+!
+    ! Scalars
+    INTEGER             :: K
+    REAL(fp)            :: cells_per_layer
+
+    ! Arrays
+    REAL(fp)            :: ref_pmid(State_Grid%NZ)
+
+    ! Strings
+    CHARACTER(LEN=255)  :: errMsg
+    CHARACTER(LEN=255)  :: thisLoc
+
+    !===================================================================
+    ! Max_PblHt_for_Vdiff begins here!
+    !===================================================================
+
+    ! Assume success
+    RC              = GC_SUCCESS
+
+    ! Exit if the non-local PBL mixing is not being used
+    IF ( .not. ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) ) RETURN
+
+    ! Initialize
+    ref_pmid        = 0.0_fp
+    cells_per_layer = DBLE( State_Grid%NX * State_Grid%NY )
+    errMsg          = ''
+    thisLoc         = &
+     ' -> at Max_PblHt_for_Vdiff (in module GeosCore/vdiff_mod.F90)'
+
+    ! Now use the average initial surface pressure per layer instead of 
+    ! having to reference the Ap and Bp.  This should make it easier
+    ! to interface to external models such as CESM.
+    DO k = 1, plev
+       ref_pmid(plev-k+1) = SUM( State_Met%PMid(:,:,K) ) / cells_per_layer 
+    ENDDO
+
+    ! Derived constants
+    ! ntopfl = top level to which v-diff is applied
+    ! npbl   = max number of levels (from bottom) in pbl
+    DO k = plev,1,-1
+       IF( ref_pmid(k) < pbl_press ) then
+          EXIT
+       ENDIF
+    ENDDO
+
+    ! Compute the number of PBL levels
+    npbl = MAX( 1, plev - k )
+    IF ( Input_Opt%AmIRoot ) THEN
+       write(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
+            ' model levels.'
+       WRITE(6,*) 'Top is ',1.e-2_fp*ref_pmid(plevp-npbl),' hpa'
+    ENDIF
+
+    ! Set the ntopfl  
+    IF ( plev == 1 ) THEN
+       ntopfl = 0
+    ELSE
+       ntopfl = 1
+    ENDIF
+
+  END SUBROUTINE Max_PblHt_For_Vdiff
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

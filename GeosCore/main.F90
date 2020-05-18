@@ -781,6 +781,14 @@ PROGRAM GEOS_Chem
   ! Skip certain initializations
   IF ( notDryRun ) THEN
 
+     ! Once the initial met fields have been read in, we need to find
+     ! the maximum PBL level for the non-local mixing algorithm.
+     CALL Max_PblHt_For_Vdiff( Input_Opt, State_Grid, State_Met, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Max_PblHt_for_Vdiff"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
+     ENDIF
+
      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
      CALL Init_LandTypeFrac( Input_Opt, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
