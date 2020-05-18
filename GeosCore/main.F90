@@ -781,14 +781,6 @@ PROGRAM GEOS_Chem
   ! Skip certain initializations
   IF ( notDryRun ) THEN
 
-     ! Once the initial met fields have been read in, we need to find
-     ! the maximum PBL level for the non-local mixing algorithm.
-     CALL Max_PblHt_For_Vdiff( Input_Opt, State_Grid, State_Met, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Max_PblHt_for_Vdiff"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-
      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
      CALL Init_LandTypeFrac( Input_Opt, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
@@ -810,6 +802,14 @@ PROGRAM GEOS_Chem
         ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
         RETURN
+     ENDIF
+
+     ! Once the initial met fields have been read in, we need to find
+     ! the maximum PBL level for the non-local mixing algorithm.
+     CALL Max_PblHt_For_Vdiff( Input_Opt, State_Grid, State_Met, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Max_PblHt_for_Vdiff"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
 
@@ -1542,6 +1542,19 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
+          
+          ! Compute the surface flux for the non-local mixing,
+          ! (which means getting emissions & drydep from HEMCO)
+          ! and store it in State_Chm%Surface_Flux
+          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN 
+             CALL HCOI_Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,        &
+                                               State_Diag, State_Grid,       &
+                                               State_Met,  RC               )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                CALL Error_Stop( errMsg, thisLoc )
+             ENDIF
+          ENDIF
 
           ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
@@ -1561,7 +1574,7 @@ PROGRAM GEOS_Chem
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Do_Mixing"!'
-             CALL ERror_Stop( ErrMsg, ThisLoc )
+             CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN

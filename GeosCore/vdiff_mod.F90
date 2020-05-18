@@ -1678,7 +1678,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: max_pblht_for_vdiff
+! !IROUTINE: Max_PblHt_For_Vdiff
 !
 ! !DESCRIPTION: Computes the maximum boundary layer height variables
 !  for the non-local mixing.  This was rewritten to avoid assuming the
@@ -1903,7 +1903,6 @@ CONTAINS
     REAL(fp), TARGET :: kvh     (State_Grid%NX, State_Grid%NY,State_Grid%NZ+1)
     REAL(fp), TARGET :: kvm     (State_Grid%NX, State_Grid%NY,State_Grid%NZ+1)
 
-    REAL(fp)         :: as2_scal(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
     REAL(fp), TARGET :: sflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
     REAL(fp), TARGET :: eflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
     REAL(fp), TARGET :: dflx    (State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
@@ -1927,6 +1926,7 @@ CONTAINS
     REAL(fp),  POINTER :: p_t1    (:,:,:  )
     REAL(fp),  POINTER :: p_as2   (:,:,:,:)
     REAL(fp),  POINTER :: DEPSAV  (:,:,:  )  ! IM, JM, nDryDep
+    REAL(fp),  POINTER :: as2_scal(:,:,:  )
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
@@ -1973,10 +1973,10 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS               ! Assume success
-    nAdvect = State_Chm%nAdvect        ! # of advected species
-    ErrMsg  = ''
-    ThisLoc = ' -> at VDIFF (in module GeosCore/vdiff_mod.F90)'
+    RC       =  GC_SUCCESS               
+    nAdvect  =  State_Chm%nAdvect
+    ErrMsg   = ''
+    ThisLoc  = ' -> at VDIFF (in module GeosCore/vdiff_mod.F90)'
 
     !### Debug
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
@@ -1992,8 +1992,9 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    SpcInfo => NULL()
-    DEPSAV  => State_Chm%DryDepSav
+    SpcInfo  => NULL()
+    DEPSAV   => State_Chm%DryDepSav
+    as2_scal => State_Chm%Species(:,:,1,1:State_Chm%nAdvect)
 
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid     = 0.0_fp
@@ -2014,7 +2015,6 @@ CONTAINS
     thp      = 0.0_fp
     shflx    = 0.0_fp
     t1       = 0.0_fp
-    as2_scal = 0.0_fp 
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
@@ -2086,22 +2086,12 @@ CONTAINS
        do L = 2, State_Grid%NZ
           rpdeli(I,J,L) = 1.e+0_fp / (pmid(I,J,L-1) - pmid(I,J,L))
        enddo
+
     enddo
     enddo
 !$OMP END PARALLEL DO
 
     !!! calculate surface flux = emissions - dry deposition !!!
-
-    ! Define slice of AS2, so as not to blow up the parallelization
-    ! (ccc, bmy, 12/20/10)
-    !
-    ! NOTE: For now, so as to avoid having to rewrite the internals
-    ! of the TPCORE routines, just point to 1:nAdvect entries of
-    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-    ! the advected species are listed first.  This may change in the
-    ! future, but we'll worry about that later. (bmy, 7/13/16)
-    as2_scal = State_Chm%Species(:,:,1,1:nAdvect)
-
 !$OMP PARALLEL DO                                                         &
 !$OMP DEFAULT( SHARED )                                                   &
 !$OMP PRIVATE( I,      J,               L,            N                 ) &
@@ -2622,7 +2612,9 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
     ! Nullify pointers
-    NULLIFY( DEPSAV )
+    SpcInfo  => NULL()
+    as2_scal => NULL()
+    depsav   => NULL()
 
   END SUBROUTINE VDIFFDR
 !EOC

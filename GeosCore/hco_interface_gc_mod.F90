@@ -49,6 +49,7 @@ MODULE HCO_Interface_GC_Mod
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
   PUBLIC  :: HCOI_GC_WriteDiagn
+  PUBLIC  :: HCOI_Compute_Sflx_For_Vdiff
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -614,7 +615,7 @@ CONTAINS
     ! Leave w/ success
     RC = GC_SUCCESS
 
-    END SUBROUTINE HCOI_GC_INIT
+  END SUBROUTINE HCOI_GC_INIT
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2706,7 +2707,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE SetHcoSpecies
+  END SUBROUTINE SetHcoSpecies
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2838,7 +2839,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE SetHcoGrid
+  END SUBROUTINE SetHcoGrid
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3356,20 +3357,19 @@ CONTAINS
              SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
                              MAX(SUNTMP(I,J),0e+0_fp)
 
-         ENDDO
-         ENDDO
+          ENDDO
+          ENDDO
 !!$OMP END PARALLEL DO
 
-         ! Increment elapsed time [sec]
-         NT = NT + GET_TS_CHEM()
-      ENDDO
+          ! Increment elapsed time [sec]
+          NT = NT + GET_TS_CHEM()
+       ENDDO
 
-      ! Set saved day of year to current day of year
-      SAVEDOY = GET_DAY_OF_YEAR()
+       ! Set saved day of year to current day of year
+       SAVEDOY = GET_DAY_OF_YEAR()
 
-   ENDIF
+    ENDIF
 
-   ! Return to calling program
- END SUBROUTINE Calc_SumCosZa
+  END SUBROUTINE Calc_SumCosZa
 !EOC
 END MODULE HCO_Interface_GC_Mod
