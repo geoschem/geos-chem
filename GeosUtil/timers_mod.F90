@@ -60,10 +60,11 @@ MODULE Timers_Mod
   INTEGER                                   :: TimerCurrentSize = 0
 
   ! Maximum Supported Timers. Increasing will increase memory footprint.
-  INTEGER, PARAMETER                        :: TimerMaxSize = 30
+  INTEGER, PARAMETER                        :: TimerMaxSize = 35
 
   ! Number of threads for parallel loops
-  INTEGER                                   :: nThreads = 1
+  INTEGER                                   :: nThreads   = 1
+  REAL(f8)                                  :: d_nThreads = 1.0_f8
 
   ! The definition of the GC_Timer type.
   TYPE GC_Timer
@@ -146,7 +147,8 @@ CONTAINS
 
     ! Determine the number of threads available for parallel loops
     !$OMP PARALLEL
-    nThreads = OMP_GET_NUM_THREADS()
+    nThreads   = OMP_GET_NUM_THREADS()
+    d_nThreads = DBLE( nThreads )
     !$OMP END PARALLEL
 
     ! Debug
@@ -575,7 +577,8 @@ CONTAINS
     ENDIF
 
     ! Sum the total time across threads
-    SavedTimers(TimerLoc)%TOTAL_TIME = SUM(SavedTimers(TimerLoc)%TOTAL_TIME_LOOP)
+    SavedTimers(TimerLoc)%TOTAL_TIME =                                       &
+         SUM(SavedTimers(TimerLoc)%TOTAL_TIME_LOOP) / d_nThreads
 
     ! Debug
     !Print*, 'Timer:', TRIM(TimerName)
