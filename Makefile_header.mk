@@ -718,7 +718,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
     FFLAGS           += -Wall -Wextra -Wconversion
     FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
     TRACEBACK        :=yes
-    USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
   endif
@@ -842,7 +841,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0 -check arg_temp_created -debug all
     TRACEBACK        :=yes
-    USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT) -vec-report0
   endif

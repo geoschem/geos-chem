@@ -351,9 +351,7 @@ CONTAINS
     ! Do TOMAS aerosol microphysics
     CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
-#if defined ( DEBUG )
-    print *, 'call checkmn in tomas_mod:222'
-#endif
+    !print *, 'call checkmn in tomas_mod:222'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                   State_Met,'Before Aerodrydep', RC)
 
@@ -367,9 +365,7 @@ CONTAINS
 
     ! not in kg
 
-#if defined ( DEBUG )
-    print *, 'call checkmn in tomas_mod:229'
-#endif
+    !print *, 'call checkmn in tomas_mod:229'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                   State_Met, 'Before exiting DO_TOMAS', RC )
 
