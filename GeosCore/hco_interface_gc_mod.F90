@@ -3372,4 +3372,4 @@ CONTAINS
 
   END SUBROUTINE Calc_SumCosZa
 !EOC
-END MODULE HCO_Interface_GC_Mod
+END MODULE Hco_Interface_GC_Mod

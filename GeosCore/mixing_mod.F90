@@ -118,10 +118,6 @@ CONTAINS
        ! it is now, then we will have stored drydep fluxes up to that height,
        ! so we need to zero these out.)
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_DryDepMix .or.  &
-            State_Diag%Archive_DryDep        ) THEN
-          State_Diag%DryDepMix = 0.0_f4
-       ENDIF
 
        ! Non-local mixing
        CALL Do_Vdiff( Input_Opt,  State_Chm, State_Diag,                     &

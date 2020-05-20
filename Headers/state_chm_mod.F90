@@ -225,6 +225,11 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
 
      !----------------------------------------------------------------------
+     ! Fields for non-local PBL mixing
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: SurfaceFlux(:,:,:  )
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -454,6 +459,7 @@ CONTAINS
     State_Chm%TLSTT             => NULL()
 
     State_Chm%DryDepSav         => NULL()
+    State_Chm%SurfaceFlux       => NULL()
 
     ! Local variables
     Ptr2data                    => NULL()
@@ -1793,6 +1799,21 @@ CONTAINS
         IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !------------------------------------------------------------------
+    ! Surface flux for non-local PBL mixing
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
+       chmID = 'SurfaceFlux'
+       ALLOCATE( State_Chm%SurfaceFlux( IM, JM, State_Chm%nAdvect ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SurfaceFlux = 0.0_fp
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SurfaceFlux,      &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !========================================================================
     ! Once we are done registering all fields, we need to define the
     ! registry lookup table.  This algorithm will avoid hash collisions.
@@ -2324,6 +2345,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%QQ3D', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%QQ3D => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
+       DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SurfaceFlux => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3089,6 +3117,11 @@ CONTAINS
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
           IF ( isUnits ) Units = 'cm3 H2O cm-3 air'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'SURFACEFLUX' )
+          IF ( isDesc  ) Desc  = 'Surface flux (E-D) for non-local PBL mixing'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
 
        CASE DEFAULT
