@@ -22,20 +22,21 @@ MODULE Timers_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Timer_Setup     ! Init Method
-  PUBLIC  :: Timer_Add       ! Adds a timer.
-  PUBLIC  :: Timer_Start     ! Starts a timer ticking.
-  PUBLIC  :: Timer_End       ! Stops a timer ticking.
-  PUBLIC  :: Timer_Print     ! Prints the specified timer.
-  PUBLIC  :: Timer_PrintAll  ! Prints all timers.
-  PUBLIC  :: Timer_StopAll   ! Stops all currently running timers.
+  PUBLIC  :: Timer_Setup     ! Setup timers
+  PUBLIC  :: Timer_Add       ! Adds a timer
+  PUBLIC  :: Timer_Start     ! Starts a timer ticking
+  PUBLIC  :: Timer_End       ! Stops a timer ticking
+  PUBLIC  :: Timer_Sum_Loop  ! Sums the timers within a loop
+  PUBLIC  :: Timer_Print     ! Prints the specified timer
+  PUBLIC  :: Timer_PrintAll  ! Prints all timers
+  PUBLIC  :: Timer_StopAll   ! Stops all currently running timers
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Timer_Find      ! Finds the specified timer.
-  PRIVATE :: Timer_PrintNum  ! Prints the timer by number.
-  PRIVATE :: Timer_TheTime   ! Returns the current time in MS.
-  PRIVATE :: Timer_TimePrint ! Formats the seconds when printing.
+  PRIVATE :: Timer_Find      ! Finds the specified timer
+  PRIVATE :: Timer_PrintNum  ! Prints the timer by number
+  PRIVATE :: Timer_TheTime   ! Returns the current time in milliseconds
+  PRIVATE :: Timer_TimePrint ! Formats the seconds when printing
 !
 ! !REMARKS:
 !  This module helps track valuable timing information.
@@ -61,13 +62,19 @@ MODULE Timers_Mod
   ! Maximum Supported Timers. Increasing will increase memory footprint.
   INTEGER, PARAMETER                        :: TimerMaxSize = 30
 
+  ! Number of threads for parallel loops
+  INTEGER                                   :: nThreads = 1
+
   ! The definition of the GC_Timer type.
   TYPE GC_Timer
      LOGICAL                                :: ENABLED
      CHARACTER(LEN=30)                      :: TIMER_NAME
      REAL(f8)                               :: TOTAL_TIME
+     REAL(f8), ALLOCATABLE                  :: TOTAL_TIME_LOOP(:)
      REAL(f8)                               :: START_TIME
+     REAL(f8), ALLOCATABLE                  :: START_TIME_LOOP(:)
      REAL(f8)                               :: END_TIME
+     REAL(f8), ALLOCATABLE                  :: END_TIME_LOOP(:)
   END TYPE GC_Timer
 
   ! The array of timers. Determined by TimerMaxSize.
@@ -112,6 +119,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: RC
+    INTEGER, EXTERNAL  :: OMP_GET_NUM_THREADS
 
     ! Strings
     CHARACTER(LEN=255) :: WarnMsg, ThisLoc
@@ -135,6 +143,11 @@ CONTAINS
     ENDIF
 
     TimerMode = TheMode
+
+    ! Determine the number of threads available for parallel loops
+    !$OMP PARALLEL
+    nThreads = OMP_GET_NUM_THREADS()
+    !$OMP END PARALLEL
 
     ! Debug
     !PRINT*, "Timer_Setup: Done setting up GEOS-Chem timers"
@@ -161,7 +174,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
+    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -179,7 +192,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -191,19 +203,35 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Timer_Add (in module GeosUtil/timers_mod.F90)'
 
-    ! Now we are sure that timers are enabled.
-    ! We need to check if the timers are full.
-    IF (TimerCurrentSize < TimerMaxSize) THEN         ! There's room.
+    ! Now we are sure that timers are enabled
+    ! We need to check if the timers are full
+    IF (TimerCurrentSize < TimerMaxSize) THEN         ! There's room
 
-       ! Increase the timer current size by one.
+       ! Increase the timer current size by one
        TimerCurrentSize = TimerCurrentSize + 1
 
-       ! Set the defaults of the new Timer.
+       ! Set the defaults of the new Timer
        SavedTimers(TimerCurrentSize)%ENABLED    = .false.
        SavedTimers(TimerCurrentSize)%TIMER_NAME = TimerName
        SavedTimers(TimerCurrentSize)%TOTAL_TIME = 0.0_f8
        SavedTimers(TimerCurrentSize)%START_TIME = 0.0_f8
        SavedTimers(TimerCurrentSize)%END_TIME   = 0.0_f8
+
+       ! Setup arrays for timers called within parallel loops
+       ALLOCATE( SavedTimers(TimerCurrentSize)%START_TIME_LOOP(nThreads), &
+                 STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SavedTimers(TimerCurrentSize)%START_TIME_LOOP = 0.0_f8
+
+       ALLOCATE( SavedTimers(TimerCurrentSize)%END_TIME_LOOP(nThreads), &
+                 STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SavedTimers(TimerCurrentSize)%END_TIME_LOOP = 0.0_f8
+
+       ALLOCATE( SavedTimers(TimerCurrentSize)%TOTAL_TIME_LOOP(nThreads), &
+                 STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SavedTimers(TimerCurrentSize)%TOTAL_TIME_LOOP = 0.0_f8
 
        ! Debug
        !PRINT*, TimerName, "timer added at slot ", TimerCurrentSize
@@ -211,7 +239,7 @@ CONTAINS
        ! Success.
        RC = GC_SUCCESS
 
-    ELSE                                             ! There's not room.
+    ELSE                                             ! There's not room
 
        ! Exit with error
        PRINT*,"    TimerCurrentSize = ", TimerCurrentSize
@@ -236,7 +264,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Timer_Start( TimerName, RC )
+  SUBROUTINE Timer_Start( TimerName, RC, InLoop, ThreadNum )
 !
 ! !USES:
 !
@@ -244,11 +272,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
+    CHARACTER(LEN=*),  INTENT(IN)    :: TimerName   ! Name for timer
+    LOGICAL, OPTIONAL, INTENT(IN)    :: InLoop      ! Called within a loop?
+    INTEGER, OPTIONAL, INTENT(IN)    :: ThreadNum   ! Current thread number
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC          ! Success / Failure
+    INTEGER,           INTENT(INOUT) :: RC          ! Success / Failure
 !
 ! !REMARKS:
 !  This must be called to start a timer ticking.
@@ -263,6 +293,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL            :: LoopTimer          ! Is this a timer in a DO loop?
     INTEGER            :: TimerLoc           ! Timer number
     REAL(f8)           :: TheTime            ! Returned Time from method
 
@@ -275,14 +306,17 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at Timer_Start (in module GeosUtil/timers_mod.F90)'
+    RC        = GC_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = ' -> at Timer_Start (in module GeosUtil/timers_mod.F90)'
 
+    ! Is this timer in a parallel loop?
+    LoopTimer = .FALSE.
+    IF ( PRESENT(InLoop) ) LoopTimer = .TRUE.
+
+    ! Determine the timer index
     TempTimerName = TimerName
-
-    ! First we must find the specified timer.
-    TimerLoc = Timer_Find( TempTimerName )
+    TimerLoc      = Timer_Find( TempTimerName )
 
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
@@ -291,15 +325,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Now we do some minor error checking
-    IF ( SavedTimers(TimerLoc)%ENABLED ) THEN
-       ErrMsg = 'Timer already running: ' // TRIM( TimerName )
-       CALL GC_Warning( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+    IF ( .not. LoopTimer ) THEN
+       ! Now we do some minor error checking
+       IF ( SavedTimers(TimerLoc)%ENABLED ) THEN
+          ErrMsg = 'Timer already running: ' // TRIM( TimerName )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-    ! Timer isn't enabled, it's been found, so we enable it
-    SavedTimers(TimerLoc)%ENABLED = .true.
+       ! Timer isn't enabled, it's been found, so we enable it
+       SavedTimers(TimerLoc)%ENABLED = .true.
+    ENDIF
 
     ! And we note the current time
     ! 1: CPU Time
@@ -309,10 +345,19 @@ CONTAINS
        TheTime = Timer_TheTime()
     ENDIF
 
-    ! Debug
-    !PRINT*, "** RETURNED TIME (START): ", TheTime
+    IF ( LoopTimer ) THEN
+       ! Debug
+       !PRINT*, TRIM(TempTimerName), ": Thread=", ThreadNum, ", Start=", TheTime
 
-    SavedTimers(TimerLoc)%START_TIME = TheTime
+       ! Get the start time
+       SavedTimers(TimerLoc)%START_TIME_LOOP(ThreadNum) = TheTime
+    ELSE
+       ! Debug
+       !PRINT*, TRIM(TempTimerName), ": Start=", TheTime
+
+       ! Get the start time
+       SavedTimers(TimerLoc)%START_TIME = TheTime
+    ENDIF
 
   END SUBROUTINE Timer_Start
 !EOC
@@ -328,7 +373,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Timer_End( TimerName, RC )
+  SUBROUTINE Timer_End( TimerName, RC, InLoop, ThreadNum )
 !
 ! !USES:
 !
@@ -336,11 +381,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
+    CHARACTER(LEN=*),  INTENT(IN)    :: TimerName   ! Name for timer
+    LOGICAL, OPTIONAL, INTENT(IN)    :: InLoop      ! Called within a loop?
+    INTEGER, OPTIONAL, INTENT(IN)    :: ThreadNum   ! Current thread number
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC          ! Success / Failure
+    INTEGER,           INTENT(INOUT) :: RC          ! Success / Failure
 !
 ! !REMARKS:
 !  Without this routine being called, a timer will not add to its total.
@@ -355,16 +402,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL            :: LoopTimer          ! Is this a timer in a DO loop?
     INTEGER            :: TimerLoc           ! Timer number
-    REAL(f8)             :: TheTime            ! Returned Time from method
-    REAL(f8)             :: Diff               ! Difference in times
+    REAL(f8)           :: TheTime            ! Returned Time from method
+    REAL(f8)           :: Diff               ! Difference in times
 
     ! Strings
     CHARACTER(LEN=30)  :: TempTimerName
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! Timer_Start begins here!
+    ! Timer_End begins here!
     !=======================================================================
 
     ! Initialize
@@ -372,9 +420,13 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Timer_End (in module GeosUtil/timers_mod.F90)'
 
-    TempTimerName = TimerName
+    ! Is this timer in a parallel loop?
+    LoopTimer = .FALSE.
+    IF ( PRESENT(InLoop) ) LoopTimer = .TRUE.
 
-    TimerLoc = Timer_Find( TempTimerName )
+    ! Determine timer index
+    TempTimerName = TimerName
+    TimerLoc      = Timer_Find( TempTimerName )
 
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
@@ -383,15 +435,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Now we do some minor error checking
-    IF ( .not. SavedTimers(TimerLoc)%ENABLED ) THEN
-       ErrMsg = 'Timer is not running: ' // TRIM( TimerName )
-       CALL GC_Warning( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( .not. LoopTimer ) THEN
+       ! Now we do some minor error checking
+       IF ( .not. SavedTimers(TimerLoc)%ENABLED ) THEN
+          ErrMsg = 'Timer is not running: ' // TRIM( TimerName )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
-
-    ! Timer is enabled, it's been found, so we disable it
-    SavedTimers(TimerLoc)%ENABLED = .false.
 
     ! And we note the current time
     ! 1: CPU Time
@@ -401,24 +452,137 @@ CONTAINS
        TheTime = Timer_TheTime()
     ENDIF
 
-    ! Debug
-    !PRINT*, "** RETURNED TIME (END): ", TheTime
+    IF ( LoopTimer ) THEN
+       ! Debug
+       !PRINT*, TRIM(TempTimerName), ": Thread=", ThreadNum, ", End  =", TheTime
 
-    SavedTimers(TimerLoc)%END_TIME = TheTime
+       ! Get the end time
+       SavedTimers(TimerLoc)%END_TIME_LOOP(ThreadNum) = TheTime
 
-    ! Get the difference to the times
-    Diff = SavedTimers(TimerLoc)%END_TIME - SavedTimers(TimerLoc)%START_TIME
+       ! Get the difference in stard and end times for this thread
+       Diff = SavedTimers(TimerLoc)%END_TIME_LOOP(ThreadNum) - &
+              SavedTimers(TimerLoc)%START_TIME_LOOP(ThreadNum)
 
-    ! Error check...
-    IF ( Diff .lt. 0 ) THEN
-       ErrMsg = 'Timer returned invalid value: ' // TRIM( TimerName )
-       Diff = 0
+       ! Error check...
+       IF ( Diff .lt. 0 ) THEN
+          ErrMsg = 'Timer returned invalid value: ' // TRIM( TimerName )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          Diff = 0
+       ENDIF
+
+       ! Asd difference to current value of total time
+       SavedTimers(TimerLoc)%TOTAL_TIME_LOOP(ThreadNum) = &
+              SavedTimers(TimerLoc)%TOTAL_TIME_LOOP(ThreadNum) + Diff
+
+       ! Debug
+       !Print*, TRIM(TempTimerName), ": Thread=", ThreadNum, ", Diff=", Diff, ", TotalTime=", SavedTimers(TimerLoc)%TOTAL_TIME_LOOP(ThreadNum)
+
+    ELSE
+       ! Timer is enabled, it's been found, so we disable it
+       SavedTimers(TimerLoc)%ENABLED = .false.
+
+       ! Debug
+       !PRINT*, TRIM(TempTimerName), ": End  =", TheTime
+
+       ! Get the end time
+       SavedTimers(TimerLoc)%END_TIME = TheTime
+
+       ! Get the difference in start and end times
+       Diff = SavedTimers(TimerLoc)%END_TIME - SavedTimers(TimerLoc)%START_TIME
+
+       ! Error check...
+       IF ( Diff .lt. 0 ) THEN
+          ErrMsg = 'Timer returned invalid value: ' // TRIM( TimerName )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          Diff = 0
+       ENDIF
+
+       ! Add difference to current value of total time
+       SavedTimers(TimerLoc)%TOTAL_TIME = SavedTimers(TimerLoc)%TOTAL_TIME + &
+                                          Diff
     ENDIF
 
-    ! And add difference to current value of total time
-    SavedTimers(TimerLoc)%TOTAL_TIME = SavedTimers(TimerLoc)%TOTAL_TIME + Diff
-
   END SUBROUTINE Timer_End
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Timer_Sum_Loop
+!
+! !DESCRIPTION: Sums elapsed time across parallel threads to obtain the total.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Timer_Sum_Loop( TimerName, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),  INTENT(IN)    :: TimerName   ! Name for timer
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(INOUT) :: RC          ! Success / Failure
+!
+! !REMARKS:
+!  Without this routine being called, a timer will not add to its total.
+!
+! !REVISION HISTORY:
+!  30 Apr 2020 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+    INTEGER            :: TimerLoc       ! Timer number
+    REAL(f8)           :: TheTime        ! Returned Time from method
+    REAL(f8)           :: Diff           ! Difference in times for each thread
+    REAL(f8)           :: TotalDiff      ! Total difference in times
+
+    ! Strings
+    CHARACTER(LEN=30)  :: TempTimerName
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Timer_Sum_Loop begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Timer_Sum_Loop (in module GeosUtil/timers_mod.F90)'
+    TotalDiff= 0.0
+
+    ! Determine timer index
+    TempTimerName = TimerName
+    TimerLoc      = Timer_Find( TempTimerName )
+
+    ! Exit if timer is not found
+    IF (TimerLoc .eq. 0) THEN
+       ErrMsg = 'Timer not found: ' // TRIM( TimerName )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Sum the total time across threads
+    SavedTimers(TimerLoc)%TOTAL_TIME = SUM(SavedTimers(TimerLoc)%TOTAL_TIME_LOOP)
+
+    ! Debug
+    !Print*, 'Timer:', TRIM(TimerName)
+    !Print*, 'Thread totals:', SavedTimers(TimerLoc)%TOTAL_TIME_LOOP
+    !Print*, 'Total time', SavedTimers(TimerLoc)%TOTAL_TIME
+
+  END SUBROUTINE Timer_Sum_Loop
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -440,7 +604,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
+    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -564,6 +728,21 @@ CONTAINS
        ! Print formatted output
        DO I = 1, TimerCurrentSize
           CALL Timer_PrintNum( I )
+
+          ! Deallocate loop timer arrays
+          IF ( ALLOCATED( SavedTimers(I)%START_TIME_LOOP ) ) THEN
+             DEALLOCATE(  SavedTimers(I)%START_TIME_LOOP, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+          ENDIF
+          IF ( ALLOCATED( SavedTimers(I)%END_TIME_LOOP ) ) THEN
+             DEALLOCATE(  SavedTimers(I)%END_TIME_LOOP, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+          ENDIF
+          IF ( ALLOCATED( SavedTimers(I)%TOTAL_TIME_LOOP ) ) THEN
+             DEALLOCATE(  SavedTimers(I)%TOTAL_TIME_LOOP, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+          ENDIF
+
        ENDDO
     ENDIF
 
@@ -655,7 +834,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
+    INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
 !
 ! !REMARKS:
 !  This actually does the printing, and is called by other print
@@ -723,7 +902,7 @@ CONTAINS
     ENDIF
 
     DO I = 1, TimerCurrentSize, 1
-       IF((SavedTimers(I)%TIMER_NAME) .eq. TimerName) THEN
+       IF( TRIM((SavedTimers(I)%TIMER_NAME)) .eq. TRIM(TimerName)) THEN
           SlotNumber = I
        ENDIF
     ENDDO
@@ -737,7 +916,7 @@ CONTAINS
 !
 ! !IROUTINE: Timer_TheTime
 !
-! !DESCRIPTION: Returns the current time in MS.
+! !DESCRIPTION: Returns the current time in milliseconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -791,7 +970,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
+    INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
 !
 ! !REMARKS:
 !  This is a private subroutine.
