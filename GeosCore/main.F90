@@ -351,12 +351,20 @@ PROGRAM GEOS_Chem
      CALL Timer_Add( "Initialization",               RC )
      CALL Timer_Add( "HEMCO",                        RC )
      CALL Timer_Add( "All chemistry",                RC )
-     CALL Timer_Add( "=> Gas-phase chem",            RC )
-     CALL Timer_Add( "  -> Heterogeneous chem",      RC )
-     CALL Timer_Add( "  -> KPP solver",              RC )
+     CALL Timer_Add( "=> FlexChem",                  RC )
+     CALL Timer_Add( "  -> FlexChem loop",           RC )
+     CALL Timer_Add( "  -> Init KPP",                RC )
+     CALL Timer_Add( "  -> Het chem rates",          RC )
+     CALL Timer_Add( "  -> Photolysis rates",        RC )
+     CALL Timer_Add( "  -> KPP",                     RC )
+     CALL Timer_Add( "     RCONST",                  RC )
+     CALL Timer_Add( "     Integrate 1",             RC )
+     CALL Timer_Add( "     Integrate 2",             RC )
+     CALL Timer_Add( "  -> Prod/loss diags",         RC )
+     CALL Timer_Add( "  -> OH reactivity diag",      RC )
      CALL Timer_Add( "=> FAST-JX photolysis",        RC )
-     CALL Timer_Add( "=> All aerosol chem",          RC )
-     CALL Timer_Add( "=> Strat chem",                RC )
+     CALL Timer_Add( "=> Aerosol chem",              RC )
+     CALL Timer_Add( "=> Linearized strat chem",     RC )
      CALL Timer_Add( "Transport",                    RC )
      CALL Timer_Add( "Convection",                   RC )
      CALL Timer_Add( "Boundary layer mixing",        RC )
@@ -1677,7 +1685,7 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All chemistry",       RC )
-             CALL Timer_Start( "=> All aerosol chem", RC )
+             CALL Timer_Start( "=> Aerosol chem", RC )
           ENDIF
 
           ! Recalculate the optical depth at the wavelength(s) specified
@@ -1695,7 +1703,7 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All chemistry",       RC )
-             CALL Timer_End( "=> All aerosol chem", RC )
+             CALL Timer_End( "=> Aerosol chem", RC )
           ENDIF
        ENDIF
 
