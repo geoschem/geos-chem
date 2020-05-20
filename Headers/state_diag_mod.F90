@@ -181,12 +181,15 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: O3concAfterChem (:,:,:  ) ! O3
      REAL(f4),  POINTER :: RO2concAfterChem(:,:,:  ) ! RO2
      REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
-     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_JValIndiv
      LOGICAL :: Archive_RxnRconst
      LOGICAL :: Archive_O3concAfterChem
      LOGICAL :: Archive_RO2concAfterChem
      LOGICAL :: Archive_CH4pseudoFlux
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_KppError
 #endif
 
@@ -898,12 +901,15 @@ CONTAINS
     State_Diag%O3concAfterChem                     => NULL()
     State_Diag%RO2concAfterChem                    => NULL()
     State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%KppError                            => NULL()
     State_Diag%Archive_JValIndiv                   = .FALSE.
     State_Diag%Archive_RxnRconst                   = .FALSE.
     State_Diag%Archive_O3concAfterChem             = .FALSE.
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+    State_Diag%KppError                            => NULL()
     State_Diag%Archive_KppError                    = .FALSE.
 #endif
 
@@ -3128,7 +3134,9 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -7543,7 +7551,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CH4pseudoflux => NULL()
     ENDIF
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
        DEALLOCATE( State_Diag%KppError, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
@@ -8946,7 +8956,9 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'

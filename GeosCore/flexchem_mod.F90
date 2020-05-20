@@ -487,7 +487,7 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -867,7 +867,7 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1000,7 +1000,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
