@@ -37,6 +37,9 @@ MODULE State_Grid_Mod
      !----------------------------------------
      ! User-defined grid fields
      !----------------------------------------
+#if defined( MODEL_WRF )
+     INTEGER            :: ID          ! Grid identifier number
+#endif
      CHARACTER(LEN=255) :: GridRes     ! Grid resolution
      REAL(fp)           :: DX          ! Delta X         [degrees longitude]
      REAL(fp)           :: DY          ! Delta Y         [degrees latitude]
@@ -139,6 +142,9 @@ CONTAINS
     !----------------------------------------
     ! User-defined grid fields
     !----------------------------------------
+#if defined( MODEL_WRF )
+    State_Grid%ID           = -1
+#endif
     State_Grid%GridRes      = ''
     State_Grid%DX           = 0e+0_fp
     State_Grid%DY           = 0e+0_fp

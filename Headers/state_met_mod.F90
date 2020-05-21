@@ -472,6 +472,7 @@ CONTAINS
     State_Met%V              => NULL()
     State_Met%XLAI           => NULL()
     State_Met%XLAI_NATIVE    => NULL()
+    State_Met%XLAI2          => NULL()
     State_Met%InChemGrid     => NULL()
     State_Met%InPbl          => NULL()
     State_Met%InStratMeso    => NULL()

@@ -157,7 +157,6 @@ CONTAINS
     USE Time_Mod,           ONLY : Get_Ts_Emis
     Use SfcVmr_Mod,         Only : FixSfcVmr_Run
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
-    USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
 #ifdef TOMAS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
@@ -296,21 +295,6 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "EmissMercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! For the POPS simulation, copy values from several HEMCO-based manual
-    ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state
-    ! object into the State_Diag object.  This will allow us to save these
-    ! fields to netCDF output via HISTORY. (bmy, 10/15/18)
-    IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-       CALL GetPopsDiagsFromHemco( Input_Opt, State_Diag, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "GetPopsDiagsFromHemco"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

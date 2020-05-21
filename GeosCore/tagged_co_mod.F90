@@ -1256,6 +1256,9 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F90)'
 
+    ! Exit immediately if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Allocate SUMISOPCO -- array for CO from isoprene
     ALLOCATE( SUMISOPCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'tagged_co_mod.F90:SUMISOPCO', 0, RC )

@@ -2027,6 +2027,9 @@ CONTAINS
     ThisLoc =  '-> at INIT_DUST (in module GeosCore/dust_mod.F)'
     SpcInfo => NULL()
 
+    ! Exit immediately if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     !=================================================================
     ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
     !=================================================================

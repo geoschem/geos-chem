@@ -532,6 +532,11 @@ CONTAINS
 
     ! Assume success
     RC        = GC_SUCCESS
+
+    ! Exit if it is a dry-run simulation
+    IF ( Input_Opt%DryRun ) RETURN
+
+    ! Initialize
     ErrMsg    = ''
     ThisLoc   = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
 

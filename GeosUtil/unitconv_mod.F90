@@ -179,7 +179,7 @@ CONTAINS
     !====================================================================
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "=> Unit conversions", RC )
+       CALL Timer_Start( "Unit conversions", RC )
     ENDIF
 
     ! Assume success
@@ -207,7 +207,7 @@ CONTAINS
     ! Exit if in and out units are the same
     IF ( TRIM(OutUnit) == TRIM(InUnit) ) THEN
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "=> Unit conversions", RC )
+          CALL Timer_End( "Unit conversions", RC )
        ENDIF
        RETURN
 ENDIF
@@ -339,7 +339,7 @@ ENDIF
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "=> Unit conversions", RC )
+       CALL Timer_End( "Unit conversions", RC )
     ENDIF
 
   END SUBROUTINE Convert_Spc_Units

@@ -228,12 +228,15 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  25 Jul 2014 - R. Yantosca - Initial version
@@ -241,6 +244,12 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    ! Exit immediately if it's a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! Define species ID flags
     id_HNO3  = Ind_('HNO3' )

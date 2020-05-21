@@ -1,3 +1,6 @@
+HEMCO/.git/
+HEMCO/.github/
+HEMCO/.gitignore
 *.[oax]
 *.mod
 *.MOD

@@ -993,7 +993,8 @@ CONTAINS
     RC          = GC_SUCCESS
 
     ! Exit if we have already intialized
-    IF ( IS_INIT ) RETURN
+    ! or if it is a dry-run simulation
+    IF ( IS_INIT .or. Input_Opt%DryRun ) RETURN
 
     ! Copy values from Input_Opt
     LFOSSIL     = Input_Opt%LFOSSIL

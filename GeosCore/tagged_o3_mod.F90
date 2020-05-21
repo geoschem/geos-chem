@@ -611,6 +611,9 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Init_Tagged_O3 (in module GeosCore/tagged_o3_mod.F90)'
 
+    ! Exit immediately if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Define species ID flag
     id_O3Strat = Ind_('O3Strat')
 

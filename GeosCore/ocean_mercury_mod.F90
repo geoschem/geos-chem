@@ -3362,6 +3362,12 @@ CONTAINS
     ! INIT_OCEAN_MERCURY begins here!
     !=================================================================
 
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Store the # of tagHg categories in a module variable
     N_Hg_CATS =  State_Chm%N_Hg_CATS
 
