@@ -1770,8 +1770,8 @@ SfcVMR_H2       ppbv N Y -                    none none H2       ./MainDataDir/S
 #==============================================================================
 # --- Oceanic ozone deposition ---
 #==============================================================================
-surf_salinity  1 N Y - none none s_mn                  ./MainDataDir/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
-surf_iodide    1 N Y - none none Ensemble_Monthly_mean ./MainDataDir/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
+surf_salinity  1 N Y -                     none none s_mn                  ./MainDataDir/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
+surf_iodide    1 Y Y F1970-%m2-01T00:00:00 none none Ensemble_Monthly_mean ./MainDataDir/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
 
 ###############################################################################
 ###

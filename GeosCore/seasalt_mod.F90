@@ -998,7 +998,8 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Return if we have already allocated arrays
-    IF ( IS_INIT ) RETURN
+    ! or if it is a dry-run simulation
+    IF ( IS_INIT .or. Input_Opt%DryRun ) RETURN
 
     ! Define species indices
     id_MOPI = Ind_('MOPI')

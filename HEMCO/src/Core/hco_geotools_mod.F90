@@ -1311,6 +1311,11 @@ CONTAINS
     ! Init
     FOUND = .FALSE.
 
+    ! Make sure size is ok. Allocate if unallocated.
+    CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
+                        HcoState%NX, HcoState%NY, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Try to read from file first
     IF ( PRESENT( FldName ) ) THEN
        CALL HCO_EvalFld ( HcoState, FldName, &
@@ -1338,11 +1343,6 @@ CONTAINS
                 CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-
-             ! Make sure size is ok
-             CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
-                                 HcoState%NX, HcoState%NY, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Pass data
              HcoState%Grid%PBLHEIGHT%Val = PBLM

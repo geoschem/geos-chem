@@ -1,11 +1,12 @@
 #!/bin/bash
 
-#SBATCH -n 6
+#SBATCH -n 30
 #SBATCH -N 1
-#SBATCH --exclusive
-#SBATCH -t 0-1:00
+##SBATCH --exclusive
+#SBATCH -t 0-0:10
 #SBATCH -p huce_intel
-#SBATCH --mem=MaxMemPerNode
+##SBATCH --mem=MaxMemPerNode
+#SBATCH --mem=110000
 #SBATCH --mail-type=ALL
 
 # Resource request tips: 

@@ -5011,6 +5011,9 @@ CONTAINS
     ! Assume success
     RC       = GC_SUCCESS
 
+    ! Exit if this is a GEOS-Chem dryrun
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Exit if we have already executed this routine
     IF ( .not. FIRST ) RETURN
 

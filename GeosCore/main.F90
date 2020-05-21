@@ -349,14 +349,22 @@ PROGRAM GEOS_Chem
      ! Add timers for various operations
      CALL Timer_Add( "GEOS-Chem",                    RC )
      CALL Timer_Add( "Initialization",               RC )
-     CALL Timer_Add( "Timesteps",                    RC )
      CALL Timer_Add( "HEMCO",                        RC )
      CALL Timer_Add( "All chemistry",                RC )
-     CALL Timer_Add( "=> Gas-phase chem",            RC )
+     CALL Timer_Add( "=> FlexChem",                  RC )
+     CALL Timer_Add( "  -> FlexChem loop",           RC )
+     CALL Timer_Add( "  -> Init KPP",                RC )
+     CALL Timer_Add( "  -> Het chem rates",          RC )
+     CALL Timer_Add( "  -> Photolysis rates",        RC )
+     CALL Timer_Add( "  -> KPP",                     RC )
+     CALL Timer_Add( "     RCONST",                  RC )
+     CALL Timer_Add( "     Integrate 1",             RC )
+     CALL Timer_Add( "     Integrate 2",             RC )
+     CALL Timer_Add( "  -> Prod/loss diags",         RC )
+     CALL Timer_Add( "  -> OH reactivity diag",      RC )
      CALL Timer_Add( "=> FAST-JX photolysis",        RC )
-     CALL Timer_Add( "=> All aerosol chem",          RC )
-     CALL Timer_Add( "=> Strat chem",                RC )
-     CALL Timer_Add( "=> Unit conversions",          RC )
+     CALL Timer_Add( "=> Aerosol chem",              RC )
+     CALL Timer_Add( "=> Linearized strat chem",     RC )
      CALL Timer_Add( "Transport",                    RC )
      CALL Timer_Add( "Convection",                   RC )
      CALL Timer_Add( "Boundary layer mixing",        RC )
@@ -372,6 +380,7 @@ PROGRAM GEOS_Chem
 #endif
      CALL Timer_Add( "=> ObsPack diagnostics",       RC )
      CALL Timer_Add( "=> History (netCDF diags)",    RC )
+     CALL Timer_Add( "Unit conversions",             RC )
      CALL Timer_Add( "Input",                        RC )
      CALL Timer_Add( "Output",                       RC )
      CALL Timer_Add( "Finalization",                 RC )
@@ -872,10 +881,6 @@ PROGRAM GEOS_Chem
   !=================================================================
   !        ***** O U T E R   T I M E S T E P   L O O P  *****
   !=================================================================      
-
-  IF ( Input_Opt%useTimers ) THEN
-     CALL Timer_Start( "Timesteps", RC )
-  ENDIF
 
   ! Echo message before first timestep
   IF ( notDryRun ) THEN
@@ -1668,7 +1673,7 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All chemistry",       RC )
-             CALL Timer_Start( "=> All aerosol chem", RC )
+             CALL Timer_Start( "=> Aerosol chem", RC )
           ENDIF
 
           ! Recalculate the optical depth at the wavelength(s) specified
@@ -1686,7 +1691,7 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All chemistry",       RC )
-             CALL Timer_End( "=> All aerosol chem", RC )
+             CALL Timer_End( "=> Aerosol chem", RC )
           ENDIF
        ENDIF
 
@@ -2096,10 +2101,6 @@ PROGRAM GEOS_Chem
 
   ! Skip operations when running in dry-run mode
   IF ( notDryRun ) THEN
-
-     IF ( Input_Opt%useTimers ) THEN
-        CALL Timer_End ( "Timesteps", RC )
-     ENDIF
 
     !--------------------------------------------------------------
     !     ***** W R I T E   H E M C O   R E S T A R T S *****

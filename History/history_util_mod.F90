@@ -289,6 +289,10 @@ CONTAINS
        dYear   = MAX( dYear - 1, 0 )
     ENDIF
 
+    IF ( month1 < month0 ) THEN
+       dYear = MAX( dyear - 1, 0 )
+    ENDIF
+
     ! Construct the YMD and HMS intervals
     deltaYmd = ( dYear * 10000 ) + ( dMonth  * 100 ) + dDay
     deltaHms = ( dHour * 10000 ) + ( dMinute * 100 ) + dSecond

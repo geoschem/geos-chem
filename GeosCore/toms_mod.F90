@@ -325,7 +325,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_TOMS( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE INIT_TOMS( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -364,6 +364,9 @@ CONTAINS
 
     ! Assume success
     RC = GC_SUCCESS
+
+    ! Exit immediately if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! Allocate arrays
     IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN

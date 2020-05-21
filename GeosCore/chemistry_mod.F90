@@ -247,14 +247,14 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
-
           !----------------------------------------
           ! Dry-run sulfate chem to get cloud pH
           !----------------------------------------
           IF ( LSULF ) THEN
+
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "=> Aerosol chem", RC )
+             ENDIF
 
              ! Dry run only
              CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
@@ -266,6 +266,11 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
+
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "=> Aerosol chem", RC )
+             ENDIF
+
           ENDIF
 
 #ifdef APM
@@ -287,6 +292,10 @@ CONTAINS
           !---------------------------
           ! Call gas-phase chemistry
           !---------------------------
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> FlexChem", RC )
+          ENDIF
+
           CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
 
@@ -305,7 +314,7 @@ CONTAINS
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
+             CALL Timer_End( "=> FlexChem", RC )
           ENDIF
 
           !----------------------------------------
@@ -314,7 +323,7 @@ CONTAINS
           IF ( LSCHEM ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Strat chem", RC )
+                CALL Timer_Start( "=> Linearized strat chem", RC )
              ENDIF
 
              ! Do linearized chemistry for the stratosphere (tropchem)
@@ -336,7 +345,7 @@ CONTAINS
              ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Strat chem", RC )
+                CALL Timer_End( "=> Linearized strat chem", RC )
              ENDIF
 
           ENDIF
@@ -364,7 +373,7 @@ CONTAINS
 #endif
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> All aerosol chem", RC )
+             CALL Timer_Start( "=> Aerosol chem", RC )
           ENDIF
 
           !--------------------------------
@@ -387,11 +396,6 @@ CONTAINS
           !-------------------------------
           IF ( LUCX ) THEN
 
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End  ( "=> All aerosol chem", RC )
-                CALL Timer_Start( "=> Strat chem",       RC )
-             ENDIF
-
              ! Recalculate PSC
              CALL Calc_Strat_Aer( Input_Opt, State_Chm, State_Grid, &
                                   State_Met, RC )
@@ -401,11 +405,6 @@ CONTAINS
                 ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
-             ENDIF
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End  ( "=> Strat chem",       RC )
-                CALL Timer_Start( "=> All aerosol chem", RC )
              ENDIF
 
           ENDIF
@@ -535,7 +534,7 @@ CONTAINS
 #endif
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> All aerosol chem", RC )
+             CALL Timer_End( "=> Aerosol chem", RC )
           ENDIF
 
        !====================================================================
@@ -544,7 +543,7 @@ CONTAINS
        ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> All aerosol chem", RC )
+             CALL Timer_Start( "=> Aerosol chem", RC )
           ENDIF
 
           !-------------------------------------------------------
@@ -704,17 +703,13 @@ CONTAINS
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> All aerosol chem", RC )
+             CALL Timer_End( "=> Aerosol chem", RC )
           ENDIF
 
        !====================================================================
        ! Rn-Pb-Be
        !====================================================================
        ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           ! Do Rn-Pb-Be chemistry
           CALL ChemRnPbBe( Input_Opt,  State_Chm, State_Diag, &
@@ -727,18 +722,10 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
-
        !====================================================================
        ! Tagged O3
        !====================================================================
        ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           !-----------------------------------------------
           ! Do Tagged O3 chemistry
@@ -753,17 +740,13 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
-
           !-----------------------------------------------
           ! Call linearized stratospheric scheme (LINOZ)
           !-----------------------------------------------
           IF ( LSCHEM ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Strat chem", RC )
+                CALL Timer_Start( "=> Linearized strat chem", RC )
              ENDIF
 
              ! Do LINOZ for Ozone
@@ -778,7 +761,7 @@ CONTAINS
              ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Strat chem", RC )
+                CALL Timer_End( "=> Linearized strat chem", RC )
              ENDIF
 
           ENDIF
@@ -787,10 +770,6 @@ CONTAINS
        ! Tagged CO
        !====================================================================
        ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           ! Do tagged CO chemistry
           CALL Chem_Tagged_CO( Input_Opt,  State_Chm, State_Diag, &
@@ -803,18 +782,10 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
-
        !====================================================================
        ! CH4
        !====================================================================
        ELSE IF ( IT_IS_A_CH4_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           CALL ChemCh4( Input_Opt,  State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
@@ -826,18 +797,10 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
-
        !====================================================================
        ! Mercury (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           ! Do Hg chemistry
           CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
@@ -850,18 +813,10 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
-
        !====================================================================
        ! POPs (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_POPS_SIM ) THEN
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Gas-phase chem", RC )
-          ENDIF
 
           ! Do POPS chemistry
           CALL ChemPOPs( Input_Opt,  State_Chm, State_Diag, &
@@ -874,9 +829,6 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Gas-phase chem", RC )
-          ENDIF
        ENDIF
 
        !====================================================================

@@ -64,6 +64,12 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
   ! NDXX_SETUP begins here!
   !=================================================================
 
+  ! Assume success
+  RC = GC_SUCCESS
+
+  ! Exit if this is a dry-run
+  IF ( Input_Opt%DryRun ) RETURN
+
 #ifdef TOMAS
   !=================================================================
   ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]

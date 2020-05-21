@@ -1361,6 +1361,9 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> INIT_CH4 (in module GeosCore/global_ch4_mod.F90)'
 
+    ! Exit immediately if it's a dry-run simulation
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Define species ID flag
     id_CH4  = Ind_('CH4')
 

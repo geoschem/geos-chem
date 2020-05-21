@@ -7083,6 +7083,9 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F90)'
 
+    ! Exit immediately if this is a dry-run simulation
+    IF ( Input_Opt%DryRun ) RETURN
+
     !=================================================================
     ! Error check
     !=================================================================

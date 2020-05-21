@@ -124,6 +124,12 @@ CONTAINS
     ELSE IF ( State_Grid%NZ == 72 ) THEN
        State_Grid%MaxTropLev  = 40
        State_Grid%MaxStratLev = 59
+    ELSE
+       ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes)// &
+                ' does not have MaxTropLev and MaxStratLev defined.'// &
+                ' Please add these definitions in gc_grid_mod.F90.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     ! Set maximum number of levels in the chemistry grid

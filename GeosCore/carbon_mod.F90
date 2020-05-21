@@ -7590,6 +7590,9 @@ CONTAINS
    ! Assume success
    RC = GC_SUCCESS
 
+   ! Exit immediately if this is a dry-run
+   IF ( Input_Opt%DryRun ) RETURN
+
    ! Define species IDs
    id_ASOG1    = IND_('ASOG1'   )
    id_ASOG2    = IND_('ASOG2'   )
@@ -7883,7 +7886,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CLEANUP_CARBON
+ SUBROUTINE CLEANUP_CARBON()
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version

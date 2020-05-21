@@ -34,6 +34,7 @@ MODULE NCDF_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: NC_OPEN
+  PUBLIC  :: NC_APPEND
   PUBLIC  :: NC_CREATE
   PUBLIC  :: NC_SET_DEFMODE
   PUBLIC  :: NC_VAR_DEF
@@ -160,27 +161,79 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )  :: FileName
+    CHARACTER(LEN=*), INTENT(IN)  :: FileName
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(  OUT)  :: fID
+    INTEGER,          INTENT(OUT) :: fID
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
     !=================================================================
     ! NC_OPEN begins here
     !=================================================================
 
     ! Open netCDF file
-    CALL Ncop_Rd( fId, TRIM(FileName) )
-
+    CALL Ncop_Rd( fId, TRIM( FileName ) )
 
   END SUBROUTINE NC_OPEN
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Append
+!
+! !DESCRIPTION: Simple wrapper routine to open the given netCDF file.
+!  for appending extra values along a record dimension.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_APPEND( FileName, fID, nTime )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: FileName
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: fID
+    INTEGER,          OPTIONAL    :: nTime
+!
+! !REVISION HISTORY:
+!  04 Nov 2012 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: RC, vId
+
+    !=================================================================
+    ! NC_APPEND begins here
+    !=================================================================
+
+    ! Open netCDF file
+    CALL Ncop_Wr( fId, TRIM(FileName) )
+
+    ! Also return the number of time slices so that we can
+    ! append to an existing file w/o clobbering any data
+    IF ( PRESENT( nTime ) ) THEN
+       nTime = -1
+       RC = Nf_Inq_DimId( fId, 'time', vId ) 
+       IF ( RC == NF_NOERR ) THEN
+          RC = Nf_Inq_DimLen( fId, vId, nTime )
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE NC_APPEND
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !

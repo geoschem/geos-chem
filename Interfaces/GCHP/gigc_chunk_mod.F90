@@ -516,17 +516,6 @@ CONTAINS
     DoChem   = Input_Opt%LCHEM .AND. IsChemTime   ! chemistry time step
     DoWetDep = Input_Opt%LWETD                    ! dynamic time step 
 
-#if defined( MODEL_GCHP )
-    ! Make sure chemistry timestep components are run in first timestep
-    ! even if IsChemTime is false. This is a temporary kludge pending a
-    ! better solution for the GIGCchem alarm (ewl, 2/21/20)
-    IF ( FIRST ) THEN
-       DoDryDep = Input_Opt%LDRYD
-       DoEmis   = .TRUE.
-       DoChem   = Input_Opt%LCHEM
-    ENDIF
-#endif
-
     ! If Phase is not -1, only do selected processes for given phases: 
     ! Phase 1: disable turbulence, chemistry and wet deposition.
     IF ( Phase == 1 ) THEN

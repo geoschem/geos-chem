@@ -450,6 +450,11 @@ CONTAINS
     State_Chm%PSO4s             => NULL()
     State_Chm%QQ3D              => NULL()
 
+    ! For LINOZ
+    State_Chm%TLSTT             => NULL()
+
+    State_Chm%DryDepSav         => NULL()
+
     ! Local variables
     Ptr2data                    => NULL()
 
