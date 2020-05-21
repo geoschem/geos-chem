@@ -6008,9 +6008,9 @@ CONTAINS
 !                              K-1, is
 !                              1.986x10^-3, not 0.04. (Qianjie Chen)
 !  03 Dec 2018 - J. Moch     - Modified for formic acid (HCOOH). Values
-!  taken from
-!                              Sienfeld and Pandis. Made it to output is
-!                              [FA]
+!                              taken from Sienfeld and Pandis. Made it 
+!                              to output is [FA]
+!  01 May 2020 - V. Shah     - Use correct equilibrium constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6019,9 +6019,9 @@ CONTAINS
 !
       ! HCOOH dissociation constants
       REAL(fp),  PARAMETER  :: Kformate = 1.8e-4_fp ! equib const
-      REAL(fp),  PARAMETER  :: Hfa = 880e+0_fp ! henry const
-      REAL(fp),  PARAMETER  :: Dhfa = 11.4e+0_fp/1.986e-3_fp ! henry temp
-      REAL(fp),  PARAMETER  :: DhrKfa = -20.e+0_fp ! equib temp
+      REAL(fp),  PARAMETER  :: Hfa = 8800e+0_fp ! henry const
+      REAL(fp),  PARAMETER  :: Dhfa = 6100e+0_fp ! henry temp
+      REAL(fp),  PARAMETER  :: DhrKfa = 151.e+0_fp ! equib temp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6086,6 +6086,7 @@ CONTAINS
 !  taken from
 !                              Sienfeld and Pandis. Made it to output is
 !                              [FA]
+!  01 May 2020 - V. Shah     - Use correct equilibrium constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6094,9 +6095,9 @@ CONTAINS
 !
       ! HCOOH dissociation constants
       REAL(fp),  PARAMETER  :: Kformate = 1.8e-4_fp ! equib const
-      REAL(fp),  PARAMETER  :: Hfa = 880e+0_fp ! henry const
-      REAL(fp),  PARAMETER  :: Dhfa = 11.4e+0_fp/1.986e-3_fp ! henry temp
-      REAL(fp),  PARAMETER  :: DhrKfa = -20.e+0_fp ! equib temp
+      REAL(fp),  PARAMETER  :: Hfa = 8800e+0_fp ! henry const
+      REAL(fp),  PARAMETER  :: Dhfa = 6100e+0_fp ! henry temp
+      REAL(fp),  PARAMETER  :: DhrKfa = 151.e+0_fp ! equib temp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6159,17 +6160,18 @@ CONTAINS
 !  03 Dec 2018 - J. Moch     - Modified for acetic acid (CH3COOH).
 !  Values taken from
 !                              Sienfeld and Pandis, value of [HCOOH]
+!  01 May 2020 - V. Shah     - Use correct equilibrium constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      ! HCOOH dissociation constants
-      REAL(fp),  PARAMETER  :: Kacetate = 1.7e-5_fp
-      REAL(fp),  PARAMETER  :: Haa = 400e+0_fp
-      REAL(fp),  PARAMETER  :: Dhaa = 11.4e+0_fp/1.986e-3_fp
-      REAL(fp),  PARAMETER  :: DhrKaa = -13.9e+0_fp ! Neidig and Yingling, 1965
+      ! CH3HCOOH dissociation constants
+      REAL(fp),  PARAMETER  :: Kacetate = 1.75e-5_fp
+      REAL(fp),  PARAMETER  :: Haa = 4100e+0_fp
+      REAL(fp),  PARAMETER  :: Dhaa = 6200e+0_fp
+      REAL(fp),  PARAMETER  :: DhrKaa = 50.0e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6233,6 +6235,7 @@ CONTAINS
 !  Values taken from
 !                              Sienfeld and Pandis. Output is
 !                              derivative.
+!  01 May 2020 - V. Shah     - Use correct equilibrium constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6240,10 +6243,10 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
       ! HCOOH dissociation constants
-      REAL(fp),  PARAMETER  :: Kacetate = 1.7e-5_fp
-      REAL(fp),  PARAMETER  :: Haa = 400e+0_fp
-      REAL(fp),  PARAMETER  :: Dhaa = 11.4e+0_fp/1.986e-3_fp
-      REAL(fp),  PARAMETER  :: DhrKaa = -13.9e+0_fp ! Neidig and Yingling, 1965
+      REAL(fp),  PARAMETER  :: Kacetate = 1.75e-5_fp
+      REAL(fp),  PARAMETER  :: Haa = 4100e+0_fp
+      REAL(fp),  PARAMETER  :: Dhaa = 6200e+0_fp
+      REAL(fp),  PARAMETER  :: DhrKaa = 50.0e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
