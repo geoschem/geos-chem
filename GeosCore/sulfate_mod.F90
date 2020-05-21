@@ -2956,7 +2956,7 @@ CONTAINS
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
           !     0.03*(1/40.08)+0.006*(1/24.31) = 9.953e-4_fp
           !     0e-12_fp from m3->L & ng->g
-          TDCA     = DUST * 9.95e-16_fp / LWC
+          TDCA     = DUST * 2.22e-15_fp / LWC
           
           ! Get total nitrate (HNO3 + NIT) concentrations [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NIT
@@ -4958,16 +4958,38 @@ CONTAINS
        dFA   = dkFA   ( PRES, T, LWC, nHPLUS, TFA ) ! jmm 12/3/18
        
        dAA   = dkAA   ( PRES, T, LWC, nHPLUS, TAA ) ! jmm 12/3/18
+       ! Calculate [Ca2+] in equilibrium with CaCO3(s)
+       CALL CaCO3_PRECIP ( PRES, T, nHPLUS, fCa, dCa )
        
-       ! Define f(x)
-       ! note Kw/nHPLUS is OH-
-       f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * &
-           fCO3 + fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - &
-           fNH4 + fHCl + fFA + fAA
-       ! Define f'(x)
-       df = - 1.e+0_fp - Kw/nHPLUS/nHPLUS + dHCO3 + 2.e+0_fp * &
-            dCO3 + dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 +  &
-            dHCl + dFA + dAA
+       ! if [Ca2+] in equilibrium with CacO3(s) is greater than total [Ca2+]
+       ! then all Ca is dissolved else [Ca2+] varies with [H+]
+       IF ( fCa .ge. TDCA ) THEN
+          ! Non-volatile aerosol concentration [M]
+          D = (2.e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
+          
+          ! Define f(x)
+          f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * &
+               fCO3 + fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - fNH4 + &
+               fHCl + fFA + fAA
+          
+          ! Define f'(x)
+          df = - 1.d0 - Kw/nHPLUS/nHPLUS + dHCO3 + 2.e+0_fp * &
+               dCO3 + dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 + &
+               dHCl + dFA + dAA
+          
+       ELSE
+          ! Non-volatile aerosol concentration [M]
+          D = (2.e+0_fp * SO4nss) - TNA
+          
+          ! Define f(x)
+          f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * fCO3 + &
+               fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - fNH4 + &
+               fHCl + fFA + fAA - 2.e+0_fp * fCa
+          ! Define f'(x)
+          df = - 1.d0 - Kw/nHPLUS/nHPLUS + dHCO3 + 2.e+0_fp * dCO3 + &
+               dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 + &
+               dHCl + dFA + dAA - 2.e+0_fp * dCa
+       ENDIF
        
        ! Apply Newton's method
        nnHPLUS = nHPLUS - f/df
@@ -6244,6 +6266,71 @@ CONTAINS
 
 
       END FUNCTION dkAA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CaCO3_PRECIP
+!
+! !DESCRIPTION: Subroutine CaCO3 to calculate [Ca++] in equilibrium with
+! CaCO3(s) (dust particles) depending on [H+]
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CaCO3_PRECIP ( P,  T, HPLUS, fCa, dCa )
+!
+! !INPUT PARAMETERS:
+!
+      REAL(fp),        INTENT(IN) :: T, P, HPLUS
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL(fp),  INTENT(OUT):: fCa, dCa ! [Ca2+] and d([Ca2+])/d[H+]
+!
+! !REVISION HISTORY:
+!  25 Dec 2019 - V. Shah - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! !DEFINED PARAMETERS:
+!
+      REAL(fp),  PARAMETER  :: Kc1 = 4.3e-7_fp
+      REAL(fp),  PARAMETER  :: Kc2 = 4.68e-11_fp
+      REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
+      REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
+      REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2_fp
+      REAL(fp),  PARAMETER  :: Dhco2 = 2.44e+3_fp
+      ! CO2 concentration [v/v]
+      REAL(fp),  PARAMETER  :: CO2 = 390.0e-6_fp
+      REAL(fp),  PARAMETER  :: Ksp = 3.3e-9_fp
+      REAL(fp),  PARAMETER  :: DHrKsp = -1200e+0_fp
+
+! !LOCAL VARIABLES:
+      REAL(fp)              :: HCO2_T, Kc1_T, Kc2_T, Ksp_T
+
+! !REMARKS:
+
+      !=================================================================
+      ! CaCO3_PRECIP begins here!
+      !=================================================================
+      !Temperature adjusted eq. constants
+      !CO2 dissolution constants
+      Hco2_T = Hco2*exp(Dhco2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+      Kc1_T = Kc1*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+      Kc2_T = Kc2*exp(DhrKc2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+
+      ! CaCO3 eq constants
+      Ksp_T = Ksp*exp(DhrKsp*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+
+      !Ca concentrations [M]
+      fCa = Ksp_T * HPLUS * HPLUS / (Kc1_T * Kc2_T * Hco2_T * CO2 * P)
+      !derivative d[Ca2+]/dH+
+      dCa  = 2e+0_fp * Ksp_T * HPLUS / (Kc1_T * Kc2_T * Hco2_T * CO2 * P)
+
+      END SUBROUTINE CaCO3_PRECIP
 !EOC
 
 !------------------------------------------------------------------------------
