@@ -4887,7 +4887,7 @@ CONTAINS
     REAL(fp)               :: dHSO3, dSO3
     REAL(fp)               :: dHNO3, dNH4, dHCl
     REAL(fp)               :: fAA, fFA, dAA, dFA
-    REAL(fp)               :: f, df, nnHPLUS
+    REAL(fp)               :: f, df, nnHPLUS, fCa, dCa
     INTEGER                :: count
 
     !=================================================================
