@@ -2952,10 +2952,10 @@ CONTAINS
                          / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
                        / State_Met%AIRVOL(I,J,L)                   
           
-          ! [ng/m3 -> mol/L]
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
-          !     0.03*(1/40.08)+0.006*(1/24.31) = 9.953e-4_fp
-          !     0e-12_fp from m3->L & ng->g
+          !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
+          !     (Engelbrecht et al., 2016)
+          !     1e-12_fp from m3->L & ng->g
           TDCA     = DUST * 2.22e-15_fp / LWC
           
           ! Get total nitrate (HNO3 + NIT) concentrations [v/v]
