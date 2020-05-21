@@ -105,7 +105,7 @@ endif()
 
 target_link_libraries(GeosCore
 	PUBLIC
-		Transport ObsPack HCOI History
+		Transport ObsPack HCOI_Shared History
 
 		# Add dependency on the correct KPP library
 		$<$<STREQUAL:${MECH},SOA_SVPOA>:KPP_SOA_SVPOA>
