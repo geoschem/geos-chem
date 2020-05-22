@@ -225,6 +225,11 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
 
      !----------------------------------------------------------------------
+     ! Fields for setting mean surface CH4 from HEMCO
+     !----------------------------------------------------------------------
+     REAL(f4),          POINTER :: SFC_CH4    (:,:    ) ! Pointer to HEMCO - not allocated
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -453,7 +458,12 @@ CONTAINS
     ! For LINOZ
     State_Chm%TLSTT             => NULL()
 
+    ! For dry deposition
     State_Chm%DryDepSav         => NULL()
+
+    ! For global CH4
+    ! This field is not allocated - it points to HEMCO in SET_CH4.
+    State_Chm%SFC_CH4           => NULL()
 
     ! Local variables
     Ptr2data                    => NULL()
@@ -2335,6 +2345,11 @@ CONTAINS
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Chm%xxx => NULL()
     !ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Deassociate arrays that are pointers to HEMCO
+    !-----------------------------------------------------------------------
+    State_Chm%SFC_CH4 => NULL()
 
     !=======================================================================
     ! Deallocate the species database object field

@@ -44,7 +44,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
   USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
   USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
-  USE Set_Global_CH4_Mod,      ONLY : Cleanup_Set_Global_CH4
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
   USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
@@ -156,7 +155,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()
   CALL CLEANUP_SEASALT()
-  Call Cleanup_Set_Global_CH4()
   CALL CLEANUP_SULFATE()
   CALL CLEANUP_STRAT_CHEM()
 
