@@ -49,7 +49,6 @@ MODULE HCO_Interface_GC_Mod
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
   PUBLIC  :: HCOI_GC_WriteDiagn
-  PUBLIC  :: HCOI_Compute_Sflx_For_Vdiff
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !

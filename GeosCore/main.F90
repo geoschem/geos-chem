@@ -95,6 +95,7 @@ PROGRAM GEOS_Chem
   USE GOSAT_CH4_MOD         ! For GOSAT observation operator
   USE TCCON_CH4_MOD         ! For TCCON observation operator
   USE HCO_Interface_GC_Mod  ! Writes out HEMCO diagnostics (C. Keller)
+  USE HCO_Utilities_GC_Mod  ! Utility routines for GC-HEMCO interface
 
   !-----------------------------------------------------------------
   ! GEOS-Chem dynamics modules
@@ -1547,9 +1548,9 @@ PROGRAM GEOS_Chem
           ! (which means getting emissions & drydep from HEMCO)
           ! and store it in State_Chm%Surface_Flux
           IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN 
-             CALL HCOI_Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,        &
-                                               State_Diag, State_Grid,       &
-                                               State_Met,  RC               )
+             CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,             &
+                                          State_Diag, State_Grid,            &
+                                          State_Met,  RC                    )
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
                 CALL Error_Stop( errMsg, thisLoc )
