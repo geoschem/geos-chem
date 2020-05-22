@@ -2810,11 +2810,10 @@ CONTAINS
        ! If (1) there is cloud, (2) there is SO2 present, and
        ! (3) the T > -15 C, then compute aqueous SO2 chemistry
        ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
-       IF ( ( FC     > 0.e+0_fp   )  .AND. &
-            ( SO2_ss > MINDAT     )  .AND. &
-            ( TK     > 258.0      )  .AND. &
+       IF ( ( FC     > 1.e-4_fp   )  .AND. &
+            ( SO2_ss > MINDAT )  .AND. &
+            ( TK     > 258.0  )  .AND. &
             ( LWC    > 0.e+0_fp   ) ) THEN
-
           !===========================================================
           ! NOTE...Sulfate production from aquatic reactions of SO2
           ! with H2O2 & O3 is computed here and followings are
@@ -2917,11 +2916,11 @@ CONTAINS
           ! no cloud scavenging b/c gases?
           TAA     = Spc(I,J,L,id_ACTA)
           
-          ! Get total sea salt NVC concentration and convert from [v/v]
-          ! to [moles/liter]
+          ! Get total sea salt NVC concentration expressed as NA+ equivalents
+          ! and convert from [v/v] to [moles/liter]
           ! NVC is calculated to balance initial Cl- + alkalinity in
           ! seas salt. Note that we should not consider SO4ss here.
-          ! Use a cloud scavenging ratio of 0.7
+          ! Use a cloud scavenging ratio of 0.7 for fine aerosols
           TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *   &
                       ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *     &
                       0.7e+0_fp / ( AIRMW * LWC )  +                 &
@@ -4841,9 +4840,8 @@ CONTAINS
 !  Calculation:
 !  ============================================================================
 !  Solve the following electroneutrality equation:
-!  [H+] = 2[SO4]nss + [Cl] + [OH] + [HCO3] + 2[CO3] + [HSO3] + 2[SO3] + [NO3]
-!        - [Na] - 2[Ca] - [K] - 2[Mg] - [NH4]
-!
+!  [H+] = 2[SO4--] + [Cl-] + [OH-] + [HCO3-] + 2[CO3--] + [HSO3-] + 2[SO3--] +!
+!          [NO3-] + [HCOO-] + [CH3COO-] - [Na] - 2[Ca] - [NH4]
 !  Uses Newton's method to solve the equation:
 !     x_1 = x_0 -f(x_0)/f'(x_0)
 !     iterate until converge
@@ -5067,9 +5065,9 @@ CONTAINS
     REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
     REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
     REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-    REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Dhco2 = 2.44e+3_fp
     ! CO2 concentration [v/v]
-    REAL(fp),  PARAMETER  :: CO2 = 380.0e-6_fp !380 ppmv
+    REAL(fp),  PARAMETER  :: CO2 = 390.0e-6_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -5083,7 +5081,7 @@ CONTAINS
     !CO2 dissolution constants
     Hco2_T  = Hco2*exp(Dhco2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
     Kc1_T   = Kc1*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
-    Kc2_T   = Kc2*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+    Kc2_T   = Kc2*exp(DhrKc2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
     !CO2 dissolution
     Hco2eff = Hco2_T*(1.e+0_fp+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/(HPLUS*HPLUS)))
@@ -5144,9 +5142,9 @@ CONTAINS
       REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
       REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
       REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-      REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Dhco2 = 2.44e+3_fp
       ! CO2 concentration [v/v]
-      REAL(fp),  PARAMETER  :: CO2 = 400.0e-6_fp !400 ppmv
+      REAL(fp),  PARAMETER  :: CO2 = 390.0e-6_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -5161,7 +5159,7 @@ CONTAINS
       !CO2 dissolution constants
       Hco2_T = Hco2*exp(Dhco2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
       Kc1_T = Kc1*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
-      Kc2_T = Kc2*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+      Kc2_T = Kc2*exp(DhrKc2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
       !CO2 dissolution
 
@@ -5211,9 +5209,9 @@ CONTAINS
     REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
     REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
     REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-    REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Dhco2 = 2.44e+3_fp
     ! CO2 concentration [v/v]
-    REAL(fp),  PARAMETER  :: CO2 = 380.0e-6_fp
+    REAL(fp),  PARAMETER  :: CO2 = 390.0e-6_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -5227,7 +5225,7 @@ CONTAINS
     !CO2 dissolution constants
     Hco2_T  = Hco2*exp(Dhco2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
     Kc1_T   = Kc1*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
-    Kc2_T   = Kc2*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+    Kc2_T   = Kc2*exp(DhrKc2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
     !CO2 dissolution
     Hco2eff = Hco2_T*(1.e+0_fp+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/(HPLUS*HPLUS)))
@@ -5288,9 +5286,9 @@ CONTAINS
       REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
       REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
       REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-      REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Dhco2 = 2.44e+3_fp
       ! CO2 concentration [v/v]
-      REAL(fp),  PARAMETER  :: CO2 = 400.0e-6_fp
+      REAL(fp),  PARAMETER  :: CO2 = 390.0e-6_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -5303,7 +5301,7 @@ CONTAINS
       !CO2 dissolution constants
       Hco2_T = Hco2*exp(Dhco2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
       Kc1_T = Kc1*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
-      Kc2_T = Kc2*exp(DhrKc1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+      Kc2_T = Kc2*exp(DhrKc2*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
       !CO2 dissolution
 
@@ -5351,7 +5349,7 @@ CONTAINS
     REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
     REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
     REAL(fp),  PARAMETER  :: Hso2 = 1.23
-    REAL(fp),  PARAMETER  :: Dhso2 = 6.25e+0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Dhso2 = 3.14e+3_fp
     REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
     REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -5427,7 +5425,7 @@ CONTAINS
       REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
       REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
       REAL(fp),  PARAMETER  :: Hso2 = 1.23
-      REAL(fp),  PARAMETER  :: Dhso2 = 6.25e+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Dhso2 = 3.14e+3_fp
       REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
       REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -5491,7 +5489,7 @@ CONTAINS
     REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
     REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
     REAL(fp),  PARAMETER  :: Hso2 = 1.23
-    REAL(fp),  PARAMETER  :: Dhso2 = 6.25e+0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Dhso2 = 3.14e+3_fp
     REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
     REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -5567,7 +5565,7 @@ CONTAINS
       REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
       REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
       REAL(fp),  PARAMETER  :: Hso2 = 1.23
-      REAL(fp),  PARAMETER  :: Dhso2 = 6.25e+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Dhso2 = 3.14e+3_fp
       REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
       REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -5756,8 +5754,8 @@ CONTAINS
 !
     ! HNO3 dissociation constants
     REAL(fp),  PARAMETER  :: Kcl = 1.74e+6_fp
-    REAL(fp),  PARAMETER  :: Hcl = 1.1e+0_fp
-    REAL(fp),  PARAMETER  :: Dhcl = 4.0e+0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Hcl = 1.5e+3_fp
+    REAL(fp),  PARAMETER  :: Dhcl = 2.3e+3_fp
     REAL(fp),  PARAMETER  :: DhrKcl = 6900.e+0_fp
 !
 ! !LOCAL VARIABLES:
@@ -5769,7 +5767,7 @@ CONTAINS
     ! kHCl begins here!
     !=================================================================
 
-    ! HNO3 dissolution constants
+    ! HCl dissolution constants
     HCl_T  = Hcl*exp(Dhcl*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
     Kcl_T  = Kcl*exp(DhrKcl*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
 
@@ -5815,8 +5813,8 @@ CONTAINS
 !
       ! HCl dissociation constants
       REAL(fp),  PARAMETER  :: Kcl = 1.74e+6_fp
-      REAL(fp),  PARAMETER  :: Hcl = 1.1e+0_fp
-      REAL(fp),  PARAMETER  :: Dhcl = 4.0e+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Hcl = 1.5e+3_fp
+      REAL(fp),  PARAMETER  :: Dhcl = 2.3e+3_fp
       REAL(fp),  PARAMETER  :: DhrKcl = 6900.e+0_fp
 !
 ! !LOCAL VARIABLES:
@@ -5874,8 +5872,8 @@ CONTAINS
 !
     ! NH3 dissociation contants
     REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
-    REAL(fp),  PARAMETER  :: Hnh3 = 62.
-    REAL(fp),  PARAMETER  :: Dhnh3 = 8.17e0_fp/1.986e-3_fp
+    REAL(fp),  PARAMETER  :: Hnh3 = 60.
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
     REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 
     ! Variables
@@ -5946,8 +5944,8 @@ CONTAINS
 !
       ! NH3 dissociation contants
       REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
-      REAL(fp),  PARAMETER  :: Hnh3 = 62.
-      REAL(fp),  PARAMETER  :: Dhnh3 = 8.17+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Hnh3 = 60.
+      REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
       REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 
       ! Variables
@@ -6334,118 +6332,6 @@ CONTAINS
       dCa  = 2e+0_fp * Ksp_T * HPLUS / (Kc1_T * Kc2_T * Hco2_T * CO2 * P)
 
       END SUBROUTINE CaCO3_PRECIP
-!EOC
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cubic
-!
-! !DESCRIPTION: Subroutine CUBIC finds the roots of a cubic equation / 3rd
-! order polynomial
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER           :: NR
-    REAL(f8)          :: A2, A1, A0
-    REAL(fp)          :: CRUTES(3)
-!
-! !REMARKS:
-! Formulae can be found in numer. recip.  on page 145
-!   kiran  developed  this version on 25/4/1990
-!   Dr. Francis S. Binkowski modified the routine on 6/24/91, 8/7/97
-! ***
-! *** modified 2/23/98 by fsb to incorporate Dr. Ingmar Ackermann's
-!     recommendations for setting a0, a1,a2 as real(fp) variables.
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    REAL(fp), PARAMETER :: ONE    = 1.0e+0_fp
-    REAL(fp), PARAMETER :: SQRT3  = 1.732050808e+0_fp
-    REAL(fp), PARAMETER :: ONE3RD = 0.333333333e+0_fp
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp)            :: A2SQ,  THETA
-    REAL(f8)            :: PART1, PART2, PART3, YY1
-    REAL(fp)            :: YY2,   YY3,   COSTH, SINTH
-    REAL(f8)            :: PHI,   DUM1,  DUM2,  RRSQ
-    REAL(f8)            :: QQ,    RR
-
-    !=================================================================
-    ! CUBIC begins here!
-    !=================================================================
-    A2SQ = A2 * A2
-    QQ   = ( A2SQ - 3.e+0_f8 * A1 ) / 9.e+0_f8
-    RR   = ( A2*( 2.e+0_f8*A2SQ - 9.e+0_f8*A1 ) + 27.e+0_f8*A0 ) / 54.e+0_f8
-
-    ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
-    DUM1 = QQ * QQ * QQ
-    RRSQ = RR * RR
-    DUM2 = DUM1 - RRSQ
-
-    IF ( DUM2 .GE. 0.e+0_f8 ) THEN
-
-       ! Now we have three real roots
-       PHI = SQRT( DUM1 )
-
-       IF ( ABS( PHI ) .LT. 1.e-20_f8 ) THEN
-          CRUTES(1) = 0.0e+0_fp
-          CRUTES(2) = 0.0e+0_fp
-          CRUTES(3) = 0.0e+0_fp
-          NR        = 0
-       ENDIF
-
-       THETA = ACOS( RR / PHI ) / 3.0e+0_fp
-       COSTH = COS( THETA )
-       SINTH = SIN( THETA )
-
-       ! Use trig identities to simplify the expressions
-       ! Binkowski's modification
-       PART1     = SQRT( QQ )
-       YY1       = PART1 * COSTH
-       YY2       = YY1 - A2/3.0e+0_fp
-       YY3       = SQRT3 * PART1 * SINTH
-       CRUTES(3) = -2.0e+0_fp*YY1 - A2/3.0e+0_fp
-       CRUTES(2) = YY2 + YY3
-       CRUTES(1) = YY2 - YY3
-
-       ! Set negative roots to a large positive value
-       IF ( CRUTES(1) .LT. 0.0e+0_fp ) CRUTES(1) = 1.0e+9_fp
-       IF ( CRUTES(2) .LT. 0.0e+0_fp ) CRUTES(2) = 1.0e+9_fp
-       IF ( CRUTES(3) .LT. 0.0e+0_fp ) CRUTES(3) = 1.0e+9_fp
-
-       ! Put smallest positive root in crutes(1)
-       CRUTES(1) = MIN( CRUTES(1), CRUTES(2), CRUTES(3) )
-       NR        = 3
-
-    ELSE
-
-       ! Now here we have only one real root
-       PART1     = SQRT( RRSQ - DUM1 )
-       PART2     = ABS( RR )
-       PART3     = ( PART1 + PART2 )**ONE3RD
-       CRUTES(1) = -SIGN(ONE,RR) * ( PART3 + (QQ/PART3) ) - A2/3.e0_fp
-       CRUTES(2) = 0.e+0_fp
-       CRUTES(3) = 0.e+0_fp
-       NR        = 1
-
-    ENDIF
-
-  END SUBROUTINE CUBIC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
