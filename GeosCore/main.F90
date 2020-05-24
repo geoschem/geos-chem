@@ -1267,7 +1267,7 @@ PROGRAM GEOS_Chem
              IF ( Input_Opt%USE_TOMS_O3 ) THEN
                 ! Get TOMS overhead O3 columns for photolysis from
                 ! the HEMCO data structure (bmy, 3/20/15)
-                CALL Read_TOMS( Input_Opt, RC )
+                CALL Read_TOMS( Input_Opt, State_Chm, RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -2560,7 +2560,7 @@ CONTAINS
 
           ! Get the overhead O3 column for FAST-J.  Take either the
           ! TOMS O3 data or the column O3 directly from the met fields
-          CALL Compute_Overhead_O3( Input_Opt, State_Grid, DAY, &
+          CALL Compute_Overhead_O3( Input_Opt, State_Grid, State_Chm, DAY, &
                                     Input_Opt%USE_O3_FROM_MET,  &
                                     State_Met%TO3 )
        ENDIF
