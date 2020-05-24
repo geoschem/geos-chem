@@ -49,7 +49,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
   USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
   USE UCX_MOD,                 ONLY : CLEANUP_UCX
-  USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
 #ifdef BPCH_DIAG
@@ -183,14 +182,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_TOMS( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_TOMS"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  ! Cleanup wet scavenging module
-  CALL CLEANUP_WETSCAV( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
