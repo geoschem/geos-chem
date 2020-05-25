@@ -162,7 +162,7 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: H_K0_HCl,     H_CR_HCl
   REAL(fp) :: OMOC_POA, OMOC_OPOA
   REAL(fp) :: HSO3conc_Cld, SO3conc_Cld, fupdateHOBr, fupdateHOCl
-  REAL(fp) :: AClAREA,      AClRADI   !xnw
+  REAL(fp) :: AClAREA,      AClRADI,   AClVOL   !xnw
   REAL(fp) :: nitConc_SALA, nitConc_SALC  
 
   ! Arrays
@@ -170,11 +170,11 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: KHETI_SLA(11)
   REAL(fp) :: AWATER(2)
 
-!$OMP THREADPRIVATE( NAEROTYPE,        NATSURFACE, PSCBOX,   STRATBOX )
+!$OMP THREADPRIVATE( NAEROTYPE,    NATSURFACE, PSCBOX,   STRATBOX )
 !$OMP THREADPRIVATE( TEMPK,        RELHUM,     SPC_NIT,  SPC_SO4  )
 !$OMP THREADPRIVATE( SPC_fCl,      SPC_cCl,    SPC_NITs, AWATER   )
 !$OMP THREADPRIVATE( GAMMA_HO2,    XTEMP,      XDENA,    QLIQ     )
-!$OMP THREADPRIVATE( OMOC_POA,     OMOC_OPOA,  SPC_SALA           )
+!$OMP THREADPRIVATE( OMOC_POA,     OMOC_OPOA,  SPC_SALA, AClVOL   )
 !$OMP THREADPRIVATE( QICE,         XAREA,      XRADI, XVOL, XH2O  )
 !$OMP THREADPRIVATE( KHETI_SLA,    SUNCOS,   AClAREA,  AClRADI    )
 !$OMP THREADPRIVATE( H_PLUS,       MSO4,       MNO3,     MHSO4    )
@@ -692,9 +692,10 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt
       !--------------------------------------------------------------------
-      AClAREA = State_Chm%AClArea(I,J,L)      !Fine Cl- aerosol area [cm2/cm3]
-      AClRADI = State_Chm%AClRadi(I,J,L)    !Fine Cl- aerosol radius [cm]
-      AWATER(:) = State_Chm%WaterSav(I,J,L,:) 
+      AClAREA = State_Chm%AClArea(I,J,L)      !Fine SSA+SNA aerosol area [cm2/cm3]
+      AClRADI = State_Chm%AClRadi(I,J,L)    !Fine SSA+SNA aerosol radius [cm]
+      AClVOL  = AClArea * AClRadi / 3e+0_fp !Fine SSA+SNA aerosol volume [cm3/cm3]
+      AWATER(:) = State_Chm%WaterSav(I,J,L,:)
 
       TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
       XTEMP  = sqrt(State_Met%T(I,J,L))        ! Square root of temperature
@@ -847,11 +848,10 @@ MODULE GCKPP_HETRATES
       ! second reactant is "abundant" and calculate the overall rate based on
       ! the uptake rate of the first reactant only.
      
-      HetTemp(1:2) = HETN2O5(1.08E2_fp, 1E-1_fp, clConc_SALA, clConc_SALC, CldFr) !+ &
-      !wbd next line needed?
-      HetTemp(1) = HetTemp(1) + CloudHet( 'N2O5', CldFr, Aliq, Aice, rLiq, rIce, TempK, xDenA)
+      HetTemp(1:2) = HETN2O5(1.08E2_fp, 1E-1_fp, CldFr)
+      kITemp = HetTemp(1) + CloudHet( 'N2O5', CldFr, Aliq, Aice, rLiq, rIce, TempK, xDenA)
       HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('H2O'), &
-               HetTemp(1), HetMinLife)
+               kITemp, HetMinLife)
       State_Chm%GammaN2O5(I,J,L,1) = HetTemp(2)
 
       !--------------------------------------------------------------------
@@ -1167,26 +1167,22 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
 	 ! NOTE: this extension of calculation in troposphere has been removed
          !  (TMS 17/04/10)
-         ! 1st HetTemp() parameter is kN2O5 loss rate coefficient, 2nd is gamma
-         HetTemp(1:2) = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp, Input_Opt )
+         kITemp = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp, Input_Opt )
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('HCl'), &
-                                       HetTemp(1), HetMinLife)
-         State_Chm%GammaN2O5(I,J,L,2) = HetTemp(2)
+                                       kITemp, HetMinLife)
 
          !----------------------------------------------------------------
          ! Reaction of N2O5 with Cl-, XW 1/24/18)
          !----------------------------------------------------------------
-         HetTemp(1:3) = HETN2O5_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, TempK, clConc_SALA, 1)
+         HetTemp(1:3) = HETN2O5_SS( CldFr, 1)
          HET(ind_N2O5,  4) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALACL'), &
                                        HetTemp(1), HetMinLife)
-         HetTemp(1:3) = HETN2O5_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), TempK, clConc_SALC, 2)
+         State_Chm%GammaN2O5(I,J,L,2) = HetTemp(2)
+         State_Chm%GammaN2O5(I,J,L,3) = HetTemp(3)
+
+         HetTemp(1:3) = HETN2O5_SS( CldFr, 2)
          HET(ind_N2O5,  5) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALCCL'), &
                                        HetTemp(1), HetMinLife)
-         !wbd get assistance with this - what should go in GammaN2O5(I,J,L,3) given
-         !sea salt calls are split between SALACL and SALCCL?
-         !HetTemp(1:3) = HETN2O5_SS(1.08E2_fp, 1E-1_fp)
-         !State_Chm%GammaN2O5(I,J,L,3) = HetTemp(2)
-         !State_Chm%GammaN2O5(I,J,L,4) = HetTemp(3)
 
          !----------------------------------------------------------------
          ! Reaction of OH with Cl-, XW 3/12/18)
@@ -2340,21 +2336,19 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETN2O5( A, B, C_X1, C_X2, CldFr) RESULT( HET_N2O5 )
+    FUNCTION HETN2O5( A, B, CldFr) RESULT( HET_N2O5 )
 !
 ! !INPUT PARAMETERS:
 !
       ! Rate coefficients
       REAL(fp), INTENT(IN) :: A, B
-      ! Cl- concentration (mol/L)
-      REAL(fp), INTENT(IN) :: C_X1, C_X2
       ! Cloud fraction
       REAL(fp), INTENT(IN) :: CldFr
 !
 ! !RETURN VALUE:
 !
       ! HET_N2O5(1) = rate coefficient; HET_N2O5(2) = SA-weighted gamma
-      REAL(fp)             :: HET_N2O5!(2)
+      REAL(fp)             :: HET_N2O5(2)
 !
 ! !REMARKS:
 !
@@ -2365,6 +2359,7 @@ MODULE GCKPP_HETRATES
 !  02 Jan 2019 - E. McDuffie - Update for gamma for SO4-NIT-NH4 & OC aerosol
 !                              (following McDuffie et al., JGR 2018)
 !  23 Jul 2019 - C.D. Holmes - Consolidated McDuffie gamma into one function
+!  18 May 2020 - X. Wang     - Added effects of chloride
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2380,12 +2375,11 @@ MODULE GCKPP_HETRATES
       REAL(fp) :: GAM_N2O5, r_gp
 
 !------------------------------------------------------------------------------
-      !wbd - have Xuan check this function
       ! Initialize
       HET_N2O5      = 0.0_fp    !Output, holds ADJUSTEDRATE and XSTCKF results
       ADJUSTEDRATE  = 0.0_fp    !Total N2O5 loss rate coefficient for all aerosol types
       XSTKCF        = 0.0_fp    !Total N2O5 gamma for all aerosol types
-      ClNO2_yield   = 0.0_fp    !ClNO2 production yield (for future update)
+      ClNO2_yield   = 0.0_fp    !ClNO2 production yield
       kClNO2        = 0.0_fp
       output        = 0.0_fp    !temporary variable
       Rp            = 0.0_fp    !Total SNA+ORG radius
@@ -2426,22 +2420,7 @@ MODULE GCKPP_HETRATES
          ELSEIF (N.eq.13) THEN
             ! Stratospheric aerosol
             XSTKCF = KHETI_SLA(1)
-         ELSEIF (N.eq.11) THEN
-            ! Sea salt - follows the N2O5 + Cl- channel by xnw
-            CALL GAMMA_N2O5_Cl(C_X1, RELHUM, 1, Gam_N2O5, r_gp)
-            XSTKCF = GAM_N2O5
-         ELSEIF (N.eq.12) THEN
-            ! Sea salt - follows the N2O5 + Cl- channel by xnw
-            CALL GAMMA_N2O5_Cl(C_X2, RELHUM, 2, Gam_N2O5, r_gp)
-            XSTKCF = GAM_N2O5
-	 ! restore route for tropospheric sulfate (tms 17/04/10)
-	 ! this is to maintain consistancy with Sherwen et al (2016)
-         ELSEIF (N.eq.8 .or. N.eq.10) THEN
-            ! Fixed gamma?
-            !XSTKCF = 0.1e-4_fp ! Sulfate
-            ! RH dependence
-            !XSTKCF = N2O5( N, TEMPK, RELHUM )
-            ! Sulfate - follows the N2O5 + Cl- channel by xnw
+         ELSEIF ((N==8) .or. (N==10) .or. (N==11) .or. (N==12)) THEN
             XSTKCF = 0.0e+0_fp
          ELSE
             ! For UCX-based mechanisms ABSHUMK is set to Spc(I,J,L,id_H2O)
@@ -2454,21 +2433,23 @@ MODULE GCKPP_HETRATES
 
             ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
             ! with organics
-            output = N2O5_InorgOrg( XVOL(8), XVOL(10), XH2O(8), XH2O(10), &
-                 XRADI(8),    SPC_NIT,    0e+0_fp,   TEMPK,    RELHUM )
+            output = N2O5_InorgOrg( AClVOL, XVOL(10), XH2O(8), XH2O(10), &
+                 AClRADI,  SPC_NIT, SPC_fCl,  TEMPK,    RELHUM )
 
             ! Gamma
             XSTKCF = output(1)
             ! ClNO2 yield, fraction [0,1]
-            ClNO2_yield = output(2)
+            ! Reduce ClNO2 production yield on inorganic+organic aerosol by 75%,
+            ! this is based on the analysis of WINTER observations in McDuffie et al., JGR, 2018
+            ClNO2_yield = output(2)*0.25_fp
             ! Particle radius with coating, cm
             Rp     = output(3)
             ! Surface area of coated particles, cm2/cm3
             SA     = output(4)
 
             !For SNA aerosol...
-            ! Total loss rate of N2O5 (kN2O5) on SNA+ORG aerosol
-            ADJUSTEDRATE=ARSL1K( SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
+            ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+fineSSA aerosol
+            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
 
             !Calculate ClNO2 yield on SNA(+ORG) aerosol using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2481,38 +2462,57 @@ MODULE GCKPP_HETRATES
             ! Note that XSTKCF is actually a premultiplying
             ! factor in this case, including c-bar
             ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSEIF (N.eq.11) THEN
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*AClAREA,AClRADI,XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_FP)) * (1.0e0_fp-r_gp)
          ELSEIF (N.eq.12) THEN
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_FP)) * (1.0e0_fp-r_gp)
+
+            ! Properties of coarse mode SSA
+            output = N2O5_InorgOrg( XVOL(12), 0e+0_fp, XH2O(12), 0e+0_fp, &
+                 XRADI(12), SPC_NITs, SPC_cCl,   TEMPK,    RELHUM )
+
+            ! Gamma
+            XSTKCF = output(1)
+            ! ClNO2 yield, fraction [0,1]
+            ClNO2_yield = output(2)
+            ! Particle radius with coating, cm
+            Rp     = output(3)
+            ! Surface area of coated particles, cm2/cm3
+            SA     = output(4)
+
+            !For coarse mode SSA aerosol ...
+            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP))
+
+            !Calculate ClNO2 yield using kN2O5 from above
+            ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
+            kClNO2 = ClNO2_yield * ADJUSTEDRATE
+
+            ! reduce the rate of this HNO3 pathway in accordance with the yield
+            ADJUSTEDRATE = ADJUSTEDRATE - kClNO2
+
          ELSE
             !For all other aerosol types...
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ARSL1K((1-CldFr)*XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP))
          ENDIF
 
          ! C) Add results from all aerosol types to get running sum of
          !    ADJUSTEDRATE and surface-area-weighted gamma
-         HET_N2O5 = HET_N2O5 + ADJUSTEDRATE         !loss rate coefficient
+         HET_N2O5(1) = HET_N2O5(1) + ADJUSTEDRATE         !loss rate coefficient
 
-         !IF (N.eq.8) THEN
-         !     HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * SA ) !SA-weighted gamma
-         !     SA_sum = SA_sum + SA                        !total SA in cm2/cm3
-         !ELSEIF (N.eq.10) THEN
-         !     !don't include ORG SA since it has already been included above
-         !     SA_sum = SA_sum
-         !ELSE
-         !     HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * XAREA(N))!SA-weighted gamma
-         !     SA_sum = SA_sum + XAREA(N)                      !total SA
-         !ENDIF
+         IF (N.eq.8) THEN
+              HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * SA ) !SA-weighted gamma
+              SA_sum = SA_sum + SA                        !total SA in cm2/cm3
+         ELSEIF ( (N.eq.10) .or. (N.eq.11) )THEN
+              !don't include ORG and fine SSA SA since it has already been included above
+              SA_sum = SA_sum
+         ELSE
+              HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * XAREA(N))!SA-weighted gamma
+              SA_sum = SA_sum + XAREA(N)                      !total SA
+         ENDIF
 
       END DO
 
       ! D) Divide gamma by SA to get SA-weighted gamma
-      !HET_N2O5(2) = safe_div( HET_N2O5(2), SA_sum, 0.0e+0_fp )
+      HET_N2O5(2) = safe_div( HET_N2O5(2), SA_sum, 0.0e+0_fp )
 
     END FUNCTION HETN2O5
 !EOC
@@ -4294,26 +4294,22 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: HetN2O5_SS
 !
-! !DESCRIPTION: Set heterogenous chemistry rate for N2O5 on sea salt. This
-!  reaction follows the N2O5 + Cl- channel, and Cl- is assumed to be in excess.
+! !DESCRIPTION: Set heterogenous chemistry rate for N2O5 on Cl- containing
+! aerosols. This reaction follows the N2O5 + Cl- channel.
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETN2O5_SS(denAir, rAer, AAer, TK, C_X, X) RESULT( kISum )
+    FUNCTION HETN2O5_SS(CldFr, X) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
-      REAL(fp), INTENT(IN) :: rAer        ! Radius of aerosol (cm)
-      REAL(fp), INTENT(IN) :: AAer        ! Area of aerosol (cm2/cm3)
-      REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
-      REAL(fp), INTENT(IN) :: C_X         ! Cl- concentration (mol/L)
+      REAL(fp), INTENT(IN) :: CldFr       ! Cloud fraction
       INTEGER,  INTENT(IN) :: X           ! X = 1 fine; 2 coarse
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: kISum(3) !(1) = rate coefficient, (2) = gamma (SS), (3) = phi
+      REAL(fp)             :: kISum(3) !(1) = rate coefficient, (2) = gamma, (3) = phi
 !
 ! !REMARKS:
 !
@@ -4323,6 +4319,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  15 Jan 2018 - X. Wang     - Updated function for Cl-(p) simulation
 !  13 Dec 2018 - E. McDuffie - Update to report ClNO2 yield & N2O5 gamma
+!  18 May 2020 - X. Wang     - Merged N2O5 uptake and chlorine chemistry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4330,8 +4327,9 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: N
-      REAL(fp) :: XSTKCF
+      REAL(fp) :: XSTKCF, output(4)
       REAL(fp) :: GAM_N2O5, r_gp
+      REAL(fp) :: ClNO2_yield, kClNO2, Rp, SA
       Real(fp), Parameter :: XMolWeight=108.0e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
 !
@@ -4340,29 +4338,44 @@ MODULE GCKPP_HETRATES
       ! Initialize
       kISum        = 0.0_fp
       XSTKCF       = 0.0_fp
-      GAM_N2O5     = 0.0_fp
-      r_gp         = 1.0_fp
+      ClNO2_yield   = 0.0_fp    !ClNO2 production yield (for future update)
+      kClNO2        = 0.0_fp
+      output        = 0.0_fp    !temporary variable
+      Rp            = 0.0_fp    !Total SNA+ORG radius
+      SA            = 0.0_fp    !Total SNA+ORG surface area
 
-      ! Directly calculate for sea salt and NH4Cl only
-      ! Get GAMMA for N2O5 hydrolysis, which is
-      ! a function of aerosol type, temp, and RH
+      IF (X .EQ. 1) THEN
+         ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
+         ! with organics
+         output = N2O5_InorgOrg( AClVOL, XVOL(10), XH2O(8), XH2O(10), &
+                  AClRadi, SPC_NIT, SPC_fCl,   TEMPK,    RELHUM )
+      ELSEIF (X .eq. 2) THEN
+         output = N2O5_InorgOrg( XVOL(12), 0e+0_fp, XH2O(12), 0e+0_fp, &
+                  XRADI(12), SPC_NITs, SPC_cCl,  TEMPK,    RELHUM )
+      ENDIF
 
-      ! Sea salt - follows the N2O5 + Cl- channel
-      CALL GAMMA_N2O5_Cl(C_X, RELHUM, X, Gam_N2O5, r_gp)
-      XSTKCF = Gam_N2O5
-      kISum(2) = Gam_N2O5
-      ! Reaction rate
-      kISum(1) = ARSL1K( AAer, rAer, denAir, XSTKCF, XTEMP, XSQM )*r_gp
-      !wbd - Ask about ClNO2 yield and how it is addressed / fits into Xuan's code
-      !   ELSEIF (N.eq.8) THEN
-            !ClNO2_yield = 0 ! (add in future update)
-            ! phi = kClNO2/kN2O5 (kN2O5 = sum (ClNO2+HNO3) and 2*HNO3 production pathways)
-            !kClNO2 = ClNO2_yield * ADJUSTEDRATE
-            ! rate of this HNO3 + ClNO2 pathway for this aerosol type is kClNO2
-            !Calculate the total rate of this pathway from both SS and SNA aerosol
-            !ADJUSTEDRATE = kClNO2
-            !kISum(1) = kISum(1) + ADJUSTEDRATE
-      !  ENDIF
+      ! Gamma
+      XSTKCF = output(1)
+      ! ClNO2 yield, fraction [0,1]
+      IF (X .EQ. 1) THEN
+         ! Reduce ClNO2 production yield on fine inorganic+organic aerosol by 75%,
+         ! this is based on the analysis of WINTER observations in McDuffie
+         ! et al., JGR, 2018
+         ClNO2_yield = output(2)*0.25_fp
+      ELSEIF (X .eq. 2) THEN
+         ClNO2_yield = output(2)
+      ENDIF
+      ! Particle radius with coating, cm
+      Rp     = output(3)
+      ! Surface area of coated particles, cm2/cm3
+      SA     = output(4)
+
+      ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
+      kISum(1) = ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, XSQM )
+      kISum(1) = ClNO2_yield * kISum(1)
+
+      kISum(2) = XSTKCF
+      kISum(3) = ClNO2_yield
 
     END FUNCTION HETN2O5_SS
 !EOC
@@ -4388,7 +4401,7 @@ MODULE GCKPP_HETRATES
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                   :: kISum(2) !(1) = rate coefficient, (2) = gamma (SS)
+      REAL(fp)                   :: kISum
 !
 ! !REMARKS:
 !  This routine is only activated for UCX-based mechanisms.
@@ -4405,6 +4418,8 @@ MODULE GCKPP_HETRATES
 !                              sulfate, rather than relying on a fixed factor.
 !  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !  13 Dec 2018 - E. McDuffie - Now report kN2O5 and SA-weighted gamma
+!  25 May 2020 - X. Wang     - Remove reporting gamma since this is only for
+!                              stratosphere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4464,20 +4479,10 @@ MODULE GCKPP_HETRATES
             ENDIF
 
             ! Add to overall reaction rate
-            ! EEM: update to report surface area weighted gamma and rate
-            kISum(1) = kISum(1) + ADJUSTEDRATE
-            kISum(2) = kISum(2) + ( XSTKCF * XAREA(N) )
-            SA_total = SA_total + XAREA(N)
+            kISum = kISum + ADJUSTEDRATE
          ENDIF
 
       END DO
-
-      !Calculate SA-weighted gamma at end
-      IF ( SA_total > 0.0e+0_fp ) THEN
-         kISum(2) = kISum(2) / SA_total
-      ELSE
-         kISum(2) = 0.0e+0_fp
-      ENDIF
 
     END FUNCTION HETN2O5_HCl
 !EOC

@@ -1248,24 +1248,22 @@ CONTAINS
        !--------------------------------------------------------------------
        ! GammaN2O5
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%GammaN2O5( IM, JM, LM, 4 ), STAT=RC )
+       ALLOCATE( State_Chm%GammaN2O5( IM, JM, LM, 3 ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%GammaN2O5', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%GammaN2O5 = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, 4
+       DO N = 1, 3
 
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
-                chmID = 'GammaN2O5H2O'
+                chmID = 'GammaN2O5overall'
              CASE( 2  )
-                chmID = 'GammaN2O5HCl'
+                chmID = 'GammaN2O5fine'
              CASE( 3  )
-                chmID = 'GammaN2O5SS'
-             CASE( 4  )
-                chmID = 'YieldClNO2'
+                chmID = 'YieldClNO2fine'
              CASE DEFAULT
                 ErrMsg = 'State_Chm%GammaN2O5 exceeds the number of defined' &
                          // ' N2O5 uptake categories'
