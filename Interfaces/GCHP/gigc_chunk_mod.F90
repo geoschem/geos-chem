@@ -851,7 +851,7 @@ CONTAINS
 
        ! Calculate TOMS O3 overhead. For now, always use it from the
        ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, DAY, .TRUE., &
+       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, .TRUE., &
                                  State_Met%TO3 )
 
 #if !defined( MODEL_GEOS )

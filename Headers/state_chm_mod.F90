@@ -225,6 +225,22 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
 
      !----------------------------------------------------------------------
+     ! Fields for setting mean surface CH4 from HEMCO
+     !----------------------------------------------------------------------
+     REAL(f4),          POINTER :: SFC_CH4    (:,:    ) ! Pointer to HEMCO - not allocated
+
+     !----------------------------------------------------------------------
+     ! Fields for TOMS overhead ozone column data
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: TO3_DAILY  (:,:    ) ! Daily overhead ozone
+     REAL(f4),          POINTER :: STOMS      (:,:    )
+     REAL(f4),          POINTER :: TOMS       (:,:    ) ! Pointer to HEMCO TOMS_O3_COL
+     REAL(f4),          POINTER :: TOMS1      (:,:    ) ! Pointer to HEMCO TOMS1_O3_COL
+     REAL(f4),          POINTER :: TOMS2      (:,:    ) ! Pointer to HEMCO TOMS2_O3_COL
+     REAL(f4),          POINTER :: DTOMS1     (:,:    ) ! Pointer to HEMCO DTOMS1_O3_COL
+     REAL(f4),          POINTER :: DTOMS2     (:,:    ) ! Pointer to HEMCO DTOMS2_O3_COL
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -453,7 +469,22 @@ CONTAINS
     ! For LINOZ
     State_Chm%TLSTT             => NULL()
 
+    ! For dry deposition
     State_Chm%DryDepSav         => NULL()
+
+    ! For global CH4
+    ! This field is not allocated - it points to HEMCO in SET_CH4.
+    State_Chm%SFC_CH4           => NULL()
+
+    ! For TOMS module
+    State_Chm%TO3_DAILY         => NULL()
+    State_Chm%STOMS             => NULL()
+    ! The below are not allocated - pointing to HEMCO in READ_TOMS.
+    State_Chm%TOMS              => NULL()
+    State_Chm%TOMS1             => NULL()
+    State_Chm%TOMS2             => NULL()
+    State_Chm%DTOMS1            => NULL()
+    State_Chm%DTOMS2            => NULL()
 
     ! Local variables
     Ptr2data                    => NULL()
@@ -1766,6 +1797,25 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------
+    ! TOMS_MOD
+    ! Not registered to the registry as these are fields internal to the toms_mod
+    ! module state.
+    !------------------------------------------------------------------
+    chmID = 'TO3_DAILY'
+    ALLOCATE( State_Chm%TO3_DAILY( IM, JM ),    &
+              STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%TO3_DAILY = 0.0_fp
+
+    chmID = 'STOMS'
+    ALLOCATE( State_Chm%STOMS( IM, JM ),    &
+              STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%STOMS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%STOMS = 0.0_fp
+
+    !------------------------------------------------------------------
     ! Gan Luo et al wetdep fields
     !------------------------------------------------------------------
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -2326,6 +2376,20 @@ CONTAINS
        State_Chm%QQ3D => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%TO3_DAILY ) ) THEN
+       DEALLOCATE( State_Chm%TO3_DAILY, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%TO3_DAILY => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%STOMS ) ) THEN
+       DEALLOCATE( State_Chm%STOMS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%STOMS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%STOMS => NULL()
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -2335,6 +2399,17 @@ CONTAINS
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Chm%xxx => NULL()
     !ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Deassociate arrays that are pointers to HEMCO
+    !-----------------------------------------------------------------------
+    State_Chm%SFC_CH4           => NULL()
+
+    State_Chm%TOMS              => NULL()
+    State_Chm%TOMS1             => NULL()
+    State_Chm%TOMS2             => NULL()
+    State_Chm%DTOMS1            => NULL()
+    State_Chm%DTOMS2            => NULL()
 
     !=======================================================================
     ! Deallocate the species database object field
