@@ -13,4 +13,4 @@
       ! Z = updated for patches that do not break backwards compatibility
       !     with run directories from the last benchmarked version X.Y.0.
       !-----------------------------------------------------------------------
-      GC_CLASSIC_VERSION = '12.8.0'
+      GC_CLASSIC_VERSION = '12.9.0'
