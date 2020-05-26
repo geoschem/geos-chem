@@ -181,7 +181,9 @@ CONTAINS
     REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
 
 #ifdef MODEL_CLASSIC
+#ifndef NO_OMP
     INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
+#endif
 #endif
 
     ! Arrays
@@ -628,8 +630,10 @@ CONTAINS
        H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
 #ifdef MODEL_CLASSIC
+#ifndef NO_OMP
        ! Get the thread number
        Thread    = OMP_GET_THREAD_NUM() + 1
+#endif
 #endif
 
        !====================================================================
