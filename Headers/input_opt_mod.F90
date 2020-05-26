@@ -393,13 +393,16 @@ MODULE Input_Opt_Mod
      INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
      INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
-     LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
      ! Toggle for het rates. If true, turns off three Cl producing het reactions
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
      LOGICAL                     :: TurnOffHetRates = .FALSE.
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+     LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #endif
 
      !----------------------------------------
