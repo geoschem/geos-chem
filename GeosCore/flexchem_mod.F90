@@ -180,7 +180,9 @@ CONTAINS
     INTEGER,  SAVE         :: CH4_YEAR  = -1
     REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
 
+#ifdef MODEL_CLASSIC
     INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
+#endif
 
     ! Arrays
     INTEGER                :: ICNTRL     (                  20               )
@@ -625,8 +627,10 @@ CONTAINS
        ! mje H2O arrives in g/kg needs to be in mol cm-3
        H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
+#ifdef MODEL_CLASSIC
        ! Get the thread number
        Thread    = OMP_GET_THREAD_NUM() + 1
+#endif
 
        !====================================================================
        ! Get photolysis rates (daytime only)
