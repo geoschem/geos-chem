@@ -963,6 +963,7 @@ CONTAINS
        IF ( current%isMET ) THEN
           CALL Registry_Lookup( am_I_Root = am_I_Root,               &
                                 Registry  = State_Met%Registry,      &
+                                RegDict   = State_Met%RegDict,       &
                                 State     = State_Met%State,         &
                                 RegDict   = State_Met%RegDict,       &
                                 Variable  = current%registryID,      &

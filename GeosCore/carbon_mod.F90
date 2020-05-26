@@ -2084,13 +2084,18 @@ CONTAINS
       ! hotp diagnostic (3/11/09)
       GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
-      ! Check equilibrium (hotp 5/18/10)
-      IF ( prtDebug ) THEN
-         ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
-         ! Low NOX (non-volatile) aromatic product is IPR=4
-         CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
-                          ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
-      ENDIF
+      !--------------------------------------------------------------------
+      ! Comment out for now.  This produces a lot of excess debug output.
+      ! (bmy, 5/5/20)
+      !! Check equilibrium (hotp 5/18/10)
+      !IF ( prtDebug ) THEN
+      !   ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
+      !   ! Low NOX (non-volatile) aromatic product is IPR=4
+      !   CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
+      !                    ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
+      !ENDIF
+      !--------------------------------------------------------------------
+
 
    ENDDO
    ENDDO

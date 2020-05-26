@@ -272,6 +272,9 @@ CONTAINS
        ! Model ID and species name
        iHcoConfig%ModelSpc(N)%ModID      = SpcInfo%ModelID
        iHcoConfig%ModelSpc(N)%SpcName    = TRIM( SpcInfo%Name )
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO
 
     !---------------------------------------

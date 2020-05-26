@@ -153,8 +153,7 @@ file_mod.o          : file_mod.F90          \
                       error_mod.o
 
 gc_grid_mod.o       : gc_grid_mod.F90       \
-                      error_mod.o           \
-                      roundoff_mod.o
+                      error_mod.o
 
 grid_registry_mod.o : grid_registry_mod.F90 \
                       gc_grid_mod.o         \
@@ -170,8 +169,6 @@ pressure_mod.o      : pressure_mod.F90      \
                       error_mod.o
 
 regrid_a2a_mod.o    : regrid_a2a_mod.F90
-
-roundoff_mod.o      : roundoff_mod.F90
 
 time_mod.o          : time_mod.F90          \
                       error_mod.o           \

@@ -1222,6 +1222,9 @@ CONTAINS
              CALL GC_ERROR( ErrMsg, RC, 'RDAER in aerosol_mod.F90' )
           END SELECT
 
+          ! Free pointer
+          SpcInfo => NULL()
+
        ENDDO
     ENDIF
 

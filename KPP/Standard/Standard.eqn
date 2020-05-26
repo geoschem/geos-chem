@@ -193,8 +193,8 @@ CH2ICl     = IGNORE; {CH2ICl; Chloroiodomethane}
 CH2O       = IGNORE; {CH2O; Formaldehyde}
 CH2OO      = IGNORE; {CH2OO; Criegee intermediate}
 CH3Br      = IGNORE; {CH3Br; Methyl bromide}
-CH3CHOO    = IGNORE; {CH3CHOO; Criegee intermediate}
 CH3CCl3    = IGNORE; {CH3CCl3; Methyl chloroform}
+CH3CHOO    = IGNORE; {CH3CHOO; Criegee intermediate}
 CH3Cl      = IGNORE; {CH3Cl; Chloromethane}
 CH3I       = IGNORE; {CH3I; Methyl iodide}
 CH4        = IGNORE; {CH4; Methane}
@@ -322,7 +322,7 @@ LXRO2N     = IGNORE; {Dummy spc to track oxidation of XRO2 by NO}
 MACR       = IGNORE; {CH2=C(CH3)CHO; Methacrolein}
 MACR1OO    = IGNORE; {peroxyacyl radical from MACR + OH}
 MACR1OOH   = IGNORE; {CH2=C(CH3)C(O)OOH; Peracid from MACR}
-MACRNO2    = IGNORE; {Product of MACRN+OH}
+MACRNO2    = IGNORE; {Product of MCRHN + OH}
 MAP        = IGNORE; {CH3C(O)OOH; Peroxyacetic acid}
 MCO3       = IGNORE; {CH3C(O)OO; Peroxyacetyl radical}
 MCRDH      = IGNORE; {C4H8O3; Dihydroxy-MACR}
