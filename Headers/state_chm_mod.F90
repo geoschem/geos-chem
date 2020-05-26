@@ -3082,27 +3082,21 @@ CONTAINS
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
+       CASE ( 'GAMMAN2O5OVERALL' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma N2O5 overall'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
 
-       CASE ( 'GAMMAN2O5H2O' )
-          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + H2O reaction'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
+       CASE ( 'GAMMAN2O5FINE' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma N2O5 and fine aerosol' !wbd fix
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
 
-       CASE ( 'GAMMAN2O5HCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + HCl reaction'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'GAMMAN2O5SS' )
-          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + SS reaction'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'YIELDCLNO2' )
-          IF ( isDesc  ) Desc  = 'Production yield coefficient for ClNO2' &
-                                 // ' from N2O5 aerosol uptake'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
+       CASE ( 'YIELDCLNO2FINE' )
+          IF ( isDesc  ) Desc = 'Production yield coefficient for ClNO2 ' &
+                               // ' from N2O5 fine aerosol uptake'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
 
        CASE ( 'KPPHVALUE' )
           IF ( isDesc  ) Desc  = 'H-value for Rosenbrock solver'
