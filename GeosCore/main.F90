@@ -2548,7 +2548,7 @@ CONTAINS
 
           ! Get the overhead O3 column for FAST-J.  Take either the
           ! TOMS O3 data or the column O3 directly from the met fields
-          CALL Compute_Overhead_O3( Input_Opt, State_Grid, DAY, &
+          CALL Compute_Overhead_O3( Input_Opt, State_Grid, State_Chm, DAY, &
                                     Input_Opt%USE_O3_FROM_MET,  &
                                     State_Met%TO3, RC )
        ENDIF

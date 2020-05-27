@@ -120,7 +120,11 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: RC
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
     INTEGER, EXTERNAL  :: OMP_GET_NUM_THREADS
+#endif
+#endif
 
     ! Strings
     CHARACTER(LEN=255) :: WarnMsg, ThisLoc
@@ -145,11 +149,15 @@ CONTAINS
 
     TimerMode = TheMode
 
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
     ! Determine the number of threads available for parallel loops
     !$OMP PARALLEL
     nThreads   = OMP_GET_NUM_THREADS()
     d_nThreads = DBLE( nThreads )
     !$OMP END PARALLEL
+#endif
+#endif
 
     ! Debug
     !PRINT*, "Timer_Setup: Done setting up GEOS-Chem timers"

@@ -24,10 +24,8 @@ MODULE TOMS_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: INIT_TOMS
   PUBLIC :: COMPUTE_OVERHEAD_O3
   PUBLIC :: GET_OVERHEAD_O3
-  PUBLIC :: CLEANUP_TOMS
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -65,12 +63,6 @@ MODULE TOMS_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  ! Arrays
-  REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -96,28 +88,26 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, DAY, &
-                                  USE_O3_FROM_MET, TO3, RC )
+  SUBROUTINE COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
+                                  USE_O3_FROM_MET, TO3 )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Grid_Mod,    ONLY : GrdState
-    USE HCO_Calc_Mod,      ONLY : Hco_EvalFld
-    USE HCO_Interface_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Chm_Mod,  ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
-    INTEGER,        INTENT(IN)  :: DAY             ! Day of month
-    LOGICAL,        INTENT(IN)  :: USE_O3_FROM_MET ! Use TO3 directly from met?
-    REAL(fp),       INTENT(IN)  :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
-                                                                    ! [Dobsons]
+    TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
+    TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
+    TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
+    INTEGER,        INTENT(IN) :: DAY             ! Day of month
+    LOGICAL,        INTENT(IN) :: USE_O3_FROM_MET ! Use TO3 directly from met?
+    REAL(fp),       INTENT(IN) :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
+                                                                   ! [Dobsons]
 !
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,      INTENT(OUT) :: RC              ! Success or failure?!
+    INTEGER,        INTENT(OUT) :: RC              ! Success or failure?!
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
 !                                                                             .
@@ -197,14 +187,12 @@ CONTAINS
     LOGICAL, SAVE         :: FIRST = .TRUE.
     INTEGER               :: I, J
     CHARACTER(LEN=255)    :: ErrMsg
-    REAL(fp), ALLOCATABLE :: TOMS1(:,:)
-    REAL(fp), ALLOCATABLE :: TOMS2(:,:)
 
     ! Assume success
     RC = GC_SUCCESS
 
     ! Initialize
-    TO3_DAILY = 0e+0_fp
+    State_Chm%TO3_DAILY = 0e+0_fp
 
     !=================================================================
     ! Now weight the O3 column by the observed monthly mean TOMS.
@@ -225,16 +213,12 @@ CONTAINS
        ENDIF
 
        ! Get the overhead O3 column directly from the met field O3
-       TO3_DAILY = TO3
+       State_Chm%TO3_DAILY = TO3
 
     ELSE
 
        ! Evalulate the first day TOMS O3 columns from HEMCO
-       ALLOCATE( TOMS1( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'toms_mod.F: TOMS1', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       TOMS1 = 0.0_fp
-       CALL HCO_EvalFld( HcoState, 'TOMS1_O3_COL', TOMS1, RC )
+       CALL HCO_EvalFld( HcoState, 'TOMS1_O3_COL', State_Chm%TOMS1, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS1_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
@@ -242,11 +226,7 @@ CONTAINS
        ENDIF
        
        ! Evalulate the last day TOMS O3 columns from HEMCO
-       ALLOCATE( TOMS2( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'toms_mod.F: TOMS2', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       TOMS2 = 0.0_fp
-       CALL HCO_EvalFld( HcoState, 'TOMS2_O3_COL', TOMS2, RC )
+       CALL HCO_EvalFld( HcoState, 'TOMS2_O3_COL', State_Chm%TOMS2, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS2_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
@@ -263,15 +243,11 @@ CONTAINS
        !$OMP DEFAULT( SHARED )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          TO3_DAILY(I,J) = TOMS1(I,J) + (DAY - 1) &
-                           * ( (TOMS2(I,J)-TOMS1(I,J))/30.0_fp )
+          State_Chm%TO3_DAILY(I,J) = State_Chm%TOMS1(I,J) + (DAY - 1) * &
+                     * ( (State_Chm%TOMS2(I,J)-State_Chm%TOMS1(I,J))/30.0_fp )
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
-
-       ! Clean up
-       IF ( ALLOCATED( TOMS1 ) ) DEALLOCATE ( TOMS1 )
-       IF ( ALLOCATED( TOMS2 ) ) DEALLOCATE ( TOMS2 )
 
     ENDIF
 
@@ -291,10 +267,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GET_OVERHEAD_O3( I, J ) RESULT( OVERHEAD_O3 )
+  FUNCTION GET_OVERHEAD_O3( State_Chm, I, J ) RESULT( OVERHEAD_O3 )
+!
+! !USES:
+!
+    USE State_Chm_Mod,  ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
     INTEGER :: I             ! Grid box longitude index
     INTEGER :: J             ! Grid box latitude index
 !
@@ -309,117 +290,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    OVERHEAD_O3 = TO3_DAILY(I,J)
+    OVERHEAD_O3 = State_Chm%TO3_DAILY(I,J)
 
   END FUNCTION GET_OVERHEAD_O3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_toms
-!
-! !DESCRIPTION: Subroutine INIT\_TOMS allocates and zeroes all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE INIT_TOMS( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Failure or success
-!
-! !REVISION HISTORY:
-!  14 Jul 2003 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    !=================================================================
-    ! INIT_TOMS begins here!
-    !=================================================================
-
-    ! Assume success
-    RC = GC_SUCCESS
-
-    ! Exit immediately if this is a dry-run
-    IF ( Input_Opt%DryRun ) RETURN
-
-    ! Allocate arrays
-    IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN
-       ALLOCATE( TO3_DAILY( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'toms_mod.F90:TO3_DAILY', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       TO3_DAILY = 0.0_fp
-    ENDIF
-
-  END SUBROUTINE INIT_TOMS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_toms
-!
-! !DESCRIPTION: Subroutine CLEANUP\_TOMS deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CLEANUP_TOMS( RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  14 Jul 2003 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    !=================================================================
-    ! CLEANUP_TOMS begins here!
-    !=================================================================
-
-    ! Assume success
-    RC = GC_SUCCESS
-
-    ! Deallocate variables
-    IF ( ALLOCATED( TO3_DAILY ) ) THEN
-       DEALLOCATE( TO3_DAILY, STAT=RC )
-       CALL GC_CheckVar( 'toms_mod.F90:TO3_DAILY', 2, RC )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE CLEANUP_TOMS
 !EOC
 END MODULE TOMS_MOD

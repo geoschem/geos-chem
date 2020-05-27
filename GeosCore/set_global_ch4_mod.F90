@@ -30,7 +30,6 @@ MODULE Set_Global_CH4_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -114,8 +113,8 @@ CONTAINS
     CHARACTER(LEN=255)  :: ErrMsg
     CHARACTER(LEN=255)  :: ThisLoc
 
-    ! Arrays
-    REAL(fp)            :: SFC_CH4(State_Grid%NX,State_Grid%NY)
+    ! SAVEd variables
+    INTEGER, SAVE       :: id_CH4
 
     !=================================================================
     ! SET_CH4 begins here!
@@ -131,17 +130,20 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get species ID
-    id_CH4 = Ind_( 'CH4' )
+    IF ( .not. ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
 
-    ! Use the NOAA spatially resolved data where available
-    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
-    IF (.NOT. FOUND ) THEN
-       FOUND = .TRUE.
-       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-       ! https://doi.org/10.5194/gmd-10-2057-2017a
-       CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, &
-                         FOUND=FOUND )
+       ! Get species ID
+       id_CH4 = Ind_( 'CH4' )
+
+       ! Use the NOAA spatially resolved data where available
+       CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, &
+                        FOUND=FOUND )
+       IF (.NOT. FOUND ) THEN
+          FOUND = .TRUE.
+          ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+          ! https://doi.org/10.5194/gmd-10-2057-2017a
+          CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, &
+                            FOUND=FOUND )
     ENDIF
     IF (.NOT. FOUND ) THEN
        ErrMsg = 'Cannot evalaute NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
@@ -150,6 +152,7 @@ CONTAINS
                 '(NOAA GMD for 1978 and later; else CMIP6).'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
@@ -185,7 +188,7 @@ CONTAINS
        PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
        ! Surface CH4 from HEMCO is in units [ppbv], convert to [v/v dry]
-       CH4 = SFC_CH4(I,J) * 1e-9_fp
+       CH4 = State_Chm%SFC_CH4(I,J) * 1e-9_fp
 
 #if defined( MODEL_GEOS )
        ! Zero diagnostics

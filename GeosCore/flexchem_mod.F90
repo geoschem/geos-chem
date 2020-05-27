@@ -180,7 +180,11 @@ CONTAINS
     INTEGER,  SAVE         :: CH4_YEAR  = -1
     REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
 
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
     INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
+#endif
+#endif
 
     ! Arrays
     INTEGER                :: ICNTRL     (                  20               )
@@ -480,7 +484,7 @@ CONTAINS
        CALL Timer_Start( "=> FlexChem",     RC ) ! ended in Do_Chemistry
     ENDIF
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -625,8 +629,12 @@ CONTAINS
        ! mje H2O arrives in g/kg needs to be in mol cm-3
        H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
        ! Get the thread number
        Thread    = OMP_GET_THREAD_NUM() + 1
+#endif
+#endif
 
        !====================================================================
        ! Get photolysis rates (daytime only)
@@ -904,7 +912,7 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1042,7 +1050,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values

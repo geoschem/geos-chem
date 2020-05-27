@@ -5863,7 +5863,6 @@ CONTAINS
     USE APM_INIT_MOD,   ONLY : IFEMITBCOCS
     USE APM_DRIV_MOD,   ONLY : PSO4GAS
     USE APM_DRIV_MOD,   ONLY : FCLOUD
-    USE WETSCAV_MOD,    ONLY : PSO4_SO2APM2
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -5910,6 +5909,9 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER :: Spc(:,:,:,:)
+#ifdef APM
+    REAL(fp), POINTER :: PSO4_SO2APM2(:,:,:)
+#endif
 
 #ifdef APM
     REAL*8            :: MASS0, MASS, PMASS
@@ -5936,6 +5938,8 @@ CONTAINS
     CALL WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
                           State_Met, RC )
 
+    ! Point to PSO4_SO2APM2 now moved to State_Met
+    PSO4_SO2APM2 => State_Met%PSO4_SO2APM2
 #endif
 
     ! Point to chemical species array [kg]
