@@ -3652,6 +3652,7 @@ CONTAINS
                           DSpc        = DSpc(NW,:,I,J),           &
                           Spc         = Spc(I,J,:,N),             &
                           RC          = RC )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -4169,6 +4170,7 @@ CONTAINS
                           DSpc        = DSpc(NW,:,I,J),           &
                           Spc         = Spc(I,J,:,N),             &
                           RC          = RC )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

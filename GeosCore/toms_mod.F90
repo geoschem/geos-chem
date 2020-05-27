@@ -89,13 +89,15 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
-                                  USE_O3_FROM_MET, TO3 )
+                                  USE_O3_FROM_MET, TO3, RC )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Chm_Mod,  ONLY : ChmState
+    USE HCO_Calc_Mod,      ONLY : Hco_EvalFld
+    USE HCO_Interface_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Grid_Mod,    ONLY : GrdState
+    USE State_Chm_Mod,     ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -244,7 +246,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Chm%TO3_DAILY(I,J) = State_Chm%TOMS1(I,J) + (DAY - 1) * &
-                     * ( (State_Chm%TOMS2(I,J)-State_Chm%TOMS1(I,J))/30.0_fp )
+                      ( (State_Chm%TOMS2(I,J)-State_Chm%TOMS1(I,J))/30.0_fp )
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO

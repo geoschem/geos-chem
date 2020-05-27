@@ -227,14 +227,14 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
      !----------------------------------------------------------------------
-     REAL(f4),          POINTER :: SFC_CH4    (:,:    ) ! Pointer to HEMCO - not allocated
+     REAL(fp),          POINTER :: SFC_CH4    (:,:    )
 
      !----------------------------------------------------------------------
      ! Fields for TOMS overhead ozone column data
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: TO3_DAILY  (:,:    ) ! Daily overhead ozone
-     REAL(fp),          POINTER :: TOMS1      (:,:    ) ! HEMCO TOMS1_O3_COL
-     REAL(fp),          POINTER :: TOMS2      (:,:    ) ! HEMCO TOMS2_O3_COL
+     REAL(fp),          POINTER :: TOMS1      (:,:    )
+     REAL(fp),          POINTER :: TOMS2      (:,:    )
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -1780,9 +1780,20 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------
+    ! SFC_CH4
+    ! Not registered to the registry as these are fields internal to the
+    ! set_global_ch4_mod module state.
+    !------------------------------------------------------------------
+    chmID = 'SFC_CH4'
+    ALLOCATE( State_Chm%SFC_CH4( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%SFC_CH4', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%SFC_CH4 = 0.0_fp
+
+    !------------------------------------------------------------------
     ! TOMS_MOD
-    ! Not registered to the registry as these are fields internal to the toms_mod
-    ! module state.
+    ! Not registered to the registry as these are fields internal to the
+    ! toms_mod module state.
     !------------------------------------------------------------------
     chmID = 'TO3_DAILY'
     ALLOCATE( State_Chm%TO3_DAILY( IM, JM ), STAT=RC )
@@ -2363,6 +2374,13 @@ CONTAINS
        State_Chm%QQ3D => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
+       DEALLOCATE( State_Chm%SFC_CH4, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SFC_CH4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SFC_CH4 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%TO3_DAILY ) ) THEN
        DEALLOCATE( State_Chm%TO3_DAILY, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 2, RC )
@@ -2370,11 +2388,18 @@ CONTAINS
        State_Chm%TO3_DAILY => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%STOMS ) ) THEN
-       DEALLOCATE( State_Chm%STOMS, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%STOMS', 2, RC )
+    IF ( ASSOCIATED( State_Chm%TOMS1 ) ) THEN
+       DEALLOCATE( State_Chm%TOMS1, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TOMS1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%STOMS => NULL()
+       State_Chm%TOMS1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TOMS2 ) ) THEN
+       DEALLOCATE( State_Chm%TOMS2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TOMS2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%TOMS2 => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2386,17 +2411,6 @@ CONTAINS
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Chm%xxx => NULL()
     !ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Deassociate arrays that are pointers to HEMCO
-    !-----------------------------------------------------------------------
-    State_Chm%SFC_CH4           => NULL()
-
-    State_Chm%TOMS              => NULL()
-    State_Chm%TOMS1             => NULL()
-    State_Chm%TOMS2             => NULL()
-    State_Chm%DTOMS1            => NULL()
-    State_Chm%DTOMS2            => NULL()
 
     !=======================================================================
     ! Deallocate the species database object field

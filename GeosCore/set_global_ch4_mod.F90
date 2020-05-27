@@ -113,9 +113,6 @@ CONTAINS
     CHARACTER(LEN=255)  :: ErrMsg
     CHARACTER(LEN=255)  :: ThisLoc
 
-    ! SAVEd variables
-    INTEGER, SAVE       :: id_CH4
-
     !=================================================================
     ! SET_CH4 begins here!
     !=================================================================
@@ -130,20 +127,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( .not. ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
+    ! Get species ID
+    id_CH4 = Ind_( 'CH4' )
 
-       ! Get species ID
-       id_CH4 = Ind_( 'CH4' )
-
-       ! Use the NOAA spatially resolved data where available
-       CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, &
-                        FOUND=FOUND )
-       IF (.NOT. FOUND ) THEN
-          FOUND = .TRUE.
-          ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-          ! https://doi.org/10.5194/gmd-10-2057-2017a
-          CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, &
-                            FOUND=FOUND )
+    ! Use the NOAA spatially resolved data where available
+    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, &
+                      FOUND=FOUND )
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+       ! https://doi.org/10.5194/gmd-10-2057-2017a
+       CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, &
+                         FOUND=FOUND )
     ENDIF
     IF (.NOT. FOUND ) THEN
        ErrMsg = 'Cannot evalaute NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
