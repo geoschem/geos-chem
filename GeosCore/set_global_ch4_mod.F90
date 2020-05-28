@@ -23,7 +23,6 @@ MODULE Set_Global_CH4_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Set_CH4
-  PUBLIC :: Cleanup_Set_Global_CH4
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
@@ -31,11 +30,6 @@ MODULE Set_Global_CH4_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  REAL(f4), POINTER :: SFC_CH4(:,:) => NULL() ! Global surface CH4
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -121,7 +115,6 @@ CONTAINS
     CHARACTER(LEN=255)  :: ThisLoc
 
     ! SAVEd variables
-    LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER, SAVE       :: id_CH4
 
     !=================================================================
@@ -138,18 +131,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( FIRST ) THEN
+    IF ( .not. ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
 
        ! Get species ID
        id_CH4 = Ind_( 'CH4' )
 
        ! Use the NOAA spatially resolved data where available
-       CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
+       CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, FOUND=FOUND )
        IF (.NOT. FOUND ) THEN
           FOUND = .TRUE.
           ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
           ! https://doi.org/10.5194/gmd-10-2057-2017a
-          CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, FOUND=FOUND )
+          CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, FOUND=FOUND )
        ENDIF
        IF (.NOT. FOUND ) THEN
           ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
@@ -159,9 +152,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Reset first-time flag
-       FIRST = .FALSE.
 
     ENDIF
 
@@ -198,7 +188,7 @@ CONTAINS
        PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
        ! Surface CH4 from HEMCO is in units [ppbv], convert to [v/v dry]
-       CH4 = SFC_CH4(I,J) * 1e-9_fp
+       CH4 = State_Chm%SFC_CH4(I,J) * 1e-9_fp
 
 #if defined( MODEL_GEOS )
        ! Zero diagnostics
@@ -244,32 +234,5 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Set_CH4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_set_global_ch4
-!
-! !DESCRIPTION: Subroutine CLEANUP\_SET\_GLOBAL\_CH4 deallocates memory from
-!  previously allocated module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Cleanup_Set_Global_CH4
-!
-! !REVISION HISTORY:
-!  18 Jan 2018 - M. Sulprizio- Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Free pointers
-    SFC_CH4     => NULL()
-
-  END SUBROUTINE Cleanup_Set_Global_CH4
 !EOC
 END MODULE Set_Global_CH4_Mod

@@ -1830,11 +1830,11 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
+    ! Exit if ND51 is turned off, or if it's a dry-run
+    IF ( ( .not. Input_Opt%DO_ND51 ) .or. Input_Opt%DryRun ) RETURN
+
     ! Initialize
     LOCATION = 'INIT_DIAG51 ("diag51_mod.F90")'
-
-    ! Exit if ND51 is turned off
-    IF ( .not. Input_Opt%DO_ND51 ) RETURN
 
     !=================================================================
     ! Error check longitude, latitude, altitude limits

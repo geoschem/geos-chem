@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH -n 48
-#SBATCH -N 3
+#SBATCH -N 2
 #SBATCH --exclusive
-#SBATCH -t 0-24:00
+#SBATCH -t 0-20:00
 #SBATCH -p huce_intel
 #SBATCH --mem=MaxMemPerNode
 #SBATCH --mail-type=ALL

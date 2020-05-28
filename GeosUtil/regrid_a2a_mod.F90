@@ -783,34 +783,38 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
 
         ! South pole
-        sum = 0.e+0_fp
-        nlon= 0.0d0
-        do i=1,im
-           if(abs(q2(i,1)-miss)>tiny_r8 ) then
-              sum = sum + q2(i,1)
-              nlon= nlon + 1.0d0
-           endif
-        enddo
+        if ( sin2(1) .eq. -1.0_fp ) then
+          sum = 0.e+0_fp
+          nlon= 0.0d0
+          do i=1,im
+             if(abs(q2(i,1)-miss)>tiny_r8 ) then
+                sum = sum + q2(i,1)
+                nlon= nlon + 1.0d0
+             endif
+          enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,1) = sum
-        enddo
+          if ( nlon > 0.0d0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,1) = sum
+          enddo
+        endif
 
         ! North pole:
-        sum = 0.e+0_fp
-        nlon= 0.0d0
-        do i=1,im
-           if( abs(q2(i,jn)-miss)>tiny_r8 ) then
-              sum = sum + q2(i,jn)
-              nlon= nlon + 1.0d0
-           endif
-        enddo
+        if( sin2(jn+1) .eq. 1.0_fp ) then
+          sum = 0.e+0_fp
+          nlon= 0.0d0
+          do i=1,im
+             if( abs(q2(i,jn)-miss)>tiny_r8 ) then
+                sum = sum + q2(i,jn)
+                nlon= nlon + 1.0d0
+             endif
+          enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / DBLE( im )
-        do i=1,im
-           q2(i,jn) = sum
-        enddo
+          if ( nlon > 0.0d0 ) sum = sum / DBLE( im )
+          do i=1,im
+             q2(i,jn) = sum
+          enddo
+        endif
 
      endif
 
@@ -975,35 +979,39 @@ CONTAINS
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
 
-        ! South pole
-        sum = 0.e+0_fp
-        nlon= 0.0d0
-        do i=1,im
-           if( abs(q2(i,1)-miss)>tiny_r4 ) then
-              sum = sum + q2(i,1)
-              nlon = nlon + 1.0d0
-           endif
-        enddo
+        ! South pole:
+        if ( sin2(1) .eq. -1.0_fp ) then
+          sum = 0.e+0_fp
+          nlon= 0.0d0
+          do i=1,im
+             if( abs(q2(i,1)-miss)>tiny_r4 ) then
+                sum = sum + q2(i,1)
+                nlon = nlon + 1.0d0
+             endif
+          enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,1) = sum
-        enddo
+          if ( nlon > 0.0d0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,1) = sum
+          enddo
+        endif
 
         ! North pole:
-        sum = 0.e+0_fp
-        nlon = 0.0d0
-        do i=1,im
-           if( abs(q2(i,jn)-miss)>tiny_r4 ) then
-              sum = sum + q2(i,jn)
-              nlon = nlon + 1.0d0
-           endif
-        enddo
+        if( sin2(jn+1) .eq. 1.0_fp ) then
+          sum = 0.e+0_fp
+          nlon = 0.0d0
+          do i=1,im
+             if( abs(q2(i,jn)-miss)>tiny_r4 ) then
+                sum = sum + q2(i,jn)
+                nlon = nlon + 1.0d0
+             endif
+          enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,jn) = sum
-        enddo
+          if ( nlon > 0.0d0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,jn) = sum
+          enddo
+        endif
 
      endif
 
@@ -1170,34 +1178,38 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
 
         ! South pole
-        sum = 0.0_f4
-        nlon= 0.0
-        do i=1,im
-           if( abs(q2(i,1)-miss)>tiny_r8 ) then
-              sum = sum + q2(i,1)
-              nlon= nlon + 1.0
-           endif
-        enddo
+        if ( sin2(1) .eq. -1.0_fp ) then
+          sum = 0.0_f4
+          nlon= 0.0
+          do i=1,im
+             if( abs(q2(i,1)-miss)>tiny_r8 ) then
+                sum = sum + q2(i,1)
+                nlon= nlon + 1.0
+             endif
+          enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,1) = sum
-        enddo
+          if ( nlon > 0.0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,1) = sum
+          enddo
+        endif
 
         ! North pole:
-        sum = 0.0_f4
-        nlon= 0.
-        do i=1,im
-           if( abs(q2(i,jn)-miss)>tiny_r8 ) then
-              sum = sum + q2(i,jn)
-              nlon= nlon + 1.0
-           endif
-        enddo
+        if( sin2(jn+1) .eq. 1.0_fp ) then
+          sum = 0.0_f4
+          nlon= 0.
+          do i=1,im
+             if( abs(q2(i,jn)-miss)>tiny_r8 ) then
+                sum = sum + q2(i,jn)
+                nlon= nlon + 1.0
+             endif
+          enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,jn) = sum
-        enddo
+          if ( nlon > 0.0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,jn) = sum
+          enddo
+        endif
 
      endif
 
@@ -1364,36 +1376,40 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
 
         ! South pole
-        sum  = 0.e+0_fp
-        nlon = 0.0
-        do i=1,im
-           if( abs(q2(i,1)-miss)>tiny_r4 ) then
-              sum  = sum + q2(i,1)
-              nlon = nlon + 1.0
-           endif
-        enddo
+        if ( sin2(1) .eq. -1.0_fp ) then
+          sum  = 0.e+0_fp
+          nlon = 0.0
+          do i=1,im
+             if( abs(q2(i,1)-miss)>tiny_r4 ) then
+                sum  = sum + q2(i,1)
+                nlon = nlon + 1.0
+             endif
+          enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon
-        !sum = sum / REAL( im, 4 )
-        do i=1,im
-           q2(i,1) = sum
-        enddo
+          if ( nlon > 0.0 ) sum = sum / nlon
+          !sum = sum / REAL( im, 4 )
+          do i=1,im
+             q2(i,1) = sum
+          enddo
+        endif
 
         ! North pole:
-        sum = 0.e+0_fp
-        nlon= 0.0
-        do i=1,im
-           if( abs(q2(i,jn)-miss)>tiny_r4 ) then
-              sum  = sum + q2(i,jn)
-              nlon = nlon + 1.0
-           endif
-        enddo
+        if( sin2(jn+1) .eq. 1.0_fp ) then
+          sum = 0.e+0_fp
+          nlon= 0.0
+          do i=1,im
+             if( abs(q2(i,jn)-miss)>tiny_r4 ) then
+                sum  = sum + q2(i,jn)
+                nlon = nlon + 1.0
+             endif
+          enddo
 
-        !sum = sum / REAL( im, 4 )
-        if ( nlon > 0.0 ) sum = sum / nlon
-        do i=1,im
-           q2(i,jn) = sum
-        enddo
+          !sum = sum / REAL( im, 4 )
+          if ( nlon > 0.0 ) sum = sum / nlon
+          do i=1,im
+             q2(i,jn) = sum
+          enddo
+        endif
      endif
 
    END SUBROUTINE ymap_r4r4

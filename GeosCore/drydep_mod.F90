@@ -4053,9 +4053,19 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
+
+#ifdef MODEL_WRF
+    ! If the dry deposition module has already been initialized,
+    ! the arrays do not need to be allocated again, as they are only
+    ! dependent on the chemistry configuration (State_Chm%nDryDep)
+    !
+    ! This is necessary for integrating GEOS-Chem with a variable
+    ! domain model like WRF-GC, where multiple instances of GEOS-Chem
+    ! run in the same CPU. (hplin, 2/16/2019)
+    IF ( ALLOCATED( A_DEN ) ) RETURN
+#endif
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
@@ -4102,17 +4112,6 @@ CONTAINS
     id_HNO3   = IND_('HNO3'  )
     id_PAN    = IND_('PAN'   )
     id_IHN1   = IND_('IHN1'  )
-
-#ifdef MODEL_WRF
-    ! If the dry deposition module has already been initialized,
-    ! the arrays do not need to be allocated again, as they are only
-    ! dependent on the chemistry configuration (State_Chm%nDryDep)
-    !
-    ! This is necessary for integrating GEOS-Chem with a variable
-    ! domain model like WRF-GC, where multiple instances of GEOS-Chem
-    ! run in the same CPU. (hplin, 2/16/2019)
-    IF ( ALLOCATED( A_DEN ) ) RETURN
-#endif
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species

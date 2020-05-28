@@ -128,6 +128,9 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
     
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Allocate and initialize variables
     CALL INIT_GAMAP( Input_Opt, State_Chm, RC )
 

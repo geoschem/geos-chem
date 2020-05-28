@@ -446,7 +446,6 @@ CONTAINS
     USE Sulfate_Mod,        ONLY : Init_Sulfate
     USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
-    USE Toms_Mod,           ONLY : Init_Toms
     USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
@@ -477,6 +476,10 @@ CONTAINS
 !  originally been called from the Run method.  We now gather these INIT
 !  routines here so that they may be called from the Initialization method.
 !  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
+!                                                                             .
+!  Also note: In the case of a GEOS-Chem dry-run simulation, we will call
+!  these initialization routines, but exit them before any arrays get
+!  allocated.  This will help to reduce the amount of memory used.
 !                                                                             .
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Initial revision
@@ -652,16 +655,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !-----------------------------------------------------------------
-    ! Initialize "toms_mod.F90"
-    !-----------------------------------------------------------------
-    CALL Init_Toms( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Toms"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     !=================================================================
     ! Initialize specialty simulation modules here
     !=================================================================
@@ -790,7 +783,9 @@ CONTAINS
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
     ! Initialize the Hg diagnostics (bpch)
-    CALL Init_Diag03( State_Chm, State_Grid )
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL Init_Diag03( State_Chm, State_Grid )
+    ENDIF
 
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
@@ -801,7 +796,9 @@ CONTAINS
     ENDIF
 
     ! POPs (bpch)
-    CALL Init_Diag53( State_Grid )
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL Init_Diag53( State_Grid )
+    ENDIF
 
 #if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !--------------------------------------------------------------------
@@ -884,6 +881,9 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
+
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! Directory where netCDF ifles are found
     DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
@@ -987,6 +987,8 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = 'Error reading the "input.geos" file!'
     ThisLoc = ' -> at Init_Tomas_Microphysics (in GeosCore/gc_environment_mod.F90)'
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun) RETURN
 
     ! Halt with error if we are trying to run TOMAS in a simulation
     ! that does not have any defined aerosols

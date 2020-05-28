@@ -185,7 +185,7 @@ CONTAINS
     !======================================================================
     Variable = 'TIME'
     Desc     = 'Time'
-    Units    = 'minutes since YYYY-MM-DD hh:mm:ss UTC'
+    Units    = 'minutes since YYYY-MM-DD hh:mm:ss'
 
     ! Allocate
     ALLOCATE( Time( 1 ), STAT=RC )

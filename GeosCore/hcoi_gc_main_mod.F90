@@ -4500,6 +4500,7 @@ CONTAINS
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
    INTEGER              :: t_index            ! Time index
    LOGICAL              :: FOUND              ! Found in restart file?
+   LOGICAL, SAVE        :: FIRST = .TRUE.     ! Is this the first routine call?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=255)   :: MSG                ! message
@@ -4544,8 +4545,8 @@ CONTAINS
    ENDIF
 
    !=================================================================
-   ! Read species concentrations from NetCDF [mol/mol] and
-   ! store in State_Chm%BoundaryCond in [kg/kg dry]
+   ! Read species concentrations from NetCDF [mol/mol] or use default
+   ! background [mol/mol]; store in State_Chm%BoundaryCond in [kg/kg dry]
    !=================================================================
 
    ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
@@ -4555,6 +4556,12 @@ CONTAINS
    ! State_Chm%Species units are in mass mixing ratio. Current
    ! units can be determined at any point by looking at
    ! State_Chm%Spc_Units. (ewl, 8/11/16)
+
+   ! Print header for min/max concentration to log
+   IF ( Input_Opt%amIRoot ) THEN
+      WRITE( 6, 110 )
+110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
+   ENDIF
 
    ! Initialize BCs to all zeroes
    State_Chm%BoundaryCond = 0.e+0_fp
@@ -4583,71 +4590,89 @@ CONTAINS
       ! Check if BCs are found
       IF ( FOUND ) THEN
 
+         ! Print the min & max of each species as it is read from
+         ! the BC file in mol/mol if debug is turned on in input.geos
+         IF ( Input_Opt%amIRoot ) THEN
+            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+               WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
+                               MINVAL( Ptr3D ), MAXVAL( Ptr3D )
+120            FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
+                       '  Max = ',es15.9)
+            ENDIF
+         ENDIF
+
          ! Copy data from file to State_Chm%BoundaryCond
          ! and convert from [mol/mol] to [kg/kg dry]
          State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
 
-         ! Debug
-!         Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
-!                 MINVAL(State_Chm%BoundaryCond(:,:,:,N)), &
-!                 MAXVAL(State_Chm%BoundaryCond(:,:,:,N))
+      ELSE
 
-         ! Loop over grid boxes and apply BCs to the specified buffer zone
-!$OMP PARALLEL DO                                                       &
-!$OMP DEFAULT( SHARED )                                                 &
-!$OMP PRIVATE( I, J, L )
-         DO L = 1, State_Grid%NZ
+         ! Print to log if debug is turned on in input.geos
+         IF ( Input_Opt%amIRoot ) THEN
+            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+               WRITE( 6, 130 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
+130            FORMAT('Species ', i3, ', ', a9, ': Use background = ', es15.9)
+            ENDIF
+         ENDIF
 
-            ! First loop over all latitudes of the nested domain
-            DO J = 1, State_Grid%NY
+         ! Use the background value stored in the species database
+         State_Chm%BoundaryCond(:,:,:,N) = SpcInfo%BackgroundVV &
+                                            * MW_g / AIRMW
 
-               ! West BC
-               DO I = 1, State_Grid%WestBuffer
-                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
+      ENDIF
 
-               ! East BC
-               DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
+      ! Loop over grid boxes and apply BCs to the specified buffer zone
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L )
+      DO L = 1, State_Grid%NZ
 
+         ! First loop over all latitudes of the nested domain
+         DO J = 1, State_Grid%NY
+
+            ! West BC
+            DO I = 1, State_Grid%WestBuffer
+               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
-            ! Then loop over the longitudes of the nested domain
-            DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-               ! South BC
-               DO J = 1, State_Grid%SouthBuffer
-                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
-
-               ! North BC
-               DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
+            ! East BC
+            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
          ENDDO
-!OMP END PARALLEL DO
 
-      ELSE
+         ! Then loop over the longitudes of the nested domain
+         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
 
-         MSG = 'No boundary condition found for '// TRIM( SpcInfo%Name )
-         CALL GC_Error( MSG, RC, LOC)
-         RETURN
+            ! South BC
+            DO J = 1, State_Grid%SouthBuffer
+               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+            ENDDO
 
-      ENDIF
+            ! North BC
+            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+            ENDDO
+         ENDDO
+
+      ENDDO
+      !OMP END PARALLEL DO
 
       ! Free pointer
       SpcInfo => NULL()
 
    ENDDO
 
-   ! Echo output
-   STAMP = TIMESTAMP_STRING()
-   WRITE( 6, 110 ) STAMP
-110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at ', a )
+   ! Reset FIRST flag
+   FIRST = .FALSE.
 
+   ! Echo output
+   IF ( Input_Opt%amIRoot ) THEN
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 140 ) STAMP
+140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+   ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions
 !EOC

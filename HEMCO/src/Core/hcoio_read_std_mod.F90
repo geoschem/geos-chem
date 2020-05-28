@@ -315,24 +315,7 @@ CONTAINS
 
        !====================================================================
        ! HEMCO is in a "dry-run" mode!
-       ! Populate the data container with dummy values
-       ! to ensure GEOS-Chem plays along
        !====================================================================
-
-       ! 2D array init
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          CALL FileData_ArrInit( Lct%Dct%Dta, 1,                             &
-                                 HcoState%NX, HcoState%NY, RC               )
-          IF ( RC /= 0 ) RETURN
-       ENDIF
-
-       ! 3D data and index data is first written into a temporary array,
-       ! REGR_4D.
-       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          CALL FileData_ArrInit( Lct%Dct%Dta, 1,           HcoState%NX,      &
-                                 HcoState%NY, HcoState%NZ, RC               )
-          IF ( RC /= 0 ) RETURN
-       ENDIF
 
        ! Simulate file read buffer
        IF ( TRIM(HcoState%ReadLists%FileInArchive) == TRIM(srcFile) ) THEN

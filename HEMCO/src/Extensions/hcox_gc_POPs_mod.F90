@@ -91,33 +91,25 @@ MODULE HCOX_GC_POPs_Mod
    REAL(sp), POINTER     :: F_OC_SOIL(:,:)  => NULL() ! [kg/m2]
 
    ! Calculated emissions of OC-phase, BC-phase, and gas-phase POPs [kg/m2/s]
-   REAL(hp), POINTER     :: EPOP_G    (:,:,:)
-   REAL(hp), POINTER     :: EPOP_OC   (:,:,:)
-   REAL(hp), POINTER     :: EPOP_BC   (:,:,:)
-   REAL(hp), POINTER     :: EPOP_VEG  (:,:)
-   REAL(hp), POINTER     :: EPOP_LAKE (:,:)
-   REAL(hp), POINTER     :: EPOP_SOIL (:,:)
-   REAL(hp), POINTER     :: EPOP_OCEAN(:,:)
-   REAL(hp), POINTER     :: EPOP_SNOW (:,:)
+   REAL(sp), POINTER     :: EmisPOPPOCPO(:,:,:)
+   REAL(sp), POINTER     :: EmisPOPPBCPO(:,:,:)
+   REAL(sp), POINTER     :: EmisPOPG    (:,:,:)
 
    ! For diagnostics
-   CHARACTER(LEN=63)     :: DiagnName
-   REAL(hp), POINTER     :: SUM_OC_EM    (:,:)
-   REAL(hp), POINTER     :: SUM_BC_EM    (:,:)
-   REAL(hp), POINTER     :: SUM_G_EM     (:,:)
-   REAL(hp), POINTER     :: SUM_OF_ALL   (:,:)
-   REAL(hp), POINTER     :: EMIS_SOIL    (:,:)
-   REAL(hp), POINTER     :: FLUX_SOIL2AIR(:,:)
-   REAL(hp), POINTER     :: FLUX_AIR2SOIL(:,:)
-   REAL(hp), POINTER     :: FUG_SOILAIR  (:,:)
-   REAL(hp), POINTER     :: EMIS_LAKE    (:,:)
-   REAL(hp), POINTER     :: FLUX_LAKE2AIR(:,:)
-   REAL(hp), POINTER     :: FLUX_AIR2LAKE(:,:)
-   REAL(hp), POINTER     :: FUG_LAKEAIR  (:,:)
-   REAL(hp), POINTER     :: EMIS_LEAF    (:,:)
-   REAL(hp), POINTER     :: FLUX_LEAF2AIR(:,:)
-   REAL(hp), POINTER     :: FLUX_AIR2LEAF(:,:)
-   REAL(hp), POINTER     :: FUG_LEAFAIR  (:,:)
+   REAL(sp), POINTER     :: EmisPOPGfromSoil     (:,:)
+   REAL(sp), POINTER     :: EmisPOPGfromLake     (:,:)
+   REAL(sp), POINTER     :: EmisPOPGfromLeaf     (:,:)
+   REAL(sp), POINTER     :: EmisPOPGfromSnow     (:,:)
+   REAL(sp), POINTER     :: EmisPOPGfromOcean    (:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromSoilToAir(:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromAirToSoil(:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromLakeToAir(:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromAirToLake(:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromLeafToAir(:,:)
+   REAL(sp), POINTER     :: FluxPOPGfromAirtoLeaf(:,:)
+   REAL(sp), POINTER     :: FugacitySoilToAir    (:,:)
+   REAL(sp), POINTER     :: FugacityLakeToAir    (:,:)
+   REAL(sp), POINTER     :: FugacityLeafToAir    (:,:)
 
    TYPE(MyInst), POINTER :: NextInst => NULL()
   END TYPE MyInst
@@ -144,7 +136,6 @@ CONTAINS
 !
 ! !USES:
 !
-    ! HEMCO modules
     USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
     USE HCO_FluxArr_Mod,   ONLY : HCO_EmisAdd
     USE HCO_Clock_Mod,     ONLY : HcoClock_First
@@ -163,14 +154,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
-!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  14 Apr 2014 - R. Yantosca - Prevent div-by-zero error w/ SUM_OF_ALL
-!  19 Aug 2014 - M. Sulprizio- Now a HEMCO extension
-!  07 Jan 2016 - E. Lundgren - Update molar gas constant to NIST 2014
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,7 +169,6 @@ CONTAINS
     ! Density of BC, needed for partitioning onto BC: 1 [kg/L] or 1000 [kg/m^3]
     ! From Lohmann and Lammel, Environ. Sci. Technol., 2004, 38:3793-3803.
     REAL(hp), PARAMETER :: DENS_BC    = 1e+3_hp
-
 !
 ! !LOCAL VARIABLES:
 !
@@ -253,7 +235,7 @@ CONTAINS
     REAL(hp)            :: KBC_298
 
     ! Pointers
-    REAL(hp),     POINTER :: Arr3D(:,:,:)
+    REAL(sp),     POINTER :: Arr3D(:,:,:)
     TYPE(MyInst), POINTER :: Inst
 
     !=======================================================================
@@ -333,15 +315,12 @@ CONTAINS
     ! Re-emission flux/mass depends on type of POP
     ! First draft, CLF, 28 Aug 2012
     !=================================================================
-    CALL SOILEMISPOP( Inst%POP_SURF, Inst%F_OC_SOIL, Inst%EPOP_SOIL, &
-                      HcoState, ExtState, Inst )
-    CALL LAKEEMISPOP( Inst%POP_SURF, Inst%EPOP_LAKE,                 &
-                      HcoState, ExtState, Inst )
-    CALL VEGEMISPOP ( Inst%POP_SURF, Inst%EPOP_VEG,                  &
-                      HcoState, ExtState, Inst )
+    CALL SOILEMISPOP( Inst%POP_SURF, Inst%F_OC_SOIL, HcoState, ExtState, Inst )
+    CALL LAKEEMISPOP( Inst%POP_SURF, HcoState, ExtState, Inst )
+    CALL VEGEMISPOP ( Inst%POP_SURF, HcoState, ExtState, Inst )
 
-    Inst%EPOP_SNOW  = 0e+0_hp
-    Inst%EPOP_OCEAN = 0e+0_hp
+    Inst%EmisPOPGfromSnow  = 0e+0_hp
+    Inst%EmisPOPGfromOcean = 0e+0_hp
 
     ! Loop over grid boxes
     DO J = 1, HcoState%Ny
@@ -355,9 +334,11 @@ CONTAINS
        T_POP = Inst%POP_TOT_EM(I,J)
 
        ! Now add revolatilization (secondary) emissions to primary [kg/m2/s]
-       T_POP = T_POP + Inst%EPOP_VEG(I,J) + Inst%EPOP_LAKE(I,J) + &
-                       Inst%EPOP_SOIL(I,J) !+ &
-!                      Inst%EPOP_SNOW(I,J) + Inst%EPOP_OCEAN(I,J)
+       T_POP = T_POP + Inst%EmisPOPGfromSoil(I,J) + &
+                       Inst%EmisPOPGfromLake(I,J) + &
+                       Inst%EmisPOPGfromLeaf(I,J) !+ &
+                       !Inst%EmisPOPGfromSnow(I,J) + &
+                       !Inst%EmisPOPGfromOcean(I,J)
 
        !====================================================================
        ! Apportion total POPs emitted to gas phase, OC-bound, and BC-bound
@@ -454,36 +435,15 @@ CONTAINS
 
           ! Calculate rates of POP emissions in each phase [kg/m2/s]
           ! OC-phase:
-          Inst%EPOP_OC(I,J,L) = F_POP_OC * F_OF_PBL * T_POP
+          Inst%EmisPOPPOCPO(I,J,L) = F_POP_OC * F_OF_PBL * T_POP
 
           ! BC-phase
-          Inst%EPOP_BC(I,J,L) = F_POP_BC * F_OF_PBL * T_POP
+          Inst%EmisPOPPBCPO(I,J,L) = F_POP_BC * F_OF_PBL * T_POP
 
           ! Gas-phase
-          Inst%EPOP_G(I,J,L)  = F_POP_G  * F_OF_PBL * T_POP
+          Inst%EmisPOPG(I,J,L)  = F_POP_G  * F_OF_PBL * T_POP
 
        ENDDO
-
-!-----------------------------------------------------------------------------
-! This code is not actually used (mps, 8/24/15)
-!       !==================================================================
-!       ! Sum different POPs emissions phases (OC, BC, and gas phase)
-!       ! through bottom layer to top of PBL for storage in ND53 diagnostic
-!       !==================================================================
-!
-!       Inst%SUM_OC_EM(I,J) =  SUM(Inst%EPOP_OC(I,J,1:PBL_MAX))
-!       Inst%SUM_BC_EM(I,J) =  SUM(Inst%EPOP_BC(I,J,1:PBL_MAX))
-!       Inst%SUM_G_EM(I,J)  =  SUM(Inst%EPOP_G(I,J,1:PBL_MAX))
-!
-!       Inst%SUM_OF_ALL(I,J) = Inst%SUM_OC_EM(I,J) + Inst%SUM_BC_EM(I,J) + &
-!                              Inst%SUM_G_EM(I,J)
-!
-!       ! Check that sum thru PBL is equal to original emissions array
-!       ! NOTE: Prevent div-by-zero floating point error (bmy, 4/14/14)
-!       IF ( Inst%SUM_OF_ALL(I,J) > 0e+0_hp ) THEN
-!          Inst%SUM_OF_ALL(I,J) = Inst%POP_TOT_EM(I,J) / Inst%SUM_OF_ALL(I,J)
-!       ENDIF
-!-----------------------------------------------------------------------------
 
     ENDDO
     ENDDO
@@ -498,12 +458,12 @@ CONTAINS
     IF ( Inst%IDTPOPPOCPO > 0 ) THEN
 
        ! Add flux to emissions array
-       Arr3D => Inst%EPOP_OC(:,:,:)
+       Arr3D => Inst%EmisPOPPOCPO(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPPOCPO, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_OC', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisPOPPOCPO', RC )
           RETURN
        ENDIF
     ENDIF
@@ -514,12 +474,12 @@ CONTAINS
     IF ( Inst%IDTPOPPBCPO > 0 ) THEN
 
        ! Add flux to emissions array
-       Arr3D => Inst%EPOP_BC(:,:,:)
+       Arr3D => Inst%EmisPOPPBCPO(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPPBCPO, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_BC', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisPOPPBCPO', RC )
           RETURN
        ENDIF
     ENDIF
@@ -530,92 +490,16 @@ CONTAINS
     IF ( Inst%IDTPOPG > 0 ) THEN
 
        ! Add flux to emissions array
-       Arr3D => Inst%EPOP_G(:,:,:)
+       Arr3D => Inst%EmisPOPG(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPG, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_G', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisPOPG', RC )
           RETURN
        ENDIF
 
     ENDIF
-
-    !----------------------
-    ! Manual diagnostics
-    !----------------------
-
-    Inst%DiagnName = 'AD53_POPG_SOIL'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%EMIS_SOIL, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_POPG_LAKE'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%EMIS_LAKE, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_POPG_LEAF'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%EMIS_LEAF, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_SOIL2AIR'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_SOIL2AIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_AIR2SOIL'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_AIR2SOIL, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_LAKE2AIR'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_LAKE2AIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_AIR2LAKE'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_AIR2LAKE, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_LEAF2AIR'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_LEAF2AIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_AIR2LEAF'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FLUX_AIR2LEAF, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_SOILAIR_FUG'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FUG_SOILAIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_LAKEAIR_FUG'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FUG_LAKEAIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    Inst%DiagnName = 'AD53_LEAFAIR_FUG'
-    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
-                       cName=TRIM(Inst%DiagnName), &
-                       Array2D=Inst%FUG_LEAFAIR, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=======================================================================
     ! Cleanup & quit
@@ -642,8 +526,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOILEMISPOP( POP_SURF, F_OC_SOIL, EPOP_SOIL, &
-                              HcoState, ExtState,  Inst )
+      SUBROUTINE SOILEMISPOP( POP_SURF, F_OC_SOIL, HcoState, ExtState,  Inst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -653,20 +536,8 @@ CONTAINS
       TYPE(Ext_State),          POINTER     :: ExtState   ! Module options
       TYPE(MyInst),             POINTER     :: Inst       ! Instance
 !
-! !OUTPUT PARAMETERS:
-!
-      REAL(hp), DIMENSION(:,:), INTENT(OUT) :: EPOP_SOIL  ! POP emissions from
-                                                          ! soil [kg/m2/s]
-!
-! !REMARKS:
-!
-!
-!
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
-!  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
-!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
-!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -741,10 +612,6 @@ CONTAINS
       ! SOILEMISPOP begins here!
       !=================================================================
 
-!      IF (.NOT. LSECEMISPOP) THEN
-!         EPOP_SOIL = 0e+0_hp
-!      ELSE
-
       ! Copy values from ExtState
       DEL_H   = ExtState%POP_DEL_H
       KOA_298 = ExtState%POP_KOA
@@ -794,12 +661,7 @@ CONTAINS
             ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
             POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-! old
-!            ! kg / (0.178 kg/mol) /m3 in gridbox
-!            POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
-!            !WRITE(6,*) 'POPG (mol/m3) =', POPG
-! new
-!            ! (kg trc/kg dry air) / (0.178 kg trc/mol) * (kg dry air/m3)
+            ! (kg trc/kg dry air) / (0.178 kg trc/mol) * (kg dry air/m3)
             POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
 
             ! Grid box surface area [m2]
@@ -912,55 +774,47 @@ CONTAINS
 
             ! Convert to an emission rate in kg/m2/s for returning to
             ! HcoX_GC_POPs_Run
-            Inst%EPOP_SOIL(I,J) = MAX(FLUX / 24e+0_hp / 3600e+0_hp / 1e+12_hp, &
-                                      0e+0_hp )
+            Inst%EmisPOPGfromSoil(I,J) = MAX( FLUX / 24e+0_hp / 3600e+0_hp / &
+                                              1e+12_hp, 0e+0_hp )
 
-            ! Multiply the mass emitted by the fraction of land that is soil
-            Inst%EPOP_SOIL(I,J) = FRAC_SOIL * Inst%EPOP_SOIL(I,J)
+            ! Multiply the emissions by the fraction of land that is soil
+            Inst%EmisPOPGfromSoil(I,J) = Inst%EmisPOPGfromSoil(I,J) * FRAC_SOIL 
 
             ! If the flux is positive, then the direction will be from the
             ! soil to the air.
-            ! Store this in a diagnostic array.
             ! If the flux is zero or negative, store it in a separate array.
             IF ( FLUX > 0e+0_hp ) THEN
 
-               ! Store total mass emitted from soil [kg] for ND53 diagnostic.
-               ! (We don't care about the mass in the other direction right
-               ! now)
-               Inst%EMIS_SOIL(I,J)     = Inst%EPOP_SOIL(I,J) * AREA_M2 * DTSRCE
-
                ! Store positive flux
-               Inst%FLUX_SOIL2AIR(I,J) = FLUX
+               Inst%FluxPOPGfromSoilToAir(I,J) = FLUX
 
                ! Make sure negative flux diagnostic has nothing added to it
-               Inst%FLUX_AIR2SOIL(I,J) = 0e+0_hp
+               Inst%FluxPOPGfromAirToSoil(I,J) = 0e+0_hp
 
                ! Store the soil/air fugacity ratio
-               Inst%FUG_SOILAIR(I,J)   = FUG_R
+               Inst%FugacitySoilToAir(I,J)   = FUG_R
 
             ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                ! Store the negative flux
-               Inst%FLUX_AIR2SOIL(I,J) = FLUX
+               Inst%FluxPOPGfromAirToSoil(I,J) = FLUX
 
-               ! Add nothing to positive flux or mass diagnostics
-               Inst%EMIS_SOIL(I,J)     = 0e+0_hp
-               Inst%FLUX_SOIL2AIR(I,J) = 0e+0_hp
+               ! Add nothing to positive flux
+               Inst%FluxPOPGfromSoilToAir(I,J) = 0e+0_hp
 
                ! Continue to store the fugacity ratio
-               Inst%FUG_SOILAIR(I,J)   = FUG_R
+               Inst%FugacitySoilToAir(I,J)   = FUG_R
 
             ENDIF
 
          ELSE
 
             ! We are not on land or the land is covered with ice or snow
-            FLUX                    = 0e+0_hp
-            Inst%EPOP_SOIL(I,J)     = 0e+0_hp
-            Inst%EMIS_SOIL(I,J)     = 0e+0_hp
-            Inst%FLUX_SOIL2AIR(I,J) = 0e+0_hp
-            Inst%FLUX_AIR2SOIL(I,J) = 0e+0_hp
-            Inst%FUG_SOILAIR(I,J)   = 0e+0_hp
+            FLUX                            = 0e+0_hp
+            Inst%EmisPOPGfromSoil(I,J)      = 0e+0_hp
+            Inst%FluxPOPGfromSoilToAir(I,J) = 0e+0_hp
+            Inst%FluxPOPGfromAirToSoil(I,J) = 0e+0_hp
+            Inst%FugacitySoilToAir(I,J)      = 0e+0_hp
 
          ENDIF
 
@@ -983,10 +837,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LAKEEMISPOP( POP_SURF, EPOP_LAKE, HcoState, ExtState, Inst )
-!
-! !USES:
-!
+      SUBROUTINE LAKEEMISPOP( POP_SURF, HcoState, ExtState, Inst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -995,26 +846,14 @@ CONTAINS
       TYPE(Ext_State),          POINTER     :: ExtState   ! Module options
       TYPE(MyInst),             POINTER     :: Inst       ! Instance
 !
-! !OUTPUT PARAMETERS:
-!
-      REAL(hp), DIMENSION(:,:), INTENT(OUT) :: EPOP_LAKE  ! POP emissions from
-                                                          ! lakes [kg/m2/s]
-!
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
-!  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
-!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
-!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
       INTEGER  :: I, J, L
       REAL(hp) :: TK_SURF
       REAL(hp) :: KAW_T, FLUX, KOL_T
@@ -1085,20 +924,14 @@ CONTAINS
       REAL(hp)            :: KAW_298
 
       ! Set the kinematic viscosity of freshwater at 20C
-!      REAL(hp), PARAMETER :: VISC_H2O  ! = 1d0    ![cm2/s]
+      !REAL(hp), PARAMETER :: VISC_H2O  ! = 1d0    ![cm2/s]
 
       ! Set aqueous degradation rate
-!      REAL(hp), PARAMETER :: DEGR      != 3.5d-5  ![/h]
+      !REAL(hp), PARAMETER :: DEGR      != 3.5d-5  ![/h]
 
       !=================================================================
       ! LAKEEMISPOP begins here!
       !=================================================================
-
-!      IF (.NOT. LSECEMISPOP) THEN
-!         Inst%EPOP_LAKE = 0e+0_hp
-!      ELSE
-
-      ! Do lake emissions routine:
 
       ! Copy values from ExtState
       DEL_HW  = ExtState%POP_DEL_HW
@@ -1146,13 +979,8 @@ CONTAINS
                ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
                POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-! old
-!               ! kg / (kg/mol) /m3 in gridbox
-!               POPG = POPG / MWPOP / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
-! new
                ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
                POPG = POPG / MWPOP * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
-
 
                ! Grid box surface area [m2]
                AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -1267,43 +1095,37 @@ CONTAINS
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
                ! Only return it if it's positive
-               EPOP_LAKE(I,J) = MAX(FLUX / 24e+0_hp / 3600e+0_hp / 1e+12_hp, &
-                                    0e+0_hp )
+               Inst%EmisPOPGfromLake(I,J) = MAX(FLUX / 24e+0_hp / 3600e+0_hp / &
+                                                1e+12_hp, 0e+0_hp )
 
-               ! Multiply the mass emitted by the fraction of land that is water
-               EPOP_LAKE(I,J) = FRAC_LAKE * EPOP_LAKE(I,J)
+               ! Multiply the emissions by the fraction of land that is water
+               Inst%EmisPOPGfromLake(I,J) = Inst%EmisPOPGfromLake(I,J) * &
+                                            FRAC_LAKE
 
                ! If the flux is positive, then the direction will be from the
                ! soil to the air.
-               ! Store this in a diagnostic array.
                ! If the flux is zero or negative, store it in a separate array.
                IF ( FLUX > 0e+0_hp ) THEN
 
-                  ! Store total mass emitted from soil [kg] in ND53 diagnostic.
-                  ! (We don't care about the mass in the other direction right
-                  ! now)
-                  Inst%EMIS_LAKE(I,J)     = EPOP_LAKE(I,J) * AREA_M2 * DTSRCE
-
                   ! Store positive flux
-                  Inst%FLUX_LAKE2AIR(I,J) = + FLUX
+                  Inst%FluxPOPGfromLakeToAir(I,J) = + FLUX
 
                   ! Make sure negative flux diagnostic has nothing added to it
-                  Inst%FLUX_AIR2LAKE(I,J) = 0e+0_hp
+                  Inst%FluxPOPGfromAirToLake(I,J) = 0e+0_hp
 
                      ! Store the soil/air fugacity ratio
-                  Inst%FUG_LAKEAIR(I,J)   = C_DISS / (POPG/KAW_T)
+                  Inst%FugacityLakeToAir(I,J) = C_DISS / (POPG/KAW_T)
 
                ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                   ! Store the negative flux
-                  Inst%FLUX_AIR2LAKE(I,J) = FLUX
+                  Inst%FluxPOPGfromAirToLake(I,J) = FLUX
 
-                  ! Add nothing to positive flux or mass diagnostics
-                  Inst%EMIS_LAKE(I,J)     = 0e+0_hp
-                  Inst%FLUX_LAKE2AIR(I,J) = 0e+0_hp
+                  ! Add nothing to positive flux
+                  Inst%FluxPOPGfromLakeToAir(I,J) = 0e+0_hp
 
                   ! Continue to store the fugacity ratio
-                  Inst%FUG_LAKEAIR(I,J)   = C_DISS / (POPG/KAW_T)
+                  Inst%FugacityLakeToAir(I,J) = C_DISS / (POPG/KAW_T)
 
                ENDIF
 
@@ -1313,12 +1135,11 @@ CONTAINS
 
             ! We are not on land or the land is covered with ice or snow
             ! or we are land but there is no water
-            FLUX                    = 0e+0_hp
-            Inst%EPOP_LAKE(I,J)     = 0e+0_hp
-            Inst%EMIS_LAKE(I,J)     = 0e+0_hp
-            Inst%FLUX_LAKE2AIR(I,J) = 0e+0_hp
-            Inst%FLUX_AIR2LAKE(I,J) = 0e+0_hp
-            Inst%FUG_LAKEAIR(I,J)   = 0e+0_hp
+            FLUX                            = 0e+0_hp
+            Inst%EmisPOPGfromLake           = 0e+0_hp
+            Inst%FluxPOPGfromLakeToAir(I,J) = 0e+0_hp
+            Inst%FluxPOPGfromAirToLake(I,J) = 0e+0_hp
+            Inst%FugacityLakeToAir(I,J)     = 0e+0_hp
 
          ENDIF
 
@@ -1335,15 +1156,12 @@ CONTAINS
 ! !IROUTINE: vegemispop
 !
 ! !DESCRIPTION: Subroutine VEGEMISPOP is the subroutine for secondary
-!  POP emissions from soils.
+!  POP emissions from leaves.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE VEGEMISPOP( POP_SURF,  EPOP_VEG, HcoState, ExtState, Inst )
-!
-! !USES:
-!
+      SUBROUTINE VEGEMISPOP( POP_SURF, HcoState, ExtState, Inst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1352,27 +1170,14 @@ CONTAINS
       TYPE(Ext_State),          POINTER     :: ExtState   ! Module options
       TYPE(MyInst),             POINTER     :: Inst       ! Instance
 !
-! !OUTPUT PARAMETERS:
-!
-      REAL(hp), DIMENSION(:,:), INTENT(OUT) :: EPOP_VEG   ! POP emissions from
-                                                          ! leaves [kg/m2/s]
-!
-! !REMARKS:
-!
-!
-!
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
-!  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
-!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
-!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
       INTEGER  :: I, J, L
       REAL(hp) :: POPG, POPG_GL
       REAL(hp) :: FRAC_SNOWFREE_LAND, TK_SURF
@@ -1506,13 +1311,8 @@ CONTAINS
                ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
                POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-! old
-!               ! kg / (0.178 kg/mol) /m3 in gridbox
-!               POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
-! new
                ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
                POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
-
 
                ! Grid box surface area [m2]
                AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -1639,52 +1439,44 @@ CONTAINS
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
                ! Only want to add rates that are positive
-               Inst%EPOP_VEG(I,J) = MAX(FLUX * LAI / 24e+0_hp / 3600e+0_hp / &
-                                   1e+12_hp, 0e+0_hp)
+               Inst%EmisPOPGfromLeaf(I,J) = MAX(FLUX * LAI / 24e+0_hp / &
+                                                3600e+0_hp / 1e+12_hp, 0e+0_hp)
 
                ! If the flux is positive, then the direction will be from the
                ! soil to the air.
-               ! Store this in a diagnostic array.
                ! If the flux is zero or negative, store it in a separate array.
                IF ( FLUX > 0e+0_hp ) THEN
 
-                  ! Store total mass emitted from soil [kg] in ND53 diagnostic.
-                  ! (We don't care about the mass in the other direction right
-                  ! now)
-                  Inst%EMIS_LEAF(I,J)     = EPOP_VEG(I,J) * AREA_M2 * DTSRCE
-
                   ! Store positive flux
-                  Inst%FLUX_LEAF2AIR(I,J) = FLUX
+                  Inst%FluxPOPGfromLeafToAir(I,J) = FLUX
 
                   ! Make sure negative flux diagnostic has nothing added to it
-                  Inst%FLUX_AIR2LEAF(I,J) = 0e+0_hp
+                  Inst%FluxPOPGfromAirtoLeaf = 0e+0_hp
 
                   ! Store the soil/air fugacity ratio
-                  Inst%FUG_LEAFAIR(I,J) = FUG_R
+                  Inst%FugacityLeafToAir(I,J) = FUG_R
 
                ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                   ! Store the negative flux
-                  Inst%FLUX_AIR2LEAF(I,J) = FLUX
+                  Inst%FluxPOPGfromAirtoLeaf(I,J) = FLUX
 
-                  ! Add nothing to positive flux or mass diagnostics
-                  Inst%EMIS_LEAF(I,J)     = 0e+0_hp
-                  Inst%FLUX_LEAF2AIR(I,J) = 0e+0_hp
+                  ! Add nothing to positive flux
+                  Inst%FluxPOPGfromLeafToAir(I,J) = 0e+0_hp
 
                   ! Continue to store the fugacity ratio
-                  Inst%FUG_LEAFAIR(I,J)   = FUG_R
+                  Inst%FugacityLeafToAir(I,J)   = FUG_R
 
                ENDIF
 
             ELSE
 
                ! We are not on land or the land is covered with ice or snow
-               FLUX                    = 0e+0_hp
-               Inst%EPOP_VEG(I,J)      = 0e+0_hp
-               Inst%EMIS_LEAF(I,J)     = 0e+0_hp
-               Inst%FLUX_LEAF2AIR(I,J) = 0e+0_hp
-               Inst%FLUX_AIR2LEAF(I,J) = 0e+0_hp
-               Inst%FUG_LEAFAIR(I,J)   = 0e+0_hp
+               FLUX                            = 0e+0_hp
+               Inst%EmisPOPGfromLeaf(I,J)      = 0e+0_hp
+               Inst%FluxPOPGfromLeafToAir(I,J) = 0e+0_hp
+               Inst%FluxPOPGfromAirtoLeaf(I,J) = 0e+0_hp
+               Inst%FugacityLeafToAir(I,J)     = 0e+0_hp
 
             ENDIF
 
@@ -1710,9 +1502,6 @@ CONTAINS
 !
       FUNCTION IS_LAND( I, J, ExtState ) RESULT ( LAND )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
       INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
@@ -1725,31 +1514,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now use ALBEDO field to determine land or land ice boxes for GEOS-3.
-!        (bmy, 4/4/01)
-!  (2 ) For 4x5 data, regridded albedo field can cause small inaccuracies
-!        near the poles (bmy, 4/4/01)
-!  (3 ) Add references to CMN_SIZE and CMN, so that we can use the JYEAR
-!        variable to get the current year.  Also, for 1998, we need to compute
-!        if is a land box or not from the surface albedo, since for this
-!        year the LWI/SURFTYPE field is not given.  For other years than 1998,
-!        we use LWI(I,J) < 50 as our land box criterion.  Deleted obsolete
-!        code and updated comments.(mje, bmy, 1/9/02)
-!  (4 ) Deleted GEOS-2 #ifdef statement.  GEOS-2 met fields never really
-!        materialized, we use GEOS-3 instead. (bmy, 9/18/02)
-!  (5 ) Now uses function GET_YEAR from "time_mod.f".  Removed reference
-!        to CMN header file. (bmy, 3/11/03)
-!  (6 ) Added code to determine land boxes for GEOS-4 (bmy, 6/18/03)
-!  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!  (8 ) Now return TRUE only for land boxes (w/ no ice) (bmy, 8/10/05)
-!  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
-!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1775,9 +1539,6 @@ CONTAINS
 !
       FUNCTION IS_ICE( I, J, ExtState ) RESULT ( ICE )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
       INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
@@ -1788,14 +1549,8 @@ CONTAINS
 !
       LOGICAL                     :: ICE         ! =T if this is an ice box
 !
-!
 ! !REVISION HISTORY:
 !  09 Aug 2005 - R. Yantosca - Initial version
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1838,7 +1593,6 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  19 Aug 2014 - M. Sulprizio- Initial version
-!  01 May 2015 - R. Yantosca - Bug fix: need to zero arrays after allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1846,8 +1600,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                        :: N, nSpc, ExtNr
+    INTEGER                        :: I, N, nSpc, ExtNr
     CHARACTER(LEN=255)             :: MSG
+    CHARACTER(LEN=255)             :: DiagnName
+    CHARACTER(LEN=255)             :: OutUnit
 
     ! Arrays
     INTEGER,           ALLOCATABLE :: HcoIDs(:)
@@ -1855,6 +1611,7 @@ CONTAINS
 
     ! Pointers
     TYPE(MyInst), POINTER          :: Inst
+    REAL(sp),     POINTER          :: Target2D(:,:)
 
     !=======================================================================
     ! HCOX_GC_POPs_INIT begins here!
@@ -1954,173 +1711,198 @@ CONTAINS
     ! Initialize data arrays
     !=======================================================================
 
-    ALLOCATE( Inst%EPOP_G ( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPG( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_G', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPG', RC )
        RETURN
     ENDIF
-    Inst%EPOP_G = 0.0e0_hp
+    Inst%EmisPOPG = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_OC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPPOCPO( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_OC', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPPOCPO', RC )
        RETURN
     ENDIF
-    Inst%EPOP_OC = 0.0e0_hp
+    Inst%EmisPOPPOCPO = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_BC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPPBCPO( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_BC', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPPBCPO', RC )
        RETURN
     ENDIF
-    Inst%EPOP_BC = 0.0e0_hp
+    Inst%EmisPOPPBCPO = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_VEG( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPGfromSoil( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_VEG', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPGfromSoil', RC )
        RETURN
     ENDIF
-    Inst%EPOP_VEG = 0.0e0_hp
+    Inst%EmisPOPGfromSoil = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPGfromLake( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_LAKE', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPGfromLake', RC )
        RETURN
     ENDIF
-    Inst%EPOP_LAKE = 0.0e0_hp
+    Inst%EmisPOPGfromLake = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPGfromLeaf( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_SOIL', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPGfromLeaf', RC )
        RETURN
     ENDIF
-    Inst%EPOP_SOIL = 0.0e0_hp
+    Inst%EmisPOPGfromLeaf = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_OCEAN( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPGfromSnow( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_OCEAN', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPGfromSnow', RC )
        RETURN
     ENDIF
-    Inst%EPOP_OCEAN = 0.0e0_hp
+    Inst%EmisPOPGfromSnow = 0.0e0_hp
 
-    ALLOCATE( Inst%EPOP_SNOW( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%EmisPOPGfromOcean( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_SNOW', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmisPOPGfromOcean', RC )
        RETURN
     ENDIF
-    Inst%EPOP_SNOW = 0.0e0_hp
+    Inst%EmisPOPGfromOcean = 0.0e0_hp
 
-    ALLOCATE( Inst%SUM_OC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromSoilToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_OC_EM', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromSoilToAir', RC )
        RETURN
     ENDIF
-    Inst%SUM_OC_EM = 0.0e0_hp
+    Inst%FluxPOPGfromSoilToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%SUM_BC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromAirToSoil( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_BC_EM', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromAirToSoil', RC )
        RETURN
     ENDIF
-    Inst%SUM_BC_EM = 0.0e0_hp
+    Inst%FluxPOPGfromAirToSoil = 0.0e0_hp
 
-    ALLOCATE( Inst%SUM_G_EM( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromLakeToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_G_EM', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromLakeToAir', RC )
        RETURN
     ENDIF
-    Inst%SUM_G_EM = 0.0e0_hp
+    Inst%FluxPOPGfromLakeToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%SUM_OF_ALL( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromAirToLake( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_OF_ALL', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromAirToLake', RC )
        RETURN
     ENDIF
-    Inst%SUM_OF_ALL = 0.0e0_hp
+    Inst%FluxPOPGfromAirToLake = 0.0e0_hp
 
-    ALLOCATE( Inst%EMIS_SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromLeafToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_SOIL', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromLeafToAir', RC )
        RETURN
     ENDIF
-    Inst%EMIS_SOIL = 0.0e0_hp
+    Inst%FluxPOPGfromLeafToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%FLUX_SOIL2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FluxPOPGfromAirToLeaf( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_SOIL2AIR', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FluxPOPGfromAirToLeaf', RC )
        RETURN
     ENDIF
-    Inst%FLUX_SOIL2AIR = 0.0e0_hp
+    Inst%FluxPOPGfromAirToLeaf = 0.0e0_hp
 
-    ALLOCATE( Inst%FLUX_AIR2SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FugacitySoilToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2SOIL', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FugacitySoilToAir', RC )
        RETURN
     ENDIF
-    Inst%FLUX_AIR2SOIL = 0.0e0_hp
+    Inst%FugacitySoilToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%FUG_SOILAIR( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FugacityLakeToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_SOILAIR', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FugacityLakeToAir', RC )
        RETURN
     ENDIF
-    Inst%FUG_SOILAIR = 0.0e0_hp
+    Inst%FugacityLakeToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%EMIS_LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
+    ALLOCATE( Inst%FugacityLeafToAir( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_LAKE', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FugacityLeafToAir', RC )
        RETURN
     ENDIF
-    Inst%EMIS_LAKE = 0.0e0_hp
+    Inst%FugacityLeafToAir = 0.0e0_hp
 
-    ALLOCATE( Inst%FLUX_LAKE2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_LAKE2AIR', RC )
-       RETURN
-    ENDIF
-    Inst%FLUX_LAKE2AIR = 0.0e0_hp
+    !=======================================================================
+    ! Create manual diagnostics
+    !=======================================================================
+    DO I = 1,12
 
-    ALLOCATE( Inst%FLUX_AIR2LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2LAKE', RC )
-       RETURN
-    ENDIF
-    Inst%FLUX_AIR2LAKE = 0.0e0_hp
+       ! Define diagnostic names. These have to match the names
+       ! in module HEMCO/Extensions/hcox_gc_POPs_mod.F90.
+       IF ( I == 1 ) THEN
+          DiagnName = 'EmisPOPGfromSoil'
+          OutUnit   = 'kg/m2/s'
+          Target2D  => Inst%EmisPOPGfromSoil
+       ELSEIF ( I == 2  ) THEN
+          DiagnName = 'EmisPOPGfromLake'
+          OutUnit   = 'kg/m2/s'
+          Target2D  => Inst%EmisPOPGfromLake
+       ELSEIF ( I == 3  ) THEN
+          DiagnName = 'EmisPOPGfromLeaf'
+          OutUnit   = 'kg/m2/s'
+          Target2D  => Inst%EmisPOPGfromLeaf
+       ELSEIF ( I == 4  ) THEN
+          DiagnName = 'FluxPOPGfromSoilToAir'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromSoilToAir
+       ELSEIF ( I == 5  ) THEN
+          DiagnName = 'FluxPOPGfromAirToSoil'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromAirToSoil
+       ELSEIF ( I == 6  ) THEN
+          DiagnName = 'FluxPOPGfromLakeToAir'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromLakeToAir
+       ELSEIF ( I == 7  ) THEN
+          DiagnName = 'FluxPOPGfromAirToLake'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromAirToLake
+       ELSEIF ( I == 8  ) THEN
+          DiagnName = 'FluxPOPGfromLeafToAir'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromLeafToAir
+       ELSEIF ( I == 9  ) THEN
+          DiagnName = 'FluxPOPGfromAirToLeaf'
+          OutUnit   = 'ng/m2/day'
+          Target2D  => Inst%FluxPOPGfromAirToLeaf
+       ELSEIF ( I == 10 ) THEN
+          DiagnName = 'FugacitySoilToAir'
+          OutUnit   = '1'
+          Target2D  => Inst%FugacitySoilToAir
+       ELSEIF ( I == 11 ) THEN
+          DiagnName = 'FugacityLakeToAir'
+          OutUnit   = '1'
+          Target2D  => Inst%FugacityLakeToAir
+       ELSEIF ( I == 12 ) THEN
+          DiagnName = 'FugacityLeafToAir'
+          OutUnit   = '1'
+          Target2D  => Inst%FugacityLeafToAir
+       ENDIF
 
-    ALLOCATE( Inst%FUG_LAKEAIR( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_LAKEAIR', RC )
-       RETURN
-    ENDIF
-    Inst%FUG_LAKEAIR = 0.0e0_hp
+       ! Create manual diagnostics
+       CALL Diagn_Create( HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          OutUnit   = OutUnit,           &
+                          AutoFill  = 0,                 &
+                          Trgt2D    = Target2D,          &
+                          RC        = RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Target2D => NULL()
 
-    ALLOCATE( Inst%EMIS_LEAF( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_LEAF', RC )
-       RETURN
-    ENDIF
-    Inst%EMIS_LEAF = 0.0e0_hp
-
-    ALLOCATE( Inst%FLUX_LEAF2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_LEAF2AIR', RC )
-       RETURN
-    ENDIF
-    Inst%FLUX_LEAF2AIR = 0.0e0_hp
-
-    ALLOCATE( Inst%FLUX_AIR2LEAF( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2LEAF', RC )
-       RETURN
-    ENDIF
-    Inst%FLUX_AIR2LEAF = 0.0e0_hp
-
-    ALLOCATE( Inst%FUG_LEAFAIR  ( HcoState%NX, HcoState%NY ), STAT=RC )
-    IF ( RC /= 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_LEAFAIR', RC )
-       RETURN
-    ENDIF
-    Inst%FUG_LEAFAIR = 0.0e0_hp
+    ENDDO
 
     !=======================================================================
     ! Leave w/ success
@@ -2252,7 +2034,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2303,7 +2084,6 @@ CONTAINS
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
-!BOP
 !
 ! !IROUTINE: InstRemove
 !
@@ -2320,7 +2100,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2345,25 +2124,40 @@ CONTAINS
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
-          IF ( ASSOCIATED(Inst%EPOP_G       ) ) DEALLOCATE(Inst%EPOP_G       )
-          IF ( ASSOCIATED(Inst%EPOP_OC      ) ) DEALLOCATE(Inst%EPOP_OC      )
-          IF ( ASSOCIATED(Inst%EPOP_BC      ) ) DEALLOCATE(Inst%EPOP_BC      )
-          IF ( ASSOCIATED(Inst%SUM_OC_EM    ) ) DEALLOCATE(Inst%SUM_OC_EM    )
-          IF ( ASSOCIATED(Inst%SUM_BC_EM    ) ) DEALLOCATE(Inst%SUM_BC_EM    )
-          IF ( ASSOCIATED(Inst%SUM_G_EM     ) ) DEALLOCATE(Inst%SUM_G_EM     )
-          IF ( ASSOCIATED(Inst%SUM_OF_ALL   ) ) DEALLOCATE(Inst%SUM_OF_ALL   )
-          IF ( ASSOCIATED(Inst%EMIS_SOIL    ) ) DEALLOCATE(Inst%EMIS_SOIL    )
-          IF ( ASSOCIATED(Inst%FLUX_SOIL2AIR) ) DEALLOCATE(Inst%FLUX_SOIL2AIR)
-          IF ( ASSOCIATED(Inst%FLUX_AIR2SOIL) ) DEALLOCATE(Inst%FLUX_AIR2SOIL)
-          IF ( ASSOCIATED(Inst%FUG_SOILAIR  ) ) DEALLOCATE(Inst%FUG_SOILAIR  )
-          IF ( ASSOCIATED(Inst%EMIS_LAKE    ) ) DEALLOCATE(Inst%EMIS_LAKE    )
-          IF ( ASSOCIATED(Inst%FLUX_LAKE2AIR) ) DEALLOCATE(Inst%FLUX_LAKE2AIR)
-          IF ( ASSOCIATED(Inst%FLUX_AIR2LAKE) ) DEALLOCATE(Inst%FLUX_AIR2LAKE)
-          IF ( ASSOCIATED(Inst%FUG_LAKEAIR  ) ) DEALLOCATE(Inst%FUG_LAKEAIR  )
-          IF ( ASSOCIATED(Inst%EMIS_LEAF    ) ) DEALLOCATE(Inst%EMIS_LEAF    )
-          IF ( ASSOCIATED(Inst%FLUX_LEAF2AIR) ) DEALLOCATE(Inst%FLUX_LEAF2AIR)
-          IF ( ASSOCIATED(Inst%FLUX_AIR2LEAF) ) DEALLOCATE(Inst%FLUX_AIR2LEAF)
-          IF ( ASSOCIATED(Inst%FUG_LEAFAIR  ) ) DEALLOCATE(Inst%FUG_LEAFAIR  )
+          IF ( ASSOCIATED(Inst%EmisPOPPOCPO         ) ) &
+               DEALLOCATE(Inst%EmisPOPPOCPO         )
+          IF ( ASSOCIATED(Inst%EmisPOPPBCPO         ) ) &
+               DEALLOCATE(Inst%EmisPOPPBCPO         )
+          IF ( ASSOCIATED(Inst%EmisPOPG             ) ) &
+               DEALLOCATE(Inst%EmisPOPG             )
+          IF ( ASSOCIATED(Inst%EmisPOPGfromSoil     ) ) &
+               DEALLOCATE(Inst%EmisPOPGfromSoil     )
+          IF ( ASSOCIATED(Inst%EmisPOPGfromLake     ) ) &
+               DEALLOCATE(Inst%EmisPOPGfromLake     )
+          IF ( ASSOCIATED(Inst%EmisPOPGfromLeaf     ) ) &
+               DEALLOCATE(Inst%EmisPOPGfromLeaf     )
+          IF ( ASSOCIATED(Inst%EmisPOPGfromSnow     ) ) &
+               DEALLOCATE(Inst%EmisPOPGfromSnow     )
+          IF ( ASSOCIATED(Inst%EmisPOPGfromOcean    ) ) &
+               DEALLOCATE(Inst%EmisPOPGfromOcean    )
+          IF ( ASSOCIATED(Inst%FluxPOPGfromSoilToAir) ) &
+               DEALLOCATE(Inst%FluxPOPGfromSoilToAir)
+          IF ( ASSOCIATED(Inst%FluxPOPGfromAirToSoil) ) &
+               DEALLOCATE(Inst%FluxPOPGfromAirToSoil)
+          IF ( ASSOCIATED(Inst%FluxPOPGfromLakeToAir) ) &
+               DEALLOCATE(Inst%FluxPOPGfromLakeToAir)
+          IF ( ASSOCIATED(Inst%FluxPOPGfromAirToLake) ) &
+               DEALLOCATE(Inst%FluxPOPGfromAirToLake)
+          IF ( ASSOCIATED(Inst%FluxPOPGfromLeafToAir) ) &
+               DEALLOCATE(Inst%FluxPOPGfromLeafToAir)
+          IF ( ASSOCIATED(Inst%FluxPOPGfromAirtoLeaf) ) &
+               DEALLOCATE(Inst%FluxPOPGfromAirtoLeaf)
+          IF ( ASSOCIATED(Inst%FugacitySoilToAir    ) ) &
+               DEALLOCATE(Inst%FugacitySoilToAir    )
+          IF ( ASSOCIATED(Inst%FugacityLakeToAir    ) ) &
+               DEALLOCATE(Inst%FugacityLakeToAir    )
+          IF ( ASSOCIATED(Inst%FugacityLeafToAir    ) ) &
+               DEALLOCATE(Inst%FugacityLeafToAir    )
 
           PrevInst%NextInst => Inst%NextInst
        ELSE

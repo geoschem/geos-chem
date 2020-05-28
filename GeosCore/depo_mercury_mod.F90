@@ -930,6 +930,12 @@ CONTAINS
     ! INIT_DEPO_MERCURY begins here!
     !=================================================================
 
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! GTMM restart file name
     GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
 

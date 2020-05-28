@@ -250,6 +250,7 @@ CONTAINS
 !
     LOGICAL            :: verb, RdAll
     CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'ReadList_Read (HCO_ReadList_Mod.F90)'
 
     ! ================================================================
     ! ReadList_Read begins here
@@ -259,7 +260,8 @@ CONTAINS
     CALL HCO_ENTER ( HcoState%Config%Err, &
                     'ReadList_Read (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       PRINT *, "Error in HCO_ENTER called from HEMCO ReadList_Read"
+       MSG = 'Error in HCO_ENTER called from HEMCO ReadList_Read'
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
        RETURN
     ENDIF
 
@@ -282,7 +284,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Once, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (1) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (1) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -295,7 +298,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Year, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (2) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (2) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -308,7 +312,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Month, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (3) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (3) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -321,7 +326,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Day, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (4) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (4) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -334,7 +340,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Hour, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (5) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (5) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -347,7 +354,8 @@ CONTAINS
        ENDIF
        CALL ReadList_Fill( HcoState, HcoState%ReadLists%Hour3, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          PRINT *, "Error in ReadList_Fill (6) called from HEMCO ReadList_Read"
+          MSG = 'Error in ReadList_Fill (6) called from HEMCO ReadList_Read'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
           RETURN
        ENDIF
     ENDIF
@@ -359,7 +367,8 @@ CONTAINS
     ENDIF
     CALL ReadList_Fill( HcoState, HcoState%ReadLists%Always, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       PRINT *, "Error in called ReadList_Fill (7) from HEMCO ReadList_Read"
+       MSG = 'Error in called ReadList_Fill (7) from HEMCO ReadList_Read'
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
        RETURN
     ENDIF
 
@@ -440,6 +449,7 @@ CONTAINS
     TYPE(ListCont), POINTER  :: Lct
     LOGICAL                  :: verb
     CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'ReadList_Fill (HCO_ReadList_Mod.F90)'
 
     ! ================================================================
     ! ReadList_Fill begins here
@@ -449,7 +459,8 @@ CONTAINS
     CALL HCO_ENTER (HcoState%Config%Err,&
                    'ReadList_Fill (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       PRINT *, "Error in HCO_ENTER called from HEMCO ReadList_Fill"
+       MSG = 'Error in HCO_ENTER called from HEMCO ReadList_Fill'
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
        RETURN
     ENDIF
 
@@ -487,7 +498,8 @@ CONTAINS
           IF ( .NOT. Lct%Dct%Dta%NcRead ) THEN
              CALL HCOIO_ReadOther( HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
-                PRINT *, "Error in HCOIO_ReadOther called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+                MSG = 'Error in HCOIO_ReadOther called from HEMCO ReadList_Fill: ' // TRIM(Lct%Dct%cname)
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
              ENDIF
 
@@ -497,7 +509,8 @@ CONTAINS
              ! Read data
              CALL HCOIO_DATAREAD( HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
-                PRINT *, "Error in HCOIO_DATAREAD called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+                MSG = 'Error in HCOIO_DATAREAD called from HEMCO ReadList_Fill: ' // TRIM(Lct%Dct%cname)
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
              ENDIF
           ENDIF
@@ -519,14 +532,16 @@ CONTAINS
           ! hco_tidx_mod.
           CALL tIDx_Assign ( HcoState, Lct%Dct, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
-             PRINT *, "Error in tIDx_Assign called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+             MSG = 'Error in tIDx_Assign called from HEMCO ReadList_Fill: ' // TRIM(Lct%Dct%cname)
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
              RETURN
           ENDIF
 
           ! Container is now read to be passed to emissions list.
           CALL EmisList_Pass( HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
-             PRINT *, "Error in EmisList_Pass called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+             MSG = 'Error in EmisList_Pass called from HEMCO ReadList_Fill: ' // TRIM(Lct%Dct%cname)
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
              RETURN
           ENDIF
 
@@ -539,7 +554,8 @@ CONTAINS
     ! Make sure that all netCDF files are closed
     CALL HCOIO_CloseAll ( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       PRINT *, "Error in HCOIO_CloseAll called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+       MSG = 'Error in HCOIO_CloseAll called from HEMCO ReadList_Fill: ' // TRIM(Lct%Dct%cname)
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
        RETURN
     ENDIF
 

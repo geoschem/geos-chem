@@ -110,7 +110,6 @@ CONTAINS
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
     USE GcKPP_Util,           ONLY : Get_OHreactivity
-    USE Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PRESSURE_MOD
@@ -125,6 +124,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : Get_Day
     USE TIME_MOD,             ONLY : Get_Month
     USE TIME_MOD,             ONLY : Get_Year
+    USE Timers_Mod
     USE UnitConv_Mod,         ONLY : Convert_Spc_Units
     USE UCX_MOD,              ONLY : CALC_STRAT_AER
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -164,11 +164,10 @@ CONTAINS
     LOGICAL                :: prtDebug,  IsLocNoon
     INTEGER                :: I,         J,        L,         N
     INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      WAVELENGTH
-    INTEGER                :: TotSteps,  TotFuncs, TotJacob,  TotAccep
-    INTEGER                :: TotRejec,  TotNumLU, HCRC,      IERR
-    INTEGER                :: Day
-    REAL(fp)               :: Start,     Finish,   rtim,      itim
+    INTEGER                :: P,         MONTH,    YEAR,      Day   
+    INTEGER                :: WAVELENGTH
+    INTEGER                :: IERR
+    INTEGER                :: Thread
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
     REAL(fp)               :: TOUT
 
@@ -180,6 +179,12 @@ CONTAINS
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
     REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
+
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
+    INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
+#endif
+#endif
 
     ! Arrays
     INTEGER                :: ICNTRL     (                  20               )
@@ -219,17 +224,10 @@ CONTAINS
     ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F90)'
     SpcInfo   => NULL()
     prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-    itim      =  0.0_fp
-    rtim      =  0.0_fp
-    totsteps  =  0
-    totfuncs  =  0
-    totjacob  =  0
-    totaccep  =  0
-    totrejec  =  0
-    totnumLU  =  0
     Day       =  Get_Day()    ! Current day
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
+    Thread    =  1
 
     ! Turn heterogeneous chemistry and photolysis on/off for testing
     DO_HETCHEM  = .TRUE.
@@ -289,6 +287,11 @@ CONTAINS
     IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
+       CALL Timer_Start( "=> Aerosol chem", RC )
+    ENDIF
+
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3]
     ! for FAST-JX and optical depth diagnostics
@@ -310,7 +313,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Debutg utput
+          ! Debug output
           IF ( prtDebug ) THEN
              CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
           ENDIF
@@ -331,54 +334,8 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Call RDAER -- computes aerosol optical depths for FAST-JX
     !=======================================================================
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! isoprene oxidation counter species
-       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
-            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
-       ENDIF
-
-       ! aromatic oxidation counter species
-       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-          SELECT CASE ( TRIM( SpcInfo%Name ) )
-             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
-                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%Species(:,:,:,N) = 0e+0_fp
-          END SELECT
-       ENDIF
-
-       ! Temporary fix for CO2
-       ! CO2 is a dead species and needs to be set to zero to
-       ! match the old SMVGEAR code (mps, 6/14/16)
-       IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
-       ENDIF
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO
-
-    !=======================================================================
-    ! Call RDAER -- computes aerosol optical depths
-    !=======================================================================
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Gas-phase chem",   RC )
-       CALL Timer_Start( "=> All aerosol chem", RC )
-    ENDIF
-
-    ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
     CALL RDAER( Input_Opt, State_Chm, State_Diag, State_Grid, State_Met, RC,  &
                 MONTH,     YEAR,       WAVELENGTH )
@@ -422,9 +379,49 @@ CONTAINS
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> All aerosol chem", RC )
-       CALL Timer_Start( "=> Gas-phase chem",   RC )
+       CALL Timer_End  ( "=> Aerosol chem", RC )
+       CALL Timer_Start( "=> FlexChem",   RC )
     ENDIF
+
+    !=======================================================================
+    ! Zero out certain species:
+    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
+    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
+    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
+    !      (dkh, 10/06/06)
+    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    !=======================================================================
+    DO N = 1, State_Chm%nSpecies
+
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! isoprene oxidation counter species
+       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
+            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
+          State_Chm%Species(:,:,:,N) = 0e+0_fp
+       ENDIF
+
+       ! aromatic oxidation counter species
+       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
+          SELECT CASE ( TRIM( SpcInfo%Name ) )
+             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
+                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
+                State_Chm%Species(:,:,:,N) = 0e+0_fp
+          END SELECT
+       ENDIF
+
+       ! Temporary fix for CO2
+       ! CO2 is a dead species and needs to be set to zero to
+       ! match the old SMVGEAR code (mps, 6/14/16)
+       IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
+          State_Chm%Species(:,:,:,N) = 0e+0_fp
+       ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
+
+    ENDDO
 
     !=======================================================================
     ! Archive initial species mass for stratospheric tendency
@@ -462,7 +459,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=======================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Gas-phase chem",     RC )
+       CALL Timer_End  ( "=> FlexChem",     RC )
        CALL Timer_Start( "=> FAST-JX photolysis", RC )
     ENDIF
 
@@ -477,17 +474,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FAST-JX photolysis", RC )
-       CALL Timer_Start( "=> Gas-phase chem",     RC )
-    ENDIF
-
     !### Debug
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
-#ifdef MODEL_GEOS
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> FAST-JX photolysis", RC )
+       CALL Timer_Start( "=> FlexChem",     RC ) ! ended in Do_Chemistry
+    ENDIF
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -577,6 +574,10 @@ CONTAINS
            'Hexit, last accepted step before exit:    ', f11.4, /,          &
            'Hnew, last predicted step (not yet taken):', f11.4 )
 
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "  -> FlexChem loop", RC )
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! NOTE: The following variables are held THREADPRIVATE and
     ! therefore do not need to be included in the !$OMP PRIVATE
@@ -586,19 +587,11 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT  ( SHARED                                                 )&
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
-    !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
+    !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  ISTATUS                   )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-    !$OMP PRIVATE  ( Vloc,     Aout                                         )&
+    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC                        )&
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
-    !$OMP REDUCTION( +:ITIM                                                 )&
-    !$OMP REDUCTION( +:RTIM                                                 )&
-    !$OMP REDUCTION( +:TOTSTEPS                                             )&
-    !$OMP REDUCTION( +:TOTFUNCS                                             )&
-    !$OMP REDUCTION( +:TOTJACOB                                             )&
-    !$OMP REDUCTION( +:TOTACCEP                                             )&
-    !$OMP REDUCTION( +:TOTREJEC                                             )&
-    !$OMP REDUCTION( +:TOTNUMLU                                             )&
     !$OMP SCHEDULE ( DYNAMIC,  1                                            )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
@@ -636,6 +629,13 @@ CONTAINS
        ! mje H2O arrives in g/kg needs to be in mol cm-3
        H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
+       ! Get the thread number
+       Thread    = OMP_GET_THREAD_NUM() + 1
+#endif
+#endif
+
        !====================================================================
        ! Get photolysis rates (daytime only)
        !
@@ -658,6 +658,11 @@ CONTAINS
        ! (update submitted by E. Fleming (NASA), 10/11/2018)
        !====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "  -> Photolysis rates", RC, &
+                               InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
@@ -749,6 +754,11 @@ CONTAINS
                 ENDIF
              ENDIF
           ENDDO
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "  -> Photolysis rates", RC, &
+                             InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
        ENDIF
 
        !====================================================================
@@ -770,18 +780,37 @@ CONTAINS
        !====================================================================
        ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
        !====================================================================
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "  -> Init KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
        CALL Init_KPP( )
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End  ( "  -> Init KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
 
        !====================================================================
        ! Get rates for heterogeneous chemistry
        !====================================================================
        IF ( DO_HETCHEM ) THEN
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "  -> Het chem rates", RC, & 
+                               InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
+
           CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "  -> Het chem rates", RC, &
+                             InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
        ENDIF
 
        !====================================================================
        ! Initialize species concentrations
        !====================================================================
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
 
        ! Loop over KPP Species
        DO N = 1, NSPEC
@@ -823,8 +852,16 @@ CONTAINS
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
+
        ! Update the array of rate constants
        CALL Update_RCONST( )
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
 
        ! Archive KPP reaction rates
        IF ( State_Diag%Archive_RxnRate ) THEN
@@ -858,16 +895,24 @@ CONTAINS
        ! Integrate the box forwards
        !=================================================================
 
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "     Integrate 1", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
+
        ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "     Integrate 1", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -936,9 +981,14 @@ CONTAINS
           VAR = C(1:NVAR)
           FIX = C(NVAR+1:NSPEC)
           CALL Update_RCONST( )
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "     Integrate 2", RC, InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
-
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "     Integrate 2", RC, InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
           !------------------------------------------------------------------
           ! HISTORY: Archive KPP solver diagnostics
           ! This time, add to the existing value
@@ -1000,7 +1050,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-#ifdef MODEL_GEOS
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
@@ -1054,6 +1104,12 @@ CONTAINS
           State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
 
        ENDDO
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_Start( "  -> Prod/loss diags", RC, &
+                            InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
 
 #ifdef BPCH_DIAG
 #ifdef TOMAS
@@ -1148,6 +1204,11 @@ CONTAINS
 
        ENDIF
 
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End  ( "  -> Prod/loss diags", RC, &
+                            InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
+
        !==============================================================
        ! Write out OH reactivity
        ! The OH reactivity is defined here as the inverse of its life-
@@ -1155,14 +1216,38 @@ CONTAINS
        ! (ckeller, 9/20/2017)
        !==============================================================
        IF ( State_Diag%Archive_OHreactivity ) THEN
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "  -> OH reactivity diag", RC, &
+                               InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
           CALL Get_OHreactivity ( C, RCONST, OHreact )
           State_Diag%OHreactivity(I,J,L) = OHreact
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "  -> OH reactivity diag", RC, &
+                             InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
        ENDIF
 
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "  -> FlexChem loop", RC )
+    ENDIF
+
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Sum_Loop( "  -> Init KPP",            RC )
+       CALL Timer_Sum_Loop( "  -> Het chem rates",      RC )
+       CALL Timer_Sum_Loop( "  -> Photolysis rates",    RC )
+       CALL Timer_Sum_Loop( "  -> KPP",                 RC )
+       CALL Timer_Sum_Loop( "     RCONST",              RC )
+       CALL Timer_Sum_Loop( "     Integrate 1",         RC )
+       CALL Timer_Sum_Loop( "     Integrate 2",         RC )
+       CALL Timer_Sum_Loop( "  -> Prod/loss diags",     RC )
+       CALL Timer_Sum_Loop( "  -> OH reactivity diag",  RC )
+    ENDIF
 
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
