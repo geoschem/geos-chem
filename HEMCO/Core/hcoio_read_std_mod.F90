@@ -113,7 +113,6 @@ CONTAINS
 !
 ! !USES:
 !
-#if !defined(EXTERNAL_FORCING)
     USE Ncdf_Mod,           ONLY : NC_Open
     USE Ncdf_Mod,           ONLY : NC_Close
     USE Ncdf_Mod,           ONLY : NC_Read_Var
@@ -121,7 +120,6 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
     USE Ncdf_Mod,           ONLY : NC_ISMODELLEVEL
-#endif
     USE CHARPAK_MOD,        ONLY : TRANLC
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
@@ -233,7 +231,6 @@ CONTAINS
     ! HCOIO_READ_STD begins here
     !=================================================================
 
-#if !defined(EXTERNAL_FORCING)
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOIO_READ_STD (hcoio_read_std_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1319,8 +1316,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#endif
-
     !-----------------------------------------------------------------
     ! Cleanup and leave
     !-----------------------------------------------------------------
@@ -1371,7 +1366,7 @@ CONTAINS
 !
 ! !USES:
 !
-!    USE Ncdf_Mod,      ONLY : NC_Read_Time_YYYYMMDDhhmm
+    USE Ncdf_Mod,      ONLY : NC_Read_Time_YYYYMMDDhhmm
     USE HCO_tIdx_Mod,  ONLY : HCO_GetPrefTimeAttr
 !
 ! !INPUT PARAMETERS:
@@ -3094,10 +3089,8 @@ CONTAINS
 !
 ! !USES:
 !
-#if !defined(EXTERNAL_FORCING)
     USE m_netcdf_io_checks
     USE m_netcdf_io_get_dimlen
-#endif
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
@@ -3111,7 +3104,6 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT)           :: ArbIdx
     INTEGER,          INTENT(  OUT)           :: RC
-#if !defined(EXTERNAL_FORCING)
 !
 ! !REVISION HISTORY:
 !  22 Sep 2015 - C. Keller - Initial version
@@ -3204,8 +3196,6 @@ CONTAINS
           TRIM(Lct%Dct%Dta%ncFile), ': use index ', ArbIdx, ' (set: ', Lct%Dct%Dta%ArbDimVal, ')'
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
-
-#endif
 
     ! Return w/ success
     RC = HCO_SUCCESS
