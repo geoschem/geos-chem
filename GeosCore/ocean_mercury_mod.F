@@ -636,7 +636,6 @@
       ! Store Fg and Fp in ND03 diagnostic.       !
       !-------------------------------------------!
 
-#if !defined( EXTERNAL_FORCING )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -654,7 +653,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-#endif
 
 #if defined( BPCH_DIAG )
       ! Increment diagnostic timestep counter.
