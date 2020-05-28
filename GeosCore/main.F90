@@ -791,8 +791,7 @@ PROGRAM GEOS_Chem
      CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
-        CALL GC_Error( ErrMsg, RC, ThisLoc )
-        RETURN
+        CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
      ! Once the initial met fields have been read in, we need to find
