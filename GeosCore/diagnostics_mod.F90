@@ -423,7 +423,7 @@ CONTAINS
           !$OMP DEFAULT( SHARED  ) &
           !$OMP PRIVATE( I, M, N )
           DO M = 1, mapData%count
-             N = mapData%modelId(M)
+             N = mapData%id(M)
              Ptr2Data(:,:,:,M) = State_Chm%Species(:,:,:,N)
           ENDDO
           !$OMP END PARALLEL DO
@@ -572,7 +572,7 @@ CONTAINS
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( C, N   )
        DO C = 1, mapData%count
-          N = mapData%modelId(C)
+          N = mapData%id(C)
           State_Diag%SpeciesConc(:,:,:,C) = State_Chm%Species(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
@@ -598,7 +598,7 @@ CONTAINS
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( C, N   )
        DO C = 1, mapData%count
-          N = mapData%modelId(C)
+          N = mapData%id(C)
           State_Diag%SpeciesBC(:,:,:,C) = State_Chm%Species(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO

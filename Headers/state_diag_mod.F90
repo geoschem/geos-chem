@@ -78,9 +78,10 @@ MODULE State_Diag_Mod
   ! Type for mapping objects
   TYPE, PUBLIC :: DgnMap
      INTEGER          :: count
-     INTEGER, POINTER :: modelId(:)
-     INTEGER, POINTER :: dryDepId(:)
-     INTEGER, POINTER :: wetDepId(:)
+     INTEGER, POINTER :: id(:)
+     INTEGER          :: allCount
+     INTEGER, POINTER :: allId(:)
+     CHARACTER(LEN=1) :: indFlag
   END TYPE DgnMap
 !
 ! !PUBLIC DATA MEMBERS:
@@ -1404,6 +1405,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_SpeciesBC,                      &
          mapData        = State_Diag%Map_SpeciesBC,                          &
          diagId         = diagId,                                            &
+         speciesFlag    = 'A',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1835,9 +1837,10 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepChm,                          &
          diagId         = diagId,                                            &
          forceDefine    = forceDefine,                                       &
+         speciesFlag    = 'D',                                               &
          RC             = RC                                                )
 
-    IF( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -1860,9 +1863,10 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepMix,                          &
          forceDefine    = forceDefine,                                       &
          diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
          RC             = RC                                                )
 
-    IF( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -1883,9 +1887,10 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDep,                         &
          mapData        = State_Diag%Map_DryDep,                             &
          diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
          RC             = RC                                                )
 
-    IF( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -1906,6 +1911,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDepVel,                      &
          mapData        = State_Diag%Map_DryDepVel,                          &
          diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
 #ifdef MODEL_GEOS
          ! DryDepVel always needs to be defined for MODEL_GEOS
          forceDefine    = .TRUE.,                                            &
@@ -1917,11 +1923,6 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-
-    do C = 1, state_diag%map_drydepvel%count
-       N = state_diag%map_drydepvel%modelId(C)
-       print*, '@@@ ', C, N, state_chm%spcdata(N)%Info%Name
-    enddo
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -6223,7 +6224,7 @@ CONTAINS
              CASE( 33 )
                 diagId = 'FluxHg2HgPfromAirToSnow'
              CASE( 34 )
-                diagId = 'FluxHg0fromAirToOcean'
+                diagId = 'FluxHg0froimAirToOcean'
              CASE( 35 )
                 diagId = 'FluxHg0fromOceanToAir'
              CASE( 36 )
@@ -9466,21 +9467,21 @@ CONTAINS
 
     ! Get the number of tags per wildcard name
     SELECT CASE( TRIM( tagId ) )
-       CASE( 'ALL'     )
+       CASE( 'ALL', 'S' )
           numTags = State_Chm%nSpecies
-       CASE( 'ADV'     )
+       CASE( 'ADV', 'A' )
           numTags = State_Chm%nAdvect
-       CASE( 'AER'     )
+       CASE( 'AER'      )
           numTags = State_Chm%nAeroSpc
-       CASE( 'DRY'     )
+       CASE( 'DRY', 'D' )
           numTags = State_Chm%nDryDep
-       CASE( 'DRYALT'  )
+       CASE( 'DRYALT'   )
           numTags = State_Chm%nDryAlt
-       CASE( 'DUSTBIN' )
+       CASE( 'DUSTBIN'  )
           numTags = NDUST
-       CASE( 'FIX'     )
+       CASE( 'FIX', 'F' )
           numTags = State_Chm%nKppFix
-       CASE( 'GAS'     )
+       CASE( 'GAS', 'G' )
           numTags = State_Chm%nGasSpc
       !------------------------------------------------------
       ! Prior to 10/24/18:
@@ -9493,25 +9494,25 @@ CONTAINS
       !CASE( 'HGP'     )
       !   numTags = State_Chm%N_Hg_Cats
       !------------------------------------------------------
-       CASE( 'HYG'     )
+       CASE( 'HYG', 'H' )
           numTags = State_Chm%nHygGrth
-       CASE( 'KPP'     )
+       CASE( 'KPP', 'K' )
           numTags = State_Chm%nKppSpc
-       CASE( 'LOS'     )
+       CASE( 'LOS'      )
           numTags = State_Chm%nLoss
-       CASE( 'PHO'     )
+       CASE( 'PHO', 'P' )
           numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'   )
+       CASE( 'UVFLX'    )
           numTags = W_
-       CASE( 'PRD'     )
+       CASE( 'PRD'      )
           numTags = State_Chm%nProd
-       CASE( 'RRTMG'   )
+       CASE( 'RRTMG'    )
           numTags = nRadFlux
-       CASE( 'RXN'     )
+       CASE( 'RXN'      )
           numTags = NREACT
-       CASE( 'VAR'     )
+       CASE( 'VAR', 'V' )
           numTags = State_Chm%nKppVar
-       CASE( 'WET'     )
+       CASE( 'WET', 'W' )
           numTags = State_Chm%nWetDep
        CASE DEFAULT
           ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
@@ -9955,8 +9956,42 @@ CONTAINS
 
     IF ( PRESENT( mapData ) ) THEN
 
-       ! If the mapping object is passed, then use it to get tagName
-       index   = mapData%modelId(N)
+       !--------------------------------------------------------------------
+       ! If the mapping object is passed, get the name of each species
+       ! from the modelId as specified in the mapData array 
+       !--------------------------------------------------------------------
+
+       ! If indFlag="S", then mapData%id is already the modelId,
+       ! but e.g. if indFlag="D", then mapData%Id is the drydep Id.
+       ! (etc. for other flag values)
+       index = mapData%id(N)
+
+       ! If necessary, convert index to be the  modelId
+       ! so that we use it to look up the species name.
+       SELECT CASE( mapData%indFlag )
+          CASE( 'A' )
+             index = State_Chm%Map_Advect(index)
+          CASE( 'D' )
+             index = State_Chm%Map_DryDep(index)
+          CASE( 'F' )
+             index = State_Chm%Map_KppFix(index)
+          CASE( 'G' )
+             index = State_Chm%Map_GasSpc(index)
+          CASE( 'H' )
+             index = State_Chm%Map_HygGrth(index)
+          CASE( 'K' )
+             index = State_Chm%Map_KppSpc(index)
+          CASE( 'P' )
+             index = State_Chm%Map_Photol(index)
+          CASE( 'V' )
+             index = State_Chm%Map_KppVar(index)
+          CASE( 'W' )
+             index = State_Chm%Map_WetDep(index)
+          CASE DEFAULT
+             ! Pass
+       END SELECT
+
+       ! Now get the species name fromthe species database
        tagName = State_Chm%SpcData(index)%info%name
 
     ELSE
@@ -10320,7 +10355,7 @@ CONTAINS
                                  diagDesc   = diagDesc,                      &
                                  RC         = RC                            )
 
-         ! Trap potential errors
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
                       ' where tagID is ' // TRIM( tagID      )            // &
@@ -11307,7 +11342,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Get_Mapping( Input_Opt,   State_Chm, TaggedDiagList,            &
-                          metadataID,  mapData,   RC                        )
+                          metadataID,  mapData,   indFlag,                   &
+                          RC                                                )
 !
 ! !USES:
 !
@@ -11324,6 +11360,7 @@ CONTAINS
     TYPE(ChmState),        INTENT(IN)    :: State_Chm      ! Chemistry State
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList ! Tags or wildcards
     CHARACTER(LEN=*),      INTENT(IN)    :: metadataId     ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)    :: indFlag        ! Flag for Ind_
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -11342,6 +11379,7 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: found
     LOGICAL                   :: isWildCard
+    INTEGER                   :: C
     INTEGER                   :: numTags
     INTEGER                   :: numWildCards
     INTEGER                   :: nTags
@@ -11368,7 +11406,7 @@ CONTAINS
     ! Initialize
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
-    mapName2   = TRIM( mapName ) // '%modelId'
+    mapName2   = TRIM( mapName ) // '%id'
     spcName    = ''
     wcName     = ''
     errMsg     = ''
@@ -11405,8 +11443,13 @@ CONTAINS
     ALLOCATE( mapData, STAT=RC )
     CALL GC_CheckVar( mapName, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    mapData%count   = -1
-    mapData%modelId => NULL()
+
+    ! Initialize fields of mapData (mostly to missing values)
+    mapData%count    = -1
+    mapData%id       => NULL()
+    mapData%allCount = -1
+    mapData%allId    => NULL()
+    mapData%indFlag  =  indFlag
 
     IF ( isWildCard ) THEN
 
@@ -11432,28 +11475,14 @@ CONTAINS
        ENDDO
        TagItem => NULL()
 
-       ! Allocate the mapData%modelId field
-       IF ( ASSOCIATED( mapData%modelId ) ) DEALLOCATE( mapData%modelId )
-       ALLOCATE( mapData%modelId( mapData%count ), STAT=RC )
+       ! Allocate the mapData%id field
+       IF ( ASSOCIATED( mapData%id ) ) DEALLOCATE( mapData%id )
+       ALLOCATE( mapData%id( mapData%count ), STAT=RC )
        CALL GC_CheckVar( mapName2, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%modelId = -1
+       mapData%id = -1
 
-       ! Allocate the mapData%dryDepId field
-       IF ( ASSOCIATED( mapData%dryDepId ) ) DEALLOCATE( mapData%dryDepId )
-       ALLOCATE( mapData%dryDepId( mapData%count ), STAT=RC )
-       CALL GC_CheckVar( mapName2, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%dryDepId = -1
-
-       ! Allocate the mapData%wetDepId field
-       IF ( ASSOCIATED( mapData%wetDepId ) ) DEALLOCATE( mapData%wetDepId )
-       ALLOCATE( mapData%wetDepId( mapData%count ), STAT=RC )
-       CALL GC_CheckVar( mapName2, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%wetDepId = -1
-
-       ! Get the modelId for each species indicated by wildcard
+       ! Get the id for each species indicated by wildcard
        DO index = 1, mapData%count
           CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
                             State_Chm = State_Chm,                           &
@@ -11470,10 +11499,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Save the modelId (and other ID's) in the mapping object
-          mapData%modelId (index) =  Ind_(spcName     )
-          mapData%dryDepId(index) =  Ind_(spcName, 'D')
-          mapData%wetDepId(index) =  Ind_(spcName, 'W')
+          ! Save the id (and other ID's) in the mapping object
+          mapData%id(index) = Ind_( spcName, indFlag )
        ENDDO
 
     ELSE
@@ -11485,40 +11512,49 @@ CONTAINS
        ! Set the number of tags
        mapData%count = numTags
 
-       ! Allocate the mapData%modelId field
-       IF ( ASSOCIATED( mapData%modelId ) ) DEALLOCATE( mapData%modelId )
-       ALLOCATE( mapData%modelId( mapData%count ), STAT=RC )
+       ! Allocate the mapData%id field
+       IF ( ASSOCIATED( mapData%id ) ) DEALLOCATE( mapData%id )
+       ALLOCATE( mapData%id( mapData%count ), STAT=RC )
        CALL GC_CheckVar( mapName2, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%modelId = -1
-
-       ! Allocate the mapData%dryDepId field
-       IF ( ASSOCIATED( mapData%dryDepId ) ) DEALLOCATE( mapData%dryDepId )
-       ALLOCATE( mapData%dryDepId( mapData%count ), STAT=RC )
-       CALL GC_CheckVar( mapName2, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%dryDepId = -1
-
-       ! Allocate the mapData%wetDepId field
-       IF ( ASSOCIATED( mapData%wetDepId ) ) DEALLOCATE( mapData%wetDepId )
-       ALLOCATE( mapData%wetDepId( mapData%count ), STAT=RC )
-       CALL GC_CheckVar( mapName2, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%wetDepId = -1
+       mapData%id = -1
 
        ! Loop thru the list of tags and find the relevant ID
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
-          spcName                 =  TagItem%name
-          index                   =  TagItem%index
-          mapData%modelId (index) =  Ind_(spcName)
-          mapData%dryDepId(index) =  Ind_(spcName, 'D')
-          mapData%wetDepId(index) =  Ind_(spcName, 'W')
-          TagItem                 => TagItem%next
+          spcName           =  TagItem%name
+          index             =  TagItem%index
+          mapData%id(index) =  Ind_( spcName, indFlag )
+          TagItem           => TagItem%next
        ENDDO
        TagItem => NULL()
 
     ENDIF
+
+    !--------------------------------------------------------------------
+    ! Create an index array with the max number of possible Id's
+    !--------------------------------------------------------------------
+
+    ! Get max number of species for this indFlag
+    CALL Get_NumTags( indFlag, State_Chm, mapData%allCount, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Allocate the mapData%allId field
+    IF ( ASSOCIATED( mapData%allId ) ) DEALLOCATE( mapData%allId )
+    ALLOCATE( mapData%allId( mapData%allCount ), STAT=RC )
+    CALL GC_CheckVar( mapName2, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    mapData%allId = -1
+    
+    ! Populate the mapData%allId field
+    DO C = 1, mapData%count
+       index = mapData%id(C)
+       mapData%allId(index) = C
+    ENDDO
 
   END SUBROUTINE Get_Mapping
 !EOC
@@ -11541,7 +11577,7 @@ CONTAINS
   SUBROUTINE Get_MapData_and_NumSlots( Input_Opt,      State_Chm,            &
                                        TaggedDiagList, metadataId,           &
                                        numSlots,       RC,                   &
-                                       mapData                              )
+                                       indFlag,        mapData              )
 !
 ! !USES:
 !
@@ -11554,6 +11590,7 @@ CONTAINS
     TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
     TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags/WCs per diag
     CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diangnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        ! 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -11602,6 +11639,7 @@ CONTAINS
                          State_Chm      = State_Chm,                         &
                          TaggedDiagList = TaggedDiagList,                    &
                          metadataId     = metadataId,                        &
+                         indFlag        = indFlag,                           &
                          mapData        = mapData,                           &
                          RC             = RC                                )
 
@@ -11669,7 +11707,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      dim1d                                 )
+                                      dim1d,       speciesFlag              )
 !
 ! !USES:
 !
@@ -11687,6 +11725,7 @@ CONTAINS
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1-D data
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -11714,6 +11753,7 @@ CONTAINS
     INTEGER            :: NW,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -11740,6 +11780,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the id for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -11764,6 +11812,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -11849,7 +11898,8 @@ CONTAINS
                                       DiagList,    TaggedDiagList,           &
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
-                                      mapData,     forceDefine              )
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
 !
 ! !USES:
 !
@@ -11866,6 +11916,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -11893,6 +11944,7 @@ CONTAINS
     INTEGER            :: NZ,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -11919,6 +11971,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -11943,6 +12003,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -11979,6 +12040,7 @@ CONTAINS
     !=======================================================================
     ! Register the diagnostic
     !=======================================================================
+    print*, '### diagId: ', TRIM(diagId)
     CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
                              State_Chm  = State_Chm,                         &
                              State_Diag = State_Diag,                        &
@@ -12022,7 +12084,8 @@ CONTAINS
                                       DiagList,    TaggedDiagList,           &
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
-                                      mapData,     forceDefine              )
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
 !
 ! !USES:
 !
@@ -12039,6 +12102,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12066,6 +12130,7 @@ CONTAINS
     INTEGER            :: NZ,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -12092,6 +12157,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -12116,6 +12189,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -12192,7 +12266,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      dim1d                                 )
+                                      dim1d,       speciesFlag              )
 !
 ! !USES:
 !
@@ -12210,6 +12284,7 @@ CONTAINS
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
     INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1d data
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12237,6 +12312,7 @@ CONTAINS
     INTEGER            :: NW,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -12263,6 +12339,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -12287,6 +12371,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -12371,7 +12456,8 @@ CONTAINS
                                       DiagList,    TaggedDiagList,           &
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
-                                      mapData,     forceDefine              )
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
 !
 ! !USES:
 !
@@ -12388,6 +12474,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12415,6 +12502,7 @@ CONTAINS
     INTEGER            :: NZ,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -12441,6 +12529,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -12465,6 +12561,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -12544,7 +12641,8 @@ CONTAINS
                                       DiagList,    TaggedDiagList,           &
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
-                                      mapData,     forceDefine              )
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
 !
 ! !USES:
 !
@@ -12561,6 +12659,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12588,6 +12687,7 @@ CONTAINS
     INTEGER            :: NZ,           numSlots
 
     ! Strings
+    CHARACTER(LEN=1)   :: indFlag
     CHARACTER(LEN=512) :: errMsg
     CHARACTER(LEN=255) :: arrayId
     CHARACTER(LEN=255) :: tagId
@@ -12614,6 +12714,14 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
     ! Zero/nullify the data and mapping variables
     IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
@@ -12638,6 +12746,7 @@ CONTAINS
                                    State_Chm       = State_Chm,             &
                                    TaggedDiagList  = TaggedDiagList,        &
                                    metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
                                    numSlots        = numSlots,              &
                                    mapData         = mapData,               &
                                    RC              = RC                    )
@@ -12737,34 +12846,25 @@ CONTAINS
     !=======================================================================
     IF ( ASSOCIATED( mapData ) ) THEN
 
-       ! Deallocate and nullify the modellId field first
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%wetDepId'
-       IF ( ASSOCIATED( mapData%wetDepId ) ) THEN
-          DEALLOCATE( mapData%wetDepId, STAT=RC )
+       ! Deallocate and nullify the allId
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%allId'
+       IF ( ASSOCIATED( mapData%allId ) ) THEN
+          DEALLOCATE( mapData%allId, STAT=RC )
           CALL GC_CheckVar( mapId, 2, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
-       mapdata%wetDepId => NULL()
+       mapdata%allId => NULL()
 
-       ! Deallocate and nullify the modellId field first
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%dryDepId'
-       IF ( ASSOCIATED( mapData%dryDepId ) ) THEN
-          DEALLOCATE( mapData%dryDepId, STAT=RC )
+       ! Deallocate and nullify the id field
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%id'
+       IF ( ASSOCIATED( mapData%id ) ) THEN
+          DEALLOCATE( mapData%id, STAT=RC )
           CALL GC_CheckVar( mapId, 2, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
-       mapdata%dryDepId => NULL()
+       mapdata%id => NULL()
 
-       ! Deallocate and nullify the modellId field first
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%modelId'
-       IF ( ASSOCIATED( mapData%modelId ) ) THEN
-          DEALLOCATE( mapData%modelId, STAT=RC )
-          CALL GC_CheckVar( mapId, 2, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-       mapdata%modelId => NULL()
-
-       ! Then finalize the mapData
+       ! Then finalize the mapData object itself
        mapId = 'State_Diag%Map_' // TRIM( diagId )
        DEALLOCATE( mapData, STAT=RC )
        CALL GC_CheckVar( mapId, 2, RC )
@@ -12776,8 +12876,6 @@ CONTAINS
     mapData => NULL()
 
   END SUBROUTINE Finalize_MapData
-
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

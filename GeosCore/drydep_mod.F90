@@ -193,8 +193,6 @@ MODULE DRYDEP_MOD
   REAL(f8),          ALLOCATABLE :: DMID    (:    )
   REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
 
-  INTEGER,           ALLOCATABLE :: DepVelIdx(:)
-
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement
   !=================================================================
@@ -505,7 +503,7 @@ CONTAINS
           
           ! Archive dry dep velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
-             C = DepVelIdx(D)
+             C = State_Diag%Map_DryDepVel%allId(D)
              IF ( C > 0 ) THEN 
                 State_Diag%DryDepVel(I,J,C) = DVZ
              ENDIF
@@ -4344,17 +4342,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     DMID = 0e+0_f8
 
-    ! Define the mapping index for the dry dep velocity diagnostic
-    IF ( State_Diag%Archive_DryDepVel ) THEN
-       ALLOCATE( DepVelIdx( State_Chm%nDryDep ), STAT=RC )
-       CALL GC_CheckVar( 'drydep_mod:DepVelIdx', 0, RC )
-       DepVelIdx = -1
-       DO C = 1, State_Diag%Map_DryDepVel%count
-          D = State_Diag%Map_DryDepVel%dryDepId(C)
-          IF ( D > 0 ) DepVelIdx(D) = C
-       ENDDO
-    ENDIF
-
     !=================================================================
     ! Echo information to stdout
     !=================================================================
@@ -4422,7 +4409,6 @@ CONTAINS
     IF ( ALLOCATED( A_RADI    ) ) DEALLOCATE( A_RADI    )
     IF ( ALLOCATED( AIROSOL   ) ) DEALLOCATE( AIROSOL   )
     IF ( ALLOCATED( DEPNAME   ) ) DEALLOCATE( DEPNAME   )
-    IF ( ALLOCATED( DepVelIdx ) ) DEALLOCATE( DepVelIdx )
     IF ( ALLOCATED( DMID      ) ) DEALLOCATE( DMID      )
     IF ( ALLOCATED( F0        ) ) DEALLOCATE( F0        )
     IF ( ALLOCATED( FLAG      ) ) DEALLOCATE( FLAG      )
