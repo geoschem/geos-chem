@@ -622,7 +622,6 @@ CONTAINS
               STAT=RC )
     CALL GC_CheckVar( 'vdiff_mod.F90:EXTERNAL_PEDGE', 2, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
     EXTERNAL_PEDGE = 0e+0_fp
 #endif
 

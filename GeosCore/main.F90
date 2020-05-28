@@ -661,16 +661,6 @@ PROGRAM GEOS_Chem
   ENDIF
 #endif
 
-!  !-----------------------------------------------------------------
-!  ! Initialize the hybrid pressure module.  Define Ap and Bp.
-!  !-----------------------------------------------------------------
-!  CALL Init_Pressure( Input_Opt, State_Grid, RC )
-!  IF ( RC /= GC_SUCCESS ) THEN
-!     ErrMsg = 'Error encountered in "Init_Pressure"!'
-!     CALL Error_Stop( ErrMsg, ThisLoc )
-!  ENDIF
-!  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INIT_PRESSURE' )
-
   !-----------------------------------------------------------------
   ! Register the horizontal and vertical grid information so that
   ! the History component can use it for netCDF metadata

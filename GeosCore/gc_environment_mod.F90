@@ -580,15 +580,17 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Call SET_VDIFF_VALUES so that we can pass several values from
+    ! Call Init_VDIFF so that we can pass several values from
     ! Input_Opt to the vdiff_mod.F90. This has to be called
     ! after the input.geos file has been read from disk.
     !-----------------------------------------------------------------
-    CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Vdiff"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
+       CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Vdiff"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
