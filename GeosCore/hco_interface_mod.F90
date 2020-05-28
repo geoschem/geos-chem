@@ -5,25 +5,25 @@
 !
 ! !MODULE: hco_interface_mod.F90
 !
-! !DESCRIPTION: Module hco\_interface\_mod.F90 contains routines and 
+! !DESCRIPTION: Module hco\_interface\_mod.F90 contains routines and
 ! variables to interface GEOS-Chem and HEMCO. It contains the HEMCO
 ! state object (HcoState) as well as some wrapper routines to exchange
-! values and fields between HEMCO and GEOS-Chem. 
+! values and fields between HEMCO and GEOS-Chem.
 !\\
 !\\
 ! The HEMCO driver routines are located in hcoi\_gc\_main\_mod.F90.
-! This module just contains some high level variables and routines 
-! that can be accessed from everywhere within GeosCore. 
+! This module just contains some high level variables and routines
+! that can be accessed from everywhere within GeosCore.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCO_INTERFACE_MOD 
+MODULE HCO_INTERFACE_MOD
 !
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCOX_State_Mod, ONLY : Ext_State 
+  USE HCOX_State_Mod, ONLY : Ext_State
   USE HCO_State_Mod,  ONLY : HCO_State
   USE Precision_Mod
 
@@ -43,7 +43,7 @@ MODULE HCO_INTERFACE_MOD
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  27 Feb 2016 - C. Keller   - Initial version. 
+!  27 Feb 2016 - C. Keller   - Initial version.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -54,7 +54,7 @@ MODULE HCO_INTERFACE_MOD
   ! %%% Pointers %%%
   !--------------------------
 
-  ! HEMCO state 
+  ! HEMCO state
   TYPE(HCO_State), POINTER, PUBLIC :: HcoState => NULL()
 
   ! HEMCO extensions state
@@ -72,13 +72,13 @@ CONTAINS
 !
 ! !IROUTINE: SetHcoTime
 !
-! !DESCRIPTION: SUBROUTINE SetHcoTime sets the current simulation 
-! datetime in HcoState. 
+! !DESCRIPTION: SUBROUTINE SetHcoTime sets the current simulation
+! datetime in HcoState.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoTime( am_I_Root, TimeForEmis, RC ) 
+  SUBROUTINE SetHcoTime( am_I_Root, TimeForEmis, RC )
 !
 ! !USES:
 !
@@ -90,7 +90,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root
-    LOGICAL,         INTENT(IN   ) :: TimeForEmis 
+    LOGICAL,         INTENT(IN   ) :: TimeForEmis
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -99,15 +99,16 @@ CONTAINS
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller - Initial Version
 !  23 Jan 2013 - C. Keller - Now call MAP_A2A instead of DO_REGRID_A2A
-!  12 Jan 2015 - C. Keller - Added argument TimeForEmis 
+!  12 Jan 2015 - C. Keller - Added argument TimeForEmis
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER  :: cYr, cMt, cDy, cHr, cMin, cSec, cDOY 
+    INTEGER  :: cYr, cMt, cDy, cHr, cMin, cSec, cDOY
 
+#if !defined( MODEL_CESM )
     !=================================================================
     ! SetHcoTime begins here
     !=================================================================
@@ -122,6 +123,7 @@ CONTAINS
 
     CALL HcoClock_Set ( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
                         cMin, cSec, cDoy, IsEmisTime=TimeForEmis, RC=RC )
+#endif
 
   END SUBROUTINE SetHcoTime
 !EOC
@@ -132,7 +134,7 @@ CONTAINS
 !
 ! !IROUTINE: GetHcoVal
 !
-! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an 
+! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an
 ! emission (kg/m2/s) or deposition (1/s) value from the HEMCO state object
 ! for a given GEOS-Chem tracer at position I, J, L.
 ! A value of zero is returned if no HEMCO species is defined for the given
@@ -141,7 +143,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep ) 
+  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep )
 !
 ! !USES
 !
@@ -149,13 +151,13 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
     INTEGER,            INTENT(IN   )  :: TrcID   ! GEOS-Chem tracer ID
-    INTEGER,            INTENT(IN   )  :: I, J, L ! Position 
+    INTEGER,            INTENT(IN   )  :: I, J, L ! Position
 !
 ! !OUTPUT ARGUMENTS:
 !
     LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this tracer ID found?
     REAL(hp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
-    REAL(hp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
+    REAL(hp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s]
 !
 ! !REVISION HISTORY:
 !  20 Oct 2014 - C. Keller - Initial Version
@@ -165,6 +167,7 @@ CONTAINS
 !BOC
     INTEGER   :: HcoID, tID
 
+#if !defined( MODEL_CESM )
     !=================================================================
     ! GetHcoVal begins here
     !=================================================================
@@ -174,8 +177,8 @@ CONTAINS
     IF ( PRESENT(Emis) ) Emis = 0.0_hp
     IF ( PRESENT(Dep ) ) Dep  = 0.0_hp
 
-    ! Define tracer ID to be used. 
-    HcoID = TrcID 
+    ! Define tracer ID to be used.
+    HcoID = TrcID
 
 !    ! HEMCO species ID corresponding to this GEOS-Chem tracer
 !    IF ( tID > 0 ) HcoID = M2HID(tID)%ID
@@ -195,6 +198,7 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#endif
 
   END SUBROUTINE GetHcoVal
 !EOC
@@ -219,16 +223,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Tracer name 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: SpcID ! Tracer ID 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Tracer name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: SpcID ! Tracer ID
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER                                   :: HcoID 
+    INTEGER                                   :: HcoID
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  21 Oct 2014 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -240,7 +244,7 @@ CONTAINS
     ! To get HEMCO ID by tracer ID
     IF ( PRESENT(SpcID) ) THEN
 !       IF ( TrcID > 0 ) HcoID = M2HID(TrcID)%ID
-       IF ( SpcID > 0 ) HcoID = SpcID 
+       IF ( SpcID > 0 ) HcoID = SpcID
     ENDIF
     IF ( PRESENT(name) ) THEN
        HcoID = HCO_GetHcoID( name, HcoState )
@@ -253,9 +257,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GetHcoDiagn 
+! !IROUTINE: GetHcoDiagn
 !
-! !DESCRIPTION: Subroutine GetHcoDiagn is a convenience wrapper routine to 
+! !DESCRIPTION: Subroutine GetHcoDiagn is a convenience wrapper routine to
 ! get a HEMCO diagnostics from somewhere within GEOS-Chem.
 !\\
 !\\
@@ -274,10 +278,10 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)           :: am_I_Root      ! Are we on the root CPU?
     CHARACTER(LEN=*), INTENT(IN)           :: DiagnName      ! Name of diagnostics
-    LOGICAL,          INTENT(IN)           :: StopIfNotFound ! Stop if diagnostics 
+    LOGICAL,          INTENT(IN)           :: StopIfNotFound ! Stop if diagnostics
                                                              ! does not exist?
-    INTEGER,          INTENT(IN), OPTIONAL :: COL            ! Collection Nr. 
-    INTEGER,          INTENT(IN), OPTIONAL :: AutoFill       ! AutoFill diagnostics only? 
+    INTEGER,          INTENT(IN), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN), OPTIONAL :: AutoFill       ! AutoFill diagnostics only?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -290,7 +294,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Sep 2014 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -305,8 +309,9 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
+#if !defined( MODEL_CESM )
     !=======================================================================
-    ! GetHcoDiagn begins here 
+    ! GetHcoDiagn begins here
     !=======================================================================
 
     ! Initialize
@@ -327,11 +332,11 @@ CONTAINS
     ! output interval.
     CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,         &
                     FLAG,        RC,        cName=TRIM(DiagnName),   &
-                    AutoFill=AF, COL=PS                            )     
+                    AutoFill=AF, COL=PS                            )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Error in getting diagnostics: ' // TRIM(DiagnName)    
+       ErrMsg = 'Error in getting diagnostics: ' // TRIM(DiagnName)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -364,8 +369,8 @@ CONTAINS
              ErrMsg = 'no data defined: '// TRIM(DiagnName)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF 
-  
+          ENDIF
+
        ! 3D pointer: must point to 3D data
        ELSEIF ( PRESENT(Ptr3D) ) THEN
           IF ( ASSOCIATED(DgnCont%Arr3D%Val) ) THEN
@@ -374,9 +379,9 @@ CONTAINS
              ErrMsg = 'no 3D data defined: '// TRIM(DiagnName)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF 
+          ENDIF
 
-       ! Error otherwise 
+       ! Error otherwise
        ELSE
           ErrMsg = 'Please define output data pointer: ' // TRIM(DiagnName)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -386,10 +391,11 @@ CONTAINS
 
     ! Free pointer
     DgnCont  => NULL()
+#endif
 
-    ! Leave with success 
+    ! Leave with success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE GetHcoDiagn 
+  END SUBROUTINE GetHcoDiagn
 !EOC
 END MODULE HCO_INTERFACE_MOD

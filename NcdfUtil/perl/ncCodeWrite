@@ -8,8 +8,8 @@
 # !MODULE: ncCodeWrite
 #
 # !DESCRIPTION: This Perl script automatically creates a Fortran subroutine
-#  that writes data into a netCDF file.  The Fortran subroutine (named 
-#  WRITE\_TO\_NETCDF\_FILE) contains calls to the proper NcdfUtilities library 
+#  that writes data into a netCDF file.  The Fortran subroutine (named
+#  WRITE\_TO\_NETCDF\_FILE) contains calls to the proper NcdfUtilities library
 #  routines.
 #\\
 #\\
@@ -19,9 +19,9 @@
   use English;                          # Use English language
   use Carp;                             # Get detailed error messages
   use strict 'refs';                    # Do not allow symbolic references
-  use strict 'subs';                    # Treat all barewords as syntax errors 
-  use StrTrim qw( &trim 
-                  &splitLine 
+  use strict 'subs';                    # Treat all barewords as syntax errors
+  use StrTrim qw( &trim
+                  &splitLine
                   &extractFile );       # Get string handling routines
 #
 # !PRIVATE MEMBER FUNCTIONS:
@@ -43,10 +43,10 @@
 # !REMARKS:
 #  Some hand-editing of the output Fortran subroutine may be necessary.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  27 Jan 2012 - R. Yantosca - Initial version
 #  30 Jan 2012 - R. Yantosca - Now get trim, splitline routines from the
-#                              Perl module "StrTrim.pm" 
+#                              Perl module "StrTrim.pm"
 #  30 Jan 2012 - R. Yantosca - Add ProTex comment headers to output
 #  31 Jan 2012 - R. Yantosca - Minor edits for consistency
 #  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
@@ -99,7 +99,7 @@ sub readRcFile($) {
   #----------------------------------------------
   # Write Fortran commands to the output file
   #----------------------------------------------
-  
+
   # Parse the file first to pre-get a few quantities
   foreach $line ( @lines ) {
 
@@ -117,14 +117,14 @@ sub readRcFile($) {
       }
     }
   }
-      
+
   # Open the file that will ho
   open( O, ">$cmdFile" ) or die "Cannot open output file $cmdFile!\n";
 
   # Pass thru @lines array so that we can declare Fortran variables
   &writeFortranVars( \*O, @lines );
 
-  # Pass thru @lines array again to write 
+  # Pass thru @lines array again to write
   &writeFortranCalls( \*O, @lines );
 
   #----------------------------------------------
@@ -145,8 +145,8 @@ sub readRcFile($) {
 #
 # !IROUTINE: writeFortranVars
 #
-# !DESCRIPTION: Routine writeFortranVars generates the proper Fortran 
-#  variable declarations that are needed for use with the NcdfUtilities 
+# !DESCRIPTION: Routine writeFortranVars generates the proper Fortran
+#  variable declarations that are needed for use with the NcdfUtilities
 #  library routines.
 #\\
 #\\
@@ -156,7 +156,7 @@ sub writeFortranVars($@) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : Contents of the resource file
   my ( $O, @lines ) = @_;
 #
@@ -184,7 +184,7 @@ sub writeFortranVars($@) {
   my $txt      = "";
 
   #-------------------------------------------------------
-  # Write USE statements 
+  # Write USE statements
   #-------------------------------------------------------
   $txt .= <<EOF;
 !EOC
@@ -254,7 +254,7 @@ EOF
 
 	#  Get the dimension name and its value
 	( $name, $value ) = &splitLine( $lines[$i], '=' );
-				# 
+				#
 	# Store the value in a hash under its name
 	$F_DIMS{$name} = $value;
       }
@@ -271,41 +271,41 @@ EOF
       while ( $lines[++$i] ne '' ) {
 
 	# Skip comment characters
-	if ( !( $lines[$i] =~ '#' ) ) { 
+	if ( !( $lines[$i] =~ '#' ) ) {
 
-	  # Split the line 
+	  # Split the line
 	  ( $name, $value ) = &splitLine( $lines[$i], '=' );
 
 	  # If the name field does not have a semicolon
 	  # then it is a variable name and not an attribute
-	  if ( !( $name =~ ':' ) ) { 
+	  if ( !( $name =~ ':' ) ) {
 
 	    # Find the variable type and variable dimension(s)
 	    ( $varType, $varDim ) = &splitLine( $value, '::' );
 	    if ( $varType =~ 'REAL' ) { $varType = "$varType "; }
-	    
+
 	    # Get dimension information
 	    @dims = split( ',', $varDim );
 	    $nDims = scalar( @dims );
 
-	    # Create the Fortran dimension string that is used to declare 
-	    # the variable, i.e. (NZ,NY,1).  Use the Perl hash %F_DIMS 
+	    # Create the Fortran dimension string that is used to declare
+	    # the variable, i.e. (NZ,NY,1).  Use the Perl hash %F_DIMS
 	    # to refer to the correponding value for each netCDF dimension.
 	    $dimDef = "(";
-	    for ( my $i=0; $i<$nDims; $i++ ) { 
+	    for ( my $i=0; $i<$nDims; $i++ ) {
 	      while( my ( $key, $val ) = each( %F_DIMS ) ) {
 		if ( $key =~ $dims[$i] ) {
 		  $dimDef .= "$val";
 		  if ( $i < $nDims-1 ) { $dimDef .= ","; }
 		}
-	      }	
-	    }			
+	      }
+	    }
 	    $dimDef .= ")";
 
 	    # Definition string
 	    $txt .= "      $varType            :: $name$dimDef\n";
-	  }			
-	}		      
+	  }
+	}
       }
     }
   }
@@ -317,7 +317,7 @@ EOF
 
       ! Character strings
       CHARACTER(LEN=255) :: v_name             ! netCDF variable name
-      
+
       ! Arrays for netCDF start and count values
       INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays
       INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays
@@ -346,7 +346,7 @@ EOF2
 #
 # !IROUTINE: writeFortranCalls
 #
-# !DESCRIPTION: Routine writeFortranCalls generates the proper calls to 
+# !DESCRIPTION: Routine writeFortranCalls generates the proper calls to
 #  the NcdfUtilities library routines for writing data to a netCDF file.
 #\\
 #\\
@@ -356,7 +356,7 @@ sub writeFortranCalls($@) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : Contents of the resource file
   my ( $O, @lines ) = @_;
 #
@@ -393,7 +393,7 @@ EOF
 
   # Loop thru each line in the file
   for ( my $i = 0; $i < scalar( @lines ); $i++ ) {
-    				
+
     # Skip separator line
     if ( $lines[$i] eq '#' ) {
       # Do nothing
@@ -406,7 +406,7 @@ EOF
 
       # Write fortran calls to define variables
       while ( $lines[++$i] ne '' ) {
-	if ( !( $lines[$i] =~ '#' ) ) { 
+	if ( !( $lines[$i] =~ '#' ) ) {
 
 	  # Split the line on the equals sign
 	  my( $name, $value ) = &splitLine( $lines[$i], '=' );
@@ -424,9 +424,9 @@ EOF
 	    # Create the start array
 	    $start = "st$nDims"."d";
 	    $txt  .= "      ! Write $name to netCDF file\n";
-	    
+
 	    $txt  .= "      $start   = (/ ";
-	    for ( my $j=0; $j<$nDims; $j++ ) { 
+	    for ( my $j=0; $j<$nDims; $j++ ) {
 	      $txt .= "1";
 	      if ( $j < $nDims-1 ) { $txt .= ", "; }
 	    }
@@ -435,7 +435,7 @@ EOF
 	    # Create the count array
 	    $count = "ct$nDims"."d";
 	    $txt  .= "      $count   = (/ ";
-	    for ( my $j=0; $j<$nDims; $j++ ) { 
+	    for ( my $j=0; $j<$nDims; $j++ ) {
 	      while( my( $key, $val ) = each( %F_DIMS ) ) {
 		if ( $key =~ $dims[$j] ) {
 		  $txt .= "$val";
@@ -452,7 +452,7 @@ EOF
       WRITE( 6, 130  ) TRIM(v_name)
 
 EOF2
-	  }	  
+	  }
 	}
       }
     }
@@ -483,7 +483,7 @@ EOF2
 EOF3
   print $O "$txt\n";
 
-  # Return 
+  # Return
   return( 0 );
 }
 #EOC
@@ -511,8 +511,8 @@ sub main() {
 #BOC
 
   # Error check arguments
-  if ( scalar( @ARGV ) == 0 ) { 
-    print "Usage: ncCodeWrite RESOURCE-FILE\n"; 
+  if ( scalar( @ARGV ) == 0 ) {
+    print "Usage: ncCodeWrite RESOURCE-FILE\n";
     exit(1);
   }
 

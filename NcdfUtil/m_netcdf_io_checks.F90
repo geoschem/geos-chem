@@ -18,11 +18,11 @@ module m_netcdf_io_checks
   public  Ncdoes_Var_Exist
   public  Ncdoes_Attr_Exist
 !
-! !DESCRIPTION: Routines to check if a netCDF file contains a specified 
+! !DESCRIPTION: Routines to check if a netCDF file contains a specified
 !  variable.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -53,14 +53,14 @@ CONTAINS
 !!  ncid : netCDF file id to check
     integer, intent (in)   :: ncid
 !
-! !DESCRIPTION: Checks a given netCDF file to see if it contains an 
+! !DESCRIPTION: Checks a given netCDF file to see if it contains an
 !  unlimited dimension.
 !\\
 !\\
 ! !RETURN VALUE:
     logical :: Ncdoes_Udim_Exist
 !
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -108,14 +108,14 @@ CONTAINS
     integer,           intent (in)   :: ncid
     character (len=*), intent (in)   :: varname
 !
-! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
+! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
     logical :: Ncdoes_Var_Exist
 !
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -171,14 +171,14 @@ CONTAINS
 !! following: NF_BYTE, NF_CHAR, NF_SHORT, NF_INT, NF_FLOAT, or NF_DOUBLE.
     INTEGER,           INTENT(OUT)   :: attType
 !
-! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
+! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
     logical :: Ncdoes_Attr_Exist
 !
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -236,14 +236,14 @@ CONTAINS
     integer,           intent (in)   :: ncid
     character (len=*), intent (in)   :: dimname
 !
-! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
+! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
     logical :: Ncdoes_Dim_Exist
 !
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -262,9 +262,9 @@ CONTAINS
 
     ! Check the attribute if variable was found
     if (ierr == NF_NOERR) then
-       Ncdoes_Dim_Exist = .true.     
+       Ncdoes_Dim_Exist = .true.
     else
-       Ncdoes_Dim_Exist = .false. 
+       Ncdoes_Dim_Exist = .false.
     end if
 
     return

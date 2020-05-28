@@ -5,49 +5,49 @@
 !
 ! !MODULE: hco_error_mod.F90
 !
-! !DESCRIPTION: Module HCO\_Error\_Mod contains routines and variables 
-! for error handling and logfile messages in HEMCO. It also contains 
-! definitions of some globally used parameter, such as the single/double 
-! precision as well as the HEMCO precision definitions. The HEMCO precision 
-! is used for almost all HEMCO internal data arrays and can be changed below 
-! if required. 
+! !DESCRIPTION: Module HCO\_Error\_Mod contains routines and variables
+! for error handling and logfile messages in HEMCO. It also contains
+! definitions of some globally used parameter, such as the single/double
+! precision as well as the HEMCO precision definitions. The HEMCO precision
+! is used for almost all HEMCO internal data arrays and can be changed below
+! if required.
 !\\
 !\\
 ! The error settings are specified in the HEMCO configuration file and
-! error handling is performed according to these settings. They include: 
+! error handling is performed according to these settings. They include:
 !
 ! \begin{enumerate}
 ! \item HEMCO logfile: all HEMCO information is written into the specified
 !     logfile. The logfile can be set to the wildcard character, in which
 !     case the standard output will be used (this may be another opened
 !     logfile).
-! \item Verbose: Number indicating the verbose level to be used. 
+! \item Verbose: Number indicating the verbose level to be used.
 !     0 = no verbose, 3 = very verbose. The verbose level can be set in
 !     the HEMCO configuration file. The default value is 0.
 ! \item Warnings: Number indicating the warning level to be shown.
-!     0 = no warnings, 3 = all warnings. 
+!     0 = no warnings, 3 = all warnings.
 ! \end{enumerate}
-! 
+!
 ! The error settings are set via subroutine HCO\_ERROR\_SET, called when
 ! reading section 'settings' of the HEMCO configuration file (subroutine
 ! Config\_ReadFile in hco\_config\_mod.F90). The currently active verbose
 ! settings can be checked using subroutines HCO\_IsVerb and
-! HCO\_VERBOSE\_INQ. Messages can be written into the logfile using 
-! subroutine HCO\_MSG. Note that the logfile actively need to be opened 
+! HCO\_VERBOSE\_INQ. Messages can be written into the logfile using
+! subroutine HCO\_MSG. Note that the logfile actively need to be opened
 ! (HCO\_LOGFILE\_OPEN) before writing to it.
 !\\
 !\\
-! The verbose and warning settings are all set to false if it's not the 
-! root CPU. 
+! The verbose and warning settings are all set to false if it's not the
+! root CPU.
 !\\
 !\\
-! As of HEMCO v2.0, all HEMCO error variables are organized in derived 
+! As of HEMCO v2.0, all HEMCO error variables are organized in derived
 ! type object HcoErr. HcoErr is a component of the HEMCO configuration
 ! object (type ConfigObj, see hco\_types\_mod.F90). It must be passed
-! explicitly to all error routines. This design allows the invocation 
-! of multiple independent HEMCO instances at the same time (which may 
-! have different HEMCO error settings). 
-! !INTERFACE: 
+! explicitly to all error routines. This design allows the invocation
+! of multiple independent HEMCO instances at the same time (which may
+! have different HEMCO error settings).
+! !INTERFACE:
 !
 MODULE HCO_Error_Mod
 !
@@ -59,7 +59,7 @@ MODULE HCO_Error_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC           :: HCO_ERROR
-  PUBLIC           :: HCO_WARNING 
+  PUBLIC           :: HCO_WARNING
   PUBLIC           :: HCO_MSG
   PUBLIC           :: HCO_ENTER
   PUBLIC           :: HCO_LEAVE
@@ -80,14 +80,14 @@ MODULE HCO_Error_Mod
 #else
   INTEGER, PARAMETER, PUBLIC  :: hp = KIND( REAL( 0.0, 4 ) ) ! HEMCO prec r4
 #endif
-  INTEGER, PARAMETER, PUBLIC  :: i4 = 4                      ! FourByteInt 
+  INTEGER, PARAMETER, PUBLIC  :: i4 = 4                      ! FourByteInt
   INTEGER, PARAMETER, PUBLIC  :: i8 = 8                      ! EightByteInt
 
   ! Error success/failure definitions
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
   INTEGER, PARAMETER, PUBLIC  :: HCO_FAIL    = -999
 
-  ! Tiny value for math operations: 
+  ! Tiny value for math operations:
   ! --> deprecated. Use TINY(1.0_hp) instead!
   REAL(hp), PARAMETER, PUBLIC :: HCO_TINY    = 1.0e-32_hp
 
@@ -119,7 +119,7 @@ MODULE HCO_Error_Mod
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
-!  15 Feb 2016 - C. Keller   - Update to v2.0: error variables now 
+!  15 Feb 2016 - C. Keller   - Update to v2.0: error variables now
 !                              organized in derived type HcoErr.
 !  23 Nov 2016 - R. Yantosca - Now rewrite KIND definitions to prevent 4-byte
 !                              and 8-byte variables from being elevated
@@ -159,9 +159,9 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Error
 !
-! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to 
-! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a 
-! stop at higher level (when RC gets evaluated). 
+! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to
+! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a
+! stop at higher level (when RC gets evaluated).
 !\\
 !\\
 ! !INTERFACE:
@@ -171,12 +171,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(HcoErr),     POINTER                  :: Err
-    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)            :: RC 
+    INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -187,12 +187,12 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
-    ! HCO_ERROR begins here 
+    ! HCO_ERROR begins here
     !======================================================================
 
     ! Print error message
     MSG =  'HEMCO ERROR: ' // TRIM(ErrMsg)
-    CALL HCO_MSG ( Err, MSG, SEP1='!' ) 
+    CALL HCO_MSG ( Err, MSG, SEP1='!' )
 
     ! Print error location
     IF ( PRESENT(THISLOC) ) THEN
@@ -204,15 +204,15 @@ CONTAINS
        DO I = 0, Err%CurrLoc-1
           J = Err%CurrLoc-I
           MSG =  'ERROR LOCATION: ' // TRIM( Err%Loc(J) )
-          CALL HCO_MSG ( Err, MSG ) 
+          CALL HCO_MSG ( Err, MSG )
        ENDDO
     ENDIF
 
     MSG = ''
-    CALL HCO_MSG ( Err, MSG, SEP2='!' ) 
+    CALL HCO_MSG ( Err, MSG, SEP2='!' )
 
     ! Return w/ error
-    RC = HCO_FAIL 
+    RC = HCO_FAIL
 
   END SUBROUTINE HCO_ErrorErr
 !EOC
@@ -223,9 +223,9 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Error
 !
-! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to 
-! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a 
-! stop at higher level (when RC gets evaluated). 
+! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to
+! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a
+! stop at higher level (when RC gets evaluated).
 !\\
 !\\
 ! !INTERFACE:
@@ -234,12 +234,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)            :: RC 
+    INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -250,21 +250,21 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
-    ! HCO_ERROR begins here 
+    ! HCO_ERROR begins here
     !======================================================================
 
     ! Print error message
     MSG =  'HEMCO ERROR: ' // TRIM(ErrMsg)
-    WRITE(*,*) TRIM(MSG) 
+    WRITE(*,*) TRIM(MSG)
 
     ! Print error location
     IF ( PRESENT(THISLOC) ) THEN
        MSG = 'ERROR LOCATION: ' // TRIM( THISLOC )
-       WRITE(*,*) TRIM(MSG) 
+       WRITE(*,*) TRIM(MSG)
     ENDIF
 
     ! Return w/ error
-    RC = HCO_FAIL 
+    RC = HCO_FAIL
 
   END SUBROUTINE HCO_ErrorNoErr
 !EOC
@@ -275,8 +275,8 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Warning
 !
-! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without 
-! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS. 
+! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without
+! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS.
 !\\
 !\\
 ! !INTERFACE:
@@ -286,13 +286,13 @@ CONTAINS
 ! !INPUT PARAMETERS"
 !
     TYPE(HcoErr),     POINTER                  :: Err
-    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg
+    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)            :: RC 
+    INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -304,7 +304,7 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
-    ! HCO_WARNING begins here 
+    ! HCO_WARNING begins here
     !======================================================================
 
     IF ( PRESENT(WARNLEV) ) THEN
@@ -317,15 +317,15 @@ CONTAINS
 
        ! Print warning
        MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
-       CALL HCO_MSG ( Err, MSG ) 
+       CALL HCO_MSG ( Err, MSG )
 
        ! Print location
        IF ( PRESENT(THISLOC) ) THEN
           MSG = '--> LOCATION: ' // TRIM(THISLOC)
-          CALL HCO_MSG ( Err, MSG ) 
+          CALL HCO_MSG ( Err, MSG )
        ELSEIF ( Err%CurrLoc > 0 ) THEN
           MSG = '--> LOCATION: ' // TRIM(Err%Loc(Err%CurrLoc))
-          CALL HCO_MSG ( Err, MSG ) 
+          CALL HCO_MSG ( Err, MSG )
        ENDIF
 
        ! Increase # of warnings
@@ -344,8 +344,8 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Warning
 !
-! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without 
-! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS. 
+! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without
+! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS.
 !\\
 !\\
 ! !INTERFACE:
@@ -354,13 +354,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS"
 !
-    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg
+    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)            :: RC 
+    INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -372,17 +372,17 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
-    ! HCO_WARNING begins here 
+    ! HCO_WARNING begins here
     !======================================================================
 
     ! Print warning
     MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
-    WRITE(*,*) TRIM(MSG) 
+    WRITE(*,*) TRIM(MSG)
 
     ! Print location
     IF ( PRESENT(THISLOC) ) THEN
        MSG = '--> LOCATION: ' // TRIM(THISLOC)
-       WRITE(*,*) TRIM(MSG) 
+       WRITE(*,*) TRIM(MSG)
     ENDIF
 
     ! Return w/ success
@@ -429,7 +429,7 @@ CONTAINS
     INTEGER  :: LUN
 
     !======================================================================
-    ! HCO_MSG begins here 
+    ! HCO_MSG begins here
     !======================================================================
 
     ! Check if Err object is indeed defined
@@ -437,7 +437,7 @@ CONTAINS
        IsOpen = .FALSE.
     ELSE
        IsOpen = Err%LogIsOpen
-      
+
        ! Don't print if this is not the root CPU
        IF ( .NOT. Err%IsRoot ) RETURN
 
@@ -452,31 +452,31 @@ CONTAINS
     IF ( .NOT. IsOpen ) THEN
        IF ( PRESENT(MSG) ) PRINT *, TRIM(MSG)
 
-    ! Print message to error file 
+    ! Print message to error file
     ELSE
        LUN = Err%LUN
 
        IF (LUN > 0 ) THEN
           IF ( PRESENT(SEP1) ) THEN
-             WRITE(LUN,'(a)') REPEAT( SEP1, 79) 
+             WRITE(LUN,'(a)') REPEAT( SEP1, 79)
           ENDIF
           IF ( PRESENT(MSG) ) THEN
 !             WRITE(LUN,*) TRIM(MSG)
              WRITE(LUN,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
-             WRITE(LUN,'(a)') REPEAT( SEP2, 79) 
+             WRITE(LUN,'(a)') REPEAT( SEP2, 79)
           ENDIF
        ELSE
           IF ( PRESENT(SEP1) ) THEN
-             WRITE(*,'(a)') REPEAT( SEP1, 79) 
+             WRITE(*,'(a)') REPEAT( SEP1, 79)
           ENDIF
           IF ( PRESENT(MSG) ) THEN
 !             WRITE(*,*) TRIM(MSG)
              WRITE(*,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
-             WRITE(*,'(a)') REPEAT( SEP2, 79) 
+             WRITE(*,'(a)') REPEAT( SEP2, 79)
           ENDIF
        ENDIF
     ENDIF
@@ -519,15 +519,15 @@ CONTAINS
 !BOC
 
     !======================================================================
-    ! HCO_MSG begins here 
+    ! HCO_MSG begins here
     !======================================================================
 
     IF ( PRESENT(SEP1) ) THEN
-       WRITE(*,'(a)') REPEAT( SEP1, 79) 
+       WRITE(*,'(a)') REPEAT( SEP1, 79)
     ENDIF
     IF ( PRESENT(MSG) ) PRINT *, TRIM(MSG)
     IF ( PRESENT(SEP2) ) THEN
-       WRITE(*,'(a)') REPEAT( SEP2, 79) 
+       WRITE(*,'(a)') REPEAT( SEP2, 79)
     ENDIF
 
   END SUBROUTINE HCO_MsgNoErr
@@ -539,9 +539,9 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Enter
 !
-! !DESCRIPTION: Subroutine HCO\_Enter is called upon entering a routine. 
+! !DESCRIPTION: Subroutine HCO\_Enter is called upon entering a routine.
 ! It organizes the traceback handling. It is recommended to call this
-! routine for 'big' routines but NOT for routines/functions that are 
+! routine for 'big' routines but NOT for routines/functions that are
 ! frequently called, e.g. inside of loops!
 !\\
 !\\
@@ -555,11 +555,11 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(HcoErr),     POINTER       :: Err
-    CHARACTER(LEN=*), INTENT(IN   ) :: thisLoc 
+    CHARACTER(LEN=*), INTENT(IN   ) :: thisLoc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC 
+    INTEGER,          INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -570,30 +570,30 @@ CONTAINS
     CHARACTER(LEN=255)  :: Msg, Loc
 
     !======================================================================
-    ! HCO_ENTER begins here 
+    ! HCO_ENTER begins here
     !======================================================================
 
-    IF ( .NOT. ASSOCIATED(Err) ) RETURN 
+    IF ( .NOT. ASSOCIATED(Err) ) RETURN
 
-    ! Increment position 
+    ! Increment position
     Err%CurrLoc = Err%CurrLoc + 1
-    IF ( Err%CurrLoc > MaxNest ) THEN 
+    IF ( Err%CurrLoc > MaxNest ) THEN
        Msg = 'MaxNest too low, cannot enter ' // TRIM(thisLoc)
        CALL HCO_Error( Err, Msg, RC )
-       RETURN 
+       RETURN
     ENDIF
 
     ! Error trap
     IF ( Err%CurrLoc <= 0 ) THEN
        Msg = 'CurrLoc is zero, cannot enter: ' // TRIM(thisLoc)
        CALL HCO_Error( Err, Msg, RC )
-       RETURN 
+       RETURN
     ENDIF
 
     ! Register current routine
     Err%Loc(Err%CurrLoc) = thisLoc
 
-    ! Track location if enabled 
+    ! Track location if enabled
     IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,100) TRIM(thisLoc), Err%CurrLoc
        CALL HCO_Msg( Err, MSG )
@@ -602,7 +602,7 @@ CONTAINS
     ! Set RC to success
     RC = HCO_SUCCESS
 
-100 FORMAT( 'HEMCO: Entering ', a, ' (', i2, ')' )  
+100 FORMAT( 'HEMCO: Entering ', a, ' (', i2, ')' )
 
   END SUBROUTINE HCO_Enter
 !EOC
@@ -613,9 +613,9 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Leave
 !
-! !DESCRIPTION: Subroutine HCO\_Leave is called upon leaving a routine. 
+! !DESCRIPTION: Subroutine HCO\_Leave is called upon leaving a routine.
 ! It organizes the traceback handling. It is recommended to call this
-! routine for 'big' routines but NOT for routines/functions that are 
+! routine for 'big' routines but NOT for routines/functions that are
 ! frequently called, e.g. inside of loops!
 !\\
 !\\
@@ -627,9 +627,9 @@ CONTAINS
   SUBROUTINE HCO_Leave( Err, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-!                      
+!
     TYPE(HcoErr),     POINTER       :: Err
-    INTEGER,          INTENT(INOUT) :: RC 
+    INTEGER,          INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -639,18 +639,18 @@ CONTAINS
     CHARACTER(LEN=255)  :: MSG, LOC
 
     !======================================================================
-    ! HCO_LEAVE begins here 
+    ! HCO_LEAVE begins here
     !======================================================================
 
-    IF ( .NOT. ASSOCIATED(Err) ) RETURN 
-    
-    ! Track location if enabled 
+    IF ( .NOT. ASSOCIATED(Err) ) RETURN
+
+    ! Track location if enabled
     IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,110) TRIM(Err%Loc(Err%CurrLoc)), Err%CurrLoc
        CALL HCO_MSG( Err, MSG )
     ENDIF
 
-    ! Remove from list 
+    ! Remove from list
     Err%Loc(Err%CurrLoc) = ''
 
     ! Remove current position
@@ -658,15 +658,15 @@ CONTAINS
 
     ! Error trap
     IF ( Err%CurrLoc < 0 ) THEN
-       Msg = 'CurrLoc is below zero, this should never happen!!' 
+       Msg = 'CurrLoc is below zero, this should never happen!!'
        CALL HCO_ERROR ( Err, Msg, RC )
-       RETURN 
+       RETURN
     ENDIF
 
-    ! Return w/ success 
+    ! Return w/ success
     RC = HCO_SUCCESS
 
-110 FORMAT( 'HEMCO: Leaving ', a, ' (', i2, ')' )  
+110 FORMAT( 'HEMCO: Leaving ', a, ' (', i2, ')' )
 
   END SUBROUTINE HCO_Leave
 !EOC
@@ -680,26 +680,26 @@ CONTAINS
 ! !DESCRIPTION: Subroutine HCO\_Error\_Set defines the HEMCO error
 ! settings. This routine is called at the beginning of a HEMCO
 ! simulation. Its input parameter are directly taken from the
-! HEMCO configuration file. If LogFile is set to '*' (asterik), 
+! HEMCO configuration file. If LogFile is set to '*' (asterik),
 ! all output is directed to the standard output.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( am_I_Root, Err, LogFile,   & 
+  SUBROUTINE HCO_ERROR_SET( am_I_Root, Err, LogFile,   &
                             Verbose,   WarningLevel, RC )
 !
 !  !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)     :: am_I_Root      ! Root CPU? 
+    LOGICAL,          INTENT(IN)     :: am_I_Root      ! Root CPU?
     TYPE(HcoErr),     POINTER        :: Err            ! Error object
     CHARACTER(LEN=*), INTENT(IN)     :: LogFile        ! logfile path+name
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: Verbose        ! verbose level 
-    INTEGER,          INTENT(INOUT)  :: WarningLevel   ! warning level 
-    INTEGER,          INTENT(INOUT)  :: RC 
+    INTEGER,          INTENT(INOUT)  :: Verbose        ! verbose level
+    INTEGER,          INTENT(INOUT)  :: WarningLevel   ! warning level
+    INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -711,12 +711,12 @@ CONTAINS
     INTEGER :: Lun
 
     !======================================================================
-    ! HCO_ERROR_SET begins here 
+    ! HCO_ERROR_SET begins here
     !======================================================================
 
     ! Nothing to do if already defined
     RC = HCO_SUCCESS
-    IF ( ASSOCIATED(Err) ) RETURN 
+    IF ( ASSOCIATED(Err) ) RETURN
 
     ! Allocate error type
     ALLOCATE(Err)
@@ -724,7 +724,7 @@ CONTAINS
     Err%Loc(:) = ''
 
     ! Set verbose to -1 if this is not the root CPU. This will disable any
-    ! log-file messages 
+    ! log-file messages
     IF ( .NOT. am_I_Root ) THEN
        Verbose      = -1
        WarningLevel =  0
@@ -742,7 +742,7 @@ CONTAINS
     Err%nWarnings = 0
     Err%CurrLoc   = 0
 
-    ! If Logfile is set to '*', set lun to -1 (--> write into default file). 
+    ! If Logfile is set to '*', set lun to -1 (--> write into default file).
     ! Otherwise, set lun to 0 (--> write into specified logfile)
     IF ( TRIM(Err%LogFile) == '*' ) THEN
        LUN = -1
@@ -768,7 +768,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Error_Final ( Err ) 
+  SUBROUTINE HCO_Error_Final ( Err )
 !
 !  !INPUT/OUTPUT PARAMETERS:
 !
@@ -781,14 +781,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    INTEGER :: STAT 
+    INTEGER :: STAT
 
     !======================================================================
-    ! HCO_ERROR_FINAL begins here 
+    ! HCO_ERROR_FINAL begins here
     !======================================================================
 
     ! Eventually close logfile
-    CALL HCO_Logfile_Close( Err, ShowSummary=.TRUE. ) 
+    CALL HCO_Logfile_Close( Err, ShowSummary=.TRUE. )
 
     IF ( ASSOCIATED(Err) ) THEN
        IF ( ASSOCIATED(Err%Loc) ) DEALLOCATE(Err%Loc)
@@ -805,7 +805,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Verbose_Inq
 !
-! !DESCRIPTION: Function HCO\_Verbose\_Inq returns the HEMCO verbose number. 
+! !DESCRIPTION: Function HCO\_Verbose\_Inq returns the HEMCO verbose number.
 !\\
 !\\
 ! !INTERFACE:
@@ -813,12 +813,12 @@ CONTAINS
   FUNCTION HCO_VERBOSE_INQ ( ERR ) RESULT ( VerbNr )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-!  
+!
     TYPE(HcoErr),     POINTER        :: Err            ! Error object
 !
 ! !OUTPUT PARAMETERS:
-!  
-    INTEGER :: VerbNr 
+!
+    INTEGER :: VerbNr
 !
 ! !REVISION HISTORY:
 !  15 Mar 2015 - C. Keller - Initialization
@@ -827,7 +827,7 @@ CONTAINS
 !BOC
 
     !======================================================================
-    ! HCO_VERBOSE_INQ begins here 
+    ! HCO_VERBOSE_INQ begins here
     !======================================================================
 
     IF ( .NOT. ASSOCIATED(Err) ) THEN
@@ -846,7 +846,7 @@ CONTAINS
 ! !IROUTINE: HCO_IsVerb
 !
 ! !DESCRIPTION: Function HCO\_IsVerb returns true if the HEMCO verbose number
-!  is equal to or larger than the passed number. 
+!  is equal to or larger than the passed number.
 !\\
 !\\
 ! !INTERFACE:
@@ -856,10 +856,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(HcoErr),  POINTER    :: Err            ! Error object
-    INTEGER,       INTENT(IN) :: VerbNr 
+    INTEGER,       INTENT(IN) :: VerbNr
 !
 ! !OUTPUT PARAMETERS:
-!  
+!
     LOGICAL                   :: IsVerb
 !
 ! !REVISION HISTORY:
@@ -869,13 +869,13 @@ CONTAINS
 !BOC
 
     !======================================================================
-    ! HCO_IsVerb begins here 
+    ! HCO_IsVerb begins here
     !======================================================================
 
     IF ( .NOT. ASSOCIATED(Err) ) THEN
-       IsVerb = .FALSE. 
+       IsVerb = .FALSE.
     ELSE
-       IsVerb = ( Err%Verbose >= VerbNr ) 
+       IsVerb = ( Err%Verbose >= VerbNr )
     ENDIF
 
   END FUNCTION HCO_IsVerb
@@ -888,7 +888,7 @@ CONTAINS
 ! !ROUTINE: HCO_LOGFILE_OPEN
 !
 ! !DESCRIPTION: Subroutine HCO\_LOGFILE\_OPEN opens the HEMCO logfile
-! (if not yet open). 
+! (if not yet open).
 !\\
 !\\
 ! !INTERFACE:
@@ -896,13 +896,13 @@ CONTAINS
   SUBROUTINE HCO_LogFile_Open( Err, RC )
 !
 ! !USES:
-! 
+!
     USE inquireMod,   ONLY : findFreeLUN
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HcoErr),  POINTER    :: Err            ! Error object
-    INTEGER,   INTENT(INOUT)  :: RC 
+    INTEGER,   INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
@@ -917,7 +917,7 @@ CONTAINS
     LOGICAL            :: isopen, exists
 
     !======================================================================
-    ! HCO_LOGFILE_OPEN begins here 
+    ! HCO_LOGFILE_OPEN begins here
     !======================================================================
 
     ! Init
@@ -939,18 +939,18 @@ CONTAINS
 
     ! Explicit HEMCO logfile:
     ELSE
-    
+
        ! Find free LUN just in case we need it!
        FREELUN = findFreeLun()
-   
+
        ! Inquire if file is already open
        INQUIRE( FILE=TRIM(Err%LogFile), OPENED=isOpen, EXIST=exists, NUMBER=LUN )
-       
+
        ! File exists and is opened ==> nothing to do
        IF ( exists .AND. isOpen ) THEN
           Err%LUN       = LUN
           Err%LogIsOpen = .TRUE.
-   
+
        ! File exists but not opened ==> reopen
        ELSEIF (exists .AND. .NOT. isOpen ) THEN
 
@@ -984,7 +984,7 @@ CONTAINS
 
        ! File does not yet exist ==> open new file
        ELSE
-          OPEN ( UNIT=FREELUN,    FILE=TRIM(Err%LogFile),      & 
+          OPEN ( UNIT=FREELUN,    FILE=TRIM(Err%LogFile),      &
                  STATUS='NEW',    ACTION='WRITE', IOSTAT=IOS,  &
                  FORM='FORMATTED'                             )
           IF ( IOS /= 0 ) THEN
@@ -1000,14 +1000,14 @@ CONTAINS
     ! Write header on first call
     IF ( Err%FirstOpen ) THEN
        IF ( Err%LUN < 0 ) THEN
-          WRITE(*,'(a)') REPEAT( '-', 79) 
+          WRITE(*,'(a)') REPEAT( '-', 79)
           WRITE(*,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
-          WRITE(*,'(a)') REPEAT( '-', 79) 
+          WRITE(*,'(a)') REPEAT( '-', 79)
        ELSE
           LUN = Err%LUN
-          WRITE(LUN,'(a)') REPEAT( '-', 79) 
+          WRITE(LUN,'(a)') REPEAT( '-', 79)
           WRITE(LUN,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
-          WRITE(LUN,'(a)') REPEAT( '-', 79) 
+          WRITE(LUN,'(a)') REPEAT( '-', 79)
        ENDIF
 
        Err%FirstOpen = .FALSE.
@@ -1026,13 +1026,13 @@ CONTAINS
 ! !IROUTINE: HCO_LogFile_Close
 !
 ! !DESCRIPTION: Subroutine HCO\_LOGFILE\_CLOSE closes the HEMCO logfile.
-! If argument ShowSummary is enabled, it will prompt a summary of the 
-! HEMCO run up to this point (number of warnings, etc.). 
+! If argument ShowSummary is enabled, it will prompt a summary of the
+! HEMCO run up to this point (number of warnings, etc.).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LogFile_Close( Err, ShowSummary ) 
+  SUBROUTINE HCO_LogFile_Close( Err, ShowSummary )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1049,7 +1049,7 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
-    ! HCO_LOGFILE_CLOSE begins here 
+    ! HCO_LOGFILE_CLOSE begins here
     !======================================================================
 
     ! Check if object exists
@@ -1059,7 +1059,7 @@ CONTAINS
 
     ! Show summary?
     IF ( PRESENT(ShowSummary) ) THEN
-       Summary = ShowSummary 
+       Summary = ShowSummary
     ELSE
        Summary = .FALSE.
     ENDIF
@@ -1070,13 +1070,13 @@ CONTAINS
        CALL HCO_MSG ( Err, MSG )
        MSG = 'HEMCO ' // TRIM(HCO_VERSION) // ' FINISHED.'
        CALL HCO_MSG ( Err, MSG, SEP1='-' )
- 
+
        WRITE(MSG,'(A16,I1,A12,I6)') &
           'Warnings (level ', Err%Warnings, ' or lower): ', Err%nWarnings
        CALL HCO_MSG ( Err, MSG, SEP2='-' )
     ENDIF
 
-    ! Close logfile only if lun is defined 
+    ! Close logfile only if lun is defined
     IF ( Err%Lun>0 ) THEN
        CLOSE ( UNIT=Err%Lun, IOSTAT=IOS )
        IF ( IOS/= 0 ) THEN

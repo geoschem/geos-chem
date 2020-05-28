@@ -9,7 +9,7 @@
 ! variables for the definition of the vertical grid and related
 ! calculations.
 ! \\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_VertGrid_Mod
 !
@@ -88,7 +88,7 @@ MODULE HCO_VertGrid_Mod
               2.113490e+01_hp, 1.594950e+01_hp, 1.197030e+01_hp, 8.934502e+00_hp, &
               6.600001e+00_hp, 4.758501e+00_hp, 3.270000e+00_hp, 2.000000e+00_hp, &
               1.000000e+00_hp /)
- 
+
   ! Bp [unitless] for 72 levels (73 edges)
   REAL(hp), PARAMETER          :: Bp72(73) = (/                       &
               1.000000e+00_hp, 9.849520e-01_hp, 9.634060e-01_hp, 9.418650e-01_hp, &
@@ -112,7 +112,7 @@ MODULE HCO_VertGrid_Mod
               0.000000e+00_hp /)
 !
 ! PUBLIC TYPES:
-! 
+!
 !
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller   - Initialization
@@ -129,21 +129,21 @@ CONTAINS
 ! !FUNCTION: HCO_VertGrid_Init
 !
 ! !DESCRIPTION: Function HCO\_VertGrid\_Init initializes the vertical
-!  grid. 
+!  grid.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Init( am_I_Root, zGrid, RC ) 
+  SUBROUTINE HCO_VertGrid_Init( am_I_Root, zGrid, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )  :: am_I_Root ! Root CPU? 
+    LOGICAL,        INTENT(IN   )  :: am_I_Root ! Root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(VertGrid), POINTER        :: zGrid     ! vertical grid 
-    INTEGER,        INTENT(INOUT)  :: RC        ! Return code 
+    TYPE(VertGrid), POINTER        :: zGrid     ! vertical grid
+    INTEGER,        INTENT(INOUT)  :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
@@ -179,29 +179,29 @@ CONTAINS
 ! !FUNCTION: HCO_VertGrid_Define
 !
 ! !DESCRIPTION: Function HCO\_VertGrid\_Define initializes the vertical
-!  grid. 
+!  grid.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Define( am_I_Root, HcoConfig, zGrid, nz, Ap, Bp, RC ) 
+  SUBROUTINE HCO_VertGrid_Define( am_I_Root, HcoConfig, zGrid, nz, Ap, Bp, RC )
 !
 ! !USES:
 !
-    USE HCO_TYPES_MOD,    ONLY : ConfigObj 
+    USE HCO_TYPES_MOD,    ONLY : ConfigObj
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )            :: am_I_Root ! Root CPU? 
-    INTEGER,        INTENT(IN   )            :: nz        ! # of vertical levels 
+    LOGICAL,        INTENT(IN   )            :: am_I_Root ! Root CPU?
+    INTEGER,        INTENT(IN   )            :: nz        ! # of vertical levels
     REAL(hp),       INTENT(IN   ), OPTIONAL  :: Ap(nz+1)  ! Ap values
     REAL(hp),       INTENT(IN   ), OPTIONAL  :: Bp(nz+1)  ! Bp values
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ConfigObj),POINTER                  :: HcoConfig ! HEMCO config obj 
-    TYPE(VertGrid), POINTER                  :: zGrid     ! vertical grid 
-    INTEGER,        INTENT(INOUT)            :: RC        ! Return code 
+    TYPE(ConfigObj),POINTER                  :: HcoConfig ! HEMCO config obj
+    TYPE(VertGrid), POINTER                  :: zGrid     ! vertical grid
+    INTEGER,        INTENT(INOUT)            :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
@@ -222,20 +222,20 @@ CONTAINS
     ! Allocate AP and BP
     ALLOCATE(zGrid%Ap(nz+1), zGrid%Bp(nz+1), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( HcoConfig%Err, 'Cannot allocate Ap / Bp', RC, THISLOC=LOC ) 
+       CALL HCO_ERROR( HcoConfig%Err, 'Cannot allocate Ap / Bp', RC, THISLOC=LOC )
        RETURN
     ENDIF
     zGrid%Ap = 0.0_hp
     zGrid%Bp = 0.0_hp
- 
-    ! Set Ap 
+
+    ! Set Ap
     IF ( PRESENT(Ap) ) THEN
        zGrid%Ap(:) = Ap(:)
     ELSE
        IF ( nz > 72 ) THEN
           WRITE(MSG,*) 'Vertical grid has more than 72 vertical levels', &
                        '- please provide Ap values in configuration file.'
-          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ELSEIF ( nz > 47 ) THEN
           zGrid%Ap(:) = Ap72(1:(nz+1))
@@ -244,14 +244,14 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Set Bp 
+    ! Set Bp
     IF ( PRESENT(Bp) ) THEN
        zGrid%Bp(:) = Bp(:)
     ELSE
        IF ( nz > 72 ) THEN
-          WRITE(MSG,*) 'Vertical grid has more than 72 vertical levels', & 
+          WRITE(MSG,*) 'Vertical grid has more than 72 vertical levels', &
                        '- please provide Bp values in configuration file.'
-          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ELSEIF ( nz > 47 ) THEN
           zGrid%Bp(:) = Bp72(1:(nz+1))
@@ -283,16 +283,16 @@ CONTAINS
 ! !FUNCTION: HCO_VertGrid_Cleanup
 !
 ! !DESCRIPTION: Function HCO\_VertGrid\_Cleanup cleans up the vertical
-!  grid. 
+!  grid.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Cleanup( zGrid ) 
+  SUBROUTINE HCO_VertGrid_Cleanup( zGrid )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(VertGrid), POINTER        :: zGrid     ! vertical grid 
+    TYPE(VertGrid), POINTER        :: zGrid     ! vertical grid
 !
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
@@ -300,7 +300,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-    ! Eventually deallocate Ap/Bp vectors 
+    ! Eventually deallocate Ap/Bp vectors
     IF( ASSOCIATED(zGrid%Ap) ) THEN
        DEALLOCATE(zGrid%Ap)
        zGrid%Ap => NULL()

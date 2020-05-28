@@ -10,12 +10,12 @@
 #         protex [-hbgpACFS] ] [+-nlsxf] [src_file(s)]
 #
 # !DESCRIPTION:
-#         Perl filter to produce a \LaTeX compatible document 
-#         from a DAO Fortran source code with standard Pro\TeX 
+#         Perl filter to produce a \LaTeX compatible document
+#         from a DAO Fortran source code with standard Pro\TeX
 #         prologues. If source files are not specified it
 #         reads from stdin; output is always to stdout.
-# 
-# \noindent        
+#
+# \noindent
 # {\bf Command Line Switches:} \vspace{0.2cm}
 #
 # \begin{center}
@@ -57,10 +57,10 @@
 #         For a more detailed description of ProTeX functionality,
 #         DAO Prologue and other conventions, consult:
 #
-#           Sawyer, W., and A. da Silva, 1997: ProTeX: A Sample 
+#           Sawyer, W., and A. da Silva, 1997: ProTeX: A Sample
 #           Fortran 90 Source Code Documentation System.
 #           DAO Office Note 97-11
-#         
+#
 #
 # !REVISION HISTORY:
 #
@@ -74,7 +74,7 @@
 #  05Aug1998  Sawyer    Fixed LPChang-bug-support-for-files-with-underscores
 #  10Oct1998  da Silva  Introduced -f option for removing source file info
 #                       from subsection, etc.  Added help (WS).
-#  06Dec1999  C. Redder Added LaTeX command "\label{sec:prologues}" just 
+#  06Dec1999  C. Redder Added LaTeX command "\label{sec:prologues}" just
 #                       after the beginning of the proglogue section.
 #  13Dec1999  C. Redder Increased flexbility in command-line
 #                       interface.  The options can appear in any
@@ -90,15 +90,15 @@
 #  15Jan2003  R. Staufer  Modified table of contents to print only section headers - no descriptions
 #
 #  25Feb2003  R. Staufer  Added BOPI/EOPI and -i (internal) switch to provide the option of omitting prologue information from output files.
-#  28Jul2009  R. Yantosca  Hack added to suppress printing "Fortran" if we 
-#                          are using the "!MODULE" tag for shell scripts or 
+#  28Jul2009  R. Yantosca  Hack added to suppress printing "Fortran" if we
+#                          are using the "!MODULE" tag for shell scripts or
 #                          Makefiles.
 #  11 Sep 2013 - R. Yantosca - Added support for NCL scripts (with ; comments)
 #  06 Dec 2013 - R. Yantosca - Added support for F77 code (C comment lines)
 #  12 Dec 2013 - R. Yantosca - For NCL scripts, now call subsections "Library"
 #  12 Aug 2016 - R. Yantosca - Added -p to suppress printing of the text
 #                              "Routine/function prologues" in the table
-#                              of contents 
+#                              of contents
 #  12 Aug 2016 - R. Yantosca - ProTeX now recognizes "BOS" and "EOS" tags,
 #                              which can be used to increment the chapter
 #                              count.
@@ -115,7 +115,7 @@
 # -----------------------
   $GlobOptions = 'hbgp';   # Global options (i.e for all files)
   $LangOptions = 'ACFSN7'; # Options for setting programming languages
-  $SwOptions   = 'flinsx'; # Options that can change for each input 
+  $SwOptions   = 'flinsx'; # Options that can change for each input
                            #   file
   $RegOptions  = "$GlobOptions$LangOptions";
                            # Scan for global options until first first
@@ -138,7 +138,7 @@ Arg:
 # If all input arguments are options, then assume the
 # filename, "-", for the standard input
 # --------------------------------------------------
-  if ( $NFiles == 0 ) { push (@ARGV, "-"); } 
+  if ( $NFiles == 0 ) { push (@ARGV, "-"); }
 
 # Implement help option
 # ---------------------
@@ -254,7 +254,7 @@ ARG:
 }#   end if
 
      if ( $opt_C ) {
-        $comment_string = '//'; # C 
+        $comment_string = '//'; # C
         $boi_string = '//BOI';  # -
         $eoi_string = '//EOI';
         $bop_string = '//BOP';
@@ -275,7 +275,7 @@ ARG:
         $eoi_string = '#EOI';
         $bop_string = '#BOP';
         $eop_string = '#EOP';
-        $bopi_string = '#BOPI'; 
+        $bopi_string = '#BOPI';
 	$eopi_string = '#EOPI';
         $boc_string = '#BOC';
         $eoc_string = '#EOC';
@@ -287,11 +287,11 @@ ARG:
 
      if ( $opt_N ) {            # NCL scripts
         $comment_string = ';';  # -----------
-        $boi_string = ';BOI';        
+        $boi_string = ';BOI';
         $eoi_string = ';EOI';
         $bop_string = ';BOP';
         $eop_string = ';EOP';
-        $bopi_string = ';BOPI'; 
+        $bopi_string = ';BOPI';
 	$eopi_string = ';EOPI';
         $boc_string = ';BOC';
         $eoc_string = ';EOC';
@@ -452,7 +452,7 @@ LINE:
 ###############################################################################
 ### Modification added by Bob Yantosca (12 Aug 2016)
 ### This code will update the chapter count if a !SECTION: tag is encountered.
-### 
+###
 
 #       Handle optional section (increments the count,
 #       e.g items go from 1.1, 1.2 to 2.1, 2.2 etc.
@@ -522,7 +522,7 @@ LINE:
         if ($Fld[1] eq $bop_string) {
            if ( $source ) { &do_eoc(); }
            print ' ';
-           print '%/////////////////////////////////////////////////////////////'; 
+           print '%/////////////////////////////////////////////////////////////';
            &do_beg();
            if ($first == 0 && $opt_n==0) {
               ### print "\\newpage";
@@ -530,12 +530,12 @@ LINE:
               print "\\mbox{}\\hrulefill\\ ";
               print " ";}
            else {
-#                 unless($opt_b || $opt_g ) { 
-                 unless($opt_b || $opt_g || $opt_p) { 
+#                 unless($opt_b || $opt_g ) {
+                 unless($opt_b || $opt_g || $opt_p) {
 			 print "\\section{Routine/Function Prologues} \\label{app:ProLogues}";
 		     }
 }#         end if
-	
+
            $first = 0;
            $prologue = 1;
            $verb = 0;
@@ -552,7 +552,7 @@ LINE:
            else {
               if ($source) { &do_eoc(); }
               print ' ';
-              print '%/////////////////////////////////////////////////////////////';  
+              print '%/////////////////////////////////////////////////////////////';
               &do_beg();
               if ($first ==0 && $opt_n==0) {
                  ### print "\\newpage";
@@ -560,10 +560,10 @@ LINE:
                  print "\\mbox{}\\hrulefill\\";
                  print " ";}
               else {
-                 unless($opt_b || $opt_g || $opt_p) { 
+                 unless($opt_b || $opt_g || $opt_p) {
 			 print "\\section{Routine/Function Prologues} \\label{app:ProLogues}";
 		     }
-}#            endif              
+}#            endif
               $first = 0;
               $prologue = 1;
               $verb = 0;
@@ -571,12 +571,12 @@ LINE:
               $inspec = 0;
               &set_missing();    # no required keyword yet
               next LINE;
-           }#   endelse 
+           }#   endelse
         }#    endif
 
 #       A new subroutine/function
 #       -------------------------
-        if ($Fld[2] eq '!ROUTINE:' ) { 
+        if ($Fld[2] eq '!ROUTINE:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -594,7 +594,7 @@ LINE:
 
 #       A new Module
 #       ------------
-        if ($Fld[2] eq '!MODULE:' ) { 
+        if ($Fld[2] eq '!MODULE:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -607,7 +607,7 @@ LINE:
 	      else {
 ###############################################################################
 ### Modification added by Bob Yantosca (12 Dec 2013)
-### This customizes the text for the !MODULE tag depending on the type of 
+### This customizes the text for the !MODULE tag depending on the type of
 ### input file (shell script, NCL script, Fortran).
 ### This will show up in the table of contents and the header text at the
 ### top of each page.  You can further customize this as needed.
@@ -616,18 +616,18 @@ LINE:
                 # Shell scripts: call subsections "Module interface"
                 #-----------------------------------------------------------
 		if ( $opt_S ) {
-		  unless($opt_f) {printf "\\subsection{Module Interface %s (Source File: %s)}\n\n", $_, $FileBaseName;}	
-		  else           {printf "\\subsection{Module Interface %s }\n\n", $_;}	 
+		  unless($opt_f) {printf "\\subsection{Module Interface %s (Source File: %s)}\n\n", $_, $FileBaseName;}
+		  else           {printf "\\subsection{Module Interface %s }\n\n", $_;}
 		}
- 
+
                 #-----------------------------------------------------------
                 # NCL scripts: Call subsections "Local library"
                 #-----------------------------------------------------------
                 elsif ( $opt_N ) {
-		  unless($opt_f) {printf "\\subsection{Local library \"%s\" (Source File: %s)}\n\n", $_, $FileBaseName;}	
-		  else           {printf "\\subsection{Local library \"%s\" }\n\n", $_;}	
+		  unless($opt_f) {printf "\\subsection{Local library \"%s\" (Source File: %s)}\n\n", $_, $FileBaseName;}
+		  else           {printf "\\subsection{Local library \"%s\" }\n\n", $_;}
 
-	        } 
+	        }
 
                 #-----------------------------------------------------------
                 # F90 code: Call subsections "Fortran Module Interface"
@@ -648,7 +648,7 @@ LINE:
 
 #       A new include file
 #       ------------------
-        if ($Fld[2] eq '!INCLUDE:' ) { 
+        if ($Fld[2] eq '!INCLUDE:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -657,7 +657,7 @@ LINE:
               s/_/\\_/g;                         # Replace "_" with "\_"
               if ( $opt_n && $not_first ) { printf "\\newpage\n"; }
               unless($opt_f) {printf "\\subsubsection{Include File %s (Source File: %s)}\n\n", $_, $FileBaseName;}
-              else           {printf "\\subsubsection{Include File %s }\n\n", $_;}  
+              else           {printf "\\subsubsection{Include File %s }\n\n", $_;}
               $have_name = 1;
               $have_intf = 1;  # fake it, it does not need one.
               $not_first = 1;
@@ -702,7 +702,7 @@ LINE:
 
 #       A new CLASS
 #       ------------
-        if ($Fld[2] eq '!CLASS:' ) { 
+        if ($Fld[2] eq '!CLASS:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -721,7 +721,7 @@ LINE:
 
 #       A new Method
 #       -------------------------
-        if ($Fld[2] eq '!METHOD:' ) { 
+        if ($Fld[2] eq '!METHOD:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -739,7 +739,7 @@ LINE:
 
 #       A new function
 #       -------------------------
-        if ($Fld[2] eq '!FUNCTION:' ) { 
+        if ($Fld[2] eq '!FUNCTION:' ) {
            if ($prologue) {
               shift @Fld;
               shift @Fld;
@@ -806,7 +806,7 @@ KEY:       foreach $key ( @keys ) {
 			 printf "{\\bf %s}\n", substr($k, 2, $ln - 1); } # italics
 }#                   end if
 		 else {
-		     if( /USES/ || /INPUT/ || /OUTPUT/ || /PARAMETERS/ || 
+		     if( /USES/ || /INPUT/ || /OUTPUT/ || /PARAMETERS/ ||
 			 /VALUE/  || /ARGUMENTS/ ) {
 			 printf "{\\em %s}\n", substr($k, 2, $ln - 1); } # italics
 		     else {
@@ -893,7 +893,7 @@ KEY:       foreach $key ( @keys ) {
            if ($Fld[1] eq $boe_string) {
               if ( $source ) { &do_eoc(); }
               print ' ';
-              print '%/////////////////////////////////////////////////////////////'; 
+              print '%/////////////////////////////////////////////////////////////';
               $first = 0;
               $prologue = 1;
               $verb = 0;
@@ -915,12 +915,12 @@ KEY:       foreach $key ( @keys ) {
 }#      end if
 
 }#      end unless
-   
+
 #   Prologue or Introduction, print regular line (except for !)
 #   -----------------------------------------------------------
     if ($prologue||$intro) {
         if ( $verb && $#Fld == 1 && ( $Fld[1] eq $comment_string ) ) {
-           next LINE;                # to eliminate excessive blanks 
+           next LINE;                # to eliminate excessive blanks
 }#      end if
 	if($opt_g) {
 	    if ( $verb && $#Fld == 2 && ( $Fld[1] eq 'implicit' ) ) {
@@ -966,9 +966,9 @@ KEY:       foreach $key ( @keys ) {
 }# end main loop for each command-line argument
  # --------------------------------------------
   print $_;
-  if ( $source ) { &do_eoc(); }     
+  if ( $source ) { &do_eoc(); }
   print '%...............................................................';
- 
+
   # see comment above where these are originally set.
   #print "\\setlength{\\parskip}{\\oldparskip}";
   #print "\\setlength{\\parindent}{\\oldparindent}";
@@ -1008,7 +1008,7 @@ KEY:       foreach $key ( @keys ) {
 #                               not recognized as a list of options
 #                            =  0 if all options are valid.
 #                            >  0 for the number of invalid options.
-# 
+#
 {    local($options,
            $valid_reg_options,
            $valid_sw_options,
@@ -1032,11 +1032,11 @@ KEY:       foreach $key ( @keys ) {
                             . $valid_sw_options; }
            else
               { $valid_list = $valid_sw_options; }
-           $pos = index ($valid_list,$option); 
+           $pos = index ($valid_list,$option);
            if ( $pos < $[ &&
                 $quiet_mode ) {
               $errs++;
-              print STDERR "Invalid option: $option_sign$option \n"; 
+              print STDERR "Invalid option: $option_sign$option \n";
 
 }#         end if
 }#      end if
@@ -1063,7 +1063,7 @@ KEY:       foreach $key ( @keys ) {
 #                            = -1 if the arguement, options, is
 #                               not recognized as a list of options.
 #                            =  0 otherwise
-# 
+#
 {    local($options,$valid_options) = @_;
 
      if ( $options eq "+" ||
@@ -1113,10 +1113,10 @@ KEY:       foreach $key ( @keys ) {
 #                               not recognized as a list of options.
 #                            =  0 otherwise
 #       Note: For the examples provided for the input arguments,
-#             $opt_d = 0, $opt_e = 0, and $opt_f = 1, since the 
+#             $opt_d = 0, $opt_e = 0, and $opt_f = 1, since the
 #             input option, -f, was the last in the argument,
 #             option.
-# 
+#
 {    local($options,$valid_options) = @_;
 
      if ( $options eq "+" ||
@@ -1152,7 +1152,7 @@ sub print_help {
     print " ";
     print " Options:";
     print "     -h   Help mode: list command line options";
-    print "     -b   Bare mode, meaning no preamble, etc."; 
+    print "     -b   Bare mode, meaning no preamble, etc.";
     print "     -p   Suppress printing 'Routine/function prologues' in Table of Contents";
     print "     +-n  New Page for each subsection (wastes paper)";
     print "     +-l  Listing mode, default is prologues only";
@@ -1170,7 +1170,7 @@ sub print_help {
     print "  affect the input from all files listed on command-line input.";
     print "  Each of the remaining options effects only the input from the";
     print "  files listed after the option and prior to any overriding";
-    print "  option.  The plus sign turns off the option."; 
+    print "  option.  The plus sign turns off the option.";
 }# end sub print_help
 
 sub print_notice {
@@ -1205,16 +1205,16 @@ sub print_preamble {
     print "%-------------------------------------------------------------";
 }#  end unless
 
-    # in your main document before you include any protex-generated files 
-    # for the first time, if you define these three variables as length 
+    # in your main document before you include any protex-generated files
+    # for the first time, if you define these three variables as length
     # settings (like this:)
     #   \newlength{\oldparskip}
     #   \newlength{\oldparindent}
     #   \newlength{\oldbaselineskip}
     # then 1) comment in all the lines below, and 2) find the 3 reset lines
-    # further down and comment in them as well. 
-    # then protex will override the paragraph and skip settings during 
-    # the source sections, but will restore the original document settings 
+    # further down and comment in them as well.
+    # then protex will override the paragraph and skip settings during
+    # the source sections, but will restore the original document settings
     # at the end.   if someone can figure out how to check to see if a
     # latex variable exists, and do a conditional section, we could make
     # this fully self-contained.
@@ -1296,19 +1296,19 @@ sub set_missing {
 
 }# end sub set_missing
 
-    
+
 sub check_if_all_there {
 
-$have_name || 
+$have_name ||
 die "ProTeX: invalid prologue, missing !ROUTINE: or !IROUTINE: in <$name_is>";
 
-$have_desc || 
+$have_desc ||
 die "ProTeX: invalid prologue, missing !DESCRIPTION: in <$name_is>";
 
-$have_intf || 
+$have_intf ||
 die "ProTeX: invalid prologue, missing !INTERFACE: in <$name_is>";
 
-$have_hist || 
+$have_hist ||
  die "ProTeX: invalid prologue, missing !REVISION HISTORY: in <$name_is>";
 
 }# end sub check_if_all_there

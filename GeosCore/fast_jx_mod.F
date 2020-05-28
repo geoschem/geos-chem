@@ -18,6 +18,10 @@
 !
       USE CMN_FJX_MOD
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+#if defined( MODEL_CESM ) && defined( SPMD )
+      USE MPISHORTHAND
+      USE SPMD_UTILS
+#endif
 
       IMPLICIT NONE
 
@@ -95,7 +99,7 @@
       ! Needed for scaling JNIT/JNITs photolysis to JHNO3
       REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! Diagnostics arrays (ckeller, 5/22/18)
       REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
 #endif
@@ -180,75 +184,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Apr 1998 - P. Murti, R. Martin, R. Yantosca - Initial version
-!  (1 ) Call this routine EACH chemistry time-step, before solver.
-!  (2 ) This routine must know IMAX, JMAX, LMAX.
-!  (3 ) Now use new !$OMP compiler directives for parallelization (bmy, 5/2/00)
-!  (4 ) Now reference "cmn_fj.h" and "jv_cmn.h" for the aerosol
-!        optical depths (bmy, 10/2/00)
-!  (5 ) Add OPTDUST as a local variable -- make OPTDUST private for
-!        the parallel DO-loop, since it stores 1 column of aerosol optical
-!        depth for each dust type (bmy, rvm, 10/2/00)
-!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "CMN_SIZE".  Therefore we
-!        assume that we are always doing global runs. (bmy, 10/2/00)
-!  (7 ) Removed obsolete code from 10/2/00 (bmy, 12/21/00)
-!  (8 ) Replace {IJL}GLOB w/ IIPAR,JJPAR,LLPAR everywhere.  Also YLMID(NLAT)
-!        needs to be referenced by YLMID(NLAT+J0). (bmy, 9/26/01)
-!  (9 ) Remove obsolete code from 9/01.  Updated comments. (bmy, 10/24/01)
-!  (10) Add OPTAER as a local variable, make it private for the parallel
-!        DO loop, since it stores 1 column of aerosol optical depths for each
-!        aerosol type.  Pass OPTAER to PHOTOJ via the argument list.  Declare
-!        OPTAER as PRIVATE for the parallel DO-loop. (rvm, bmy, 2/27/02)
-!  (11) Now reference GET_PEDGE from "pressure_mod.f", which returns the
-!        correct "floating" pressure. (dsa, bdf, bmy, 8/20/02)
-!  (12) Now reference T from "dao_mod.f" (bmy, 9/23/02)
-!  (13) Now uses routine GET_YMID from "grid_mod.f" to compute grid box
-!        latitude.  Now make IDAY, MONTH local variables.  Now use function
-!        GET_DAY_OF_YEAR from "time_mod.f".  Bug fix: now IDAY (as passed to
-!        photoj.f) is day of year rather than cumulative days since Jan 1,
-!        1985. (bmy, 2/11/03)
-!  (14) Now reference routine GET_YEAR from "time_mod.f".  Added LASTMONTH
-!        as a SAVEd variable.  Now call READ_TOMSO3 from "toms_mod.f" at the
-!        beginning of a new month (or the first timestep) to read TOMS O3
-!        columns which will be used by "set_prof.f".  Now also reference
-!        routine GET_DAY from "time_mod.f".  Rename IDAY to DAY_OF_YR. Pass
-!        day of month to PHOTOJ.  Updated comments, cosmetic changes.
-!        (bmy, 7/17/03)
-!  (15) Bug fix: PRES needs to be the true surface pressure for GEOS-4, but
-!        PS-PTOP for all prior GEOS models.  (bmy, 2/6/04)
-!  (16) Now account for cloud overlap (Maximum-Random Overlap and Random
-!        Overlap) in each column (hyl, phs, bmy, 9/18/07)
-!  (17) Now initialize the PJ array here, instead of two layers below in
-!        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/29/07)
-!  (18) Now switch to approx. random overlap option (hyl, phs, bmy, 10/7/08)
-!  (19) Now can handle GEOS-5 reprocessed met data with OPTDEPTH being
-!        in-cloud optical depths. (bmy, hyl, 10/24/08)
-!  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  06 Mar 2012 - R. Yantosca - Now call GET_OVERHEAD_O3 to get the total
-!                              overhead O3 column for FAST-J
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
-!  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
-!  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from CSPEC
-!  05 Mar 2014 - R. Yantosca - Cosmetic changes
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod and
-!                              redundant PEDGE pre-preprocessor block if
-!                              EXTERNAL_GRID.
-!  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
-!                              clause and error check for JLOOP > 0
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
-!  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
-!  17 Jun 2016 - R. Yantosca - Now define id_O3 with the Ind_ function
-!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,8 +207,8 @@
       INTEGER       :: KBOT(State_Grid%NZ)
       INTEGER       :: KTOP(State_Grid%NZ)
       INTEGER       :: INDICATOR(State_Grid%NZ+2)
-      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction 
-                                              !  in a block, size can be to 
+      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
+                                              !  in a block, size can be to
                                               !  FIX(State_Grid%NZ)+1
       REAL(fp)      :: CLDF1D(State_Grid%NZ)
       REAL(fp)      :: ODNEW(State_Grid%NZ)
@@ -326,7 +262,7 @@
             RETURN
          ENDIF
 
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+#ifdef USE_MAXIMUM_RANDOM_OVERLAP
          ! Special setup only for max random overlap
          DO i = 1,State_Grid%NZ+1
             INDGEN(i) = i       !(/(i,i=1,State_Grid%NZ+1)/)
@@ -350,7 +286,7 @@
 !$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
 !$OMP+PRIVATE( LCHEM,   OPTAER, N,         IOPT             )
 !$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+#ifdef USE_MAXIMUM_RANDOM_OVERLAP
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )
 !$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC            )
 #endif
@@ -1562,7 +1498,7 @@ c  Lowest level intersected by emergent beam
       INTEGER JTOTL,I,L,L2
       REAL(fp)  TTAU(L2X+1),DTAUJ, ATAU1,ATAULN,ATAUM,ATAUN1
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! ckeller, 5/21/18
       LOGICAL  :: failed
       INTEGER  :: N, NMAX
@@ -1573,7 +1509,7 @@ c  Lowest level intersected by emergent beam
       ! EXTRAL begins here!
       !=================================================================
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! This routine now repeats the extra layer computation with an
       ! increased heating rate (ATAU) if there is an array overfloat.
       ! This is repeated maximum 5 times. The diagnostics arrays
@@ -1743,12 +1679,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD,   ONLY : ND64
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN
+#if defined( MODEL_CESM )
+      USE UNITS,          ONLY : freeUnit
+#endif
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
@@ -1828,8 +1767,17 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          endif
       ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
       ! Get a free LUN
       JXUNIT = findFreeLUN()
+#if defined( MODEL_CESM )
+      ELSE
+      JXUNIT = 0
+      ENDIF
+#endif
+
 
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
@@ -1839,15 +1787,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'FJX_spec.dat'
 
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
- 100     FORMAT( 'GEOSCHEM::INIT_FJX: Reading ', a ', on unit ', i4 )
-      ENDIF
-
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       ! Compute factors for ND64
       IF ( ND64 > 0 ) THEN
          UVXFACTOR(:) = 0e+0_fp
@@ -1862,11 +1804,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'jv_spec_mie.dat'
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
 
@@ -1902,11 +1839,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       !### bmy debug, read locally
       FILENAME = TRIM( DATA_DIR ) // 'FJX_j2j.dat'
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
 
       ! Read mapping information
       CALL RD_JS_JX( JXUNIT,   TRIM( FILENAME ), TITLEJXX,
@@ -1983,7 +1915,13 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDIF
       ENDDO
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+      CALL freeUnit(JXUnit)
+      ENDIF
+#endif
+
+#ifdef MODEL_GEOS
       ! Diagnostics arrays
       ALLOCATE(EXTRAL_NLEVS(State_Grid%NX,State_Grid%NY))
       ALLOCATE(EXTRAL_NITER(State_Grid%NX,State_Grid%NY))
@@ -2076,6 +2014,16 @@ c                   NJX = # fast-JX J-values derived from this (.le. X_)
 
 c >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_XXX): Reading ', a )
+      ENDIF
+
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
+      ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
       read (NUN,100) TITLE0
 
@@ -2261,6 +2209,26 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       endif
 
       close(NUN)
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( NJX,       1,             MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NW1,       1,             MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NW2,       1,             MPIR8,   0, MPICOM )
+      CALL MPIBCAST( WBIN,      Size(WBIN),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( WL,        Size(WL),      MPIR8,   0, MPICOM )
+      CALL MPIBCAST( FL,        Size(FL),      MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QO2,       Size(QO2),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QO3,       Size(QO3),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( Q1D,       Size(Q1D),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QQQ,       Size(QQQ),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QRAYL,     Size(QRAYL),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( TQQ,       Size(TQQ),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( LQQ,       Size(LQQ),     MPIINT,  0, MPICOM )
+      CALL MPIBCAST( TITLEJX,   X_*6,          MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( SQQ,       X_*1,          MPICHAR, 0, MPICOM )
+#endif
+#endif
 
   100 format(a)
   101 format(10x,5i5)
@@ -2337,6 +2305,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_MIE): Reading ', a )
+      ENDIF
+
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
+      ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
       ! Read header lines
@@ -2375,7 +2353,18 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ENDIF
 
       close(NUN)
-
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( QAA,       Size(QAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( WAA,       Size(WAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( PAA,       Size(PAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RAA,       Size(RAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SAA,       Size(SAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NAA,       1,             MPIINT,  0, MPICOM )
+      CALL MPIBCAST( TITLEAA,   80*A_,         MPICHAR, 0, MPICOM )
+#endif
+#endif
       IF ( am_I_Root ) THEN
          write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
      &             ,(WAA(K,1),K=1,5)
@@ -2517,7 +2506,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
           THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
        ENDIF
 
-       ! open file
+       ! Print the name of the file being read to stdout (bmy, 10/24/19)
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 300 ) TRIM( ThisFile )
+ 300      FORMAT( 'FAST-JX (RD_AOD): Reading ', a )
+       ENDIF
+
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
+       ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
 
        ! Error check
@@ -2557,7 +2555,27 @@ c---TROP-QUICK  (must scale solar flux for W=5)
        ENDIF
        ! Close file
        CLOSE( NJ1 )
+#if defined( MODEL_CESM )
+       ENDIF
+#endif
       ENDDO
+
+#if defined( MODEL_CESM ) && defined( SPMD )
+      CALL MPIBCAST( WVAA,      Size(WVAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RHAA,      Size(RHAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NRLAA,     Size(NRLAA),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NCMAA,     Size(NCMAA),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RDAA,      Size(RDAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RWAA,      Size(RWAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SGAA,      Size(SGAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QQAA,      Size(QQAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( ALPHAA,    Size(ALPHAA),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( REAA,      Size(REAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SSAA,      Size(SSAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( ASYMAA,    Size(ASYMAA),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( PHAA,      Size(PHAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( IWV1000,   1,              MPIINT,  0, MPICOM )
+#endif
 
       IF ( am_I_Root ) THEN
          WRITE( 6, * ) 'Optics read for all wavelengths successfully'
@@ -2597,7 +2615,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
       USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
       USE Input_Opt_Mod, ONLY : OptInput
-#if defined( RRTMG )
+#ifdef RRTMG
       USE PARRRTM,     ONLY : NBNDLW
 #endif
 !
@@ -2728,7 +2746,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          write(6,*) '*********************************'
       ENDIF
       ENDDO !Input_Opt%NWVSELECT
-#if defined( RRTMG )
+#ifdef RRTMG
       !repeat for RRTMG wavelengths to get the closest wavelength
       !indices and the interpolation coefficients
       !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
@@ -2906,9 +2924,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       JMAP(:)   = '------'
       JFACTA(:) = 0.e+0_fp
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_JS_JX): Reading ', a )
+      ENDIF
+
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
+      ! Open file
       open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
-       read (NUNIT,'(a)') CLINE
+      read (NUNIT,'(a)') CLINE
       IF ( am_I_Root ) THEN
          write(6,'(a)') CLINE
       ENDIF
@@ -2934,6 +2962,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       enddo
 
  20   close(NUNIT)
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( JLABEL,    JVN_*50,       MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( JFACTA,    JVN_,          MPIR8,   0, MPICOM )
+      CALL MPIBCAST( JMAP,      JVN_*6,        MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( NRATJ,     1,             MPIINT,  0, MPICOM )
+      CALL MPIBCAST( RNAMES,    JVN_*10,       MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( BRANCH,    JVN_,          MPIINT,  0, MPICOM )
+#endif
+#endif
 
 c---Zero / Set index arrays that map Jvalue(j) onto rates
       do K = 1,NRATJ
@@ -3806,7 +3845,7 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,112,ILON,ILAT)
                AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
      &                                ZPJ(L,113,ILON,ILAT)
-               ! lei, 05/15/17 - added new halogen species below 
+               ! lei, 05/15/17 - added new halogen species below
                IF ( IS_HALOGENS ) THEN
                AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
      &                                ZPJ(L,50,ILON,ILAT)
@@ -5044,11 +5083,24 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
+#if defined( MODEL_CESM )
+      USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
+      USE IOFILEMOD,         ONLY : GETFIL
+      USE PIO,               ONLY : PIO_CLOSEFILE
+      USE PIO,               ONLY : PIO_INQ_DIMID
+      USE PIO,               ONLY : PIO_INQ_DIMLEN
+      USE PIO,               ONLY : PIO_INQ_VARID
+      USE PIO,               ONLY : PIO_GET_VAR
+      USE PIO,               ONLY : PIO_NOERR
+      USE PIO,               ONLY : PIO_NOWRITE
+      USE PIO,               ONLY : FILE_DESC_T
+#else
       ! Modules for netCDF read
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -5081,6 +5133,10 @@ C---Always does PL(2) = P[1]
 !
       ! netCDF file handle
       INTEGER            :: fId                 ! netCDF file ID
+#if defined( MODEL_CESM )
+      type(FILE_DESC_T)  :: ncid
+      INTEGER            :: vId, iret
+#endif
 
       ! Character strings
       CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
@@ -5109,8 +5165,18 @@ C---Always does PL(2) = P[1]
       nc_file = 'fastj.jv_atms_dat.nc'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( nc_path )
+ 300     FORMAT( 'FAST-JX (RD_PROF_NC): Reading ', a )
+      ENDIF
+
       ! Open netCDF file
+#if defined( MODEL_CESM )
+      CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
+#else
       CALL Ncop_Rd( fId, TRIM(nc_path) )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -5129,6 +5195,10 @@ C---Always does PL(2) = P[1]
       ! Read T from file
       st3d   = (/  1,  1,  1 /)
       ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+      iret = PIO_GET_VAR(   ncid, vid, TREF          )
+#else
       CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
 
       ! Read the T:units attribute
@@ -5139,6 +5209,7 @@ C---Always does PL(2) = P[1]
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
+#endif
 
       !----------------------------------------
       ! VARIABLE: O3
@@ -5150,6 +5221,10 @@ C---Always does PL(2) = P[1]
       ! Read O3 from file
       st3d   = (/  1,  1,  1 /)
       ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+      iret = PIO_GET_VAR(   ncid, vid, OREF          )
+#else
       CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
 
       ! Read the O3:units attribute
@@ -5160,13 +5235,18 @@ C---Always does PL(2) = P[1]
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
+#endif
 
       !=================================================================
       ! Cleanup and quit
       !=================================================================
 
       ! Close netCDF file
+#if defined( MODEL_CESM )
+      CALL PIO_CLOSEFILE( ncid )
+#else
       CALL NcCl( fId )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN

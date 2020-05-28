@@ -6,9 +6,9 @@
 !
 ! !MODULE: exchange_mod.F90
 !
-! !DESCRIPTION: Module EXCHANGE\_MOD contains variables and routines which 
-!  are used to exchange data between two or more runs (Global Domain and 
-!  Nested Domains), thus to combine them into TWO-WAY nested run. 
+! !DESCRIPTION: Module EXCHANGE\_MOD contains variables and routines which
+!  are used to exchange data between two or more runs (Global Domain and
+!  Nested Domains), thus to combine them into TWO-WAY nested run.
 !  (yanyy, 6/18/14)
 !\\
 !\\
@@ -75,7 +75,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Mar 2014 - Y.Y. Yan - Initial Version
-!  (1) Establish the frame of the data exchange between models 
+!  (1) Establish the frame of the data exchange between models
 !       (kuangye,yanyy, 6/10/12)
 !  (2) Now update for version 9-02 (yanyy, 6/21/14)
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
@@ -212,7 +212,7 @@
 !
 ! !IROUTINE: exchange_global_post
 !
-! !DESCRIPTION: Carry out the process to communicate the nested simulated 
+! !DESCRIPTION: Carry out the process to communicate the nested simulated
 !  results back to global model.
 !\\
 !\\
@@ -234,19 +234,19 @@
 !      USE TPCORE_BC_MOD
       USE UnitConv_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
       TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -260,7 +260,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-!     
+!
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
@@ -271,10 +271,10 @@
          CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
      &                                  State_Chm, RC )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
+            CALL GC_Error('Unit conversion error', RC,
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
             RETURN
-         ENDIF 
+         ENDIF
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -299,10 +299,10 @@
          CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
      &                                  State_Chm, RC )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
+            CALL GC_Error('Unit conversion error', RC,
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
             RETURN
-         ENDIF 
+         ENDIF
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -368,18 +368,18 @@
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
       TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -404,10 +404,10 @@
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
      &                               State_Chm, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
+         CALL GC_Error('Unit conversion error', RC,
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
          RETURN
-      ENDIF 
+      ENDIF
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -420,10 +420,10 @@
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
      &                               State_Chm, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
+         CALL GC_Error('Unit conversion error', RC,
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
          RETURN
-      ENDIF 
+      ENDIF
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -487,7 +487,7 @@
       USE PRECISION_MOD
       USE State_Grid_Mod, ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root
       TYPE(GrdState), INTENT(IN) :: State_Grid
@@ -746,7 +746,7 @@
 !
       SUBROUTINE CLEANUP_EXCHANGE( am_I_Root )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root
 !
@@ -800,18 +800,18 @@
       USE State_Met_Mod,      ONLY : MetState
       USE PRECISION_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
       TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -831,7 +831,7 @@
       LOGICAL         :: LPRT
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! NOTE: Species units are in kg/kg dry which may be incompatible with 
+      ! NOTE: Species units are in kg/kg dry which may be incompatible with
       ! functionality prior to tracer removal. Validation needed by 3rd party
       ! developers (ewl, 8/15/16)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -851,7 +851,7 @@
       ENDIF
 
       DO L = 1,State_Chm%nSpecies
-         CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY, 
+         CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY,
      &                      IM_BC, JM_BC, State_Grid%NZ,
      &                      SPC(:,:,:,L), TMP_WINDOW )
          CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, State_Grid%NZ,
@@ -906,7 +906,7 @@
       USE FILE_MOD
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_yan
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
 
       LOGICAL,        INTENT(IN)    :: am_I_Root
@@ -915,11 +915,11 @@
       TYPE(MetState), INTENT(IN)    :: State_Met
       INTEGER,        INTENT(IN)    :: DOMAIN
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -946,12 +946,12 @@
       LOGICAL           :: LPRT
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! NOTE: Species units are in kg/kg dry which may be incompatible with 
+      ! NOTE: Species units are in kg/kg dry which may be incompatible with
       ! functionality prior to tracer removal. Validation needed by
       ! 3rd party developers (ewl, 8/15/16)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SPC => State_Chm%Species
-      LPRT       =  ( am_I_Root .and. Input_Opt%LPRT ) 
+      LPRT       =  ( am_I_Root .and. Input_Opt%LPRT )
       IU_RST=2
       IOS=1
       NI=IM_BC_CH
@@ -976,9 +976,9 @@
          IF ( IOS /= 0 ) THEN
             WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
-         ENDIF       
-         TMP_WINDOW_CH=TMP_WINDOW_CHT 
-          
+         ENDIF
+         TMP_WINDOW_CH=TMP_WINDOW_CHT
+
                 SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
      &             J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1,
      &             State_Grid%NZ,L) =
@@ -996,7 +996,7 @@
             WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
          ENDIF
-         TMP_WINDOW_CH=TMP_WINDOW_CHT 
+         TMP_WINDOW_CH=TMP_WINDOW_CHT
              SPC(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
      &                  J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1,
      &                  State_Grid%NZ,L) =
@@ -1037,7 +1037,7 @@
          IF ( IOS /= 0 ) THEN
             WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
-         ENDIF 
+         ENDIF
          TMP_WINDOW_NA=TMP_WINDOW_NAT
              SPC(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
      &                  J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2,
@@ -1049,7 +1049,7 @@
       !For Europe domain
       ELSE IF ( DOMAIN == 3 ) THEN
           NI=IM_BC_EU
-          NJ=JM_BC_EU    
+          NJ=JM_BC_EU
           WRITE( 6, 102 ) TRIM(LOAD_EU_CSPEC_FNAME)
   102     FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_TRACER_FNAME) )
@@ -1141,7 +1141,7 @@
 !
 ! !IROUTINE: ex_convert_units_cspec
 !
-! !DESCRIPTION: Converts molec/cm3/box to fakemass (e.g. convert cspecfull 
+! !DESCRIPTION: Converts molec/cm3/box to fakemass (e.g. convert cspecfull
 !  to a masslike unit)
 !\\
 !\\
@@ -1159,17 +1159,17 @@
       USE State_Met_Mod,      ONLY : MetState
       USE PRECISION_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -1363,7 +1363,7 @@
 !
       SUBROUTINE TOUCH_FILE( FNAME )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)     :: FNAME
 !
@@ -1441,7 +1441,7 @@
 !
       USE FILE_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)     :: FNAME
 !
@@ -1484,7 +1484,7 @@
 !
       USE FILE_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)     :: FNAME
 !
@@ -1554,7 +1554,7 @@
 !
       USE FILE_MOD
       USE PRECISION_MOD
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,          INTENT(IN)     :: NI, NJ, NK
       REAL(fp),           INTENT(IN)     :: ARRAY(NI,NJ,NK)
@@ -1572,7 +1572,7 @@
       INTEGER         :: IU_RST
       INTEGER                       :: I, J, L
       IU_RST   = 2
-       
+
       ARRAYTEMPW=REAL(ARRAY,4)
       WRITE ( IU_RST ) !ARRAY
      &  ( ( ( ARRAYTEMPW(I,J,L), I=1,NI ), J=1,NJ ), L=1,NK )
@@ -1610,7 +1610,7 @@
       REAL(fp),ALLOCATABLE     :: ARRAYT(:,:,:)
       INTEGER                 :: IU_RST, IOS
       INTEGER                 :: I, J, L
-       
+
       IU_RST = 2
       IOS = 1
       ARRAYTEMPR(:,:,:) = 0e0
@@ -1622,7 +1622,7 @@
             WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
          ENDIF
-      
+
       END SUBROUTINE READ_3D_REAL8_ARRAY
 !EOC
 !------------------------------------------------------------------------------
@@ -1639,13 +1639,13 @@
 !
       SUBROUTINE GEN_REGRID_MAT( N1, N2, RATIO, OFFSET, RES )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       USE PRECISION_MOD
       INTEGER,          INTENT(IN)     :: N1, N2
       REAL(fp),           INTENT(IN)     :: RATIO, OFFSET
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       REAL(fp),           INTENT(OUT)    :: RES(N1, N2)
 !

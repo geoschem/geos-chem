@@ -14,12 +14,12 @@
 MODULE GEOS_Timers_Mod
 !
 ! !USES:
-! 
+!
   USE Precision_Mod
-  
+
   IMPLICIT NONE
   PRIVATE
-! 
+!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: GEOS_Timer_Setup     ! Init Method
@@ -29,7 +29,7 @@ MODULE GEOS_Timers_Mod
   PUBLIC  :: GEOS_Timer_Print     ! Prints the specified timer.
   PUBLIC  :: GEOS_Timer_PrintAll  ! Prints all timers.
   PUBLIC  :: GEOS_Timer_StopAll   ! Stops all currently running timers.
-! 
+!
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: GEOS_Timer_Find      ! Finds the specified timer.
@@ -108,15 +108,15 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: TheMode     ! Timer mode
                                         ! 1:CPU time, 2:Real time, 3:MPI time
 !
 ! !REMARKS:
 !  This currently only needs to run if you want to manually set the mode.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -145,11 +145,11 @@ CONTAINS
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
        RETURN                      ! If no timers, do nothing.
     ENDIF
-    
+
     ! Warning if timer mode is incorrect
     IF ( TheMode .lt. 1 ) THEN
-       WarnMsg = 'INVALID TIMER TYPE! '                                   // & 
-                  'The following timer modes are supported: '             // &  
+       WarnMsg = 'INVALID TIMER TYPE! '                                   // &
+                  'The following timer modes are supported: '             // &
                   '(1) CPU time, (2) Real time, or (3) MPI time.'
        CALL GC_Warning( WarnMsg, RC, ThisLoc )
        RETURN
@@ -181,7 +181,7 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
 !
@@ -191,8 +191,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This only fails if the timers are full.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -247,7 +247,7 @@ CONTAINS
        ErrMsg = 'Maximum number of timers is reached!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-       
+
     ENDIF
 
   END SUBROUTINE GEOS_Timer_Add
@@ -270,7 +270,7 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
 !
@@ -280,8 +280,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This must be called to start a timer ticking.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -331,7 +331,7 @@ CONTAINS
        CALL GC_Warning( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-      
+
     ! Timer isn't enabled, it's been found, so we enable it
     SavedTimers(TimerLoc)%ENABLED = .true.
 
@@ -342,7 +342,7 @@ CONTAINS
     IF ( TimerMode .eq. 1 ) THEN
        TheTime = GEOS_Timer_TheTime()
     ENDIF
-      
+
     ! Debug
     !PRINT*, "** RETURNED TIME (START): ", TheTime
 
@@ -368,7 +368,7 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
 !
@@ -378,8 +378,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  Without this routine being called, a timer will not add to its total.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !  19 Sep 2016 - R. Yantosca - Rewrite logic of IF statement using .not.
@@ -476,10 +476,10 @@ CONTAINS
   SUBROUTINE GEOS_Timer_Print( TimerName, am_I_Root, RC )
 !
 ! !USES:
-! 
+!
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
     LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
@@ -490,8 +490,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This is useful if you only want to print a single timer.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -523,9 +523,9 @@ CONTAINS
     ENDIF
 
     TempTimerName = TimerName
-    
+
     TimerLoc = GEOS_Timer_Find( TempTimerName )
-    
+
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
        ErrMsg = 'Timer not found: ' // TRIM( TimerName )
@@ -556,7 +556,7 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 !
@@ -566,8 +566,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This prints all timers in the order added.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine and
 !                              modify to print timers out in a table
@@ -579,7 +579,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I
-   
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -592,7 +592,7 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Geos_Timer_PrintAll (in module GeosUtil/geos_timers_mod.F90)'
- 
+
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
        RETURN                      ! If no timers, do nothing.
@@ -647,8 +647,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This stops all currently running timers. Used during crashes.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  11 Aug 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -670,7 +670,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = & 
+    ThisLoc  = &
        ' -> at Geos_Timer_StopAll  (in module GeosUtil/geos_timers_mod.F90)'
 
     ! First it is important to check if timers are enabled.
@@ -713,7 +713,7 @@ CONTAINS
 !
   SUBROUTINE GEOS_Timer_PrintNum( SlotNumber, am_I_Root )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
     LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
@@ -721,8 +721,8 @@ CONTAINS
 ! !REMARKS:
 !  This actually does the printing, and is called by other print
 !  routines.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
 !EOP
@@ -737,7 +737,7 @@ CONTAINS
     IF(TimerCurrentSize < 1) THEN  ! Return if it's empty
        RETURN
     ENDIF
-      
+
     IF ( (SavedTimers(SlotNumber)%ENABLED) ) THEN
        PRINT*, "** WARNING: Timer still enabled! "
     ENDIF
@@ -758,9 +758,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GEOS_Timer_Find( TimerName ) RESULT ( SlotNumber ) 
+  FUNCTION GEOS_Timer_Find( TimerName ) RESULT ( SlotNumber )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=30), INTENT(IN) :: TimerName   ! Name for timer.
 !
@@ -770,8 +770,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This is a private routine.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !EOP
 !------------------------------------------------------------------------------
@@ -797,7 +797,7 @@ CONTAINS
           SlotNumber = I
        ENDIF
     ENDDO
-      
+
   END FUNCTION GEOS_Timer_Find
 !EOC
 !------------------------------------------------------------------------------
@@ -820,8 +820,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  This is a private routine.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !EOP
 !------------------------------------------------------------------------------
@@ -863,20 +863,20 @@ CONTAINS
 !
   SUBROUTINE GEOS_Timer_TimePrint( SlotNumber, am_I_Root )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
     LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  This is a private subroutine.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine and
 !                              modify to print timers out in a table in the
-!                              DD-hh:mm:ss.SSS format 
-!  20 Dec 2017 - R. Yantosca - Bug fix: do not initialize variables at 
+!                              DD-hh:mm:ss.SSS format
+!  20 Dec 2017 - R. Yantosca - Bug fix: do not initialize variables at
 !                              declaration, this makes them SAVEd variables
 
 !EOP
@@ -913,9 +913,9 @@ CONTAINS
     ! Initialize
     InputSecs  = 0.0_f8
     SecsLeft   = 0.0_f8
-    TotalMS    = 0  
-    TotalSecs  = 0  
-    TotalMins  = 0  
+    TotalMS    = 0
+    TotalSecs  = 0
+    TotalMins  = 0
     TotalHours = 0
     TotalDays  = 0
 
@@ -923,7 +923,7 @@ CONTAINS
     InputSecs = SavedTimers(SlotNumber)%TOTAL_TIME
     IntSecs   = INT(InputSecs)
     SecsLeft  = InputSecs - REAL(IntSecs)
-    
+
     IF ( InputSecs < 0 ) THEN ! Invalid time
        WRITE( 6, 110 ), SavedTimers(SlotNumber)%TIMER_NAME
 110    FORMAT(2x,a30,': Invalid run time - negative value')
@@ -979,7 +979,7 @@ CONTAINS
     WRITE( MM, '(i2.2)' ) TotalMins
     WRITE( SS, '(i2.2)' ) TotalSecs
     WRITE( MS, '(i3.3)' ) TotalMS
-    
+
     WRITE( 6, 130 ) SavedTimers(SlotNumber)%TIMER_NAME,                      &
                     DD, HH, MM, SS, MS, InputSecs
 130 FORMAT( 2x,a30,':',2x,a2,'-',a2,':',a2,':',a2,'.',a3, 4x, f14.3    )

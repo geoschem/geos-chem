@@ -11,10 +11,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLDICE_HBrHOBr_RXN( I,      J,      L,    DENAIR, 
+      SUBROUTINE CLDICE_HBrHOBr_RXN( I,      J,      L,    DENAIR,
      &                               QI,     hbr,    hobr,
      &                               k_hbr,  k_hobr, AREA, State_Met )
-! 
+!
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV, IT_IS_NAN
@@ -58,7 +58,7 @@
 !       The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
 !       is computed as:
 !                                                                             .
-!         ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
+!         ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]
 !                                                                             .
 !       where nu   = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
 !             DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
@@ -155,7 +155,7 @@
       !
       !  ** using g = 0.1 for cold and mixed clouds
       ! ----------------------------------------------
-      IF ( ( T(I,J,L) >= 180.e+0_f8) .and. 
+      IF ( ( T(I,J,L) >= 180.e+0_f8) .and.
      &     ( T(I,J,L) <= 268.e+0_f8) ) THEN
          gamma = 0.1e+0_f8
       ELSE
@@ -219,7 +219,7 @@
       !                RADIUS (in cm)
       !
       !
-      !    or    
+      !    or
       !                   3 x Vc
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
@@ -305,11 +305,11 @@
       ! i.) Deal with HBr
       ! ----------------------
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-      DFKG  = 9.45e+17_f8/DENAIR * STK * SQRT(3.472e-2_f8 + 
+      DFKG  = 9.45e+17_f8/DENAIR * STK * SQRT(3.472e-2_f8 +
      &     1.e+0_f8/(SQM_hbr*SQM_hbr))
 
       ! Compute ARSL1K according to the formula listed above
-      cld1k_hbr = AREA / ( RADIUS/DFKG + 2.749064E-4 
+      cld1k_hbr = AREA / ( RADIUS/DFKG + 2.749064E-4
      &     * SQM_hbr/(gamma*STK) )
 !jp_loss     &     * SQM_hbr/(gamma_hbr*STK) )
 
@@ -317,11 +317,11 @@
       ! ii.) Deal with HOBr
       ! ----------------------
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-      DFKG  = 9.45e+17_f8/DENAIR * STK * SQRT(3.472e-2_f8 + 
+      DFKG  = 9.45e+17_f8/DENAIR * STK * SQRT(3.472e-2_f8 +
      &     1.e+0_f8/(SQM_hobr*SQM_hobr))
 
       ! Compute ARSL1K according to the formula listed above
-      cld1k_hobr = AREA / ( RADIUS/DFKG + 2.749064E-4 
+      cld1k_hobr = AREA / ( RADIUS/DFKG + 2.749064E-4
      &     * SQM_hobr/(gamma*STK) )
 !jp_loss     &     * SQM_hobr/(gamma_hobr*STK) )
 

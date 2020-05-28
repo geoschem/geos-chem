@@ -31,7 +31,7 @@ package StrTrim;
 # !CALLING SEQUENCE:
 #  use StrTrim qw( trim splitLine extractFile );
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  30 Jan 2012 - R. Yantosca - Initial version
 #  26 Mar 2012 - R. Yantosca - Add function &extractFile
 #EOP
@@ -78,7 +78,7 @@ sub trim($) {
 #------------------------------------------------------------------------------
 #BOC
 
-  # Shift the @_ array 
+  # Shift the @_ array
   my $string = shift;
 
   # Remove leading whitespace
@@ -127,7 +127,7 @@ sub splitLine($$) {
   my @subStr = split( $delim, $line );
   my $name   = &trim( $subStr[0] );
   my $value  = &trim( $subStr[1] );
- 
+
   # Return substrings
   return( $name, $value );
 }
@@ -139,8 +139,8 @@ sub splitLine($$) {
 #
 # !IROUTINE: extractFile
 #
-# !DESCRIPTION: Routine extractFile splits a full Unix path name into a 
-#  directory string and a file name.  
+# !DESCRIPTION: Routine extractFile splits a full Unix path name into a
+#  directory string and a file name.
 #\\
 #\\
 # !INTERFACE:
@@ -149,7 +149,7 @@ sub extractFile($) {
 #
 # !INPUT PARAMETERS:
 #
-  # Full Unix path name 
+  # Full Unix path name
   my( $path ) = @_;
 #
 # !CALLING SEQUENCE:
@@ -173,7 +173,7 @@ sub extractFile($) {
   while ( ( $pos = index( $path, '/', $pos ) ) > -1 ) {
     $lastPos = $pos;
     $pos++;
-  }				
+  }
 
   # Directory part of the path
   $dir  = substr( $path, 0, $lastPos+1 );

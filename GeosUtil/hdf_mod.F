@@ -5,14 +5,14 @@
 !
 ! !MODULE: hdf_mod
 !
-! !DESCRIPTION: Module HDF\_MOD contains routines to write data to 
+! !DESCRIPTION: Module HDF\_MOD contains routines to write data to
 !  HDF5 files.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE HDF_MOD
-! 
+!
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -23,13 +23,13 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: CLEANUP_HDF
-      PUBLIC :: CLOSE_HDF 
+      PUBLIC :: CLOSE_HDF
       PUBLIC :: INIT_HDF
       PUBLIC :: OPEN_HDF
-      PUBLIC :: WRITE_HDF 
+      PUBLIC :: WRITE_HDF
 !
 ! !PUBLIC DATA MEMBERS:
-! 
+!
       PUBLIC :: HDFCATEGORY
       PUBLIC :: HDFDESCRIPT
       PUBLIC :: HDFNAME
@@ -52,14 +52,14 @@
       CHARACTER(LEN=40), ALLOCATABLE :: HDFUNIT(:,:)
 !
 ! !REMARKS:
-!  If you have the HDF5 library installed on your system, then you can 
+!  If you have the HDF5 library installed on your system, then you can
 !  compile GEOS-Chem with the option:
 !                                                                             .
 !      make HDF5=yes
 !                                                                             .
 !  which will activate the HDF5-specific code in this module to enable file
-!  I/O to HDF5 format.  You must also specify the HDF5 include and library 
-!  paths in the Makefile_header.mk.  
+!  I/O to HDF5 format.  You must also specify the HDF5 include and library
+!  paths in the Makefile_header.mk.
 !                                                                             .
 !  The default is not to activate the HDF5-specific code.
 !
@@ -93,7 +93,7 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%    NOTE: Subroutine is used only when USE_HDF5 is defined!    %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      SUBROUTINE OPEN_HDF( IU_HDF, FILENAME, IMAX, IMIN, 
+      SUBROUTINE OPEN_HDF( IU_HDF, FILENAME, IMAX, IMIN,
      &                     JMAX,   JMIN,     NI,   NJ, State_Grid    )
 !
 ! !USES:
@@ -101,7 +101,7 @@
       USE HDF5
       USE State_Grid_Mod, ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME   ! File name to open
       INTEGER,          INTENT(IN)    :: IMIN       ! Min longitude index
@@ -112,11 +112,11 @@
       INTEGER,          INTENT(IN)    :: NJ         ! # of latitudes
       TYPE(GrdState),   INTENT(IN)    :: State_Grid ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       INTEGER(HID_T),   INTENT(INOUT) :: IU_HDF     ! HDF5 file identifier
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  Nov 20 2009 - A. van Donkelaar - Initial Version
 !  21 Dec 2009 - R. Yantosca      - Modified to block out HDF5-specific code
 !                                   so that users w/o HDF5 library can still
@@ -173,7 +173,7 @@
          CALL h5screate_simple_f(rank, dims, dspace_id, error)
 
          ! Create the dataset with default properties.
-         CALL h5dcreate_f(IU_HDF, dsetname, H5T_NATIVE_REAL, 
+         CALL h5dcreate_f(IU_HDF, dsetname, H5T_NATIVE_REAL,
      &                 dspace_id, dset_id, error)
 
          ! Write the dataset.
@@ -277,7 +277,7 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%    NOTE: Subroutine is used only when USE_HDF5 is defined!    %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      SUBROUTINE WRITE_HDF( IU_HDF,  N,      NDCATEGORY, NDTRACER, 
+      SUBROUTINE WRITE_HDF( IU_HDF,  N,      NDCATEGORY, NDTRACER,
      &                      NDUNIT,  TAU0,   TAU1,       RESERVED,
      &                      NI,      NJ,     NL,         IFIRST,
      &                      JFIRST,  LFIRST, ARRAY )
@@ -413,7 +413,7 @@
      &                 dset_id, error)
 
       ! Write the dataset.
-      CALL h5dwrite_f(dset_id, H5T_NATIVE_REAL, ARRAY(:,:,:) *  
+      CALL h5dwrite_f(dset_id, H5T_NATIVE_REAL, ARRAY(:,:,:) *
      &                HDFSCALE(NDTRACER,GAMAPI2), dims, error)
 
       DO I = 1,7 !1,7
@@ -467,15 +467,15 @@
          CALL h5tset_size_f(atype_id, attrlen, error)
 
          ! Create dataset attribute.
-         CALL h5acreate_f(dset_id, aname, atype_id, aspace_id, 
+         CALL h5acreate_f(dset_id, aname, atype_id, aspace_id,
      &                 attr_id, error)
 
          ! Write the attribute data.
          IF (I < 4) THEN
-            CALL h5awrite_f(attr_id, atype_id, attr_data, 
+            CALL h5awrite_f(attr_id, atype_id, attr_data,
      &                      adims, error)
          ELSE
-            CALL h5awrite_f(attr_id, atype_id, attr_data_num, 
+            CALL h5awrite_f(attr_id, atype_id, attr_data_num,
      &                      adims, error)
          ENDIF
 

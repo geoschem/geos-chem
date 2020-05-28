@@ -7,21 +7,21 @@
 !
 ! !DESCRIPTION: Module HCOX\_State\_Mod contains routines and variables
 ! to organize the extensions state type ExtState. ExtState contains the
-! logical switches for each extension (denoting whether or not it is 
-! enabled) as well as pointers to all met fields used by the extensions. 
+! logical switches for each extension (denoting whether or not it is
+! enabled) as well as pointers to all met fields used by the extensions.
 ! ExtState is passed to all extension modules, and the met fields
-! defined in here are thus available to all extensions. Additional met 
+! defined in here are thus available to all extensions. Additional met
 ! fields (and extension switches) can be added as required.
 !\\
 ! This module contains the routines to initialize and finalize the
-! ExtState object, but doesn't link the met field pointers to the 
+! ExtState object, but doesn't link the met field pointers to the
 ! corresponding fields. This is done in the HEMCO-model interface
 ! routines (e.g. hcoi\_standalone\_mod.F90, hcoi\_gc\_main\_mod.F90).
 ! Newly added met fields will only work if the corresponding pointer
 ! assignments are added to these interface routines!
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCOX_STATE_MOD
 !
@@ -42,57 +42,57 @@ MODULE HCOX_STATE_MOD
 ! !DERIVED TYPES:
 !
   !=========================================================================
-  ! ExtDat_*: Derived types containing pointers to the met field arrays 
-  ! (Arr) and a logical flag whether or not the field is used by any of 
-  ! the extensions (DoUse).  Arrays can be 3D reals or 2D reals or integer 
-  ! All real values are of default precision! (df), as specified in 
+  ! ExtDat_*: Derived types containing pointers to the met field arrays
+  ! (Arr) and a logical flag whether or not the field is used by any of
+  ! the extensions (DoUse).  Arrays can be 3D reals or 2D reals or integer
+  ! All real values are of default precision! (df), as specified in
   ! HCO\_ERROR\_MOD.  You can add more types if necessary.
   !=========================================================================
- 
+
   ! 2D real, default precision
   TYPE, PUBLIC :: ExtDat_2R
      TYPE(Arr2D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
-     LOGICAL                 :: FromList 
+     LOGICAL                 :: FromList
   END TYPE ExtDat_2R
 
   ! 2D real, single precision
   TYPE, PUBLIC :: ExtDat_2S
      TYPE(Arr2D_SP), POINTER :: Arr
      LOGICAL                 :: DoUse
-     LOGICAL                 :: FromList 
+     LOGICAL                 :: FromList
   END TYPE ExtDat_2S
 
   ! 2D integer
   TYPE, PUBLIC :: ExtDat_2I
      TYPE(Arr2D_I),  POINTER :: Arr
      LOGICAL                 :: DoUse
-     LOGICAL                 :: FromList 
+     LOGICAL                 :: FromList
   END TYPE ExtDat_2I
 
   ! 3D real, default precision
   TYPE, PUBLIC :: ExtDat_3R
      TYPE(Arr3D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
-     LOGICAL                 :: FromList 
+     LOGICAL                 :: FromList
   END TYPE ExtDat_3R
 
   ! 3D real, single precision
   TYPE, PUBLIC :: ExtDat_3S
      TYPE(Arr3D_SP), POINTER :: Arr
      LOGICAL                 :: DoUse
-     LOGICAL                 :: FromList 
+     LOGICAL                 :: FromList
   END TYPE ExtDat_3S
 
   !=========================================================================
-  ! Ext_State: Derived type declaration for the State object containing 
-  ! pointers to all met fields and related quantities used by the HEMCO 
-  ! extensions. An 'Ext_State' type called ExtState is defined at the 
+  ! Ext_State: Derived type declaration for the State object containing
+  ! pointers to all met fields and related quantities used by the HEMCO
+  ! extensions. An 'Ext_State' type called ExtState is defined at the
   ! beginning of a HEMCO run and populated according to the specifications
   ! set in the configuration file.  You can add more fields if necessary.
   !=========================================================================
   TYPE, PUBLIC :: Ext_State
- 
+
      !----------------------------------------------------------------------
      ! Extension switches (enabled?)
      ! NOTE: When adding a new extension, don't forget to initialize this
@@ -122,38 +122,38 @@ MODULE HCOX_STATE_MOD
      !----------------------------------------------------------------------
      ! Data directory
      !----------------------------------------------------------------------
-     CHARACTER(LEN=255)        :: DATA_DIR    ! Directory for data 
+     CHARACTER(LEN=255)        :: DATA_DIR    ! Directory for data
 
      !----------------------------------------------------------------------
      ! Met fields
      !----------------------------------------------------------------------
      TYPE(ExtDat_2R),  POINTER :: U10M        ! E/W 10m wind speed [m/s]
      TYPE(ExtDat_2R),  POINTER :: V10M        ! N/S 10m wind speed [m/s]
-     TYPE(ExtDat_2R),  POINTER :: ALBD        ! Surface albedo [-] 
+     TYPE(ExtDat_2R),  POINTER :: ALBD        ! Surface albedo [-]
      TYPE(ExtDat_2R),  POINTER :: WLI         ! 0=water, 1=land, 2=ice
-     TYPE(ExtDat_2R),  POINTER :: T2M         ! 2m Sfce temperature [K] 
+     TYPE(ExtDat_2R),  POINTER :: T2M         ! 2m Sfce temperature [K]
      TYPE(ExtDat_2R),  POINTER :: TSKIN       ! Surface skin temperature [K]
      TYPE(ExtDat_2R),  POINTER :: GWETROOT    ! Root soil wetness [1]
      TYPE(ExtDat_2R),  POINTER :: GWETTOP     ! Top soil moisture [-]
      TYPE(ExtDat_2R),  POINTER :: SNOWHGT     ! Snow height [mm H2O = kg H2O/m2]
-     TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ] 
+     TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ]
      TYPE(ExtDat_2R),  POINTER :: SNICE       ! Fraction of snow/ice [1]
-     TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s] 
+     TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s]
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
-     TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [Pa] 
-     TYPE(ExtDat_2R),  POINTER :: SUNCOS      ! COS (SZA) 
+     TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [Pa]
+     TYPE(ExtDat_2R),  POINTER :: SUNCOS      ! COS (SZA)
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PSC2_WET    ! Interpolated sfc pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
-     TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-] 
-     TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-] 
-     TYPE(ExtDat_2R),  POINTER :: FROCEAN     ! ocean fraction [-] 
-     TYPE(ExtDat_2R),  POINTER :: FRLAKE      ! lake fraction [-] 
-     TYPE(ExtDat_2R),  POINTER :: FRLANDIC    ! land ice fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: FROCEAN     ! ocean fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: FRLAKE      ! lake fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: FRLANDIC    ! land ice fraction [-]
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
-     TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
+     TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s]
      TYPE(ExtDat_2R),  POINTER :: JOH         ! J-Value for O3->OH  [1/s]
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
@@ -161,13 +161,13 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: FLASH_DENS  ! Lightning flash density [#/km2/s]
      TYPE(ExtDat_2R),  POINTER :: CONV_DEPTH  ! Convective cloud depth [m]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
-     TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
+     TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s]
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
-     TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg total air] 
+     TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg total air]
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
      TYPE(ExtDat_3R),  POINTER :: AIR         ! Dry air mass [kg]
-     TYPE(ExtDat_3R),  POINTER :: AIRVOL      ! Air volume [m3] 
-     TYPE(ExtDat_3R),  POINTER :: AIRDEN      ! Dry air density [kg/m3] 
+     TYPE(ExtDat_3R),  POINTER :: AIRVOL      ! Air volume [m3]
+     TYPE(ExtDat_3R),  POINTER :: AIRDEN      ! Dry air density [kg/m3]
      TYPE(ExtDat_3R),  POINTER :: O3          ! O3 mass [kg/kg dry air]
      TYPE(ExtDat_3R),  POINTER :: NO          ! NO mass [kg/kg dry air]
      TYPE(ExtDat_3R),  POINTER :: NO2         ! NO2 mass [kg/kg dry air]
@@ -181,13 +181,13 @@ MODULE HCOX_STATE_MOD
      ! they may represent accumulated deposition velocities if chemistry
      ! and/or dynamic timestep are not equal to the emission timestep.
      ! These values are used by the soil NOx module. Note that it is assumed
-     ! that DRY_TOTN and WET_TOTN are summed over chemistry and transport 
+     ! that DRY_TOTN and WET_TOTN are summed over chemistry and transport
      ! timesteps, respectively!
      !----------------------------------------------------------------------
-     TYPE(ExtDat_2R),  POINTER :: DRY_TOTN    ! Dry deposited N   [molec/cm2/s] 
-     TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s] 
+     TYPE(ExtDat_2R),  POINTER :: DRY_TOTN    ! Dry deposited N   [molec/cm2/s]
+     TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s]
      REAL(hp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
-     
+
      !----------------------------------------------------------------------
      ! Constants for POPs emissions module
      !----------------------------------------------------------------------
@@ -201,12 +201,12 @@ MODULE HCOX_STATE_MOD
      !----------------------------------------------------------------------
      ! Fields used in ESMF environment only. These arrays won't be used
      ! in a classic environment. They become filled in HCO_SetExtState_ESMF
-     ! in hcoi_esmf_mod.F90 (called from within hcoi_gc_main_mod.F90). 
+     ! in hcoi_esmf_mod.F90 (called from within hcoi_gc_main_mod.F90).
      !----------------------------------------------------------------------
-     TYPE(ExtDat_3S),  POINTER :: BYNCY       ! Buoyancy 
-     TYPE(ExtDat_2S),  POINTER :: LFR         ! Lightning flash rate 
+     TYPE(ExtDat_3S),  POINTER :: BYNCY       ! Buoyancy
+     TYPE(ExtDat_2S),  POINTER :: LFR         ! Lightning flash rate
      TYPE(ExtDat_2R),  POINTER :: CNV_FRC     ! convective fraction (filled
-                                              ! from State_Met) 
+                                              ! from State_Met)
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -218,25 +218,25 @@ MODULE HCOX_STATE_MOD
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  27 Jun 2014 - C. Keller   - Added FINN biomass burning extension
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
-!  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
+!  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj.
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Modified for TOMAS sea salt emissions module
 !  11 Dec 2014 - M. Yannetti - Updated DRYCOEFF to REAL(hp)
 !  10 Mar 2015 - C. Keller   - Fields can now be in HEMCO precision or single
-!                              precision. Single precision is useful for 
-!                              fields used in ESMF setting. 
+!                              precision. Single precision is useful for
+!                              fields used in ESMF setting.
 !  03 Apr 2015 - C. Keller   - Added ExtDat_Set.
 !  21 Feb 2016 - C. Keller   - Update to HEMCO v2.0
 !  03 Mar 2016 - C. Keller   - Added CNV_FRC
 !  20 Apr 2016 - M. Sulprizio- Change JO1D pointer to JOH to reflect that it now
 !                              points to the effective O3 + hv -> 2OH rates
 !  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
-!  17 Oct 2017 - C. Keller   - Add lightning flash rate 
+!  17 Oct 2017 - C. Keller   - Add lightning flash rate
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
 !
-! !MODULE INTERFACES: 
+! !MODULE INTERFACES:
 !
   INTERFACE ExtDat_Init
      MODULE PROCEDURE ExtDat_Init_2R
@@ -245,7 +245,7 @@ MODULE HCOX_STATE_MOD
      MODULE PROCEDURE ExtDat_Init_3R
      MODULE PROCEDURE ExtDat_Init_3S
   END INTERFACE ExtDat_Init
- 
+
   INTERFACE ExtDat_Set
      MODULE PROCEDURE ExtDat_Set_2R
      MODULE PROCEDURE ExtDat_Set_2S
@@ -253,7 +253,7 @@ MODULE HCOX_STATE_MOD
      MODULE PROCEDURE ExtDat_Set_3R
      MODULE PROCEDURE ExtDat_Set_3S
   END INTERFACE ExtDat_Set
- 
+
   INTERFACE ExtDat_Cleanup
      MODULE PROCEDURE ExtDat_Cleanup_2R
      MODULE PROCEDURE ExtDat_Cleanup_2S
@@ -271,7 +271,7 @@ CONTAINS
 !
 ! !ROUTINE: ExtStateInit
 !
-! !DESCRIPTION: Initializes all fields of the ExtState object. 
+! !DESCRIPTION: Initializes all fields of the ExtState object.
 !\\
 !\\
 ! !INTERFACE:
@@ -300,7 +300,7 @@ CONTAINS
     ! ExtStateInit begins here
     !======================================================================
 
-    ! Allocate object 
+    ! Allocate object
     IF ( .NOT. ASSOCIATED ( ExtState ) ) ALLOCATE ( ExtState )
 
     !-----------------------------------------------------------------------
@@ -321,7 +321,7 @@ CONTAINS
     ExtState%FINN           = -1
     ExtState%GC_RnPbBe      = -1
     ExtState%GC_POPs        = -1
-    ExtState%Wetland_CH4    = -1 
+    ExtState%Wetland_CH4    = -1
     ExtState%TOMAS_Jeagle   = -1
     ExtState%TOMAS_DustDead = -1
     ExtState%Volcano        = -1
@@ -340,91 +340,91 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.
     ! This defines a nullified pointer for every met field and sets the
-    ! corresponding DoUse flag to FALSE. The pointers to the met fields 
+    ! corresponding DoUse flag to FALSE. The pointers to the met fields
     ! need to be defined in the HEMCO-model interface routine.
     !-----------------------------------------------------------------------
-    CALL ExtDat_Init( ExtState%U10M, RC ) 
+    CALL ExtDat_Init( ExtState%U10M, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%V10M, RC ) 
+    CALL ExtDat_Init ( ExtState%V10M, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%ALBD, RC ) 
+    CALL ExtDat_Init ( ExtState%ALBD, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%WLI , RC ) 
+    CALL ExtDat_Init ( ExtState%WLI , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%T2M, RC ) 
+    CALL ExtDat_Init ( ExtState%T2M, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%TSKIN, RC ) 
+    CALL ExtDat_Init ( ExtState%TSKIN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%GWETROOT, RC ) 
+    CALL ExtDat_Init ( ExtState%GWETROOT, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%GWETTOP, RC ) 
+    CALL ExtDat_Init ( ExtState%GWETTOP, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SNOWHGT, RC ) 
+    CALL ExtDat_Init ( ExtState%SNOWHGT, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SNODP, RC ) 
+    CALL ExtDat_Init ( ExtState%SNODP, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SNICE, RC ) 
+    CALL ExtDat_Init ( ExtState%SNICE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%USTAR, RC ) 
+    CALL ExtDat_Init ( ExtState%USTAR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%Z0, RC ) 
+    CALL ExtDat_Init ( ExtState%Z0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%TROPP, RC ) 
+    CALL ExtDat_Init ( ExtState%TROPP, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SUNCOS, RC ) 
+    CALL ExtDat_Init ( ExtState%SUNCOS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SZAFACT, RC ) 
+    CALL ExtDat_Init ( ExtState%SZAFACT, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PARDR, RC ) 
+    CALL ExtDat_Init ( ExtState%PARDR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PARDF, RC ) 
+    CALL ExtDat_Init ( ExtState%PARDF, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PSC2_WET, RC ) 
+    CALL ExtDat_Init ( ExtState%PSC2_WET, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
+    CALL ExtDat_Init ( ExtState%RADSWG, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%FRCLND, RC ) 
+    CALL ExtDat_Init ( ExtState%FRCLND, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%FRLAND, RC ) 
+    CALL ExtDat_Init ( ExtState%FRLAND, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%FROCEAN, RC ) 
+    CALL ExtDat_Init ( ExtState%FROCEAN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%FRLAKE, RC ) 
+    CALL ExtDat_Init ( ExtState%FRLAKE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%FRLANDIC, RC ) 
+    CALL ExtDat_Init ( ExtState%FRLANDIC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%CLDFRC, RC ) 
+    CALL ExtDat_Init ( ExtState%CLDFRC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%LAI, RC ) 
+    CALL ExtDat_Init ( ExtState%LAI, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%CHLR, RC ) 
+    CALL ExtDat_Init ( ExtState%CHLR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%FLASH_DENS, RC )
@@ -433,66 +433,66 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CONV_DEPTH, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%JNO2, RC ) 
+    CALL ExtDat_Init ( ExtState%JNO2, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%JOH, RC ) 
+    CALL ExtDat_Init ( ExtState%JOH, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%CNV_MFC, RC ) 
+    CALL ExtDat_Init ( ExtState%CNV_MFC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ExtState%PBL_MAX    => NULL()
 
-    CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
+    CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SPHU, RC ) 
+    CALL ExtDat_Init ( ExtState%SPHU, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%TK, RC ) 
+    CALL ExtDat_Init ( ExtState%TK, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%AIR, RC ) 
+    CALL ExtDat_Init ( ExtState%AIR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%AIRVOL, RC ) 
+    CALL ExtDat_Init ( ExtState%AIRVOL, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%AIRDEN, RC ) 
+    CALL ExtDat_Init ( ExtState%AIRDEN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%O3, RC ) 
+    CALL ExtDat_Init ( ExtState%O3, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%NO, RC ) 
+    CALL ExtDat_Init ( ExtState%NO, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%NO2, RC ) 
+    CALL ExtDat_Init ( ExtState%NO2, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%HNO3, RC ) 
+    CALL ExtDat_Init ( ExtState%HNO3, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%POPG, RC ) 
+    CALL ExtDat_Init ( ExtState%POPG, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%DRY_TOTN, RC ) 
+    CALL ExtDat_Init ( ExtState%DRY_TOTN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
+    CALL ExtDat_Init ( ExtState%WET_TOTN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%BYNCY, RC ) 
+    CALL ExtDat_Init ( ExtState%BYNCY, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%LFR, RC ) 
+    CALL ExtDat_Init ( ExtState%LFR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%CNV_FRC, RC ) 
+    CALL ExtDat_Init ( ExtState%CNV_FRC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%TropLev, RC ) 
+    CALL ExtDat_Init ( ExtState%TropLev, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -507,8 +507,8 @@ CONTAINS
 !
 ! !IROUTINE: ExtStateFinal
 !
-! !DESCRIPTION: Finalizes the ExtState object. This removes all defined 
-!  pointer links (i.e. nullifies ExtDat\%Arr), but does not deallocate 
+! !DESCRIPTION: Finalizes the ExtState object. This removes all defined
+!  pointer links (i.e. nullifies ExtDat\%Arr), but does not deallocate
 !  the target array!
 !\\
 !\\
@@ -600,12 +600,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_2R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init\_2R initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2R initializes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Init_2R ( ExtDat, RC ) 
+  SUBROUTINE ExtDat_Init_2R ( ExtDat, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -647,12 +647,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_2S
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init\_2S initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2S initializes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Init_2S ( ExtDat, RC ) 
+  SUBROUTINE ExtDat_Init_2S ( ExtDat, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -694,12 +694,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_2I
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init\_2I initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2I initializes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Init_2I ( ExtDat, RC ) 
+  SUBROUTINE ExtDat_Init_2I ( ExtDat, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -741,12 +741,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_3R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init\_3R initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_3R initializes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Init_3R ( ExtDat, RC ) 
+  SUBROUTINE ExtDat_Init_3R ( ExtDat, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -787,12 +787,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_3S
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init\_3S initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_3S initializes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Init_3S ( ExtDat, RC ) 
+  SUBROUTINE ExtDat_Init_3S ( ExtDat, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -838,7 +838,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_2R ( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_2R ( ExtDat )
 !
 ! !INPUT PARAMETERS:
 !
@@ -855,8 +855,8 @@ CONTAINS
     ! ExtDat_Cleanup_2R begins here
     ! ================================================================
 
-    IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+    IF ( ASSOCIATED( ExtDat) ) THEN
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. )
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -874,7 +874,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_2S ( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_2S ( ExtDat )
 !
 ! !INPUT PARAMETERS:
 !
@@ -891,8 +891,8 @@ CONTAINS
     ! ExtDat_Cleanup_2S begins here
     ! ================================================================
 
-    IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+    IF ( ASSOCIATED( ExtDat) ) THEN
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. )
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -905,12 +905,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_2I
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2I removes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2I removes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_2I ( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_2I ( ExtDat )
 !
 ! !INPUT PARAMETERS:
 !
@@ -927,8 +927,8 @@ CONTAINS
     ! ExtDat_Cleanup_2I begins here
     ! ================================================================
 
-    IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+    IF ( ASSOCIATED( ExtDat) ) THEN
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. )
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -941,12 +941,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_3R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3R removes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3R removes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_3R( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_3R( ExtDat )
 !
 ! !INPUT PARAMETERS:
 !
@@ -963,8 +963,8 @@ CONTAINS
     ! ExtDat_Cleanup_3R begins here
     ! ================================================================
 
-    IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+    IF ( ASSOCIATED( ExtDat) ) THEN
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. )
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -977,12 +977,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_3S
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3S removes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3S removes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_3S( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_3S( ExtDat )
 !
 ! !INPUT PARAMETERS:
 !
@@ -999,8 +999,8 @@ CONTAINS
     ! ExtDat_Cleanup_3S begins here
     ! ================================================================
 
-    IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+    IF ( ASSOCIATED( ExtDat) ) THEN
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. )
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -1014,14 +1014,14 @@ CONTAINS
 ! !IROUTINE: ExtDat_Set_2R
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Set\_2R sets/updates the data array of an
-! ExtDat object. 
+! ExtDat object.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtDat_Set_2R ( am_I_Root, HcoState, ExtDat,  &
                              FldName,   RC,       First,   &
-                             Trgt,      Filled,   NotFillOk ) 
+                             Trgt,      Filled,   NotFillOk )
 !
 ! !USES:
 !
@@ -1035,17 +1035,17 @@ CONTAINS
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2R),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
-    INTEGER,          INTENT(INOUT)                   :: RC     
+    INTEGER,          INTENT(INOUT)                   :: RC
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(hp),         POINTER      , OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
 !  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
 !                            allows the application of scale factors to
-!                            ExtState fields read through the HEMCO interface. 
+!                            ExtState fields read through the HEMCO interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1057,14 +1057,14 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2R (hcox_state_mod.F90)'
     LOGICAL                :: FRST
-    LOGICAL                :: FOUND 
-    LOGICAL                :: FailIfNotFilled 
+    LOGICAL                :: FOUND
+    LOGICAL                :: FailIfNotFilled
 
     ! ================================================================
     ! ExtDat_Set_2R begins here
     ! ================================================================
 
-    ! Initialize 
+    ! Initialize
     RC = HCO_SUCCESS
     IF ( PRESENT(Filled) ) Filled = .FALSE.
 
@@ -1086,7 +1086,7 @@ CONTAINS
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
-    ! from emissions list 
+    ! from emissions list
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
        ! Allocate temporary array
@@ -1098,29 +1098,29 @@ CONTAINS
 
        ! Try to get data from list
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
-   
+
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
-  
+
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
              ! Verbose
              IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
-   
+
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-  
-             ! If target is not associated: 
+
+             ! If target is not associated:
              IF ( .NOT. ASSOCIATED(Trgt) ) THEN
                 IF ( FailIfNotFilled ) THEN
                    MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
@@ -1128,15 +1128,15 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-          
+
              ! If target is associated:
              ELSE
- 
+
                 ! Make sure dimensions agree
                 NX = SIZE(Trgt,1)
                 NY = SIZE(Trgt,2)
-    
-                ! Must cover the horizontal grid 
+
+                ! Must cover the horizontal grid
                 IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
                    WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
                       'correspond to simulation grid: ', &
@@ -1146,16 +1146,16 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-   
+
                 ! Link data to target
                 ExtDat%Arr%Val => Trgt
-      
+
                 ! Make sure it's not from list
                 ExtDat%FromList = .FALSE.
-      
+
                 ! This array is now filled
                 IF ( PRESENT(Filled) ) Filled = .TRUE.
-   
+
                 ! Verbose
                 IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                    MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
@@ -1163,17 +1163,17 @@ CONTAINS
                 ENDIF
              ENDIF
 
-          ! Field not found and no target defined 
+          ! Field not found and no target defined
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF ! FIRST
-   
+
        ! Eventually copy field from HEMCO list to ExtState. We need to
        ! make a copy and cannot just set a pointer because ExtState fields
-       ! are in HEMCO precision but the EmisList fields are in single 
+       ! are in HEMCO precision but the EmisList fields are in single
        ! precisions.
        IF ( ExtDat%FromList ) THEN
           IF ( FOUND ) THEN
@@ -1186,7 +1186,7 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF ! FromList
-    ENDIF  
+    ENDIF
 
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
@@ -1196,9 +1196,9 @@ CONTAINS
 
     ! Cleanup
     IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
- 
+
     ! Return w/ success
-    RC = HCO_SUCCESS  
+    RC = HCO_SUCCESS
 
   END SUBROUTINE ExtDat_Set_2R
 !EOC
@@ -1210,14 +1210,14 @@ CONTAINS
 ! !IROUTINE: ExtDat_Set_2S
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Set\_2S sets/updates the data array of an
-! ExtDat object. 
+! ExtDat object.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtDat_Set_2S ( am_I_Root, HcoState, ExtDat,  &
                              FldName,   RC,       First,   &
-                             Trgt,      Filled,   NotFillOk ) 
+                             Trgt,      Filled,   NotFillOk )
 !
 ! !USES:
 !
@@ -1231,17 +1231,17 @@ CONTAINS
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2S),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
-    INTEGER,          INTENT(INOUT)                   :: RC     
+    INTEGER,          INTENT(INOUT)                   :: RC
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(sp),         POINTER      , OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
 !  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
 !                            allows the application of scale factors to
-!                            ExtState fields read through the HEMCO interface. 
+!                            ExtState fields read through the HEMCO interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1253,14 +1253,14 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2S (hcox_state_mod.F90)'
     LOGICAL                :: FRST
-    LOGICAL                :: FOUND 
-    LOGICAL                :: FailIfNotFilled 
+    LOGICAL                :: FOUND
+    LOGICAL                :: FailIfNotFilled
 
     ! ================================================================
     ! ExtDat_Set_2S begins here
     ! ================================================================
 
-    ! Init 
+    ! Init
     RC = HCO_SUCCESS
     IF ( PRESENT(Filled) ) Filled = .FALSE.
 
@@ -1282,7 +1282,7 @@ CONTAINS
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
-    ! from emissions list 
+    ! from emissions list
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
        ! Allocate temporary array
@@ -1294,29 +1294,29 @@ CONTAINS
 
        ! Try to get data from list
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
-   
+
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
-  
+
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
              ! Verbose
              IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
-   
+
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
- 
-             ! If target is not associated: 
+
+             ! If target is not associated:
              IF ( .NOT. ASSOCIATED(Trgt) ) THEN
                 IF ( FailIfNotFilled ) THEN
                    MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
@@ -1324,15 +1324,15 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-          
+
              ! If target is associated:
              ELSE
- 
+
                 ! Make sure dimensions agree
                 NX = SIZE(Trgt,1)
                 NY = SIZE(Trgt,2)
-    
-                ! Must cover the horizontal grid 
+
+                ! Must cover the horizontal grid
                 IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
                    WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
                       'correspond to simulation grid: ', &
@@ -1342,16 +1342,16 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-   
+
                 ! Link data to target
                 ExtDat%Arr%Val => Trgt
-      
+
                 ! Make sure it's not from list
                 ExtDat%FromList = .FALSE.
-     
-                ! Mark as filled 
+
+                ! Mark as filled
                 IF ( PRESENT(Filled) ) Filled = .TRUE.
-   
+
                 ! Verbose
                 IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                    MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
@@ -1359,17 +1359,17 @@ CONTAINS
                 ENDIF
              ENDIF
 
-          ! Field not found and no target defined 
+          ! Field not found and no target defined
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF ! FIRST
-   
+
        ! Eventually copy field from HEMCO list to ExtState. We need to
        ! make a copy and cannot just set a pointer because ExtState fields
-       ! are in HEMCO precision but the EmisList fields are in single 
+       ! are in HEMCO precision but the EmisList fields are in single
        ! precisions.
        IF ( ExtDat%FromList ) THEN
           IF ( FOUND ) THEN
@@ -1380,9 +1380,9 @@ CONTAINS
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
-          ENDIF 
+          ENDIF
        ENDIF ! FromList
-    ENDIF  
+    ENDIF
 
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
@@ -1392,9 +1392,9 @@ CONTAINS
 
     ! Cleanup
     IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
- 
+
     ! Return w/ success
-    RC = HCO_SUCCESS  
+    RC = HCO_SUCCESS
 
   END SUBROUTINE ExtDat_Set_2S
 !EOC
@@ -1406,14 +1406,14 @@ CONTAINS
 ! !IROUTINE: ExtDat_Set_2I
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Set\_2I sets/updates the data array of an
-! ExtDat object. 
+! ExtDat object.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtDat_Set_2I ( am_I_Root, HcoState, ExtDat, &
                              FldName,   RC,       First,  &
-                             Trgt,      Filled,   NotFillOk ) 
+                             Trgt,      Filled,   NotFillOk )
 !
 ! !USES:
 !
@@ -1427,17 +1427,17 @@ CONTAINS
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2I),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
-    INTEGER,          INTENT(INOUT)                   :: RC     
+    INTEGER,          INTENT(INOUT)                   :: RC
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     INTEGER,          POINTER,       OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
 !  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
 !                            allows the application of scale factors to
-!                            ExtState fields read through the HEMCO interface. 
+!                            ExtState fields read through the HEMCO interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1449,14 +1449,14 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2I (hcox_state_mod.F90)'
     LOGICAL                :: FRST
-    LOGICAL                :: FOUND 
-    LOGICAL                :: FailIfNotFilled 
+    LOGICAL                :: FOUND
+    LOGICAL                :: FailIfNotFilled
 
     ! ================================================================
     ! ExtDat_Set_2I begins here
     ! ================================================================
 
-    ! Init 
+    ! Init
     RC = HCO_SUCCESS
     IF ( PRESENT(Filled) ) Filled = .FALSE.
 
@@ -1478,7 +1478,7 @@ CONTAINS
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
-    ! from emissions list 
+    ! from emissions list
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
        ! Allocate temporary array
@@ -1490,29 +1490,29 @@ CONTAINS
 
        ! Try to get data from list
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
-   
+
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
-  
+
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
              ! Verbose
              IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
-   
+
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-   
-             ! If target is not associated: 
+
+             ! If target is not associated:
              IF ( .NOT. ASSOCIATED(Trgt) ) THEN
                 IF ( FailIfNotFilled ) THEN
                    MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
@@ -1520,15 +1520,15 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-          
+
              ! If target is associated:
              ELSE
- 
+
                 ! Make sure dimensions agree
                 NX = SIZE(Trgt,1)
                 NY = SIZE(Trgt,2)
-    
-                ! Must cover the horizontal grid 
+
+                ! Must cover the horizontal grid
                 IF ( (NX /= HcoState%NX) .OR. (NY /= HcoState%NY) ) THEN
                    WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
                       'correspond to simulation grid: ', &
@@ -1538,16 +1538,16 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-    
+
                 ! Link data to target
                 ExtDat%Arr%Val => Trgt
-      
+
                 ! Make sure it's not from list
                 ExtDat%FromList = .FALSE.
-      
+
                 ! Mark as filled
                 IF ( PRESENT(Filled) ) Filled = .TRUE.
-   
+
                 ! Verbose
                 IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                    MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
@@ -1555,18 +1555,18 @@ CONTAINS
                 ENDIF
              ENDIF
 
-          ! Not found in list and no target defined 
+          ! Not found in list and no target defined
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-    
+
        ENDIF ! FIRST
-   
+
        ! Eventually copy field from HEMCO list to ExtState. We need to
        ! make a copy and cannot just set a pointer because ExtState fields
-       ! are in HEMCO precision but the EmisList fields are in single 
+       ! are in HEMCO precision but the EmisList fields are in single
        ! precisions.
        IF ( ExtDat%FromList ) THEN
           IF ( FOUND ) THEN
@@ -1580,21 +1580,21 @@ CONTAINS
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-   
+
        ENDIF !FromList
-    ENDIF 
-   
+    ENDIF
+
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
- 
+
     ! Cleanup
     IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
- 
+
     ! Return w/ success
-    RC = HCO_SUCCESS  
+    RC = HCO_SUCCESS
 
   END SUBROUTINE ExtDat_Set_2I
 !EOC
@@ -1606,14 +1606,14 @@ CONTAINS
 ! !IROUTINE: ExtDat_Set_3R
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Set\_3R sets/updates the data array of an
-! ExtDat object. 
+! ExtDat object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName,   & 
-                             RC,        First,    Trgt,   OnLevEdge, & 
-                             Filled,    NotFillOk                     ) 
+  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName,   &
+                             RC,        First,    Trgt,   OnLevEdge, &
+                             Filled,    NotFillOk                     )
 !
 ! !USES:
 !
@@ -1627,18 +1627,18 @@ CONTAINS
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_3R),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
-    INTEGER,          INTENT(INOUT)                   :: RC     
+    INTEGER,          INTENT(INOUT)                   :: RC
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(hp),         POINTER      , OPTIONAL         :: Trgt(:,:,:)
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
 !  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
 !                            allows the application of scale factors to
-!                            ExtState fields read through the HEMCO interface. 
+!                            ExtState fields read through the HEMCO interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1648,9 +1648,9 @@ CONTAINS
     INTEGER                :: AS, NX, NY, NZ, NZ_EXPECTED
     INTEGER                :: L
     LOGICAL                :: FRST
-    LOGICAL                :: FOUND 
-    LOGICAL                :: FailIfNotFilled 
-    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
+    LOGICAL                :: FOUND
+    LOGICAL                :: FailIfNotFilled
+    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:)
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3R (hcox_state_mod.F90)'
 
@@ -1658,7 +1658,7 @@ CONTAINS
     ! ExtDat_Set_3R begins here
     ! ================================================================
 
-    ! Init 
+    ! Init
     RC = HCO_SUCCESS
     IF ( PRESENT(Filled) ) Filled = .FALSE.
 
@@ -1688,7 +1688,7 @@ CONTAINS
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
-    ! from emissions list 
+    ! from emissions list
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
        ! Allocate temporary array
@@ -1700,11 +1700,11 @@ CONTAINS
 
        ! Try to get data from list
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
-   
+
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
@@ -1712,17 +1712,17 @@ CONTAINS
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
              ! Verbose
              IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
-   
+
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-   
-             ! If target is not associated: 
+
+             ! If target is not associated:
              IF ( .NOT. ASSOCIATED(Trgt) ) THEN
                 IF ( FailIfNotFilled ) THEN
                    MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
@@ -1730,16 +1730,16 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-          
+
              ! If target is associated:
              ELSE
-    
+
                 ! Make sure dimensions agree
                 NX = SIZE(Trgt,1)
                 NY = SIZE(Trgt,2)
                 NZ = SIZE(Trgt,3)
-    
-                ! Must cover the horizontal grid 
+
+                ! Must cover the horizontal grid
                 IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
                    WRITE(MSG,*) 'Dimensions of target data do not ', &
                       'correspond to simulation grid: ', &
@@ -1749,24 +1749,24 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-    
+
                 ! Link data to target
                 ExtDat%Arr%Val => Trgt
-      
+
                 ! Make sure it's not from list
                 ExtDat%FromList = .FALSE.
-      
+
                 ! Mark as filled
                 IF ( PRESENT(Filled) ) Filled = .TRUE.
-   
+
                 ! Verbose
                 IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                    MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                    CALL HCO_MSG(HcoState%Config%Err,MSG)
                 ENDIF
              ENDIF
-          
-          ! Not found in list and no target defined 
+
+          ! Not found in list and no target defined
           ELSEIF ( FailIfNotFilled ) THEN
              ! Target array must be present
              IF ( .NOT. PRESENT(Trgt) ) THEN
@@ -1775,17 +1775,17 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
-    
+
        ENDIF ! FIRST
-   
+
        ! Eventually copy field from HEMCO list to ExtState. We need to
        ! make a copy and cannot just set a pointer because ExtState fields
-       ! are in HEMCO precision but the EmisList fields are in single 
+       ! are in HEMCO precision but the EmisList fields are in single
        ! precisions.
        IF ( ExtDat%FromList ) THEN
           IF ( FOUND ) THEN
 
-             ! Copy data and mark as filled 
+             ! Copy data and mark as filled
              ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
@@ -1794,21 +1794,21 @@ CONTAINS
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
 
-          ENDIF 
+          ENDIF
        ENDIF !FromList
-    ENDIF 
+    ENDIF
 
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
- 
+
     ! Cleanup
     IF ( ALLOCATED(Arr3D) ) DEALLOCATE(Arr3D)
- 
+
     ! Return w/ success
-    RC = HCO_SUCCESS  
+    RC = HCO_SUCCESS
 
   END SUBROUTINE ExtDat_Set_3R
 !EOC
@@ -1820,14 +1820,14 @@ CONTAINS
 ! !IROUTINE: ExtDat_Set_3S
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Set\_3S sets/updates the data array of an
-! ExtDat object. 
+! ExtDat object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName,   & 
+  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName,   &
                              RC,        First,    Trgt,   OnLevEdge, &
-                             Filled,    NotFillOk                     ) 
+                             Filled,    NotFillOk                     )
 !
 ! !USES:
 !
@@ -1841,18 +1841,18 @@ CONTAINS
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_3S),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
-    INTEGER,          INTENT(INOUT)                   :: RC     
+    INTEGER,          INTENT(INOUT)                   :: RC
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(sp),         POINTER      , OPTIONAL         :: Trgt(:,:,:)
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
-    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
 !  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
 !                            allows the application of scale factors to
-!                            ExtState fields read through the HEMCO interface. 
+!                            ExtState fields read through the HEMCO interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1862,9 +1862,9 @@ CONTAINS
     INTEGER                :: AS, NX, NY, NZ, NZ_EXPECTED
     INTEGER                :: L
     LOGICAL                :: FRST
-    LOGICAL                :: FOUND 
-    LOGICAL                :: FailIfNotFilled 
-    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
+    LOGICAL                :: FOUND
+    LOGICAL                :: FailIfNotFilled
+    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:)
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3S (hcox_state_mod.F90)'
 
@@ -1872,7 +1872,7 @@ CONTAINS
     ! ExtDat_Set_3S begins here
     ! ================================================================
 
-    ! Init 
+    ! Init
     RC = HCO_SUCCESS
     IF ( PRESENT(Filled) ) Filled = .FALSE.
 
@@ -1902,7 +1902,7 @@ CONTAINS
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
-    ! from emissions list 
+    ! from emissions list
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
        ! Allocate temporary array
@@ -1914,11 +1914,11 @@ CONTAINS
 
        ! Try to get data from list
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
-   
+
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
@@ -1926,17 +1926,17 @@ CONTAINS
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
              ! Verbose
              IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
-   
+
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-  
-             ! If target is not associated: 
+
+             ! If target is not associated:
              IF ( .NOT. ASSOCIATED(Trgt) ) THEN
                 IF ( FailIfNotFilled ) THEN
                    MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
@@ -1944,16 +1944,16 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-          
+
              ! If target is associated:
              ELSE
-    
+
                 ! Make sure dimensions agree
                 NX = SIZE(Trgt,1)
                 NY = SIZE(Trgt,2)
                 NZ = SIZE(Trgt,3)
-    
-                ! Must cover the horizontal grid 
+
+                ! Must cover the horizontal grid
                 IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
                    WRITE(MSG,*) 'Dimensions of target data do not ', &
                       'correspond to simulation grid: ', &
@@ -1963,24 +1963,24 @@ CONTAINS
                    CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
-    
+
                 ! Link data to target
                 ExtDat%Arr%Val => Trgt
-      
+
                 ! Make sure it's not from list
                 ExtDat%FromList = .FALSE.
-      
+
                 ! Mark as filled
                 IF ( PRESENT(Filled) ) Filled = .TRUE.
-   
+
                 ! Verbose
                 IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                    MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                    CALL HCO_MSG(HcoState%Config%Err,MSG)
                 ENDIF
              ENDIF
-   
-          ! Not found in list and no target defined 
+
+          ! Not found in list and no target defined
           ELSEIF ( FailIfNotFilled ) THEN
              ! Target array must be present
              IF ( .NOT. PRESENT(Trgt) ) THEN
@@ -1989,37 +1989,37 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
-    
+
        ENDIF ! FIRST
-   
+
        ! Eventually copy field from HEMCO list to ExtState. We need to
        ! make a copy and cannot just set a pointer because ExtState fields
-       ! are in HEMCO precision but the EmisList fields are in single 
+       ! are in HEMCO precision but the EmisList fields are in single
        ! precisions.
        IF ( ExtDat%FromList ) THEN
           IF ( FOUND ) THEN
-             ! Copy data and mark as filled 
+             ! Copy data and mark as filled
              ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
              IF ( PRESENT(Filled) ) Filled = .TRUE.
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
-          ENDIF 
+          ENDIF
        ENDIF !FromList
-    ENDIF 
+    ENDIF
 
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
- 
+
     ! Cleanup
     IF ( ALLOCATED(Arr3D) ) DEALLOCATE(Arr3D)
- 
+
     ! Return w/ success
-    RC = HCO_SUCCESS  
+    RC = HCO_SUCCESS
 
   END SUBROUTINE ExtDat_Set_3S
 !EOC

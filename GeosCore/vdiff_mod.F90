@@ -9,10 +9,10 @@
 !  mixing scheme.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE VDIFF_MOD
-! 
+!
 ! !USES:
 !
 #if defined( BPCH_DIAG )
@@ -21,7 +21,8 @@ MODULE VDIFF_MOD
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
-  USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
+  USE VDIFF_PRE_MOD, ONLY : pcnst_                 ! N_TRACERS
+  ! For CESM - had to rename pcnst to pcnst_ for CAM namespace conflict
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
@@ -30,12 +31,12 @@ MODULE VDIFF_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  public :: DO_PBL_MIX_2 
+  public :: DO_PBL_MIX_2
 !
 ! !PRIVATE DATA MEMBERS:
-!  
+!
   save
-  
+
   integer :: plev
   integer :: plevp
 
@@ -44,12 +45,12 @@ MODULE VDIFF_MOD
        latvap = 2.5104e+06_fp,      &
        rhoh2o = 1.e+3_fp,           &
        tfh2o  = 273.16e+0_fp,       &
-       rair   = Rd,                 & 
-       rh2o   = Rv,                 &         
-       gravit = g0,                 & 
+       rair   = Rd,                 &
+       rh2o   = Rv,                 &
+       gravit = g0,                 &
        zvir   = rh2o/rair - 1.,     &
-       cappa  = Rd/cpair,           &       
-       r_g    = Rd / g0                       
+       cappa  = Rd/cpair,           &
+       r_g    = Rd / g0
 
   ! Obsolete variables and variables that are now defined with global params
   ! (ewl, 1/7/16)
@@ -73,15 +74,15 @@ MODULE VDIFF_MOD
   real(fp), parameter ::   &
        betam  = 15.e+0_fp,   & ! constant in wind gradient expression
        betas  =  5.e+0_fp,   & ! constant in surface layer gradient expression
-       betah  = 15.e+0_fp,   & ! constant in temperature gradient expression 
-       fak    =  8.5e+0_fp,  & ! constant in surface temperature excess         
+       betah  = 15.e+0_fp,   & ! constant in temperature gradient expression
+       fak    =  8.5e+0_fp,  & ! constant in surface temperature excess
        fakn   =  7.2e+0_fp,  & ! constant in turbulent prandtl number
        ricr   =   .3e+0_fp,  & ! critical richardson number
        sffrac =   .1e+0_fp,  & ! surface layer fraction of boundary layer
        vk     =   .4e+0_fp     ! von karmans constant
 
   ! These are assigned later, so we can't use the PARAMETER tag
-  real(fp) ::              & 
+  real(fp) ::              &
        g,                & ! gravitational acceleration
        onet,             & ! 1/3 power in wind gradient expression
        ccon,             & ! fak * sffrac * vk
@@ -94,24 +95,24 @@ MODULE VDIFF_MOD
   real(fp) :: &
        zkmin            ! minimum kneutral*f(ri)
   real(fp), allocatable :: ml2(:)   ! mixing lengths squaredB
-  real(fp), allocatable :: qmincg(:)   ! min. constituent concentration 
+  real(fp), allocatable :: qmincg(:)   ! min. constituent concentration
                                      !  counter-gradient term
-  
+
   integer :: &
        ntopfl, &        ! top level to which vertical diffusion is applied.
        npbl             ! maximum number of levels in pbl from surface
 
   logical, parameter :: divdiff = .true. , arvdiff = .false.
-  
+
   logical, parameter :: pblh_ar = .true.
-  
-  logical, parameter :: pbl_mean_drydep = .false.  ! use mean concentration 
-                                                   !  within the  PBL for 
+
+  logical, parameter :: pbl_mean_drydep = .false.  ! use mean concentration
+                                                   !  within the  PBL for
                                                    ! calculating drydep fluxes
-  logical, parameter :: drydep_back_cons = .false. ! backward consistency 
-                                                   !  with previous GEOS-Chem 
-                                                   !  drydep budgets 
-                                                   !-- useless when 
+  logical, parameter :: drydep_back_cons = .false. ! backward consistency
+                                                   !  with previous GEOS-Chem
+                                                   !  drydep budgets
+                                                   !-- useless when
                                                    !   pbl_mean_drydep=.false.
 
 !----------------------------------------------------------------------
@@ -126,7 +127,7 @@ MODULE VDIFF_MOD
 !  to DO_PBL_MIX_2 and VDIFFDR with INTENT(INOUT).
 !                                                                             .
 !  Because logical_mod.F and tracer_mod.F have been superseded by Input_Opt,
-!  we now use VDIFF_PRE_MOD to supply values 
+!  we now use VDIFF_PRE_MOD to supply values
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
@@ -141,7 +142,7 @@ MODULE VDIFF_MOD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
+!  24 Jun 2014 - R. Yantosca - Now get pcnst_ from vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
 !                              remove unused parameters
@@ -160,7 +161,7 @@ contains
 !
 ! !IROUTINE: pbinti
 !
-! !DESCRIPTION: Subroutine PBINTI initializes time independent variables 
+! !DESCRIPTION: Subroutine PBINTI initializes time independent variables
 !  of pbl package
 !\\
 !\\
@@ -173,11 +174,11 @@ contains
 !
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     real(fp), intent(in) :: gravx     !  acceleration of gravity
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !EOP
@@ -192,14 +193,14 @@ contains
     plevp = plev+1
     g     = gravx
     onet  = 1e+0_fp/3.e+0_fp
-    
+
 !-----------------------------------------------------------------------
 ! 	... derived constants
 !-----------------------------------------------------------------------
     ccon = fak*sffrac*vk
     binm = betam*sffrac
     binh = betah*sffrac
-    
+
   end subroutine pbinti
 !EOC
 !------------------------------------------------------------------------------
@@ -210,8 +211,8 @@ contains
 ! !IROUTINE: vdiff
 !
 ! !DESCRIPTION:
-!  Subroutine vdiff is the driver routine to compute vertical diffusion of 
-!  momentum, moisture, trace constituents and potential temperature. 
+!  Subroutine vdiff is the driver routine to compute vertical diffusion of
+!  momentum, moisture, trace constituents and potential temperature.
 !\\
 !\\
 ! !INTERFACE:
@@ -239,7 +240,7 @@ contains
 
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     integer, intent(in) :: lat, ip ! latitude index, long tile index
     integer, intent(in) :: plonl   ! number of local longitudes
@@ -260,7 +261,7 @@ contains
     TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     real(fp), intent(inout) :: &
          as2(:,:,:,:),       &     ! moist, tracers after vert. diff
@@ -277,9 +278,9 @@ contains
     real(fp), intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,  INTENT(OUT) :: RC 
+    INTEGER,  INTENT(OUT) :: RC
     real(fp), intent(out) :: &
          kvh_arg(:,:,:),     &     ! coefficient for heat and tracers
          kvm_arg(:,:,:),     &     ! coefficient for momentum
@@ -288,16 +289,16 @@ contains
          cgs_arg(:,:,:)            ! counter-grad star (cg/flux)
 !
 ! !REMARKS:
-!  Free atmosphere diffusivities are computed first; then modified by the 
-!  boundary layer scheme; then passed to individual parameterizations mvdiff, 
+!  Free atmosphere diffusivities are computed first; then modified by the
+!  boundary layer scheme; then passed to individual parameterizations mvdiff,
 !  qvdiff.
 !
-!  The free atmosphere diffusivities are based on standard mixing length forms 
-!  for the neutral diffusivity multiplied by functions of Richardson number. 
-!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum, 
+!  The free atmosphere diffusivities are based on standard mixing length forms
+!  for the neutral diffusivity multiplied by functions of Richardson number.
+!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum,
 !  potential temperature, and constitutents.
 !
-!  The stable Richardson num function (ri>0) is taken from Holtslag and 
+!  The stable Richardson num function (ri>0) is taken from Holtslag and
 !  Beljaars (1989), ECMWF proceedings. f = 1 / (1 + 10*ri*(1 + 8*ri)).
 !  The unstable richardson number function (ri<0) is taken from ccm1.
 !  f = sqrt(1 - 18*ri)
@@ -313,8 +314,8 @@ contains
 !                              derived type object
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
-!  04 Aug 2016 - M. Yannetti - Now pass State_Chm as argument; replace TCVV 
-!                              with species db MW and phys constant 
+!  04 Aug 2016 - M. Yannetti - Now pass State_Chm as argument; replace TCVV
+!                              with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -348,7 +349,7 @@ contains
          cch(plonl,plev), &        ! -lower diag for heat and constits
          ccm(plonl,plev), &        ! -lower diagonal for momentum
          cgh(plonl,plevp), &       ! countergradient term for heat
-         cgq(plonl,plevp,pcnst), & ! countergrad term for constituent
+         cgq(plonl,plevp,pcnst_), & ! countergrad term for constituent
          cgsh(plonl,plevp), &      ! countergrad term for sh
          kvf(plonl,plevp)          ! free atmosphere kv at interfaces
     real(fp) :: &
@@ -357,11 +358,11 @@ contains
          dubot(plonl), &           ! lowest layer u change from stress
          dvbot(plonl), &           ! lowest layer v change from stress
          dtbot(plonl), &           ! lowest layer t change from heat flx
-         dqbot(plonl,pcnst), &     ! lowest layer q change from const flx
+         dqbot(plonl,pcnst_), &     ! lowest layer q change from const flx
          dshbot(plonl), &          ! lowest layer sh change from wvflx
          thx(plonl,plev), &        ! temperature input + counter gradient
          thv(plonl,plev), &        ! virtual potential temperature
-         qmx(plonl,plev,pcnst), &  ! constituents input + counter grad
+         qmx(plonl,plev,pcnst_), &  ! constituents input + counter grad
          shmx(plonl,plev), &       ! sh input + counter grad
          zeh(plonl,plev), &        ! term in tri-diag. matrix system (t & q)
          zem(plonl,plev), &        ! term in tri-diag. matrix system (momentum)
@@ -379,10 +380,10 @@ contains
          rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
          zm(plonl,plev), &         ! midpoint geoptl height above sfc
          shflx(plonl), &           ! surface sensible heat flux (w/m2)
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &      ! surface constituent flux (kg/m2/s)
          wvflx(plonl)              ! water vapor flux (kg/m2/s)
     real(fp) :: &
-         qp1(plonl,plev,pcnst), &  ! moist, tracers after vert. diff
+         qp1(plonl,plev,pcnst_), &  ! moist, tracers after vert. diff
          shp1(plonl,plev), &       ! specific humidity (kg/kg)
          thp(plonl,plev)           ! pot temp after vert. diffusion
     real(fp) :: &
@@ -399,7 +400,7 @@ contains
 
     real(fp) :: pblh(plonl)          ! boundary-layer height [m]
 
-    real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
+    real(fp) :: qp0(plonl,plev,pcnst_) ! To store initial concentration values
                                     ! (as2)
 
     real(fp) :: sum_qp0, sum_qp1    ! Jintai Lin 20180809
@@ -422,10 +423,10 @@ contains
     !Populate local variables with values from arguments.(ccc, 11/17/09)
     um1    = uwnd(:,lat,:)
     vm1    = vwnd(:,lat,:)
-    tm1    = tadv(:,lat,:)    
-    pmidm1 = pmid(:,lat,:)  
-    pintm1 = pint(:,lat,:)      
-    rpdel  = rpdel_arg(:,lat,:)  
+    tm1    = tadv(:,lat,:)
+    pmidm1 = pmid(:,lat,:)
+    pintm1 = pint(:,lat,:)
+    rpdel  = rpdel_arg(:,lat,:)
     rpdeli = rpdeli_arg(:,lat,:)
     zm     = zm_arg(:,lat,:)
     shflx  = shflx_arg(:,lat)
@@ -453,8 +454,8 @@ contains
     do i = 1,plonl
        tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
-!ccc       if (present(taux) .and. present(tauy)) then 
-       if (present(taux_arg) .and. present(tauy_arg)) then 
+!ccc       if (present(taux) .and. present(tauy)) then
+       if (present(taux_arg) .and. present(tauy_arg)) then
           dubot(i)     = taux(i)*tmp1(i)
           dvbot(i)     = tauy(i)*tmp1(i)
        endif
@@ -462,10 +463,10 @@ contains
        dtbot(i)     = shflx(i)*tmp1(i)*rcpair
        kvf(i,plevp) = 0.e+0_fp
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        dqbot(:plonl,m) = cflx(:plonl,m)*tmp1(:plonl)
     end do
-    
+
 !      !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
@@ -478,7 +479,7 @@ contains
     end do
 
 !-----------------------------------------------------------------------
-! 	... compute virtual potential temperature for use in static stability 
+! 	... compute virtual potential temperature for use in static stability
 !           calculation.  0.61 is 1. - r(water vapor)/r(dry air).  use 0.61 instead
 !           of a computed variable in order to obtain an identical simulation to
 !           case 414.
@@ -487,14 +488,14 @@ contains
     do k = 1,plev
        thv(:,k) = thp(:,k)*(1. + zvir*shp1(:,k))
     end do
-    
+
 !      !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
 ! 	... compute the free atmosphere vertical diffusion coefficients
-!           kvh = kvq = kvm. 
+!           kvh = kvq = kvm.
 !-----------------------------------------------------------------------
     do k = ntopfl,plev-1
        do i = 1,plonl
@@ -536,28 +537,28 @@ contains
           kvf(i,k+1) = max( zkmin,kvn*fstab )
        end do
     end do
-    
+
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
-! 	... determine the boundary layer kvh (=kvq), kvm, 
+! 	... determine the boundary layer kvh (=kvq), kvm,
 !           counter gradient terms (cgh, cgq, cgs)
-!           boundary layer height (pblh) and 
+!           boundary layer height (pblh) and
 !           the perturbation temperature and moisture (tpert and qpert)
 !           the free atmosphere kv is returned above the boundary layer top.
 !-----------------------------------------------------------------------
 
-    ! ustar must always be inputted 
+    ! ustar must always be inputted
 !ccc    if (present(taux) .and. present(tauy)) then
     if (present(taux_arg) .and. present(tauy_arg)) then
        call pbldif( thp, shp1, zm, um1, vm1, &
                     tm1, pmidm1, kvf, cflx, shflx, &
                     kvm, kvh, &
                     cgh, cgq, cgs, pblh, tpert, qpert, &
-                    wvflx, cgsh, plonl, & 
-                    taux=taux, tauy=tauy, ustar=ustar )     
+                    wvflx, cgsh, plonl, &
+                    taux=taux, tauy=tauy, ustar=ustar )
     else
        call pbldif( thp, shp1, zm, um1, vm1, &
                     tm1, pmidm1, kvf, cflx, shflx, &
@@ -583,7 +584,7 @@ contains
           thx(i,k)  = thp(i,k)
           shmx(i,k) = shp1(i,k)
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m)
           end do
@@ -612,7 +613,7 @@ contains
                       *(potbar(i,k+1)*kvh(i,k+1)*cgsh(i,k+1) &
                       - potbar(i,k)*kvh(i,k)*cgsh(i,k))
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m) + tmp1(i) &
                           *(potbar(i,k+1)*kvh(i,k+1)*cgq(i,k+1,m) &
@@ -627,7 +628,7 @@ contains
 !           quasi-equilibrium conditions assumed for the countergradient term are
 !           strongly violated.
 !-----------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        adjust(:plonl) = .false.
        do k = plev-npbl+1,plev
           do i = 1,plonl
@@ -684,7 +685,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... determine superdiagonal (ca(k)) and subdiagonal (cc(k)) coeffs
 !           of the tridiagonal diffusion matrix. the diagonal elements are a
-!           combination of ca and cc; they are not explicitly provided to the 
+!           combination of ca and cc; they are not explicitly provided to the
 !           solver
 !-----------------------------------------------------------------------
 
@@ -708,7 +709,7 @@ contains
     end do
 
 !-----------------------------------------------------------------------
-! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
+! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
@@ -736,7 +737,7 @@ contains
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
 
-    call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+    call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 
 !-----------------------------------------------------------------------
@@ -754,7 +755,7 @@ contains
 !   which is OK for full chemistry simulations but a big problem
 !   for long lived species such as CH4 and CO2
 !-----------------------------------------------------------------------
-    DO M = 1, pcnst
+    DO M = 1, pcnst_
     do I = 1, plonl
 
        ! total mass in the PBL (ignoring the v/v -> m/m conversion)
@@ -780,7 +781,7 @@ contains
 !-----------------------------------------------------------------------
 
     call qvdiff( 1, shmx, dshbot, cch, zeh, &
-	         termh, shp1, plonl ) 
+	         termh, shp1, plonl )
 
 !-----------------------------------------------------------------------
 ! 	... correct sh
@@ -798,33 +799,33 @@ contains
 	         termh, thp, plonl )
 
     !Output values from local variables to arguments.(ccc, 11/17/09)
-    as2(:,lat,:,:)   = qp1 
+    as2(:,lat,:,:)   = qp1
     shp(:,lat,:)     = shp1
     thp_arg(:,lat,:) = thp
-    kvh_arg(:,lat,:) = kvh    
-    kvm_arg(:,lat,:) = kvm    
-    tpert_arg(:,lat) = tpert  
-    qpert_arg(:,lat) = qpert  
-    cgs_arg(:,lat,:)   = cgs    
-    pblh_arg(:,lat)  = pblh   
+    kvh_arg(:,lat,:) = kvh
+    kvm_arg(:,lat,:) = kvm
+    tpert_arg(:,lat) = tpert
+    qpert_arg(:,lat) = qpert
+    cgs_arg(:,lat,:)   = cgs
+    pblh_arg(:,lat)  = pblh
 
-    IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux   
-    IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
-    IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
+    IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux
+    IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy
+    IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar
 
 #if defined( BPCH_DIAG )
     !=======================================================
-    ! ND15 Diagnostic: 
+    ! ND15 Diagnostic:
     ! mass change due to mixing in the boundary layer
     ! ND15 diagnostic moved here to not count the emissions
     ! and dry deposition in the Turbulent Flux.
-    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
+    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to
     ! account for all mixing. (ccc, 9/24/10)
     !=======================================================
     IF ( ND15 > 0 ) THEN
 
        dqbot = 0e+0_fp
-       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+       call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
 
 !-----------------------------------------------------------------------
@@ -833,7 +834,7 @@ contains
 !   which is OK for full chemistry simulations but a big problem
 !   for long lived species such as CH4 and CO2
 !-----------------------------------------------------------------------
-       DO M = 1, pcnst
+       DO M = 1, pcnst_
        do I = 1, plonl
 
           ! total mass in the PBL (ignoring the v/v -> m/m conversion)
@@ -850,8 +851,8 @@ contains
        enddo
        ENDDO
 
-       DO M = 1, pcnst
-       DO L = 1, plev 
+       DO M = 1, pcnst_
+       DO L = 1, plev
        do I = 1, plonl
           ! Arrays in vdiff are upside-down
           K = plev - L + 1
@@ -879,18 +880,18 @@ contains
 ! !IROUTINE: pbldif
 !
 ! !DESCRIPTION: Subroutine PBLDIF computes the atmospheric boundary layer.
-!  The nonlocal scheme determines eddy diffusivities based on a diagnosed 
-!  boundary layer height and a turbulent velocity scale. Also, countergradient 
-!  effects for heat and moisture, and constituents are included, along with 
-!  temperature and humidity perturbations which measure the strength of 
+!  The nonlocal scheme determines eddy diffusivities based on a diagnosed
+!  boundary layer height and a turbulent velocity scale. Also, countergradient
+!  effects for heat and moisture, and constituents are included, along with
+!  temperature and humidity perturbations which measure the strength of
 !  convective thermals in the lower part of the atmospheric boundary layer.
 !\\
 !\\
 ! References:
 !
 !  \begin{enumerate}
-!  \item Holtslag, A. A. M., and B. A. Boville, 1993: \emph{Local versus 
-!         nonlocal boundary-layer diffusion in a global climate model}, 
+!  \item Holtslag, A. A. M., and B. A. Boville, 1993: \emph{Local versus
+!         nonlocal boundary-layer diffusion in a global climate model},
 !         \underline{J. Clim.}, \textbf{6}, 1825-1842.
 !  \end{enumerate}
 !
@@ -904,10 +905,10 @@ contains
                      taux    ,tauy    ,ustar )
 !
 ! !USES:
-! 
+!
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     integer, intent(in) :: &
 	 plonl
@@ -920,11 +921,11 @@ contains
          t(plonl,plev), &           ! temperature (used for density)
          pmid(plonl,plev), &        ! midpoint pressures
          kvf(plonl,plevp), &        ! free atmospheric eddy diffsvty [m2/s]
-         cflx(plonl,pcnst), &       ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &       ! surface constituent flux (kg/m2/s)
          wvflx(plonl), &            ! water vapor flux (kg/m2/s)
          shflx(plonl)               ! surface heat flux (w/m2)
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     real(fp), optional, intent(inout) :: &
          taux(plonl), &            ! x surface stress (n)
@@ -939,13 +940,13 @@ contains
          kvm(plonl,plevp), &        ! eddy diffusivity for momentum [m2/s]
          kvh(plonl,plevp), &        ! eddy diffusivity for heat [m2/s]
          cgh(plonl,plevp), &        ! counter-gradient term for heat [k/m]
-         cgq(plonl,plevp,pcnst), &  ! counter-gradient term for constituents
+         cgq(plonl,plevp,pcnst_), &  ! counter-gradient term for constituents
          cgsh(plonl,plevp), &       ! counter-gradient term for sh
          cgs(plonl,plevp), &        ! counter-gradient star (cg/flux)
          tpert(plonl), &            ! convective temperature excess
          qpert(plonl)               ! convective humidity excess
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !EOP
@@ -955,7 +956,7 @@ contains
 ! !LOCAL VARIABLES:
 !
     real(fp), parameter :: tiny = 1.e-36_fp      ! lower bound for wind magnitude
-    
+
     integer :: &
          i, &                 ! longitude index
          k, &                 ! level index
@@ -974,13 +975,13 @@ contains
          tkv, &                  ! model level potential temperature
          therm(plonl), &         ! thermal virtual temperature excess
          phiminv(plonl), &       ! inverse phi function for momentum
-         phihinv(plonl), &       ! inverse phi function for heat 
+         phihinv(plonl), &       ! inverse phi function for heat
          wm(plonl), &            ! turbulent velocity scale for momentum
          vvk, &                  ! velocity magnitude squared
          zm(plonl), &            ! current level height
          zp(plonl), &            ! current level height + one level up
          khfs(plonl), &          ! surface kinematic heat flux [mk/s]
-         kqfs(plonl,pcnst), &    ! sfc kinematic constituent flux [m/s]
+         kqfs(plonl,pcnst_), &    ! sfc kinematic constituent flux [m/s]
          kshfs(plonl), &         ! sfc kinematic moisture flux [m/s]
          zmzp                    ! level height halfway between zm and zp
     real(fp) :: &
@@ -988,7 +989,7 @@ contains
          tlv(plonl), &           ! ref. level pot tmp + tmp excess
          fak1(plonl), &          ! k*ustar*pblh
          fak2(plonl), &          ! k*wm*pblh
-         fak3(plonl), &          ! fakn*wstr/wm 
+         fak3(plonl), &          ! fakn*wstr/wm
          pblk(plonl), &          ! level eddy diffusivity for momentum
          pr(plonl), &            ! prandtl number for eddy diffusivities
          zl(plonl), &            ! zmzp / obukhov length
@@ -1002,11 +1003,11 @@ contains
          term, &                 ! intermediate calculation
          fac, &                  ! interpolation factor
          pblmin                  ! min pbl height due to mechanical mixing
-    
+
     !=================================================================
     ! pbldif begins here!
     !=================================================================
-    
+
 !------------------------------------------------------------------------
 ! 	... compute kinematic surface fluxes
 !------------------------------------------------------------------------
@@ -1019,7 +1020,7 @@ contains
        khfs(i)  = shflx(i)*rrho(i)/cpair
        kshfs(i) = wvflx(i)*rrho(i)
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        kqfs(:plonl,m) = cflx(:plonl,m)*rrho(:plonl)
     end do
 
@@ -1033,7 +1034,7 @@ contains
        cgsh(:,k) = 0.e+0_fp
        cgs(:,k)  = 0.e+0_fp
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do k = 1,plevp
           cgq(:,k,m) = 0.e+0_fp
        end do
@@ -1049,14 +1050,14 @@ contains
        therm(i)  = 0.e+0_fp
        qpert(i)  = 0.e+0_fp
        tpert(i)  = 0.e+0_fp
-       fak3(i)   = 0.e+0_fp  
-       zh(i)     = 0.e+0_fp  
+       fak3(i)   = 0.e+0_fp
+       zh(i)     = 0.e+0_fp
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
                    /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
 
     if (pblh_ar) then  ! use archived PBLH
-       
+
        do i = 1,plonl
           if( heatv(i) > 0.e+0_fp ) then
              unstbl(i) = .true.
@@ -1079,7 +1080,7 @@ contains
           pblh(i)   = z(i,plev)
           check(i)  = .true.
 !------------------------------------------------------------------------
-! 	... initialization of lowest level ri number 
+! 	... initialization of lowest level ri number
 !           (neglected in initial holtslag implementation)
 !------------------------------------------------------------------------
           rino(i,plev) = 0.e+0_fp
@@ -1118,7 +1119,7 @@ contains
              pblh(i) = z(i,plevp-npbl)
           end if
        end do
-       
+
 !------------------------------------------------------------------------
 ! 	... improve estimate of pbl height for the unstable points.
 !           find unstable points (virtual heat flux is positive):
@@ -1141,7 +1142,7 @@ contains
           if( check(i) ) then
              phiminv(i)   = (1.e+0_fp - binm*pblh(i)/obklen(i))**onet
              wm(i)        = ustar(i)*phiminv(i)
-             therm(i)     = heatv(i)*fak/wm(i)       
+             therm(i)     = heatv(i)*fak/wm(i)
              rino(i,plev) = 0.e+0_fp
              tlv(i)       = thvref(i) + therm(i)
           end if
@@ -1182,11 +1183,11 @@ contains
 !------------------------------------------------------------------------
 ! pbl height must be greater than some minimum mechanical mixing depth
 ! several investigators have proposed minimum mechanical mixing depth
-! relationships as a function of the local friction velocity, u*.  we 
+! relationships as a function of the local friction velocity, u*.  we
 ! make use of a linear relationship of the form h = c u* where c=700.
-! the scaling arguments that give rise to this relationship most often 
+! the scaling arguments that give rise to this relationship most often
 ! represent the coefficient c as some constant over the local coriolis
-! parameter.  here we make use of the experimental results of koracin 
+! parameter.  here we make use of the experimental results of koracin
 ! and berkowicz (1988) [blm, vol 43] for wich they recommend 0.07/f
 ! where f was evaluated at 39.5 n and 52 n.  thus we use a typical mid
 ! latitude value for f so that c = 0.07/f = 700.
@@ -1195,7 +1196,7 @@ contains
           pblmin  = 700.e+0_fp*ustar(i)
           pblh(i) = max( pblh(i),pblmin )
        end do
-       
+
     endif ! if pblh_ar
 
 !------------------------------------------------------------------------
@@ -1213,13 +1214,13 @@ contains
           phihinv(i) = sqrt(1.e+0_fp - binh*pblh(i)/obklen(i))
           wm(i)      = ustar(i)*phiminv(i)
           fak2(i)    = wm(i)*pblh(i)*vk
-          wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet 
+          wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet
           fak3(i)    = fakn*wstr(i)/wm(i)
-          tpert(i)   = max( khfs(i)*fak/wm(i),0.e+0_fp )   
-          qpert(i)   = max( kshfs(i)*fak/wm(i),0.e+0_fp )    
+          tpert(i)   = max( khfs(i)*fak/wm(i),0.e+0_fp )
+          qpert(i)   = max( kshfs(i)*fak/wm(i),0.e+0_fp )
        else
-          tpert(i)   = max( khfs(i)*fak/ustar(i),0.e+0_fp ) 
-          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.e+0_fp ) 
+          tpert(i)   = max( khfs(i)*fak/ustar(i),0.e+0_fp )
+          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.e+0_fp )
        end if
     end do
 
@@ -1314,7 +1315,7 @@ contains
              cgsh(i,k) = kshfs(i)*cgs(i,k)
           end if
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              if( unsout(i) ) then
                 cgq(i,k,m) = kqfs(i,m)*cgs(i,k)
@@ -1346,17 +1347,17 @@ contains
 ! !DESCRIPTION: Subroutine QVDIFF solve vertical diffusion eqtn for constituent
 !  with explicit srfc flux.
 !\\
-!\\ 
+!\\
 ! !INTERFACE:
 !
   subroutine qvdiff( ncnst, qm1, qflx, cc, ze, &
 	             term, qp1, plonl )
-! 
+!
 ! !USES:
 !
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     integer, intent(in) :: &
          plonl
@@ -1368,12 +1369,12 @@ contains
          cc(plonl,plev), &        ! -lower diag coeff.of tri-diag matrix
          term(plonl,plev)         ! 1./(1. + ca(k) + cc(k) - cc(k)*ze(k-1))
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     real(fp), intent(inout) :: &
          ze(plonl,plev)           ! term in tri-diag. matrix system
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     real(fp), intent(out) :: &
          qp1(plonl,plev,ncnst)    ! final constituent
@@ -1382,7 +1383,7 @@ contains
 !  Procedure for solution of the implicit equation follows :
 !  Richtmyer and Morton (1967,pp 198-199)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !EOP
@@ -1392,7 +1393,7 @@ contains
 ! !LOCAL VARIABLES:
 !
     real(fp) :: &
-         zfq(plonl,plev,pcnst), & ! terms appear in soln of tri-diag sys
+         zfq(plonl,plev,pcnst_), & ! terms appear in soln of tri-diag sys
          tmp1d(plonl)             ! temporary workspace (1d array)
     integer :: &
          i, k, &               ! longitude,vertical indices
@@ -1403,7 +1404,7 @@ contains
     !=================================================================
 
 !-----------------------------------------------------------------------
-! 	... calculate fq(k).  terms fq(k) and e(k) are required in solution of 
+! 	... calculate fq(k).  terms fq(k) and e(k) are required in solution of
 !           tridiagonal matrix defined by implicit diffusion eqn.
 !           note that only levels ntopfl through plev need be solved for.
 !           no vertical diffusion is applied above this level
@@ -1454,7 +1455,7 @@ contains
 !
 ! !IROUTINE: vdiffar
 !
-! !DESCRIPTION: Subroutine VDIFFAR is the driver routine to compute vertical 
+! !DESCRIPTION: Subroutine VDIFFAR is the driver routine to compute vertical
 !  diffusion of trace constituents using archived coefficients for cgs and kvh.
 !  This is a gutted version of vdiff.
 !\\
@@ -1466,10 +1467,10 @@ contains
                       sflx  ,as2  ,kvh_arg   ,cgs_arg     ,plonl )
 !
 ! !USES:
-! 
+!
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     integer, intent(in) :: lat     ! latitude index
     integer, intent(in) :: plonl   ! lon tile dim
@@ -1484,12 +1485,12 @@ contains
          kvh_arg(:,:,:), &       ! coefficient for heat and tracers
          cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     real(fp), intent(inout) :: &
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !EOP
@@ -1501,14 +1502,14 @@ contains
     real(fp) :: &
          cah(plonl,plev), &       ! -upper diag for heat and constituts
          cch(plonl,plev), &       ! -lower diag for heat and constits
-         cgq(plonl,plevp,pcnst), &! countergrad term for constituent
+         cgq(plonl,plevp,pcnst_), &! countergrad term for constituent
          potbar(plonl,plevp), &   ! pintm1(k)/(.5*(tm1(k)+tm1(k-1))
          tmp1(plonl), &           ! temporary storage
          tmp2, &                  ! temporary storage
          ztodtgor, &              ! ztodt*gravit/rair
          gorsq, &                 ! (gravit/rair)**2
-         dqbot(plonl,pcnst), &    ! lowest layer q change from const flx
-         qmx(plonl,plev,pcnst), & ! constituents input + counter grad
+         dqbot(plonl,pcnst_), &    ! lowest layer q change from const flx
+         qmx(plonl,plev,pcnst_), & ! constituents input + counter grad
          zeh(plonl,plev), &       ! term in tri-diag. matrix system (t & q)
          termh(plonl,plev)        ! 1./(1. + cah(k) + cch(k) - cch(k)*zeh(k-1))
     integer :: &
@@ -1527,15 +1528,15 @@ contains
          pintm1(plonl,plevp), &    ! interface pressures
          rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
          rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &      ! surface constituent flux (kg/m2/s)
          kvh(plonl,plevp), &       ! coefficient for heat and tracers
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
     real(fp) :: &
-         qp1(plonl,plev,pcnst)     ! moist, tracers after vert. diff
+         qp1(plonl,plev,pcnst_)     ! moist, tracers after vert. diff
     !=================================================================
     ! vdiffar begins here!
     !=================================================================
-    
+
     !Populate local variables with values from arguments (ccc, 11/17/09)
     tm1    = tadv(:,lat,:)
     pmidm1 = pmid(:,lat,:)
@@ -1546,7 +1547,7 @@ contains
     kvh    = kvh_arg(:,lat,:)
     cgs    = cgs_arg(:,lat,:)
     qp1    = as2(:,lat,:,:)
-    
+
 
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
@@ -1554,7 +1555,7 @@ contains
     do i = 1,plonl
        tmp1(i) = ztodt*gravit*rpdel(i,plev)
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do i = 1,plonl
           dqbot(i,m) = cflx(i,m)*tmp1(i)
        end do
@@ -1574,7 +1575,7 @@ contains
 ! 	... first set values above boundary layer
 !-----------------------------------------------------------------------
     do k = 1,plev-npbl
-       do m = 1,pcnst
+       do m = 1,pcnst_
           qmx(:,k,m) = qp1(:,k,m)
        end do
     end do
@@ -1591,7 +1592,7 @@ contains
        do i = 1,plonl
           tmp1(i) = ztodtgor*rpdel(i,k)
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m) + tmp1(i)*(potbar(i,k+1)*kvh(i,k+1)* &
                           cgq(i,k+1,m) - potbar(i,k)*kvh(i,k)*cgq(i,k,m))
@@ -1606,7 +1607,7 @@ contains
 !           strongly violated.
 !           original code rewritten by rosinski 7/8/91 to vectorize in longitude.
 !-----------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        ilogic(:plonl) = 0
        do k = plev-npbl+1,plev
           do i = 1,plonl
@@ -1635,7 +1636,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... determine superdiagonal (ca(k)) and subdiagonal (cc(k)) coeffs
 !           of the tridiagonal diffusion matrix. the diagonal elements are a
-!           combination of ca and cc; they are not explicitly provided to the 
+!           combination of ca and cc; they are not explicitly provided to the
 !           solver
 !-----------------------------------------------------------------------
     gorsq = (gravit/rair)**2
@@ -1653,8 +1654,8 @@ contains
        cah(i,plev) = 0.e+0_fp
     end do
 !-----------------------------------------------------------------------
-! 	... calculate e(k) for heat vertical diffusion.  this term is 
-!           required in solution of tridiagonal matrix defined by implicit 
+! 	... calculate e(k) for heat vertical diffusion.  this term is
+!           required in solution of tridiagonal matrix defined by implicit
 !           diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
@@ -1671,7 +1672,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
-    call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+    call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 !-----------------------------------------------------------------------
 ! 	... identify and correct constituents exceeding user defined bounds
@@ -1681,10 +1682,10 @@ contains
     where (qp1 < 0.e+0_fp)
        qp1 = 0.e+0_fp
     endwhere
-    
+
     !Output values from local variables to arguments.(ccc, 11/17/09)
     as2(:,lat,:,:) = qp1
-    
+
   END SUBROUTINE VDIFFAR
 !EOC
 !------------------------------------------------------------------------------
@@ -1701,27 +1702,27 @@ contains
 ! !INTERFACE:
 !
   SUBROUTINE PBLDIFAR( t, pmid, cflx, cgs, cgq, plonl )
-! 
+!
 ! !USES:
 !
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     integer, intent(in) :: &
          plonl
     real(fp), intent(in) :: &
          t(plonl,plev), &        ! temperature (used for density)
          pmid(plonl,plev), &     ! midpoint pressures
-         cflx(plonl,pcnst), &     ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &     ! surface constituent flux (kg/m2/s)
          cgs(plonl,plevp)        ! counter-gradient star (cg/flux)
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     real(fp), intent(out) :: &
-         cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
+         cgq(plonl,plevp,pcnst_)  ! counter-gradient term for constituents
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !EOP
@@ -1736,7 +1737,7 @@ contains
          m                    ! constituent index
     real(fp) :: &
          rrho(plonl), &          ! 1./bottom level density
-         kqfs(plonl,pcnst)       ! sfc kinematic constituent flux [m/s]
+         kqfs(plonl,pcnst_)       ! sfc kinematic constituent flux [m/s]
 
     !=================================================================
     ! pbldifar begins here!
@@ -1746,13 +1747,13 @@ contains
 ! 	... compute kinematic surface fluxes
 !------------------------------------------------------------------------
     rrho(:) = rair*t(:,plev)/pmid(:,plev)
-    do m = 1,pcnst
+    do m = 1,pcnst_
        kqfs(:,m) = cflx(:,m)*rrho(:)
     end do
 !------------------------------------------------------------------------
 ! 	... initialize output arrays with free atmosphere values
 !------------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do k = 1,plevp
           cgq(:,k,m) = 0.e+0_fp
        end do
@@ -1761,7 +1762,7 @@ contains
 ! 	... compute the counter-gradient terms:
 !------------------------------------------------------------------------
     do k = plev,plev-npbl+2,-1
-       do m = 1,pcnst
+       do m = 1,pcnst_
           cgq(:,k,m) = kqfs(:,m)*cgs(:,k)
        end do
     end do
@@ -1775,7 +1776,7 @@ contains
 !
 ! !IROUTINE: vdinti
 !
-! !DESCRIPTION: Subroutine VDINTI initializes time independent fields for 
+! !DESCRIPTION: Subroutine VDINTI initializes time independent fields for
 !  vertical diffusion. Calls initialization routine for boundary layer scheme.
 !\\
 !\\
@@ -1784,7 +1785,7 @@ contains
   SUBROUTINE VDINTI( am_I_Root, State_Grid, RC )
 !
 ! !USES:
-! 
+!
     USE ErrCode_Mod
     USE PRESSURE_MOD,   ONLY : GET_AP, GET_BP
     USE State_Grid_Mod, ONLY : GrdState
@@ -1798,7 +1799,7 @@ contains
 !
     INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  07 Nov 2017 - R. Yantosca - Add am_I_root, RC as arguments so that we
@@ -1812,16 +1813,16 @@ contains
     real(fp), parameter :: pbl_press = 400.e2     ! pressure cap for pbl (pa)
     integer :: k, &                               ! vertical loop index
                m
-    
+
     real(fp)  :: ref_pmid(State_Grid%NZ)
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
-    
+
     ! Assume success
     RC = GC_SUCCESS
-    
+
     ref_pmid = 0.e+0_fp
     plev  = State_Grid%NZ
     plevp = plev+1
@@ -1835,7 +1836,7 @@ contains
 ! 	... set physical constants for vertical diffusion and pbl
 !-----------------------------------------------------------------------
 
-    ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being 
+    ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being
     ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
     do k = 1, plev
        ref_pmid(plev-k+1) = 0.5e+0_fp*( GET_AP(k  )*100.e+0_fp &
@@ -1878,12 +1879,12 @@ contains
 ! 	... set the minimum mixing ratio for the counter-gradient term.
 !           normally this should be the same as qmin.
 !-----------------------------------------------------------------------
-    
-    ALLOCATE( qmincg(pcnst), STAT=RC )
+
+    ALLOCATE( qmincg(pcnst_), STAT=RC )
     CALL GC_CheckVar( 'vdiff_mod:QMINCG', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
-    do m = 1,pcnst
+
+    do m = 1,pcnst_
        qmincg(m) = 0.e+0_fp
     end do
 
@@ -1901,15 +1902,15 @@ contains
 !
 ! !IROUTINE: vdiffdr
 !
-! !DESCRIPTION: Subroutine VDIFFDR calculates the vertical diffusion on a 
+! !DESCRIPTION: Subroutine VDIFFDR calculates the vertical diffusion on a
 !  latitude slice of data.
 !
 !  \begin{enumerate}
 !  \item The dummy argument as2 is in v\/v. (lin, 06/04/08)
-!  \item TCVV and TRACER\_MW\_KG assume 12 g/mol for all HCs. Thus, when using 
+!  \item TCVV and TRACER\_MW\_KG assume 12 g/mol for all HCs. Thus, when using
 !         them to convert units of HCs to be the inputs for vdiffdr, the
-!         converted units are NOT kg/kg for concentrations and kg/m2/s for 
-!         surface flux. However, since the units for both inputs are 
+!         converted units are NOT kg/kg for concentrations and kg/m2/s for
+!         surface flux. However, since the units for both inputs are
 !         consistent, there should not be any problem. (lin, 06/04/08)
 !  \end{enumerate}
 !
@@ -1919,7 +1920,7 @@ contains
                       State_Diag, State_Grid, State_Met, RC                  )
 !
 ! !USES:
-! 
+!
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -1951,20 +1952,20 @@ contains
 
     implicit none
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!   
+! !INPUT/OUTPUT PARAMETERS:
+!
     TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
-! !OUTPUT PARAMETERS: 
-!   
+! !OUTPUT PARAMETERS:
+!
     INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REMARKS:
@@ -1982,13 +1983,13 @@ contains
 ! !REVISION HISTORY:
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
-!  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
+!  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  24 Sep 2010 - J. Lin      - Move ND15 to vdiff.  
+!  24 Sep 2010 - J. Lin      - Move ND15 to vdiff.
 !  21 Dec 2010 - R. Yantosca - Add logical flags for different sim types
 !  21 Dec 2010 - R. Yantosca - Now call ITS_A_FULLCHEM_SIM instead of
 !                              relying on NCS == 0
-!  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion 
+!  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion
 !                              to save on operations
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
@@ -2015,7 +2016,7 @@ contains
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !                              Use virtual temperature in hypsometric eqn.
-!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO
 !                              diagnostics.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  22 Apr 2016 - R. Yantosca - Now get Hg info from species database
@@ -2034,7 +2035,7 @@ contains
 !  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
-!  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
+!  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead)
 !  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
 !  30 Jun 2017 - R. Yantosca - For now, print out eflx/dflx if DEVEL=y
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
@@ -2049,20 +2050,20 @@ contains
 !
     integer :: I, J, L, N, NN, D, NA, nAdvect, ND, nDryDep
 
-    REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
-    LOGICAL                 :: ZERO_HG0_DEP !jaf 
+    REAL(fp)                :: FRAC_NO_HG0_DEP !jaf
+    LOGICAL                 :: ZERO_HG0_DEP !jaf
 
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Grid%NZ)   :: pmid, rpdel, rpdeli, zm
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1) :: pint
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect) :: sflx
-    real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect) :: eflx, dflx 
+    real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect) :: eflx, dflx
                                                               ! surface flux
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1) :: cgs, kvh, kvm
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY)         :: pblh, tpert, qpert
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Grid%NZ)   :: thp   ! potential temp
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY)         :: shflx ! water vapor flux
     real(fp), TARGET, dimension(State_Grid%NX,State_Grid%NY,State_Grid%NZ)   :: t1
-                                                         ! save tracer MR 
+                                                         ! save tracer MR
                                                          ! before vdiffdr
     real(fp) :: vtemp
     real(fp) :: p0 = 1.e+5_fp
@@ -2070,14 +2071,14 @@ contains
     real(fp) :: wk1, wk2
     real(fp) :: soilflux
     integer  :: pbl_top
-      
+
     REAL(fp) :: DEP_KG !(cdh, 8/28/09)
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
     REAL(fp), dimension(State_Grid%NX, State_Grid%NY, State_Chm%nAdvect)  :: as2_scal
 
-    ! Pointers 
+    ! Pointers
     REAL(fp),  POINTER :: p_um1   (:,:,:  )
     REAL(fp),  POINTER :: p_vm1   (:,:,:  )
     REAL(fp),  POINTER :: p_tadv  (:,:,:  )
@@ -2085,7 +2086,7 @@ contains
     REAL(fp),  POINTER :: p_ustar (:,:    )
     REAL(fp),  POINTER :: p_pmid  (:,:,:  )
     REAL(fp),  POINTER :: p_pint  (:,:,:  )
-    REAL(fp),  POINTER :: p_rpdel (:,:,:  ) 
+    REAL(fp),  POINTER :: p_rpdel (:,:,:  )
     REAL(fp),  POINTER :: p_rpdeli(:,:,:  )
     REAL(fp),  POINTER :: p_zm    (:,:,:  )
     REAL(fp),  POINTER :: p_thp   (:,:,:  )
@@ -2108,7 +2109,7 @@ contains
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: HCRC,   TOPMIX
 
-    ! PARANOX loss fluxes (kg/m2/s), imported from 
+    ! PARANOX loss fluxes (kg/m2/s), imported from
     ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
     REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
     REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
@@ -2185,26 +2186,26 @@ contains
     LSOILNOX     = Input_Opt%LSOILNOX
 
     dtime = GET_TS_CONV() ! second
-    
+
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
     ! First-time setup
     IF ( FIRST ) THEN
 
        ! Get species IDs
-       id_O3   = Ind_('O3'  ) 
+       id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
-       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
-       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
+       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
        ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
        ! respective diagnostics. The pointers will remain unassociated if
-       ! the diagnostics do not exist (ckeller, 4/10/2015). 
+       ! the diagnostics do not exist (ckeller, 4/10/2015).
        CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         )
        CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       )
 
        ! Reset first-time flag
        FIRST = .FALSE.
@@ -2218,7 +2219,7 @@ contains
 #endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
-    
+
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
     do J = 1, State_Grid%NY
     do I = 1, State_Grid%NX
@@ -2263,7 +2264,7 @@ contains
        enddo
 
        !rpdeli(I,J,1) = 1.e+0_fp / (PS(I,J) - pmid(I,J,1))
-       rpdeli(I,J,1) = 0.e+0_fp ! follow mozart setup (shown in mo_physlic.F90) 
+       rpdeli(I,J,1) = 0.e+0_fp ! follow mozart setup (shown in mo_physlic.F90)
 
        do L = 2, State_Grid%NZ
           rpdeli(I,J,L) = 1.e+0_fp / (pmid(I,J,L-1) - pmid(I,J,L))
@@ -2306,13 +2307,13 @@ contains
        !
        ! For the specialty simulations, emissions above the PBL top
        ! will be applied in the chemistry routines for each
-       ! specialty simulation. 
+       ! specialty simulation.
        !
        ! For more information, please see this wiki page:
        ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !--------------------------------------------------------------------
        DO NA = 1, nAdvect
-       
+
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
@@ -2324,7 +2325,7 @@ contains
           eflx(I,J,NA) = eflx(I,J,NA) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
-          ! array. These values are stored in 1/s. They are added in the 
+          ! array. These values are stored in 1/s. They are added in the
           ! same manner as the DEPSAV values from drydep_mod.F.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
@@ -2334,7 +2335,7 @@ contains
                                 / State_Chm%SpcData(NA)%Info%emMW_g ) )
           ENDIF
        ENDDO
-       
+
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
        ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
@@ -2359,14 +2360,14 @@ contains
        !--------------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do NA = 1, nAdvect
-             eflx(I,J,NA) = HG_EMIS(I,J,NA) 
+             eflx(I,J,NA) = HG_EMIS(I,J,NA)
           enddo
        ENDIF
 
        !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
        ! These are the frequencies calculated in drydep_mod.F
-       ! The HEMCO drydep frequencies (from air-sea exchange and 
+       ! The HEMCO drydep frequencies (from air-sea exchange and
        ! PARANOX) were already added above.
        !
        ! NOTES:
@@ -2380,19 +2381,19 @@ contains
           N = State_Chm%Map_DryDep(ND)
 
           IF ( N <= 0 ) CYCLE
-          
+
           ! Point to the corresponding Species Database entry
           SpcInfo => State_Chm%SpcData(N)%Info
-          
-          ! use mean concentration within the PBL for calculating drydep 
+
+          ! use mean concentration within the PBL for calculating drydep
           ! fluxes
-          if (pbl_mean_drydep) then 
+          if (pbl_mean_drydep) then
              wk1 = 0.e+0_fp
              wk2 = 0.e+0_fp
-             pbl_top = State_Met%PBL_MAX_L ! the highest layer the PBL reaches, 
+             pbl_top = State_Met%PBL_MAX_L ! the highest layer the PBL reaches,
                                            ! globally
              do L = 1, pbl_top
-                wk1 = wk1 + State_Chm%Species    (I,J,L,N) * & 
+                wk1 = wk1 + State_Chm%Species    (I,J,L,N) * &
                             State_Met%AD         (I,J,L  ) * &
                             State_Met%F_UNDER_PBLTOP(I,J,L)
 
@@ -2400,7 +2401,7 @@ contains
                             State_Met%F_UNDER_PBLTOP(I,J,L)
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
-             ! a problem even if the PBL top is lower than the top of the 
+             ! a problem even if the PBL top is lower than the top of the
              ! first (lowest) model layer
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
@@ -2410,7 +2411,7 @@ contains
 
 
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
-             if (drydep_back_cons) then 
+             if (drydep_back_cons) then
                 dflx(I,J,N) = dflx(I,J,N) * (wk2+1.e-30_fp) / &
                                State_Met%AD(I,J,1)         * &
                                State_Met%BXHEIGHT(I,J,1)   / &
@@ -2420,14 +2421,14 @@ contains
 
              ! only use the lowest model layer for calculating drydep fluxes
              ! given that as2 is in v/v
-             ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+             ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,N) = dflx(I,J,N) &
                          + DEPSAV(I,J,ND) * as2_scal(I,J,N) /   &
                          ( AIRMW / SpcInfo%emMW_g )
           endif
-          
+
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
@@ -2437,7 +2438,7 @@ contains
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
           ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0e+0_fp )
-          
+
           IF ( IS_Hg .AND. SpcInfo%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,N) = DFLX(I,J,N) * &
@@ -2455,11 +2456,11 @@ contains
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
-                     State_Grid%Area_M2(I,J) 
+                     State_Grid%Area_M2(I,J)
 
        ! Now that dflx is in kg/m2/s, add PARANOX loss to this term. The PARANOX
        ! loss term is already in kg/m2/s. PARANOX loss (deposition) is calculated
-       ! for O3 and HNO3 by the PARANOX module, and data is exchanged via the 
+       ! for O3 and HNO3 by the PARANOX module, and data is exchanged via the
        ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
        ! been linked to these diagnostics at the beginning of this routine
        ! (ckeller, 4/10/15).
@@ -2477,7 +2478,7 @@ contains
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !--------------------------------------------------------------------
        IF ( IS_Hg ) THEN
-          
+
           ! Loop over only the drydep species
           ! If drydep is turned off, nDryDep=0 and the loop won't execute
           DO ND = 1, nDryDep
@@ -2502,7 +2503,7 @@ contains
                 CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_KG,              &
                                        State_Met, State_Chm, State_Diag     )
 
-             ELSE IF ( SpcInfo%Is_HgP ) THEN 
+             ELSE IF ( SpcInfo%Is_HgP ) THEN
 
                 ! Get the category number for this HgP tracer
                 Hg_Cat = SpcInfo%Hg_Cat
@@ -2552,7 +2553,7 @@ contains
           N = State_Chm%Map_DryDep(ND)
 
           ! Skip if not a valid species
-          IF ( N <= 0 ) CYCLE 
+          IF ( N <= 0 ) CYCLE
 
           ! Point to the Species Database entry for this tracer
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
@@ -2563,9 +2564,9 @@ contains
 
 #if defined( BPCH_DIAG )
           !-----------------------------------------------------------------
-          ! Update dry deposition flux diagnostic for bpch output (ND44) 
+          ! Update dry deposition flux diagnostic for bpch output (ND44)
           !-----------------------------------------------------------------
-	  IF( Do_ND44 .or. LGTMM) THEN                
+	  IF( Do_ND44 .or. LGTMM) THEN
              ! only for the lowest model layer
              ! Convert : kg/m2/s -> molec/cm2/s
              ! consider timestep difference between convection and emissions
@@ -2573,7 +2574,7 @@ contains
              ! For bpch diagnostic output, save flux in global ADD 44 array
 	     AD44(:,:,ND,1) = AD44(:,:,ND,1) + dflx(:,:,N)        &
                              /  (SpcInfo%emMW_g * 1.e-3_fp) * AVO      &
-                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
+                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM()
           ENDIF
 #endif
 
@@ -2584,22 +2585,22 @@ contains
           !
           ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
           ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
-          !           
+          !
           ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
           !
-          ! NOTE: we don't need to multiply by the ratio of TS_CONV / 
-          ! TS_CHEM, as the updating frequency for HISTORY is determined 
-          ! by the "frequency" setting in the "HISTORY.rc"input file.  
-          ! The old bpch diagnostics archived the drydep due to chemistry 
-          ! every chemistry timestep = 2X the dynamic timestep.  So in 
-          ! order to avoid double-counting the drydep flux from mixing, 
+          ! NOTE: we don't need to multiply by the ratio of TS_CONV /
+          ! TS_CHEM, as the updating frequency for HISTORY is determined
+          ! by the "frequency" setting in the "HISTORY.rc"input file.
+          ! The old bpch diagnostics archived the drydep due to chemistry
+          ! every chemistry timestep = 2X the dynamic timestep.  So in
+          ! order to avoid double-counting the drydep flux from mixing,
           ! you had to multiply by TS_CONV / TS_CHEM.
-          !         
+          !
           ! ALSO NOTE: When comparing History output to bpch output,
           ! you must use an updating frequency equal to the dynamic
           ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to 
-          ! turn off chemistry so as to be able to compare the drydep 
+          ! be equivalent w/ the bpch output.  It is also recommended to
+          ! turn off chemistry so as to be able to compare the drydep
           ! fluxes due to mixing in bpch vs. History as an "apples-to-
           ! apples" comparison.
           !
@@ -2631,7 +2632,7 @@ contains
 	          / ( SpcInfo%emMW_g * 1.e-3_fp ) &
                   * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
-          
+
                 CALL SOIL_DRYDEP ( I, J, 1, N, soilflux, State_Chm )
              ENDDO
              ENDDO
@@ -2650,7 +2651,7 @@ contains
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
 
     if( divdiff ) then
-      
+
        if ( pblh_ar ) then
        do J = 1, State_Grid%NY
        do I = 1, State_Grid%NX
@@ -2664,7 +2665,7 @@ contains
        !--------------------------------------------------------------------
 
        ! 3-D fields on level centers
-       p_um1              => State_Met%U    ( :, :, State_Grid%NZ  :1:-1    )   
+       p_um1              => State_Met%U    ( :, :, State_Grid%NZ  :1:-1    )
        p_vm1              => State_Met%V    ( :, :, State_Grid%NZ  :1:-1    )
        p_tadv             => State_Met%T    ( :, :, State_Grid%NZ  :1:-1    )
        p_hflux            => State_Met%HFLUX
@@ -2694,17 +2695,17 @@ contains
        ! Convert v/v -> m/m (i.e., kg/kg)
        DO NA = 1, nAdvect
           p_as2(:,:,:,NA) =  p_as2(:,:,:,NA) / ( AIRMW       &
-                             / State_Chm%SpcData(NA)%Info%emMW_g ) 
+                             / State_Chm%SpcData(NA)%Info%emMW_g )
        ENDDO
 
        ! Convert g/kg -> kg/kg
-       p_shp              =  p_shp * 1.e-3_fp 
+       p_shp              =  p_shp * 1.e-3_fp
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
-!$OMP PRIVATE( J )     
+!$OMP PRIVATE( J )
        do J = 1, State_Grid%NY
           call vdiff( J,         1,         p_um1,      p_vm1,               &
                       p_tadv,    p_pmid,    p_pint,     p_rpdel,             &
@@ -2739,7 +2740,7 @@ contains
 !  	... vertical diffusion using archived values of cgs and kvh.
 !
 !       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
-!       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
+!       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%%
 !--------------------------------------------------------------------------
 
        !-------------------------------------------------------------------
@@ -2788,7 +2789,7 @@ contains
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do NA = 1, nAdvect
           p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * ( AIRMW /       &
-                            State_Chm%SpcData(NA)%Info%emMW_g ) 
+                            State_Chm%SpcData(NA)%Info%emMW_g )
        enddo
 
        ! Free pointers
@@ -2802,8 +2803,8 @@ contains
     !-----------------------------------------------------------------------
     if (.not. pblh_ar) then
 
-       ! PBL is in m 
-       State_Met%PBLH = pblh 
+       ! PBL is in m
+       State_Met%PBLH = pblh
 
        ! Compute PBL quantities
        CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met, RC )
@@ -2839,10 +2840,10 @@ contains
 !
 ! !IROUTINE: do_pbl_mix_2
 !
-! !DESCRIPTION: Subroutine DO\_PBL\_MIX\_2 is the driver routine for planetary 
-!  boundary layer mixing. The PBL layer height and related quantities are 
-!  always computed.   Mixing of tracers underneath the PBL top is toggled 
-!  by the DO\_TURBDAY switch. 
+! !DESCRIPTION: Subroutine DO\_PBL\_MIX\_2 is the driver routine for planetary
+!  boundary layer mixing. The PBL layer height and related quantities are
+!  always computed.   Mixing of tracers underneath the PBL top is toggled
+!  by the DO\_TURBDAY switch.
 !\\
 !\\
 ! !INTERFACE:
@@ -2891,7 +2892,7 @@ contains
 !
     INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
 !  22 Dec 2010 - R. Yantosca - Bug fix: print debug output only if LPRT=T
@@ -2964,9 +2965,9 @@ contains
 #if defined( BPCH_DIAG )
        ! Set a flag to denote we should archive ND44 bpch diagnostic
        ! NOTE: this will only be valid if BPCH_DIAG=y
-       Do_ND44 = ( ND44 > 0 ) 
+       Do_ND44 = ( ND44 > 0 )
 #endif
-      
+
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
@@ -2978,13 +2979,13 @@ contains
 
        !------------------------------------------------------
        ! Non-local PBL mixing budget diagnostics - Part 1 of 2
-       ! 
+       !
        ! WARNING: The mixing budget diagnostic includes the application
        ! of species tendencies (emissions fluxes and dry deposition
        ! rates) below the PBL when using non-local PBL mixing. This is
        ! done for all species with defined emissions / dry deposition
-       ! rates, including dust. These tendencies below the PBL are 
-       ! therefore not included in the emissions/dry deposition budget 
+       ! rates, including dust. These tendencies below the PBL are
+       ! therefore not included in the emissions/dry deposition budget
        ! diagnostics when using non-local PBL mixing. (ewl, 9/26/18)
        !------------------------------------------------------
        IF ( State_Diag%Archive_BudgetMixing ) THEN
@@ -2996,13 +2997,13 @@ contains
                                     State_Diag%Archive_BudgetMixingTrop, &
                                     State_Diag%Archive_BudgetMixingPBL,  &
                                     State_Diag%BudgetMass1,              &
-                                    RC ) 
+                                    RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-       ENDIF       
+       ENDIF
 
        !----------------------------------------
        ! Unit conversion #1
@@ -3096,7 +3097,7 @@ contains
                                     State_Diag%Archive_BudgetMixingTrop,    &
                                     State_Diag%Archive_BudgetMixingPBL,     &
                                     State_Diag%BudgetMass2,                 &
-                                    RC )    
+                                    RC )
           CALL Compute_Budget_Diagnostics( am_I_Root,                       &
                                        State_Grid,                          &
                                        State_Chm%Map_Advect,                &
@@ -3120,6 +3121,6 @@ contains
     ENDIF
 
   END SUBROUTINE DO_PBL_MIX_2
-!EOC  
+!EOC
 END MODULE vdiff_mod
 

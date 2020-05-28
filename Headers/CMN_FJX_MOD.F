@@ -6,12 +6,12 @@
 ! !MODULE: CMN_FJX_mod.F
 !
 ! !DESCRIPTION: Module CMN\_FJX\_MOD contains parameters and global variables
-!  used to interface between Harvard chemistry and UC-Irvine photolysis 
+!  used to interface between Harvard chemistry and UC-Irvine photolysis
 !  programs (Fast-J/Fast-JX), along with all Fast-J(X) global variables
 !  and some physical constants for the GEOS-Chem chemistry code.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE CMN_FJX_MOD
 !
@@ -53,10 +53,10 @@
       CHARACTER (LEN=10) :: RNAMES(JVN_)
 
       ! Mapping array from Harvard species names to UCI species names
-      INTEGER            :: RINDEX(JVN_)                
+      INTEGER            :: RINDEX(JVN_)
 
       ! GEOS-Chem "ModelId" corresponding to each photolysis species
-      INTEGER            :: GC_Photo_Id(JVN_)    
+      INTEGER            :: GC_Photo_Id(JVN_)
 
       ! Output J values
       REAL(fp), ALLOCATABLE :: ZPJ(:,:,:,:)
@@ -295,7 +295,7 @@
       INTEGER, ALLOCATABLE :: SPECMASK(:) !list of binary switches for different
                                           !species flux output
 
-      ! RH indices 
+      ! RH indices
       INTEGER, ALLOCATABLE :: IRHARR(:,:,:)
 
 #if defined( RRTMG )
@@ -330,8 +330,8 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
-! 
+! !INPUT PARAMETERS:
+!
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
@@ -339,15 +339,15 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Feb 2014 - M. Sulprizio- Renamed from Set_CMN_FJX_MOD to Init_CMN_FJX.
 !                              We now set several variables here that depend on
 !                              LLPAR, since LLPAR is no longer a parameter and
 !                              can't be used to define a parameter.
 !  29 Dec 2017 - C. Keller   - Initialize RNAMES to empty strings.
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  23 Mar 2018 - E. Lundgren - Move NWVSELECT, WVSELECT, and STRWVSELECT to 
+!  23 Mar 2018 - E. Lundgren - Move NWVSELECT, WVSELECT, and STRWVSELECT to
 !                              Input_Opt since read in from input.geos
 !EOP
 !------------------------------------------------------------------------------
@@ -366,7 +366,7 @@
       JXL_   = State_Grid%NZ ! Vertical levs for J-values computed w/in Fast-JX
       JXL1_  = JXL_+1        ! Vertical levs edges for J-values
       JXL2_  = 2*JXL_+2      ! Max # levs in the basic Fast-JX grid (mid-level)
-      
+
 #if defined( MODEL_GEOS )
       ! N_  = no. of levels in Mie scattering arrays
       IF ( Input_Opt%LLFASTJX > 0 ) THEN
@@ -385,7 +385,7 @@
 
       IF ( Input_Opt%LUCX ) THEN
          AN_          = 37  ! # of separate aerosols per layer; Including PSCs
-         W_           = 18  ! # of wavelength bins 
+         W_           = 18  ! # of wavelength bins
 
          ! For RRTMG:
          NSPAA        = 8   ! number of species in LUT
@@ -393,7 +393,7 @@
          NSPECRAD     = 18  ! aerosol+gas species in RT
       ELSE
          AN_          = 35  ! # of separate aerosols per layer
-         W_           = 12  ! # of wavelength bins 
+         W_           = 12  ! # of wavelength bins
 
          ! For RRTMG:
          NSPAA        = 6   ! number of species in LUT
@@ -539,15 +539,15 @@
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Feb 2014 - M. Sulprizio- Initial version
 !  10 Aug 2018 - H.P. Lin    - Add missing allocations for RRTMG
 !EOP

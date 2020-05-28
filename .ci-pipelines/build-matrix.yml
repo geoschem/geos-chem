@@ -1,0 +1,80 @@
+# Build matrix pipeline:
+# 
+# This pipeline checks that pre-releases and the master branch
+# compile in a wide variety of build environments. This pipeline
+# is intended to be a rigorous check of GEOS-Chem's build.
+
+
+# This pipeline triggers on tagged pre-releases (alpha and beta 
+# versions, as well as release candidates). Commits to the master 
+# branch also trigger this pipeline.
+trigger:
+  branches:
+    include:
+      - master
+  tags:
+    include:        # Semantic versioning 2.0.0 examples:
+      - '*-alpha*'  # 12.7.1-alpha.3
+      - '*-beta*'   # 12.7.0-beta.1
+      - '*-rc*'     # 12.7.0-rc.1
+pr: none
+
+
+# Basic agent set up
+pool:
+  vmImage: 'ubuntu-latest'
+
+
+# Define the "matrix" of build images to try building GEOS-Chem in
+strategy:
+  matrix:
+    ubuntu_gcc4:
+      GCC_VERSION: 4
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc4-netcdf4.5.0-netcdff4.4.4
+    ubuntu_gcc5:
+      GCC_VERSION: 5
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc5-netcdf4.5.0-netcdff4.4.4
+    ubuntu_gcc6:
+      GCC_VERSION: 6
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc6-netcdf4.5.0-netcdff4.4.4
+    ubuntu_gcc7:
+      GCC_VERSION: 7
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc7-netcdf4.5.0-netcdff4.4.4
+    ubuntu_gcc8:
+      GCC_VERSION: 8
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc8-netcdf4.5.0-netcdff4.4.4
+    ubuntu_gcc9:
+      GCC_VERSION: 9
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-gcc9-netcdf4.5.0-netcdff4.4.4
+    ubuntu_netcdf_new:
+      GCC_VERSION: 9
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-netcdf4.7.1-netcdff4.5.2
+    ubuntu_netcdf_old:
+      GCC_VERSION: 9
+      containerImage: liambindle/penelope:0.1.0-ubuntu16.04-netcdf4.1.3
+    centos_gcc4:
+      GCC_VERSION: 4
+      containerImage: liambindle/penelope:0.1.0-centos7-gcc4-netcdf4.5.0-netcdff4.4.4
+    centos_gcc7:
+      GCC_VERSION: 7
+      containerImage: liambindle/penelope:0.1.0-centos7-gcc7-netcdf4.5.0-netcdff4.4.4
+    centos_gcc8:
+      GCC_VERSION: 8
+      containerImage: liambindle/penelope:0.1.0-centos7-gcc8-netcdf4.5.0-netcdff4.4.4
+container: $[ variables['containerImage'] ]
+
+
+# Try building GEOS-Chem (this is run for each "matrix" entry above)
+steps:
+- script: |
+    source /init.rc
+    module load gcc/${GCC_VERSION}
+    spack load hdf5 
+    spack load netcdf 
+    spack load netcdf-fortran
+    mkdir build
+    cd build
+    cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard $(Build.Repository.LocalPath)
+    make -j
+    make install
+  displayName: 'Building GEOS-Chem'

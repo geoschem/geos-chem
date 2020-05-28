@@ -5,8 +5,8 @@
 !
 ! !MODULE: histitem_mod.F90
 !
-! !DESCRIPTION: Contains types and methods to create a HISTORY ITEM object.  
-!  A HISTORY ITEM represents a single GEOS-Chem diagnostic quantity that 
+! !DESCRIPTION: Contains types and methods to create a HISTORY ITEM object.
+!  A HISTORY ITEM represents a single GEOS-Chem diagnostic quantity that
 !  will be archived to netCDF file output.
 !\\
 !\\
@@ -81,7 +81,7 @@ MODULE HistItem_Mod
      INTEGER,  POINTER  :: Source_3d_I(:,:,:)    ! Ptr to 3D integer   data
 
      !----------------------------------------------------------------------
-     ! Data arrays 
+     ! Data arrays
      !----------------------------------------------------------------------
      INTEGER            :: SpaceDim              ! # of dims (0-3)
      REAL(f8), POINTER  :: Data_0d               ! 0D scalar
@@ -94,18 +94,18 @@ MODULE HistItem_Mod
      LOGICAL            :: OnLevelEdges          ! =T if data is defined on
                                                  !    vertical level edges;
                                                  ! =F if on level centers
-     
+
      !----------------------------------------------------------------------
      ! Data archival
      !----------------------------------------------------------------------
      REAL(f8)           :: nUpdates              ! # of times updated
      INTEGER            :: Operation             ! Operation code
-                                                 !  0=copy from source 
+                                                 !  0=copy from source
                                                  !  1=accumulate from source
    END TYPE HistItem
 !
 ! !REMARKS:
-!  Linked list routines taken from original code (linkedlist.f90) 
+!  Linked list routines taken from original code (linkedlist.f90)
 !  by Arjen Markus; http://flibs.sourceforge.net/linked_list.html
 !
 ! !REVISION HISTORY:
@@ -128,7 +128,7 @@ CONTAINS
 !
 ! !IROUTINE: HistItem_Create
 !
-! !DESCRIPTION: Initializes a single history item that will be archived 
+! !DESCRIPTION: Initializes a single history item that will be archived
 !  via History (and eventually sent to netCDF output).
 !\\
 !\\
@@ -153,7 +153,7 @@ CONTAINS
   USE History_Util_Mod
   USE Registry_Params_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     ! Required arguments
     LOGICAL,           INTENT(IN)  :: am_I_Root          ! Root CPU?
@@ -166,13 +166,13 @@ CONTAINS
     INTEGER,           INTENT(IN)  :: Subset_X(2)        ! X0, X1 indices
     INTEGER,           INTENT(IN)  :: Subset_Y(2)        ! Y0, Y1 indices
     INTEGER,           INTENT(IN)  :: Subset_Z(2)        ! Z0, Z1 indices
-    
+
     ! Optional arguments
     LOGICAL,           OPTIONAL    :: OnLevelEdges       ! =T if data defined
                                                          !  on level edges;
                                                          ! =F if on centers
-    REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant 
-    REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for 
+    REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant
+    REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for
     REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
                                                          !  0=copy  from source
@@ -197,17 +197,17 @@ CONTAINS
     REAL(f4), POINTER, OPTIONAL    :: Source_3d_4(:,:,:) ! 3D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_3d_I(:,:,:) ! 3D integer   data
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistItem),    POINTER     :: Item               ! HISTORY ITEM object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,           OPTIONAL    :: Dimensions(3)      ! Spatial dims of data
     INTEGER,           INTENT(OUT) :: RC                 ! Success or failure
 !
 ! !REMARKS:
-!  (1) We need to copy string data to a temporary string of length 255 
+!  (1) We need to copy string data to a temporary string of length 255
 !       characters, or else Gfortran will choke.
 !
 ! !REVISION HISTORY:
@@ -433,8 +433,8 @@ CONTAINS
        Item%Source_KindVal = Source_KindVal
     ELSE
        Item%Source_KindVal = KINDVAL_FP
-    ENDIF  
-  
+    ENDIF
+
     !--------------------------------------------
     ! Operation
     !--------------------------------------------
@@ -442,7 +442,7 @@ CONTAINS
        Item%Operation = Operation
     ELSE
        Item%Operation = COPY_FROM_SOURCE
-    ENDIF  
+    ENDIF
 
     !--------------------------------------------
     ! DimNames
@@ -502,10 +502,10 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Attach pointers to the data source.  Also get the values of NX, NY, 
+    ! Attach pointers to the data source.  Also get the values of NX, NY,
     ! and NZ from the relevant source pointer if they were not passed.
     !========================================================================
-    SELECT CASE( Item%SpaceDim ) 
+    SELECT CASE( Item%SpaceDim )
 
        ! Attach pointer to 3D data source, depending on its type
        CASE( 3 )
@@ -657,7 +657,7 @@ CONTAINS
 
     ! Allocate data field, based on SpaceDim
     SELECT CASE( Item%SpaceDim )
-       
+
        !------------
        ! 3-D data
        !------------
@@ -682,7 +682,7 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-          
+
        !------------
        ! 2-D data
        !------------
@@ -721,7 +721,7 @@ CONTAINS
           ELSE
              ErrMsg = 'Could not allocate "Item%Data_1d" array!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN             
+             RETURN
           ENDIF
 
           ! Allocate the NcChunkSizes array
@@ -748,7 +748,7 @@ CONTAINS
           ELSE
              ErrMsg = 'Could not allocate "Item%Data_0d" variable!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN             
+             RETURN
           ENDIF
 
           ! Allocate the NcChunkSizes array
@@ -790,7 +790,7 @@ CONTAINS
     USE ErrCode_Mod
     USE History_Util_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
     TYPE(HistItem), POINTER     :: Item         ! History Item
@@ -846,7 +846,7 @@ CONTAINS
           ! Use truncated output format
           !-----------------------------------------------------------------
 
-          ! Denote if the data is defined on 
+          ! Denote if the data is defined on
           ! level edges (E) or centers (C)
           IF ( Item%SpaceDim == 3 ) THEN
              IF ( Item%OnLevelEdges ) THEN
@@ -889,18 +889,18 @@ CONTAINS
           PRINT*, ''
           PRINT*, 'SpaceDim       : ', Item%SpaceDim, ' (', Item%DimNames, ')'
           PRINT*, 'NcChunkSizes   : ', Item%NcChunkSizes
-       
-          IF ( ASSOCIATED( Item%Data_0d ) ) THEN 
+
+          IF ( ASSOCIATED( Item%Data_0d ) ) THEN
              PRINT*, 'Value Data_0d  : ', Item%Data_0d
           ENDIF
 
-          IF ( ASSOCIATED( Item%Data_1d ) ) THEN 
+          IF ( ASSOCIATED( Item%Data_1d ) ) THEN
              PRINT*, 'Min   Data_1d  : ', MINVAL( Item%Data_1d    )
              PRINT*, 'Max   Data_1d  : ', MAXVAL( Item%Data_1d    )
              PRINT*, 'Total Data_1d  : ', SUM   ( Item%Data_1d    )
              PRINT*, 'Size  Data_1d  : ', SIZE  ( Item%Data_1d    )
           ENDIF
-          
+
           IF ( ASSOCIATED( Item%Data_2d ) ) THEN
              PRINT*, 'Min   Data_2d  : ', MINVAL( Item%Data_2d    )
              PRINT*, 'Max   Data_2d  : ', MAXVAL( Item%Data_2d    )
@@ -948,7 +948,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistItem), POINTER     :: Item        ! History item
 !
@@ -980,7 +980,7 @@ CONTAINS
     ThisLoc = ' -> at HistItem_Destroy (in History/histitem_mod.F90)'
 
     !=======================================================================
-    ! Nullify fields that are just pointing to other objects   
+    ! Nullify fields that are just pointing to other objects
     !======================================================================
     Item%Source_0d_8 => NULL()
     Item%Source_1d   => NULL()
@@ -1006,8 +1006,8 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    ENDIF 
-      
+    ENDIF
+
     IF ( ASSOCIATED( Item%Data_2d ) ) THEN
        DEALLOCATE( Item%Data_2d, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1015,7 +1015,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    ENDIF       
+    ENDIF
 
     IF ( ASSOCIATED( Item%Data_1d ) ) THEN
        DEALLOCATE( Item%Data_1d, STAT=RC )

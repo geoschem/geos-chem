@@ -19,9 +19,9 @@
   use English;                          # Use English language
   use Carp;                             # Get detailed error messages
   use strict 'refs';                    # Do not allow symbolic references
-  use strict 'subs';                    # Treat all barewords as syntax errors 
-  use StrTrim qw( &trim 
-                  &splitLine 
+  use strict 'subs';                    # Treat all barewords as syntax errors
+  use StrTrim qw( &trim
+                  &splitLine
                   &extractFile );       # Get string handling routines
 #
 # !PRIVATE MEMBER FUNCTIONS:
@@ -46,10 +46,10 @@
 # !REMARKS:
 #  Some hand-editing of the output Fortran subroutine may be necessary.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  27 Jan 2012 - R. Yantosca - Initial version
 #  30 Jan 2012 - R. Yantosca - Now get trim, splitline routines from the
-#                              Perl module "StrTrim.pm" 
+#                              Perl module "StrTrim.pm"
 #  30 Jan 2012 - R. Yantosca - Now write ProTeX comment headers
 #  31 Jan 2012 - R. Yantosca - Minor edits for consistency
 #  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
@@ -102,7 +102,7 @@ sub readRcFile($) {
   #--------------------------------------------------
   # Write Fortran commands to the output file
   #--------------------------------------------------
-  
+
   # Pre-get a few quantities before creating the
   # output file with the fortran code
   foreach $line ( @lines ) {
@@ -119,16 +119,16 @@ sub readRcFile($) {
       if ( $line =~ 'netCDF FileHandle' ) {
 	( $name, $F_ID ) = &splitLine( $line, '=' );
       }
-    }				
+    }
   }
-      
+
   # Open the file that will ho
   open( O, ">$cmdFile" ) or die "Cannot open $cmdFile\n";
 
   # Pass thru @lines array so that we can declare Fortran variables
   &writeFortranVars( \*O, @lines );
 
-  # Pass thru @lines array again to write 
+  # Pass thru @lines array again to write
   &writeFortranCalls( \*O, @lines );
 
   #--------------------------------------------------
@@ -149,8 +149,8 @@ sub readRcFile($) {
 #
 # !IROUTINE: writeFortranVars
 #
-# !DESCRIPTION: Routine writeFortranVars generates the proper Fortran 
-#  variable declarations that are needed for use with the NcdfUtilities 
+# !DESCRIPTION: Routine writeFortranVars generates the proper Fortran
+#  variable declarations that are needed for use with the NcdfUtilities
 #  library routines.
 #\\
 #\\
@@ -160,7 +160,7 @@ sub writeFortranVars($@) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : Contents of the resource file
   my ( $O, @lines ) = @_;
 #
@@ -181,7 +181,7 @@ sub writeFortranVars($@) {
   my $txt    = "";
 
   #-------------------------------------------------------
-  # Write USE statements 
+  # Write USE statements
   #-------------------------------------------------------
   $txt .= <<EOF;
 !EOC
@@ -214,7 +214,7 @@ sub writeFortranVars($@) {
 \#     include "netcdf.inc"
 !
 ! !OUTPUT PARAMETERS:
-!   
+!
       INTEGER, INTENT(OUT) :: $F_ID    ! netCDF file ID
 !
 ! !REMARKS:
@@ -247,19 +247,19 @@ EOF
     # FILENAME section
     #----------------------------------------------------
     elsif ( $lines[$i] =~ '!FILENAME:' ) {
-      		
+
       while ( $lines[++$i] ne '' ) {
-		
+
 	# Split the line on the equals sign
 	( $name, $value ) = &splitLine( $lines[$i], '=' );
-      
+
 	# Declare netCDF file and variable ID's
-	if ( $name =~ 'FileHandle' ) { 
+	if ( $name =~ 'FileHandle' ) {
 	  $txt .= "      ! Declare netCDF variable ID and fill mode\n";
 	  $txt .= "      INTEGER            :: vId\n";
 	  $txt .= "      INTEGER            :: omode\n";
-	}	      
-      }			       
+	}
+      }
 
     #----------------------------------------------------
     # DIMENSIONS section
@@ -271,7 +271,7 @@ EOF
 
       while ( $lines[++$i] ne '' ) {
 
-	# Split the line 
+	# Split the line
 	( $name, $value ) = &splitLine( $lines[$i], '=' );
 
 	# Write a Fortran var for each netCDF dimension
@@ -289,7 +289,7 @@ EOF
       CHARACTER(LEN=255) :: nc_dir      ! netCDF directory name
       CHARACTER(LEN=255) :: nc_file     ! netCDF file name
       CHARACTER(LEN=255) :: nc_path     ! netCDF path name
-      CHARACTER(LEN=255) :: v_name      ! netCDF variable name 
+      CHARACTER(LEN=255) :: v_name      ! netCDF variable name
       CHARACTER(LEN=255) :: a_name      ! netCDF attribute name
       CHARACTER(LEN=255) :: a_val       ! netCDF attribute value
 
@@ -316,7 +316,7 @@ EOF2
 #
 # !DESCRIPTION: Routine writeFortranCalls is a wrapper for routines
 #  handleFileName, handleGlobalAtts, handleDimensions, and handleVariables.
-#  These routines write to the proper calls to the NcdfUtilities library 
+#  These routines write to the proper calls to the NcdfUtilities library
 #  routines to the Fortran subroutine.
 #\\
 #\\
@@ -326,7 +326,7 @@ sub writeFortranCalls($@) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : Contents of the resource file
   my ( $O, @lines ) = @_;
 #
@@ -356,7 +356,7 @@ EOF
 
   # Loop thru each line in the file
   for ( my $i = 0; $i < scalar( @lines ); $i++ ) {
-    				
+
     # Skip separator line
     if ( $lines[$i] eq '#' ) {
       # Do nothing
@@ -367,13 +367,13 @@ EOF
     #----------------------------------------------------
     elsif ( $lines[$i] =~ '!FILENAME:' ) {
 
-      while ( $lines[++$i] ne '' ) { 
-	if ( !( $lines[$i] =~ '#' ) ) { 
+      while ( $lines[++$i] ne '' ) {
+	if ( !( $lines[$i] =~ '#' ) ) {
 	  &handleFileName( \*O, $lines[$i] );
 	}
       }
     }
-    
+
     #----------------------------------------------------
     # GLOBAL ATTRIBUTES section
     #----------------------------------------------------
@@ -387,7 +387,7 @@ EOF
 
       # Write Fortran calls to define global attributes
       while ( $lines[++$i] ne '' ) {
-	if ( !( $lines[$i] =~ '#' ) ) {	
+	if ( !( $lines[$i] =~ '#' ) ) {
 	  &handleGlobalAtts( \*O, $lines[$i] );
 	}
       }
@@ -396,17 +396,17 @@ EOF
     #----------------------------------------------------
     # DIMENSIONS section
     #----------------------------------------------------
-    elsif ( $lines[$i] =~ '!DIMENSIONS:' ) { 
+    elsif ( $lines[$i] =~ '!DIMENSIONS:' ) {
 
       # Add a spacer comment to the Fortran code
       $txt  = "      !--------------------------------\n";
       $txt .= "      ! DIMENSIONS\n";
       $txt .= "      !--------------------------------\n";
       print $O "$txt\n";
-				
+
       # Write Fortran calls to define dimensions
       while ( $lines[++$i] ne '' ) {
-	if ( !( $lines[$i] =~ '#' ) ) { 
+	if ( !( $lines[$i] =~ '#' ) ) {
 	  &handleDimensions( \*O, $lines[$i] );
 	}
       }
@@ -419,8 +419,8 @@ EOF
 
       # Write fortran calls to define variables
       while ( $lines[++$i] ne '' ) {
-	if ( !( $lines[$i] =~ '#' ) ) { 
-	  &handleVariables( \*O, $lines[$i] ); 
+	if ( !( $lines[$i] =~ '#' ) ) {
+	  &handleVariables( \*O, $lines[$i] );
 	}
       }
     }
@@ -444,7 +444,7 @@ EOF
 EOF2
   print $O "$txt\n";
 
-  # Return 
+  # Return
   return( 0 );
 }
 #EOC
@@ -465,7 +465,7 @@ sub handleFileName($$) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : A single line from the resource file
   my ( $O, $line ) = @_;
 #
@@ -487,14 +487,14 @@ sub handleFileName($$) {
   # Split the name on the equals sign
   my( $name, $value ) = &splitLine( $line, '=' );
 
-  if ( $name =~ 'FileHandle' ) { 
+  if ( $name =~ 'FileHandle' ) {
     return(0);
-  
+
   } elsif ( $name =~ 'FileName' ) {
 
     # Full path name of the netCDF file
     my $ncPath = $value;
-    
+
     # Split path into filename and diretory parts
     ( $ncFile, $ncDir ) = &extractFile( $ncPath );
 
@@ -511,7 +511,7 @@ sub handleFileName($$) {
       WRITE( 6, 120 ) TRIM( nc_dir  )
 
       ! Turn filling off
-      CALL NcSetFill( $F_ID, NF_NOFILL, omode )     
+      CALL NcSetFill( $F_ID, NF_NOFILL, omode )
 EOF
 
      # Write to file
@@ -540,7 +540,7 @@ sub handleGlobalAtts($$) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : A single line from the resource file
   my ( $O, $line ) = @_;
 #
@@ -590,7 +590,7 @@ sub handleDimensions($$) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O     : File handle 
+  # $O     : File handle
   # @lines : A single line from the resource file
   my ( $O, $line ) = @_;
 #
@@ -615,7 +615,7 @@ sub handleDimensions($$) {
       CALL NcDef_Dimension( $F_ID, TRIM(v_name), $value, id_$name )
 EOF
 
-  # Write to output file     
+  # Write to output file
   print O "$txt\n";
 
   # Return
@@ -639,7 +639,7 @@ sub handleVariables($$) {
 #
 # !INPUT PARAMETERS:
 #
-  # $O    : File handle 
+  # $O    : File handle
   # @line : A single line from the resource file
   my ( $O, $line ) = @_;
 #
@@ -673,14 +673,14 @@ sub handleVariables($$) {
   #-----------------------------------------------------------------------
   # If the $name field has a semicolon, then it is an attribute
   #-----------------------------------------------------------------------
-  if ( $name =~ ':' ) { 
+  if ( $name =~ ':' ) {
 
     # Get The variable name and attribute name
     ( $varName, $attName ) = &splitLine( $name, ':' );
 
     # Attribute value
     $attValue = $value;
- 
+
     # Write commands to disk
     $txt = <<EOF;
       ! Define the "$varName:$attName" attribute
@@ -697,8 +697,8 @@ EOF
   else {
 
     # Get the variable name
-    $varName = $name; 
-   
+    $varName = $name;
+
     # Find the variable type and variable dimension(s)
     ( $varType, $varDim ) = &splitLine( $value, '::' );
     $varType =~ s/\*//g;
@@ -718,10 +718,10 @@ EOF
     # Dimension array used in call to NcDef_Variable
     $dimArr = "var$nDims"."d";
     $dimDef = "$dimArr = (/ ";
-    for ( my $i=0; $i<$nDims; $i++ ) { 
+    for ( my $i=0; $i<$nDims; $i++ ) {
       $dimDef .= "id_$dims[$i]";
       if ( $i < $nDims-1 ) { $dimDef .= ", "; }
-    }	
+    }
     $dimDef .= " /)";
 
     # Write commands to disk
@@ -768,8 +768,8 @@ sub main() {
 #BOC
 
   # Error check arguments
-  if ( scalar( @ARGV ) == 0 ) { 
-    print "Usage: ncCodeDef RESOURCE-FILE\n"; 
+  if ( scalar( @ARGV ) == 0 ) {
+    print "Usage: ncCodeDef RESOURCE-FILE\n";
     exit(1);
   }
 

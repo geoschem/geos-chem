@@ -5,12 +5,12 @@
 !
 ! !MODULE: diag63_mod.F
 !
-! !DESCRIPTION: Module DIAG63\_MOD contains variables and routines to save 
+! !DESCRIPTION: Module DIAG63\_MOD contains variables and routines to save
 !  out the fraction of NOx remaining and integrated OPE to disk
-!  (gvinken, 25/02/11) 
+!  (gvinken, 25/02/11)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG63_MOD
 !
@@ -61,13 +61,13 @@
       ! LATRES           : Used for binary punch file write
       ! RESERVED         : Used for binary punch file write
       ! MODELNAME        : Used for binary punch file write
-      ! TITLE            : Used for binary punch file write 
+      ! TITLE            : Used for binary punch file write
       !=================================================================
       INTEGER            :: IOFF,           JOFF
       INTEGER            :: I0,             J0
       INTEGER            :: ND63_NI,        ND63_NJ,  ND63_NL
       INTEGER            :: HALFPOLAR
-      INTEGER, PARAMETER :: CENTER180=1 
+      INTEGER, PARAMETER :: CENTER180=1
       REAL*4             :: LONRES,         LATRES
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: RESERVED = ''
@@ -84,10 +84,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diag63 
+! !IROUTINE: diag63
 !
-! !DESCRIPTION: Subroutine DIAG63 produces time series (instantaneous fields) 
-!  for a geographical domain from the information read in timeseries.dat.  
+! !DESCRIPTION: Subroutine DIAG63 produces time series (instantaneous fields)
+!  for a geographical domain from the information read in timeseries.dat.
 !  Output will be in binary punch (BPCH) format.
 !\\
 !\\
@@ -122,7 +122,7 @@
 ! !INPUT ARGUMENTS
 !
       LOGICAL,        INTENT(IN   )       :: am_I_Root
-      TYPE(OptInput), INTENT(IN   )       :: Input_Opt  ! Input opts 
+      TYPE(OptInput), INTENT(IN   )       :: Input_Opt  ! Input opts
 !
 ! !INPUT/OUTPUT ARGUMENTS
 !
@@ -131,7 +131,7 @@
       INTEGER,        INTENT(INOUT)       :: RC
 !
 ! !REVISION HISTORY:
-!  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
+!  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
@@ -149,7 +149,7 @@
 ! !LOCAL VARIABLES:
 !
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
+      INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L
       INTEGER                       :: N,    R,     H,    W, X, Y
       INTEGER                       :: NHMS, TS_DIAG
       REAL(f8)                      :: TAU1, TAU0
@@ -174,7 +174,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(f8), PARAMETER           :: CM2PERM2 = 10000e+0_f8
-      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)'
 #endif
 
       !=================================================================
@@ -185,7 +185,7 @@
       RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-     
+
       ! Initialize
       DiagnCnt => NULL()
 
@@ -202,10 +202,10 @@
       TS_DIAG = TS_DIAG/3600 * 10000 + (TS_DIAG - (TS_DIAG/3600)*3600)
      &          * 100 + (TS_DIAG - (TS_DIAG/60)*60)
 
-      ! Check if it's a new day for diagnostics, 
+      ! Check if it's a new day for diagnostics,
       ! or if the model run just started
-      IF ( ( NHMS == TS_DIAG ) .OR. 
-     &     ( GET_TAU() == ( GET_TAUb() + 
+      IF ( ( NHMS == TS_DIAG ) .OR.
+     &     ( GET_TAU() == ( GET_TAUb() +
      &                      Input_Opt%ND63_FREQ/3600e+0_fp) ) ) THEN
 
          ! Find a free file LUN
@@ -218,7 +218,7 @@
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - DIAG63: Opening file ', a, ' on unit ', i6 )
-        
+
          ! Open bpch file and write top-of-file header
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND63, FILENAME, TITLE )
       ENDIF
@@ -244,7 +244,7 @@
 
       ! Time for BPCH file [hrs since Jan 1 1985]
       TAU1  = GET_TAU()
-      
+
       ! Time for start of averaging period [hrs since Jan 1 1985]
       TAU0  = TAU1 - Input_Opt%ND63_FREQ / 3600e+0_fp
 
@@ -263,34 +263,34 @@
 
          ! Pick variables to get diagnostics from HEMCO
          SELECT CASE ( W )
-            CASE ( 1 ) 
+            CASE ( 1 )
                DiagnName = 'PARANOX_NOXFRAC_REMAINING'
                UNIT      = 'UNITLESS'
                AF        = 0
                FACTOR    = 1.0d0
-            CASE ( 2 ) 
+            CASE ( 2 )
                DiagnName = 'PARANOX_OPE'
                UNIT      = 'UNITLESS'
                AF        = 0
                FACTOR    = 1.0d0
-            CASE ( 3 ) 
+            CASE ( 3 )
                DiagnName = 'PARANOX_OX_PRODUCTION'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = AVO * ( AIRMW / MW_NO ) / 
-     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
-            CASE ( 4 ) 
+               FACTOR    = AVO * ( AIRMW / MW_NO ) /
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )
+            CASE ( 4 )
                DiagnName = 'PARANOX_NOX_REMAINING'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = AVO * ( AIRMW / MW_NO ) / 
-     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
-            CASE ( 5 ) 
+               FACTOR    = AVO * ( AIRMW / MW_NO ) /
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )
+            CASE ( 5 )
                DiagnName = 'SHIP_NO'
                UNIT      = 'molec/cm2/s'
                AF        = 1
                FACTOR    = AVO * ( AIRMW / MW_NO ) /
-     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )  
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )
             CASE DEFAULT
                MSG = 'Only 5 diagnostics expected!'
                CALL ERROR_STOP ( MSG, LOC )
@@ -300,13 +300,13 @@
          DiagnCnt => NULL()
          CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
      &                   FLAG,  RC, cName=TRIM(DiagnName),
-     &                   AutoFill=AF, 
+     &                   AutoFill=AF,
      &                   COL=HcoState%Diagn%HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC )
          ENDIF
-        
+
          ! Save into ARRAY. Convert to desired output units
          IF ( FLAG == HCO_SUCCESS ) THEN
             Q(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR
@@ -315,19 +315,19 @@
             MSG = TRIM(MSG) // ' - will write zeros!'
             CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
          ENDIF
- 
+
          !==============================================================
          ! Save this data block to the ND63 timeseries file
          !==============================================================
-         CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,   
-     &               LATRES,       HALFPOLAR,    CENTER180, 
-     &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU0,         TAU1,         RESERVED,  
-     &               ND63_NI,      ND63_NJ,      1,  
-     &               Input_Opt%ND63_IMIN+I0, Input_Opt%ND63_JMIN+J0, 1, 
+         CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,
+     &               LATRES,       HALFPOLAR,    CENTER180,
+     &               CATEGORY,     GMTRC,        UNIT,
+     &               TAU0,         TAU1,         RESERVED,
+     &               ND63_NI,      ND63_NJ,      1,
+     &               Input_Opt%ND63_IMIN+I0, Input_Opt%ND63_JMIN+J0, 1,
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
- 
+
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
@@ -344,7 +344,7 @@
  120     FORMAT( '     - DIAG63: Closing file : ', a )
 
          ! Close file
-         CLOSE( IU_ND63 ) 
+         CLOSE( IU_ND63 )
       ENDIF
 
       ! Return w/ success
@@ -362,7 +362,7 @@
 !
 ! !IROUTINE: its_time_to_close_file
 !
-! !DESCRIPTION: Function ITS\_TIME\_TO\_CLOSE\_FILE returns TRUE if it's 
+! !DESCRIPTION: Function ITS\_TIME\_TO\_CLOSE\_FILE returns TRUE if it's
 !  time to close the ND63 bpch file before the end of the day.
 !\\
 !\\
@@ -377,8 +377,8 @@
       USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_SECOND
 #endif
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -398,7 +398,7 @@
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp ) 
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
      &           + ( GET_SECOND() / 3600e+0_fp )
 
        ! If the next dyn step is the start of a new day, return TRUE
@@ -414,7 +414,7 @@
 !
 ! !IROUTINE: its_time_for_diag63
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG63 returns TRUE if ND63 is 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG63 returns TRUE if ND63 is
 !  turned on and it is time to call DIAG63 -- or FALSE otherwise.
 !\\
 !\\
@@ -431,17 +431,17 @@
       USE TIME_MOD,      ONLY : GET_TS_DIAG
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !RETURN VALUE:
 !
       LOGICAL :: ITS_TIME
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on ITS_TIME_FOR_DIAG49
-!  07 Feb 2012 - M. Payer    - Added ProTeX headers 
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,7 +459,7 @@
       IF ( Input_Opt%DO_ND63 ) THEN
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
-            
+
             ! Check if ND63_FREQ is a multiple of TS_DIAG
             IF ( MOD( Input_Opt%ND63_FREQ, TS_DIAG ) /= 0 ) THEN
                WRITE( 6, 100 ) 'ND63', Input_Opt%ND63_FREQ, TS_DIAG
@@ -469,10 +469,10 @@
             ENDIF
             FIRST = .FALSE.
          ENDIF
-         
+
          ! Time already elapsed in this run
          XSEC     = GET_ELAPSED_SEC()
-         
+
          ! Is the elapsed time a multiple of ND63_FREQ?
          ITS_TIME = ( Input_Opt%DO_ND63 .and.
      &                MOD( XSEC, Input_Opt%ND63_FREQ ) == 0 )
@@ -480,7 +480,7 @@
          ITS_TIME = Input_Opt%DO_ND63
       ENDIF
 #endif
-            
+
       END FUNCTION ITS_TIME_FOR_DIAG63
 !EOC
 !------------------------------------------------------------------------------
@@ -490,8 +490,8 @@
 !
 ! !IROUTINE: init_diag63
 !
-! !DESCRIPTION: Subroutine INIT\_DIAG63 allocates and zeroes all module 
-!  arrays.  It also gets values for module variables from "input\_mod.f". 
+! !DESCRIPTION: Subroutine INIT\_DIAG63 allocates and zeroes all module
+!  arrays.  It also gets values for module variables from "input\_mod.f".
 !\\
 !\\
 ! !INTERFACE:
@@ -511,7 +511,7 @@
       USE ERROR_MOD,      ONLY : ERROR_STOP
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
@@ -520,7 +520,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on INIT_DIAG49
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
@@ -533,7 +533,7 @@
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       CHARACTER(LEN=255)             :: LOCATION
 #endif
-      
+
       !=================================================================
       ! INIT_DIAG63 begins here!
       !=================================================================
@@ -545,7 +545,7 @@
 
       ! Initialize
       LOCATION               = 'INIT_DIAG63 ("diag63_mod.f")'
-     
+
       ! Return if we are not saving ND63 diagnostics
       IF ( .not. Input_Opt%DO_ND63 ) RETURN
 
@@ -573,11 +573,11 @@
          CALL ERROR_STOP( 'Bad ND63_IMAX value!', LOCATION )
       ENDIF
 
-      ! Compute longitude limits to write to disk 
+      ! Compute longitude limits to write to disk
       ! Also handle wrapping around the date line
       IF ( Input_Opt%ND63_IMAX >= Input_Opt%ND63_IMIN ) THEN
          ND63_NI = ( Input_Opt%ND63_IMAX - Input_Opt%ND63_IMIN ) + 1
-      ELSE 
+      ELSE
          ND63_NI = ( State_Grid%NX - Input_Opt%ND63_IMIN ) + 1 +
      &               Input_Opt%ND63_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
@@ -591,13 +591,13 @@
       !-----------
       ! Latitude
       !-----------
-      
+
       ! Error check JMIN_AREA
       IF ( Input_Opt%ND63_JMIN+J0 < 1       .or.
      &     Input_Opt%ND63_JMIN+J0 > State_Grid%DY ) THEN
          CALL ERROR_STOP( 'Bad ND63_JMIN value!', LOCATION)
       ENDIF
-     
+
       ! Error check JMAX_AREA
       IF ( Input_Opt%ND63_JMAX+J0 < 1       .or.
      &     Input_Opt%ND63_JMAX+J0 > State_Grid%DY ) THEN
@@ -605,12 +605,12 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( Input_Opt%ND63_JMAX >= Input_Opt%ND63_JMIN ) THEN      
+      IF ( Input_Opt%ND63_JMAX >= Input_Opt%ND63_JMIN ) THEN
          ND63_NJ = ( Input_Opt%ND63_JMAX - Input_Opt%ND63_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND63_JMAX < ND63_JMIN!', LOCATION )
-      ENDIF     
-  
+      ENDIF
+
       !-----------
       ! Altitude
       !-----------
@@ -633,7 +633,7 @@
       LATRES    = State_Grid%DY
       MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
-      
+
 #endif
 
       END SUBROUTINE INIT_DIAG63

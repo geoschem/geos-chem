@@ -2,23 +2,23 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!     
+!
 ! !MODULE: diag04_mod.F
-!     
-! !DESCRIPTION: Module DIAG04\_MOD contains arrays and routines for archiving 
+!
+! !DESCRIPTION: Module DIAG04\_MOD contains arrays and routines for archiving
 !  the ND04 diagnostic -- CO2 emissions and fluxes.
-!\\   
-!\\   
+!\\
+!\\
 ! !INTERFACE:
-!     
+!
       MODULE DIAG04_MOD
-!     
+!
 ! !USES:
-!     
+!
       USE PRECISION_MOD     ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-      PUBLIC 
+      PUBLIC
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -28,16 +28,16 @@
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD04_chem(:,:,:)
-!     
+!
 ! !PUBLIC MEMBER FUNCTIONS:
-!     
+!
       PUBLIC :: CLEANUP_DIAG04
       PUBLIC :: INIT_DIAG04
       PUBLIC :: WRITE_DIAG04
       PUBLIC :: ZERO_DIAG04
-!     
+!
 ! !PRIVATE MEMBER FUNCTIONS:
-!     
+!
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,7 +49,7 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
-!  (3 ) Modified for ship emissions (2-D), aircraft emissions (3-D) and 
+!  (3 ) Modified for ship emissions (2-D), aircraft emissions (3-D) and
 !       chemical source for CO2 (3-D) (RayNassar, 2009-12-23)
 !  20 May 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -78,7 +78,7 @@
 !
       USE CMN_SIZE_MOD  ! Size parameters
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  26 Jul 2005 - R. Yantosca - Initial version
 !  18 May 2010 - R. Nassar   - Also zero AD04_PLANE, AD04_CHEM arrays
 !  18 May 2010 - R. Yantosca - Added ProTeX headers
@@ -107,7 +107,7 @@
 !
 ! !IROUTINE: write_diag04
 !
-! !DESCRIPTION: Subroutine WRITE\_DIAG04 writes the ND04 diagnostic arrays 
+! !DESCRIPTION: Subroutine WRITE\_DIAG04 writes the ND04 diagnostic arrays
 !  to the binary punch file at the proper time.
 !\\
 !\\
@@ -145,9 +145,9 @@
 !  (7 ) CO2-SRCE  : CO2 ship emissions           : molec/cm2/s : SCALE
 !  (8 ) CO2-SRCE  : CO2 aircraft emissions (3-D) : molec/cm2/s : SCALE
 !  (9 ) CO2-SRCE  : CO2 chemical source (3-D)    : molec/cm2/s : SCALE
-!  (10) CO2-SRCE  : CO2 chem source surf correct : molec/cm2/s : SCALE! 
-! 
-! !REVISION HISTORY: 
+!  (10) CO2-SRCE  : CO2 chem source surf correct : molec/cm2/s : SCALE!
+!
+! !REVISION HISTORY:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !  18 May 2010 - R. Nassar   - Now write out AD04_PLANE, ADO4_CHEM
@@ -159,14 +159,14 @@
 ! !LOCAL VARIABLES:
 !
 #if defined( BPCH_DIAG )
-      INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST 
-      INTEGER            :: LFIRST,    LMAX,      M,      N       
+      INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST
+      INTEGER            :: LFIRST,    LMAX,      M,      N
       REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
      &                            State_Grid%NZ)
       REAL(f4)           :: LONRES,    LATRES
       REAL(f8)           :: DIAGb,     DIAGe
       REAL(fp)           :: SCALE
-      CHARACTER(LEN=20)  :: MODELNAME 
+      CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
       !=================================================================
@@ -192,7 +192,7 @@
 
       !=================================================================
       ! Write data to the bpch file
-      ! Note: if any of the ARRAY or AD04* dimensions are wrong, the 
+      ! Note: if any of the ARRAY or AD04* dimensions are wrong, the
       ! run will crash with "ERROR RUNNING GEOS-CHEM" at the end.
       !=================================================================
 
@@ -201,25 +201,25 @@
 
          ! Get quantities
          N            = TINDEX(4,M)
- 
+
          IF ( N == 1 ) THEN
 
             CATEGORY     = 'CO2-SRCE'
             UNIT         = 'molec/cm2/s'
             LMAX = LD04
             ARRAY(:,:,1:LMAX) = AD04_chem(:,:,1:LMAX) / SCALE
-            
-         ELSE 
+
+         ELSE
 
             CYCLE
-            
+
          ENDIF
 
          ! Write data to disk
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
       ENDDO
@@ -250,7 +250,7 @@
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  26 Jul 2005 - R. Yantosca - Initial version
 !  18 May 2010 - R. Nassar   - Now initialize AD04_PLANE, AD04_CHEM
 !  18 May 2010 - R. Yantosca - Added ProTeX headers
@@ -261,7 +261,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-      
+
       !=================================================================
       ! INIT_DIAG04 begins here!
       !=================================================================
@@ -272,7 +272,7 @@
 
       ! Get number of levels for 3-D arrays
       LD04 = MIN( ND04, State_Grid%NZ )
-	
+
       ! 3-D arrays ("CO2-SRCE")
       ALLOCATE( AD04_chem(State_Grid%NX,State_Grid%NY,State_Grid%NZ),
      &          STAT=AS )
@@ -297,8 +297,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG04
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  26 Jul 2005 - R. Yantosca - Initial version
 !  18 May 2010 - R. Nassar   - Now ce
 !  18 May 2010 - R. Yantosca - Added ProTeX headers
@@ -309,7 +309,7 @@
       ! CLEANUP_DIAG04 begins here!
       !=================================================================
 #if defined( BPCH_DIAG )
-      IF ( ALLOCATED( AD04_chem  ) ) DEALLOCATE( AD04_chem  ) 
+      IF ( ALLOCATED( AD04_chem  ) ) DEALLOCATE( AD04_chem  )
 #endif
 
       END SUBROUTINE CLEANUP_DIAG04

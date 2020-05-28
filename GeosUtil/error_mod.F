@@ -8,10 +8,10 @@
 ! !DESCRIPTION: Module ERROR\_MOD contains error checking routines.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE ERROR_MOD
-! 
+!
 ! !USES:
 !
       USE ErrCode_Mod
@@ -43,7 +43,7 @@
       PUBLIC  :: CLEANUP_ERROR
 #if defined( MODEL_GEOS )
       PUBLIC  :: mpiComm
-#endif 
+#endif
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -93,8 +93,8 @@
 !  (5 ) Add NaN and infinity error checking for Linux platform (bmy, 3/22/02)
 !  (6 ) Added routines ERROR_STOP, GEOS_CHEM_STOP, and ALLOC_ERR to this
 !        module.  Also improved CHECK_STT. (bmy, 11/27/02)
-!  (7 ) Minor bug fixes in FORMAT statements.   Renamed cpp switch from 
-!        DEC_COMPAQ to COMPAQ.  Also added code to trap errors on SUN 
+!  (7 ) Minor bug fixes in FORMAT statements.   Renamed cpp switch from
+!        DEC_COMPAQ to COMPAQ.  Also added code to trap errors on SUN
 !        platform. (bmy, 3/21/03)
 !  (8 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (9 ) Bug fixes for LINUX platform (bmy, 9/29/03)
@@ -119,8 +119,8 @@
 !  08 Jul 2014 - R. Yantosca - Added INIT_ERROR and CLEANUP_ERROR subroutines
 !  08 Jul 2014 - R. Yantosca - Add shadow variables for am_I_Root, Input_Opt
 !                              so that we can pass these to routine CLEANUP
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
-!  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8 
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8
 !                              module procedures to facilitate flex precision
 !  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
 !                              and print msg and location to log
@@ -151,7 +151,7 @@
 !
 ! !IROUTINE: Nan_Float
 !
-! !DESCRIPTION: Function NAN\_FLOAT returns TRUE if a REAL*4 number is equal 
+! !DESCRIPTION: Function NAN\_FLOAT returns TRUE if a REAL*4 number is equal
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
 !\\
 !\\
@@ -159,7 +159,7 @@
 !
       FUNCTION NAN_FLOAT( VALUE ) RESULT( IT_IS_A_NAN )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*4, INTENT(IN) :: VALUE        ! Value to be tested for NaN
 !
@@ -180,7 +180,7 @@
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
-!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch.
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -190,7 +190,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      IT_IS_A_NAN = ISNAN( VALUE )    
+      IT_IS_A_NAN = ISNAN( VALUE )
 
       ! Return to calling program
       END FUNCTION NAN_FLOAT
@@ -202,7 +202,7 @@
 !
 ! !IROUTINE: Nan_Dble
 !
-! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal 
+! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
 !\\
 !\\
@@ -210,7 +210,7 @@
 !
       FUNCTION NAN_DBLE( VALUE ) RESULT( IT_IS_A_NAN )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*8, INTENT(IN) :: VALUE        ! Value to be tested for NaN
 !
@@ -231,7 +231,7 @@
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
-!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch.
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -241,7 +241,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      IT_IS_A_NAN = ISNAN( VALUE )      
+      IT_IS_A_NAN = ISNAN( VALUE )
 
       ! Return to calling program
       END FUNCTION NAN_DBLE
@@ -253,7 +253,7 @@
 !
 ! !IROUTINE: Finite_Float
 !
-! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*4 number is 
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*4 number is
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
 !\\
 !\\
@@ -261,7 +261,7 @@
 !
       FUNCTION FINITE_FLOAT( VALUE ) RESULT( IT_IS_A_FINITE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*4, INTENT(IN) :: VALUE           ! Value to be tested for infinity
 !
@@ -283,7 +283,7 @@
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
-!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch.
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -296,7 +296,7 @@
 
 #if defined( LINUX_GFORTRAN )
 
-      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
+      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and.
      &                  (VALUE.lt.HUGE(1.0e0)) .and.
      &                  (VALUE.gt.(-1.0e0*HUGE(1.0e0))))
 
@@ -311,11 +311,11 @@
 
       ! VALUE is infinite if it is either +Inf or -Inf
       ! Also flag an error if VALUE is a signaling or quiet NaN
-      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
+      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and.
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
 
 #endif
-      
+
       ! Return to calling program
       END FUNCTION FINITE_FLOAT
 !EOC
@@ -326,7 +326,7 @@
 !
 ! !IROUTINE: Finite_Dble
 !
-! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is 
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
 !\\
 !\\
@@ -334,7 +334,7 @@
 !
       FUNCTION FINITE_DBLE( VALUE ) RESULT( IT_IS_A_FINITE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*8, INTENT(IN) :: VALUE           ! Value to be tested for infinity
 !
@@ -356,7 +356,7 @@
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
-!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch.
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -368,7 +368,7 @@
 
 #if   defined( LINUX_GFORTRAN )
 
-      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
+      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and.
      &                  (VALUE.lt.HUGE(1.d0)) .and.
      &                  (VALUE.gt.(-1.0d0*HUGE(1.d0))))
 
@@ -383,11 +383,11 @@
 
       ! VALUE is infinite if it is either +Inf or -Inf
       ! Also flag an error if VALUE is a signaling or quiet NaN
-      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
+      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and.
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
 
 #endif
-      
+
       ! Return to calling program
       END FUNCTION FINITE_DBLE
 !EOC
@@ -398,7 +398,7 @@
 !
 ! !IROUTINE: Check_Real_Value
 !
-! !DESCRIPTION: Subroutine CHECK\_REAL\_VALUE checks to make sure a REAL*4 
+! !DESCRIPTION: Subroutine CHECK\_REAL\_VALUE checks to make sure a REAL*4
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
 !  IT\_IS\_NAN and IT\_IS\_FINITE.
 !\\
@@ -407,7 +407,7 @@
 !
       SUBROUTINE CHECK_REAL_VALUE( VALUE, LOCATION, VARNAME, MESSAGE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*4,             INTENT(IN) :: VALUE        ! Value to be checked
       CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
@@ -424,7 +424,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! First check for NaN -- print info & stop run if found
-      IF ( IT_IS_NAN( VALUE ) ) THEN 
+      IF ( IT_IS_NAN( VALUE ) ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, 110   ) TRIM( VARNAME )
          WRITE( 6, 115   ) LOCATION
@@ -438,9 +438,9 @@
          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          WRITE( 6, 120       ) TRIM( VARNAME )
          WRITE( 6, 115       ) LOCATION
-         WRITE( 6, '(f13.6)' ) VALUE      
+         WRITE( 6, '(f13.6)' ) VALUE
          WRITE( 6, '(a)'     ) TRIM ( MESSAGE )
-         WRITE( 6, '(a)'     ) REPEAT( '=', 79 )         
+         WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP()
       ENDIF
 
@@ -459,7 +459,7 @@
 !
 ! !IROUTINE: Check_Dble_Value
 !
-! !DESCRIPTION: Subroutine CHECK\_DBLE\_VALUE checks to make sure a REAL*4 
+! !DESCRIPTION: Subroutine CHECK\_DBLE\_VALUE checks to make sure a REAL*4
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
 !  IT\_IS\_NAN and IT\_IS\_FINITE.
 !\\
@@ -468,7 +468,7 @@
 !
       SUBROUTINE CHECK_DBLE_VALUE( VALUE, LOCATION, VARNAME, MESSAGE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
       CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
@@ -485,7 +485,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! First check for NaN
-      IF ( IT_IS_NAN( VALUE ) )THEN 
+      IF ( IT_IS_NAN( VALUE ) )THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, 110   ) TRIM( VARNAME )
          WRITE( 6, 115   ) LOCATION
@@ -499,7 +499,7 @@
          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          WRITE( 6, 120       ) TRIM( VARNAME )
          WRITE( 6, 115       ) LOCATION
-         WRITE( 6, '(f13.6)' ) VALUE      
+         WRITE( 6, '(f13.6)' ) VALUE
          WRITE( 6, '(a)'     ) TRIM ( MESSAGE )
          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
@@ -520,7 +520,7 @@
 !
 ! !IROUTINE: Error_Stop
 !
-! !DESCRIPTION: Subroutine ERROR\_STOP is a wrapper for GEOS\_CHEM\_STOP.  It 
+! !DESCRIPTION: Subroutine ERROR\_STOP is a wrapper for GEOS\_CHEM\_STOP.  It
 !  prints an error message then calls GEOS\_CHEM\_STOP to free memory and quit.
 !\\
 !\\
@@ -532,11 +532,11 @@
 !
       USE CharPak_Mod, ONLY : WordWrapPrint
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Error msg to print
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION     ! Where ERROR_STOP is called
-      CHARACTER(LEN=*), OPTIONAL   :: INSTRUCTIONS ! Further instructions 
+      CHARACTER(LEN=*), OPTIONAL   :: INSTRUCTIONS ! Further instructions
 !
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
@@ -573,13 +573,13 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 !$OMP END CRITICAL
-      
+
       ! Flush text to file before stopping
       CALL FLUSH( 6 )
 
       ! Deallocate memory and stop the run
       CALL GEOS_CHEM_STOP()
-      
+
       ! Return to calling program
       END SUBROUTINE ERROR_STOP
 !EOC
@@ -590,7 +590,7 @@
 !
 ! !IROUTINE: Geos_Chem_Stop
 !
-! !DESCRIPTION: Subroutine GEOS\_CHEM\_STOP calls CLEANUP to deallocate all 
+! !DESCRIPTION: Subroutine GEOS\_CHEM\_STOP calls CLEANUP to deallocate all
 !  module arrays and then stops the run.
 !\\
 !\\
@@ -612,6 +612,8 @@
       !-----------------------------------------------------------------
       USE MAPL_Mod
 #     include "MAPL_Generic.h"
+#elif defined( MODEL_CESM )
+      USE CAM_ABORTUTILS,     ONLY : ENDRUN
 #endif
 !
 ! !REVISION HISTORY:
@@ -631,7 +633,7 @@
 ! !LOCAL VARIABLES
 !
       INTEGER :: RC          ! Success / Failure
-      LOGICAL :: am_I_Root   ! Is this the root CPU? 
+      LOGICAL :: am_I_Root   ! Is this the root CPU?
 
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
@@ -643,27 +645,29 @@
       __Iam__('GEOSCHEMSTOP')
 
       ! Only write to stdout if we are on the root CPU
-      am_I_Root = .TRUE. 
+      am_I_Root = .TRUE.
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_StopAll( RC )
-      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )
 #endif
 
+#elif defined( MODEL_CESM )
+      CALL ENDRUN('GEOS-Chem failure!')
 
 #else
       ! Only write to stdout if we are on the root CPU
-      am_I_Root = .TRUE. 
+      am_I_Root = .TRUE.
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_StopAll( RC )
-      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )
 #endif
 
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
-      ! Current practice in the std GEOS-Chem is to call CLEANUP to 
+      ! Current practice in the std GEOS-Chem is to call CLEANUP to
       ! deallocate module arrays and then exit (bmy, 3/12/13)
       !-----------------------------------------------------------------
 !$OMP CRITICAL
@@ -688,7 +692,7 @@
 !
 ! !IROUTINE: Alloc_Err
 !
-! !DESCRIPTION: Subroutine ALLOC\_ERR prints an error message if there is not 
+! !DESCRIPTION: Subroutine ALLOC\_ERR prints an error message if there is not
 !  enough memory to allocate a particular allocatable array.
 !\\
 !\\
@@ -696,10 +700,10 @@
 !
       SUBROUTINE ALLOC_ERR( ARRAYNAME, AS )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME  ! Name of array
-      INTEGER, OPTIONAL, INTENT(IN) :: AS         ! Error output from "STAT" 
+      INTEGER, OPTIONAL, INTENT(IN) :: AS         ! Error output from "STAT"
 !
 ! !REVISION HISTORY:
 !  26 Jun 2000 - R. Yantosca - Initial version, split off from "ndxx_setup.f"
@@ -720,11 +724,11 @@
       !=================================================================
 
 #if defined( LINUX_IFORT )
-     
+
       !-----------------------
-      ! Linux/IFORT compiler 
+      ! Linux/IFORT compiler
       !-----------------------
- 
+
       ! More local variables
       CHARACTER(LEN=255) :: IFORT_ERRMSG, MSG
 
@@ -732,13 +736,13 @@
       ERRMSG = 'Allocation error in array: ' // TRIM( ARRAYNAME )
 
       ! If we have passed the allocation status argument ...
-      IF ( PRESENT( AS ) ) THEN 
+      IF ( PRESENT( AS ) ) THEN
 
          ! Get IFORT error message
          MSG = IFORT_ERRMSG( AS )
 
-         ! Append IFORT error message 
-         ERRMSG = TRIM( ERRMSG ) // ' :: ' // TRIM( MSG ) 
+         ! Append IFORT error message
+         ERRMSG = TRIM( ERRMSG ) // ' :: ' // TRIM( MSG )
 
       ENDIF
 
@@ -750,12 +754,12 @@
 
       ! Define error message
       ERRMSG = 'Allocation error in array: ' // TRIM( ARRAYNAME )
-    
+
 #endif
- 
+
       ! Print error message, deallocate memory, and stop the run
       CALL ERROR_STOP( ERRMSG, 'alloc_err.f' )
-      
+
       ! End of subroutine
       END SUBROUTINE ALLOC_ERR
 !EOC
@@ -766,8 +770,8 @@
 !
 ! !IROUTINE: Debug_Msg
 !
-! !DESCRIPTION: Subroutine DEBUG\_MSG prints a message to the stdout buffer 
-!  and flushes.  This is useful for determining the exact location where 
+! !DESCRIPTION: Subroutine DEBUG\_MSG prints a message to the stdout buffer
+!  and flushes.  This is useful for determining the exact location where
 !  errors occur.
 !\\
 !\\
@@ -775,7 +779,7 @@
 !
       SUBROUTINE DEBUG_MSG( MESSAGE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE   ! Message to print
 !
@@ -809,35 +813,35 @@
 !
 ! !IROUTINE: Safe_Div
 !
-! !DESCRIPTION: Function SAFE\_DIV performs "safe division", that is to 
-!  prevent overflow, underlow, NaN, or infinity errors.  An alternate value 
+! !DESCRIPTION: Function SAFE\_DIV performs "safe division", that is to
+!  prevent overflow, underlow, NaN, or infinity errors.  An alternate value
 !  is returned if the division cannot be performed.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SAFE_DIV( N,        D, 
-     &                   ALT_NAN,  ALT_OVER, 
+      FUNCTION SAFE_DIV( N,        D,
+     &                   ALT_NAN,  ALT_OVER,
      &                   ALT_UNDER            ) RESULT( Q )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(fp),           INTENT(IN) :: N         ! Numerator
       REAL(fp),           INTENT(IN) :: D         ! Denominator
-      REAL(fp),           INTENT(IN) :: ALT_NAN   ! Alternate value to be 
-                                                  !  returned if the division 
-                                                  !  is either NAN (0/0) or 
-                                                  !  leads to overflow (i.e., 
+      REAL(fp),           INTENT(IN) :: ALT_NAN   ! Alternate value to be
+                                                  !  returned if the division
+                                                  !  is either NAN (0/0) or
+                                                  !  leads to overflow (i.e.,
                                                   !  a too large number)
-      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER  ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER  ! Alternate value to be
                                                   !  returned if the division
                                                   !  leads to overflow (default
                                                   !  is ALT_NAN)
-      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER ! Alternate value to be
                                                   !  returned if the division
-                                                  !  leads to underflow 
-                                                  !  (default is 0, but you 
-                                                  !  could use TINY() if you 
+                                                  !  leads to underflow
+                                                  !  (default is 0, but you
+                                                  !  could use TINY() if you
                                                   !  want a non-zero result).
 !
 ! !RETURN VALUE:
@@ -873,18 +877,18 @@
          ! OVERFLOW
          Q = ALT_NAN
          IF ( PRESENT(ALT_OVER) ) Q = ALT_OVER
-         
+
       ELSE IF ( EXPONENT(N) - EXPONENT(D) <= MINEXPONENT(N) ) THEN
 
          ! UNDERFLOW
          Q = 0D0
-         IF ( PRESENT(ALT_UNDER) ) Q = ALT_UNDER         
-         
+         IF ( PRESENT(ALT_UNDER) ) Q = ALT_UNDER
+
       ELSE
 
          ! No problem
          Q = N / D
-         
+
       ENDIF
 
       ! Return to calling program
@@ -897,9 +901,9 @@
 !
 ! !IROUTINE: Is_Safe_Div_r4
 !
-! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
-!  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
-!  returned if the division cannot be performed.  The numerator and 
+! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is
+!  check if the division will overflow/underflow or hold NaN.  .FALSE. is
+!  returned if the division cannot be performed.  The numerator and
 !  denominator must be 4-byte floating point.
 !\\
 !\\
@@ -907,11 +911,11 @@
 !
       FUNCTION IS_SAFE_DIV_R4( N, D, R4 ) RESULT( F )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(f4), INTENT(IN)           :: N    ! Numerator
       REAL(f4), INTENT(IN)           :: D    ! Denominator
-      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits
                                              !  of REAL*4 to define underflow
                                              !  or overflow.  Extra defensive.
 !
@@ -932,7 +936,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       INTEGER  :: MaxExp, MinExp
       REAL(f4) :: RR
 
@@ -948,7 +952,7 @@
             MaxExp = MAXEXPONENT( RR )
             MinExp = MINEXPONENT( RR )
          ENDIF
-      ENDIF  
+      ENDIF
 
       IF ( EXPONENT(N) - EXPONENT(D) >= MaxExp .or. D==0 .or.
      &     EXPONENT(N) - EXPONENT(D) <= MinExp  ) THEN
@@ -967,9 +971,9 @@
 !
 ! !IROUTINE: Is_Safe_Div_r8
 !
-! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
-!  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
-!  returned if the division cannot be performed.  The numerator and 
+! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is
+!  check if the division will overflow/underflow or hold NaN.  .FALSE. is
+!  returned if the division cannot be performed.  The numerator and
 !  denominator must be 4-byte floating point.
 !\\
 !\\
@@ -977,11 +981,11 @@
 !
       FUNCTION IS_SAFE_DIV_R8( N, D, R4 ) RESULT( F )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(f8), INTENT(IN)           :: N    ! Numerator
       REAL(f8), INTENT(IN)           :: D    ! Denominator
-      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits
                                              !  of REAL*4 to define underflow
                                              !  or overflow.  Extra defensive.
 !
@@ -1002,7 +1006,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       INTEGER  :: MaxExp, MinExp
       REAL(f4) :: RR
 
@@ -1018,7 +1022,7 @@
             MaxExp = MAXEXPONENT( RR )
             MinExp = MINEXPONENT( RR )
          ENDIF
-      ENDIF  
+      ENDIF
 
       IF ( EXPONENT(N) - EXPONENT(D) >= MaxExp .or. D==0 .or.
      &     EXPONENT(N) - EXPONENT(D) <= MinExp  ) THEN
@@ -1037,7 +1041,7 @@
 !
 ! !IROUTINE: Safe_Exp
 !
-! !DESCRIPTION: Function SAFE\_EXP performs a "safe exponential", that is to 
+! !DESCRIPTION: Function SAFE\_EXP performs a "safe exponential", that is to
 !  prevent overflow, underlow, NaN, or infinity errors when taking the
 !  value EXP( x ).  An alternate value is returned if the exponential
 !  cannot be performed.
@@ -1045,9 +1049,9 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SAFE_EXP( X, ALT ) RESULT( VALUE ) 
+      FUNCTION SAFE_EXP( X, ALT ) RESULT( VALUE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(fp), INTENT(IN) :: X      ! Argument of EXP
       REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
@@ -1061,10 +1065,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( IS_SAFE_EXP( X ) ) THEN 
-         VALUE = EXP( X )          
-      ELSE 
-         VALUE = ALT               
+      IF ( IS_SAFE_EXP( X ) ) THEN
+         VALUE = EXP( X )
+      ELSE
+         VALUE = ALT
       ENDIF
 
       END FUNCTION SAFE_EXP
@@ -1085,7 +1089,7 @@
 !
       FUNCTION IS_SAFE_EXP( X ) RESULT( F )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(fp), INTENT(IN) :: X    ! Argument to the exponential function
 !
@@ -1128,7 +1132,7 @@
 !
 ! !IROUTINE: Safe_Log
 !
-! !DESCRIPTION: Function SAFE\_LOG performs a "safe natural logarithm", that 
+! !DESCRIPTION: Function SAFE\_LOG performs a "safe natural logarithm", that
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
 !  value LOG( x ).  An alternate value is returned if the logarithm
 !  cannot be performed.
@@ -1136,9 +1140,9 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SAFE_LOG( X, ALT ) RESULT( VALUE ) 
+      FUNCTION SAFE_LOG( X, ALT ) RESULT( VALUE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(fp), INTENT(IN) :: X      ! Argument of LOG
       REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
@@ -1157,7 +1161,7 @@
 !
       IF ( X > 0e+0_fp ) THEN
          VALUE = LOG( X )          ! Take LOG(x) for positive-definite X
-      ELSE 
+      ELSE
          VALUE = ALT               ! Otherwise return alternate value
       ENDIF
 
@@ -1170,7 +1174,7 @@
 !
 ! !IROUTINE: Safe_Log10
 !
-! !DESCRIPTION: Function SAFE\_LOG10 performs a "safe log10", that 
+! !DESCRIPTION: Function SAFE\_LOG10 performs a "safe log10", that
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
 !  value LOG10( x ).  An alternate value is returned if the logarithm
 !  cannot be performed.
@@ -1178,9 +1182,9 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SAFE_LOG10( X, ALT ) RESULT( VALUE ) 
+      FUNCTION SAFE_LOG10( X, ALT ) RESULT( VALUE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(fp), INTENT(IN) :: X      ! Argument of LOG10
       REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
@@ -1199,7 +1203,7 @@
 !
       IF ( X > 0e+0_fp ) THEN
          VALUE = LOG10( X )        ! Take LOG10(x) for positive-definite X
-      ELSE 
+      ELSE
          VALUE = ALT               ! Otherwise return alternate value
       ENDIF
 
@@ -1214,7 +1218,7 @@
 !
 ! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
 !  and Input\_Opt.  We need store shadow copies of these variables within
-!  error\_mod.F to compensate for the removal of logical\_mod.F from 
+!  error\_mod.F to compensate for the removal of logical\_mod.F from
 !  GEOS-Chem.
 !\\
 !\\
@@ -1232,7 +1236,7 @@
       INTEGER,        INTENT(OUT)        :: RC        ! Success or failure?
 !
 ! !REMARKS:
-!  Instead of making a copy of Input_Opt, we use a pointer reference.  
+!  Instead of making a copy of Input_Opt, we use a pointer reference.
 !  This should be more efficient memory-wise.
 !
 ! !REVISION HISTORY:

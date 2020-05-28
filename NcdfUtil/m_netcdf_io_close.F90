@@ -20,7 +20,7 @@ module m_netcdf_io_close
 ! !DESCRIPTION: Routines to close a netCDF file.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -59,7 +59,7 @@ CONTAINS
 ! !DESCRIPTION: Closes a netCDF file with file id ncid.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -107,7 +107,7 @@ CONTAINS
 !  suppresses Ncclos error messages/exit if it is not.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:

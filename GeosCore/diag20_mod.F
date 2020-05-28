@@ -5,7 +5,7 @@
 !
 ! !MODULE: diag20_mod.F
 !
-! !DESCRIPTION: Module DIAG20\_MOD contains variables and routines which are 
+! !DESCRIPTION: Module DIAG20\_MOD contains variables and routines which are
 !  used to compute the production and loss of O3 for use in the tagged O3
 !  simulation
 !\\
@@ -39,7 +39,7 @@
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Add TAUe as a module variable.  Bug fixes: Make sure WRITE20 uses the 
+!  (1 ) Add TAUe as a module variable.  Bug fixes: Make sure WRITE20 uses the
 !        global FILENAME, and also write to disk on the last timestep before
 !        the end of the simulation. (bmy, 11/15/04)
 !  (2 ) Added routine ITS_TIME_FOR_WRITE20 (bmy, 3/3/05)
@@ -51,7 +51,7 @@
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
-!  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)  
+!  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
@@ -86,8 +86,8 @@
 !
 ! !IROUTINE: diag20
 !
-! !DESCRIPTION: Subroutine DIAG20 computes production and loss rates of O3, 
-!  and then calls subroutine WRITE20 to save the these rates to disk.  By 
+! !DESCRIPTION: Subroutine DIAG20 computes production and loss rates of O3,
+!  and then calls subroutine WRITE20 to save the these rates to disk.  By
 !  saving the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
 !  run at a later time.
@@ -113,7 +113,7 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
-      USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
+      USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TIME_MOD,           ONLY : GET_LOCALTIME
 !
@@ -124,14 +124,14 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REMARKS:
 !  If you want to archive the prod and loss of ozone from one of the full-
 !  chemistry simulations (e.g. tropchem, UCX, SOA), then the PROD & LOSS MENU
@@ -153,7 +153,7 @@
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
-!  (2 ) Now also write to disk when it is the last timestep before the end of 
+!  (2 ) Now also write to disk when it is the last timestep before the end of
 !        the run.  Now references GET_TAUE from "time_mod.f". (bmy, 11/15/04)
 !  (3 ) Now call function ITS_TIME_FOR_WRITE20 to determine if the next
 !        chemistry timestep is the start of a new day.  Remove reference
@@ -165,7 +165,7 @@
 !  (7 ) Now take care of boxes that switch b/w stratospheric and tropospheric
 !        regimes (phs, 11/17/08)
 !  (8 ) Bug fix: Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
@@ -178,7 +178,7 @@
 !  08 Jul 2015 - R. Yantosca - Now save POx as kg/m3/s and LOx as 1/m3/s,
 !                              for compatibility with HEMCO
 !  31 May 2016 - E. Lundgren - Use molec wt from species database rather than
-!                              Input_Opt%XNUMOL 
+!                              Input_Opt%XNUMOL
 !  09 Aug 2016 - M. Sulprizio- Move routine from diag_pl_mod.F to diag20_mod.F;
 !                              Obtain prod/loss rates from KPP via the POx and
 !                              LOx arrays set in flex_chemdr.F
@@ -217,7 +217,7 @@
       REAL(fp)            :: BOXVL
 
       ! Strings
-      CHARACTER(LEN=16)   :: STAMP 
+      CHARACTER(LEN=16)   :: STAMP
 !
 ! !DEFINED PARAMETERS:
 !
@@ -287,12 +287,12 @@
          id_IONO2   = Ind_('IONO2'  )
          id_OIO     = Ind_('OIO'    )
          id_I2O2    = Ind_('I2O2'   )
-         id_I2O3    = Ind_('I2O3'   ) 
-         id_I2O4    = Ind_('I2O4'   )     
+         id_I2O3    = Ind_('I2O3'   )
+         id_I2O4    = Ind_('I2O4'   )
 
          ! Error check
          IF ( id_O3 <= 0 ) THEN
-            CALL ERROR_STOP( 'Ind_("O3") <= 0 !', 
+            CALL ERROR_STOP( 'Ind_("O3") <= 0 !',
      &                       'DIAG20 ("diag20_mod.f")' )
          ENDIF
 
@@ -343,7 +343,7 @@
             ! Get the local time at box (I,J,L)
             !LT = GET_LOCALTIME( I, J, L, State_Grid )
             !
-            ! Skip processing if we are outside of the desired 
+            ! Skip processing if we are outside of the desired
             ! local time range (bmy, 7/9/15)
             !IF ( LT < LT_START .or. LT > LT_END ) CYCLE
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,63 +373,63 @@
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Compute the mass of Ox following the family definition
-            ! in KPP/Tropchem/gckpp.kpp.  At this point, Ox_mass is 
+            ! in KPP/Tropchem/gckpp.kpp.  At this point, Ox_mass is
             ! in units of [molec/cm3].
             !
-            ! NOTE: If you update the Ox family definition, you will 
-            ! also need to update this statement below.  
+            ! NOTE: If you update the Ox family definition, you will
+            ! also need to update this statement below.
             !
-            ! ALSO NOTE: We know that this is horribly kludged, but in 
-            ! the interest of preparing v11-02 for release, we have 
-            ! written this in the brute-force manner.  At a later time 
-            ! we can examine how to make this more elegant.  This might 
-            ! require modifying the KPP solver code, so we'll worry 
+            ! ALSO NOTE: We know that this is horribly kludged, but in
+            ! the interest of preparing v11-02 for release, we have
+            ! written this in the brute-force manner.  At a later time
+            ! we can examine how to make this more elegant.  This might
+            ! require modifying the KPP solver code, so we'll worry
             ! about it later. (bmy, 4/10/18)
             !
-            Ox_Mass        = State_Chm%Species(I,J,L,id_O3     ) 
-     &                     + State_Chm%Species(I,J,L,id_NO2    ) 
+            Ox_Mass        = State_Chm%Species(I,J,L,id_O3     )
+     &                     + State_Chm%Species(I,J,L,id_NO2    )
      &                     + State_Chm%Species(I,J,L,id_NO3    )*2.0_fp
-     &                     + State_Chm%Species(I,J,L,id_PAN    ) 
-     &                     + State_Chm%Species(I,J,L,id_NPMN   ) 
-     &                     + State_Chm%Species(I,J,L,id_IPMN   ) 
-     &                     + State_Chm%Species(I,J,L,id_PPN    ) 
-     &                     + State_Chm%Species(I,J,L,id_HNO4   ) 
+     &                     + State_Chm%Species(I,J,L,id_PAN    )
+     &                     + State_Chm%Species(I,J,L,id_NPMN   )
+     &                     + State_Chm%Species(I,J,L,id_IPMN   )
+     &                     + State_Chm%Species(I,J,L,id_PPN    )
+     &                     + State_Chm%Species(I,J,L,id_HNO4   )
      &                     + State_Chm%Species(I,J,L,id_N2O5   )*3.0_fp
-     &                     + State_Chm%Species(I,J,L,id_HNO3   ) 
-     &                     + State_Chm%Species(I,J,L,id_BrO    ) 
-     &                     + State_Chm%Species(I,J,L,id_HOBr   ) 
-     &                     + State_Chm%Species(I,J,L,id_BrNO2  ) 
+     &                     + State_Chm%Species(I,J,L,id_HNO3   )
+     &                     + State_Chm%Species(I,J,L,id_BrO    )
+     &                     + State_Chm%Species(I,J,L,id_HOBr   )
+     &                     + State_Chm%Species(I,J,L,id_BrNO2  )
      &                     + State_Chm%Species(I,J,L,id_BrNO3  )*2.0_fp
-     &                     + State_Chm%Species(I,J,L,id_MPN    ) 
-     &                     + State_Chm%Species(I,J,L,id_ETHLN  ) 
-     &                     + State_Chm%Species(I,J,L,id_ISN1   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISOPNB ) 
-     &                     + State_Chm%Species(I,J,L,id_ISOPND ) 
-     &                     + State_Chm%Species(I,J,L,id_MACRN  ) 
-     &                     + State_Chm%Species(I,J,L,id_MVKN   ) 
-     &                     + State_Chm%Species(I,J,L,id_PROPNN ) 
-     &                     + State_Chm%Species(I,J,L,id_R4N2   ) 
-     &                     + State_Chm%Species(I,J,L,id_INPN   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNP   ) 
-     &                     + State_Chm%Species(I,J,L,id_INO2   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOOA ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOOB ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOHOO) 
-     &                     + State_Chm%Species(I,J,L,id_MAN2   ) 
-     &                     + State_Chm%Species(I,J,L,id_PRN1   ) 
-     &                     + State_Chm%Species(I,J,L,id_PRPN   ) 
-     &                     + State_Chm%Species(I,J,L,id_R4N1   ) 
-     &                     + State_Chm%Species(I,J,L,id_PMNN   ) 
-     &                     + State_Chm%Species(I,J,L,id_MACRNO2) 
-     &                     + State_Chm%Species(I,J,L,id_ClO    ) 
-     &                     + State_Chm%Species(I,J,L,id_HOCl   ) 
-     &                     + State_Chm%Species(I,J,L,id_ClNO2  ) 
+     &                     + State_Chm%Species(I,J,L,id_MPN    )
+     &                     + State_Chm%Species(I,J,L,id_ETHLN  )
+     &                     + State_Chm%Species(I,J,L,id_ISN1   )
+     &                     + State_Chm%Species(I,J,L,id_ISOPNB )
+     &                     + State_Chm%Species(I,J,L,id_ISOPND )
+     &                     + State_Chm%Species(I,J,L,id_MACRN  )
+     &                     + State_Chm%Species(I,J,L,id_MVKN   )
+     &                     + State_Chm%Species(I,J,L,id_PROPNN )
+     &                     + State_Chm%Species(I,J,L,id_R4N2   )
+     &                     + State_Chm%Species(I,J,L,id_INPN   )
+     &                     + State_Chm%Species(I,J,L,id_ISNP   )
+     &                     + State_Chm%Species(I,J,L,id_INO2   )
+     &                     + State_Chm%Species(I,J,L,id_ISNOOA )
+     &                     + State_Chm%Species(I,J,L,id_ISNOOB )
+     &                     + State_Chm%Species(I,J,L,id_ISNOHOO)
+     &                     + State_Chm%Species(I,J,L,id_MAN2   )
+     &                     + State_Chm%Species(I,J,L,id_PRN1   )
+     &                     + State_Chm%Species(I,J,L,id_PRPN   )
+     &                     + State_Chm%Species(I,J,L,id_R4N1   )
+     &                     + State_Chm%Species(I,J,L,id_PMNN   )
+     &                     + State_Chm%Species(I,J,L,id_MACRNO2)
+     &                     + State_Chm%Species(I,J,L,id_ClO    )
+     &                     + State_Chm%Species(I,J,L,id_HOCl   )
+     &                     + State_Chm%Species(I,J,L,id_ClNO2  )
      &                     + State_Chm%Species(I,J,L,id_ClNO3  )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_Cl2O2  )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_OClO   )*2.0_fp
-     &                     + State_Chm%Species(I,J,L,id_IO     ) 
-     &                     + State_Chm%Species(I,J,L,id_HOI    ) 
-     &                     + State_Chm%Species(I,J,L,id_IONO   ) 
+     &                     + State_Chm%Species(I,J,L,id_IO     )
+     &                     + State_Chm%Species(I,J,L,id_HOI    )
+     &                     + State_Chm%Species(I,J,L,id_IONO   )
      &                     + State_Chm%Species(I,J,L,id_IONO2  )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_OIO    )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_I2O2   )*2.0_fp
@@ -440,14 +440,14 @@
             ! its Ox family definition, plus O and O1D.  Add these too.
             IF ( Input_Opt%LUCX ) THEN
                Ox_Mass     = Ox_Mass
-     &                     + State_Chm%Species(I,J,L,id_O      ) 
-     &                     + State_Chm%Species(I,J,L,id_O1D    ) 
+     &                     + State_Chm%Species(I,J,L,id_O      )
+     &                     + State_Chm%Species(I,J,L,id_O1D    )
             ENDIF
 
             ! Convert Ox_Mass from [molec/cm3] to [molec]
             Ox_Mass        = Ox_Mass * BOXVL
 
-            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
+            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec]
             ! and then convert to [1/m3/s] for HEMCO
             IF ( Ox_Mass > 0.0_fp ) THEN
                L_Ox        = ( LOx(I,J,L) / Ox_Mass ) *  1.0e+6_fp
@@ -455,9 +455,9 @@
 
             ! Store L(Ox) [1/m3/s] in PL24H array
             PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
-           
+
          ENDIF
- 
+
       ENDDO
       ENDDO
       ENDDO
@@ -490,7 +490,7 @@
 !$OMP END PARALLEL DO
 
          ! Get YYYYMMDD date for this day
-         YYYYMMDD = GET_NYMD()        
+         YYYYMMDD = GET_NYMD()
 
          ! Replace YYYYMMDD in filename w/ the actual date
          FILENAME = 'rate.YYYYMMDD'
@@ -520,8 +520,8 @@
 !
 ! !IROUTINE: write20
 !
-! !DESCRIPTION: Subroutine WRITE20 saves production and loss rates to disk, 
-!  where they will be later read by subroutine CHEMO3. 
+! !DESCRIPTION: Subroutine WRITE20 saves production and loss rates to disk,
+!  where they will be later read by subroutine CHEMO3.
 !\\
 !\\
 ! !INTERFACE:
@@ -544,7 +544,7 @@
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid   ! Grid State object
-! 
+!
 ! !REMARKS:
 !  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.
 !
@@ -561,7 +561,7 @@
 !        declaration (bmy, 11/15/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Jul 2015 - R. Yantosca - Now do not use parallel loops for casting
 !  06 Jul 2015 - R. Yantosca - Bug fix: restore missing JFIRST assignment
@@ -576,8 +576,8 @@
 !
       INTEGER            :: I, J, L, N, IOS
       INTEGER            :: IFIRST, JFIRST, LFIRST
-      INTEGER            :: HALFPOLAR 
-      INTEGER, PARAMETER :: CENTER180 = 1 
+      INTEGER            :: HALFPOLAR
+      INTEGER, PARAMETER :: CENTER180 = 1
       REAL(f4)           :: LONRES, LATRES
       REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
      &                            State_Grid%NZ)
@@ -625,9 +625,9 @@
       UNIT = 'kg/m3/s'
 
       ! Save P(Ox) to BPCH file
-      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
-     &            HALFPOLAR, CENTER180, CATEGORY, 1,           
-     &            UNIT,      TAU0,      TAU1,     RESERVED,  
+      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,
+     &            HALFPOLAR, CENTER180, CATEGORY, 1,
+     &            UNIT,      TAU0,      TAU1,     RESERVED,
      &            State_Grid%NX, State_Grid%NY, State_Grid%NX,
      &            IFIRST,        JFIRST,        LFIRST,
      &            ARRAY )
@@ -646,9 +646,9 @@
       UNIT = '1/m3/s'
 
       ! Save L(Ox) to BPCH file
-      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
-     &            HALFPOLAR, CENTER180, CATEGORY, 2,           
-     &            UNIT,      TAU0,      TAU1,     RESERVED,  
+      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,
+     &            HALFPOLAR, CENTER180, CATEGORY, 2,
+     &            UNIT,      TAU0,      TAU1,     RESERVED,
      &            State_Grid%NX, State_Grid%NY, State_Grid%NX,
      &            IFIRST,        JFIRST,        LFIRST,
      &            ARRAY )
@@ -666,9 +666,9 @@
 !
 ! !IROUTINE: its_time_for_write20
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE20 returns TRUE if it's time to 
-!  write the ND20 ozone P/L rate file to disk.  We test the time at the next 
-!  chemistry timestep so that we can write to disk properly. 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE20 returns TRUE if it's time to
+!  write the ND20 ozone P/L rate file to disk.  We test the time at the next
+!  chemistry timestep so that we can write to disk properly.
 !\\
 !\\
 ! !INTERFACE:
@@ -680,7 +680,7 @@
       USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_SECOND,  GET_TAU
       USE TIME_MOD, ONLY : GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(f8), INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
 !
@@ -690,7 +690,7 @@
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  06 Jul 2015 - R. Yantosca - Now use TAU+CHEM >= TAUe to test for end of run
 !  09 Aug 2016 - M. Sulprizio- Move routine from diag_pl_mod.F to diag20_mod.F
@@ -711,7 +711,7 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_SECOND()  / 3600e+0_fp ) + 
+      HOUR     = ( GET_SECOND()  / 3600e+0_fp ) +
      &           ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
       CHEM     = ( GET_TS_CHEM() / 3600e+0_fp )
       DYN      = ( GET_TS_DYN()  / 3600e+0_fp )
@@ -745,7 +745,7 @@
 ! !IROUTINE: init_diag20
 !
 ! !DESCRIPTION: Subroutine INIT\_DIAG20 takes values read from the GEOS-Chem
-!  input file and saves to module variables w/in "diag20\_mod.f" 
+!  input file and saves to module variables w/in "diag20\_mod.f"
 !\\
 !\\
 ! !INTERFACE:
@@ -759,7 +759,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput),    INTENT(IN)  :: Input_Opt   ! Input Options object
@@ -768,7 +768,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  09 Aug 2016 - M. Sulprizio- Initial version
 !  10 Apr 2018 - R. Yantosca - Allocate arrays 1:LLPAR instead of 1:LD65
@@ -817,14 +817,14 @@
 !
 ! !IROUTINE: cleanup_diag20
 !
-! !DESCRIPTION: Subroutine CLEANUP\_DIAG20 deallocates all module arrays. 
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG20 deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG20
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  09 Aug 2016 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------

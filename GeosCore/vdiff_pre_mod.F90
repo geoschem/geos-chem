@@ -8,18 +8,18 @@
 ! !DESCRIPTION: Module VDIFF\_PRE\_MOD contains variables used in VDIFF\_MOD.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE VDIFF_PRE_MOD
-! 
+!
 ! !USES:
 !
   IMPLICIT NONE
-  
+
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
+!
   PUBLIC :: Init_VDIFF_PRE
   PUBLIC :: Cleanup_VDIFF_PRE
   PUBLIC :: Set_VDIFF_VALUES
@@ -28,11 +28,12 @@ MODULE VDIFF_PRE_MOD
 !
   LOGICAL, PUBLIC      :: LPRT               ! Passes LPRT to vdiff_mod
   LOGICAL, PUBLIC      :: LTURB              ! Passes LTURB to vdiff_mod
-  INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
+  INTEGER, PUBLIC      :: PCNST_             ! Passes N_TRACERS to vdiff_mod
+  ! For CESM -- had to renamed PCNST to PCNST_ for CAM namespace conflict
 !
 ! !REVISION HISTORY:
-!  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
-!  07 Oct 2009 - R. Yantosca         - Added CVS Id tag  
+!  01 Jun 2009 - C. Carouge & J. Lin - Initial version
+!  07 Oct 2009 - R. Yantosca         - Added CVS Id tag
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Now add PCNST as a module variable
 !  24 Jun 2014 - R. Yantosca - Add routine SET_VDIFF_VALUES, since we need to
@@ -65,7 +66,7 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
@@ -76,8 +77,8 @@ CONTAINS
 ! !REMARKS:
 !  Need to add error-checking on the allocation statements, so that we
 !  exit the code upon error.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  24 Jun 2014 - R. Yantosca - Now allocate EMIS_SAVE to the # of tracers
@@ -88,7 +89,7 @@ CONTAINS
 !BOC
     ! Assume success
     RC = GC_SUCCESS
-      
+
   END SUBROUTINE Init_VDIFF_PRE
 !EOC
 !------------------------------------------------------------------------------
@@ -111,7 +112,7 @@ CONTAINS
 
     IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
@@ -121,7 +122,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -165,7 +166,7 @@ CONTAINS
 ! !REMARKS:
 !  This routine has to be called after routine READ_INPUT_FILE.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2014 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -180,11 +181,11 @@ CONTAINS
     !=====================================================================
 
     ! Number of advected species
-    PCNST = State_Chm%nAdvect
+    PCNST_ = State_Chm%nAdvect
 
     ! Debug print?
     LPRT  = ( Input_Opt%LPRT .and. am_I_Root )
-      
+
     ! Use PBL mixing?
     LTURB = Input_Opt%LTURB
 

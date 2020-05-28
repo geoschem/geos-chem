@@ -31,7 +31,7 @@
 !
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers 
+!  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Now parallelize DO loops
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Removed code made obsolete by HEMCO
@@ -61,7 +61,7 @@
       ! Species ID flags
       INTEGER             :: id_CH3Br
       INTEGER             :: id_BrO
-      
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -81,7 +81,7 @@
 !
       SUBROUTINE SET_CH3Br( am_I_Root,  Input_Opt, State_Chm,
      &                      State_Grid, State_Met, RC         )
-! 
+!
 ! !USES:
 !
       USE CMN_SIZE_MOD
@@ -109,12 +109,12 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REMARKS: 
+! !REMARKS:
 !   1) Spc is converted back and forth between units of [kg] and
 !      [v/v]. Placement of the call to SET_CH3Br in main.f (it's
 !      with the emissions) means that it should be in [kg].
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  12 Feb 2008 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
@@ -123,7 +123,7 @@
 !                              derived type object
 !  24 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Met,
 !                              State_Chm.  Get fields from these objects.
-!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
+!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -136,14 +136,14 @@
 ! !DEFINED PARAMETERS:
 !
       ! CH3Br values ( from pptv )
-      REAL(fp), PARAMETER :: gt55N     = 8.35e-12_fp 
+      REAL(fp), PARAMETER :: gt55N     = 8.35e-12_fp
       REAL(fp), PARAMETER :: gt0_lt55N = 8.27e-12_fp
       REAL(fp), PARAMETER :: lt0_gt55S = 6.94e-12_fp
       REAL(fp), PARAMETER :: lt55S     = 6.522e-12_fp
 !
 ! !LOCAL VARIABLES:
 !
-      ! SAVEd scalars 
+      ! SAVEd scalars
       LOGICAL             :: FIRST = .TRUE.
 
       ! Scalars
@@ -170,13 +170,13 @@
          WRITE( 6, '(a)' ) 'SET_CH3Br: CH3Br not found, so do not'
          WRITE( 6, '(a)' ) 'set concentrations in Spc'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         RETURN 
+         RETURN
       ENDIF
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
          CALL GC_Error( 'Incorrect species units: ' //
-     &                  State_Chm%Spc_Units, RC, 
+     &                  State_Chm%Spc_Units, RC,
      &                  'Routine SET_CH3Br in bromocarb_mod.F' )
          RETURN
       ENDIF
@@ -208,7 +208,7 @@
             ! Selecting the latitude bands:
             IF ( LAT_MID > 55e+0_fp ) THEN
                CH3Br_conc = gt55N
-            ELSEIF ( (LAT_MID >= 0e+0_fp) .and. (LAT_MID <= 55e+0_fp) ) 
+            ELSEIF ( (LAT_MID >= 0e+0_fp) .and. (LAT_MID <= 55e+0_fp) )
      &       THEN
                CH3Br_conc = gt0_lt55N
             ELSEIF ( (LAT_MID < 0e+0_fp) .and. (LAT_MID >= -55e+0_fp) )
@@ -218,11 +218,11 @@
                CH3Br_conc = lt55S
             ENDIF
 
-            ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
+            ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg]
             ! when setting species concentration (ewl, 9/10/15)
-            Spc(I,J,L,id_CH3Br) = CH3Br_conc / ( AIRMW / 
+            Spc(I,J,L,id_CH3Br) = CH3Br_conc / ( AIRMW /
      &                         State_Chm%SpcData(id_CH3Br)%Info%emMW_g )
-               
+
          ENDIF  ! end selection of PBL boxes
 
       ENDDO
@@ -250,10 +250,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( am_I_Root,  Input_Opt, State_Chm, 
+      SUBROUTINE SET_BRO( am_I_Root,  Input_Opt, State_Chm,
      &                    State_Grid, State_Met, RC         )
 
-! 
+!
 ! !USES:
 !
       USE CMN_SIZE_MOD
@@ -297,7 +297,7 @@
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jun 2014 - R. Yantosca - Remove IJLOOP, it's not used anymroe
 !  06 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
-!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
+!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -309,7 +309,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! SAVEd scalars 
+      ! SAVEd scalars
       LOGICAL           :: FIRST = .TRUE.
 
       ! Scalars
@@ -338,7 +338,7 @@
          WRITE( 6, '(a)' ) 'SET_BrO: BrO not found, so do not'
          WRITE( 6, '(a)' ) 'set concentrations in Spc'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         RETURN 
+         RETURN
       ENDIF
 
       ! -----------------------------------------
@@ -361,7 +361,7 @@
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
          CALL GC_Error( 'Incorrect species units: ' //
-     &                  State_Chm%Spc_Units, RC, 
+     &                  State_Chm%Spc_Units, RC,
      &                  'Routine SET_BrO in bromocarb_mod.F' )
          RETURN
       ENDIF
@@ -405,9 +405,9 @@
             DO L = 1, State_Grid%NZ
                IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0d0 ) THEN
 
-                  ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
+                  ! Convert the [v/v] BrO conc units (dry air) to [kg/kg]
                   ! when setting species concentration (ewl, 9/10/15)
-                  Spc(I,J,L,id_BrO) = BrO_conc / ( AIRMW 
+                  Spc(I,J,L,id_BrO) = BrO_conc / ( AIRMW
      &                       / State_Chm%SpcData(id_BrO)%Info%emMW_g )
 
                ENDIF            ! end selection of PBL boxes

@@ -5,12 +5,12 @@
 !
 ! !MODULE: toms_mod.F
 !
-! !DESCRIPTION: Module TOMS\_MOD contains variables and routines for reading 
-!  the TOMS/SBUV O3 column data from disk (for use w/ the FAST-J photolysis 
+! !DESCRIPTION: Module TOMS\_MOD contains variables and routines for reading
+!  the TOMS/SBUV O3 column data from disk (for use w/ the FAST-J photolysis
 !  routines).
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE TOMS_MOD
 !
@@ -23,9 +23,11 @@
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
+!
       PUBLIC :: INIT_TOMS
+#if !defined( MODEL_CESM )
       PUBLIC :: READ_TOMS
+#endif
       PUBLIC :: COMPUTE_OVERHEAD_O3
       PUBLIC :: GET_OVERHEAD_O3
       PUBLIC :: CLEANUP_TOMS
@@ -41,7 +43,7 @@
 !  References:
 !  ============================================================================
 !  Version 8 Merged Ozone Data Sets
-!  Total Ozone Revision 05 
+!  Total Ozone Revision 05
 !  DATA THROUGH: MAR 2009
 !  LAST MODIFIED: 01 MAY 2009
 !                                                                             .
@@ -50,11 +52,11 @@
 !  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
 !  Resolution:  5 x 10 deg.
 !                                                                             .
-!  * Includes reprocessed N16 and N17 SBUV/2 data using latest calibration. 
-!  * OMI data updated from Collection 2 to Collection 3. 
-!  * New offsets derived based on revised data sets. 
-!  * 1970-1972 N4 BUV data added with no adjustments. User may wish to apply 
-!    offset based on Comparisons between BUV and Dobson Measurements. 
+!  * Includes reprocessed N16 and N17 SBUV/2 data using latest calibration.
+!  * OMI data updated from Collection 2 to Collection 3.
+!  * New offsets derived based on revised data sets.
+!  * 1970-1972 N4 BUV data added with no adjustments. User may wish to apply
+!    offset based on Comparisons between BUV and Dobson Measurements.
 !                                                                             .
 !  Responsible NASA official:
 !  Dr. Richard Stolarski (Richard.S.Stolarski@nasa.gov)
@@ -75,7 +77,7 @@
 !  06 Mar 2012 - R. Yantosca - Updated comments
 !  06 Mar 2012 - R. Yantosca - Now make TOMS, DTOMS1, DTOMS2 arrays PRIVATE
 !  06 Mar 2012 - R. Yantosca - Add TO3_DAILY as a PRIVATE module array
-!  25 Jun 2012 - S. Kim      - Now reads from TOMS_201203 directory, w/ 
+!  25 Jun 2012 - S. Kim      - Now reads from TOMS_201203 directory, w/
 !                              updated data
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
@@ -91,14 +93,14 @@
 !
       ! Arrays
       REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
-      REAL(f4), PRIVATE, ALLOCATABLE :: STOMS(:,:)               
+      REAL(f4), PRIVATE, ALLOCATABLE :: STOMS(:,:)
 
       ! Pointers to fields in the HEMCO data structure
-      REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)               
-      REAL(f4), PRIVATE, POINTER     :: TOMS1(:,:)               
-      REAL(f4), PRIVATE, POINTER     :: TOMS2(:,:)               
-      REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)             
-      REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)     
+      REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)
+      REAL(f4), PRIVATE, POINTER     :: TOMS1(:,:)
+      REAL(f4), PRIVATE, POINTER     :: TOMS2(:,:)
+      REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)
+      REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)
 
       CONTAINS
 !EOC
@@ -109,12 +111,13 @@
 !
 ! !IROUTINE: read_toms
 !
-! !DESCRIPTION: Subroutine READ\_TOMS reads in TOMS O3 column data from a 
-!  binary punch file for the given grid, month and year. 
+! !DESCRIPTION: Subroutine READ\_TOMS reads in TOMS O3 column data from a
+!  binary punch file for the given grid, month and year.
 !\\
 !\\
 ! !INTERFACE:
 !
+#if !defined( MODEL_CESM )
       SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
@@ -139,46 +142,46 @@
 !                                                                             .
 !  Methodology
 !  ------------------------------------------------------------------------
-!  FAST-J comes with its own default O3 column climatology (from McPeters 
-!  1992 & Nagatani 1991), which is stored in the input file "jv_atms.dat".  
-!  These "FAST-J default" O3 columns are used in the computation of the 
-!  actinic flux and other optical quantities for the FAST-J photolysis.  
+!  FAST-J comes with its own default O3 column climatology (from McPeters
+!  1992 & Nagatani 1991), which is stored in the input file "jv_atms.dat".
+!  These "FAST-J default" O3 columns are used in the computation of the
+!  actinic flux and other optical quantities for the FAST-J photolysis.
 !                                                                             .
-!  The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained in the 
-!  TOMS_200906 directory) are read into GEOS-Chem by routine READ_TOMS in 
-!  "toms_mod.f".  Missing values (i.e. locations where there are no data) 
-!  in the TOMS/SBUV O3 columns are defined by the flag -999.  
+!  The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained in the
+!  TOMS_200906 directory) are read into GEOS-Chem by routine READ_TOMS in
+!  "toms_mod.f".  Missing values (i.e. locations where there are no data)
+!  in the TOMS/SBUV O3 columns are defined by the flag -999.
 !                                                                             .
-!  After being read from disk in routine READ_TOMS, the TOMS/SBUV O3 data 
-!  are then passed to the FAST-J routine "set_prof.F".  In "set_prof.F", a 
-!  test is done to make sure that the TOMS/SBUV O3 columns and 1/2-monthly 
+!  After being read from disk in routine READ_TOMS, the TOMS/SBUV O3 data
+!  are then passed to the FAST-J routine "set_prof.F".  In "set_prof.F", a
+!  test is done to make sure that the TOMS/SBUV O3 columns and 1/2-monthly
 !  trends do not have any missing values for (lat,lon) location for the given
-!  month.  If so, then the TOMS/SBUV O3 column data is interpolated to the 
-!  current day and is used to weight the "FAST-J default" O3 column.  This 
+!  month.  If so, then the TOMS/SBUV O3 column data is interpolated to the
+!  current day and is used to weight the "FAST-J default" O3 column.  This
 !  essentially "forces" the "FAST-J default" O3 column values to better match
 !  the observations, as defined by TOMS/SBUV.
 !                                                                             .
 !  If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends) at a (lat,
 !  lon) location for given month, then FAST-J will revert to its own "default"
-!  climatology for that location and month.  Therefore, the TOMS O3 can be 
+!  climatology for that location and month.  Therefore, the TOMS O3 can be
 !  thought of as an  "overlay" data -- it is only used if it exists.
 !                                                                             .
-!  Note that there are no TOMS/SBUV O3 columns at the higher latitudes.  
-!  At these latitudes, the code will revert to using the "FAST-J default" 
+!  Note that there are no TOMS/SBUV O3 columns at the higher latitudes.
+!  At these latitudes, the code will revert to using the "FAST-J default"
 !  O3 columns.
 !                                                                             .
 !  As of March 2012, we have TOMS/SBUV data for 1979 thru 2008.  We will
 !  update to the latest TOMS/SBUV data set shortly.
 !                                                                             .
 !  This methodology was originally adopted by Mat Evans.
-!  
+!
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
 !  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
 !  #####       -- Bob Yantosca (05 Mar 2015)                            #####
 !  ##########################################################################
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Dec 2002 - M. Evans - Initial version
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -187,7 +190,7 @@
 !  (5 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !  (6 ) Now reads from TOMS_200701 directory, w/ updated data.  Also always
 !        use 1979 data prior to 1979 or 2005 data after 2005. (bmy, 2/12/07)
-!  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's 
+!  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's
 !        file path has replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
 !  (8 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
 !  (9 ) Updated TOMS data in TOMS_200906. Latest year is 2008. (ccc, 6/15/09)
@@ -210,17 +213,17 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Strings     
-      CHARACTER(LEN=255) :: ThisLoc 
+      ! Strings
+      CHARACTER(LEN=255) :: ThisLoc
       CHARACTER(LEN=255) :: ErrMsg
 
       !=================================================================
       ! READ_TOMS begins here
       !=================================================================
-      
+
       ! Assume success
       RC = GC_SUCCESS
-      
+
       ! Exit if we are not using TOMS overhead O3 columns
       IF ( .not. Input_Opt%USE_TOMS_O3 ) RETURN
 
@@ -231,7 +234,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
+      call HCO_GetPtr(  HcoState, 'TOMS_O3_COL', TOMS, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS_O3_COL'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -241,7 +244,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns first day [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1, RC )
+      call HCO_GetPtr(  HcoState, 'TOMS1_O3_COL', TOMS1, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS1_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -251,7 +254,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns last day [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2, RC )
+      call HCO_GetPtr(  HcoState, 'TOMS2_O3_COL', TOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS2_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -261,7 +264,7 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
+      call HCO_GetPtr(  HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: DTOMS1_O3_COL'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -271,7 +274,7 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
+      call HCO_GetPtr(  HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: DTOMS2_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -279,6 +282,7 @@
       ENDIF
 
       END SUBROUTINE READ_TOMS
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -287,7 +291,7 @@
 !
 ! !IROUTINE: compute_overhead_o3
 !
-! !DESCRIPTION: Subroutine COMPUTE\_OVERHEAD\_O3 returns the resultant total 
+! !DESCRIPTION: Subroutine COMPUTE\_OVERHEAD\_O3 returns the resultant total
 !  overhead O3 column for the FAST-J photolysis.  This will be one of two
 !  options:
 
@@ -295,9 +299,9 @@
 !  \item Default: TOMS/SBUV overhead O3 columns.  These will be used be
 !        the FAST-J routine set\_prof.F to overwrite the existing FAST-J
 !        climatology (cf McPeters \& Nagatani 1992).  Missing data (i.e.
-!        for months \& locations where TOMS/SBUV data does not exist) 
+!        for months \& locations where TOMS/SBUV data does not exist)
 !        is denoted by the value -999; FAST-J will skip over these points.
-!  \item Overhead O3 columns taken directly from the met fields.  These 
+!  \item Overhead O3 columns taken directly from the met fields.  These
 !        will be returned if the flag  USE\_O3\_FROM\_MET is set to TRUE.
 !  \end{enumerate}
 !
@@ -310,11 +314,11 @@
 !
       USE State_Grid_Mod, ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root       ! Root CPU?
       TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
-      INTEGER,        INTENT(IN) :: DAY             ! Day of month 
+      INTEGER,        INTENT(IN) :: DAY             ! Day of month
       LOGICAL,        INTENT(IN) :: USE_O3_FROM_MET ! Use TO3 directly from met?
       REAL(fp),       INTENT(IN) :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
                                                                      ! [Dobsons]
@@ -337,55 +341,55 @@
 !    http://code916.gsfc.nasa.gov/Data_services/merged/index.html
 !                                                                             .
 !    Version 8 Merged Ozone Data Sets
-!    Revision 04 
+!    Revision 04
 !    DATA THROUGH: SEP 2008
 !    LAST MODIFIED: 20 OCT 2008
 !                                                                             .
 !  Methodology (bmy, 2/12/07)
 !  ----------------------------------------------------------------
-!  FAST-J comes with its own default O3 column climatology (from 
-!  McPeters 1992 & Nagatani 1991), which is stored in the input 
-!  file "jv_atms.dat".  These "FAST-J default" O3 columns are used 
-!  in the computation of the actinic flux and other optical 
-!  quantities for the FAST-J photolysis.  
+!  FAST-J comes with its own default O3 column climatology (from
+!  McPeters 1992 & Nagatani 1991), which is stored in the input
+!  file "jv_atms.dat".  These "FAST-J default" O3 columns are used
+!  in the computation of the actinic flux and other optical
+!  quantities for the FAST-J photolysis.
 !                                                                             .
-!  The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained 
-!  in the TOMS_200701 directory) are read into GEOS-Chem by routine 
-!  READ_TOMS in "toms_mod.f".  Missing values (i.e. locations where 
-!  there are no data) in the TOMS/SBUV O3 columns are defined by 
-!  the flag -999.  
+!  The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained
+!  in the TOMS_200701 directory) are read into GEOS-Chem by routine
+!  READ_TOMS in "toms_mod.f".  Missing values (i.e. locations where
+!  there are no data) in the TOMS/SBUV O3 columns are defined by
+!  the flag -999.
 !                                                                             .
-!  After being read from disk in routine READ_TOMS, the TOMS/SBUV 
-!  O3 data are then passed to the FAST-J routine "set_prof.f".  In 
-!  "set_prof.f", a test is done to make sure that the TOMS/SBUV O3 
-!  columns and 1/2-monthly trends do not have any missing values 
-!  for (lat,lon) location for the given month.  If so, then the 
-!  TOMS/SBUV O3 column data is interpolated to the current day and 
-!  is used to weight the "FAST-J default" O3 column.  This 
-!  essentially "forces" the "FAST-J default" O3 column values to 
+!  After being read from disk in routine READ_TOMS, the TOMS/SBUV
+!  O3 data are then passed to the FAST-J routine "set_prof.f".  In
+!  "set_prof.f", a test is done to make sure that the TOMS/SBUV O3
+!  columns and 1/2-monthly trends do not have any missing values
+!  for (lat,lon) location for the given month.  If so, then the
+!  TOMS/SBUV O3 column data is interpolated to the current day and
+!  is used to weight the "FAST-J default" O3 column.  This
+!  essentially "forces" the "FAST-J default" O3 column values to
 !  better match the observations, as defined by TOMS/SBUV.
 !                                                                             .
-!  If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends) 
-!  at a (lat,lon) location for given month, then FAST-J will revert 
-!  to its own "default" climatology for that location and month.  
-!  Therefore, the TOMS O3 can be thought of as an  "overlay" data 
+!  If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends)
+!  at a (lat,lon) location for given month, then FAST-J will revert
+!  to its own "default" climatology for that location and month.
+!  Therefore, the TOMS O3 can be thought of as an  "overlay" data
 !  -- it is only used if it exists.
 !                                                                             .
-!  Note that there are no TOMS/SBUV O3 columns at the higher 
-!  latitudes.  At these latitudes, the code will revert to using 
+!  Note that there are no TOMS/SBUV O3 columns at the higher
+!  latitudes.  At these latitudes, the code will revert to using
 !  the "FAST-J default" O3 columns.
 !                                                                             .
-!  As of February 2007, we have TOMS/SBUV data for 1979 thru 2005.  
+!  As of February 2007, we have TOMS/SBUV data for 1979 thru 2005.
 !  2006 TOMS/SBUV data is incomplete as of this writing.  For years
 !  2006 and onward, we use 2005 TOMS O3 columns.
 !                                                                             .
-!  This methodology was originally adopted by Mat Evans.  Symeon 
-!  Koumoutsaris was responsible for creating the downloading and 
-!  processing the TOMS O3 data files from 1979 thru 2005 in the 
+!  This methodology was originally adopted by Mat Evans.  Symeon
+!  Koumoutsaris was responsible for creating the downloading and
+!  processing the TOMS O3 data files from 1979 thru 2005 in the
 !  TOMS_200701 directory.
 !
-! !REVISION HISTORY: 
-!  06 Mar 2012 - R. Yantosca - Initial version, pulled code out from 
+! !REVISION HISTORY:
+!  06 Mar 2012 - R. Yantosca - Initial version, pulled code out from
 !                              the FAST-J routine SET_PROF; based on the
 !                              GEOS-Chem column code routine
 !  22 Oct 2014 - C. Keller   - Added am_I_Root parameter.
@@ -469,7 +473,7 @@
 !
       FUNCTION GET_OVERHEAD_O3( I, J ) RESULT( OVERHEAD_O3 )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER :: I             ! Grid box longitude index
       INTEGER :: J             ! Grid box latitude index
@@ -477,8 +481,8 @@
 ! !RETURN VALUE:
 !
       REAL(fp)  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  06 Mar 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -505,7 +509,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD  
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -526,8 +530,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Failure or success
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now allocate TO3_DAILY
@@ -547,10 +551,10 @@
 
       ! Assume success
       RC = GC_SUCCESS
-      
+
       ! Allocate arrays
       IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN
-         ALLOCATE( TO3_DAILY( State_Grid%NX, State_Grid%NY ), STAT=RC )        
+         ALLOCATE( TO3_DAILY( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          TO3_DAILY = 0.0_fp
@@ -562,7 +566,7 @@
          IF ( RC /= GC_SUCCESS ) RETURN
          STOMS = 0e+0_fp
       ENDIF
-         
+
       ! Initialize pointers
       TOMS   => NULL()
       TOMS1  => NULL()
@@ -597,8 +601,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now deallocate TO3_DAILY
@@ -616,13 +620,13 @@
 
       ! Deallocate variables
       IF ( ALLOCATED( TO3_DAILY ) ) THEN
-         DEALLOCATE( TO3_DAILY, STAT=RC )     
+         DEALLOCATE( TO3_DAILY, STAT=RC )
          CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 2, RC )
          RETURN
       ENDIF
 
       IF ( ALLOCATED( STOMS ) ) THEN
-         DEALLOCATE( STOMS, STAT=RC )     
+         DEALLOCATE( STOMS, STAT=RC )
          CALL GC_CheckVar( 'toms_mod.F:STOMS', 2, RC )
          RETURN
       ENDIF

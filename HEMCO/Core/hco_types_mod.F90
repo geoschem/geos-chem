@@ -6,7 +6,7 @@
 ! !MODULE: hco_types_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_Types\_Mod contains HEMCO derived type definitions
-!  and global parameters. 
+!  and global parameters.
 !  The here derived types become all bundled into the HEMCO state object, which
 !  is defined in module hco\_state\_mod.F90. Specific routines for the various
 !  derived types defined below can be found in the respective HEMCO modules
@@ -14,13 +14,13 @@
 !  container lists).
 !\\
 !\\
-!  Prior to HEMCO v2.0, the derived type definitions were placed within the 
+!  Prior to HEMCO v2.0, the derived type definitions were placed within the
 !  corresponding modules. Collecting them here breaks unnecessary dependencies
 !  amongst the various modules and consequently gives greater flexibility in
 !  using the modules independently.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_TYPES_MOD
 !
@@ -30,7 +30,7 @@ MODULE HCO_TYPES_MOD
   USE HCO_Arr_Mod
 
   IMPLICIT NONE
-  PUBLIC 
+  PUBLIC
 !
 ! !PUBLIC PARAMETERS:
 !
@@ -41,7 +41,7 @@ MODULE HCO_TYPES_MOD
   ! fields. For example, data set to 'cycle' will be recycled if
   ! the simulation date is outside of the datetime range of the
   ! source data. See data reading routine (hcoio_dataread_mod.F90)
-  ! for more details. 
+  ! for more details.
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE    = 1
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE    = 2
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT    = 3
@@ -50,7 +50,7 @@ MODULE HCO_TYPES_MOD
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGEAVG = 6
 
   ! Data container update flags. At the moment, those only indicate
-  ! if a container gets updated every time step or based upon the 
+  ! if a container gets updated every time step or based upon the
   ! details specifications ('srcTime') in the HEMCO configuration file.
   INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_FROMFILE = 1
   INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ALWAYS   = 2
@@ -73,13 +73,13 @@ MODULE HCO_TYPES_MOD
   ! HcoSpc: Derived type for HEMCO species
   !
   ! Notes:
-  ! **1 The emission molecular weight is the molecular weight of the 
-  !     emitted compound. This value is only different to MW_g if the 
-  !     emitted compound does not correspond to the transported species, 
-  !     e.g. if emissions are in kg C4H10 but the corresponding species 
-  !     is transported as mass Carbon. 
-  ! **2 MolecRatio is the ratio between # of species molecules per emitted 
-  !       molecule, e.g. 4 if emissions are kg C4H10 but model species 
+  ! **1 The emission molecular weight is the molecular weight of the
+  !     emitted compound. This value is only different to MW_g if the
+  !     emitted compound does not correspond to the transported species,
+  !     e.g. if emissions are in kg C4H10 but the corresponding species
+  !     is transported as mass Carbon.
+  ! **2 MolecRatio is the ratio between # of species molecules per emitted
+  !       molecule, e.g. 4 if emissions are kg C4H10 but model species
   !       are kg C.
   !=========================================================================
   TYPE :: HcoSpc
@@ -90,7 +90,7 @@ MODULE HCO_TYPES_MOD
      REAL(hp)                :: EmMW_g     ! emission molecular wt.**1 (g/mol)
      REAL(hp)                :: MolecRatio ! molecule emission ratio**2 (-)
      REAL(hp)                :: HenryK0    ! liq. over gas Henry const [M/atm]
-     REAL(hp)                :: HenryCR    ! K0 temp. dependency [K] 
+     REAL(hp)                :: HenryCR    ! K0 temp. dependency [K]
      REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
      TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [1/s]
      TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
@@ -105,33 +105,33 @@ MODULE HCO_TYPES_MOD
      INTEGER                 :: ModID      ! Model species ID
      CHARACTER(LEN= 31)      :: SpcName    ! species names
   END TYPE ModSpc
-  
+
   !=========================================================================
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
-     INTEGER  :: ExtNr          ! ExtNr to be used 
-     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered 
+     INTEGER  :: ExtNr          ! ExtNr to be used
+     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered
      INTEGER  :: SpcMax         ! Highest HEMCO species ID to be considered
      INTEGER  :: CatMin         ! Smallest category to be considered
      INTEGER  :: CatMax         ! Highest category to be considered
      LOGICAL  :: HcoWritesDiagn ! If set to .TRUE., HEMCO will schedule the
-                                ! output of the default HEMCO diagnostics 
+                                ! output of the default HEMCO diagnostics
                                 ! (in hco_driver_mod.F90).
      LOGICAL  :: AutoFillDiagn  ! Write into AutoFill diagnostics?
      LOGICAL  :: FillBuffer     ! Write calculated emissions into buffer
-                                ! instead of emission array? 
+                                ! instead of emission array?
      INTEGER  :: NegFlag        ! Negative value flag (from configfile):
                                 ! 2 = allow negative values
-                                ! 1 = set neg. values to zero and prompt warning 
+                                ! 1 = set neg. values to zero and prompt warning
                                 ! 0 = return w/ error if neg. value
      LOGICAL  :: PBL_DRYDEP     ! If true, dry deposition frequencies will
-                                ! be calculated over the full PBL. If false, 
+                                ! be calculated over the full PBL. If false,
                                 ! they are calculated over the first layer only.
      REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
-     LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.  
+     LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.
                                 ! grid boxes are 100% inside or outside of a
-                                ! mask. 
+                                ! mask.
      LOGICAL  :: Field2Diagn    ! When reading fields from disk, check if there
                                 ! is a diagnostics with the same name and write
                                 ! field to that diagnostics? Defaults to yes in
@@ -139,13 +139,13 @@ MODULE HCO_TYPES_MOD
      LOGICAL  :: VertWeight     ! if spreading 2D fields across multiple vert.
                                 ! levels, weight vertical dilution factors based
                                 ! upon level depths?
-     LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
+     LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set
                                 ! in HEMCO configuration file? Defaults to yes.
      LOGICAL  :: TimeShiftCap   ! Cap time shift to same day. Defaults to no.
   END TYPE HcoOpt
 
   !=========================================================================
-  ! VertGrid: Description of vertical grid 
+  ! VertGrid: Description of vertical grid
   !=========================================================================
   TYPE :: VertGrid
      INTEGER                 :: ZTYPE           ! Grid type
@@ -167,23 +167,23 @@ MODULE HCO_TYPES_MOD
      TYPE(Arr2D_Hp), POINTER :: YMID       ! mid-points in y-direction (lat)
      TYPE(Arr2D_Hp), POINTER :: XEDGE      ! grid edges in x-direction (lon)*
      TYPE(Arr2D_Hp), POINTER :: YEDGE      ! grid edges in y-direction (lat)*
-     TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa) 
+     TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa)
      TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
      TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
      TYPE(Arr2D_Hp), POINTER :: ZSFC       ! surface geopotential height (m)**
-     TYPE(Arr2D_Hp), POINTER :: PSFC       ! surface pressure (Pa) 
-     TYPE(Arr2D_Hp), POINTER :: PBLHEIGHT  ! PBL height in m 
-     TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
+     TYPE(Arr2D_Hp), POINTER :: PSFC       ! surface pressure (Pa)
+     TYPE(Arr2D_Hp), POINTER :: PBLHEIGHT  ! PBL height in m
+     TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)**
      TYPE(VertGrid), POINTER :: ZGRID      ! vertical grid description
   END TYPE HcoGrid
 
   !=========================================================================
   ! HcoClock: Derived type definition for the HEMCO clock object
   !=========================================================================
-  TYPE :: HcoClock 
+  TYPE :: HcoClock
 
      ! Current time stamp (UTC)
-     INTEGER            :: ThisYear        ! year 
+     INTEGER            :: ThisYear        ! year
      INTEGER            :: ThisMonth       ! month
      INTEGER            :: ThisDay         ! day
      INTEGER            :: ThisHour        ! hour
@@ -194,21 +194,21 @@ MODULE HCO_TYPES_MOD
      INTEGER            :: MonthLastDay    ! Last day of month: 28,29,30,31
 
      ! Current local times
-     INTEGER            :: ntz             ! number of time zones 
-     INTEGER,  POINTER  :: ThisLocYear(:)  ! local year 
-     INTEGER,  POINTER  :: ThisLocMonth(:) ! local month 
+     INTEGER            :: ntz             ! number of time zones
+     INTEGER,  POINTER  :: ThisLocYear(:)  ! local year
+     INTEGER,  POINTER  :: ThisLocMonth(:) ! local month
      INTEGER,  POINTER  :: ThisLocDay(:)   ! local day
      INTEGER,  POINTER  :: ThisLocWD(:)    ! local weekday
      REAL(sp), POINTER  :: ThisLocHour(:)  ! local hour
 
      ! Previous time stamp (UTC)
-     INTEGER            :: PrevYear 
-     INTEGER            :: PrevMonth   
-     INTEGER            :: PrevDay  
-     INTEGER            :: PrevHour    
-     INTEGER            :: PrevMin 
-     INTEGER            :: PrevSec 
-     INTEGER            :: PrevDOY 
+     INTEGER            :: PrevYear
+     INTEGER            :: PrevMonth
+     INTEGER            :: PrevDay
+     INTEGER            :: PrevHour
+     INTEGER            :: PrevMin
+     INTEGER            :: PrevSec
+     INTEGER            :: PrevDOY
      INTEGER            :: PrevWD
 
      ! Current emission time stamp
@@ -228,9 +228,9 @@ MODULE HCO_TYPES_MOD
      INTEGER            :: PrevESec
 
      ! Simulation year, month, day, hour, minute, second. Will only
-     ! be different from current time stamp in special cases, e.g. 
+     ! be different from current time stamp in special cases, e.g.
      ! if emission year shall be fixed.
-     INTEGER            :: SimYear        ! year 
+     INTEGER            :: SimYear        ! year
      INTEGER            :: SimMonth       ! month
      INTEGER            :: SimDay         ! day
      INTEGER            :: SimHour        ! hour
@@ -242,7 +242,7 @@ MODULE HCO_TYPES_MOD
      ! emissions have been calculated.
      INTEGER            :: nSteps
      INTEGER            :: nEmisSteps
-     INTEGER            :: LastEStep 
+     INTEGER            :: LastEStep
 
      ! Pointer to gridded time zones. Will only hold data if a field `TIMEZONES`
      ! is provided in the HEMCO configuration file.
@@ -252,7 +252,7 @@ MODULE HCO_TYPES_MOD
      ! This is necessary to avoid segmentation faults when running with
      ! OpenMP turned on. (bmy, 2/23/15)
      TYPE(Arr2D_Sp), POINTER :: TIMEZONES
-   
+
      ! Fixed dates to be used for simulation dates
      INTEGER              :: FixYY    = -1
      INTEGER              :: FixMM    = -1
@@ -271,13 +271,13 @@ MODULE HCO_TYPES_MOD
      REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
      REAL(dp) :: PI      ! Pi
      REAL(dp) :: PI_180  ! Pi / 180
-     REAL(dp) :: Re      ! Earth radius [m] 
+     REAL(dp) :: Re      ! Earth radius [m]
      REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
      REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
      REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
      REAL(dp) :: Rdg0    ! Rd/g0
      REAL(dp) :: RSTARG  ! Universal gas constant [J/K/mol]
-  END TYPE HcoPhys 
+  END TYPE HcoPhys
 
   !=========================================================================
   ! HcoMicroPhys: Derived type for aerosol microphysics settings
@@ -306,14 +306,14 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   TYPE :: DataCont
 
-     ! Container information 
+     ! Container information
      CHARACTER(LEN= 63)          :: cName          ! Cont. name
      INTEGER                     :: cID            ! Cont. ID
      INTEGER                     :: targetID       ! target ID
      INTEGER                     :: DctType        ! Data type
      TYPE(FileData),     POINTER :: Dta            ! data information
      INTEGER                     :: DtaHome        ! Home cont for Dta?
-     CHARACTER(LEN= 31)          :: SpcName        ! Species Name 
+     CHARACTER(LEN= 31)          :: SpcName        ! Species Name
      INTEGER                     :: HcoID          ! HEMCO species ID
      INTEGER                     :: ExtNr          ! Extension #
      INTEGER                     :: Cat            ! Category
@@ -322,9 +322,9 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: Oper           ! Operator
      INTEGER                     :: levScalID1     ! ID of vertical level field
      INTEGER                     :: levScalID2     ! ID of vertical level field
-     INTEGER                     :: nScalID        ! # of scale factor IDs 
+     INTEGER                     :: nScalID        ! # of scale factor IDs
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
-     LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
+     LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs
   END TYPE DataCont
 
   !-------------------------------------------------------------------------
@@ -345,37 +345,37 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
-     INTEGER                     :: tShift(2) ! time stamp shift in months & seconds 
+     INTEGER                     :: tShift(2) ! time stamp shift in months & seconds
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: MustFind  ! file must be found
-     LOGICAL                     :: UseSimYear! use simulation year 
-     INTEGER                     :: UpdtFlag  ! update flag 
+     LOGICAL                     :: UseSimYear! use simulation year
+     INTEGER                     :: UpdtFlag  ! update flag
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
-     TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
-     CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
-     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension 
-     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension 
+     TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing
+     CHARACTER(LEN= 31)          :: OrigUnit  ! original data units
+     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension
+     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension
      INTEGER                     :: Cover     ! data coverage
-     INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
-     INTEGER                     :: Levels    ! vertical level handling 
-!     INTEGER                     :: Lev2D     ! level to use for 2D data 
+     INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3
+     INTEGER                     :: Levels    ! vertical level handling
+!     INTEGER                     :: Lev2D     ! level to use for 2D data
      REAL(hp)                    :: EmisL1     ! emission level 1
      REAL(hp)                    :: EmisL2     ! emission level 2
      INTEGER                     :: EmisL1Unit ! emission level 1 unit
      INTEGER                     :: EmisL2Unit ! emission level 2 unit
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
-     LOGICAL                     :: IsLocTime ! local time? 
+     LOGICAL                     :: IsLocTime ! local time?
      LOGICAL                     :: IsConc    ! concentration data?
      LOGICAL                     :: DoShare   ! shared object?
-     LOGICAL                     :: IsInList  ! is in emissions list? 
-     LOGICAL                     :: IsTouched ! Has container been touched yet? 
+     LOGICAL                     :: IsInList  ! is in emissions list?
+     LOGICAL                     :: IsTouched ! Has container been touched yet?
   END TYPE FileData
 
   !-------------------------------------------------------------------------
-  ! TimeIdx: Derived type definition for the object that points to the 
+  ! TimeIdx: Derived type definition for the object that points to the
   ! current time slices of data within a file.  Used by hco_tidx_mod.F90.
   !-------------------------------------------------------------------------
   TYPE :: TimeIdx
@@ -388,7 +388,7 @@ MODULE HCO_TYPES_MOD
   TYPE ::  TimeIdxCollection
      TYPE(TimeIdx), POINTER :: CONSTANT
      TYPE(TimeIdx), POINTER :: HOURLY
-     TYPE(TimeIdx), POINTER :: HOURLY_GRID 
+     TYPE(TimeIdx), POINTER :: HOURLY_GRID
      TYPE(TimeIdx), POINTER :: WEEKDAY
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
@@ -414,9 +414,9 @@ MODULE HCO_TYPES_MOD
   END TYPE SpecNameCont
 
   !-------------------------------------------------------------------------
-  ! Derived type to store options 
+  ! Derived type to store options
   !-------------------------------------------------------------------------
-  TYPE :: Opt   
+  TYPE :: Opt
      CHARACTER(LEN=OPTLEN)   :: OptName
      CHARACTER(LEN=OPTLEN)   :: OptValue
      TYPE(Opt), POINTER      :: NextOpt => NULL()
@@ -425,7 +425,7 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   ! Derived type to manage list of extensions and associated options
   !-------------------------------------------------------------------------
-  TYPE :: Ext 
+  TYPE :: Ext
      CHARACTER(LEN=255)       :: ExtName  ! Name
      CHARACTER(LEN=OPTLEN)    :: Spcs     ! Species
      INTEGER                  :: ExtNr    ! Ext. number
@@ -434,7 +434,7 @@ MODULE HCO_TYPES_MOD
   END TYPE Ext
 
   !-------------------------------------------------------------------------
-  ! Configuration object 
+  ! Configuration object
   !-------------------------------------------------------------------------
   TYPE :: ConfigObj
      CHARACTER(LEN=OPTLEN)        :: ROOT           = ''
@@ -457,33 +457,33 @@ MODULE HCO_TYPES_MOD
   !------------------------------------------------------------------------
   TYPE :: DiagnCont
      CHARACTER(LEN= 63)          :: cName          ! Cont. name
-     CHARACTER(LEN=255)          :: long_name      ! ncdf long_name attribute 
+     CHARACTER(LEN=255)          :: long_name      ! ncdf long_name attribute
      INTEGER                     :: cID            ! Cont. ID
      INTEGER                     :: ExtNr          ! Extension #
-     INTEGER                     :: Cat            ! Category 
+     INTEGER                     :: Cat            ! Category
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: HcoID          ! HEMCO species ID
-     INTEGER                     :: AutoFill       ! fill automatically? 
-     INTEGER                     :: SpaceDim       ! Space dimension (1-3) 
-     REAL(sp)                    :: Scalar         ! 1D scalar 
+     INTEGER                     :: AutoFill       ! fill automatically?
+     INTEGER                     :: SpaceDim       ! Space dimension (1-3)
+     REAL(sp)                    :: Scalar         ! 1D scalar
      TYPE(Arr2D_SP),     POINTER :: Arr2D          ! 2D array
      TYPE(Arr3D_SP),     POINTER :: Arr3D          ! 3D array
-     REAL(sp)                    :: Total          ! Diagnostics total 
+     REAL(sp)                    :: Total          ! Diagnostics total
      LOGICAL                     :: DtaIsPtr       ! Is data just a pointer?
-     INTEGER                     :: LevIdx         ! Level index to be used 
-     CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
-     INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise 
+     INTEGER                     :: LevIdx         ! Level index to be used
+     CHARACTER(LEN= 31)          :: OutUnit        ! Output unit
+     INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise
      REAL(hp)                    :: AreaScal       ! Scale factor for area
      REAL(hp)                    :: MassScal       ! Scale factor for mass
-     REAL(hp)                    :: ScaleFact      ! Uniform scale factor 
-     INTEGER                     :: TimeAvg        ! Scale flag for time unit 
-     INTEGER                     :: Counter        ! time steps since 
+     REAL(hp)                    :: ScaleFact      ! Uniform scale factor
+     INTEGER                     :: TimeAvg        ! Scale flag for time unit
+     INTEGER                     :: Counter        ! time steps since
                                                    ! last output
-     CHARACTER(LEN= 31)          :: AvgName        ! Output averaging operation 
-     INTEGER                     :: AvgFlag        ! Averaging flag for 
+     CHARACTER(LEN= 31)          :: AvgName        ! Output averaging operation
+     INTEGER                     :: AvgFlag        ! Averaging flag for
                                                    !  non-standard units
      INTEGER                     :: LastUpdateID   ! Last update time
-     INTEGER                     :: nnGetCalls     ! # of Diagn_Get calls w/o update 
+     INTEGER                     :: nnGetCalls     ! # of Diagn_Get calls w/o update
      LOGICAL                     :: IsOutFormat    ! Data is in output format?
      INTEGER                     :: CollectionID   ! Collection diagnostics belongs to
      TYPE(DiagnCont),    POINTER :: NextCont       ! Ptr to next item in list
@@ -494,14 +494,14 @@ MODULE HCO_TYPES_MOD
   ! DiagnList      : Linked list with all diagnostics container of
   !                  this collection.
   ! nnDiag         : Number of diagnostics in this collection.
-  ! AF_LevelDefined: Set to true if there is at least one autofill 
+  ! AF_LevelDefined: Set to true if there is at least one autofill
   !                  diagnostics at the given level (1-4).
   ! PREFIX         : Prefix to be used for diagnostics output file name.
   ! NX, NY, NZ     : Grid dimensions.
-  ! TS             : Time step. This is only of relevance for emission 
+  ! TS             : Time step. This is only of relevance for emission
   !                  diagnostics that are internally converted from
   !                  kg/m2/s to kg/m2.
-  ! AREA_M2        : Surface grid box areas. May be required for unit 
+  ! AREA_M2        : Surface grid box areas. May be required for unit
   !                  conversions.
   !------------------------------------------------------------------------
   TYPE :: DiagnCollection
@@ -525,15 +525,15 @@ MODULE HCO_TYPES_MOD
 
   TYPE :: DiagnBundle
      TYPE(DiagnCollection), POINTER :: Collections       => NULL()
-     INTEGER                        :: HcoDiagnIDDefault = -999 
+     INTEGER                        :: HcoDiagnIDDefault = -999
      INTEGER                        :: HcoDiagnIDRestart = -999
      INTEGER                        :: HcoDiagnIDManual  = -999
      INTEGER                        :: nnCollections     = 0
   END TYPE DiagnBundle
-!                                                                             
+!
 ! !REVISION HISTORY:
 !  15 Feb 2016 - C. Keller   - Initial version (collected from various modules)
-!  12 May 2017 - C. Keller   - Added option ScaleEmis 
+!  12 May 2017 - C. Keller   - Added option ScaleEmis
 !  05 Oct 2018 - R. Yantosca - Added HCO_UFLAG_ONCE parameter
 !  23 Oct 2018 - M. Sulprizio- Added derived type for external model species
 !                              to ConfigObj to facilitate reading GEOS-Chem

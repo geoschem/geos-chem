@@ -2,7 +2,7 @@
       MODULE DIAG48_MOD
 !
 !******************************************************************************
-!  Module DIAG48_MOD contains variables and routines to save out 3-D 
+!  Module DIAG48_MOD contains variables and routines to save out 3-D
 !  timeseries output to disk (bmy, 7/20/04, 10/13/09)
 !
 !  Module Variables:
@@ -15,16 +15,16 @@
 !  (2 ) ITS_TIME_FOR_DIAG48    : Returns TRUE if it's time to save to disk
 !  (3 ) INIT_DIAG48            : Gets variable values from "input_mod.f"
 !
-!  GEOS-CHEM modules referenced by "diag48_mod.f" 
+!  GEOS-CHEM modules referenced by "diag48_mod.f"
 !  ============================================================================
 !  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
 !  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
 !  (3 ) file_mod.f     : Module w/ file unit numbers & error checks
-!  (4 ) grid_mod.f     : Module w/ horizontal grid information   
+!  (4 ) grid_mod.f     : Module w/ horizontal grid information
 !  (5 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
 !  (6 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
-!  (7 ) time_mod.f     : Module w/ routines for computing time & date 
-!  (8 ) tracer_mod.f   : Module w/ GEOS-CHEM tracer array STT etc.  
+!  (7 ) time_mod.f     : Module w/ routines for computing time & date
+!  (8 ) tracer_mod.f   : Module w/ GEOS-CHEM tracer array STT etc.
 !  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND48 tracer numbers:
@@ -42,7 +42,7 @@
 !  510           : PBL heights                              [levels   ]
 !  511           : Grid box heights                         [m        ]
 !  512           : PEDGE-$ (Pressure @ level edges)         [hPa      ]
-!                  (lower edge, moist air pressure) 
+!                  (lower edge, moist air pressure)
 !  513           : Sea level pressure                       [hPa      ]
 !  514           : Zonal wind (a.k.a. U-wind)               [m/s      ]
 !  515           : Meridional wind (a.k.a. V-wind)          [m/s      ]
@@ -54,7 +54,7 @@
 !  521           : Coarse mode seasalt optical depth        [unitless ]
 !  522           : Total dust optical depth                 [unitless ]
 !  523-529       : Size resolved dust optical depth         [unitless ]
-!  
+!
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
 !  (2 ) Remove TRCOFFSET because it's always zero.  Now call GET_HALFPOLAR
@@ -65,7 +65,7 @@
 !  (6 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
 !  (7 ) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 10/22/07)
 !  (8 ) Bug fix in DIAG49 for diangostic output of SLP. (bmy, 10/13/09)
-!  (9 ) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!  (9 ) Modify AOD output to wavelength specified in jv_spec_aod.dat
 !       (clh, 05/07/10)
 !  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
 !       Minor bug fix with the accumulation of ODAER across RH bins
@@ -76,7 +76,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE calls with State_Met%PEDGE. 
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE calls with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
 !                              remove AD pointer
@@ -88,26 +88,26 @@
       IMPLICIT NONE
 
       !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
       ! and routines from being seen outside "diag48_mod.f"
       !=================================================================
 
       ! Make everything PRIVATE ...
       PRIVATE
- 
+
       ! ... and these routines
       PUBLIC :: CLEANUP_DIAG48
       PUBLIC :: DIAG48
-      PUBLIC :: INIT_DIAG48 
+      PUBLIC :: INIT_DIAG48
       PUBLIC :: ITS_TIME_FOR_DIAG48
 
       !=================================================================
-      ! MODULE VARIABLES 
+      ! MODULE VARIABLES
       !=================================================================
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Scalars
       INTEGER              :: HALFPOLAR
-      INTEGER, PARAMETER   :: CENTER180=1 
+      INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES
       REAL*4               :: LATRES
       CHARACTER(LEN=20)    :: MODELNAME
@@ -146,16 +146,16 @@
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
-!  (2 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
+!  (2 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud
 !        fraction as tracer #79 and box height as tracer #93.  Now remove
 !        reference to PBL from "dao_mod.f" (bmy, 4/20/05)
-!  (3 ) Remove references to TRCOFFSET because it's always zero.  Now call 
-!        GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag value for 
+!  (3 ) Remove references to TRCOFFSET because it's always zero.  Now call
+!        GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag value for
 !        GEOS or GCAP grids.  (bmy, 6/28/05)
 !  (4 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (7 ) Bug fix: unit for tracer #77 should be "layers".  Also RH should be 
+!  (7 ) Bug fix: unit for tracer #77 should be "layers".  Also RH should be
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
 !  (8 ) Bug fix: replace "PS-PTOP" with "PEDGE-$". (phs, bmy, 10/7/08)
 !  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
@@ -287,14 +287,14 @@
      &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
      &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
-     &                   id_IPMN > 0 ) 
+     &                   id_IPMN > 0 )
 
          ! Replace YYYYMMDD tokens in filename
          FILENAME = TRIM( Input_Opt%ND48_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          IF ( DO_DIAG_WRITE ) THEN
-           
+
             ! Open file for writing
             CALL OPEN_ND48_FILE( FILENAME )
 
@@ -325,9 +325,9 @@
       DO W = 1, Input_Opt%ND48_N_STA
 
          ! Get lon, lat, alt, tracer indices
-         I = ND48_I(W)             
-         J = ND48_J(W)  
-         K = ND48_L(W) 
+         I = ND48_I(W)
+         J = ND48_J(W)
+         K = ND48_L(W)
          N = ND48_N(W)
 
          ! Get local time
@@ -346,7 +346,7 @@
             GMTRC    = N
 
             DO L = 1, K
-               Q(L) = SPC(I,J,L,N) * ( AIRMW / 
+               Q(L) = SPC(I,J,L,N) * ( AIRMW /
      &                State_Chm%SpcData(N)%Info%emMW_g )
             ENDDO
 
@@ -380,57 +380,57 @@
                Q(L) = 0e+0_fp
 
                ! NO
-               Q(L) = Q(L) + ( ( AIRMW 
+               Q(L) = Q(L) + ( ( AIRMW
      &                / State_Chm%SpcData(id_NO)%Info%emMW_g )
      &                         * SPC(I,J,L,id_NO) )
 
                ! NO2
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_NO2)%Info%emMW_g )         
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_NO2)%Info%emMW_g )
      &                         * SPC(I,J,L,id_NO2) )
 
                ! PAN
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_PAN)%Info%emMW_g )         
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_PAN)%Info%emMW_g )
      &                         * SPC(I,J,L,id_PAN) )
 
                ! HNO3
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )
      &                         * SPC(I,J,L,id_HNO3) )
-            
+
                ! NPMN
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_NPMN)%Info%emMW_g )
      &                         * SPC(I,J,L,id_NPMN) )
 
                ! IPMN
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_IPMN)%Info%emMW_g )
      &                         * SPC(I,J,L,id_IPMN) )
 
                ! PPN
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_PPN)%Info%emMW_g )         
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_PPN)%Info%emMW_g )
      &                         * SPC(I,J,L,id_PPN) )
- 
+
                ! R4N2
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_R4N2)%Info%emMW_g )       
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_R4N2)%Info%emMW_g )
      &                         * SPC(I,J,L,id_R4N2) )
-            
+
                ! N2O5
-               Q(L) = Q(L) + ( 2d0 * ( AIRMW 
-     &                 / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) 
+               Q(L) = Q(L) + ( 2d0 * ( AIRMW
+     &                 / State_Chm%SpcData(id_N2O5)%Info%emMW_g )
      &                         * SPC(I,J,L,id_N2O5) )
-                        
+
                ! HNO4
-               Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_HNO4)%Info%emMW_g )       
+               Q(L) = Q(L) + ( ( AIRMW
+     &                 / State_Chm%SpcData(id_HNO4)%Info%emMW_g )
      &                         * SPC(I,J,L,id_HNO4) )
             ENDDO
 
-         ELSE IF ( N == 503 ) THEN 
+         ELSE IF ( N == 503 ) THEN
 
             !-------------------------------------
             ! RELATIVE HUMIDITY [%]
@@ -457,7 +457,7 @@
             ENDDO
 
          ELSE IF ( N == 505 .and. IS_OPTD ) THEN
-            
+
             !-------------------------------------
             ! COLUMN OPTICAL DEPTHS [unitless]
             !-------------------------------------
@@ -480,7 +480,7 @@
                Q(1) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDIF
 
-         ELSE IF ( N == 507 ) THEN 
+         ELSE IF ( N == 507 ) THEN
 
             !-------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -510,21 +510,21 @@
          ELSE IF ( N == 509 ) THEN
 
             !-------------------------------------
-            ! PBL HEIGHTS [m] 
+            ! PBL HEIGHTS [m]
             !-------------------------------------
             CATEGORY = 'PBLDEPTH'
-            UNIT     = 'm'  
+            UNIT     = 'm'
             GMTRC    = 1
 
             IF ( K == 1 ) THEN
                Q(1) = State_Met%PBL_TOP_m(I,J)
             ENDIF
-               
+
          ELSE IF ( N == 510 ) THEN
 
             !-------------------------------------
-            ! PBL HEIGHTS [levels] 
-            !-------------------------------------   
+            ! PBL HEIGHTS [levels]
+            !-------------------------------------
             CATEGORY = 'PBLDEPTH'
             UNIT     = 'levels'
             GMTRC    = 2
@@ -533,7 +533,7 @@
                Q(1) = State_Met%PBL_TOP_L(I,J)
             ENDIF
 
-         ELSE IF ( N == 511 ) THEN 
+         ELSE IF ( N == 511 ) THEN
 
             !-------------------------------------
             ! GRID BOX HEIGHT [m]
@@ -553,8 +553,8 @@
             !-------------------------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMTRC    = 1            
-            
+            GMTRC    = 1
+
             DO L = 1, K
                Q(L) = State_Met%PEDGE( I, J, L )
             ENDDO
@@ -584,8 +584,8 @@
             DO L = 1, K
                Q(L) = State_Met%U(I,J,L)
             ENDDO
-            
-         ELSE IF ( N == 515 ) THEN 
+
+         ELSE IF ( N == 515 ) THEN
 
             !-------------------------------------
             ! MERIDIONAL (V) WIND [m/s]
@@ -605,7 +605,7 @@
             !-------------------------------------
             CATEGORY = 'DAO-3D-$'
             UNIT     = 'K'
-            GMTRC    = 3            
+            GMTRC    = 3
 
             DO L = 1, K
                Q(L) = State_Met%T(I,J,L)
@@ -635,7 +635,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(L) = Q(L) + 
+                    Q(L) = Q(L) +
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -651,7 +651,7 @@
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
-            GMTRC    = 9            
+            GMTRC    = 9
 
             ISPC     = 2 !BC
             IF ( .not. LINTERP ) THEN
@@ -680,7 +680,7 @@
             !-------------------------------------
             ! ORGANIC CARBON AOD [unitless]
             ! for wavelengths set in Radiation Menu
-            !-------------------------------------       
+            !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 12
@@ -708,7 +708,7 @@
             ENDIF
 
          ELSE IF ( N == 520 ) THEN
-            
+
             !-------------------------------------
             ! ACCUM SEASALT AOD [unitless]
             ! for wavelengths set in Radiation Menu
@@ -744,7 +744,7 @@
             !-------------------------------------
             ! COARSE SEASALT AOD [unitless]
             ! for wavelengths set in Radiation Menu
-            !-------------------------------------    
+            !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 18
@@ -845,18 +845,18 @@
             CYCLE
 
          ENDIF
-         
+
          IF ( DO_DIAG_WRITE ) THEN
 
          !==============================================================
          ! Write each station to a bpch file
          !==============================================================
-            CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,       
-     &           HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
-     &           UNIT,      TAU,       TAU,      RESERVED,  
-     &           1,         1,         K,        I+I0,         
+            CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,
+     &           HALFPOLAR, CENTER180, CATEGORY, GMTRC,
+     &           UNIT,      TAU,       TAU,      RESERVED,
+     &           1,         1,         K,        I+I0,
      &           J+J0,      1,         REAL( Q(1:K),4 ) )
-            
+
          ENDIF
 
       ENDDO
@@ -875,13 +875,13 @@
 ! 120     FORMAT( '     - DIAG49: Closing file : ', a )
 !
 !         ! Close file
-!         CLOSE( IU_ND49 ) 
+!         CLOSE( IU_ND49 )
 !      ENDIF
 
       IF ( DO_DIAG_WRITE ) THEN
 
          ! Flush the file once per day
-         IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
+         IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 )
 
       ENDIF
 
@@ -929,7 +929,7 @@
       IU_ND48 = findFreeLUN()
 
       ! Initialize
-      FTI   = 'CTM bin 02 -- GEOS-CHEM station ts' 
+      FTI   = 'CTM bin 02 -- GEOS-CHEM station ts'
       TITLE = 'GEOS-CHEM ND48 station timeseries diagnostic'
 
 !%%% NOTE: The GEOS-5 GCM won't call this routine, so it should be OK
@@ -965,7 +965,7 @@
 !  timeseries data write. (bmy, 7/20/04)
 !
 !  NOTES:
-!  (1 ) Add a check on the output frequency for validity compared to time 
+!  (1 ) Add a check on the output frequency for validity compared to time
 !        steps used. (ccc, 5/21/09)
 !******************************************************************************
 !
@@ -993,7 +993,7 @@
       !=================================================================
       ! ITS_TIME_FOR_DIAG48 begins here!
       !=================================================================
-      
+
       IF ( Input_Opt%DO_ND48 ) THEN
 
          IF ( FIRST ) THEN
@@ -1008,10 +1008,10 @@
             ENDIF
             FIRST = .FALSE.
          ENDIF
-      
+
          ! Get elapsed seconds
          XSEC     = GET_ELAPSED_SEC()
-         
+
          ! Is it time to save the next timeseries station?
          ITS_TIME = ( Input_Opt%DO_ND48 .and.
      &                MOD( XSEC, Input_Opt%ND48_FREQ ) == 0 )
@@ -1031,7 +1031,7 @@
 !  Subroutine INIT_DIAG48 allocates and zeroes all module arrays (bmy, 7/20/04)
 !
 !  NOTES:
-!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  22 Jun 2016 - R. Yantosca - Now define species ID's with IND()
 !  20 Sep 2016 - R. Yantosca - Move species ID's initialization to DIAG48
@@ -1049,7 +1049,7 @@
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
@@ -1068,7 +1068,7 @@
       !=================================================================
       ! INIT_DIAG48 begins here!
       !=================================================================
-      
+
       ! Assume success
       RC = GC_SUCCESS
 

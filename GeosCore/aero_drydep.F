@@ -6,9 +6,9 @@
 !
 ! !ROUTINE: aero_drydep
 !
-! !DESCRIPTION: Subroutine AERO\_DRYDEP removes size-resolved aerosol number 
-!  and mass by dry deposition.  The deposition velocities are calcualted from 
-!  drydep_mod.f and only aerosol number NK1-NK30 are really treated as dry 
+! !DESCRIPTION: Subroutine AERO\_DRYDEP removes size-resolved aerosol number
+!  and mass by dry deposition.  The deposition velocities are calcualted from
+!  drydep_mod.f and only aerosol number NK1-NK30 are really treated as dry
 !  depositing species while each of the mass species are depositing accordingly
 !  with number.
 !\\
@@ -21,7 +21,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE DUST_MOD,           ONLY : SETTLEDUST
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -42,7 +42,7 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -57,8 +57,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 Jul 2007 - Win T.      - Initial version
 !  19 Mar 2008 - Win T.      - Calculate removal by gravitational settling for
 !                              the internally-mixed aerosol population based
@@ -72,7 +72,7 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
-!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN
 !                              to enable unit conversion if needed
 !  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed SIZ_DIA and SIZ_DEN
 !                              array dimensions from (IIPAR*JJPAR,IBINS) to
@@ -92,7 +92,7 @@
 ! !LOCAL VARIABLES:
 !
 
-      ! SAVEd scalars 
+      ! SAVEd scalars
       LOGICAL,  SAVE     :: DOSETTLING = .TRUE.
       LOGICAL,  SAVE     :: FIRST      = .TRUE.
       INTEGER,  SAVE     :: H2SO4ID
@@ -187,8 +187,8 @@
 
          ! First identify if the size-resolved aerosol species have their
          ! deposition velocity calculated.
-         ! dryd is an array that keeps the drydep species ID.  So if the 
-         ! aerosol component has dryd = 0, that means it was not included 
+         ! dryd is an array that keeps the drydep species ID.  So if the
+         ! aerosol component has dryd = 0, that means it was not included
          ! as a dry depositting species.
          DRYD = 0
          DO BIN = 1, IBINS
@@ -218,12 +218,12 @@ cdbg  print *, dryd(:)
 
       !---------- GRAVITATIONAL SETTLING -------------
       !
-      ! First calculate vertical movement and removal by 
+      ! First calculate vertical movement and removal by
       ! gravitational settling
       !
       ! Clarify units:
       !
-      !      v_settling = rho   * Dp**2  *  g    *  C 
+      !      v_settling = rho   * Dp**2  *  g    *  C
       !                  -----------------------------
       !                   18    *  visc
       ! [units]
@@ -231,10 +231,10 @@ cdbg  print *, dryd(:)
       !                  -----------------------------
       !                    -    * kg/m/s
       !
-      ! NOTES: 
+      ! NOTES:
       ! (1 ) Pa s = kg/m/s
       ! (2 ) Slip correction factor is unitless, however, the
-      !      equation from Hinds' Aerosol Technology that is 
+      !      equation from Hinds' Aerosol Technology that is
       !      a function of P and Dp needs the correct units
       !      P [=] kPa and Dp [=] um
 
@@ -262,7 +262,7 @@ cdbg  print *, dryd(:)
 
          DP    = SIZ_DIA(I,J,BIN) * 1.d6 ![=] um
          DEN   = SIZ_DEN(I,J,BIN) ![=] kg/m3
-         CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0  
+         CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0
 
 !debug            if(i==ix .and. j==jx .and. bin==bb) then
 !               print *, 'L, P, Dp, DEN, SLIP, VISC, VTS(L)'
@@ -270,7 +270,7 @@ cdbg  print *, dryd(:)
 !debug------------
 
          DO L = 1, State_Grid%NZ
-            
+
             ! Get P [kPa], T [K], and P*DP
             ! Use moist pressure for mean free path (ewl, 3/2/2015)
             P    = State_Met%PMID(I,J,L) * 0.1d0  ![=] kPa
@@ -279,28 +279,28 @@ cdbg  print *, dryd(:)
 
             !=====================================================
             ! # air molecule number density
-            ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+            ! num = P * 1d3 * 6.023d23 / (8.314 * Temp)
             !
             ! # gas mean free path
-            ! lamda = 1.d6 / 
-            !     &   ( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+            ! lamda = 1.d6 /
+            !     &   ( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
             !
             ! # Slip correction
-            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * 
+            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 *
             !      &  exp( -1.1 * Dp / (2. * lamda))) / Dp
             !=====================================================
-            ! NOTE, Slip correction factor calculations following 
-            !       Seinfeld, pp464 which is thought to be more 
+            ! NOTE, Slip correction factor calculations following
+            !       Seinfeld, pp464 which is thought to be more
             !       accurate but more computation required.
             !=====================================================
 
             ! Slip correction factor as function of (P*dp)
-            SLIP = 1d0 + 
+            SLIP = 1d0 +
      &             ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
-            
+
             !=====================================================
             ! NOTE, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
-            ! which produce slip correction factor with small 
+            ! which produce slip correction factor with small
             ! error compared to the above with less computation.
             !=====================================================
 
@@ -326,7 +326,7 @@ cdbg  print *, dryd(:)
 !            endif
 !debug------------
 
-            ! Method is to solve bidiagonal matrix 
+            ! Method is to solve bidiagonal matrix
             ! which is implicit and first order accurate in Z
             DO L = 1, State_Grid%NZ
                TC0(L) = Spc(I,J,L,ID)
@@ -341,7 +341,7 @@ cdbg  print *, dryd(:)
             DO L = State_Grid%MaxChemLev-1, 1, -1
                DELZ  = BXHEIGHT(I,J,L)
                DELZ1 = BXHEIGHT(I,J,L+1)
-               TC(L) = 1.d0 / 
+               TC(L) = 1.d0 /
      &               ( 1.d0   + DTCHEM * VTS(L)   / DELZ ) *
      &               ( TC(L)  + DTCHEM * VTS(L+1) / DELZ1  *  TC(L+1) )
             ENDDO
@@ -349,17 +349,17 @@ cdbg  print *, dryd(:)
             DO L = 1, State_Grid%NZ
                Spc(I,J,L,ID) = TC(L)
 
-!debug            if(i==ix .and. j==jx .and. l==ll ) 
-!     &              print *, BIN, TC0(L), TC(L), VTS(L)              
+!debug            if(i==ix .and. j==jx .and. l==ll )
+!     &              print *, BIN, TC0(L), TC(L), VTS(L)
 !debug---------
             ENDDO
 
 
-#if defined( BPCH_DIAG ) 
-            !========================================================      
+#if defined( BPCH_DIAG )
+            !========================================================
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
-            IF ( ND44 > 0 ) THEN 
+            IF ( ND44 > 0 ) THEN
 
                ! Surface area [cm2]
                AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
@@ -367,7 +367,7 @@ cdbg  print *, dryd(:)
                ! Initialize
                TOT1 = 0d0
                TOT2 = 0d0
-            
+
                ! Compute column totals of TCO(:) and TC(:)
                DO L = 1, State_Grid%NZ
                   TOT1 = TOT1 + TC0(L)
@@ -376,22 +376,22 @@ cdbg  print *, dryd(:)
 
                ! Convert dust flux from [kg/s] to [#/cm2/s]
                FLUX = ( TOT1 - TOT2 ) / DTCHEM
-               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * 
-     &                1.e-3_fp / AREA_CM2 
-           
+               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g *
+     &                1.e-3_fp / AREA_CM2
+
                ! Save in AD44
-               IF( JC == 1 ) THEN 
+               IF( JC == 1 ) THEN
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1) + FLUX
                ELSE
-                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =
      &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
-                 
+
             ENDIF
 #endif
 
          ENDDO ! JC-loop
- 
+
 
 
       ENDDO  ! I-loop
@@ -399,9 +399,9 @@ cdbg  print *, dryd(:)
       ENDDO  ! Bin-loop
 !$OMP END PARALLEL DO
 
-      ENDIF  ! DOSETTLING 
+      ENDIF  ! DOSETTLING
 
-      ! Dust gravitational settling 
+      ! Dust gravitational settling
       IF ( .not. DOSETTLING ) THEN
          CALL SETTLEDUST( am_I_Root,  Input_Opt,  State_Chm,
      &                    State_Diag, State_Grid, State_Met, RC )
@@ -439,7 +439,7 @@ cdbg  print *, dryd(:)
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
-         RKT    = 0d0  
+         RKT    = 0d0
          flux   = 0d0
 
          ! Skip non-chemsitry boxes
@@ -452,14 +452,14 @@ cdbg  print *, dryd(:)
                X0(BIN,JC) = Spc(I,J,L,ID)
             ENDDO
          ENDDO
-!debug            if(i==ii .and. j==jj .and. L==1) 
+!debug            if(i==ii .and. j==jj .and. L==1)
 c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
-c     &           'FLUX  AD44' 
-c            if(i==ix .and. j==jx .and. L==1) 
+c     &           'FLUX  AD44'
+c            if(i==ix .and. j==jx .and. L==1)
 c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
-c     &           'FLUX  AD44' 
+c     &           'FLUX  AD44'
 !debug-----
- 
+
          ! Dry deposit 1 aerosol component at a time, start looping from
          ! number and then the icomp-1 mass.
          DO JC = 1, ICOMP-IDIAG+1
@@ -470,13 +470,13 @@ c     &           'FLUX  AD44'
 ! ******************************************************************************
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
 ! (ckeller, 3/5/15)
-            ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
+            ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the
             ! fraction of each vertical level that is located below the PBL top
             RKT = DEPSAV(I,J,DRYD(BIN)) *
      &            State_Met%F_UNDER_PBLTOP(I,J,L)
-!debug            if(i==ii .and. j==jj .and. L==1) 
+!debug            if(i==ii .and. j==jj .and. L==1)
 c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
-            IF (RKT > 0d0) THEN 
+            IF (RKT > 0d0) THEN
                RKT = RKT * DTCHEM
                ! Remaining amount after drydep
                X  = X0(BIN,JC)* EXP(-RKT)
@@ -484,7 +484,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
                X = X0(BIN,JC)
             ENDIF
 ! ******************************************************************************
-               
+
 #if defined( BPCH_DIAG )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
@@ -493,33 +493,33 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
 
                ! Surface area [cm2]
                AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-               
-               ! Convert from [kg/timestep] to [molec/cm2/s] 
+
+               ! Convert from [kg/timestep] to [molec/cm2/s]
                ! Store in AD44
                FLUX = X0(BIN,JC) - X
-               FLUX = FLUX / (State_Chm%SpcData(ID)%Info%emMW_g * 
+               FLUX = FLUX / (State_Chm%SpcData(ID)%Info%emMW_g *
      &                1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
 
-               IF ( JC == 1 ) THEN 
-                  AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX   
+               IF ( JC == 1 ) THEN
+                  AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX
                ELSE
-                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =
      &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
-               
+
             ENDIF
 !debug
-c            if(i==ii .and. j==jj .and. 
-c     &           bin==bb .and. JC==1) 
-c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c            if(i==ii .and. j==jj .and.
+c     &           bin==bb .and. JC==1)
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX,
 c     &           AD44(I,J,DRYD(BIN),1)
-c            if(i==ii .and. j==jj .and. 
-c     &           bin==bb .and. JC==2) 
-c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c            if(i==ii .and. j==jj .and.
+c     &           bin==bb .and. JC==2)
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX,
 c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
-!debug            if(i==ix .and. j==jx .and. 
-c     &           bin==bb .and. JC==ICOMP) 
-c     &          print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+!debug            if(i==ix .and. j==jx .and.
+c     &           bin==bb .and. JC==ICOMP)
+c     &          print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX,
 c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 !debug------
 #endif
@@ -531,7 +531,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 
          ENDDO
          ENDDO
-         
+
 ! ******************************************************************************
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
 ! (ckeller, 3/5/15)
@@ -550,13 +550,13 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
             ! Surface area [cm2]
             AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
-            ! Convert from [kg/timestep] to [molec/cm2/s] 
+            ! Convert from [kg/timestep] to [molec/cm2/s]
             ! Store in AD44
             FLUX = Y0 - Y
             FLUX = FLUX / (State_Chm%SpcData(id_H2SO4)%Info%emMW_g *
      &             1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
 
-            AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
+            AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX
 
          ENDIF
 #endif
@@ -579,7 +579,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 
       ! Check that species units are still in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect species units at end of routine: ' 
+         MSG = 'Incorrect species units at end of routine: '
      &            // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
          CALL GC_Error( MSG, RC, LOC )

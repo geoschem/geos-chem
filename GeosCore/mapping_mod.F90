@@ -7,11 +7,11 @@
 !
 ! !DESCRIPTION: Module MAPPING\_MOD contains a derived-type object to compute
 !  and save the mapping weight (i.e. fraction of each "fine" grid box that
-!  fits into the "coarse" grid box") and areal mapping (i.e. the area of each 
+!  fits into the "coarse" grid box") and areal mapping (i.e. the area of each
 !  "fine" grid box contained within a "coarse" grid box).
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Mapping_Mod
 !
@@ -51,7 +51,7 @@ MODULE Mapping_Mod
 !  GEOS-Chem's (legacy) dry deposition module.
 !                                                                             .
 !  Also, we do not define the mapping weight object within this module.
-!  This allows you to create more than one mapping weight object for 
+!  This allows you to create more than one mapping weight object for
 !  different native grids (e.g. 0.5 x 0.5 and 0.25 x 0.25, etc.)
 !
 ! !REVISION HISTORY:
@@ -97,7 +97,7 @@ CONTAINS
     INTEGER,        INTENT(IN) :: J_COARSE  ! # of lats on the "coarse" grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(MapWeight), POINTER, INTENT(INOUT) :: mapping(:,:) !"fine" -> "coarse"
 !
 ! !OUTPUT PARAMETERS:
@@ -121,10 +121,10 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!    
+!
     ! Scalars
     INTEGER :: I,   J,   FINE_PER_COARSE, ADD, as
-    INTEGER :: as1, as2, as3,             as4, as5 
+    INTEGER :: as1, as2, as3,             as4, as5
 
     ! Arrays
     INTEGER :: err(I_COARSE,J_COARSE)
@@ -145,7 +145,7 @@ CONTAINS
     ! (roughly, use the +ADD to make sure it is big enough)
     FINE_PER_COARSE = ( DBLE( I_FINE ) / DBLE( I_COARSE ) ) &
                     * ( DBLE( J_FINE ) / DBLE( J_COARSE ) ) + ADD
-    
+
     ! For saving mapping weights
     IF ( .not. ASSOCIATED( mapping ) ) THEN
 
@@ -192,7 +192,7 @@ CONTAINS
        CALL ERROR_STOP( 'Error allocating sub-fields of MAPPING object!', &
                         'Init_Mapping (mapping_mod.F90)' )
     ENDIF
-       
+
     ! Stop w/ error if the MAPPING object is not dimensioned properly
     IF ( SIZE( mapping, 1 ) /= I_COARSE  .or. &
          SIZE( mapping, 2 ) /= J_COARSE ) THEN
@@ -255,43 +255,43 @@ CONTAINS
     ! OX1, OX2 are the lon edges of the "fine" grid box
     ox1 = xedge_w
     ox2 = xedge_e
-    
+
     ! NX1, NX2 are the lon edges of the coarse grid box
     nx1 = xedgeC_w
     nx2 = xedgeC_e
-    
+
     ! Deal with over-the-dateline cases (phs, 9/26/07)
     ! That fixes a problem when going from GEOS-5
     ! 0.66667 x 0.5 to GENERIC 1 x 1.
-    ! Maybe it fixes also the kludges below ?? ## need checking 
+    ! Maybe it fixes also the kludges below ?? ## need checking
     if ( ox2 .lt. nx1 ) then
        ox1 = ox1 + 360e0
        ox2 = ox2 + 360e0
     endif
-    
+
     if ( ox1 .gt. nx2 ) then
        ox1 = ox1 - 360e0
        ox2 = ox2 - 360e0
     endif
-    
+
     ! convert to equivalent longitudes where necessary
     if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360e0
     if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360e0
-    
+
     ! OV1 is the greater of OX1 and NX1
     ! OV2 is the lesser of OX2 and NX2
     ov1 = MAX( ox1, nx1 )
     ov2 = MIN( nx2, ox2 )
-    
-    ! XOVERLAP is the fraction of the old (fine) grid box that 
+
+    ! XOVERLAP is the fraction of the old (fine) grid box that
     ! occupies the new (coarse) grid box in the longitude
     xOverLap = ( ov2 - ov1 ) / ( ox2 - ox1 )
-    
-    ! If XOVERLAP is not in the range of 0-1, then it means that the "fine" 
+
+    ! If XOVERLAP is not in the range of 0-1, then it means that the "fine"
     ! grid box lies completely outside the "coarse" grid box (in longitude).
     ! Set to zero to avoid erroneous results in the calling routine.
     if ( xOverLap < 0e0 .or. xOverLap > 1e0 ) xOverlap = 0e0
-    
+
     !======================================================================
     ! Get overlap in latitude
     !======================================================================
@@ -299,21 +299,21 @@ CONTAINS
     ! OY1 and OY2 are lat edges of the "fine" grid
     oy1 = yedge_s
     oy2 = yedge_n
-    
+
     ! NY1 and NY2 are consecutive Y-edges for the coarse
     ny1 = yedgeC_s
     ny2 = yedgeC_n
-     
+
     ! OV1 is the greater of OY1 and NY1
     ! OV2 is the lesser of OY2 and NY2
     ov1 = MAX( oy1, ny1 )
     ov2 = MIN( ny2, oy2 )
-    
-    ! YOVERLAP is the fraction of the old (fine) grid box that 
-    ! occupies the new (coarse) grid box in latitude 
+
+    ! YOVERLAP is the fraction of the old (fine) grid box that
+    ! occupies the new (coarse) grid box in latitude
     yoverlap = ( ov2 - ov1 ) / ( oy2 - oy1 )
-    
-    ! If YOVERLAP is not in the range of 0-1, then it means that the "fine" 
+
+    ! If YOVERLAP is not in the range of 0-1, then it means that the "fine"
     ! grid box lies completely outside the "coarse" grid box (in latitude).
     ! Set to zero to avoid erroneous results in the calling routine.
     if ( yOverLap < 0e0 .or. yOverLap > 1e0 ) yOverlap = 0e0
@@ -351,7 +351,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES
-! 
+!
     INTEGER :: I, J
 
     ! Test if MAP has been allocated memory

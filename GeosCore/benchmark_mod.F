@@ -5,12 +5,12 @@
 !
 ! !MODULE: benchmark_mod.F
 !
-! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
+! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial
 !  and final species masses which are needed for GEOS-Chem 1-month benchmark
 !  simulations
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE BENCHMARK_MOD
 !
@@ -52,13 +52,13 @@
 ! !ROUTINE: stdrun
 !
 ! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn,
-!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary 
+!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
 !  for GEOS-CHEM benchmarking.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( am_I_Root,  Input_Opt,  State_Chm, 
+      SUBROUTINE STDRUN( am_I_Root,  Input_Opt,  State_Chm,
      &                   State_Diag, State_Grid, State_Met, RC,
      &                   LBEGIN )
 !
@@ -86,7 +86,7 @@
       USE TIME_MOD,       ONLY : GET_TAU
       USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -104,13 +104,13 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  12 Aug 2002 - R. Yantosca - Initial version
 !  03 Aug 2012 - R. Yantosca - Added ProTeX headers
-!  (1 ) Changed name from STDRUN_Ox to STDRUN, since we now can also save out 
-!        Rn/Pb/Be for NSRCX==1.  Also deleted obsolete code from 6/02.  Added 
-!        LBEGIN as an argument to determine if this is the start or end of the 
+!  (1 ) Changed name from STDRUN_Ox to STDRUN, since we now can also save out
+!        Rn/Pb/Be for NSRCX==1.  Also deleted obsolete code from 6/02.  Added
+!        LBEGIN as an argument to determine if this is the start or end of the
 !        run.  (bmy, 8/12/02)
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
 !  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
@@ -119,7 +119,7 @@
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
-!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of 
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
 !                              NOx-Ox partitioning
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object via the arg list
@@ -151,7 +151,7 @@
      &                             State_Grid%NZ)
       REAL(f4)            :: LONRES, LATRES
       REAL(f8)            :: TAU
-      CHARACTER(LEN=20)   :: MODELNAME 
+      CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
       CHARACTER(LEN=80)   :: TITLE
       CHARACTER(LEN=255)  :: FILENAME
@@ -170,7 +170,7 @@
       nAdvect = State_Chm%nAdvect
 
       ! Return if we are not doing either a radon, tagO3, or fullchem stdrun
-      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
      &     ( .not. Input_Opt%ITS_A_TAGO3_SIM    )  .and.
      &     ( .not. Input_Opt%ITS_A_RnPbBe_SIM   ) ) RETURN
 
@@ -182,7 +182,7 @@
       HALFPOLAR = GET_HALFPOLAR()
       CATEGORY  = 'TCMASS-$'
       UNIT      = 'kg'
-      RESERVED  = ''      
+      RESERVED  = ''
       LONRES    = State_Grid%DX
       LATRES    = State_Grid%DY
       NYMD      = GET_NYMD()
@@ -200,12 +200,12 @@
          TITLE    = 'GEOS-CHEM Benchmark: Final Species Mass'
          FILENAME = Input_Opt%STDRUN_FINAL_FILE
       ENDIF
-           
+
       ! Expand any date tokens in the filename
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Convert species from to [kg]
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, 'kg',
      &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -233,8 +233,8 @@
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY,  N,    
-     &                  UNIT,      TAU,       TAU,       RESERVED,   
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      TAU,       TAU,       RESERVED,
      &                  State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                  IFIRST,        JFIRST,        LFIRST,
      &                  ARRAY(:,:,:) )
@@ -244,12 +244,12 @@
       !=================================================================
       ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
+      ELSE IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
      &            Input_OPt%ITS_A_TAGO3_SIM    ) .and. id_O3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
-        
+
          ! Save O3 as REAL*4
          ARRAY(:,:,:) = State_Chm%Species(:,:,:,id_O3)
 
@@ -267,7 +267,7 @@
       CLOSE( IU_FILE )
 
       ! Convert species back to original units
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,

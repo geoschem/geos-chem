@@ -3,16 +3,16 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!     
+!
 ! !MODULE: tomas_mod.F
-!     
+!
 ! !DESCRIPTION: Module TOMAS\_MOD contains variable specific to the TOMAS
 !  aerosol microphysics simulation, e.g. number of species, number of size-bins,
-!  mass per particle bin boundaries and arrays used inside the microphysics 
+!  mass per particle bin boundaries and arrays used inside the microphysics
 !  subroutine. (win, 7/9/07)
-!\\   
-!\\   
-! !INTERFACE: 
+!\\
+!\\
+! !INTERFACE:
 !
       MODULE TOMAS_MOD
 !
@@ -23,8 +23,8 @@
       IMPLICIT NONE
 !
 ! !REMARKS:
-!  This module also contains what used to be in sizecode.COM header file 
-!  containing common blocks for TOMAS aerosol microphysics algorithm 
+!  This module also contains what used to be in sizecode.COM header file
+!  containing common blocks for TOMAS aerosol microphysics algorithm
 !  originally implemented in GISS GCM-II' by Peter Adams. Below is the original
 !  comment from sizecode.COM
 !
@@ -68,11 +68,11 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) IBINS                  : Number of size bins 
+!  (1 ) IBINS                  : Number of size bins
 !  (2 ) ICOMP                  : Number of aerosol mass species + 1 for number
 !  (3 ) Nk                     : Aerosol number internal array
 !  (4 ) Mk                     : Aerosol mass internal array
-!  (5 ) Gc                     : Condensing gas 
+!  (5 ) Gc                     : Condensing gas
 !  (6 ) Nkd                    : Aerosol number diagnostic array
 !  (7 ) Mkd                    : Aerosol mass diagnostic array
 !  (8 ) Gcd                    : Condensing gas diagnostic array
@@ -89,46 +89,46 @@
 !  (19) dust??                 : ID of externally mixed dust (future work)
 !  (20) BOXVOL                 : Grid box volume  (cm3)
 !  (21) BOXMASS                : Grid box air mass (kg)
-!  (22) TEMPTMS                : Temperature (K) of each grid box 
-!  (23) PRES                   : Pressure (Pa) in grid box 
-!  (24) RHTOMAS                : Relative humidity (0-1) 
+!  (22) TEMPTMS                : Temperature (K) of each grid box
+!  (23) PRES                   : Pressure (Pa) in grid box
+!  (24) RHTOMAS                : Relative humidity (0-1)
 !  (25) BINACT1                : Activated bin as a function of composition
 !  (26) FRACTION1              : Activated fraction as a fcn of composition
 !  (27) IDIAG                  : Number of diagnostic tracer (NH4 and H2O)
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) DO_TOMAS               : Driver subroutine to call microphysics and 
+!  (1 ) DO_TOMAS               : Driver subroutine to call microphysics and
 !                                dry deposition
 !  (2 ) AEROPHYS               : Main microphysics calling individual processes
-!  (3 ) AQOXID                 : Aqueous oxidation 
+!  (3 ) AQOXID                 : Aqueous oxidation
 !  (4 ) MULTICOAG              : Coagulation
 !  (5 ) NUCLEATION             : Nucleation
 !  (6 ) SO4COND                : H2SO4 condensation
 !  (7 ) TMCOND                 : Condensation calculation
 !  (8 ) AERODIAG               : Save changes to diagnostic arrays
-!  (9 ) INIT_TOMAS             : Initialize TOMAS microphysics variables  
-!  (10) EZWATEREQM             : Update aerosol water with current RH 
+!  (9 ) INIT_TOMAS             : Initialize TOMAS microphysics variables
+!  (10) EZWATEREQM             : Update aerosol water with current RH
 !  (11) AERO_DIADEN            : Calculate the current wet diameter and density
 !  (12) CHECKMN                : Wrapper for call MNFIX for error checking
 !  (13) MNFIX                  : Check for error (out-of-bounds, negative, etc.)
 !  (14) CLEANUP_TOMAS          : Clean up allocated array to free memory.
 !  (15) STORENM                : Store value for diagnostic purposes
-!  (16) SOACOND                : Simplified condensation for SOA 
+!  (16) SOACOND                : Simplified condensation for SOA
 !  (17) READBINACT             : Read data file to create activating bin LUT
 !  (18) READFRACTION           : Read data file to create scavenging fraction LUT
 !  (19) GETFRACTION            : Use lookup table and determine scavenging fraction
-!  (20) GETACTBIN              : Use lookup table and determine activating bin 
+!  (20) GETACTBIN              : Use lookup table and determine activating bin
 !  (21) EZWATEREQM2            : Like EZWATEREQM but for calling from outside TOMAS
 !  (22) SUBGRIDCOAG            : Calculate emission w/ number reduced by subgrid coag
 !
 !  Functions:
 !  ============================================================================
 !  (1 ) AERODENS               : Return the current aerosol density
-!  (2 ) DMDT_INT               : Return droplet growth analytical solution 
+!  (2 ) DMDT_INT               : Return droplet growth analytical solution
 !  (3 ) GASDIFF                : Return gas diffusion constant
 !  (4 ) GETDP                  : Calculate the current aerosol diameter
-!  (5 ) SPINUP                 : Return TRUE or FALSE if the current time is 
+!  (5 ) SPINUP                 : Return TRUE or FALSE if the current time is
 !                                after the spin-up period
 !
 ! !REVISION HISTORY:
@@ -182,7 +182,7 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Scalars
-      INTEGER                       :: ICOMP,   IDIAG         
+      INTEGER                       :: ICOMP,   IDIAG
 
       ! Arrays
       REAL(fp), TARGET, SAVE        :: Xk(IBINS+1)
@@ -191,7 +191,7 @@
       REAL(fp),         SAVE        :: FRACTION1(101,101,101)
       INTEGER,          SAVE        :: BINACT2(101,101,101)
       REAL(fp),         SAVE        :: FRACTION2(101,101,101)
- 
+
       REAL(fp) :: AVGMASS(IBINS)       ! Average mass per particle
                                        ! mid-range of size bin
                                        ! [kg/no.]
@@ -206,17 +206,17 @@
       INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
       INTEGER  :: act_nuc = 0 ! in BL
       INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
-      INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari 
+      INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                               ! nucleation tuned by factor of 1.0D-5
-                
+
       REAL(fp) :: soaareafrac=1.0e+0_fp ! fraction of SOA that goes
                                         ! to SA rather than into mass
-                
-      INTEGER :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 
-                             ! Tg/yr SOA correlated with anrtho CO 
+
+      INTEGER :: xSOA = 1  !Switch for xSOA. If set to one, emit 100
+                             ! Tg/yr SOA correlated with anrtho CO
                              ! (JKodros 6/3/15)
                              ! switch to 0 for anthro-free
-                             ! runs (Pengfei Liu 4/18/2018)              
+                             ! runs (Pengfei Liu 4/18/2018)
       INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
@@ -310,7 +310,7 @@
       REAL*4 :: SGCTSCALE
 !
 ! !PRIVATE TYPES:
-! 
+!
       ! Species ID flags
       INTEGER, PRIVATE :: id_AW1
       INTEGER, PRIVATE :: id_DUST1
@@ -322,7 +322,7 @@
       INTEGER, PRIVATE :: id_NK1
       INTEGER, PRIVATE :: id_OCIL1
       INTEGER, PRIVATE :: id_OCOB1
-      INTEGER, PRIVATE :: id_SF1   
+      INTEGER, PRIVATE :: id_SF1
       INTEGER, PRIVATE :: id_SO4
       INTEGER, PRIVATE :: id_SS1
 
@@ -370,7 +370,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
@@ -410,7 +410,7 @@
       CALL AEROPHYS( am_I_Root,  Input_Opt, State_Chm,
      &               State_Grid, State_Met, RC )
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
       print *, 'call checkmn in tomas_mod:222'
 #endif
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
@@ -426,7 +426,7 @@
 
 ! not in kg
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
       print *, 'call checkmn in tomas_mod:229'
 #endif
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
@@ -448,7 +448,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROPHYS( am_I_Root,  Input_Opt, State_Chm, 
+      SUBROUTINE AEROPHYS( am_I_Root,  Input_Opt, State_Chm,
      &                     State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -481,8 +481,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  (1 ) Major change in nucleation scheme from binary w/ critical concentration 
-!       method to calculating nucleation rate with the option to do binary 
+!  (1 ) Major change in nucleation scheme from binary w/ critical concentration
+!       method to calculating nucleation rate with the option to do binary
 !       (Vehkamaki et al. 2002) or ternary nucleation (Napari et al, 2002).
 !       Also add total N and total S mass conservation check.
 !       (win, 9/30/08)
@@ -497,7 +497,7 @@
 !  30 Jan 2014 - R. Yantosca - Add missing variables to !$OMP+PRIVATE statement
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
-!  24 Sep 2015 - E. Lundgren - Add tracer concentration unit check      
+!  24 Sep 2015 - E. Lundgren - Add tracer concentration unit check
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only on first call
 !  30 Jun 2016 - M. Sulprizio- Replace NFAMILIES with Input_Opt%NFAM to remove
 !                              dependence on comode_loop_mod.F
@@ -536,7 +536,7 @@
       REAL*4             :: PRES,    RHTOMAS
 
       REAL(fp)           ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
-      REAL(fp)           ::  ionrate       ! ion pair formation 
+      REAL(fp)           ::  ionrate       ! ion pair formation
                                            ! rate [ion pairs cm^-3 s^-1]
 !---------
 
@@ -573,7 +573,7 @@
      &          bxcons=0.0021672473136556273,
      &           bytf=0.0036608580560606877, tf=273.16)
       !lhe and lhs are the latent heats of evaporation and sublimation
-      
+
       logical, save     :: firsttime = .true.
       integer           :: num_iter
 
@@ -599,17 +599,17 @@
 
       ! Assume success
       RC = GC_SUCCESS
-      
+
       ! Check that species units are in [kg]. While species units
-      ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
-      ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine 
+      ! are now generally [kg/kg] in GEOS-Chem, they are converted to
+      ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine
       ! (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AEROPHYS in tomas_mod.F'
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
-      
+
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
@@ -643,7 +643,7 @@
 
          DO N = 1, Input_Opt%NFAM
             ! If family name 'PSO4' is found, then skip error-stop
-            IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1            
+            IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1
          ENDDO
          ! Family name 'PSO4' not found... exit with error message
          write(*,*)'-----------------------------------------------'
@@ -652,7 +652,7 @@
          write(*,*)'  ... need H2SO4RATE for nucl & cond in TOMAS'
          write(*,*)'-----------------------------------------------'
          CALL ERROR_STOP('AEROPHYS','Enter microphys')
- 1       CONTINUE            
+ 1       CONTINUE
 
          write(*,*) 'AEROPHYS: This run uses coupled condensation-',
      &        'nucleation scheme with pseudo-steady state H2SO4'
@@ -688,7 +688,7 @@
       DO L = 1, State_Grid%NZ
 
 #if defined( BPCH_DIAG )
-         ! Reset the AD61_INST array used for tracking instantaneous 
+         ! Reset the AD61_INST array used for tracking instantaneous
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
          AD61_INST(I,J,L,:) = 0e0
 #endif
@@ -699,16 +699,16 @@
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
 
          !if(printdebug)          print *,'+++++',I,J,L,'inside Aerophys'
- 
+
          ! Get info on this grid box
          ADT     = 3600.
-         PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa       
+         PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
          TEMPTMS = State_Met%T(I,J,L)
          BOXMASS = State_Met%AD(I,J,L)
-         RHTOMAS = State_Met%RH(I,J,L)/ 1.e2 
+         RHTOMAS = State_Met%RH(I,J,L)/ 1.e2
          IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
-         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
-         
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+
          printneg = .FALSE.
 
 
@@ -751,7 +751,7 @@
 
 !         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
-         ! Initialize all condensible gas values to zero  
+         ! Initialize all condensible gas values to zero
          ! Gc(srtso4) will remain zero until within cond_nuc where the
          ! pseudo steady state H2SO4 concentration will be put in this place.
          DO JC=1, ICOMP-1
@@ -775,13 +775,13 @@
 
          ! Get NH4 mass from the bulk mass and scale to bin with sulfate
          IF ( SRTNH4 > 0 ) THEN
-            CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), 
+            CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4),
      &                         TRANSFER )
             MK(1:IBINS,SRTNH4) = TRANSFER(1:IBINS)
-            Gc(SRTNH4) = Spc(I,J,L,id_NH3) 
+            Gc(SRTNH4) = Spc(I,J,L,id_NH3)
          ENDIF
 
-         
+
          ! Give it the pseudo-steady state value instead later (win,9/30/08)
          !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
 
@@ -792,7 +792,7 @@
      &    'J = ', J, 'L = ', L
             H2SO4rate_o = 0.e+0_fp
          ENDIF
-         ! 
+         !
          IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
             Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
          ENDIF
@@ -803,20 +803,20 @@
          do k=1,ibins
             tot_n_1 = tot_n_1 + Mk(k,srtnh4)*14.e+0_fp/18.e+0_fp
          enddo
-         
+
                                 ! get the total mass of S
          tot_s_1 = H2SO4rate_o*adt*32.e+0_fp/98.e+0_fp
          do k=1,ibins
             tot_s_1 = tot_s_1 + Mk(k,srtso4)*32.e+0_fp/96.e+0_fp
          enddo
 
-         
+
 !         if (printdebug.and.i==iob .and. j==job .and. l==lob ) then
 !            CALL DEBUGPRINT( Nk, Mk, I, J, L,
 !     &        'Begin aerophys' )
 !            print *,'H2SO4RATE ',H2SO4rate_o
 !         endif
-        
+
          !*********************
          ! Aerosol dynamics
          !*********************
@@ -825,12 +825,12 @@
          CALL EZWATEREQM( MK, RHTOMAS )
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
-!         if(printdebug .and. 
-!     &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+!         if(printdebug .and.
+!     &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE.
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:533'
 #endif
          CALL MNFIX( NK, MK, ERRORSWITCH )
@@ -839,7 +839,7 @@
             CALL ERROR_STOP('AEROPHYS-MNFIX (1)','Enter microphys')
          ENDIF
 
-         MPNUM = 5    
+         MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
@@ -861,7 +861,7 @@
                TOT_MK = TOT_MK + Mk(k,jc)
             enddo
          enddo
-         
+
          if(TOT_NK .lt. 1.e-10_fp) then
             if( .NOT. SPINUP(5.0)) then
                print *,'No aerosol in box ',I,J,L,'-->SKIP'
@@ -874,10 +874,10 @@
          !-------------------------------------
          IF ( COND .AND. NUCL ) THEN
 
-!            if(printdebug .and. 
-!     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+!            if(printdebug .and.
+!     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE.
 
-            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
 !sfdebug!            if(printdebug) then
 !sfdebug               !print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
@@ -894,7 +894,7 @@
 !sfdebug!            endif
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
-     &          H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
+     &          H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,
      &          ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
      &          RHTOMAS, ERRORSWITCH, l)
 
@@ -911,7 +911,7 @@
 !sfdebug                  ENDDO
 !sfdebug               enddo
 !sfdebug!            endif
-            
+
             IF ( ERRORSWITCH ) THEN
                PRINT *,'Aerophys: found error at',I,J,L
                CALL ERROR_STOP('AEROPHYS','After cond_nuc')
@@ -987,19 +987,19 @@
 
             nucrate(j,l)=nucrate(j,l)+fn
             nucrate1(j,l)=nucrate1(j,l)+fn1
-            
+
             ! Write nucleation rate to diagnostric ND61 (win, 10/6/08)
 #if defined( BPCH_DIAG )
             IF ( ND61 > 0 ) THEN
-               IF ( L <= LD61 ) 
+               IF ( L <= LD61 )
      &              AD61(I,J,L,2) = AD61(I,J,L,2) + fn
 
                ! Tracks nucleation rates instantaneously for planeflight
                AD61_INST(I,J,L,2) = fn
-               
+
             ENDIF
 #endif
-               
+
 
             DO N = 1, IBINS
                NK(N) = NKout(N)
@@ -1008,8 +1008,8 @@
                ENDDO
             ENDDO
 
-         
-         
+
+
          ENDIF
 
                                 ! nitrogen and sulfur mass checks
@@ -1018,15 +1018,15 @@
          do k=1,ibins
             tot_n_1a = tot_n_1a + Mk(k,srtnh4)*14.e+0_fp/18.e+0_fp
          enddo
-               
+
                                 ! get the total mass of S
          tot_s_1a = 0.e+0_fp
          do k=1,ibins
             tot_s_1a = tot_s_1a + Mk(k,srtso4)*32.e+0_fp/96.e+0_fp
          enddo
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
-#if defined ( DEBUG ) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:677'
 #endif
          CALL MNFIX( Nk, Mk, ERRORSWITCH )
@@ -1039,7 +1039,7 @@
             ENDIF
          ENDIF
 
-         MPNUM = 5    
+         MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
@@ -1048,38 +1048,38 @@
 #endif
 
          !-----------------------------
-         ! Coagulation 
+         ! Coagulation
          !-----------------------------
 
-            if(printdebug .and. 
-     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
-!         if (i==iob .and. j==job .and. l==lob ) 
+            if(printdebug .and.
+     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE.
+!         if (i==iob .and. j==job .and. l==lob )
 !     &      CALL DEBUGPRINT( Nk, Mk, I, J, L,'Before coagulation' )
-         
+
          IF( COAG )  THEN
-            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
             CALL MULTICOAG( ADT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
      &             errorswitch )
 
             if ( errorswitch )
      &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
-!            if (i==iob .and. j==job .and. l==lob ) 
+!            if (i==iob .and. j==job .and. l==lob )
 !     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
 #if defined( BPCH_DIAG )
-            IF ( ND60 > 0 ) THEN 
+            IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
             ENDIF
 #endif
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
-            if(printdebug .and. i==iob.and.j==job.and.l==lob) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
+            if(printdebug .and. i==iob.and.j==job.and.l==lob)
      &           ERRORSWITCH=.true. !4/18/06 win
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:719'
 #endif
             CALL MNFIX( NK, MK, ERRORSWITCH )
@@ -1113,19 +1113,19 @@
          !****************************
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
          ! Make sure anything that leaves AEROPHYS is free of any error
          ! This MNFIX call could be temporary (?) or just leave it here and
-         ! monitor if the error fixed is significantly large meaning some 
-         ! serious problem needs to be investigated 
-         if(printdebug .and. i==iob.and.j==job.and.l==lob) 
-     &      ERRORSWITCH =.true. 
+         ! monitor if the error fixed is significantly large meaning some
+         ! serious problem needs to be investigated
+         if(printdebug .and. i==iob.and.j==job.and.l==lob)
+     &      ERRORSWITCH =.true.
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:758'
 #endif
-         CALL MNFIX(NK,MK,ERRORSWITCH) 
+         CALL MNFIX(NK,MK,ERRORSWITCH)
          IF ( ERRORSWITCH ) THEN
             PRINT *,'End of Aerophys: MNFIX found error at',I,J,L
             IF( .not. SPINUP(14.0) ) THEN
@@ -1156,17 +1156,17 @@
             Spc(I,J,L,id_AW1-1+N) = MK(N,SRTH2O)
          ENDDO
          Spc(I,J,L,id_H2SO4) = GC(SRTSO4)
-         
+
          ! print to file to check mass conserv
-!         write(*,77) I,J,L, Spc(I,J,L,id_NH3), 
+!         write(*,77) I,J,L, Spc(I,J,L,id_NH3),
 !     &        Spc(I,J,L,id_NH3)-GC(SRTNH4)
 
-         ! Calculate NH3 gas lost to aerosol phase as NH4 
+         ! Calculate NH3 gas lost to aerosol phase as NH4
          NH3_to_NH4 = Spc(I,J,L,id_NH3)-GC(SRTNH4)
 
          ! Update the bulk NH4 aerosol species
-         if ( NH3_to_NH4 > 0e+0_fp ) 
-     &        Spc(I,J,L,id_NH4) = Spc(I,J,L,id_NH4) + 
+         if ( NH3_to_NH4 > 0e+0_fp )
+     &        Spc(I,J,L,id_NH4) = Spc(I,J,L,id_NH4) +
      &                            NH3_to_NH4/17.e+0_fp*18.e+0_fp
 
          ! Update NH3 gas species (win, 10/6/08)
@@ -1185,12 +1185,12 @@
 !$OMP END PARALLEL DO
 
 !      WRITE(777,*) '---------------------------'
- 77   FORMAT(3I4, '  Spc(id_NH3),'E13.5,'  Used', E13.5 ) 
+ 77   FORMAT(3I4, '  Spc(id_NH3),'E13.5,'  Used', E13.5 )
 
-      IF ( COND .and. LPRT ) PRINT *,'### AEROPHYS: SO4 CONDENSATION' 
-      IF ( COAG .and. LPRT ) PRINT *,'### AEROPHYS: COAGULATION' 
-      IF ( NUCL .and. LPRT ) PRINT *,'### AEROPHYS: NUCLEATION' 
-      
+      IF ( COND .and. LPRT ) PRINT *,'### AEROPHYS: SO4 CONDENSATION'
+      IF ( COAG .and. LPRT ) PRINT *,'### AEROPHYS: COAGULATION'
+      IF ( NUCL .and. LPRT ) PRINT *,'### AEROPHYS: NUCLEATION'
+
       ! Free pointer memory
       Spc => NULL()
 
@@ -1200,7 +1200,7 @@
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
      &      H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,
-     &      ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, 
+     &      ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
      &      RHTOMAS, errswitch, lev)
 !
 !******************************************************************************
@@ -1244,7 +1244,7 @@
       double precision fnavg        ! nucleation rate of clusters cm-3 s-1
       double precision fn1avg       ! formation rate of particles to first size bin cm-3 s-1
       REAL*4           BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
-      logical          errswitch    ! signal for error 
+      logical          errswitch    ! signal for error
       integer          lev          ! layer of the model
       REAL(fp)   surf_area
       REAL(fp)   ionrate
@@ -1321,7 +1321,7 @@
 !     Get initial condensation sink
       CS1 = 0.e+0_fp
       call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac,surf_area,
-     &               BOXVOL,TEMPTMS, PRES)  
+     &               BOXVOL,TEMPTMS, PRES)
       if( pdbg) print*,'CS1', CS1
 !      CS1 = max(CS1,eps)
 
@@ -1331,7 +1331,7 @@
 
 !     get the steady state H2SO4 concentration
       call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
-     &                  gasConc, ionrate, surf_area, 
+     &                  gasConc, ionrate, surf_area,
      &                  BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
       if( pdbg) print*,'gasConc',gasConc
       Gc1(srtso4) = gasConc
@@ -1343,13 +1343,13 @@
 
 !     Get change size distribution due to nucleation with initial guess
 !      call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,Mk2,Gc2,
-!     &     Nnuc2,Mnuc2,nflg)    
+!     &     Nnuc2,Mnuc2,nflg)
 !      call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
 !     &     addt, PDBG, lev)
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
      &     addt, ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS,
      &     PRES, RHTOMAS, PDBG, lev)
-      
+
       if(pdbg) then
          print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
          errswitch = .true.
@@ -1406,7 +1406,7 @@
                enddo
                Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
                Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
-               mcond = 0.e+0_fp        
+               mcond = 0.e+0_fp
 !               print*,'mcond < 0 in cond_nuc', mcond, totmass
 !               stop
             endif
@@ -1414,7 +1414,7 @@
             mcond = 0.e+0_fp
          endif
       endif
-      
+
 !      if (mcond.lt.0.e+0_fp)then
 !         print*,'mcond < 0 in cond_nuc', mcond
 !         stop
@@ -1427,7 +1427,7 @@
       enddo
       if( pdbg)  print*, 'mcond',mcond,'tmass',tmass,'nuc',Nk2(1)-Nk1(1)
       tempvar = pdbg
-      
+
 !     Get guess for condensation
       call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,surf_area,
      &      BOXVOL, TEMPTMS, PRES, pdbg )
@@ -1448,16 +1448,16 @@
 !jrp      enddo
 !      print*,'mcond',mcond,'mcond1',mcond1
 
-      Gc3(srtnh4) = Gc1(srtnh4)   
+      Gc3(srtnh4) = Gc1(srtnh4)
 
       call eznh3eqm(Gc3,Mk3)
       call ezwatereqm(Mk3, RHTOMAS)
 
       ! check to see how much condensation sink changed
       call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,surf_area,
-     &               BOXVOL,TEMPTMS, PRES)  
-      CSch = abs(CS2 - CS1)/CS1    
-       
+     &               BOXVOL,TEMPTMS, PRES)
+      CSch = abs(CS2 - CS1)/CS1
+
 !      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use whole timesteps
          ! get starting adaptive timestep to not allow condensationk sink
          ! to change that much
@@ -1470,7 +1470,7 @@
          addt = min(addt,dt)
          addt = max(addt,min_tstep)
 
-                
+
          time_rem = dt ! time remaining
          if( pdbg)    print*,'addt',addt,time_rem
          num_iter = 0
@@ -1494,10 +1494,10 @@
             sumH2SO4 = sumH2SO4 + Gc1(srtso4)*addt
             totmass = H2SO4rate*addt*96.e+0_fp/98.e+0_fp
 !            call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,
-!     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev) 
+!     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev)
 
             !Debug to see what goes in nucleation (win, 10/3/08)
-            if(pdbg) then 
+            if(pdbg) then
                print*,'Temperature',TEMPTMS,'RH',RHTOMAS
                print*,'H2SO4',Gc1(srtso4)/boxvol*1000.e+0_fp/
      &                98.e+0_fp*6.022e+23_fp
@@ -1522,7 +1522,7 @@
 !            print*,'after nucleation iter'
             sumfn = sumfn + fn*addt
             sumfn1 = sumfn1 + fn1*addt
-            
+
 !            total_nh4_1 = Mnuc1(srtnh4)
 !            total_nh4_2 = Mnuc2(srtnh4)
 !            do i=1,ibins
@@ -1535,7 +1535,7 @@
 
             do k=1,ibins
                mass_change = mass_change + (Mk2(k,srtso4)-Mk1(k,srtso4))
-            enddo 
+            enddo
             if( pdbg)    print*,'mass_change2',mass_change
 
             mcond = totmass-mass_change ! mass of h2so4 to condense
@@ -1576,8 +1576,8 @@
                      Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
                      Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                      print*,'mcond < 0 in cond_nuc', mcond, totmass
-                     mcond = 0.e+0_fp 
-! should I stop or not?? (win, 10/4/08) 
+                     mcond = 0.e+0_fp
+! should I stop or not?? (win, 10/4/08)
                     !stop
                      ! change from stop here to stop outside with more info (win, 10/4/08)
                      print*,'COND_NUC: --> TERMINATE'
@@ -1595,18 +1595,18 @@
                   Mknuc(k,j)=Mknuc(k,j)+Mk2(k,j)-Mk1(k,j)
                enddo
             enddo
-            
-            
+
+
 !            Gc2(srtnh4) = Gc1(srtnh4)
 !            call eznh3eqm(Gc2,Mk2,Mnuc2)
 !            call ezwatereqm(Mk2,Mnuc2)
 
-!            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)  
+!            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
 
-            ! Before entering ezcond, check if there's enough aerosol to 
+            ! Before entering ezcond, check if there's enough aerosol to
             ! condense onto. After several iteration in the case with high
             ! H2SO4 amount but little existing aerosol and also lack the conditions
-            ! for nucleation, the whole size distribution is grown out of our 
+            ! for nucleation, the whole size distribution is grown out of our
             ! tracked size bins, so let's exit the loop if there is no aerosol
             ! to condense onto anymore. (win, 10/4/08)
             tmass = 0.e+0_fp
@@ -1617,7 +1617,7 @@
                   tmass = tmass + Mk2(k,j)
                enddo
             enddo
-            
+
             if( (tmass+mcond)/tnumb  > Xk(ibins) ) then
                if( .not. SPINUP(10.0) ) then
                   print*,'Not enough aerosol for condensation!'
@@ -1631,10 +1631,10 @@
                   do j=1,icomp
                      Mk3(k,j)=Mk2(k,j)
                   enddo
-               enddo    
+               enddo
                goto 100
-            endif     
-            
+            endif
+
             tempvar = pdbg
 
             call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,surf_area,
@@ -1659,10 +1659,10 @@
             if( pdbg)    print*,'after ezcond iter'
             call eznh3eqm(Gc3,Mk3)
             call ezwatereqm(Mk3, RHTOMAS)
-            
+
                                 ! check to see how much condensation sink changed
             call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,surf_area,
-     &               BOXVOL,TEMPTMS, PRES)  
+     &               BOXVOL,TEMPTMS, PRES)
 
             time_rem = time_rem - addt
             if (time_rem .gt. 0.e+0_fp) then
@@ -1678,14 +1678,14 @@
 
                ! Allow adaptive timestep to change
                ! Avoid div-by-zero error
-               IF ( ABS( CSch ) > 0e+0_fp ) THEN 
-                  addt = min(addt*CSch_tol/CSch,addt*1.5e+0_fp) 
+               IF ( ABS( CSch ) > 0e+0_fp ) THEN
+                  addt = min(addt*CSch_tol/CSch,addt*1.5e+0_fp)
                ELSE
                   addt = 0e+0_fp
                ENDIF
 
                ! allow adaptive timestep to change again
-               addt = min(addt,time_rem) 
+               addt = min(addt,time_rem)
                addt = max(addt,min_tstep)
 !jrp               endif
                if( pdbg)     print*,'CS1',CS1,'CS2',CS2
@@ -1696,11 +1696,11 @@
                   do j=1,icomp
                      Mk1(k,j)=Mk3(k,j)
                   enddo
-               enddo         
+               enddo
             endif
          enddo ! while loop
 
- 100     continue  
+ 100     continue
 
          Gcf(srtso4)=sumH2SO4/dt
          fnavg = sumfn/dt
@@ -1711,7 +1711,7 @@
 !jrp         num_iter = 1
 !jrp         Gcf(srtso4)=Gc1(srtso4)
 !jrp      endif
-      
+
          if( pdbg)    print*, 'cond_nuc num_iter =', num_iter
 !T0M(1,1,1,3) = double(num_iter) ! store iterations here
 
@@ -1722,7 +1722,7 @@
          do j=1,icomp
             Mkf(k,j)=Mk3(k,j)
          enddo
-      enddo      
+      enddo
       Gcf(srtnh4)=Gc3(srtnh4)
 
       return
@@ -1736,7 +1736,7 @@
 !******************************************************************************
 !     This subroutine calculates the condensation sink (first order loss
 !     rate of condensing gases) from the aerosol size distribution.
-!     WRITTEN BY Jeff Pierce, May 2007 for GISS GCM-II' 
+!     WRITTEN BY Jeff Pierce, May 2007 for GISS GCM-II'
 !     Put in GEOS-Chem by Win T. (9/30/08)
 !
 !-----INPUTS------------------------------------------------------------
@@ -1788,7 +1788,7 @@
 
       parameter(pi=3.141592654, R=8.314) !pi and gas constant (J/mol K)
       parameter(Neps=1.0e+10_fp)
-      double precision alpha(icomp) ! accomodation coef  
+      double precision alpha(icomp) ! accomodation coef
 !      data alpha/0.65,0.,0.,0.,0.,0.,0.,0.,0./
       real Sv(icomp)         !parameter used for estimating diffusivity
 !      data Sv /42.88,42.88,42.88,42.88,42.88,42.88,42.88,
@@ -1797,7 +1797,7 @@
 !-----CODE--------------------------------------------------------------
 
       ! have to find a better way to simply assign contants to these array
-      ! The problem is I declare the array with ICOMP - its value will be 
+      ! The problem is I declare the array with ICOMP - its value will be
       ! determined at time of run, so I can't use DATA statement
       DO J=1,ICOMP
 !         IF ( J == SRTSO4 ) THEN
@@ -1828,11 +1828,11 @@
             do j=1,icomp
                   Mktot=Mktot+Mko(k,j)
             enddo
-!kpc  Density should be changed due to more species involed.     
+!kpc  Density should be changed due to more species involed.
             density=aerodens(Mko(k,srtso4),0.e+0_fp,
      &           Mko(k,srtnh4),Mko(k,srtnacl),Mko(k,srtecil),
      &           Mko(k,srtecob),Mko(k,srtocil),Mko(k,srtocob),
-     &           Mko(k,srtdust),Mko(k,srth2o)) !assume bisulfate                     
+     &           Mko(k,srtdust),Mko(k,srth2o)) !assume bisulfate
             mp=Mktot/Nko(k)
          else
             !nothing in this bin - set to "typical value"
@@ -1847,7 +1847,7 @@
 !        Kn      = 2.0 * mfp  / Dpk(k)                             !S&P eqn 11.35 (text)
          Kn      = 2.0 * l_ab / Dpk(k)                             !S&Pv2 chapter 12 - Kn for Dahneke correction factor
          beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )    !S&P eqn 11.35
-      enddo      
+      enddo
 
 !     get condensation sink
       CS = 0.e+0_fp
@@ -1867,12 +1867,12 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, 
+      SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc,
      &    ionrate, surf_area, BOXVOL, BOXMASS,
      &    TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
-!     This subroutine uses newtons method to solve for the steady state 
+!     This subroutine uses newtons method to solve for the steady state
 !     H2SO4 concentration when nucleation is occuring.
 
 !     It solves for H2SO4 in 0 = P - CS*H2SO4 - M(H2SO4)
@@ -1939,7 +1939,7 @@
       double precision CSeps    ! low limit for CS
       double precision max_H2SO4conc !maximum H2SO4 concentration in parameterizations (kg/box)
       double precision nh3ppt   !ammonia concentration in ppt
- 
+
 !     VARIABLE COMMENTS...
 
 !-----EXTERNAL FUNCTIONS------------------------------------------------
@@ -1950,17 +1950,17 @@
       parameter(pi=3.141592654)
 !      parameter(H2SO4min=1.D4) !molecules cm-3
       parameter(CSeps=1.0e-20_fp)
-        
+
 !-----CODE--------------------------------------------------------------
 
       do i=1,icomp-1
          Gci(i)=0.e+0_fp
       enddo
-      Gci(srtnh4)=NH3conc 
-      
+      Gci(srtnh4)=NH3conc
+
       ! make sure CS doesn't equal zero
 !     CS = max(CS,CSeps)
-      
+
       ! some specific stuff for napari vs. vehk
       if (ion_nuc.eq.1) then
          H2SO4min=1.0e+5_fp
@@ -1992,7 +1992,7 @@
          max_H2SO4conc = 1.0e+100_fp
       endif
 
-      
+
 !     Checks for when condensation sink is very small
       if (CS.gt.CSeps) then
          gasConc = H2SO4rate/CS
@@ -2014,7 +2014,7 @@
       if (fn.gt.0.e+0_fp) then      ! nucleation occured
          gasConc_lo = H2SO4min*boxvol/
      &        (1000.e+0_fp/98.e+0_fp*6.022e+23_fp) !convert to kg/box
-         
+
 !     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001e+0_fp
          call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,surf_area,
@@ -2035,14 +2035,14 @@
                return
             endif
          endif
-         
+
          gasConc_hi = gasConc   ! we know this must be the upper limit (since no nucleation)
                                 !take density of nucleated particle to be 1350 kg/m3
          massnuc = mnuc*fn*boxvol*98.e+0_fp/96.e+0_fp
 !         print*,'H2SO4rate',H2SO4rate,'CS*gasConc',CS*gasConc,
 !     &        'mnuc',mnuc
          res = H2SO4rate - CS*gasConc - massnuc
-         
+
                                 ! check to make sure that we can get solution
          if (res.gt.H2SO4rate*1.e-10_fp) then
             print*,'gas production rate too high in getH2SO4conc.f'
@@ -2050,7 +2050,7 @@
             return
 !     STOP
          endif
-         
+
          iter = 0
 !     jrp         print*, 'iter',iter
 !     jrp         print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
@@ -2081,15 +2081,15 @@
                print*,'res/H2SO4rate',res/H2SO4rate
             endif
          enddo
-         
+
 !     print*,'IN getH2SO4conc'
 !     print*,'fn',fn
 !     print*,'H2SO4rate',H2SO4rate
 !     print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
-         
+
       else                      ! nucleation didn't occur
       endif
-      
+
       return
       end SUBROUTINE GETH2SO4CONC
 
@@ -2189,10 +2189,10 @@
 
 !     if requirements for nucleation are met, call nucleation subroutines
 !     and get the nucleation rate and critical cluster size
-      if (h2so4.gt.1.e+4_fp) then   
-         if ((nh3ppt.gt.0.1).and.(tern_nuc.eq.1)) then 
+      if (h2so4.gt.1.e+4_fp) then
+         if ((nh3ppt.gt.0.1).and.(tern_nuc.eq.1)) then
 !            print*, 'napari'
-            call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc 
+            call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc
             if (ion_nuc.eq.1.and.ionrate.ge.1.e+0_fp) then
                call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
      &              h1,h2,h3,h4,h5,h6)
@@ -2256,7 +2256,7 @@
             nflg=.true.
          else
             nflg=.false.
-         endif         
+         endif
          if((act_nuc.eq.1).and.(lev.le.7))then
             call bl_nucl(h2so4,fn,rnuc)
             nflg=.true.
@@ -2279,13 +2279,13 @@
          do j=1,icomp
             wetmass = wetmass + Mk(1,j)
          enddo
-         !prior 10/15/08 
+         !prior 10/15/08
          !WR = wetmass/drymass
-         
+
          ! prevent division by zero (win, 10/15/08)
          if( drymass == 0.e+0_fp ) then
-            WR = 1.e+0_fp 
-         else 
+            WR = 1.e+0_fp
+         else
             WR = wetmass/drymass
          endif
 
@@ -2294,7 +2294,7 @@
          call getGrowthTime(d1,Dp1,Gci(srtso4)*WR,TEMPTMS,
      &        boxvol,dens1,gtime)
          GR = (Dp1-d1)*1e+9_fp/gtime*3600.e+0_fp ! growth rate, nm hr-1
-         
+
          gamma = 0.23e+0_fp*(d1*1.0e+9_fp)**(0.2e+0_fp)*
      &        (Dp1*1.0e+9_fp/3.e+0_fp)**0.075e+0_fp*
      &        (Dpmean*1.0e+9_fp/150.e+0_fp)**
@@ -2313,24 +2313,24 @@
             print*,'gamma',gamma,'CS',CS,'GR',GR,'gtime',gtime
             call ERROR_STOP('Found NaN in fn','getnucrate')
          endif
-            
+
          mnuc = sqrt(xk(1)*xk(2))
       endif
-      
+
       return
       end SUBROUTINE GETNUCRATE
-      
+
 !------------------------------------------------------------------------------
 
       SUBROUTINE VEHK_NUCL (tempi,rhi,cnai,fn,rnuc)
 !
 !*****************************************************************************
-!  Subroutine vehk_nucl calculates the binary nucleation rate and radius of the 
+!  Subroutine vehk_nucl calculates the binary nucleation rate and radius of the
 !  critical nucleation cluster using the parameterization of...
 !
-!     Vehkamaki, H., M. Kulmala, I. Napari, K. E. J. Lehtinen, C. Timmreck, 
-!     M. Noppel, and A. Laaksonen. "An Improved Parameterization for Sulfuric 
-!     Acid-Water Nucleation Rates for Tropospheric and Stratospheric Conditions." 
+!     Vehkamaki, H., M. Kulmala, I. Napari, K. E. J. Lehtinen, C. Timmreck,
+!     M. Noppel, and A. Laaksonen. "An Improved Parameterization for Sulfuric
+!     Acid-Water Nucleation Rates for Tropospheric and Stratospheric Conditions."
 !     Journal of Geophysical Research-Atmospheres 107, no. D22 (2002).
 !
 !  WRITTEN BY Jeff Pierce, April 2007 for GISS GCM-II'
@@ -2363,33 +2363,33 @@
      $          2.15855, 1.6241, 9.71682, -1.05611, -0.148712        /
       data fb1 /2.21956, 0.462532, -0.0810269, 0.049508, -0.600796,
      $       0.0808121, -0.0160106, -0.115048, 0.00903378, 0.00283508/
-      data fb2 /-0.0273911, -0.0118059, 0.00143581, -0.00021382, 
+      data fb2 /-0.0273911, -0.0118059, 0.00143581, -0.00021382,
      $       0.00864245, -0.000407382, 0.0000377124, 0.000157098,
      $       -0.0000198417, -9.24619e-6_fp /
-      data fb3 /0.0000722811, 0.0000404196, 
+      data fb3 /0.0000722811, 0.0000404196,
      $       -4.7758e-6_fp, 3.10801e-7_fp,
-     $       -0.0000228947, -4.01957e-7_fp, 
+     $       -0.0000228947, -4.01957e-7_fp,
      $       3.21794e-8_fp, 4.00914e-7_fp,
      $       2.46048e-8_fp, 5.00427e-9_fp /
       data fb4 /5.91822, 15.7963, -2.91297, -0.0293333, -8.44985,
-     $       0.721326, -0.0113255, 0.71186, -0.0579087, -0.0127081  / 
+     $       0.721326, -0.0113255, 0.71186, -0.0579087, -0.0127081  /
 
-!     Coefficients of total number of molecules in cluster     
+!     Coefficients of total number of molecules in cluster
 !
       data gb0 /-0.00295413, -0.00205064, 0.00322308, 0.0474323,
      $         -0.0125211, -0.038546, -0.0183749, -0.0619974,
      $         0.0121827, 0.000320184 /
       data gb1 /-0.0976834, -0.00758504, 0.000852637, -0.000625104,
      $         0.00580655, -0.000672316, 0.000172072, 0.000906958,
-     $         -0.00010665, -0.0000174762 /      
-      data gb2 /0.00102485, 0.000192654, 
+     $         -0.00010665, -0.0000174762 /
+      data gb2 /0.00102485, 0.000192654,
      $         -0.0000154757, 2.65066e-6_fp,
-     $         -0.000101674, 2.60288e-6_fp, 
+     $         -0.000101674, 2.60288e-6_fp,
      $         -3.71766e-7_fp, -9.11728e-7_fp,
      $         2.5346e-7_fp, 6.06504e-8_fp /
-      data gb3 /-2.18646e-6_fp, -6.7043e-7_fp, 
+      data gb3 /-2.18646e-6_fp, -6.7043e-7_fp,
      $          5.66661e-8_fp, -3.67471e-9_fp,
-     $          2.88195e-7_fp, 1.19416e-8_fp, 
+     $          2.88195e-7_fp, 1.19416e-8_fp,
      $         -5.14875e-10_fp, -5.36796e-9_fp,
      $         -3.63519e-10_fp, -1.42177e-11_fp /
       data gb4 /-0.101717, -0.255774, 0.0338444, -0.000267251,
@@ -2410,7 +2410,7 @@
 !         print*,'cna < 1D4', cna
          goto 10
       endif
-      if (cna .gt. 1.0e+11_fp) cna=1.0e11 ! limit sulfuric acid conc  
+      if (cna .gt. 1.0e+11_fp) cna=1.0e11 ! limit sulfuric acid conc
       if (temp .lt. 230.15) temp=230.15 ! limit temp
       if (temp .gt. 305.15) temp=305.15 ! limit temp
       if (rh .lt. 1e-4_fp) rh=1e-4_fp ! limit rh
@@ -2423,8 +2423,8 @@
      &   -0.0000179059*temp*(log(rh))**2.
      &   +0.000184403*(log(rh))**3.
      &   -1.50345e-6_fp*temp*(log(rh))**3.
-! 
-!     Nucleation rate coefficients 
+!
+!     Nucleation rate coefficients
       do i=1, 10
          fb(i) = fb0(i)+fb1(i)*temp+fb2(i)*temp**2.
      &        +fb3(i)*temp**3.+fb4(i)/xstar
@@ -2446,7 +2446,7 @@
          fn=1.0e+6_fp
       endif
 !
-!     Coefficients of total number of molecules in cluster 
+!     Coefficients of total number of molecules in cluster
       do i=1, 10
          gb(i) = gb0(i)+gb1(i)*temp+gb2(i)*temp**2.
      &        +gb3(i)*temp**3.+gb4(i)/xstar
@@ -2518,11 +2518,11 @@
       SUBROUTINE napa_nucl(tempi,rhi,cnai,nh3ppti,fn,rnuc)
 !
 !*****************************************************************************
-!  Subroutine NAPA_NUCL calculates the ternary nucleation rate and radius of the 
+!  Subroutine NAPA_NUCL calculates the ternary nucleation rate and radius of the
 !  critical nucleation cluster using the parameterization of...
 !
-!     Napari, I., M. Noppel, H. Vehkamaki, and M. Kulmala. "Parametrization of 
-!     Ternary Nucleation Rates for H2so4-Nh3-H2o Vapors." Journal of Geophysical 
+!     Napari, I., M. Noppel, H. Vehkamaki, and M. Kulmala. "Parametrization of
+!     Ternary Nucleation Rates for H2so4-Nh3-H2o Vapors." Journal of Geophysical
 !     Research-Atmospheres 107, no. D19 (2002).
 !
 !     WRITTEN BY Jeff Pierce, April 2007 for GISS GCM-II'
@@ -2559,22 +2559,22 @@
      $         1.64009, -0.752115, 3.26623, -0.258002, -0.204098,
      $         -7.82382, 0.190542, 5.96475, -0.0184179, 3.64736,
      $         -0.35752, 0.00889881, -0.112358, -1.98815, 0.0234646/
-     
+
       data a2 /0.34536, 0.00561204, 0.000479808, -0.00796052,
      $         0.00939836, -0.00343852, 0.00525813, -0.0489703,
      $         0.00143456, 0.00106259, 0.0122938, -0.00165718,
      $         -0.0362432, 0.000147186, -0.027422, 0.000904383,
      $         -5.39514d-05, 0.000472626, 0.0157827, -0.000076519/
-     
-      data a3 /-0.000824007, -9.74576e-06_fp, 
+
+      data a3 /-0.000824007, -9.74576e-06_fp,
      $         -4.14699e-07_fp, 7.61229e-06_fp,
-     $         -1.74927e-05_fp, -1.09753e-05_fp, 
+     $         -1.74927e-05_fp, -1.09753e-05_fp,
      $         -8.98038e-06_fp, 0.000146967,
-     $         -2.02036e-06_fp, -1.2656e-06_fp, 
+     $         -2.02036e-06_fp, -1.2656e-06_fp,
      $          6.18554e-05_fp, 3.41744e-06_fp,
-     $          4.93337e-05_fp, -2.37711e-07_fp, 
-     $          4.93478e-05_fp, -5.73788e-07_fp, 
-     $          8.39522e-08_fp, -6.48365e-07_fp, 
+     $          4.93337e-05_fp, -2.37711e-07_fp,
+     $          4.93478e-05_fp, -5.73788e-07_fp,
+     $          8.39522e-08_fp, -6.48365e-07_fp,
      $         -2.93564e-05_fp, 8.0459e-08_fp   /
 
 
@@ -2591,12 +2591,12 @@
          fn = 0.
          rnuc = 1
          goto 10
-      endif  
+      endif
       if (cna .gt. 1.0e+9_fp) cna=1.0e+9_fp ! limit sulfuric acid conc
-      if (nh3ppt .gt. 100.) nh3ppt=100. ! limit temp  
+      if (nh3ppt .gt. 100.) nh3ppt=100. ! limit temp
       if (temp .lt. 240.) temp=240. ! limit temp
       if (temp .gt. 300.) temp=300. ! limit temp
-      if (rh .lt. 0.05) rh=0.05 ! limit rh 
+      if (rh .lt. 0.05) rh=0.05 ! limit rh
       if (rh .gt. 0.95) rh=0.95 ! limit rh
 
       do i=1,20
@@ -2618,7 +2618,7 @@
 !
       fn=exp(fnl)
 
-      ! Try scaling down the rate by 1e-5 to see how the param is 
+      ! Try scaling down the rate by 1e-5 to see how the param is
       ! doing on the false positive nucleation (win, 12/18/08)
       !sensitivity simulation, change scaling factor down to 1e-4
       fn = fn * 1.e-5
@@ -2642,10 +2642,10 @@
      &         BOXVOL, TEMPTMS, PRES)
 !
 !*****************************************************************************
-!  Subroutine GETCONDSINK_KERM calculates the condensation sink (first order 
+!  Subroutine GETCONDSINK_KERM calculates the condensation sink (first order
 !  loss rate of condensing gases) from the aerosol size distribution.
 !
-!  This is the cond sink in kerminen et al 2004 Parameterization for 
+!  This is the cond sink in kerminen et al 2004 Parameterization for
 !  new particle formation AS&T Eqn 6.
 !
 !  Written by Jeff Pierce, May 2007 for GISS GCM-II'
@@ -2664,11 +2664,11 @@
 !
       ! Arguments
       REAL(fp), INTENT(IN)        :: Nko(ibins), Mko(ibins, icomp)
-      REAL(fp), INTENT(OUT)       :: CS       ! 
+      REAL(fp), INTENT(OUT)       :: CS       !
       REAL(fp), INTENT(OUT)       :: Dpmean   ! the number mean diameter [m]
       REAL(fp), INTENT(OUT)       :: Dp1      ! the size of the first size bin [m]
       REAL(fp), INTENT(OUT)       :: dens1    ! the density of the first size bin [kg/m3]
-      REAL*4, INTENT(IN)        :: BOXVOL, TEMPTMS, PRES 
+      REAL*4, INTENT(IN)        :: BOXVOL, TEMPTMS, PRES
 
       ! Local variables
       integer        :: i,j,k,c           ! counters
@@ -2731,14 +2731,14 @@
             Dp1=Dpk(k)
             dens1 = density
          endif
-      enddo      
-      
+      enddo
+
       if (Ntot.gt.1e+15_fp)then
          Dpmean = Dtot/Ntot
       else
          Dpmean = 150.e+0_fp
       endif
-      
+
       return
       END SUBROUTINE GETCONDSINK_KERM
 
@@ -2752,7 +2752,7 @@
 !     associated NH3 and water) onto particles.
 !
 !     This subroutine assumes that the growth happens entirely in the kinetic
-!     regine such that the dDp/dt is not size dependent.  The time for growth 
+!     regine such that the dDp/dt is not size dependent.  The time for growth
 !     to the first size bin may then be approximated by the time for growth via
 !     sulfuric acid (not including nh4 and water) to the size of the first size bin
 !     (not including nh4 and water).
@@ -2778,7 +2778,7 @@
       real*4, INTENT(IN)     ::  temp     ! temperature [K]
       real*4, INTENT(IN)     ::  boxvol  ! box volume [cm3]
       REAL(fp), INTENT(IN)     ::  density  ! density of particles in first bin [kg/m3]
-      REAL(fp), INTENT(OUT)    ::  gtime    ! the time it will take the particle to grow 
+      REAL(fp), INTENT(OUT)    ::  gtime    ! the time it will take the particle to grow
                                           ! to first size bin [s]
 
       ! Local variables
@@ -2985,7 +2985,7 @@ C     and get the nucleation rate and critical cluster size
 !            enddo
             rhin=dble(RHTOMAS*100.e+0_fp)
             tempin=dble(TEMPTMS)
-            
+
             call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area,
      &               fn, dum1, rnuc, dum2)
          endif
@@ -3020,7 +3020,7 @@ C     and get the nucleation rate and critical cluster size
 
          call getCondSink_kerm(Nki,Mki,CS,Dpmean,Dp1,dens1,
      &            BOXVOL, TEMPTMS,PRES)
-         
+
          if(pdbg) print*,'CS',CS,'Dpmean',Dpmean,'Dp1',Dp1,'dens1',dens1
 
 
@@ -3033,19 +3033,19 @@ C     and get the nucleation rate and critical cluster size
          do j=1,icomp
             wetmass = wetmass + Mki(1,j)
          enddo
-         
+
          ! to prevent division by zero (win, 10/1/08)
          if(drymass == 0.e+0_fp) then
             WR = 1.e+0_fp
          else
             WR = wetmass/drymass
          endif
- 
+
          if(pdbg) print*,'rnuc',rnuc,'WR',WR
          if(pdbg) print*,'d1',d1,'Gci(srtso4)',Gci(srtso4),
      &        'TEMP',temptms,'boxvol',boxvol
-         
-         if( IT_IS_NAN( Gci(srtso4) )) then 
+
+         if( IT_IS_NAN( Gci(srtso4) )) then
             print*,'rnuc',rnuc,'WR',WR
             print*,'d1',d1,'Gci(srtso4)',Gci(srtso4)
             call ERROR_STOP('Found NaN in Gci','nucleation')
@@ -3056,7 +3056,7 @@ C     and get the nucleation rate and critical cluster size
          if (pdbg) print*,'gtime',gtime
 
          GR = (Dp1-d1)*1e+9_fp/gtime*3600.e+0_fp ! growth rate, nm hr-1
-         
+
          gamma = 0.23e+0_fp*(d1*1.0e+9_fp)**(0.2e+0_fp)*
      &        (Dp1*1.0d9/3.e+0_fp)**0.075e+0_fp*
      &        (Dpmean*1.0e+9_fp/150.e+0_fp)**
@@ -3073,11 +3073,11 @@ C     and get the nucleation rate and critical cluster size
          if (pdbg) print*,'eta',eta,'Dp1',Dp1,'d1',d1,'fn1',fn1
 
          mnuc = sqrt(xk(1)*xk(2))
- 
+
          nadd = fn1
-         
+
          nuc_bin = 1
-         
+
          mold = Mki(nuc_bin,srtso4)
          Mkf(nuc_bin,srtso4) = Mki(nuc_bin,srtso4)+nadd*mnuc*
      &        boxvol*dt
@@ -3094,7 +3094,7 @@ C     and get the nucleation rate and critical cluster size
             print *,'Gcf(srtso4)',Gcf(srtso4)
             print *,'Gcf(srtnh4)',Gcf(srtnh4)
          endif
-         
+
          do k=1,ibins
             if (k .ne. nuc_bin)then
                Nkf(k) = Nki(k)
@@ -3109,7 +3109,7 @@ C     and get the nucleation rate and critical cluster size
                enddo
             endif
          enddo
-         
+
          do k=1,ibins
             if (Nkf(k).lt.1.e+0_fp) then
                Nkf(k) = 0.e+0_fp
@@ -3118,7 +3118,7 @@ C     and get the nucleation rate and critical cluster size
                enddo
             endif
          enddo
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:2679'
 #endif
          call mnfix(Nkf,Mkf, ERRORSWITCH)
@@ -3129,19 +3129,19 @@ C     and get the nucleation rate and critical cluster size
 !     particles into the first size bin.  don't let it go less than zero.
 
       else
-         
+
          do k=1,ibins
             Nkf(k) = Nki(k)
             do i=1,icomp
                Mkf(k,i) = Mki(k,i)
             enddo
          enddo
-         
+
       endif
-      
+
       pdbg = errorswitch        ! carry the error signal from mnfix to outside
-      
-      
+
+
       RETURN
       END SUBROUTINE NUCLEATION
 
@@ -3152,7 +3152,7 @@ C     and get the nucleation rate and critical cluster size
 !
 !******************************************************************************
 !     This subroutine takes a given amount of mass and condenses it
-!     across the bins accordingly.  
+!     across the bins accordingly.
 !     WRITTEN BY Jeff Pierce, May 2007 for GISS GCM-II'
 !     Put in GEOS-Chem by Win T. 9/30/08
 !
@@ -3244,7 +3244,7 @@ C     and get the nucleation rate and critical cluster size
       enddo
 
 
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:2804'
 #endif
       call mnfix(Nk1,Mk1, errorswitch)
@@ -3256,7 +3256,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! get the sink fractions
       call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,surf_area, ! set Nnuc to zero for this calc
-     &               BOXVOL,TEMPTMS, PRES)  
+     &               BOXVOL,TEMPTMS, PRES)
 
       ! make sure that condensation sink isn't too small
       if (CS.lt.CSeps) then     ! just make particles in first bin
@@ -3317,13 +3317,13 @@ C     and get the nucleation rate and critical cluster size
       do i=1,nsteps
          if (i.ne.1) then
             call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,surf_area,      ! set Nnuc to zero for this calculation
-     &               BOXVOL,TEMPTMS, PRES)  
+     &               BOXVOL,TEMPTMS, PRES)
             totsinkfrac = 0.e+0_fp
             do k=1,ibins
              totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
             enddo
-         endif      
-         
+         endif
+
          tot_m=0.e+0_fp
          tot_s=0.e+0_fp
          do k=1,ibins
@@ -3336,7 +3336,7 @@ C     and get the nucleation rate and critical cluster size
          enddo
 
          if (pdbg) print *,'tot_s ',tot_s,' tot_m ',tot_m
-         
+
          ! change criteria to bigger amount (win, 9/30/08)
          if (mcond.gt.tot_m*5.0e-2_fp) then
 !prior to 9/30/08
@@ -3371,7 +3371,7 @@ C     and get the nucleation rate and critical cluster size
                   if(pdbg) print*,'mpw',mpw,'maddp',maddp(k),'WR',WR
                   !Change the maddp(k) to accordingly -- adding the /Nk1(k) (win, 10/3/08)
                   tau(k)=1.5e+0_fp*((mpw+maddp(k)/Nk1(k)*WR)**
-     &                   tdt-mpw**tdt) 
+     &                   tdt-mpw**tdt)
                   ! Prior to 10/3/08 (win)
                   !tau(k)=1.5e+0_fp*((mpw+maddp(k)*WR)**tdt-mpw**tdt) !added WR to moxid term (win, 5/15/06)
 !     tau(k)=0.e+0_fp
@@ -3383,7 +3383,7 @@ C     and get the nucleation rate and critical cluster size
                endif
             enddo
 !     print*,'tau',tau
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:2942'
 #endif
             call mnfix(Nk1,Mk1, errorswitch)
@@ -3419,7 +3419,7 @@ C     and get the nucleation rate and critical cluster size
 !     jrp            enddo
 !     jrp         enddo
 !     print*,'fracch',fracch,'totch',totch
-            
+
 
          elseif (mcond.gt.tot_s*1.0e-12_fp) then
             if (pdbg) print *,'Small mcond: distrib w/ sinkfrac '
@@ -3440,7 +3440,7 @@ C     and get the nucleation rate and critical cluster size
                Nk2(k)=Nk1(k)
             enddo
             if(pdbg) errorswitch = .true.
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:2999'
 #endif
             call mnfix(Nk2,Mk2, errorswitch)
@@ -3465,7 +3465,7 @@ C     and get the nucleation rate and critical cluster size
                do j=1,icomp
                   Mk1(k,j)=Mk2(k,j)
                enddo
-            enddo            
+            enddo
          endif
 
       enddo
@@ -3486,7 +3486,7 @@ C     and get the nucleation rate and critical cluster size
          tot_f=tot_f+Mkf(k,srtso4)
          tot_fa=tot_fa+Mki(k,srtso4)
       enddo
-      
+
       if(pdbg) then
          print *,'Check conserv of mass after mcond is distrib'
          print *,' Initial total so4 ',tot_i
@@ -3498,11 +3498,11 @@ C     and get the nucleation rate and critical cluster size
      &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
          IF(mcond > 1.e-8_fp .and. tot_i > 5.e-2_fp)  THEN  !Add a check to check error if mcond is significant (win, 10/2/08)
 
-          IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.e+0_fp .OR. 
+          IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.e+0_fp .OR.
      &            spinup(31.0) ) THEN
-          !Prior to 10/2/08 (win)   .. original was Jeff's fix  
+          !Prior to 10/2/08 (win)   .. original was Jeff's fix
           !  ! do correction of mass
-          !  ratio = (tot_f-tot_i)/mcond 
+          !  ratio = (tot_f-tot_i)/mcond
           !  if(pdbg) print *,'Mk at mass correction '
           !  if(pdbg) print *,'  ratio',ratio
           !  do k=1,ibins
@@ -3510,7 +3510,7 @@ C     and get the nucleation rate and critical cluster size
 !     &              (Mkf(k,srtso4)-Mki(k,srtso4))/ratio
           !     if(pdbg) print *,Mkf(k,srtso4)
           !  enddo
-            
+
             ! Do mass correction (win, 10/2/08)
             ratio = (tot_i+mcond)/tot_f
             if(pdbg) print *,'Mk at mass correction apply ratio= ',ratio
@@ -3520,7 +3520,7 @@ C     and get the nucleation rate and critical cluster size
             enddo
 
             if(pdbg) errorswitch=.true.
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:3079'
 #endif
             call mnfix(Nkf,Mkf, errorswitch)
@@ -3586,11 +3586,11 @@ C     and get the nucleation rate and critical cluster size
 !
 !******************************************************************************
 !  Subroutine AQOXID takes an amount of SO4 produced via in-cloud oxidation and
-!  condenses it onto an existing aerosol size distribution.  It assumes that 
-!  only particles larger than the critical activation diameter activate and 
-!  that all of these have grown to roughly the same size.  Therefore, the mass 
+!  condenses it onto an existing aerosol size distribution.  It assumes that
+!  only particles larger than the critical activation diameter activate and
+!  that all of these have grown to roughly the same size.  Therefore, the mass
 !  of SO4 produced by oxidation is partitioned to the various size bins
-!  according to the number of particles in that size bin.  Values of tau are 
+!  according to the number of particles in that size bin.  Values of tau are
 !  calculated for each size bin accordingly and the TMCOND subroutine is called
 !  to update Nk and Mk. (win, 7/23/07)
 !  Originally written by Peter Adams for TOMAS in GISS GCM-II', June 2000
@@ -3602,12 +3602,12 @@ C     and get the nucleation rate and critical cluster size
 !  Spc => State_Chm%Species as is accepted practice in GC v11-01 and higher
 !  versions. (bmy, 7/18/16)
 !
-!  NOTES: 
-!  (1 ) Currently do aqueous oxidation pretending that it's dry, so aerosol 
+!  NOTES:
+!  (1 ) Currently do aqueous oxidation pretending that it's dry, so aerosol
 !       water is just zero (win, 7/23/07)
 !   29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !   24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments and
-!                               test tracer concentration units  
+!                               test tracer concentration units
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -3617,7 +3617,7 @@ C     and get the nucleation rate and critical cluster size
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput          
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -3632,7 +3632,7 @@ C     and get the nucleation rate and critical cluster size
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
       INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
-      
+
       ! Local variables
       INTEGER,       PARAMETER :: K_MIN = 4
       REAL(fp)                 :: Nact, Mact, MPO, AQTAU(IBINS)
@@ -3653,7 +3653,7 @@ C     and get the nucleation rate and critical cluster size
       REAL*4                   :: thresh
       CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
       LOGICAL                  :: UNITCHANGE_KGM2
-      
+
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -3668,8 +3668,8 @@ C     and get the nucleation rate and critical cluster size
       ! Convert species concentration units to [kg] if not necessary.
       ! Units are [kg/m2] if AQOXID is called from wet deposition
       ! and are [kg] if called from sulfate_mod since chemistry is
-      ! still in [kg]. Since AQOXID is called within an (I,J,L) loop, 
-      ! only convert units for a single grid box. Otherwise, run will 
+      ! still in [kg]. Since AQOXID is called within an (I,J,L) loop,
+      ! only convert units for a single grid box. Otherwise, run will
       ! take too long (ewl, 9/30/15)
       UNITCHANGE_KGM2 = .FALSE.
       IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
@@ -3677,7 +3677,7 @@ C     and get the nucleation rate and critical cluster size
          CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L,
      &                               State_Chm, State_Grid, RC )
       ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect initial species units: ' 
+         MSG = 'Incorrect initial species units: '
      &           // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AQOXID in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
@@ -3686,10 +3686,10 @@ C     and get the nucleation rate and critical cluster size
       ! Point to the chemical species array [kg]
       Spc => State_Chm%Species
 
-      PDBG = .FALSE.            !For print debugging 
+      PDBG = .FALSE.            !For print debugging
 !debug     IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
-      BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+      BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
       ! Update aerosol water from the current RH
       DO K = 1, IBINS
          CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm, RC )
@@ -3702,7 +3702,7 @@ C     and get the nucleation rate and critical cluster size
       thresh = 1.0
 #endif
 
-      
+
       ! Swap GEOSCHEM variables into aerosol algorithm variables
       DO K = 1, IBINS
          NKID = id_NK1 - 1 + K
@@ -3719,14 +3719,14 @@ C     and get the nucleation rate and critical cluster size
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
       IF ( SRTNH4 > 0 ) THEN
-         CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), 
+         CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4),
      &                      MK(:,SRTNH4) )
       ENDIF
 
-      ! Fix any inconsistencies in M/N distribution 
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+      ! Fix any inconsistencies in M/N distribution
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:3225'
 #endif
       CALL MNFIX( NK, MK, PDBG )
@@ -3737,13 +3737,13 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
       MPNUM = 5
 #if defined( BPCH_DIAG )
-      IF ( ND60 > 0 ) 
+      IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
 #endif
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
-!debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) 
+!debug      IF ( I == 46 .AND. J == 59 .AND. L == 9)
 !     &     call debugprint(Nk,Mk,I,J,L,'AQOXID after MNFIX_1')
 
 
@@ -3757,21 +3757,21 @@ C     and get the nucleation rate and critical cluster size
             Mact = Mact + Mk(K,JC)
          ENDDO
       ENDDO
-      
+
       ! No particles to condense on, then just exit AQOXID
       IF ( Nact == 0e+0_fp ) GOTO 20
 
       ! If condensing mass is too large for the alloted portion of NK
-      ! then lower KMIN 
+      ! then lower KMIN
       IF ( ( Mact + MOXID )/ Nact > XK(IBINS+1) / thresh ) THEN
-      IF ( KMIN > K_MIN ) THEN 
+      IF ( KMIN > K_MIN ) THEN
          KMIN = KMIN - 1
          GOTO 10
       ELSE
          ! If there is really not enough number to condense onto when lower
-         ! KMIN to the threshold K_MIN (set to 4), then 
+         ! KMIN to the threshold K_MIN (set to 4), then
          !  IF current time is within first 2 weeks from initialization
-         !    (spin-up), then skip and exit 
+         !    (spin-up), then skip and exit
          !  IF current time is after the first 2 weeks, then terminate
          !    with an error message.
          IF ( .not. SPINUP(14.0) ) THEN
@@ -3796,9 +3796,9 @@ C     and get the nucleation rate and critical cluster size
          ENDIF
       ENDIF
       ENDIF
-               
+
       ! Calculate Tau (driving force) for each size bin
-      MOXID = MOXID/ Nact       !Moxid becomes kg SO4 per activated particle 
+      MOXID = MOXID/ Nact       !Moxid becomes kg SO4 per activated particle
                                 !NOTE: NOT using kg of H2SO4
       DO K = 1, IBINS
       IF ( K < KMIN ) THEN
@@ -3812,11 +3812,11 @@ C     and get the nucleation rate and critical cluster size
             MPO = MPO + Mk(K,JC) !accumulate dry mass
          ENDDO
          M_OXID(K) = MOXID * NK(K)
-         
+
          IF (Nk(K) > 0.e+0_fp) THEN
             ! Calculate Tau
             MPO = MPO / Nk(K)
-            AQTAU(K) = 1.5e+0_fp * ( ( ( MPO + MOXID) ** TDT ) - 
+            AQTAU(K) = 1.5e+0_fp * ( ( ( MPO + MOXID) ** TDT ) -
      &                           (   MPO          ** TDT )    )
 
             ! Error checking for negative Tau
@@ -3837,7 +3837,7 @@ C     and get the nucleation rate and critical cluster size
          ENDIF                  ! Nk>0
       ENDIF                     ! K<kmin
       ENDDO                     ! Loop ibins
-               
+
       ! Call condensation algorithm
 
       ! Swap into Nko, Mko
@@ -3871,14 +3871,14 @@ C     and get the nucleation rate and critical cluster size
       ! Save changes to diagnostic
       MPNUM = 4
 #if defined( BPCH_DIAG )
-      IF ( ND60 > 0 ) 
+      IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
 #endif
 
-      ! Fix any inconsistencies in M/N distribution 
-      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
-#if defined ( DEBUG ) 
+      ! Fix any inconsistencies in M/N distribution
+      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:3371'
 #endif
       CALL MNFIX( NK, MK, PDBG )
@@ -3889,12 +3889,12 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
       MPNUM = 5
 #if defined( BPCH_DIAG )
-      IF ( ND60 > 0 ) 
+      IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
 #endif
 
-      ! Swap Nk and Mk arrays back to Spc 
+      ! Swap Nk and Mk arrays back to Spc
       DO K = 1, IBINS
          TRACNUM = id_NK1 - 1 + K
          Spc(I,J,L,TRACNUM) = Nk(K)
@@ -3904,12 +3904,12 @@ C     and get the nucleation rate and critical cluster size
          ENDDO
          Spc(I,J,L,id_AW1-1+K) = Mk(K,SRTH2O)
       ENDDO
-           
+
 
       ! Free pointer memory
       Spc => NULL()
 
-      ! Convert State_Chm%Species units back to original units 
+      ! Convert State_Chm%Species units back to original units
       ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
       IF ( UNITCHANGE_KGM2 ) THEN
          CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,
@@ -3919,11 +3919,11 @@ C     and get the nucleation rate and critical cluster size
       ! Check that species units are as expected (ewl, 9/29/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' .AND.
      &     TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
-         CALL ERROR_STOP('Incorrect final species units:' // 
-     &                    State_Chm%Spc_Units,  
+         CALL ERROR_STOP('Incorrect final species units:' //
+     &                    State_Chm%Spc_Units,
      &                   'Routine AQOXID in wetscav_mod')
       ENDIF
-               
+
       ! Return to calling subroutine
       END SUBROUTINE AQOXID
 
@@ -3934,18 +3934,18 @@ C     and get the nucleation rate and critical cluster size
      &       State_Chm, State_Grid, RC )
 !
 !******************************************************************************
-!  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
+!  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and
 !  condense onto existing aerosol size distribution in a similar manner as in
-!  aqoxid.  The difference is that SOA condensational driving force is a 
+!  aqoxid.  The difference is that SOA condensational driving force is a
 !  function of the amount of soluble mass existing in each bin, unlike aqoxid
 !  where driving force depends on activated number (proportional to surface) of
 !  each bin. (win, 9/25/07)
 !
 !  NOTES:
 !  ( 1) There has been several versions of SOAcond using different assumptions
-!       about what to condense onto, e.g. soluble mass (org+inorg), only 
-!       organic (OCIL), or surface area.  Now rewrite for convenient switch 
-!       of different absorptive surrogate, e.g. organic mass, surface area. 
+!       about what to condense onto, e.g. soluble mass (org+inorg), only
+!       organic (OCIL), or surface area.  Now rewrite for convenient switch
+!       of different absorptive surrogate, e.g. organic mass, surface area.
 !       (win, 3/5/08)
 !  ( 2) Now use MABS as absorbing media (win, 3/5/08)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -3971,7 +3971,7 @@ C     and get the nucleation rate and critical cluster size
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
       REAL(fp)                      :: surf_area
-      
+
 
       ! Local variables
       REAL(fp)                 :: MPO, OCTAU(IBINS), ntot, mtot
@@ -4014,10 +4014,10 @@ C     and get the nucleation rate and critical cluster size
          LOC = 'Routine SOACOND in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
- 
+
       ! Point to the chemical species array [kg]
       Spc => State_Chm%Species
-      
+
       pdbg = .false.
 
 #if   defined ( TOMAS12 ) || defined ( TOMAS15 )
@@ -4043,11 +4043,11 @@ C     and get the nucleation rate and critical cluster size
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
       IF ( SRTNH4 > 0 ) THEN
-         CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), 
+         CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4),
      &                      MK(:,SRTNH4) )
       ENDIF
 
-      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
       ! Establish an 30-bin array and accculate the total
       ! of the absorbing media.  The choices can be:
@@ -4064,31 +4064,31 @@ C     and get the nucleation rate and critical cluster size
             Mktot(k) = Mktot(k) + Mk(k,jc)
          ENDDO
          mtot = mtot + Mktot(k)
-         
+
          if (absall.eq.1)then ! partition to all mass
             MED(K) = Mktot(k)
             MEDTOT = MEDTOT + Mktot(k)
          else
             MED(K) = Mk(k,srtocil) ! partition to just hydrophilic organic
             MEDTOT = MEDTOT + Mk(k,srtocil)
-         endif   
+         endif
 
       ENDDO
-      
+
       ! Fraction to each bin for mass partitioning
       do k = 1,IBINS
-         partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per 
+         partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per
                                    ! total absorbing media)
       enddo
 
       ! Fraction to each bin for surface condensation
       call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,surf_area,
-     &               BOXVOL,TEMPTMS, PRES)  
+     &               BOXVOL,TEMPTMS, PRES)
 
       do k = 1,IBINS
          avgfrac(k)=soaareafrac*sinkfrac(k)+
      &              (1.e+0_fp-soaareafrac)*partfrac(k)
-      enddo 
+      enddo
 
       !temporary
       ntot = 0.e+0_fp
@@ -4116,11 +4116,11 @@ C     and get the nucleation rate and critical cluster size
             MPO = MPO + MK(K,JC)  ! Accumulate dry mass
          ENDDO
          MABS(K) = MSOA * avgfrac(K)
-         
+
          IF ( Nk(K) > 0.e+0_fp ) THEN
             MPO = MPO / Nk(K)
-            OCTAU(K) = 1.5e+0_fp * 
-     &                         ( ( ( MPO + MABS(K)/Nk(K) ) ** TDT ) - 
+            OCTAU(K) = 1.5e+0_fp *
+     &                         ( ( ( MPO + MABS(K)/Nk(K) ) ** TDT ) -
      &                           (   MPO                   ** TDT )   )
 
             ! Error checking for negative Tau
@@ -4134,7 +4134,7 @@ C     and get the nucleation rate and critical cluster size
                CALL ERROR_STOP( 'Negative Tau','SOACOND:2' )
             ENDIF
             ENDIF
-           
+
          ELSE
             OCTAU(K) = 0.e+0_fp
          ENDIF
@@ -4144,8 +4144,8 @@ C     and get the nucleation rate and critical cluster size
       ! Swap into Nko, Mko
       Mko(:,:) = 0.e+0_fp
       DO K = 1, IBINS
-         Nko(K) = Nk(K)  
-         DO JC = 1, ICOMP-IDIAG    ! Now do SOA condensation "dry" 
+         Nko(K) = Nk(K)
+         DO JC = 1, ICOMP-IDIAG    ! Now do SOA condensation "dry"
             Mko(K,JC) = Mk(K,JC)  ! dry mass excl. nh4
          ENDDO
       ENDDO
@@ -4182,7 +4182,7 @@ C     and get the nucleation rate and critical cluster size
       ! Save changes to diagnostic
       MPNUM = 6
 #if defined( BPCH_DIAG )
-      IF ( ND60 > 0 ) 
+      IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
 #endif
@@ -4206,21 +4206,21 @@ C     and get the nucleation rate and critical cluster size
       Spc => NULL()
 
       END SUBROUTINE SOACOND
-      
+
 !------------------------------------------------------------------------------
 
        SUBROUTINE MULTICOAG( DT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
      &             PDBG )
-      
+
 !
 !******************************************************************************
 !  Subroutine MULTICOAG performs coagulation on the aerosol size distribution
 !  defined by Nk and Mk (number and mass).  See "An Efficient Numerical
 !  Solution to the Stochastic Collection Equation", S. Tzivion, G. Feingold,
-!  and Z. Levin, J Atmos Sci, 44, no 21, 3139-3149, 1987.  Unless otherwise 
-!  noted, all equation references refer to this paper.  Some equations are 
-!  taken from "Atmospheric Chemistry and Physics: From Air Pollution to Climate 
-!  Change" by Seinfeld and Pandis (S&P).  
+!  and Z. Levin, J Atmos Sci, 44, no 21, 3139-3149, 1987.  Unless otherwise
+!  noted, all equation references refer to this paper.  Some equations are
+!  taken from "Atmospheric Chemistry and Physics: From Air Pollution to Climate
+!  Change" by Seinfeld and Pandis (S&P).
 !
 !   This routine uses a "moving sectional" approach in which the
 !     aerosol size bins are defined in terms of dry aerosol mass.
@@ -4234,7 +4234,7 @@ C     and get the nucleation rate and critical cluster size
 !  Original implementation in GISS GCM-II' by Peter Adams, June 1999
 !  Modified to allow for multicomponent aerosols, February 2000
 !  Introduced to GEOS-CHEM by Win Trivitayanurak (win@cmu.edu) July 2007
-!  
+!
 !  Arguments:
 !  DT   (REAL*4)   : Time step (s)
 !  PDBG (LOGICAL)  : For signalling print debug
@@ -4248,14 +4248,14 @@ C     and get the nucleation rate and critical cluster size
 !     and eff are defined in the reference, equations 13a and b.
 !
 !  NOTES:
-!  ( 1) Add call argument in AERODENS for EC, OC, and dust. (win, 9/3/07) 
+!  ( 1) Add call argument in AERODENS for EC, OC, and dust. (win, 9/3/07)
 !******************************************************************************
 !
       ! Arguments
-      REAL*4,    INTENT(IN)     :: DT  
-      REAL*4,    INTENT(IN)     :: PRES  
-      REAL*4,    INTENT(IN)     :: TEMPTMS  
-      REAL*4,    INTENT(IN)     :: BOXVOL  
+      REAL*4,    INTENT(IN)     :: DT
+      REAL*4,    INTENT(IN)     :: PRES
+      REAL*4,    INTENT(IN)     :: TEMPTMS
+      REAL*4,    INTENT(IN)     :: BOXVOL
       REAL(fp),    INTENT(INOUT)  :: Nk(IBINS)
       REAL(fp),    INTENT(INOUT)  :: Mk(IBINS, ICOMP)
       LOGICAL,   INTENT(INOUT)  :: PDBG
@@ -4306,7 +4306,7 @@ C     and get the nucleation rate and critical cluster size
       REAL*4      ::R       !gas constant (J/ mol K)
       parameter (pi=3.141592654, kB=1.38e-23, R=8.314, Neps=1.0e-3)
 
-      REAL(fp)      :: M_NH4  
+      REAL(fp)      :: M_NH4
 
       LOGICAL     :: ERRSPOT
 
@@ -4336,7 +4336,7 @@ C     and get the nucleation rate and critical cluster size
       mu=2.5277e-7*temptms**0.75302
       mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temptms)))  !S&P eqn 8.6
 
-      !<temp> 
+      !<temp>
 !      write(6,*)'+++ Nk(1:30)    =',Nk(1:30)
 !      write(6,*)'+++ Mk(1:30,SO4)=',Mk(1:30,srtso4)
 !      write(6,*)'+++ Mk(1:30,H2O)=',Mk(1:30,srth2o)
@@ -4344,8 +4344,8 @@ C     and get the nucleation rate and critical cluster size
 ! Calculate particle sizes and diffusivities
       do k=1,ibins
 
-         IF ( SRTNH4 > 0 ) THEN 
-            M_NH4 = Mk(k,SRTNH4) 
+         IF ( SRTNH4 > 0 ) THEN
+            M_NH4 = Mk(k,SRTNH4)
          ELSE
             M_NH4 = 0.1875e+0_fp*Mk(k,srtso4)  !assume bisulfate
          ENDIF
@@ -4377,7 +4377,7 @@ C     and get the nucleation rate and critical cluster size
 
       do i=1,ibins
          do j=1,ibins
-            Kn=4.0*(Dk(i)+Dk(j))          
+            Kn=4.0*(Dk(i)+Dk(j))
      &        /(sqrt(ck(i)**2+ck(j)**2)*(Dpk(i)+Dpk(j))) !S&P eqn 12.51
             beta=(1.0+Kn)/(1.0+2.0*Kn*(1.0+Kn))          !S&P eqn 12.50
             !This is S&P eqn 12.46 with non-continuum correction, beta
@@ -4390,7 +4390,7 @@ C     and get the nucleation rate and critical cluster size
  10   continue     !repeat process here if multiple time steps are needed
 
       if(pdbg) print*,'In the time steps loop +++++++++++++'
-      
+
 
 ! Calculate xbar, phi and eff
 #if  defined( TOMAS12 ) || defined( TOMAS15 )
@@ -4445,7 +4445,7 @@ C     and get the nucleation rate and critical cluster size
 
          eff(k)=2.*Nk(k)/xk(k)*(2.-xbar(k)/xk(k))    !eqn 13a
          phi(k)=2.*Nk(k)/xk(k)*(xbar(k)/xk(k)-1.)    !eqn 13b
-         
+
          !Constraints in equation 15
          if (xbar(k) .lt. xk(k)) then
             eff(k)=2.*Nk(k)/xk(k)
@@ -4551,7 +4551,7 @@ C     and get the nucleation rate and critical cluster size
      *            +(eff(k)-phi(k))/6./xk(k)*zeta**3.*xbar(k)**2.
      *            *Mk(k,j)/3.)
 
-!yhl  Term9(-kij(k,k)*Nk(k)*Mk(k,j)) is cancled out by term6 (k)  
+!yhl  Term9(-kij(k,k)*Nk(k)*Mk(k,j)) is cancled out by term6 (k)
 
                if (k .gt. 1) then
                   dMdt(k,j)=dMdt(k,j)
@@ -4637,7 +4637,7 @@ C     and get the nucleation rate and critical cluster size
          endif
 
 #else
-         dNdt(k)= 
+         dNdt(k)=
      &           -kij(k,k)*Nk(k)**2
      &           -phi(k)*k1mtot
      &           -zeta*(eff(k)-phi(k))/(2*xk(k))*k1mxtot
@@ -4650,7 +4650,7 @@ C     and get the nucleation rate and critical cluster size
          endif
 
          do j=1,icomp-idiag
-            dMdt(k,j)= 
+            dMdt(k,j)=
      &           +Nk(k)*k1m(j)
      &           -kij(k,k)*Nk(k)*Mk(k,j)
      &           -Mk(k,j)*High_in
@@ -4726,9 +4726,9 @@ C     and get the nucleation rate and critical cluster size
             !limit rates of change for this bin
             if (dNdt(k) .lt. 0.0) tlimit=dtlimit
             if (dNdt(k) .gt. 0.0) tlimit=itlimit
-            if (abs(dNdt(k)*dts) .gt. Nk(k)*tlimit) then 
+            if (abs(dNdt(k)*dts) .gt. Nk(k)*tlimit) then
                dts=Nk(k)*tlimit/abs(dNdt(k))
-               if(pdbg) print*,'tlimit',tlimit,'Nk(',k,')',Nk(k), 
+               if(pdbg) print*,'tlimit',tlimit,'Nk(',k,')',Nk(k),
      &              'dNdt',dNdt(k), ' == dts ',dts
                limit='number'
                if(pdbg) write(limit(8:9),'(I2)') k
@@ -4738,7 +4738,7 @@ C     and get the nucleation rate and critical cluster size
                !limit rates of change x(win, 4/22/06)
                if (dMdt(k,j) .lt. 0.0) tlimit=dtlimit
                if (dMdt(k,j) .gt. 0.0) tlimit=itlimit
-               if (abs(dMdt(k,j)*dts) .gt. Mk(k,j)*tlimit) then 
+               if (abs(dMdt(k,j)*dts) .gt. Mk(k,j)*tlimit) then
                   mtotal=0.e+0_fp
                   do jj=1,icomp-idiag
                      mtotal=mtotal+Mk(k,jj)
@@ -4792,7 +4792,7 @@ C     and get the nucleation rate and critical cluster size
                print *, dMdt(k,j)
             end do
          end do
-      
+
           call debugprint(nk, mk, 0,0,0,
      &         'MULTICOAG before terminate: dts=0')
           PDBG = .true.
@@ -4818,7 +4818,7 @@ C     and get the nucleation rate and critical cluster size
          goto 10
       endif
 
-      
+
       RETURN
       END SUBROUTINE MULTICOAG
 
@@ -4828,7 +4828,7 @@ C     and get the nucleation rate and critical cluster size
      &       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, errspot)
 !
 !******************************************************************************
-!  Subroutine SO4COND determines the condensational driving force for mass 
+!  Subroutine SO4COND determines the condensational driving force for mass
 !  transfer of sulfate between gas and aerosol phases.  It then calls a mass-
 !  and number-conserving algorithm for condensation (/evaporation) of aerosol.
 !
@@ -4849,13 +4849,13 @@ C     and get the nucleation rate and critical cluster size
 !     Gci(icomp-1) - amount (kg/grid cell) of all species present in the
 !                    gas phase except water
 !     dt - total model time step to be taken (s)
-!  OUTPUTS: 
+!  OUTPUTS:
 !     Nkf, Mkf, Gcf - same as above, but final values
 !
 !  Written by Peter Adams, June 2000, based on thermocond.f
 !  Introduced to GEOS-CHEM by Win Trivitayanurak (win@cmu.edu) July 2007
 !
-!  NOTES: 
+!  NOTES:
 !  (1 ) Need clean up later (win, 8/1/07)
 !******************************************************************************
 !
@@ -4866,7 +4866,7 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)      :: Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
       REAL(fp)      :: Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
       REAL*4      :: dt
-      LOGICAL     :: errspot  
+      LOGICAL     :: errspot
 
       REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
       REAL*4, INTENT(IN)       :: PRES, RHTOMAS
@@ -4932,32 +4932,32 @@ C     and get the nucleation rate and critical cluster size
       DO J = 1, ICOMP-1
          IF( J == SRTSO4 ) THEN
             gmw(J)  = 98.
-            Sv(J)   = 42.88 
+            Sv(J)   = 42.88
             alpha(J)= 0.65
             !alpha from U. Poschl et al., J. Phys. Chem. A, 102, 10082-10089, 1998
          ELSE IF( J == SRTNACL ) THEN
             gmw(J)  = 0.
             Sv(J)   = 42.88  !use 42.88 for all components following Jeff Pierce's code (win,9/26/08)
             alpha(J)= 0.
-         ELSE IF( J == SRTECOB .or. J == SRTECIL  
+         ELSE IF( J == SRTECOB .or. J == SRTECIL
      &           .or. J == SRTOCOB .or. J == SRTOCIL ) THEN
             gmw(J)  = 12.          ! check these values with Jeff again (win, 8/22/07)
             Sv(J)   = 42.88
-            alpha(J)= 0. 
-         ELSE IF( J == SRTDUST ) THEN 
+            alpha(J)= 0.
+         ELSE IF( J == SRTDUST ) THEN
             gmw(J)  = 0.
             Sv(J)   = 42.88
             alpha(J)= 0.
-         ELSE IF( J == SRTNH4 ) THEN 
+         ELSE IF( J == SRTNH4 ) THEN
             gmw(J)  = 0.
             Sv(J)   = 42.88
             alpha(J)= 0.
-         ELSE 
+         ELSE
             PRINT *, 'Modify SO4cond for the new species'
             CALL ERROR_STOP('SO4COND','Need values for Gmw, Sv, alpha')
          ENDIF
       ENDDO
-            
+
 !dbg      numcalls=0
       printdebug = errspot !taking the signal to printdebug from aerophys (win, 4/8/06)
       errspot = .true. !<step4.4> Flag for showing error location outside this subroutine (win,9/21/05)
@@ -5012,17 +5012,17 @@ C     and get the nucleation rate and critical cluster size
       do k=1,ibins
          if (Nkf(k) .gt. Neps) then
 !            density=aerodens(Mkf(k,srtso4),0.e+0_fp,
-!     &            0.1875e+0_fp*Mkf(k,srtso4),Mkf(k,srtnacl), 
-!     &            Mk(k,srtecil), Mk(k,srtecob), 
+!     &            0.1875e+0_fp*Mkf(k,srtso4),Mkf(k,srtnacl),
+!     &            Mk(k,srtecil), Mk(k,srtecob),
 !     &            Mk(k,srtocil), Mk(k,srtocob),
 !     &            Mk(k,srtdust),
-!     &            Mkf(k,srth2o)) 
+!     &            Mkf(k,srth2o))
             density=aerodens(Mkf(k,srtso4),0.e+0_fp,
-     &            0.1875e+0_fp*Mkf(k,srtso4),Mkf(k,srtnacl), 
-     &            Mkf(k,srtecil), Mkf(k,srtecob), 
+     &            0.1875e+0_fp*Mkf(k,srtso4),Mkf(k,srtnacl),
+     &            Mkf(k,srtecil), Mkf(k,srtecob),
      &            Mkf(k,srtocil), Mkf(k,srtocob),
      &            Mkf(k,srtdust),
-     &            Mkf(k,srth2o)) 
+     &            Mkf(k,srth2o))
              !factor of 1.2 assumes ammonium bisulfate
              !(NH4)H has MW of 19 which is = 0.2*96
              !So the Mass of ammonium bisulfate = 1.2*mass sulfate
@@ -5034,7 +5034,7 @@ C     and get the nucleation rate and critical cluster size
                   Mktot=Mktot+Mkf(k,j)
             enddo
             mp=Mktot/Nkf(k)
-            
+
          else
             !nothing in this bin - set to "typical value"
             density=1500.
@@ -5131,7 +5131,7 @@ C     and get the nucleation rate and critical cluster size
                   !species has significant mass in particle - limit change
                   if (abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp) > 0.1) then
                      ttr=abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp)/5.e-2_fp
-                     if (ttr. gt. tr) then 
+                     if (ttr. gt. tr) then
                         tr=ttr
 !dbg                        limit='amass'
 !dbg                        write(limit(7:11),'(I2,X,I2)') k,j
@@ -5140,7 +5140,7 @@ C     and get the nucleation rate and critical cluster size
                else
                   !species is new to particle - set max time step
                 if ((cdt/tr.gt.1.e-1_fp).and.(atau(k,j)>0.e+0_fp)) then
-!                     tr=cdt/0.1 
+!                     tr=cdt/0.1
                      tr=cdt/1.e-1_fp !Make sure tr is double precision (win,3/20/05)
 !dbg                     limit='nspec'
 !dbg                     write(limit(7:11),'(I2,X,I2)') k,j
@@ -5151,7 +5151,7 @@ C     and get the nucleation rate and critical cluster size
          !Make sure gas phase concentrations don't change too much
          if (exp(-1.e+0_fp*sK*cdt) .lt. 2.5e-1_fp) then
             ttr=-2.e+0_fp*cdt*sK/log(2.5e-1_fp)
-            if (ttr .gt. tr) then 
+            if (ttr .gt. tr) then
                tr=ttr
 !dbg               limit='gphas'
 !dbg               write(limit(7:8),'(I2)') j
@@ -5186,7 +5186,7 @@ C     and get the nucleation rate and critical cluster size
 !dbg         write(*,*) 'so4cond - time = ', time, ' ',limit
 !dbg         if (j .eq. srtso4) then
 !dbg            do k=1,ibins
-!dbg               write(*,'(I3,4E12.4)') 
+!dbg               write(*,'(I3,4E12.4)')
 !dbg     &           k,sK,cdt,atauc(k,srtso4),atau(k,srtso4)
 !dbg            enddo
 !dbg         endif
@@ -5280,7 +5280,7 @@ C     and get the nucleation rate and critical cluster size
             write(*,*) 'ERROR in so4cond: H2SO4(g) < 0'
             write(*,*) 'time=',time
             write(*,*) 'Gcf()=',Gcf(srtso4)
-!4/11/06            STOP 
+!4/11/06            STOP
 !Let the run STOP outside so4cond so I can know where the run died (win, 4/11/06)
             errspot=.true. !win, 4/11/06
          else
@@ -5312,7 +5312,7 @@ C     and get the nucleation rate and critical cluster size
 !
 !  Original Note:
 ! CONDENSATION
-! Based on Tzivion, Feingold, Levin, JAS 1989 and 
+! Based on Tzivion, Feingold, Levin, JAS 1989 and
 ! Stevens, Feingold, Cotton, JAS 1996
 !--------------------------------------------------------------------
 
@@ -5326,15 +5326,15 @@ C     and get the nucleation rate and critical cluster size
 !
 ! The supersaturation is calculated outside of the routine and assumed
 ! to be constant at its average value over the timestep.
-! 
+!
 ! The method has three basic components:
 ! (1) first a top hat representation of the distribution is construced
 !     in each bin and these are translated according to the analytic
 !     solutions
-! (2) The translated tophats are then remapped to bins.  Here if a 
-!     top hat entirely or in part lies below the lowest bin it is 
+! (2) The translated tophats are then remapped to bins.  Here if a
+!     top hat entirely or in part lies below the lowest bin it is
 !     not counted.
-! 
+!
 
 !pja Additional notes (Peter Adams)
 
@@ -5343,7 +5343,7 @@ C     and get the nucleation rate and critical cluster size
 !     Only a single component (CSPECIES) is allowed to condense during
 !     a given call to this routine.  Multicomponent condensation/evaporation
 !     is accomplished via multiple calls.  Variables YLC and YUC are
-!     similar to YL and YU except that they refer to the mass of the 
+!     similar to YL and YU except that they refer to the mass of the
 !     condensing species, rather than total aerosol mass.
 
 !     I have removed ventilation variables (VSW/VNTF) from the subroutine
@@ -5352,7 +5352,7 @@ C     and get the nucleation rate and critical cluster size
 
 !     I have created a new variable, AMKDRY, which is the total mass in
 !     a size bin (sum of all chemical components excluding water).  I
-!     have also created WR, which is the ratio of total wet mass to 
+!     have also created WR, which is the ratio of total wet mass to
 !     total dry mass in a size bin.
 
 !     AMKC(k,j) is the total amount of mass after condensation of species
@@ -5364,8 +5364,8 @@ C     and get the nucleation rate and critical cluster size
 !<step5.1> Add a call argument pdbug to signal print values for debugging (win, 4/10/06)
 !<step5.3> Add PROC argument to signal gas phase condensation or aq.oxidation (win, 7/13/06)
 !<step5.3> Remove PROC (win, 7/17/06)
-!<step6.1> Update code for SOA condensation allowing mass conservation fix 
-!           similar to when aqoxid calls tmcond. Now madd(ibins) is not just for 
+!<step6.1> Update code for SOA condensation allowing mass conservation fix
+!           similar to when aqoxid calls tmcond. Now madd(ibins) is not just for
 !           SO4 mass but works for SOA mass too. (win, 9/27/07)
 !         -Change the argument moxd from one element to be an array moxd(IBINS)
 !          and update the way the correction to conserve mass is done (win, 3/5/08)
@@ -5388,7 +5388,7 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)       :: moxd(IBINS) ! condensing mass distributed to size bins
                                   ! according to the selected absorbing media (win, 3/5/08)
       REAL(fp)       :: c1, c2 !correction factor (win, 5/25/06)
-      REAL(fp)       :: madd(ibins) !condensing mass to be added by aqoxid 
+      REAL(fp)       :: madd(ibins) !condensing mass to be added by aqoxid
                                   !or SOAcond. For error fixing (win, 9/27/07)
       REAL(fp)       :: xadd(ibins) !mass per particle to be added by aqoxid
                                   ! or SOAcond. For error fixing (win, 9/27/07)
@@ -5397,21 +5397,21 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)       :: dummy, xtra,maddtot ! for mass conserv fixing (win, 9/27/07)
       integer      :: kk !counter (wint, 7/24/06)
       REAL(fp)       :: AMKD_tot
- 
+
       PARAMETER (TEPS=1.0e-40_fp,NEPS=1.0e-20_fp)
       PARAMETER (EX2=2.e+0_fp/3.e+0_fp,ZERO=0.0e+0_fp)
       PARAMETER (NEPS2=1.0e-10_fp)
       !=================================================================
       ! TMCOND begins here!
       !=================================================================
- 
+
  3    format(I4,200E20.11)
 
 !<step4.5> This first check cause the error of 'number not conserved'
 ! though only with the small amounts because when ANKD(k) = 0.e+0_fp from start,
-! the original check just give it a value NEPS = 1.d-20, and then undergo 
-! tmcond calculation.   I'm changing the check to if ANKD(k)= 0.e+0_fp,  
-! then keep it that way and make the following calculations skip when 
+! the original check just give it a value NEPS = 1.d-20, and then undergo
+! tmcond calculation.   I'm changing the check to if ANKD(k)= 0.e+0_fp,
+! then keep it that way and make the following calculations skip when
 ! ANKD(k) is zero (win, 10/18/05)
 
 ! If any ANKD are zero, set them to a small value to avoid division by zero
@@ -5456,15 +5456,15 @@ C     and get the nucleation rate and critical cluster size
          if ((AMKD_tot)/ANKD(k).gt.xk(k+1)) then
          !Prior to 10/3/08 (win)
          !if ((AMKD(k,srtso4))/ANKD(k).gt.xk(k+1)) then
-         !sfarina: this does noting to help our avg mass per particle 
+         !sfarina: this does noting to help our avg mass per particle
          !         falling outside of bin boundaries:
          !         amkd_tot / ankd(k) = (amkd_tot * 0.9) / (ankd(k) * 0.9)
          !         we need to shift more mass than number.
          !         assuming we have some kind of distributionof particle sizes in bin K
-         !         the largest ones will have more mass than average, so we can safly move 
+         !         the largest ones will have more mass than average, so we can safly move
          !         more mass than number.
          !         that or we redistribute mass before SOAcond
-         !         
+         !
             do j=1,icomp-idiag
                AMKD(k+1,j)=AMKD(k+1,j)+0.1e+0_fp*AMKD(k,j)
                AMKD(k,j)=AMKD(k,j)*0.9e+0_fp
@@ -5502,7 +5502,7 @@ C     and get the nucleation rate and critical cluster size
          DO J=1,icomp-idiag     ! dry mass excl. nh4 (win, 9/26/08)
             AMKDRY(L)=AMKDRY(L)+AMKD(L,J)
             ! Accumulate the absorbing media (win, 3/5/08)
-            IF ( J == SRTOCIL  ) 
+            IF ( J == SRTOCIL  )
      &           AMKDRYSOL(L) = AMKDRYSOL(L) + AMKD(L,J)
         ENDDO
         DO J=1,ICOMP
@@ -5561,8 +5561,8 @@ C     and get the nucleation rate and critical cluster size
                   MADD(L) = MOXD(L)
                   XADD(L) = MOXD(L) / ANKD(L)
 !x                  IF( CSPECIES == SRTSO4 ) THEN
-!x                     MADD(L) = MOXD * ANKD(L)  ! absolute condensing mass 
-!x                     XADD(L) = MOXD            ! mass per particle 
+!x                     MADD(L) = MOXD * ANKD(L)  ! absolute condensing mass
+!x                     XADD(L) = MOXD            ! mass per particle
 !x                  ELSE IF ( CSPECIES == SRTOCIL ) THEN
 !x                     MADD(L) = MOXD * AMKDRYSOL(L)
 !x                     XADD(L) = MADD(L) / ANKD(L)
@@ -5619,9 +5619,9 @@ C     and get the nucleation rate and critical cluster size
 !pja bounds causes particles to grow or shrink arbitrarily and is
 !pja wreacking havoc with choosing condensational timesteps and
 !pja conserving mass.  I have turned them off.
-!            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L)))) 
+!            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L))))
 !try bring the above line back, win 4/10/06
-!win 4/10/06            
+!win 4/10/06
 
 
             AVG=AMKDRY(L)/ANKD(L)
@@ -5692,7 +5692,7 @@ C     and get the nucleation rate and critical cluster size
             IF(TAU_L/TAU(l).GT. 6.) THEN
                PRINT *,'TAU..>6.',TAU(l),TAU_L,VSW,L
             ENDIF
-            IF(TAU_L.GT.TAU(l)) THEN 
+            IF(TAU_L.GT.TAU(l)) THEN
                PRINT *,'TAU...',TAU(l),TAU_L,VSW,L
             ENDIF
 ! prior to 5/25/06 (win)
@@ -5702,11 +5702,11 @@ C     and get the nucleation rate and critical cluster size
 !               YUC=YUC*X(ibins+1)/YU
 !               YU=X(ibins+1)
 !            ENDIF
-!            YL=DMDT_INT(XL,TAU_L,WR(L)) 
+!            YL=DMDT_INT(XL,TAU_L,WR(L))
 !            YLC=XL*AMKD(L,CSPECIES)/AMKDRY(L)+YL-XL
 !add new correction factor to YU and YL (win, 5/25/06)
-            YU=DMDT_INT(XU,TAU_L,WR(L)) 
-            YL=DMDT_INT(XL,TAU_L,WR(L)) 
+            YU=DMDT_INT(XU,TAU_L,WR(L))
+            YL=DMDT_INT(XL,TAU_L,WR(L))
 
             ! change to check MOXD of current bin (win, 10/3/08)
             IF( MOXD(L) == 0e+0_fp) THEN
@@ -5717,7 +5717,7 @@ C     and get the nucleation rate and critical cluster size
                C1 = XADD(L)*2.e+0_fp/(YU+YL-XU-XL)
             ENDIF
             C2 = C1 - ( C1 - 1.e+0_fp ) * ( XU + XL )/( YU + YL )
-          !prior to 10/2/08 (win)  
+          !prior to 10/2/08 (win)
             YU = YU * C2
             YL = YL * C2
             ! Run into a problem that YU < XU creating YUC<0
@@ -5725,8 +5725,8 @@ C     and get the nucleation rate and critical cluster size
             ! it does not result in YU < XU and YL < XL (win, 10/2/08)
 !cc            IF(TAU_L > 0.e+0_fp) YU = max( YU*C2, XU )
 !cc            IF(TAU_L > 0.e+0_fp) YL = max( YL*C2, XL )
- 
-!end part for fudging to get higher AVG 
+
+!end part for fudging to get higher AVG
 
             YUC=XU*AMKD(L,CSPECIES)/AMKDRY(L)+YU-XU
             IF (YU .GT. X(ibins+1) ) THEN
@@ -5738,7 +5738,7 @@ C     and get the nucleation rate and critical cluster size
             ENDIF
             YLC=XL*AMKD(L,CSPECIES)/AMKDRY(L)+YL-XL
             DYI=1.e+0_fp/(YU-YL)
-            
+
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !<step5.2> Debug why there is extra mass added when called
             ! by aqoxid. (win, 5/10/06)
@@ -5747,7 +5747,7 @@ C     and get the nucleation rate and critical cluster size
                print *, 'XL',XL,'YL',YL,'YLC',YLC
             endif
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
+
             !deal with tiny negative (win, 5/28/06)
             if(YUC.lt.0e+0_fp .or. YLC.lt.0e+0_fp)then
                if(YLC.lt.0e+0_fp) YLC=0e+0_fp
@@ -5761,12 +5761,12 @@ C     and get the nucleation rate and critical cluster size
 ! deal with portion of distribution that lies below lowest gridpoint
 !
             IF(YL.LT.X(1))THEN
-            
+
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !<step5.2> Debug step-by-step (win, 5/10/06)
             if (pdbug) print *,'YL<X(1)_Just_condensing_to_current_bin'
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
+
 !pja Instead of the following, I will just add all new condensed
 !pja mass to the same size bin
 !               if ((YL/XL-1.e+0_fp) .LT. 1.e-3_fp) then
@@ -5809,16 +5809,16 @@ C     and get the nucleation rate and critical cluster size
                !<step5.2> Debug step-by-step (win, 5/10/06)
                if(pdbug) print *,'Now_remapping_in_bin',I
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               IF(YL.LT.X(I+1))THEN 
+               IF(YL.LT.X(I+1))THEN
                   ![1] lower bound of new tophat in the current I bin
                   IF(YU.LE.X(I+1))THEN
                      ![2] upper bound of new tophat also in the current I bin
                      DN=ANKD(L)      ! DN = number from the bin L being remapped
                      do j=1,icomp
-                        DM=AMKD(L,J)   
+                        DM=AMKD(L,J)
                         IF (J.EQ.CSPECIES) THEN
                            !Add mass from new tophat to the existing mass of bin I
-                           AMK(I,J)=(YUC+YLC)*.5e+0_fp*DN+AMK(I,J)  
+                           AMK(I,J)=(YUC+YLC)*.5e+0_fp*DN+AMK(I,J)
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                            !<step5.2> Debug step-by-step (win, 5/10/06)
                            if (pdbug) then
@@ -5832,29 +5832,29 @@ C     and get the nucleation rate and critical cluster size
      &                      DN-AMKD(L,J)-madd(L)
                            if( abs(delt1)/madd(L).gt.1e-6_fp .and.
      &                             madd(L).gt.1e-4_fp)then
-                              ! Just print out this for debugging 
+                              ! Just print out this for debugging
                               IF(.not.SPINUP(60.) .and. pdbug ) then
 !                                 write(116,*)'CASE1_mass_conserv_fix'
-                                 write(116,13) L, madd(L), delt1 
- 13                              FORMAT('CASE_1 Bin ',I2,' moxid ', 
+                                 write(116,13) L, madd(L), delt1
+ 13                              FORMAT('CASE_1 Bin ',I2,' moxid ',
      &                                   E13.5,' delta ',E13.5 )
 !                                 errspot=.true. !just try temp (win, 7/30/07)
                               ENDIF
                               AMK(I,J) = AMK(I,J)-delt1 !fix the error
                            endif
                            endif
-!                           endif !temporary 
-                          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                           
+!                           endif !temporary
+                          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         ELSE
                            !For non-condensing, migrate the mass to bin I
-                           AMK(I,J)=AMK(I,J)+DM 
+                           AMK(I,J)=AMK(I,J)+DM
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                            !<step5.2> Debug step-by-step (win, 5/10/06)
                            if (pdbug) then
                            !print *,' Migrating_mass(',j,')',DM   !use this debugging line if there are more than seasalt+so4
                            print *,'Migrating_mass',DM
                            endif
-                           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                           
+                           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         ENDIF
                      enddo
                      !Add number of old bin to ANK (which is blank for the first loop of bin I)
@@ -5863,7 +5863,7 @@ C     and get the nucleation rate and critical cluster size
                      !<step5.2> (win, 5/10/06)
                      if(pdbug) print*,'Migrating_number',DN
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                  ELSE  
+                  ELSE
                     ![3] upper bound of new tophat grow beyond the upper bound of bin I
                      DN=ANKD(L)*(X(I+1)-YL)*DYI !DN= proportion of the number from tophat that still stays in the bin I
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5879,10 +5879,10 @@ C     and get the nucleation rate and critical cluster size
 
                     do j=1,icomp
                        !DM= proporation of the mass that is still in bin I
-                        DM=AMKD(L,J)*(X(I+1)-YL)*DYI 
+                        DM=AMKD(L,J)*(X(I+1)-YL)*DYI
                         IF (J.EQ.CSPECIES) THEN
-                           !XP= what would have grown to be X(I+1) 
-                           XP=DMDT_INT(X(I+1),-1.0e+0_fp*TAU_L,WR(L)) 
+                           !XP= what would have grown to be X(I+1)
+                           XP=DMDT_INT(X(I+1),-1.0e+0_fp*TAU_L,WR(L))
                            YM=XP*AMKD(L,J)/AMKDRY(L)+X(I+1)-XP
                            !add the condensing mass to the existing sulfate of bin I
                            AMK(I,J)=DN*(YM+YLC)*0.5e+0_fp+AMK(I,J)
@@ -5906,19 +5906,19 @@ C     and get the nucleation rate and critical cluster size
                      enddo
                      ANK(I)=ANK(I)+DN ! Add DN number to ANK (which is blank for the first loop of bin I)
                      ! Remapping loop from bin I+1 to bin30
-                     DO K=I+1,ibins   
+                     DO K=I+1,ibins
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                      if(pdbug) print *,'Spreading_to_bin',K
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        IF(YU.LE.X(K+1))GOTO 100 
+                        IF(YU.LE.X(K+1))GOTO 100
                         ![4] Found the bin where the high end of the tophat is in --> do the final loop
-                        
-                        ![5.1] This part for distributing to the bins in between 
+
+                        ![5.1] This part for distributing to the bins in between
                         !      the original and the furthest bin that growing occurs
 
 
-                        !Use width of bin K to proportionate number from old bin wrt. to the top hat (YU-YL)                        
-                        DN=ANKD(L)*(X(K+1)-X(K))*DYI  
+                        !Use width of bin K to proportionate number from old bin wrt. to the top hat (YU-YL)
+                        DN=ANKD(L)*(X(K+1)-X(K))*DYI
 
                         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         if(pdbug) then
@@ -5927,7 +5927,7 @@ C     and get the nucleation rate and critical cluster size
                         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         do j=1,icomp
                            !Proportion of old-bin mass that falls in this current bin K
-                           DM=AMKD(L,J)*(X(K+1)-X(K))*DYI 
+                           DM=AMKD(L,J)*(X(K+1)-X(K))*DYI
                            IF (J.EQ.CSPECIES) THEN
                               XP=DMDT_INT(X(K),-1.0e+0_fp*TAU_L,WR(L)) !what would have grown to be X(k)
                               YM=XP*AMKD(L,J)/AMKDRY(L)+X(K)-XP !what would have grown to be X(k) but just for sulfate
@@ -5953,10 +5953,10 @@ C     and get the nucleation rate and critical cluster size
                      ENDDO
                      !This STOP is for when there's excessive growth over bin30
                      STOP 'Trying to put stuff in bin ibins+1'
-                    
+
  100                 CONTINUE
                      ![5.2] Final section that the tophat grows to.
-                     DN=ANKD(L)*(YU-X(K))*DYI  
+                     DN=ANKD(L)*(YU-X(K))*DYI
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                      if(pdbug) then
                         print *,'Found_right_edge_for_tophat'
@@ -5993,7 +5993,7 @@ C     and get the nucleation rate and critical cluster size
                         delt2 = 0e+0_fp
                         delt2 = macc-AMKD(L,CSPECIES)-madd(L)
                         if(abs(delt2)/ madd(L) > 1e-6)then
-                           if( madd(L) > 10.e+0_fp .and. 
+                           if( madd(L) > 10.e+0_fp .and.
      &                          abs(delt2)/ madd(L) > 15e-2_fp ) then
 !                              print *,'TMCOND ERROR: mass condensation',
 !     &                          'discrep >15% during aqoxid or SOAcond'
@@ -6009,18 +6009,18 @@ C     and get the nucleation rate and critical cluster size
                            endif !significant mass add (10 kg) - then print error.
                            !<step5.3> Fix the problem of mass not conserved
                            !in case of aqueous oxidation by find the missing mass
-                           !and spread them equally into the bins that the final 
+                           !and spread them equally into the bins that the final
                            !tophat has grown to. (win, 7/24/06)
                            xtra  = 0e+0_fp
                            dummy = 0e+0_fp
                            do kk = I,K
 !                              AMK(kk,CSPECIES) = AMK(kk,CSPECIES)-
-!     &                                           delt2/(K-I+1) 
-                              dummy = AMK(kk,CSPECIES) - 
+!     &                                           delt2/(K-I+1)
+                              dummy = AMK(kk,CSPECIES) -
      &                               ( delt2/(K-I+1) + xtra )
                               if(dummy < 0.e+0_fp )then
                                  xtra = xtra + delt2/(K-I+1)
-                              else                                 
+                              else
                                  AMK(kk,CSPECIES) = dummy
                                  xtra = 0.e+0_fp
                               endif
@@ -6075,11 +6075,11 @@ C     and get the nucleation rate and critical cluster size
 ! !USES:
 !
       USE CMN_SIZE_MOD      ! Size parameters
-#if defined( BPCH_DIAG ) 
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,       ONLY : AD60_AQOX, AD60_ERROR, AD60_SOA
-      USE DIAG_MOD,       ONLY : AD61,      AD61_INST  
+      USE DIAG_MOD,       ONLY : AD61,      AD61_INST
 #endif
       USE ERROR_MOD,      ONLY : IT_IS_NAN
       USE State_Grid_Mod, ONLY : GrdState
@@ -6122,20 +6122,20 @@ C     and get the nucleation rate and critical cluster size
       !=================================================================
 #if defined( BPCH_DIAG )
 
-      ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1 
+      ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1
       !  Note: This is created to look at 3-D rate for a selected process
       !        Right now (5/21/08) I created this to watch NUCLEATION rate
       !        We can't afford to save all 30-bin and all mass component
       !        in all (I,J,L), thus this is created. (win, 5/21/08)
-      IF ( PTYPE == 7 ) THEN 
+      IF ( PTYPE == 7 ) THEN
          IF ( L <= LD61 ) THEN
             DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
-            AD61(I,J,L,1) = AD61(I,J,L,1)  + 
+            AD61(I,J,L,1) = AD61(I,J,L,1)  +
      &           ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
             AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
 
-            !IF(i==39 .and. j==29 ) then 
-             !  if ( AD61_INST(I,J,L) .gt. 1e18)  write(6,*) '*********', 
+            !IF(i==39 .and. j==29 ) then
+             !  if ( AD61_INST(I,J,L) .gt. 1e18)  write(6,*) '*********',
 !     &           'AD61_INST(',I,J,L,')', AD61_INST(I,J,L)
             !endif
          ENDIF
@@ -6159,29 +6159,29 @@ C     and get the nucleation rate and critical cluster size
       IF ( L <= LD60 ) THEN
 
       SELECT CASE ( PTYPE )
-         
+
       CASE ( 1 )                ! Condensation diagnostic
          ADXX(:) = AD60_COND(1,J,L,:)
-         
+
       CASE ( 2 )                ! Coagulation diagnostic
          ADXX(:) = AD60_COAG(1,J,L,:)
-         
+
       CASE ( 3 )                ! Nucleation diagnostic
          ADXX(:) = AD60_NUCL(1,J,L,:)
-         
+
       CASE ( 4 )                ! Aqueous oxidation diagnostic
          ADXX(:) = AD60_AQOX(1,J,L,:)
-         
+
       CASE ( 5 )                ! Error fudging diagnostic
          ADXX(:) = AD60_ERROR(1,J,L,:)
-         
+
       CASE ( 6 )                ! SOA condensation diagnostic
          ADXX(:) = AD60_SOA(1,J,L,:)
 
       END SELECT
 
 !delete_this_after_dbg_(win,8/1/07)
-!      if(i==6.and.j==34.and.l==28) then 
+!      if(i==6.and.j==34.and.l==28) then
 !         print *, I,J,L,'--------------------'
 !         print *,'Nk         Nkd'
 !         do k=1,ibins
@@ -6196,9 +6196,9 @@ C     and get the nucleation rate and critical cluster size
 !         print *,mk(k,2), mkd(k,2)
 !         enddo
 !      endif
-!delete to this line ---------------------         
+!delete to this line ---------------------
 
-      ! Change of aerosol number    
+      ! Change of aerosol number
       DO K = 1, IBINS
          ADXX(K) =  ADXX(K) + NK(K) - NKD(K)
 !         IF ( PTYPE == 2 ) ACCUN = ACCUN + NK(K) - NKD(K)
@@ -6223,22 +6223,22 @@ C     and get the nucleation rate and critical cluster size
 !      IF ( IT_IS_NAN(ACCUM(1))) print *,'ADIAG: Nan',I,J,L
 
       ! Put the updated values back into the diagnostic arrays
-      SELECT CASE ( PTYPE )      
+      SELECT CASE ( PTYPE )
       CASE ( 1 )                ! Condensation diagnostic
          AD60_COND(1,J,L,:) = ADXX(:)
-         
+
       CASE ( 2 )                ! Coagulation diagnostic
          AD60_COAG(1,J,L,:) = ADXX(:)
-         
+
       CASE ( 3 )                ! Nucleation diagnostic
          AD60_NUCL(1,J,L,:) = ADXX(:)
-         
+
       CASE ( 4 )                ! Aqueous oxidation diagnostic
          AD60_AQOX(1,J,L,:) = ADXX(:)
-         
+
       CASE ( 5 )                ! Error fudging diagnostic
           AD60_ERROR(1,J,L,:) = ADXX(:)
-         
+
       CASE ( 6 )                ! SOA condensation diagnostic
           AD60_SOA(1,J,L,:) = ADXX(:)
       END SELECT
@@ -6315,7 +6315,7 @@ C     and get the nucleation rate and critical cluster size
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!   (1 ) Add calculation for bin boundaries array Xk using Mo = lower mass 
+!   (1 ) Add calculation for bin boundaries array Xk using Mo = lower mass
 !         bound for first size bin (kg) (win, 7/18/07)
 !   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
 !  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
@@ -6331,7 +6331,7 @@ C     and get the nucleation rate and critical cluster size
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL(fp)             :: Mo
       CHARACTER(LEN=255)   :: filename
-      CHARACTER(LEN=255)   :: fname(4)     
+      CHARACTER(LEN=255)   :: fname(4)
       CHARACTER(LEN=255)   :: DATA_DIR
 
       !=================================================================
@@ -6366,7 +6366,7 @@ C     and get the nucleation rate and critical cluster size
       IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
          SGCTSCALE = 10.*3600.  ! 10 hours
       ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-         SGCTSCALE = 5.*3600.  
+         SGCTSCALE = 5.*3600.
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
          SGCTSCALE = 1.*3600.
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
@@ -6374,17 +6374,17 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
 
 #if    defined( TOMAS40 )
-      Mo = 1.0e-21_fp*2.e+0_fp**(-10)     
+      Mo = 1.0e-21_fp*2.e+0_fp**(-10)
 #elif  defined( TOMAS15 )
-      Mo = 1.0e-21_fp*4.e+0_fp**(-3)     
+      Mo = 1.0e-21_fp*4.e+0_fp**(-3)
 #else
       Mo = 1.0e-21_fp
 #endif
-      
-      ICOMP = 0 
+
+      ICOMP = 0
       IDIAG = 0
       K = 0
-!      IF( LSULF30 )  THEN 
+!      IF( LSULF30 )  THEN
       IF (id_SF1 > 0) THEN
          ICOMP = ICOMP + 1
 !        SRTSO4 = ICOMP
@@ -6395,7 +6395,7 @@ C     and get the nucleation rate and critical cluster size
 !         SRTNACL = ICOMP
       ENDIF
 !      IF( LCARB30 )  THEN
-      IF ( id_ECIL1 > 0 .AND. id_ECOB1 > 0 .AND. 
+      IF ( id_ECIL1 > 0 .AND. id_ECOB1 > 0 .AND.
      &     id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
          ICOMP = ICOMP + 1
 !         SRTECIL = ICOMP
@@ -6411,9 +6411,9 @@ C     and get the nucleation rate and critical cluster size
          ICOMP = ICOMP + 1
 !         SRTDUST = ICOMP
       ENDIF
-      
+
       ! Have to add one more for aerosol water
-      IF( ICOMP > 1 ) THEN 
+      IF( ICOMP > 1 ) THEN
          ICOMP = ICOMP + 1
          IDIAG = IDIAG + 1
 !         SRTNH4 = ICOMP
@@ -6426,7 +6426,7 @@ C     and get the nucleation rate and critical cluster size
       print *, 'In init_TOMAS, IBINS = ', IBINS
 
       !=================================================================
-      ! Allocate arrays 
+      ! Allocate arrays
       !=================================================================
 
       ALLOCATE( MOLWT( ICOMP ), STAT=AS )
@@ -6465,16 +6465,16 @@ C     and get the nucleation rate and critical cluster size
          IF ( J == SRTSO4 ) THEN
             MOLWT(J) = 98.0
          ELSE IF ( J == SRTNACL ) THEN
-            MOLWT(J) = 58.5 
+            MOLWT(J) = 58.5
          ELSE IF ( J == SRTH2O ) THEN
             MOLWT(J) = 18.0
-         ELSE IF ( J == SRTECIL ) THEN 
+         ELSE IF ( J == SRTECIL ) THEN
             MOLWT(J) = 12.0
-         ELSE IF ( J == SRTECOB ) THEN 
+         ELSE IF ( J == SRTECOB ) THEN
             MOLWT(J) = 12.0
-         ELSE IF ( J == SRTOCIL ) THEN 
+         ELSE IF ( J == SRTOCIL ) THEN
             MOLWT(J) = 12.0
-         ELSE IF ( J == SRTOCOB ) THEN 
+         ELSE IF ( J == SRTOCOB ) THEN
             MOLWT(J) = 12.0
          ELSE IF ( J == SRTDUST ) THEN
             MOLWT(J) = 100.0
@@ -6483,11 +6483,11 @@ C     and get the nucleation rate and critical cluster size
          ELSE
             PRINT *,'INIT_TOMAS ERROR: Modify code for more species!!'
             CALL ERROR_STOP('INIT_TOMAS','Modify code for new species')
-         ENDIF            
+         ENDIF
       ENDDO
 
       !=================================================================
-      ! Create a look-up table for activating bin and scavenging 
+      ! Create a look-up table for activating bin and scavenging
       ! fraction as a function of chemical composition.
       !=================================================================
       IF ( IBINS == 12 .OR. IBINS == 15 ) THEN
@@ -6532,7 +6532,7 @@ C     and get the nucleation rate and critical cluster size
       ENDDO
 
       !carbon emission factors:
-      
+
       ! Close file
       CLOSE( LUN )
 
@@ -6564,7 +6564,7 @@ C     and get the nucleation rate and critical cluster size
       CLOSE(INNUM)
       RETURN
       END SUBROUTINE READBINACT
-      
+
 !------------------------------------------------------------------------------
 
       SUBROUTINE READFRACTION(INFILE,FRACTION)
@@ -6599,16 +6599,16 @@ C     and get the nucleation rate and critical cluster size
 
 !
 !******************************************************************************
-!  Subroutine GETFRACTION calculate the mass fraction of each soluble component 
+!  Subroutine GETFRACTION calculate the mass fraction of each soluble component
 !  i.e. SO4, sea-salt, hydrophilic OC to use as inputs for a lookup table of
 !  activating bin and scavenging fraction. (win, 9/10/07)
 !
 !  Variable comments:
 !  I, J, L          : Grid box index
-!  N                : Species ID 
+!  N                : Species ID
 !  LS               : True = Large-scale (stratiform) precip, False = convectiv
 !  FRACTION         : Scavenging fraction of the given grid box
-!  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the 
+!  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the
 !                     given grid box
 !
 ! !REMARKS:
@@ -6664,14 +6664,14 @@ C     and get the nucleation rate and critical cluster size
       ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg dry' ) THEN
          UNITFACTOR = State_Met%AD(I,J,L)
 
-      ELSE 
+      ELSE
          MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)
-         LOC = 'Routine GETFRACTION in tomas_mod.F'      
+         LOC = 'Routine GETFRACTION in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
-      ENDIF 
-         
+      ENDIF
+
       ! Point to chemical species array
-      ! Units are now [kg/m2] in wet deposition and [kg/kg total air] in 
+      ! Units are now [kg/m2] in wet deposition and [kg/kg total air] in
       ! convection (ewl, 9/29/15)
       Spc => State_Chm%Species
 
@@ -6680,7 +6680,7 @@ C     and get the nucleation rate and critical cluster size
          BIN = MOD( BIN, IBINS )
          IF ( BIN == 0 ) BIN = IBINS
       ENDIF
-      
+
       MECIL = 0.E0
       MOCIL = 0.E0
       MOCOB = 0.E0
@@ -6695,7 +6695,7 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
       IF ( id_DUST1 > 0 ) MDUST = Spc(I,J,L,id_DUST1-1+BIN) * UNITFACTOR
       !account for ammonium sulfate
-      IF ( id_SF1 > 0 ) MSO4  = Spc(I,J,L,id_SF1-1+BIN) * 1.2 
+      IF ( id_SF1 > 0 ) MSO4  = Spc(I,J,L,id_SF1-1+BIN) * 1.2
      &                          * UNITFACTOR
       IF ( id_SS1 > 0 ) MNACL = Spc(I,J,L,id_SS1-1+BIN) * UNITFACTOR
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
@@ -6718,9 +6718,9 @@ C     and get the nucleation rate and critical cluster size
       OFFSET = 0
 #endif
 
-      IF ( LS ) THEN 
+      IF ( LS ) THEN
          GETBINACT = BINACT1(ISO4, INACL, IOCIL) + OFFSET
-      ELSE 
+      ELSE
          GETBINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
 
@@ -6730,11 +6730,11 @@ C     and get the nucleation rate and critical cluster size
       endif
 
 !      print*,'N, BINACT = ',N,GETBINACT
-      
+
       IF ( GETBINACT > BIN ) THEN
          FRACTION = 0. !NOT ACTIVATED
       ELSE IF ( GETBINACT == BIN ) THEN
-         IF ( LS ) THEN 
+         IF ( LS ) THEN
             FRACTION = FRACTION1(ISO4, INACL, IOCIL ) !PARTLY ACTIVATED
          ELSE
             FRACTION = FRACTION2(ISO4, INACL, IOCIL ) !PARTLY ACTIVATED
@@ -6746,29 +6746,29 @@ C     and get the nucleation rate and critical cluster size
       ! Calculate the soluble fraction of mass
       MECOB = 0.E0
       IF ( id_ECOB1 > 0 ) MECOB = Spc(I,J,L,id_ECOB1-1+BIN) * UNITFACTOR
-      SOLFRAC = MTOT / ( MTOT + MECOB ) 
+      SOLFRAC = MTOT / ( MTOT + MECOB )
 
       ! Free pointer
       Spc => NULL()
 
       END SUBROUTINE GETFRACTION
-      
+
 !------------------------------------------------------------------------------
 
       SUBROUTINE GETACTBIN ( I, J, L, N, LS, BINACT, State_Chm, RC )
 
 !
 !******************************************************************************
-!  Subroutine GETFRACTION calculate the mass fraction of each soluble component 
+!  Subroutine GETFRACTION calculate the mass fraction of each soluble component
 !  i.e. SO4, sea-salt, hydrophilic OC to use as inputs for a lookup table of
 !  activating bin and scavenging fraction. (win, 9/10/07)
 !
 !  Variable comments:
 !  I, J, L          : Grid box index
-!  N                : Species ID 
+!  N                : Species ID
 !  LS               : True = Large-scale (stratiform) precip, False = convectiv
 !  FRACTION         : Scavenging fraction of the given grid box
-!  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the 
+!  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the
 !                     given grid box
 !
 ! !REMARKS:
@@ -6843,7 +6843,7 @@ C     and get the nucleation rate and critical cluster size
 !       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       MSO4  = Spc(I,J,L,id_SF1-1+BIN) * 1.2 !account for ammonium sulfate
       MNACL = Spc(I,J,L,id_SS1-1+BIN)
-      
+
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
       XOCIL = MOCIL / MTOT
       XSO4  = MSO4 / MTOT
@@ -6864,9 +6864,9 @@ C     and get the nucleation rate and critical cluster size
       OFFSET = 0
 #endif
 
-      IF ( LS ) THEN 
+      IF ( LS ) THEN
          BINACT = BINACT1(ISO4, INACL, IOCIL) + OFFSET
-      ELSE 
+      ELSE
          BINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
 
@@ -6883,15 +6883,15 @@ C     and get the nucleation rate and critical cluster size
 !******************************************************************************
 !     WRITTEN BY Peter Adams, March 2000
 !
-!     This routine uses the current RH to calculate how much water is 
-!     in equilibrium with the aerosol.  Aerosol water concentrations 
-!     are assumed to be in equilibrium at all times and the array of 
+!     This routine uses the current RH to calculate how much water is
+!     in equilibrium with the aerosol.  Aerosol water concentrations
+!     are assumed to be in equilibrium at all times and the array of
 !     concentrations is updated accordingly.
 !
 !     Introduced to GEOS-CHEM by Win Trivitayanurak. May 8, 2006.
 !     This file is replacing the old ezwatereqm.f that was not compatible
-!     with multicomponent aerosols.  The new ezwatereqm use external 
-!     functions to do ISORROPIA-result curve fitting for each aerosol 
+!     with multicomponent aerosols.  The new ezwatereqm use external
+!     functions to do ISORROPIA-result curve fitting for each aerosol
 !     component.
 !     WARNING :
 !      *** Watch out for the new aerosol species added in the future!
@@ -6924,7 +6924,7 @@ C     and get the nucleation rate and critical cluster size
       !========================================================================
       ! EZWATEREQM begins here!
       !========================================================================
-      
+
       rhe=100.e+0_fp*rhtomas
       if (lowRH == 1) THEN !JKodros RH switch
          if (rhe .gt. 90.e+0_fp) rhe=90.e+0_fp
@@ -6939,7 +6939,7 @@ C     and get the nucleation rate and critical cluster size
          wrso4=waterso4(rhe)
 
          ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
-         if (srtnacl.gt.0) then 
+         if (srtnacl.gt.0) then
             naclmass=Mke(k,srtnacl) !already as kg nacl - no conv necessary
             wrnacl=waternacl(rhe)
          else
@@ -6947,7 +6947,7 @@ C     and get the nucleation rate and critical cluster size
             wrnacl = 1.e+0_fp
          endif
 
-         if (srtocil.gt.0) then 
+         if (srtocil.gt.0) then
             ocilmass=Mke(k,srtocil) !already as kg ocil - no conv necessary
             wrocil=waterocil(rhe)
          else
@@ -6966,11 +6966,11 @@ C     and get the nucleation rate and critical cluster size
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met, State_Chm, RC ) 
+      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EZWATEREQM2 is just like EZWATEREQM but access directly to STT
-!  array unlike EZWATEREQM that needs the array Mke to be passed in and out.  
+!  array unlike EZWATEREQM that needs the array Mke to be passed in and out.
 !  This subroutine is for calling from outside microphysics module.
 !  (win, 8/6/07)
 !
@@ -7020,23 +7020,23 @@ C     and get the nucleation rate and critical cluster size
       Spc => State_Chm%Species
 
       rhe = State_Met%RH(i,j,l)             !RH [=] percent
-      
+
       if (rhe .gt. 99.) rhe=99.
       if (rhe .lt. 1.) rhe=1.
-      
+
       so4mass=Spc(i,j,l,id_SF1-1+bin)*1.2 !1.2 converts kg so4 to kg nh4hso4
       wrso4=waterso4(rhe)       !use external function
-      
+
       ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
-      if (id_SS1.gt.0) then 
+      if (id_SS1.gt.0) then
          naclmass=Spc(i,j,l,id_SS1-1+bin) !already as kg nacl - no conv necessary
          wrnacl=waternacl(rhe)  !use external function
       else
          naclmass = 0.e+0_fp
          wrnacl = 1.e+0_fp
       endif
-      
-      if (id_OCIL1 > 0) then 
+
+      if (id_OCIL1 > 0) then
          ocilmass=Spc(i,j,l,id_OCIL1-1+bin)  !already as kg ocil - no conv necessary
          wrocil=waterocil(rhe)
       else
@@ -7051,14 +7051,14 @@ C     and get the nucleation rate and critical cluster size
       ! Free pointer
       Spc => NULL()
 
-      END SUBROUTINE EZWATEREQM2   
-     
+      END SUBROUTINE EZWATEREQM2
+
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZNH3EQM( Gce, Mke ) 
+      SUBROUTINE EZNH3EQM( Gce, Mke )
 !
 !******************************************************************************
-!  Subroutine EZNH3REQM2 puts ammonia to the particle phase until 
+!  Subroutine EZNH3REQM2 puts ammonia to the particle phase until
 !     there is 2 moles of ammonium per mole of sulfate and the remainder
 !     of ammonia is left in the gas phase.
 !     (win, 9/30/08)
@@ -7126,23 +7126,23 @@ C     and get the nucleation rate and critical cluster size
       endif
 
       RETURN
-      END SUBROUTINE EZNH3EQM      
-      
+      END SUBROUTINE EZNH3EQM
+
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( am_I_Root,  LEV, Input_Opt, State_Chm, 
+      SUBROUTINE AERO_DIADEN( am_I_Root,  LEV, Input_Opt, State_Chm,
      &                        State_Grid, State_Met, DIA, DENSITY,
      &                        RC )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
 !  functions GETDP and AERODENS respectively. (win, 7/19/07)
-!  Note: This subroutine is created for supplying diameter and density for 
-!        dry dep velocity calculation in DEPVEL.  Did not want to add much 
+!  Note: This subroutine is created for supplying diameter and density for
+!        dry dep velocity calculation in DEPVEL.  Did not want to add much
 !        to DEPVEL.
 !
 !  REVISION HISTORY:
-!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC for internal tracer 
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC for internal tracer
 !                              unit conversion to [kg] if needed
 !  22 Sep 2015 - E. Lundgren - Use UNITCONV flag to determine 2nd unit conv
 !  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed DIA and DENSITY
@@ -7164,9 +7164,9 @@ C     and get the nucleation rate and critical cluster size
 
       IMPLICIT NONE
 
-      ! Arguments 
+      ! Arguments
       LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      INTEGER,           INTENT(IN)    :: LEV  
+      INTEGER,           INTENT(IN)    :: LEV
       TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
@@ -7199,16 +7199,16 @@ C     and get the nucleation rate and critical cluster size
       RC =  GC_SUCCESS
 
       ! Convert species units to [kg] for this routine.
-      ! NOTE: For complete area-independence, species units will need to be 
+      ! NOTE: For complete area-independence, species units will need to be
       !       mixing ratio or mass per unit area in TOMAS
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, 'kg',
      &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
+         CALL GC_Error('Unit conversion error', RC,
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ENDIF 
+      ENDIF
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -7248,19 +7248,19 @@ C     and get the nucleation rate and critical cluster size
 !         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
 
          ! Get the diameter from an external function
-         DIA(I,J,BIN) = GETDP( I,      J,         LEV, 
+         DIA(I,J,BIN) = GETDP( I,      J,         LEV,
      &                         TRACID, State_Met, State_Chm, RC )
-         
-         ! Prepare the mass mixing ratio to call external function 
+
+         ! Prepare the mass mixing ratio to call external function
          ! for density
          MH2O = Spc(I,J,1,WID         )
 !         IF ( LSULF30 ) MSO4  = Spc(I,J,LEV,id_SF1-1+BIN)
          IF ( id_SF1 > 0 ) MSO4  = Spc(I,J,LEV,id_SF1-1+BIN)
 !         IF ( LSALT30 ) MNACL = Spc(I,J,LEV,id_SS1-1+BIN)
          IF ( id_SS1 > 0 ) MNACL = Spc(I,J,LEV,id_SS1-1+BIN)
-         IF ( id_ECIL1 > 0 .AND.id_ECOB1 > 0 .AND. 
+         IF ( id_ECIL1 > 0 .AND.id_ECOB1 > 0 .AND.
      &        id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
-!         IF ( LCARB30 ) THEN 
+!         IF ( LCARB30 ) THEN
             MECIL = Spc(I,J,LEV,id_ECIL1-1+BIN)
             MECOB = Spc(I,J,LEV,id_ECOB1-1+BIN)
             MOCIL = Spc(I,J,LEV,id_OCIL1-1+BIN)
@@ -7270,8 +7270,8 @@ C     and get the nucleation rate and critical cluster size
         IF ( id_DUST1 > 0 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
 
         ! Get density from external function
-         DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, 
-     &                               MNACL, MECIL, MECOB, 
+         DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4,
+     &                               MNACL, MECIL, MECOB,
      &                               MOCIL, MOCOB, MDUST, MH2O  )
 
       ENDDO
@@ -7287,28 +7287,28 @@ C     and get the nucleation rate and critical cluster size
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! Convert species units back to original unit 
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      ! Convert species units back to original unit
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
+         CALL GC_Error('Unit conversion error', RC,
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ENDIF 
-      
+      ENDIF
+
       ! Free pointer
       Spc => NULL()
 
       RETURN
       END SUBROUTINE AERO_DIADEN
-      
+
 !-----------------------------------------------------------------------------
-      
-      SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, 
+
+      SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm,
      &                    State_Grid, State_Met, LOCATION, RC )
-!      
+!
 !*****************************************************************************
-!  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
+!  Subroutine CHECKMN use the subroutine MNFIX to check for error in the
 !  aerosol mass and number inconsistencies. (win, 7/24/07)
 !  Variables
 !  I, J, L    (INTEGER )  : Grid box
@@ -7354,7 +7354,7 @@ C     and get the nucleation rate and critical cluster size
       INTEGER                :: K, JC, NKID, TRACNUM, MPNUM
       CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
       LOGICAL                :: ERRORSWITCH
-                               ! Make ERRORSWITCH = .TRUE. to get full print 
+                               ! Make ERRORSWITCH = .TRUE. to get full print
                                ! for debugging
 
 !sfarina
@@ -7365,7 +7365,7 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)                         :: Gcd(ICOMP - 1)
       REAL*4                           :: BOXVOL
       REAL(fp)                         :: XFER(IBINS)
-    
+
       ! For values from Input_Opt
       LOGICAL   :: LPRT
 
@@ -7395,7 +7395,7 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
 
       ! Check throughout all grid boxes
-      IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN 
+      IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN
          I1 = 1
          I2 = State_Grid%NX
          J1 = 1
@@ -7423,19 +7423,19 @@ C     and get the nucleation rate and critical cluster size
       DO I = I1, I2
       DO J = J1, J2
       DO L = L1, L2
-         
-         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
 
          ! Swap GEOSCHEM variables into aerosol algorithm variables
          DO K = 1, IBINS
             TRACNUM = id_NK1 - 1 + K
             ! Check for nan
-            IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) 
+            IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) )
      &           print *, 'Found NaN at',I, J, L,'Species',TRACNUM
             NK(K) = Spc(I,J,L,TRACNUM)
             DO JC = 1, ICOMP-IDIAG
                TRACNUM = id_NK1 - 1 + K + IBINS*JC
-               IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) 
+               IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) )
      &              print *, 'Found NaN at',I, J, L,'Species',TRACNUM
                MK(K,JC) = Spc(I,J,L,TRACNUM)
             ENDDO
@@ -7450,15 +7450,15 @@ C     and get the nucleation rate and critical cluster size
          IF ( SRTNH4 > 0 ) THEN
             CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), XFER  )
             MK(1:IBINS,SRTNH4) = XFER(1:IBINS)
-            Gc(SRTNH4) = Spc(I,J,L,id_NH3) 
+            Gc(SRTNH4) = Spc(I,J,L,id_NH3)
          ENDIF
 
-!         if ( i==26 .and. j==57 .and. l==13 ) 
+!         if ( i==26 .and. j==57 .and. l==13 )
 !     &        call debugprint(Nk,Mk,i,j,l,'In CHECKMN')
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
-!         if(i==22.and.j==33.and.l==2) 
+!         if(i==22.and.j==33.and.l==2)
 !     &      call debugprint( NK, MK, i,j,l,LOCATION)
 !%%%% CRITICAL
          CALL MNFIX( NK, MK, ERRORSWITCH )
@@ -7470,16 +7470,16 @@ C     and get the nucleation rate and critical cluster size
 !               PRINT *,'Let error go during spin up'
 !            ENDIF
          ENDIF
-         
+
          ! Save the error fixing to diagnostic AERO-FIX
          MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
-#endif       
+#endif
 
-         ! Swap Nk and Mk arrays back to Spc 
+         ! Swap Nk and Mk arrays back to Spc
          DO K = 1, IBINS
             TRACNUM = id_NK1 - 1 + K
             Spc(I,J,L,TRACNUM) = Nk(K)
@@ -7489,39 +7489,39 @@ C     and get the nucleation rate and critical cluster size
             ENDDO
             Spc(I,J,L,id_AW1-1+K) = MK(K,SRTH2O)
          ENDDO
-      
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
+
       IF ( LPRT ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
 
       ! Free pointer
       Spc => NULL()
 
       ! Return to calling program
-      END SUBROUTINE CHECKMN    
+      END SUBROUTINE CHECKMN
 
 !-----------------------------------------------------------------------------
-      
+
       SUBROUTINE MNFIX ( NK, MK, ERRORSWITCH )
 !
 !*****************************************************************************
 !  Subroutine MNFIX examines the mass and number distrubution and determine if
-!  any bins have an average mass outside their normal range.  This can happen 
+!  any bins have an average mass outside their normal range.  This can happen
 !  because some process, e.g. advection, seems to treat the mass and number
-!  species inconsistently.  If any bins are out of range, I shift some mass 
-!  and number to a new bin in a way that conserves both. 
+!  species inconsistently.  If any bins are out of range, I shift some mass
+!  and number to a new bin in a way that conserves both.
 !  (win, 7/23/07)
 !  ORiginally written by Peter Adams, September 2000
 !  Modified for GEOS-CHEM by Win Trivitayanurak (win@cmu.edu)
 !
-!  NOTES: 
-!  (1 ) Getting rid of eps which was added to the denominator to 
+!  NOTES:
+!  (1 ) Getting rid of eps which was added to the denominator to
 !       avoid a division by zero when calculating avg mass/number
 !       and calculating multicomponent mass species fj=MK(k,j)/drymass.
-!  (2 ) Introduce this code from a previous version of GEOSCHEM -- so this 
+!  (2 ) Introduce this code from a previous version of GEOSCHEM -- so this
 !       may need cleaning up later since this version is full of debugging
 !       print statements (Win, 7/23/07)
 !  (3 ) Bug fix - now when shifting mass or number, it can't try to go beyond
@@ -7546,8 +7546,8 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)              :: MSHIFT !mass to shift to new bin
       REAL(fp)              :: FJ !fraction of mass that is component j
       REAL(fp)              :: save1,save2,save3,save4,save5
-!      REAL(fp),   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-!      REAL(fp),   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+!      REAL(fp),   PARAMETER :: EPS2= 1.D-32 !small number for Mk
+!      REAL(fp),   PARAMETER :: EPS = 1.D-2 !small number for Nk
       REAL(fp),   PARAMETER :: EPS  = 1.e-20_fp !small number for Nk
       REAL(fp),   PARAMETER :: EPS2 = 1.e-28_fp !small number for Mk
       REAL(fp),   PARAMETER :: TINY = 1.e-36_fp !small number
@@ -7555,7 +7555,7 @@ C     and get the nucleation rate and critical cluster size
 
       LOGICAL             :: FIXERROR
       LOGICAL             :: PRT
-      REAL(fp)              :: TOTMAS, TOTNUM !for print debug 
+      REAL(fp)              :: TOTMAS, TOTNUM !for print debug
 
       !=================================================================
       ! MNFIX begins here!
@@ -7589,7 +7589,7 @@ C     and get the nucleation rate and critical cluster size
            ENDIF
         ENDDO
         IF ( NK(K) < 0e+0_fp ) THEN
-           IF ( PRT ) THEN 
+           IF ( PRT ) THEN
               PRINT *,'MNFIX[0]: FOUND NEGATIVE N'
               PRINT *, 'Bin, N', K, NK(K)
            ENDIF
@@ -7602,7 +7602,7 @@ C     and get the nucleation rate and critical cluster size
               GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
            ENDIF
         ENDIF
-        IF ( IT_IS_NAN(NK(K)) ) THEN 
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'MNFIX(0): Found NaN in Nk(,',k,')'
@@ -7610,7 +7610,7 @@ C     and get the nucleation rate and critical cluster size
         ENDIF
         DO J = 1, ICOMP
            IF ( MK(K,J) < 0e+0_fp ) THEN
-              IF ( PRT ) THEN 
+              IF ( PRT ) THEN
                  PRINT *,'MNFIX[0]: FOUND NEGATIVE M'
                  PRINT *,'Bin, Comp, Mk', K, J, MK(K,J)
               ENDIF
@@ -7623,7 +7623,7 @@ C     and get the nucleation rate and critical cluster size
                  GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
               ENDIF
            ENDIF
-           IF ( IT_IS_NAN(MK(K,J)) ) THEN 
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -7659,7 +7659,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! Check if both number and mass are zero, if yes then exit mnfix.
       !----------------------------------------------------------------
-      TOTNUM = 0e+0_fp 
+      TOTNUM = 0e+0_fp
       TOTMAS = 0e+0_fp
       DO K = 1,IBINS
          TOTNUM = TOTNUM + NK(K)
@@ -7778,7 +7778,7 @@ C     and get the nucleation rate and critical cluster size
 
          IF ( AVG >  xk(IBINS+1) ) THEN
             IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(ibins+1) at bin',K
-            IF ( FIXERROR ) THEN 
+            IF ( FIXERROR ) THEN
                !out of bin range - remove some mass
                MSHIFT = NK(k)* xk(IBINS+1)/ 1.2
                DO J= 1, ICOMP
@@ -7792,7 +7792,7 @@ C     and get the nucleation rate and critical cluster size
          ENDIF
          IF ( AVG < xk(1)) THEN
             IF( PRT ) PRINT *,'MNFIX [2]: AVG < Xk(1)'
-            IF( FIXERROR ) THEN 
+            IF( FIXERROR ) THEN
                !out of bin range - remove some number
                NK(K) = DRYMASS/ ( xk(1)* 1.2 )
             ELSE
@@ -7868,7 +7868,7 @@ C     and get the nucleation rate and critical cluster size
          IF ( AVG >  xk(K+1) ) THEN
            IF ( PRT ) PRINT *, 'MNFIX [3]: AVG>Xk(',K+1,')'
            IF ( PRT ) CALL DEBUGPRINT(NK,MK,0,0,0,'inside MNFIX')
-           IF ( FIXERROR ) THEN 
+           IF ( FIXERROR ) THEN
             !Average mass is too high - shift to higher bin
             !KK = K + 1 ! jrp, this was causing errors
 !      ERRORSWITCH=.TRUE.
@@ -7887,18 +7887,18 @@ C     and get the nucleation rate and critical cluster size
                   MSHIFT = NK(k)* xk(k+1)/ 1.1
                   if( PRT ) PRINT*,' Mass being discarded: '
                   DO J= 1, ICOMP
-                     !if (PRT) 
+                     !if (PRT)
 !                     print*,'Removing mass in MNFIX',
 !     &                    MSHIFT, DRYMASS
                      MK(K,J) = MK(K,J)* MSHIFT/ (DRYMASS)
-                  ENDDO 
+                  ENDDO
                   ! and recalculate dry mass (win, 8/1/07)
                   DRYMASS = 0.e+0_fp ! jrp fix 2/29/12
                   DO J = 1, ICOMP-IDIAG
                      DRYMASS = DRYMASS + MK(K,J)
                   ENDDO
                   GOTO 111
-               ENDIF         
+               ENDIF
             ENDIF
 
             if(PRT)print*,'Old NK',NK(k),'Old DRYMASS',DRYMASS,'bin',k
@@ -7918,10 +7918,10 @@ C     and get the nucleation rate and critical cluster size
                print*,'SO4 mass bin  ',k,(MK(k,srtso4))
                print*,'Total mass bin',kk,sum(MK(kk,1:icomp-idiag))
                print*,'SO4 mass bin  ' ,kk,(MK(kk,srtso4))
-            endif            
+            endif
 
             DO J = 1, ICOMP-IDIAG
-              FJ = MK(K,J)/ DRYMASS 
+              FJ = MK(K,J)/ DRYMASS
               MK(K,J) = XOLD * NK(K) * FJ
               MK(KK,J) = MK(KK,J) + MSHIFT * FJ
             ENDDO
@@ -7932,7 +7932,7 @@ C     and get the nucleation rate and critical cluster size
                print*,'SO4 mass bin  ',k,(MK(k,srtso4))
                print*,'Total mass bin',kk,sum(MK(kk,1:icomp-idiag))
                print*,'SO4 mass bin  ',kk,(MK(kk,srtso4))
-            endif            
+            endif
 
 
 
@@ -7940,7 +7940,7 @@ C     and get the nucleation rate and critical cluster size
             ERRORSWITCH = .TRUE.
             PRINT *, 'MNFIX(3) : AVG>Xk(',K+1,')'
             GOTO 300
-           ENDIF    ! Fixerror             
+           ENDIF    ! Fixerror
          ENDIF       ! AVG > Xk(k+1)
 
 !         if (PRT) then     !<step5.1-temp>
@@ -7958,7 +7958,7 @@ C     and get the nucleation rate and critical cluster size
                KK = K
                XNEW = xk(KK)* 1.1
  200           IF ( XNEW >= AVG ) THEN
-                  IF ( KK > 1 ) THEN 
+                  IF ( KK > 1 ) THEN
                      KK = KK - 1
                      XNEW = xk(KK)* 1.1
                      GOTO 200
@@ -7966,7 +7966,7 @@ C     and get the nucleation rate and critical cluster size
                      ! Already reach lowest bin - must remove some number (win, 8/1/07)
                      NK(K) = DRYMASS/ ( xk(1)* 1.2 )
                      GOTO 222
-                  ENDIF                     
+                  ENDIF
                ENDIF
                !XOLD = SQRT(xk(K)* xk(K+1))
                XOLD = AVGMASS(k)
@@ -7978,7 +7978,7 @@ C     and get the nucleation rate and critical cluster size
                NK(K) = NK(K) - NSHIFT
                NK(KK) = NK(KK) + NSHIFT
                DO J=1,ICOMP
-                  FJ = MK(K,J)/ DRYMASS   
+                  FJ = MK(K,J)/ DRYMASS
                   MK(K,J) = XOLD * NK(K) * FJ
                   MK(KK,J) = MK(KK,J) + MSHIFT * FJ
                ENDDO
@@ -7987,9 +7987,9 @@ C     and get the nucleation rate and critical cluster size
                ERRORSWITCH = .TRUE.
                PRINT *, 'MNFIX(4): AVG < Xk(',k,')'
                GOTO 300
-            ENDIF       
+            ENDIF
  222      ENDIF
-         
+
 !         if (PRT) then     !<step5.1-temp>
 !            print *,'After_Check5---------------------'
 !            totmas = sum(MK(k,1:icomp-1))
@@ -8037,7 +8037,7 @@ C     and get the nucleation rate and critical cluster size
       !--------------------------------------------------------------------------
       DO K = 1, IBINS
         IF ( NK(K) < 0e+0_fp ) THEN
-           IF ( PRT ) THEN 
+           IF ( PRT ) THEN
               PRINT *,'MNFIX[5]: FOUND NEGATIVE N'
               PRINT *, 'Bin, N', K, NK(K)
            ENDIF
@@ -8052,7 +8052,7 @@ C     and get the nucleation rate and critical cluster size
         ENDIF
         DO J = 1, ICOMP
            IF ( MK(K,J) < 0e+0_fp ) THEN
-              IF ( PRT ) THEN 
+              IF ( PRT ) THEN
                  PRINT *,'MNFIX[6]: FOUND NEGATIVE M'
                  PRINT *,'Bin, Comp, Mk', K, J, MK(K,J)
               ENDIF
@@ -8093,7 +8093,7 @@ C     and get the nucleation rate and critical cluster size
         ENDDO
       ENDDO
 
-      ! Check any last inconsistent M=0 or N=0 
+      ! Check any last inconsistent M=0 or N=0
       !--------------------------------------------------------
       DO K = 1, IBINS
          DRYMASS = 0.e+0_fp
@@ -8101,7 +8101,7 @@ C     and get the nucleation rate and critical cluster size
             DRYMASS = DRYMASS + MK(K,J)
          ENDDO
          IF ( NK(K) /= 0e+0_fp .AND. DRYMASS == 0e+0_fp .or.
-     &        NK(K) == 0e+0_fp .AND. DRYMASS /= 0e+0_fp     ) THEN   
+     &        NK(K) == 0e+0_fp .AND. DRYMASS /= 0e+0_fp     ) THEN
             PRINT *, '5.5 set nk, mk to ZERO for all bins'
             DO J = 1, ICOMP
                MK(K,J)=0.e+0_fp
@@ -8126,7 +8126,7 @@ C     and get the nucleation rate and critical cluster size
       ENDDO
 
  300  CONTINUE
-          
+
       IF (ERRORSWITCH) THEN
 555   FORMAT (3E15.5E2)
        WRITE(6,*)'END OF MNFIX ( WHERE? )'
@@ -8142,7 +8142,7 @@ C     and get the nucleation rate and critical cluster size
 !%%% inserted into the DOloop
 !        WRITE(6,555)
 !     &          TOTMAS, NK(K),
-!     &          TOTMAS/ NK(K) 
+!     &          TOTMAS/ NK(K)
 !        print*,'-----------'
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         call debugprint( NK, MK, 0,0,0,'End of MNFIX')
@@ -8167,24 +8167,24 @@ C     and get the nucleation rate and critical cluster size
      &                        PRES,TSCALE, NDISTFINAL, MADDFINAL, pdbug)
 !
 !*****************************************************************************
-!  Subroutine SUBGRIDCOAG determine how much of each size of freshly emitted 
-!  aerosol will be scavenged by coagulation prior to being completely mixed in 
-!  the gridbox and will give the new emissions size distribution along with 
+!  Subroutine SUBGRIDCOAG determine how much of each size of freshly emitted
+!  aerosol will be scavenged by coagulation prior to being completely mixed in
+!  the gridbox and will give the new emissions size distribution along with
 !  where the mass of coagulated particles should be added.
 !  Written by Jeff Pierce, December, 2006
 !  Implement in GEOS-Chem by Win Trivitayanurak, 10/4/07
 !
 !  Varibles comments:
 !  ==========================================================================
-!  ndistinit(nbins)   : the number of particles being added to the gridbox 
+!  ndistinit(nbins)   : the number of particles being added to the gridbox
 !                       before subgrid coag
 !  ndist(nbins)       : the number of particles in the box
 !  mdist(nbins,icomp) : the mass of each component in the box. (kg)
 !  boxvolume          : volume of box in cm3
 !  tscale             : the scale time for mixing (s)
-!  ndistfinal(nbins)  : the number of particles being added to the gridbox 
+!  ndistfinal(nbins)  : the number of particles being added to the gridbox
 !                       after subgrid coag
-!  maddfinal(nbins)   : the mass that should be added to each bin due to 
+!  maddfinal(nbins)   : the mass that should be added to each bin due to
 !                       coagulation (kg)
 !
 !
@@ -8192,8 +8192,8 @@ C     and get the nucleation rate and critical cluster size
 !*****************************************************************************
 
       ! Arguments
-      REAL(fp) ndistinit(ibins) 
-      REAL(fp) ndist(ibins) 
+      REAL(fp) ndistinit(ibins)
+      REAL(fp) ndist(ibins)
       REAL(fp) mdist(ibins,icomp)
       REAL*4 boxvolume, temp , PRES
       REAL*4 tscale
@@ -8239,7 +8239,7 @@ C     and get the nucleation rate and critical cluster size
 
       !Before going in to calculation, check and fix Nk and Mk
       ERRORSWITCH = .FALSE.
-#if defined ( DEBUG ) 
+#if defined ( DEBUG )
 !      print *, 'mnfix in tomas_mod:7495'
 #endif
       CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
@@ -8248,7 +8248,7 @@ C     and get the nucleation rate and critical cluster size
          PDBUG = .TRUE.
          GOTO 11
       ENDIF
-         
+
       if (pdbug) call debugprint(Ndist,Mdist,0,0,0,
      &                           'SUBDGRIDCOAG: after MNFIX_1')
 
@@ -8285,7 +8285,7 @@ C     and get the nucleation rate and critical cluster size
 
       do i=1,ibins
          do j=1,ibins
-            Kn=4.0*(Dk(i)+Dk(j))          
+            Kn=4.0*(Dk(i)+Dk(j))
      &        /(sqrt(ck(i)**2+ck(j)**2)*(Dpk(i)+Dpk(j))) !S&P eqn 12.51
             beta=(1.0+Kn)/(1.0+2.0*Kn*(1.0+Kn))          !S&P eqn 12.50
             !This is S&P eqn 12.46 with non-continuum correction, beta
@@ -8317,7 +8317,7 @@ C     and get the nucleation rate and critical cluster size
 !debug
          if(pdbug) print *, 'Bin k', k
 !debug
-         if(pdbug) print *, 'Bin kk   fracdiaml(k,kk)'         
+         if(pdbug) print *, 'Bin kk   fracdiaml(k,kk)'
          do kk=k+1,ibins
             if (kcoag(k).gt.0.e+0_fp)then
                fracdiaml(k,kk)=kij(k,kk)*ndist(kk)/kcoag(k)
@@ -8352,15 +8352,15 @@ C     and get the nucleation rate and critical cluster size
 
  11   continue
       return
-      
+
       END SUBROUTINE SUBGRIDCOAG
-      
+
 !-----------------------------------------------------------------------------
-      
+
       SUBROUTINE STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd )
 !
 !*****************************************************************************
-!  Subroutine STORENM stores values of Nk and Mk into Nkd and Mkd for 
+!  Subroutine STORENM stores values of Nk and Mk into Nkd and Mkd for
 !  diagnostic purposes.  Also do gas phase concentrations. (win, 7/23/07)
 !*****************************************************************************
 
@@ -8374,7 +8374,7 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp),INTENT(OUT)   :: Mkd(IBINS,ICOMP)
       REAL(fp),INTENT(OUT)   :: Gcd(ICOMP - 1)
 
-!sfarina 
+!sfarina
 
       DO J= 1, ICOMP-1
          Gcd(J)=Gc(J)
@@ -8432,7 +8432,7 @@ C     and get the nucleation rate and critical cluster size
       END SUBROUTINE DEBUGPRINT
 
 !-----------------------------------------------------------------------------
-      
+
       SUBROUTINE NH4BULKTOBIN( MSULF, NH4B, MAMMO )
 !
 !*****************************************************************************
@@ -8484,25 +8484,25 @@ C     and get the nucleation rate and critical cluster size
 
 
 !      write(777,*) NH4B/TOTMASS
-      
+
       RETURN
       END SUBROUTINE NH4BULKTOBIN
-      
+
 !------------------------------------------------------------------------------
-      
-      FUNCTION AERODENS( MSO4, MNO3, MNH4, MNACL, MECIL, MECOB, MOCIL, 
+
+      FUNCTION AERODENS( MSO4, MNO3, MNH4, MNACL, MECIL, MECOB, MOCIL,
      &                   MOCOB, MDUST, MH2O )  RESULT( VALUE )
 !
 !******************************************************************************
 !  Function AERODENS calculates the density (kg/m3) of a sulfate-nitrate-
 !  ammonium-nacl-OC-EC-dust-water mixture.  Inorganic mass (sulfate-nitrate-
 !  ammonium-nacl-water) is assumed to be internally mixed.  Then the density
-!  of inorg and EC, OC, and dust is combined weighted by mass.  
-!  WRITTEN BY Peter Adams, May 1999 in GISS GCM-II' and extened to include 
+!  of inorg and EC, OC, and dust is combined weighted by mass.
+!  WRITTEN BY Peter Adams, May 1999 in GISS GCM-II' and extened to include
 !  carbonaceous aerosol in Jan, 2002.
 !
 !  NOTES:
-!  (1 ) Add error check to prevent division by zero (win, 3/13/08) 
+!  (1 ) Add error check to prevent division by zero (win, 3/13/08)
 !******************************************************************************
 !
       ! Arguments
@@ -8511,7 +8511,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! Return value
       REAL(fp)                  :: VALUE
-      
+
       ! Local variables
       real(fp)                  :: IDENSITY, DEC, DOC, DDUST, MTOT
       parameter(dec=2200., doc=1400., ddust=2650.)
@@ -8519,10 +8519,10 @@ C     and get the nucleation rate and critical cluster size
       !=================================================================
       ! AERODENS begins here!
       !=================================================================
-      
+
       IDENSITY = INODENS( MSO4, MNO3, MNH4, MNACL, MH2O )
       MTOT = MSO4+MNO3+MNH4+MNACL+MH2O+MECIL+MECOB+MOCIL+MDUST+MOCOB
-      IF ( MTOT > 0.e+0_fp ) THEN 
+      IF ( MTOT > 0.e+0_fp ) THEN
          VALUE = ( IDENSITY*(MSO4+MNO3+MNH4+MNACL+MH2O) +
      &             DEC*(MECIL+MECOB) + DOC*(MOCIL+MOCOB)+
      &             DDUST*MDUST                            )/MTOT
@@ -8534,13 +8534,13 @@ C     and get the nucleation rate and critical cluster size
 
 !------------------------------------------------------------------------------
 
-      FUNCTION INODENS( MSO4_, MNO3_, MNH4_, MNACL_, MH2O_ ) 
+      FUNCTION INODENS( MSO4_, MNO3_, MNH4_, MNACL_, MH2O_ )
      &     RESULT( VALUE )
 !
 !******************************************************************************
 !  Function INODENS calculates the density (kg/m3) of a sulfate-nitrate-
-!  ammonium-nacl-water mixture that is assumed to be internally mixed.  
-!  WRITTEN BY Peter Adams, May 1999 in GISS GCM-II' 
+!  ammonium-nacl-water mixture that is assumed to be internally mixed.
+!  WRITTEN BY Peter Adams, May 1999 in GISS GCM-II'
 !  Introduced to GEOS-CHEM by Win Trivitayanurak (win@cmu.edu) 8/6/07 first
 !  as AERODENS, then change to INODENS on 9/3/07
 !
@@ -8571,7 +8571,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! Local variables
       real(fp) MSO4, MNO3, MNH4, MNACL, MH2O
-!      real(fp) so4temp, no3temp, nh4temp, nacltemp, h2otemp  
+!      real(fp) so4temp, no3temp, nh4temp, nacltemp, h2otemp
       real(fp) mwso4, mwno3, mwnh4, mwnacl, mwh2o            !molecular weights
       real(fp) ntot, mtot                          !total number of moles, mass
       real(fp) nso4, nno3, nnh4, nnacl, nh2o       !moles of each species
@@ -8588,14 +8588,14 @@ C     and get the nucleation rate and critical cluster size
       real(fp) d                              !mixture density
       real(fp) xtot
 
-!     In the lines above, "an" refers to ammonium nitrate, "s0" to 
+!     In the lines above, "an" refers to ammonium nitrate, "s0" to
 !     sulfuric acid, "s1" to ammonium bisulfate, and "s2" to ammonium sulfate.
 !     "nacl" or "ss" is sea salt.
 
-      parameter(mwso4=96.e+0_fp, mwno3=62.e+0_fp, mwnh4=18.e+0_fp, 
-     &          mwh2o=18.e+0_fp, 
+      parameter(mwso4=96.e+0_fp, mwno3=62.e+0_fp, mwnh4=18.e+0_fp,
+     &          mwh2o=18.e+0_fp,
      &          mwnacl=58.45e+0_fp)
-      parameter(mwan=mwnh4+mwno3, mws0=mwso4+2.e+0_fp, 
+      parameter(mwan=mwnh4+mwno3, mws0=mwso4+2.e+0_fp,
      &          mws1=mwso4+1.e+0_fp+mwnh4,
      &          mws2=2.e+0_fp*mwnh4+mwso4)
 
@@ -8617,11 +8617,11 @@ C     and get the nucleation rate and critical cluster size
 !      nacltemp=mnacl
 
 ! [Pengfei Liu, avoid equality test with floating-point real numbers
-      
-      !<step4.7> if the aerosol mass is zero - then just return the 
+
+      !<step4.7> if the aerosol mass is zero - then just return the
       !typical density = 1500 kg/m3 (win, 1/4/06)
-!      if (mso4 .eq. 0.e+0_fp .and. mno3 .eq.0.e+0_fp 
-!     &     .and. mnh4.eq.0.e+0_fp 
+!      if (mso4 .eq. 0.e+0_fp .and. mno3 .eq.0.e+0_fp
+!     &     .and. mnh4.eq.0.e+0_fp
 !     &     .and. mnacl .eq. 0.e+0_fp ) then
 !         VALUE = 1500.e+0_fp !kg/m3
 !         goto 10
@@ -8714,31 +8714,31 @@ C     and get the nucleation rate and critical cluster size
 
       !Calculate binary mixture densities (Tang, eqn 9)
 !      dan=0.9971e+0_fp +4.05e-3_fp*xtot +9.0e-6_fp*xtot**2.e+0_fp
-!      ds0=0.9971e+0_fp +7.367e-3_fp*xtot -4.934d-5*xtot**2.e+0_fp 
+!      ds0=0.9971e+0_fp +7.367e-3_fp*xtot -4.934d-5*xtot**2.e+0_fp
 !     &     +1.754e-6_fp*xtot**3.e+0_fp - 1.104d-8*xtot**4.e+0_fp
-!      ds1=0.9971e+0_fp +5.87e-3_fp*xtot -1.89e-6_fp*xtot**2.e+0_fp 
+!      ds1=0.9971e+0_fp +5.87e-3_fp*xtot -1.89e-6_fp*xtot**2.e+0_fp
 !     &     +1.763e-7_fp*xtot**3.e+0_fp
-!      ds2=0.9971e+0_fp +5.92e-3_fp*xtot -5.036e-6_fp*xtot**2.e+0_fp 
+!      ds2=0.9971e+0_fp +5.92e-3_fp*xtot -5.036e-6_fp*xtot**2.e+0_fp
 !     &     +1.024d-8*xtot**3.e+0_fp
-!      dss=0.9971e+0_fp +7.41e-3_fp*xtot -3.741d-5*xtot**2.e+0_fp 
+!      dss=0.9971e+0_fp +7.41e-3_fp*xtot -3.741d-5*xtot**2.e+0_fp
 !     &     +2.252e-6_fp*xtot**3.e+0_fp   -2.06d-8*xtot**4.e+0_fp
 
       dan=0.9971e+0_fp + xtot * (4.05e-3_fp + 9.0e-6_fp * xtot)
-      ds0=0.9971e+0_fp 
+      ds0=0.9971e+0_fp
      &   +xtot*(7.367e-3_fp
      &   +xtot*(-4.934d-5
      &   +xtot*(1.754e-6_fp
      &   +xtot*(-1.104d-8  ))))
-      ds1=0.9971e+0_fp 
-     &   +xtot*(5.87e-3_fp 
+      ds1=0.9971e+0_fp
+     &   +xtot*(5.87e-3_fp
      &   +xtot*(-1.89e-6_fp
      &   +xtot*(1.763e-7_fp )))
-      ds2=0.9971e+0_fp 
+      ds2=0.9971e+0_fp
      &   +xtot*(5.92e-3_fp
      &   +xtot*(-5.036e-6_fp
      &   +xtot*(1.024d-8    )))
 
-      dss=0.9971e+0_fp 
+      dss=0.9971e+0_fp
      &   +xtot*(7.41e-3_fp
      &   +xtot*(-3.741d-5
      &   +xtot*(2.252e-6_fp
@@ -8781,7 +8781,7 @@ C     and get the nucleation rate and critical cluster size
          print *, 'ERROR :: aerodens - negative', VALUE
          STOP
       endif
- 
+
  10   CONTINUE
 
       END FUNCTION INODENS
@@ -8792,12 +8792,12 @@ C     and get the nucleation rate and critical cluster size
 !
 !******************************************************************************
 !  Function DMDT_INT apply the analytic solution to the droplet growth equation
-!  in mass space for a given scale length which mimics the inclusion of gas 
+!  in mass space for a given scale length which mimics the inclusion of gas
 !  kinetic effects.
 !  (win, 7/23/07)
 !  Originally written by Peter Adams
 !  Modified for GEOS-CHEM by Win Trivitayanurak (win@cmu.edu)
-!  
+!
 !  Variables
 !  (1)  M0  initial mass
 !  (2)  L0  length scale
@@ -8817,7 +8817,7 @@ C     and get the nucleation rate and critical cluster size
 
 !Reference: Stevens et al. 1996, Elements of the Microphysical Structure
 !           of Numerically Simulated Nonprecipitating Stratocumulus,
-!           J. Atmos. Sci., 53(7),980-1006. 
+!           J. Atmos. Sci., 53(7),980-1006.
 ! This calculates a solution for m(t+dt) using eqn.(A3) from the reference
 
 
@@ -8834,7 +8834,7 @@ C     and get the nucleation rate and critical cluster size
       !=================================================================
       ! DMDT_INT begins here!
       !=================================================================
- 
+
       MH2O = ( WR - 1.e+0_fp ) * M0
       X = ( ( M0 + MH2O ) ** C + L0 )
       X = MAX( ZERO, SQRT(MAX(ZERO,C*TAU+X))-L0 )
@@ -8847,7 +8847,7 @@ C     and get the nucleation rate and critical cluster size
 !!         DMDT_INT = X*X*X/WR    !<step5.2> change calculation to keep WR constant after condensation/evap (win, 5/14/06)
 
       !<step6.3> bring back the previously reverted back (win, 10/2/08)
-      VALUE = X*X*X/WR 
+      VALUE = X*X*X/WR
 !pja Perform some numerical checks on dmdt_int
       IF ((TAU > 0.0) .and. (VALUE < M0)) VALUE = M0
       IF ((TAU < 0.0) .and. (VALUE > M0)) VALUE = M0
@@ -8855,14 +8855,14 @@ C     and get the nucleation rate and critical cluster size
 
       ! Return to calling program
       END FUNCTION DMDT_INT
- 
+
 !------------------------------------------------------------------------------
 
       FUNCTION GASDIFF( TEMP, PRES, MW, SV ) RESULT( VALUE )
 !
 !******************************************************************************
 !  Function GASDIFF returns the diffusion constant of a species in air (m2/s).
-!  It uses the method of Fuller, Schettler, and Giddings as described in 
+!  It uses the method of Fuller, Schettler, and Giddings as described in
 !  Perry's Handbook for Chemical Engineers.
 !  WRITTEN BY Peter Adams, May 2000
 !******************************************************************************
@@ -8871,7 +8871,7 @@ C     and get the nucleation rate and critical cluster size
       real temp, pres  !temperature (K) and pressure (Pa) of air
       real mw          !molecular weight (g/mol) of diffusing species
       real Sv          !sum of atomic diffusion volumes of diffusing species
-      real VALUE      
+      real VALUE
 
       ! Local variables
        real mwair, Svair   !same as above, but for air
@@ -8885,7 +8885,7 @@ C     and get the nucleation rate and critical cluster size
        mwf=sqrt((mw+mwair)/(mw*mwair))
        Svf=(Sv**(1./3.)+Svair**(1./3.))**2.
        VALUE =1.0e-7*temp**1.75*mwf/pres*1.0e5/Svf
-      
+
 
        END FUNCTION GASDIFF
 
@@ -8900,14 +8900,14 @@ C     and get the nucleation rate and critical cluster size
 !  Originally written by Peter Adams in GISS GCM-II'
 !  Use in GEOS-CHEM v5-07-08 and later by Win Trivitayanurak (win@cmu.edu)
 !
-!  Arguments as Input : 
+!  Arguments as Input :
 !  ===========================================================================
 !  (1 ) I  (INTEGER) : Grid location
 !  (2 ) J  (INTEGER) : Grid location
 !  (3 ) L  (INTEGER) : Grid location
 !  (4 ) N  (INTEGER) : Species index
 !
-!  NOTES: 
+!  NOTES:
 !  (1 ) Each component mass has a unit of kg/grid box
 !  (2 ) Total mass assumed to be ammonium bisulfate including water
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -8936,11 +8936,11 @@ C     and get the nucleation rate and critical cluster size
 
       ! Local variables
       INTEGER                 :: NUMBIN,  ID,   JC
-      REAL(fp)                :: MSO4, MNO3, MNH4, MH2O, MNACL 
+      REAL(fp)                :: MSO4, MNO3, MNH4, MH2O, MNACL
       REAL(fp)                :: MECIL, MECOB, MOCIL, MOCOB, MDUST
       REAL(fp)                :: DENSITY !density (kg/m3) of current size bin
       REAL(fp)                :: TOTALMASS !(kg)
-      REAL(fp)                :: MCONC, NCONC  
+      REAL(fp)                :: MCONC, NCONC
       CHARACTER(LEN=255)      :: MSG, LOC ! For species unit check (ewl)
 
 !      real(fp), external :: aerodens
@@ -8949,7 +8949,7 @@ C     and get the nucleation rate and critical cluster size
       parameter (pi=3.141592654e+0_fp)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
+      ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
@@ -8971,7 +8971,7 @@ C     and get the nucleation rate and critical cluster size
       ID = id_NK1-1+NUMBIN   !ID = Species ID of number at current bin
 
       !-------------------------------------------------------------
-      ! Calculate aerosol water in case it has not been initialized elsewhere 
+      ! Calculate aerosol water in case it has not been initialized elsewhere
       !-------------------------------------------------------------
       CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met, State_Chm, RC )
 
@@ -8995,7 +8995,7 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
       IF(IT_IS_NAN(Spc(I,J,L,ID))) PRINT *,'+++++++++ Found Nan in ' ,
      &     'GETDP at (I,J,L)',I,J,L,'Bin',NUMBIN,': Nk'
-      DO JC = 1, ICOMP-IDIAG 
+      DO JC = 1, ICOMP-IDIAG
          IF( Spc(I,J,L,ID+JC*IBINS) < 0e+0_fp ) THEN
             MCONC = ( ABS(Spc(I,J,L,ID+JC*IBINS)) * 1.e+9_fp /
      &              State_Met%AIRVOL(I,J,L) )
@@ -9005,7 +9005,7 @@ C     and get the nucleation rate and critical cluster size
                PRINT *,'#### GETDP: negative mass at',I,J,L,'bin',NUMBIN
                PRINT *,'Species',N,'Spc=',Spc(I,J,L,ID+JC*IBINS)
                CALL ERROR_STOP('Negative mass','GETDP:2')
-            ENDIF  
+            ENDIF
          ENDIF
          IF(IT_IS_NAN(Spc(I,J,L,ID+JC*IBINS))) PRINT *,'+++++++++ ',
      &     'Found Nan in GETDP at (I,J,L)',I,J,L,'Bin',NUMBIN,'comp',JC
@@ -9043,10 +9043,10 @@ C     and get the nucleation rate and critical cluster size
 
       MNO3 = 0.e+0_fp
       MNH4 = MSO4 * 1.875e-1_fp
-      TOTALMASS = ( MSO4 + MNO3 + MNH4 + MNACL + MH2O + 
+      TOTALMASS = ( MSO4 + MNO3 + MNH4 + MNACL + MH2O +
      &              MECIL + MECOB + MOCIL + MOCOB + MDUST)/
      &             Spc(I,J,L,ID)
-      DENSITY = AERODENS( MSO4, MNO3, MNH4, MNACL, MECIL, MECOB, 
+      DENSITY = AERODENS( MSO4, MNO3, MNH4, MNACL, MECIL, MECOB,
      &                    MOCIL, MOCOB, MDUST, MH2O)
 
       VALUE = ( TOTALMASS* 6.e+0_fp/ DENSITY/ PI )
@@ -9062,7 +9062,7 @@ C     and get the nucleation rate and critical cluster size
 
  20   CONTINUE
 
-      IF( IT_IS_NAN( VALUE )) 
+      IF( IT_IS_NAN( VALUE ))
      &     CALL ERROR_STOP('Result is NaN', 'GETDP:3')
 
       ! Free pointer
@@ -9080,19 +9080,19 @@ C     and get the nucleation rate and critical cluster size
 !  in the run have passed the spin-up period.  This would be used to determine
 !  if certain errors should be fixed and let slipped or to stop a run with
 !  an error message.  (win, 8/2/07)
-!  ====> Be cautious that TIMEBEGIN should be changed according to 
+!  ====> Be cautious that TIMEBEGIN should be changed according to
 !         whatever your spin-up beginning time is
 !  Example of TIMEBEGIN (in julian time)
 !         2001/07/01 = 144600.0
 !         2000/11/01 = 138792.0
-!          
+!
 !  NOTES:
 !  (1 ) Allow choices of spin-up period depending on where the check condition
 !       is used, e.g. 2 weeks, 2 days. (win, 8/2/07)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD,     ONLY : GET_TAU , GET_TAUb 
+      USE TIME_MOD,     ONLY : GET_TAU , GET_TAUb
 
       ! Arguments
       REAL*4,    INTENT(IN) :: DAYS   ! Spin-up duration (day)
@@ -9106,12 +9106,12 @@ C     and get the nucleation rate and critical cluster size
       !========================================================================
       ! SPINUP begins here!
       !========================================================================
-      
+
       TIMENOW   = GET_TAU()   ! Current time in the run (Julian time) (hrs)
       TIMEBEGIN = GET_TAUb()  ! Begin time of this run (hrs)
       TIMEINIT  = 141000. !2/1/2001    ! Start time for spin-up (hrs)
       HOURS = DAYS * 24.0     ! Period allow error to pass (hrs)
-      
+
       ! Criteria to let error go or to terminate the run
 !      IF ( TIMENOW > MIN( TIMEBEGIN, TIMEINIT ) + HOURS  ) THEN
       IF ( TIMENOW > TIMEBEGIN + HOURS  ) THEN
@@ -9128,7 +9128,7 @@ C     and get the nucleation rate and critical cluster size
       FUNCTION STRATSCAV( DP ) RESULT( VALUE )
 !
 !*****************************************************************************
-!  Function STRATSCAV is basically a lookup table to get the below-cloud 
+!  Function STRATSCAV is basically a lookup table to get the below-cloud
 !     scavenging rate (per mm of rainfall) as a function of particle
 !     diameter.  The data are taken from Dana, M. T., and
 !     J. M. Hales, Statistical Aspects of the Washout of Polydisperse
@@ -9142,9 +9142,9 @@ C     and get the nucleation rate and critical cluster size
 !
 !*****************************************************************************
 
-      ! Arguments 
+      ! Arguments
       REAL(fp),   INTENT(IN)  :: DP  !particle diameter (m)
-      
+
       ! Return value
       REAL*4                  :: VALUE
 
@@ -9171,13 +9171,13 @@ C     and get the nucleation rate and critical cluster size
      &            1.11E-03, 1.21E-03, 1.33E-03, 1.45E-03, 3.09E-03,
      &            4.86E-03, 7.24E-03, 1.02E-02, 1.36E-02, 1.76E-02,
      &            2.21E-02, 2.70E-02, 3.24E-02, 4.86E-01, 8.36E-01,
-     &            1.14E+00, 1.39E+00, 1.59E+00, 1.75E+00, 1.85E+00, 
+     &            1.14E+00, 1.39E+00, 1.59E+00, 1.75E+00, 1.85E+00,
      &            1.91E+00, 1.91E+00/
 
       !=================================================================
       ! STRATSCAV begins here!
       !=================================================================
-      
+
 ! If particle diameter is in bounds, interpolate to find value
       if ((dp .gt. dpdat(1)) .and. (dp .lt. dpdat(numpts))) then
          !loop over lookup table points to find nearest values
@@ -9202,9 +9202,9 @@ C     and get the nucleation rate and critical cluster size
       FUNCTION WATERNACL( RHE ) RESULT( VALUE )
 !
 !*****************************************************************************
-!  Function WATERNACL uses the current RH to calculate how much water is 
+!  Function WATERNACL uses the current RH to calculate how much water is
 !  in equilibrium with the seasalt.  Aerosol water concentrations are assumed
-!  to be in equilibrium at all times and the array of concentrations is 
+!  to be in equilibrium at all times and the array of concentrations is
 !  updated accordingly.
 !  WRITTEN BY Peter Adams, November 2001
 !  Introduced to GEOS-CHEM by Win Trivitayanurak. 8/6/07
@@ -9269,9 +9269,9 @@ C     and get the nucleation rate and critical cluster size
       FUNCTION WATEROCIL( RHE ) RESULT( VALUE )
 !
 !*****************************************************************************
-!  Function WATEROCIL uses the current RH to calculate how much water is 
+!  Function WATEROCIL uses the current RH to calculate how much water is
 !  in equilibrium with the hydrophillic OA.  Aerosol water concentrations
-!  are assumed to be in equilibrium at all times and the array of 
+!  are assumed to be in equilibrium at all times and the array of
 !  concentrations is updated accordingly.
 !  MODIFIED BY YUNHA LEE, AUG, 2006
 !  Bring to GEOS-CHEM by Win Trivitayanurak 9/3/07
@@ -9302,15 +9302,15 @@ C     and get the nucleation rate and critical cluster size
       if (rhe .lt. 1.) rhe=1.
 
       if (rhe .gt. 85.) then
-         VALUE =d+e*(rhe/100) 
-!yhl Growth factor above RH 85% is not available, so it assumes linear growth 
-!yhl at above 85%.  
+         VALUE =d+e*(rhe/100)
+!yhl Growth factor above RH 85% is not available, so it assumes linear growth
+!yhl at above 85%.
       else
-         VALUE =a+b*(rhe/100)+c*(rhe/100)**2. 
-!yhl This eq is based on the extrapolation curve obtained from  
+         VALUE =a+b*(rhe/100)+c*(rhe/100)**2.
+!yhl This eq is based on the extrapolation curve obtained from
 !yhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
       endif
-      
+
          !check for error
       if (VALUE .gt. 10.) then
          write(*,*) 'ERROR in waterocil'
@@ -9326,9 +9326,9 @@ C     and get the nucleation rate and critical cluster size
       FUNCTION WATERSO4( RHE ) RESULT( VALUE )
 !
 !*****************************************************************************
-!  Function WATERSO4 uses the current RH to calculate how much water is in 
-!  equilibrium with the sulfate.  Aerosol water concentrations are assumed to 
-!  be in equilibrium at all times and the array of concentrations is updated 
+!  Function WATERSO4 uses the current RH to calculate how much water is in
+!  equilibrium with the sulfate.  Aerosol water concentrations are assumed to
+!  be in equilibrium at all times and the array of concentrations is updated
 !  accordingly.
 !     Introduced to GEOS-CHEM by Win Trivitayanurak. 8/6/07
 !     Adaptation of ezwatereqm used in size-resolved sulfate only sim
@@ -9400,7 +9400,7 @@ C     and get the nucleation rate and critical cluster size
 
 !     WRITTEN BY Jeff Pierce, April 2007
 
-!     This subroutine calculates the barrierless nucleation rate and radius of the 
+!     This subroutine calculates the barrierless nucleation rate and radius of the
 !     critical nucleation cluster using the parameterization of...
 
 !     Clement and Ford (1999) Atmos. Environ. 33:489-499
@@ -9452,16 +9452,16 @@ C     and get the nucleation rate and critical cluster size
 
 !-----------------------------------------------------------------------------
 
-!-------------------------------------------------------------------- 
+!--------------------------------------------------------------------
 !
 !        Ion nucleation Rate calculation
-!        from Modgil et al.(2005), JGR, vol. 110, D19205 
+!        from Modgil et al.(2005), JGR, vol. 110, D19205
 !
 !--------------------------------------------------------------------
-! Mathematical Expressions for particle nucleation rate (h1,cm-3 s-1), 
-! nucleating H2SO4 flux (h2, cm-3 s-1), number of H2SO4 in average 
+! Mathematical Expressions for particle nucleation rate (h1,cm-3 s-1),
+! nucleating H2SO4 flux (h2, cm-3 s-1), number of H2SO4 in average
 ! nucleating cluster (h3), number of H2O in average nucleating cluster (h4),
-! radius of average nucleating cluster (h5, nm), and first order loss of 
+! radius of average nucleating cluster (h5, nm), and first order loss of
 ! H2SO4 to particles (h6) are given below,
 
       subroutine ion_nucl(h2so4i,sai,ti,qi,rhi,h1,h2,h3,h4,h5,h6)
@@ -9476,13 +9476,13 @@ C     and get the nucleation rate and critical cluster size
       double precision h2so4i,qi,sai
       double precision t,rh,h2so4,q,sa
       double precision h1,h2,h3,h4,h6,h5
-      
+
       t=dble(ti)
       rh=dble(rhi)
       h2so4=h2so4i
       q=qi
       sa=sai
-      
+
       if (h2so4.lt.1.e+5_fp.or.t.gt.260.e+0_fp) then ! changed to 2E5 because function was diverging
                                              ! diverges above 260K
          h1=0.e+0_fp
@@ -9501,77 +9501,77 @@ C     and get the nucleation rate and critical cluster size
       if (rh .lt. 0.05e+0_fp) rh = 0.05e+0_fp
       if (rh .gt. 0.95e+0_fp) rh = 0.95e+0_fp
       if (q .lt. 1.e+0_fp) q = 1.e+0_fp
-      if (q .gt. 50.e+0_fp) q = 50.e+0_fp      
+      if (q .gt. 50.e+0_fp) q = 50.e+0_fp
 
-      h6=0.000026859579119003205*SA + 1.7477354270484002e-8_fp*q*SA + 
+      h6=0.000026859579119003205*SA + 1.7477354270484002e-8_fp*q*SA +
      &     1.5718068902491457e-8_fp*SA**2+8.060796806911441e-8_fp*SA*T +
-     &     3.904048293417882e-7_fp*SA*Log(H2SO4) + 
+     &     3.904048293417882e-7_fp*SA*Log(H2SO4) +
      &     2.727259306977938e-7_fp*SA*Log(RH)
-      
+
 
       h3=-198.8039518313554 + 3357.132963009284*h6 - 130510.31325149858*
-     &  h6**2 - 0.7093715033997716*q - 10.713505046150196*h6*q + 
-     &  1103.4737682776713*h6**2*q + 0.0052565148186649*q**2 - 
-     &  0.20195850414426988*h6*q**2 + 10.961027676935213*h6**2*q**2 - 
-     &  26.553841269634976*RH + 2913.499196899548*h6*RH - 
-     &  7558.996305824136*h6**2*RH + 0.050092880471591994*q*RH + 
-     &  0.39840936335061017*h6*q*RH + 16.140386509938388*h6**2*q*RH - 
+     &  h6**2 - 0.7093715033997716*q - 10.713505046150196*h6*q +
+     &  1103.4737682776713*h6**2*q + 0.0052565148186649*q**2 -
+     &  0.20195850414426988*h6*q**2 + 10.961027676935213*h6**2*q**2 -
+     &  26.553841269634976*RH + 2913.499196899548*h6*RH -
+     &  7558.996305824136*h6**2*RH + 0.050092880471591994*q*RH +
+     &  0.39840936335061017*h6*q*RH + 16.140386509938388*h6**2*q*RH -
      &  0.0008159572217147427*q**2*RH - 0.02492462618304389*h6*q**2*RH +
-     &  3.2372842210428825*RH**2 + 1709.7485838150235*h6*RH**2 - 
-     &  4016.182638678486*h6**2*RH**2 - 0.022142010235491123*q*RH**2 - 
+     &  3.2372842210428825*RH**2 + 1709.7485838150235*h6*RH**2 -
+     &  4016.182638678486*h6**2*RH**2 - 0.022142010235491123*q*RH**2 -
      &  1.620063009925805*h6*q*RH**2-0.00028477984814528825*q**2*RH**2 +
-     &  22.136724153656015*RH**3 + 170.8982375938333*h6*RH**3 - 
-     &  0.01881686723215867*q*RH**3 + 2.6974144456100957*T - 
-     &  96.60591604496483*h6*T + 1772.137264721083*h6**2*T - 
-     &  0.0009432251807207652*q*T + 0.06072064184950673*h6*q*T - 
-     &  2.5196932894429502*h6**2*q*T - 0.000013848768113392552*q**2*T - 
-     &  0.0001948394841164792*h6*q**2*T + 0.1828636512279507*RH*T - 
-     &  55.135341874839185*h6*RH*T + 164.02631709083576*h6**2*RH*T + 
-     &  0.001745921048607296*q*RH*T + 0.035017713828742754*h6*q*RH*T + 
+     &  22.136724153656015*RH**3 + 170.8982375938333*h6*RH**3 -
+     &  0.01881686723215867*q*RH**3 + 2.6974144456100957*T -
+     &  96.60591604496483*h6*T + 1772.137264721083*h6**2*T -
+     &  0.0009432251807207652*q*T + 0.06072064184950673*h6*q*T -
+     &  2.5196932894429502*h6**2*q*T - 0.000013848768113392552*q**2*T -
+     &  0.0001948394841164792*h6*q**2*T + 0.1828636512279507*RH*T -
+     &  55.135341874839185*h6*RH*T + 164.02631709083576*h6**2*RH*T +
+     &  0.001745921048607296*q*RH*T + 0.035017713828742754*h6*q*RH*T +
      &  4.057082638293583e-6_fp*q**2*RH*T - 0.3900441693913758*RH**2*T -
-     &  8.955078982582657*h6*RH**2*T+0.00021434974336412074*q*RH**2*T - 
-     &  0.14947568974964962*RH**3*T - 0.022748394377623382*T**2 + 
-     &  0.7227721843282815*h6*T**2 - 5.386480671871808*h6**2*T**2 - 
-     &  0.000035250836279611095*q*T**2-0.0003363405774846326*h6*q*T**2+ 
-     &  2.9254973516794257d-8*q**2*T**2 + 0.003994529829421164*RH*T**2+ 
+     &  8.955078982582657*h6*RH**2*T+0.00021434974336412074*q*RH**2*T -
+     &  0.14947568974964962*RH**3*T - 0.022748394377623382*T**2 +
+     &  0.7227721843282815*h6*T**2 - 5.386480671871808*h6**2*T**2 -
+     &  0.000035250836279611095*q*T**2-0.0003363405774846326*h6*q*T**2+
+     &  2.9254973516794257d-8*q**2*T**2 + 0.003994529829421164*RH*T**2+
      &  0.2074067980035454*h6*RH*T**2-5.136172472264946e-6_fp*q*RH*T**2+
-     &  0.0020603328018819816*RH**2*T**2+0.000042019279193164354*T**3 - 
-     &  0.002100661388749787*h6*T**3+7.309966632740304e-8_fp*q*T**3 - 
+     &  0.0020603328018819816*RH**2*T**2+0.000042019279193164354*T**3 -
+     &  0.002100661388749787*h6*T**3+7.309966632740304e-8_fp*q*T**3 -
      &  0.000016323969052607556*RH*T**3+ 12.330627568298462*Log(H2SO4) +
      &  768.3961789008589*h6*Log(H2SO4)-11568.47324943553*h6**2*
      &  Log(H2SO4)+0.14349043416922366*q*Log(H2SO4)+0.8946851157223353*
-     &  h6*q*Log(H2SO4) - 68.46004143191098*h6**2*q*Log(H2SO4) - 
+     &  h6*q*Log(H2SO4) - 68.46004143191098*h6**2*q*Log(H2SO4) -
      &  0.0006241121793370407*q**2*Log(H2SO4)+0.011897674833907721*h6*
-     &  q**2*Log(H2SO4) + 1.7860574934328677*RH*Log(H2SO4) + 
+     &  q**2*Log(H2SO4) + 1.7860574934328677*RH*Log(H2SO4) +
      &  316.5406316191978*h6*RH*Log(H2SO4) - 2036.825340216443*h6**2*RH*
-     &  Log(H2SO4) - 0.026323914507434605*q*RH*Log(H2SO4) - 
+     &  Log(H2SO4) - 0.026323914507434605*q*RH*Log(H2SO4) -
      &  0.37505804775954393*h6*q*RH*Log(H2SO4) + 0.00003454867680790666*
-     &  q**2*RH*Log(H2SO4) + 2.844877302874606*RH**2*Log(H2SO4) - 
+     &  q**2*RH*Log(H2SO4) + 2.844877302874606*RH**2*Log(H2SO4) -
      &  1.5845895178086176*h6*RH**2*Log(H2SO4) + 0.001732608008714275*q*
-     &  RH**2*Log(H2SO4) + 0.5611003862827533*RH**3*Log(H2SO4) + 
+     &  RH**2*Log(H2SO4) + 0.5611003862827533*RH**3*Log(H2SO4) +
      &  0.18033151281768975*T*Log(H2SO4) - 7.807090214680351*h6*T*
-     &  Log(H2SO4) + 52.76241348342321*h6**2*T*Log(H2SO4) + 
+     &  Log(H2SO4) + 52.76241348342321*h6**2*T*Log(H2SO4) +
      &  0.0011535134888316242*q*T*Log(H2SO4) + 0.0068466874844708295*h6*
-     &  q*T*Log(H2SO4) - 4.231224168766194e-7_fp*q**2*T*Log(H2SO4) - 
+     &  q*T*Log(H2SO4) - 4.231224168766194e-7_fp*q**2*T*Log(H2SO4) -
      &  0.10505349775719895*RH*T*Log(H2SO4) - 1.9241106452950727*h6*RH*
-     &  T*Log(H2SO4) + 2.0451815715440337e-6_fp*q*RH*T*Log(H2SO4) - 
+     &  T*Log(H2SO4) + 2.0451815715440337e-6_fp*q*RH*T*Log(H2SO4) -
      &  0.015299483302534183*RH**2*T*Log(H2SO4) + 0.000775633115370002*
-     &  T**2*Log(H2SO4) + 0.04228608723566267*h6*T**2*Log(H2SO4) - 
-     &  9.572221299803945e-7_fp*q*T**2*Log(H2SO4) + 
+     &  T**2*Log(H2SO4) + 0.04228608723566267*h6*T**2*Log(H2SO4) -
+     &  9.572221299803945e-7_fp*q*T**2*Log(H2SO4) +
      &  0.0002669785990812474*
-     &  RH*T**2*Log(H2SO4) - 1.7595742533055222e-6_fp*T**3*Log(H2SO4) - 
+     &  RH*T**2*Log(H2SO4) - 1.7595742533055222e-6_fp*T**3*Log(H2SO4) -
      &  2.7165200489046812*Log(H2SO4)**2 + 1.963036665672805*h6*
-     &  Log(H2SO4)**2 + 33.88545004559797*h6**2*Log(H2SO4)**2 - 
+     &  Log(H2SO4)**2 + 33.88545004559797*h6**2*Log(H2SO4)**2 -
      &  0.01647722099703982*q*Log(H2SO4)**2 - 0.08498050322218324*h6*q*
-     &  Log(H2SO4)**2 + 0.00003320475358154802*q**2*Log(H2SO4)**2 + 
+     &  Log(H2SO4)**2 + 0.00003320475358154802*q**2*Log(H2SO4)**2 +
      &  0.50626436977659*RH*Log(H2SO4)**2 + 3.914586690682404*h6*RH*
-     &  Log(H2SO4)**2 + 0.0006654515705980484*q*RH*Log(H2SO4)**2 - 
+     &  Log(H2SO4)**2 + 0.0006654515705980484*q*RH*Log(H2SO4)**2 -
      &  0.025122425208873058*RH**2*Log(H2SO4)**2 - 0.021380868797539664*
-     &  T*Log(H2SO4)**2 - 0.35405514523597137*h6*T*Log(H2SO4)**2 - 
+     &  T*Log(H2SO4)**2 - 0.35405514523597137*h6*T*Log(H2SO4)**2 -
      &  0.000020639290758942666*q*T*Log(H2SO4)**2+0.0003587951811915662*
-     &  RH*T*Log(H2SO4)**2+7.620708111644729e-6_fp*T**2*Log(H2SO4)**2 + 
+     &  RH*T*Log(H2SO4)**2+7.620708111644729e-6_fp*T**2*Log(H2SO4)**2 +
      &  0.2196641696573127*Log(H2SO4)**3 + 1.7291708055805226*h6*
-     &  Log(H2SO4)**3 + 0.00038146321602426414*q*Log(H2SO4)**3 - 
+     &  Log(H2SO4)**3 + 0.00038146321602426414*q*Log(H2SO4)**3 -
      &  0.011997306640487447*RH*Log(H2SO4)**3 + 0.0003857955558500776*T*
      &  Log(H2SO4)**3 - 0.004779827937902779*Log(H2SO4)**4
 
@@ -9579,307 +9579,307 @@ C     and get the nucleation rate and critical cluster size
 
 
 
-      h1=456229.3726785317 - 696754.0061755505/h3 - 
-     &  8.954389043957226e+7_fp*h6 + (1.4677717736521986e+8_fp*h6)/h3 + 
-     &  1867.5296995211318*q - (2798.172491398116*q)/h3 + 
-     &  1500.05530404756*h6*q - (171625.68387665015*h6*q)/h3 - 
-     &  5924.898937400813*T + (7657.054762118453*T)/h3 + 
+      h1=456229.3726785317 - 696754.0061755505/h3 -
+     &  8.954389043957226e+7_fp*h6 + (1.4677717736521986e+8_fp*h6)/h3 +
+     &  1867.5296995211318*q - (2798.172491398116*q)/h3 +
+     &  1500.05530404756*h6*q - (171625.68387665015*h6*q)/h3 -
+     &  5924.898937400813*T + (7657.054762118453*T)/h3 +
      &  1.1074613167489376e+6_fp*h6*T-(1.556115054313954e+6_fp*h6*T)/h3-
-     &  28.49469750360138*q*T + (50.46283217861981*q*T)/h3 + 
-     &  1753.7251886642075*h6*q*T - (975.4050494746682*h6*q*T)/h3 + 
-     &  25.45577410331681*T**2 - (26.190051353137182*T**2)/h3 - 
-     &  4516.4884641323815*h6*T**2 + (5030.318058537955*h6*T**2)/h3 + 
-     &  0.14403307295844858*q*T**2 - (0.2897062226196713*q*T**2)/h3 - 
-     &  15.561717210345154*h6*q*T**2+(18.061492698402766*h6*q*T**2)/h3- 
-     &  0.03621852394282133*T**3 + (0.02659567895141871*T**3)/h3 + 
-     &  6.0696427040893886*h6*T**3 - (4.585112604562606*h6*T**3)/h3 - 
-     &  0.00024142548506534756*q*T**3 + 
-     &  (0.0005400351895947918*q*T**3)/h3+0.0341853829283136*h6*q*T**3- 
-     &  (0.04459905758423761*h6*q*T**3)/h3-81941.3895777097*Log(H2SO4)+ 
-     &  (90462.54571516594*Log(H2SO4))/h3 + 
-     &  1.6483362741354546e+7_fp*h6*Log(H2SO4) - 
-     &  (2.3542460879418086e+7_fp*h6*Log(H2SO4))/h3 - 
-     &  319.8790300996385*q*Log(H2SO4) + 
-     &  (226.84336756604796*q*Log(H2SO4))/h3 - 
-     &  26455.51148372377*h6*q*Log(H2SO4) + 
-     &  (60326.79915791394*h6*q*Log(H2SO4))/h3 + 
-     &  1063.8621634534027*T*Log(H2SO4) - 
-     &  (891.6122304868614*T*Log(H2SO4))/h3 - 
-     &  203718.41653995324*h6*T*Log(H2SO4) + 
-     &  (243001.1509313233*h6*T*Log(H2SO4))/h3 + 
-     &  4.963508394566835*q*T*Log(H2SO4) - 
-     &  (5.401955915120605*q*T*Log(H2SO4))/h3 + 
-     &  25.811543727271804*h6*q*T*Log(H2SO4) - 
-     &  (355.292262810142*h6*q*T*Log(H2SO4))/h3 - 
-     &  4.5691538346459195*T**2*Log(H2SO4) + 
-     &  (2.468423948121569*T**2*Log(H2SO4))/h3 + 
-     &  830.195816015575*h6*T**2*Log(H2SO4) - 
-     &  (745.2009340266254*h6*T**2*Log(H2SO4))/h3 - 
-     &  0.025450884793884514*q*T**2*Log(H2SO4) + 
-     &  (0.03593327468289806*q*T**2*Log(H2SO4))/h3 + 
-     &  1.3302486952619124*h6*q*T**2*Log(H2SO4) - 
-     &  (0.320851018492291*h6*q*T**2*Log(H2SO4))/h3 + 
-     &  0.006498242231697865*T**3*Log(H2SO4) - 
-     &  (0.0013540108127227987*T**3*Log(H2SO4))/h3 - 
-     &  1.1150374268629073*h6*T**3*Log(H2SO4) + 
-     &  (0.5953715882656012*h6*T**3*Log(H2SO4))/h3 + 
-     &  0.000043146778270078744*q*T**3*Log(H2SO4) - 
-     &  (0.0000735656618351653*q*T**3*Log(H2SO4))/h3 - 
-     &  0.004059155580949069*h6*q*T**3*Log(H2SO4) + 
-     &  (0.0028886014749212705*h6*q*T**3*Log(H2SO4))/h3 + 
-     &  4912.2066512397205*Log(H2SO4)**2 - 
-     &  (3022.0044642322964*Log(H2SO4)**2)/h3 - 
-     &  1.0095170363345986d6*h6*Log(H2SO4)**2 + 
-     &  (1.1998313113698033d6*h6*Log(H2SO4)**2)/h3 + 
-     &  18.018115617541998*q*Log(H2SO4)**2 + 
-     &  (7.561352267717425*q*Log(H2SO4)**2)/h3 + 
-     &  3133.188395383639*h6*q*Log(H2SO4)**2 - 
-     &  (3338.848456178725*h6*q*Log(H2SO4)**2)/h3 - 
-     &  63.77612570995598*T*Log(H2SO4)**2 + 
-     &  (20.100257708705428*T*Log(H2SO4)**2)/h3 + 
-     &  12469.209965937996*h6*T*Log(H2SO4)**2 - 
-     &  (11883.666207080118*h6*T*Log(H2SO4)**2)/h3 - 
-     &  0.2853187730266578*q*T*Log(H2SO4)**2 + 
-     &  (0.03880844916086884*q*T*Log(H2SO4)**2)/h3 - 
-     &  21.708027380830988*h6*q*T*Log(H2SO4)**2 + 
-     &  (28.111166854183463*h6*q*T*Log(H2SO4)**2)/h3 + 
-     &  0.27388018029546984*T**2*Log(H2SO4)**2 + 
-     &  (0.005568448436161079*T**2*Log(H2SO4)**2)/h3 - 
-     &  50.78398945757657*h6*T**2*Log(H2SO4)**2 + 
-     &  (33.25484929904544*h6*T**2*Log(H2SO4)**2)/h3 + 
-     &  0.0014875097131454307*q*T**2*Log(H2SO4)**2 - 
-     &  (0.0008810798671059988*q*T**2*Log(H2SO4)**2)/h3 + 
-     &  0.007045532214236005*h6*q*T**2*Log(H2SO4)**2 - 
-     &  (0.05521643331038819*h6*q*T**2*Log(H2SO4)**2)/h3 - 
-     &  0.00038943745406964085*T**3*Log(H2SO4)**2 - 
-     &  (0.00015308439633013156*T**3*Log(H2SO4)**2)/h3 + 
-     &  0.06817761559886615*h6*T**3*Log(H2SO4)**2 - 
-     &  (0.019520711865759842*h6*T**3*Log(H2SO4)**2)/h3 - 
-     &  2.554240267270117e-6_fp*q*T**3*Log(H2SO4)**2 + 
-     &  (2.526957991768314e-6_fp*q*T**3*Log(H2SO4)**2)/h3 + 
-     &  0.00011978108924107446*h6*q*T**3*Log(H2SO4)**2 - 
-     &  98.09290363960072*Log(H2SO4)**3 + 
-     &  (3.8697214915504805*Log(H2SO4)**3)/h3 + 
-     &  20559.743351544734*h6*Log(H2SO4)**3 - 
-     &  (18687.867717989076*h6*Log(H2SO4)**3)/h3 - 
-     &  0.33118998078526996*q*Log(H2SO4)**3 - 
-     &  (0.6955616584928909*q*Log(H2SO4)**3)/h3 - 
-     &  92.45613590327787*h6*q*Log(H2SO4)**3 + 
-     &  (8.948488896745264*h6*q*Log(H2SO4)**3)/h3 + 
-     &  1.273863980203035*T*Log(H2SO4)**3 + 
-     &  (0.38051947439108685*T*Log(H2SO4)**3)/h3 - 
-     &  253.8228380167286*h6*T*Log(H2SO4)**3 + 
-     &  (171.19178070061787*h6*T*Log(H2SO4)**3)/h3 + 
-     &  0.005376622635136611*q*T*Log(H2SO4)**3 + 
-     &  (0.006658042079999949*q*T*Log(H2SO4)**3)/h3 + 
-     &  0.8230892248689082*h6*q*T*Log(H2SO4)**3 - 
-     &  (0.058021973134188776*h6*q*T*Log(H2SO4)**3)/h3 - 
-     &  0.005471105747328322*T**2*Log(H2SO4)**3 - 
-     &  (0.003699167378319841*T**2*Log(H2SO4)**3)/h3 + 
-     &  1.0332570198673408*h6*T**2*Log(H2SO4)**3 - 
-     &  (0.38600322062471826*h6*T**2*Log(H2SO4)**3)/h3 - 
-     &  0.000028584962254144285*q*T**2*Log(H2SO4)**3 - 
-     &  (0.000016062832568931284*q*T**2*Log(H2SO4)**3)/h3 - 
-     &  0.001819022861961261*h6*q*T**2*Log(H2SO4)**3 + 
-     &  7.779696142330516e-6_fp*T**3*Log(H2SO4)**3 + 
-     &  (8.513832613126146e-6_fp*T**3*Log(H2SO4)**3)/h3 - 
-     &  0.0013866861532058*h6*T**3*Log(H2SO4)**3 + 
-     &  4.981099027173453e-8_fp*q*T**3*Log(H2SO4)**3 + 
-     &  178821.264938151*Log(RH) - (634125.5419575685*Log(RH))/h3 - 
-     &  2.310391119522488e+7_fp*h6*Log(RH) + 
-     &  (3.564836811852359e+7_fp*h6*Log(RH))/h3 - 
-     &  744.9440395010726*q*Log(RH)+(1019.4951846825716*q*Log(RH))/h3- 
-     &  28008.93484108728*h6*q*Log(RH) - 
-     &  (7136.405275749431*h6*q*Log(RH))/h3 - 
-     &  2275.393426900043*T*Log(RH) + (9231.8244493922*T*Log(RH))/h3 + 
-     &  237571.37589421016*h6*T*Log(RH) - 
-     &  (295411.0553218543*h6*T*Log(RH))/h3 + 
-     &  4.451622613453289*q*T*Log(RH) - 
-     &  (4.150562571935793*q*T*Log(RH))/h3 + 
-     &  595.8398944235868*h6*q*T*Log(RH) - 
-     &  (210.09033695512161*h6*q*T*Log(RH))/h3 + 
-     &  9.678343416541734*T**2*Log(RH) - 
-     &  (45.69882758602488*T**2*Log(RH))/h3 - 
-     &  747.9878102876322*h6*T**2*Log(RH) + 
-     &  (649.4424346377774*h6*T**2*Log(RH))/h3 + 
-     &  0.005153649541788936*q*T**2*Log(RH) - 
-     &  (0.0023655719118541533*q*T**2*Log(RH))/h3 - 
-     &  2.848932474900831*h6*q*T**2*Log(RH) + 
-     &  (0.2889680076326506*h6*q*T**2*Log(RH))/h3 - 
-     &  0.013824587420637588*T**3*Log(RH) + 
-     &  (0.07673955581386811*T**3*Log(RH))/h3 + 
-     &  0.6813253055163031*h6*T**3*Log(RH) - 
-     &  (0.2663343569482817*h6*T**3*Log(RH))/h3 - 
-     &  0.00004364745106737275*q*T**3*Log(RH) - 
-     &  (9.434880576275503e-6_fp*q*T**3*Log(RH))/h3 + 
-     &  0.0030430214338531205*h6*q*T**3*Log(RH) + 
-     &  (0.00371157673745342*h6*q*T**3*Log(RH))/h3 - 
-     &  31842.277946766168*Log(H2SO4)*Log(RH) + 
-     &  (68134.57926920953*Log(H2SO4)*Log(RH))/h3 + 
-     &  3.493985612508899e+6_fp*h6*Log(H2SO4)*Log(RH) - 
-     &  (4.587173661378969e+6_fp*h6*Log(H2SO4)*Log(RH))/h3 + 
-     &  190.19310993267845*q*Log(H2SO4)*Log(RH) - 
-     &  (233.68205749312318*q*Log(H2SO4)*Log(RH))/h3 - 
-     &  1547.3248018686509*h6*q*Log(H2SO4)*Log(RH) + 
-     &  (4045.133810971437*h6*q*Log(H2SO4)*Log(RH))/h3 + 
-     &  405.31725032582267*T*Log(H2SO4)*Log(RH) - 
-     &  (1057.655396923827*T*Log(H2SO4)*Log(RH))/h3 - 
-     &  33903.90722480216*h6*T*Log(H2SO4)*Log(RH) + 
-     &  (32965.76708786528*h6*T*Log(H2SO4)*Log(RH))/h3 - 
-     &  1.5034587825111836*q*T*Log(H2SO4)*Log(RH) + 
-     &  (1.106270806420077*q*T*Log(H2SO4)*Log(RH))/h3 - 
-     &  25.549725610666396*h6*q*T*Log(H2SO4)*Log(RH) + 
-     &  (20.09072468984517*h6*q*T*Log(H2SO4)*Log(RH))/h3 - 
-     &  1.7253372988643991*T**2*Log(H2SO4)*Log(RH) + 
-     &  (5.612615323997249*T**2*Log(H2SO4)*Log(RH))/h3 + 
-     &  95.62445916373963*h6*T**2*Log(H2SO4)*Log(RH) - 
-     &  (48.96291394056088*h6*T**2*Log(H2SO4)*Log(RH))/h3 + 
-     &  0.0019300142376745193*q*T**2*Log(H2SO4)*Log(RH) + 
-     &  (0.00015584582354154648*q*T**2*Log(H2SO4)*Log(RH))/h3 + 
-     &  0.19177967246162606*h6*q*T**2*Log(H2SO4)*Log(RH) - 
-     &  (0.16871358892301552*h6*q*T**2*Log(H2SO4)*Log(RH))/h3 + 
-     &  0.00246781658651071*T**3*Log(H2SO4)*Log(RH) - 
-     &  (0.01009444649935961*T**3*Log(H2SO4)*Log(RH))/h3 - 
-     &  0.06589616928988701*h6*T**3*Log(H2SO4)*Log(RH) - 
-     &  (0.01596274185896012*h6*T**3*Log(H2SO4)*Log(RH))/h3 + 
-     &  4.109041091272658e-6_fp*q*T**3*Log(H2SO4)*Log(RH) + 
-     &  (2.041743340493583e-7_fp*q*T**3*Log(H2SO4)*Log(RH))/h3 - 
-     &  0.0001572125066332154*h6*q*T**3*Log(H2SO4)*Log(RH) + 
-     &  1932.4011188760162*Log(H2SO4)**2*Log(RH) - 
-     &  (781.4228432455719*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  181291.39888342103*h6*Log(H2SO4)**2*Log(RH) + 
-     &  (210184.24050416853*h6*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  13.666906354559005*q*Log(H2SO4)**2*Log(RH) + 
-     &  (15.930151624229865*q*Log(H2SO4)**2*Log(RH))/h3 + 
-     &  305.7703887043172*h6*q*Log(H2SO4)**2*Log(RH) - 
-     &  (391.71164595591085*h6*q*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  24.621398404913865*T*Log(H2SO4)**2*Log(RH) + 
-     &  (20.079316822912197*T*Log(H2SO4)**2*Log(RH))/h3 + 
-     &  1658.5845815289838*h6*T*Log(H2SO4)**2*Log(RH) - 
-     &  (1404.5530139788664*h6*T*Log(H2SO4)**2*Log(RH))/h3 + 
-     &  0.11823318365930788*q*T*Log(H2SO4)**2*Log(RH) - 
-     &  (0.08056635668752316*q*T*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  1.0034435154436134*h6*q*T*Log(H2SO4)**2*Log(RH) + 
-     &  (1.6021411957310931*h6*q*T*Log(H2SO4)**2*Log(RH))/h3 + 
-     &  0.10491613716181539*T**2*Log(H2SO4)**2*Log(RH) - 
-     &  (0.1492097929648805*T**2*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  4.0934834940398215*h6*T**2*Log(H2SO4)**2*Log(RH) + 
-     &  (1.896735315742051*h6*T**2*Log(H2SO4)**2*Log(RH))/h3 - 
-     &  0.00022870693934890214*q*T**2*Log(H2SO4)**2*Log(RH) + 
-     &  (0.000013175311622036916*q*T**2*Log(H2SO4)**2*Log(RH))/h3- 
-     &  0.00231560013471937*h6*q*T**2*Log(H2SO4)**2*Log(RH) - 
-     &  0.00015023186988448507*T**3*Log(H2SO4)**2*Log(RH) + 
-     &  (0.0003388679191513823*T**3*Log(H2SO4)**2*Log(RH))/h3 + 
-     &  0.0015784630518057667*h6*T**3*Log(H2SO4)**2*Log(RH) - 
-     &  1.0056424638350849e-7_fp*q*T**3*Log(H2SO4)**2*Log(RH) - 
-     &  39.74503165968021*Log(H2SO4)**3*Log(RH) - 
-     &  (68.29220045487304*Log(H2SO4)**3*Log(RH))/h3 + 
-     &  3236.6794930454566*h6*Log(H2SO4)**3*Log(RH) - 
-     &  (2511.4313482742737*h6*Log(H2SO4)**3*Log(RH))/h3 + 
-     &  0.3044230466506939*q*Log(H2SO4)**3*Log(RH) - 
-     &  (0.321694018076018*q*Log(H2SO4)**3*Log(RH))/h3 - 
-     &  7.83632554091337*h6*q*Log(H2SO4)**3*Log(RH) + 
-     &  (1.2615699211576334*h6*q*Log(H2SO4)**3*Log(RH))/h3 + 
-     &  0.5071743553774433*T*Log(H2SO4)**3*Log(RH) + 
-     &  (0.6993184748948513*T*Log(H2SO4)**3*Log(RH))/h3 - 
-     &  28.064969097031586*h6*T*Log(H2SO4)**3*Log(RH) + 
-     &  (12.010607450658807*h6*T*Log(H2SO4)**3*Log(RH))/h3 - 
-     &  0.0027511166431233884*q*T*Log(H2SO4)**3*Log(RH) + 
-     &  (0.0015662272224653852*q*T*Log(H2SO4)**3*Log(RH))/h3 + 
-     &  0.03815288545975011*h6*q*T*Log(H2SO4)**3*Log(RH) - 
-     &  0.0021639947693271114*T**2*Log(H2SO4)**3*Log(RH) - 
-     &  (0.0017767382579465334*T**2*Log(H2SO4)**3*Log(RH))/h3 + 
-     &  0.059762491440998364*h6*T**2*Log(H2SO4)**3*Log(RH) + 
-     &  6.130388542051968e-6_fp*q*T**2*Log(H2SO4)**3*Log(RH) + 
-     &  3.1017462628108047e-6_fp*T**3*Log(H2SO4)**3*Log(RH) - 
-     &  7689.12786121461*Log(RH)**2-(25856.380361656236*Log(RH)**2)/h3- 
-     &  1.3915437178042033e+6_fp*h6*Log(RH)**2 + 
-     &  (1.9928171556602388e+6_fp*h6*Log(RH)**2)/h3 + 
-     &  53.79216985973448*q*Log(RH)**2 - 
-     &  (134.8787674139501*q*Log(RH)**2)/h3 - 
-     &  1440.4837667461468*h6*q*Log(RH)**2 - 
-     &  (3141.0130344871345*h6*q*Log(RH)**2)/h3 + 
-     &  94.7545268444358*T*Log(RH)**2 + 
-     &  (342.5857682014369*T*Log(RH)**2)/h3 + 
-     &  11341.294070320842*h6*T*Log(RH)**2 - 
-     &  (18070.160441620144*h6*T*Log(RH)**2)/h3 - 
-     &  0.44696864139255954*q*T*Log(RH)**2 + 
-     &  (1.1199451205710647*q*T*Log(RH)**2)/h3 + 
-     &  19.01601691757823*h6*q*T*Log(RH)**2 + 
-     &  (31.604766584775273*h6*q*T*Log(RH)**2)/h3 - 
-     &  0.3470127737474881*T**2*Log(RH)**2 - 
-     &  (1.4877879003131458*T**2*Log(RH)**2)/h3 - 
-     &  18.727169614346867*h6*T**2*Log(RH)**2 + 
-     &  (42.5448759900235*h6*T**2*Log(RH)**2)/h3 + 
-     &  0.0007727701515171791*q*T**2*Log(RH)**2 - 
-     &  (0.0032041999804810098*q*T**2*Log(RH)**2)/h3 - 
-     &  0.055631814243943*h6*q*T**2*Log(RH)**2 - 
-     &  (0.07696588905487615*h6*q*T**2*Log(RH)**2)/h3 + 
-     &  0.00033600378567117826*T**3*Log(RH)**2 + 
-     &  (0.002069337837641118*T**3*Log(RH)**2)/h3 - 
-     &  0.015788853514098967*h6*T**3*Log(RH)**2 - 
-     &  (0.009301939734036398*h6*T**3*Log(RH)**2)/h3 + 
-     &  5.572064421478949e-7_fp*q*T**3*Log(RH)**2 + 
-     &  (5.677455521083783e-6_fp*q*T**3*Log(RH)**2)/h3 - 
-     &  0.00003507762649727548*h6*q*T**3*Log(RH)**2 + 
-     &  1392.9578972108989*Log(H2SO4)*Log(RH)**2 + 
-     &  (1911.734041113941*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  179329.36146873524*h6*Log(H2SO4)*Log(RH)**2 - 
-     &  (119328.53674704138*h6*Log(H2SO4)*Log(RH)**2)/h3 - 
-     &  6.462104618811676*q*Log(H2SO4)*Log(RH)**2 + 
-     &  (11.294074621589449*q*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  13.39033080899747*h6*q*Log(H2SO4)*Log(RH)**2 - 
-     &  (8.52831107206456*h6*q*Log(H2SO4)*Log(RH)**2)/h3 - 
-     &  16.8958062365253*T*Log(H2SO4)*Log(RH)**2 - 
-     &  (24.81735534395592*T*Log(H2SO4)*Log(RH)**2)/h3 - 
-     &  1464.394638508739*h6*T*Log(H2SO4)*Log(RH)**2 + 
-     &  (981.4137808275404*h6*T*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  0.051952833287610724*q*T*Log(H2SO4)*Log(RH)**2 - 
-     &  (0.061982178004231*q*T*Log(H2SO4)*Log(RH)**2)/h3 - 
-     &  0.7507183329339466*h6*q*T*Log(H2SO4)*Log(RH)**2 - 
-     &  (0.05082083499340442*h6*q*T*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  0.060317519684020285*T**2*Log(H2SO4)*Log(RH)**2 + 
-     &  (0.10238074986938017*T**2*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  2.654746963853928*h6*T**2*Log(H2SO4)*Log(RH)**2 - 
-     &  (1.9505367684260284*h6*T**2*Log(H2SO4)*Log(RH)**2)/h3 - 
-     &  0.00008828022840243558*q*T**2*Log(H2SO4)*Log(RH)**2 - 
-     &  (7.843133775464917e-6_fp*q*T**2*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  0.00439346543661198*h6*q*T**2*Log(H2SO4)*Log(RH)**2 - 
-     &  0.00005488176049657228*T**3*Log(H2SO4)*Log(RH)**2 - 
-     &  (0.00012357549613231235*T**3*Log(H2SO4)*Log(RH)**2)/h3 + 
-     &  0.000877040667994904*h6*T**3*Log(H2SO4)*Log(RH)**2 - 
-     &  4.394231627146249e-8_fp*q*T**3*Log(H2SO4)*Log(RH)**2 - 
-     &  72.11406227014747*Log(H2SO4)**2*Log(RH)**2 - 
-     &  (16.86445272085156*Log(H2SO4)**2*Log(RH)**2)/h3 - 
-     &  6535.765336704547*h6*Log(H2SO4)**2*Log(RH)**2 + 
-     &  (941.2813201741736*h6*Log(H2SO4)**2*Log(RH)**2)/h3 + 
-     &  0.2428031989628447*q*Log(H2SO4)**2*Log(RH)**2 - 
-     &  (0.3050220578412721*q*Log(H2SO4)**2*Log(RH)**2)/h3 + 
-     &  3.3649457326647947*h6*q*Log(H2SO4)**2*Log(RH)**2 + 
-     &  (0.9000970248172522*h6*q*Log(H2SO4)**2*Log(RH)**2)/h3 + 
-     &  0.8503624487797692*T*Log(H2SO4)**2*Log(RH)**2 + 
-     &  (0.2527834506442179*T*Log(H2SO4)**2*Log(RH)**2)/h3 + 
-     &  50.73348890297342*h6*T*Log(H2SO4)**2*Log(RH)**2 - 
-     &  (4.356161470448808*h6*T*Log(H2SO4)**2*Log(RH)**2)/h3 - 
-     &  0.0018342607279861292*q*T*Log(H2SO4)**2*Log(RH)**2 + 
-     &  (0.0020365272689109475*q*T*Log(H2SO4)**2*Log(RH)**2)/h3 - 
-     &  0.03276629834613374*h6*q*T*Log(H2SO4)**2*Log(RH)**2 - 
-     &  0.0028420227040081517*T**2*Log(H2SO4)**2*Log(RH)**2 - 
-     &  (0.0009263932662681723*T**2*Log(H2SO4)**2*Log(RH)**2)/h3 - 
-     &  0.08964774960777555*h6*T**2*Log(H2SO4)**2*Log(RH)**2 + 
-     &  3.036637047548649e-6_fp*q*T**2*Log(H2SO4)**2*Log(RH)**2 + 
-     &  2.0594310710626316e-6_fp*T**3*Log(H2SO4)**2*Log(RH)**2 + 
-     &  0.9950338851031777*Log(H2SO4)**3*Log(RH)**2 - 
-     &  (0.622965174549953*Log(H2SO4)**3*Log(RH)**2)/h3 + 
-     &  48.41845482837981*h6*Log(H2SO4)**3*Log(RH)**2 - 
-     &  (1.7738934087048919*h6*Log(H2SO4)**3*Log(RH)**2)/h3 - 
-     &  0.0022234755298572505*q*Log(H2SO4)**3*Log(RH)**2 - 
-     &  (0.002437957119890622*q*Log(H2SO4)**3*Log(RH)**2)/h3 + 
-     &  0.08069009533680993*h6*q*Log(H2SO4)**3*Log(RH)**2 - 
-     &  0.010935011617216193*T*Log(H2SO4)**3*Log(RH)**2 + 
-     &  (0.003456846985810427*T*Log(H2SO4)**3*Log(RH)**2)/h3 - 
-     &  0.24482068250824904*h6*T*Log(H2SO4)**3*Log(RH)**2 + 
-     &  0.000011334503487127534*q*T*Log(H2SO4)**3*Log(RH)**2 + 
+     &  28.49469750360138*q*T + (50.46283217861981*q*T)/h3 +
+     &  1753.7251886642075*h6*q*T - (975.4050494746682*h6*q*T)/h3 +
+     &  25.45577410331681*T**2 - (26.190051353137182*T**2)/h3 -
+     &  4516.4884641323815*h6*T**2 + (5030.318058537955*h6*T**2)/h3 +
+     &  0.14403307295844858*q*T**2 - (0.2897062226196713*q*T**2)/h3 -
+     &  15.561717210345154*h6*q*T**2+(18.061492698402766*h6*q*T**2)/h3-
+     &  0.03621852394282133*T**3 + (0.02659567895141871*T**3)/h3 +
+     &  6.0696427040893886*h6*T**3 - (4.585112604562606*h6*T**3)/h3 -
+     &  0.00024142548506534756*q*T**3 +
+     &  (0.0005400351895947918*q*T**3)/h3+0.0341853829283136*h6*q*T**3-
+     &  (0.04459905758423761*h6*q*T**3)/h3-81941.3895777097*Log(H2SO4)+
+     &  (90462.54571516594*Log(H2SO4))/h3 +
+     &  1.6483362741354546e+7_fp*h6*Log(H2SO4) -
+     &  (2.3542460879418086e+7_fp*h6*Log(H2SO4))/h3 -
+     &  319.8790300996385*q*Log(H2SO4) +
+     &  (226.84336756604796*q*Log(H2SO4))/h3 -
+     &  26455.51148372377*h6*q*Log(H2SO4) +
+     &  (60326.79915791394*h6*q*Log(H2SO4))/h3 +
+     &  1063.8621634534027*T*Log(H2SO4) -
+     &  (891.6122304868614*T*Log(H2SO4))/h3 -
+     &  203718.41653995324*h6*T*Log(H2SO4) +
+     &  (243001.1509313233*h6*T*Log(H2SO4))/h3 +
+     &  4.963508394566835*q*T*Log(H2SO4) -
+     &  (5.401955915120605*q*T*Log(H2SO4))/h3 +
+     &  25.811543727271804*h6*q*T*Log(H2SO4) -
+     &  (355.292262810142*h6*q*T*Log(H2SO4))/h3 -
+     &  4.5691538346459195*T**2*Log(H2SO4) +
+     &  (2.468423948121569*T**2*Log(H2SO4))/h3 +
+     &  830.195816015575*h6*T**2*Log(H2SO4) -
+     &  (745.2009340266254*h6*T**2*Log(H2SO4))/h3 -
+     &  0.025450884793884514*q*T**2*Log(H2SO4) +
+     &  (0.03593327468289806*q*T**2*Log(H2SO4))/h3 +
+     &  1.3302486952619124*h6*q*T**2*Log(H2SO4) -
+     &  (0.320851018492291*h6*q*T**2*Log(H2SO4))/h3 +
+     &  0.006498242231697865*T**3*Log(H2SO4) -
+     &  (0.0013540108127227987*T**3*Log(H2SO4))/h3 -
+     &  1.1150374268629073*h6*T**3*Log(H2SO4) +
+     &  (0.5953715882656012*h6*T**3*Log(H2SO4))/h3 +
+     &  0.000043146778270078744*q*T**3*Log(H2SO4) -
+     &  (0.0000735656618351653*q*T**3*Log(H2SO4))/h3 -
+     &  0.004059155580949069*h6*q*T**3*Log(H2SO4) +
+     &  (0.0028886014749212705*h6*q*T**3*Log(H2SO4))/h3 +
+     &  4912.2066512397205*Log(H2SO4)**2 -
+     &  (3022.0044642322964*Log(H2SO4)**2)/h3 -
+     &  1.0095170363345986d6*h6*Log(H2SO4)**2 +
+     &  (1.1998313113698033d6*h6*Log(H2SO4)**2)/h3 +
+     &  18.018115617541998*q*Log(H2SO4)**2 +
+     &  (7.561352267717425*q*Log(H2SO4)**2)/h3 +
+     &  3133.188395383639*h6*q*Log(H2SO4)**2 -
+     &  (3338.848456178725*h6*q*Log(H2SO4)**2)/h3 -
+     &  63.77612570995598*T*Log(H2SO4)**2 +
+     &  (20.100257708705428*T*Log(H2SO4)**2)/h3 +
+     &  12469.209965937996*h6*T*Log(H2SO4)**2 -
+     &  (11883.666207080118*h6*T*Log(H2SO4)**2)/h3 -
+     &  0.2853187730266578*q*T*Log(H2SO4)**2 +
+     &  (0.03880844916086884*q*T*Log(H2SO4)**2)/h3 -
+     &  21.708027380830988*h6*q*T*Log(H2SO4)**2 +
+     &  (28.111166854183463*h6*q*T*Log(H2SO4)**2)/h3 +
+     &  0.27388018029546984*T**2*Log(H2SO4)**2 +
+     &  (0.005568448436161079*T**2*Log(H2SO4)**2)/h3 -
+     &  50.78398945757657*h6*T**2*Log(H2SO4)**2 +
+     &  (33.25484929904544*h6*T**2*Log(H2SO4)**2)/h3 +
+     &  0.0014875097131454307*q*T**2*Log(H2SO4)**2 -
+     &  (0.0008810798671059988*q*T**2*Log(H2SO4)**2)/h3 +
+     &  0.007045532214236005*h6*q*T**2*Log(H2SO4)**2 -
+     &  (0.05521643331038819*h6*q*T**2*Log(H2SO4)**2)/h3 -
+     &  0.00038943745406964085*T**3*Log(H2SO4)**2 -
+     &  (0.00015308439633013156*T**3*Log(H2SO4)**2)/h3 +
+     &  0.06817761559886615*h6*T**3*Log(H2SO4)**2 -
+     &  (0.019520711865759842*h6*T**3*Log(H2SO4)**2)/h3 -
+     &  2.554240267270117e-6_fp*q*T**3*Log(H2SO4)**2 +
+     &  (2.526957991768314e-6_fp*q*T**3*Log(H2SO4)**2)/h3 +
+     &  0.00011978108924107446*h6*q*T**3*Log(H2SO4)**2 -
+     &  98.09290363960072*Log(H2SO4)**3 +
+     &  (3.8697214915504805*Log(H2SO4)**3)/h3 +
+     &  20559.743351544734*h6*Log(H2SO4)**3 -
+     &  (18687.867717989076*h6*Log(H2SO4)**3)/h3 -
+     &  0.33118998078526996*q*Log(H2SO4)**3 -
+     &  (0.6955616584928909*q*Log(H2SO4)**3)/h3 -
+     &  92.45613590327787*h6*q*Log(H2SO4)**3 +
+     &  (8.948488896745264*h6*q*Log(H2SO4)**3)/h3 +
+     &  1.273863980203035*T*Log(H2SO4)**3 +
+     &  (0.38051947439108685*T*Log(H2SO4)**3)/h3 -
+     &  253.8228380167286*h6*T*Log(H2SO4)**3 +
+     &  (171.19178070061787*h6*T*Log(H2SO4)**3)/h3 +
+     &  0.005376622635136611*q*T*Log(H2SO4)**3 +
+     &  (0.006658042079999949*q*T*Log(H2SO4)**3)/h3 +
+     &  0.8230892248689082*h6*q*T*Log(H2SO4)**3 -
+     &  (0.058021973134188776*h6*q*T*Log(H2SO4)**3)/h3 -
+     &  0.005471105747328322*T**2*Log(H2SO4)**3 -
+     &  (0.003699167378319841*T**2*Log(H2SO4)**3)/h3 +
+     &  1.0332570198673408*h6*T**2*Log(H2SO4)**3 -
+     &  (0.38600322062471826*h6*T**2*Log(H2SO4)**3)/h3 -
+     &  0.000028584962254144285*q*T**2*Log(H2SO4)**3 -
+     &  (0.000016062832568931284*q*T**2*Log(H2SO4)**3)/h3 -
+     &  0.001819022861961261*h6*q*T**2*Log(H2SO4)**3 +
+     &  7.779696142330516e-6_fp*T**3*Log(H2SO4)**3 +
+     &  (8.513832613126146e-6_fp*T**3*Log(H2SO4)**3)/h3 -
+     &  0.0013866861532058*h6*T**3*Log(H2SO4)**3 +
+     &  4.981099027173453e-8_fp*q*T**3*Log(H2SO4)**3 +
+     &  178821.264938151*Log(RH) - (634125.5419575685*Log(RH))/h3 -
+     &  2.310391119522488e+7_fp*h6*Log(RH) +
+     &  (3.564836811852359e+7_fp*h6*Log(RH))/h3 -
+     &  744.9440395010726*q*Log(RH)+(1019.4951846825716*q*Log(RH))/h3-
+     &  28008.93484108728*h6*q*Log(RH) -
+     &  (7136.405275749431*h6*q*Log(RH))/h3 -
+     &  2275.393426900043*T*Log(RH) + (9231.8244493922*T*Log(RH))/h3 +
+     &  237571.37589421016*h6*T*Log(RH) -
+     &  (295411.0553218543*h6*T*Log(RH))/h3 +
+     &  4.451622613453289*q*T*Log(RH) -
+     &  (4.150562571935793*q*T*Log(RH))/h3 +
+     &  595.8398944235868*h6*q*T*Log(RH) -
+     &  (210.09033695512161*h6*q*T*Log(RH))/h3 +
+     &  9.678343416541734*T**2*Log(RH) -
+     &  (45.69882758602488*T**2*Log(RH))/h3 -
+     &  747.9878102876322*h6*T**2*Log(RH) +
+     &  (649.4424346377774*h6*T**2*Log(RH))/h3 +
+     &  0.005153649541788936*q*T**2*Log(RH) -
+     &  (0.0023655719118541533*q*T**2*Log(RH))/h3 -
+     &  2.848932474900831*h6*q*T**2*Log(RH) +
+     &  (0.2889680076326506*h6*q*T**2*Log(RH))/h3 -
+     &  0.013824587420637588*T**3*Log(RH) +
+     &  (0.07673955581386811*T**3*Log(RH))/h3 +
+     &  0.6813253055163031*h6*T**3*Log(RH) -
+     &  (0.2663343569482817*h6*T**3*Log(RH))/h3 -
+     &  0.00004364745106737275*q*T**3*Log(RH) -
+     &  (9.434880576275503e-6_fp*q*T**3*Log(RH))/h3 +
+     &  0.0030430214338531205*h6*q*T**3*Log(RH) +
+     &  (0.00371157673745342*h6*q*T**3*Log(RH))/h3 -
+     &  31842.277946766168*Log(H2SO4)*Log(RH) +
+     &  (68134.57926920953*Log(H2SO4)*Log(RH))/h3 +
+     &  3.493985612508899e+6_fp*h6*Log(H2SO4)*Log(RH) -
+     &  (4.587173661378969e+6_fp*h6*Log(H2SO4)*Log(RH))/h3 +
+     &  190.19310993267845*q*Log(H2SO4)*Log(RH) -
+     &  (233.68205749312318*q*Log(H2SO4)*Log(RH))/h3 -
+     &  1547.3248018686509*h6*q*Log(H2SO4)*Log(RH) +
+     &  (4045.133810971437*h6*q*Log(H2SO4)*Log(RH))/h3 +
+     &  405.31725032582267*T*Log(H2SO4)*Log(RH) -
+     &  (1057.655396923827*T*Log(H2SO4)*Log(RH))/h3 -
+     &  33903.90722480216*h6*T*Log(H2SO4)*Log(RH) +
+     &  (32965.76708786528*h6*T*Log(H2SO4)*Log(RH))/h3 -
+     &  1.5034587825111836*q*T*Log(H2SO4)*Log(RH) +
+     &  (1.106270806420077*q*T*Log(H2SO4)*Log(RH))/h3 -
+     &  25.549725610666396*h6*q*T*Log(H2SO4)*Log(RH) +
+     &  (20.09072468984517*h6*q*T*Log(H2SO4)*Log(RH))/h3 -
+     &  1.7253372988643991*T**2*Log(H2SO4)*Log(RH) +
+     &  (5.612615323997249*T**2*Log(H2SO4)*Log(RH))/h3 +
+     &  95.62445916373963*h6*T**2*Log(H2SO4)*Log(RH) -
+     &  (48.96291394056088*h6*T**2*Log(H2SO4)*Log(RH))/h3 +
+     &  0.0019300142376745193*q*T**2*Log(H2SO4)*Log(RH) +
+     &  (0.00015584582354154648*q*T**2*Log(H2SO4)*Log(RH))/h3 +
+     &  0.19177967246162606*h6*q*T**2*Log(H2SO4)*Log(RH) -
+     &  (0.16871358892301552*h6*q*T**2*Log(H2SO4)*Log(RH))/h3 +
+     &  0.00246781658651071*T**3*Log(H2SO4)*Log(RH) -
+     &  (0.01009444649935961*T**3*Log(H2SO4)*Log(RH))/h3 -
+     &  0.06589616928988701*h6*T**3*Log(H2SO4)*Log(RH) -
+     &  (0.01596274185896012*h6*T**3*Log(H2SO4)*Log(RH))/h3 +
+     &  4.109041091272658e-6_fp*q*T**3*Log(H2SO4)*Log(RH) +
+     &  (2.041743340493583e-7_fp*q*T**3*Log(H2SO4)*Log(RH))/h3 -
+     &  0.0001572125066332154*h6*q*T**3*Log(H2SO4)*Log(RH) +
+     &  1932.4011188760162*Log(H2SO4)**2*Log(RH) -
+     &  (781.4228432455719*Log(H2SO4)**2*Log(RH))/h3 -
+     &  181291.39888342103*h6*Log(H2SO4)**2*Log(RH) +
+     &  (210184.24050416853*h6*Log(H2SO4)**2*Log(RH))/h3 -
+     &  13.666906354559005*q*Log(H2SO4)**2*Log(RH) +
+     &  (15.930151624229865*q*Log(H2SO4)**2*Log(RH))/h3 +
+     &  305.7703887043172*h6*q*Log(H2SO4)**2*Log(RH) -
+     &  (391.71164595591085*h6*q*Log(H2SO4)**2*Log(RH))/h3 -
+     &  24.621398404913865*T*Log(H2SO4)**2*Log(RH) +
+     &  (20.079316822912197*T*Log(H2SO4)**2*Log(RH))/h3 +
+     &  1658.5845815289838*h6*T*Log(H2SO4)**2*Log(RH) -
+     &  (1404.5530139788664*h6*T*Log(H2SO4)**2*Log(RH))/h3 +
+     &  0.11823318365930788*q*T*Log(H2SO4)**2*Log(RH) -
+     &  (0.08056635668752316*q*T*Log(H2SO4)**2*Log(RH))/h3 -
+     &  1.0034435154436134*h6*q*T*Log(H2SO4)**2*Log(RH) +
+     &  (1.6021411957310931*h6*q*T*Log(H2SO4)**2*Log(RH))/h3 +
+     &  0.10491613716181539*T**2*Log(H2SO4)**2*Log(RH) -
+     &  (0.1492097929648805*T**2*Log(H2SO4)**2*Log(RH))/h3 -
+     &  4.0934834940398215*h6*T**2*Log(H2SO4)**2*Log(RH) +
+     &  (1.896735315742051*h6*T**2*Log(H2SO4)**2*Log(RH))/h3 -
+     &  0.00022870693934890214*q*T**2*Log(H2SO4)**2*Log(RH) +
+     &  (0.000013175311622036916*q*T**2*Log(H2SO4)**2*Log(RH))/h3-
+     &  0.00231560013471937*h6*q*T**2*Log(H2SO4)**2*Log(RH) -
+     &  0.00015023186988448507*T**3*Log(H2SO4)**2*Log(RH) +
+     &  (0.0003388679191513823*T**3*Log(H2SO4)**2*Log(RH))/h3 +
+     &  0.0015784630518057667*h6*T**3*Log(H2SO4)**2*Log(RH) -
+     &  1.0056424638350849e-7_fp*q*T**3*Log(H2SO4)**2*Log(RH) -
+     &  39.74503165968021*Log(H2SO4)**3*Log(RH) -
+     &  (68.29220045487304*Log(H2SO4)**3*Log(RH))/h3 +
+     &  3236.6794930454566*h6*Log(H2SO4)**3*Log(RH) -
+     &  (2511.4313482742737*h6*Log(H2SO4)**3*Log(RH))/h3 +
+     &  0.3044230466506939*q*Log(H2SO4)**3*Log(RH) -
+     &  (0.321694018076018*q*Log(H2SO4)**3*Log(RH))/h3 -
+     &  7.83632554091337*h6*q*Log(H2SO4)**3*Log(RH) +
+     &  (1.2615699211576334*h6*q*Log(H2SO4)**3*Log(RH))/h3 +
+     &  0.5071743553774433*T*Log(H2SO4)**3*Log(RH) +
+     &  (0.6993184748948513*T*Log(H2SO4)**3*Log(RH))/h3 -
+     &  28.064969097031586*h6*T*Log(H2SO4)**3*Log(RH) +
+     &  (12.010607450658807*h6*T*Log(H2SO4)**3*Log(RH))/h3 -
+     &  0.0027511166431233884*q*T*Log(H2SO4)**3*Log(RH) +
+     &  (0.0015662272224653852*q*T*Log(H2SO4)**3*Log(RH))/h3 +
+     &  0.03815288545975011*h6*q*T*Log(H2SO4)**3*Log(RH) -
+     &  0.0021639947693271114*T**2*Log(H2SO4)**3*Log(RH) -
+     &  (0.0017767382579465334*T**2*Log(H2SO4)**3*Log(RH))/h3 +
+     &  0.059762491440998364*h6*T**2*Log(H2SO4)**3*Log(RH) +
+     &  6.130388542051968e-6_fp*q*T**2*Log(H2SO4)**3*Log(RH) +
+     &  3.1017462628108047e-6_fp*T**3*Log(H2SO4)**3*Log(RH) -
+     &  7689.12786121461*Log(RH)**2-(25856.380361656236*Log(RH)**2)/h3-
+     &  1.3915437178042033e+6_fp*h6*Log(RH)**2 +
+     &  (1.9928171556602388e+6_fp*h6*Log(RH)**2)/h3 +
+     &  53.79216985973448*q*Log(RH)**2 -
+     &  (134.8787674139501*q*Log(RH)**2)/h3 -
+     &  1440.4837667461468*h6*q*Log(RH)**2 -
+     &  (3141.0130344871345*h6*q*Log(RH)**2)/h3 +
+     &  94.7545268444358*T*Log(RH)**2 +
+     &  (342.5857682014369*T*Log(RH)**2)/h3 +
+     &  11341.294070320842*h6*T*Log(RH)**2 -
+     &  (18070.160441620144*h6*T*Log(RH)**2)/h3 -
+     &  0.44696864139255954*q*T*Log(RH)**2 +
+     &  (1.1199451205710647*q*T*Log(RH)**2)/h3 +
+     &  19.01601691757823*h6*q*T*Log(RH)**2 +
+     &  (31.604766584775273*h6*q*T*Log(RH)**2)/h3 -
+     &  0.3470127737474881*T**2*Log(RH)**2 -
+     &  (1.4877879003131458*T**2*Log(RH)**2)/h3 -
+     &  18.727169614346867*h6*T**2*Log(RH)**2 +
+     &  (42.5448759900235*h6*T**2*Log(RH)**2)/h3 +
+     &  0.0007727701515171791*q*T**2*Log(RH)**2 -
+     &  (0.0032041999804810098*q*T**2*Log(RH)**2)/h3 -
+     &  0.055631814243943*h6*q*T**2*Log(RH)**2 -
+     &  (0.07696588905487615*h6*q*T**2*Log(RH)**2)/h3 +
+     &  0.00033600378567117826*T**3*Log(RH)**2 +
+     &  (0.002069337837641118*T**3*Log(RH)**2)/h3 -
+     &  0.015788853514098967*h6*T**3*Log(RH)**2 -
+     &  (0.009301939734036398*h6*T**3*Log(RH)**2)/h3 +
+     &  5.572064421478949e-7_fp*q*T**3*Log(RH)**2 +
+     &  (5.677455521083783e-6_fp*q*T**3*Log(RH)**2)/h3 -
+     &  0.00003507762649727548*h6*q*T**3*Log(RH)**2 +
+     &  1392.9578972108989*Log(H2SO4)*Log(RH)**2 +
+     &  (1911.734041113941*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  179329.36146873524*h6*Log(H2SO4)*Log(RH)**2 -
+     &  (119328.53674704138*h6*Log(H2SO4)*Log(RH)**2)/h3 -
+     &  6.462104618811676*q*Log(H2SO4)*Log(RH)**2 +
+     &  (11.294074621589449*q*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  13.39033080899747*h6*q*Log(H2SO4)*Log(RH)**2 -
+     &  (8.52831107206456*h6*q*Log(H2SO4)*Log(RH)**2)/h3 -
+     &  16.8958062365253*T*Log(H2SO4)*Log(RH)**2 -
+     &  (24.81735534395592*T*Log(H2SO4)*Log(RH)**2)/h3 -
+     &  1464.394638508739*h6*T*Log(H2SO4)*Log(RH)**2 +
+     &  (981.4137808275404*h6*T*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  0.051952833287610724*q*T*Log(H2SO4)*Log(RH)**2 -
+     &  (0.061982178004231*q*T*Log(H2SO4)*Log(RH)**2)/h3 -
+     &  0.7507183329339466*h6*q*T*Log(H2SO4)*Log(RH)**2 -
+     &  (0.05082083499340442*h6*q*T*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  0.060317519684020285*T**2*Log(H2SO4)*Log(RH)**2 +
+     &  (0.10238074986938017*T**2*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  2.654746963853928*h6*T**2*Log(H2SO4)*Log(RH)**2 -
+     &  (1.9505367684260284*h6*T**2*Log(H2SO4)*Log(RH)**2)/h3 -
+     &  0.00008828022840243558*q*T**2*Log(H2SO4)*Log(RH)**2 -
+     &  (7.843133775464917e-6_fp*q*T**2*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  0.00439346543661198*h6*q*T**2*Log(H2SO4)*Log(RH)**2 -
+     &  0.00005488176049657228*T**3*Log(H2SO4)*Log(RH)**2 -
+     &  (0.00012357549613231235*T**3*Log(H2SO4)*Log(RH)**2)/h3 +
+     &  0.000877040667994904*h6*T**3*Log(H2SO4)*Log(RH)**2 -
+     &  4.394231627146249e-8_fp*q*T**3*Log(H2SO4)*Log(RH)**2 -
+     &  72.11406227014747*Log(H2SO4)**2*Log(RH)**2 -
+     &  (16.86445272085156*Log(H2SO4)**2*Log(RH)**2)/h3 -
+     &  6535.765336704547*h6*Log(H2SO4)**2*Log(RH)**2 +
+     &  (941.2813201741736*h6*Log(H2SO4)**2*Log(RH)**2)/h3 +
+     &  0.2428031989628447*q*Log(H2SO4)**2*Log(RH)**2 -
+     &  (0.3050220578412721*q*Log(H2SO4)**2*Log(RH)**2)/h3 +
+     &  3.3649457326647947*h6*q*Log(H2SO4)**2*Log(RH)**2 +
+     &  (0.9000970248172522*h6*q*Log(H2SO4)**2*Log(RH)**2)/h3 +
+     &  0.8503624487797692*T*Log(H2SO4)**2*Log(RH)**2 +
+     &  (0.2527834506442179*T*Log(H2SO4)**2*Log(RH)**2)/h3 +
+     &  50.73348890297342*h6*T*Log(H2SO4)**2*Log(RH)**2 -
+     &  (4.356161470448808*h6*T*Log(H2SO4)**2*Log(RH)**2)/h3 -
+     &  0.0018342607279861292*q*T*Log(H2SO4)**2*Log(RH)**2 +
+     &  (0.0020365272689109475*q*T*Log(H2SO4)**2*Log(RH)**2)/h3 -
+     &  0.03276629834613374*h6*q*T*Log(H2SO4)**2*Log(RH)**2 -
+     &  0.0028420227040081517*T**2*Log(H2SO4)**2*Log(RH)**2 -
+     &  (0.0009263932662681723*T**2*Log(H2SO4)**2*Log(RH)**2)/h3 -
+     &  0.08964774960777555*h6*T**2*Log(H2SO4)**2*Log(RH)**2 +
+     &  3.036637047548649e-6_fp*q*T**2*Log(H2SO4)**2*Log(RH)**2 +
+     &  2.0594310710626316e-6_fp*T**3*Log(H2SO4)**2*Log(RH)**2 +
+     &  0.9950338851031777*Log(H2SO4)**3*Log(RH)**2 -
+     &  (0.622965174549953*Log(H2SO4)**3*Log(RH)**2)/h3 +
+     &  48.41845482837981*h6*Log(H2SO4)**3*Log(RH)**2 -
+     &  (1.7738934087048919*h6*Log(H2SO4)**3*Log(RH)**2)/h3 -
+     &  0.0022234755298572505*q*Log(H2SO4)**3*Log(RH)**2 -
+     &  (0.002437957119890622*q*Log(H2SO4)**3*Log(RH)**2)/h3 +
+     &  0.08069009533680993*h6*q*Log(H2SO4)**3*Log(RH)**2 -
+     &  0.010935011617216193*T*Log(H2SO4)**3*Log(RH)**2 +
+     &  (0.003456846985810427*T*Log(H2SO4)**3*Log(RH)**2)/h3 -
+     &  0.24482068250824904*h6*T*Log(H2SO4)**3*Log(RH)**2 +
+     &  0.000011334503487127534*q*T*Log(H2SO4)**3*Log(RH)**2 +
      &  0.000029425270779265584*T**2*Log(H2SO4)**3*Log(RH)**2
 
       h1=EXP(h1)
@@ -9891,94 +9891,94 @@ C     and get the nucleation rate and critical cluster size
        endif
 
 
-      h2=-32043.03148295406 + 59725.428570008815/h3 +  
+      h2=-32043.03148295406 + 59725.428570008815/h3 +
      & 7.128537634261564e+6_fp*h6 - (1.3833467233343722e+7_fp*h6)/h3+
      & 33.63110252227136*q-(48.61215633992165*q)/h3 - 16602.414377611287
-     & *h6*q + (40754.788181739124* h6*q)/h3 -2.3397851800516185*q**2 + 
+     & *h6*q + (40754.788181739124* h6*q)/h3 -2.3397851800516185*q**2 +
      & (4.426964073992281*q**2)/h3 + 18.971418767591036*h6*q**2 +
      & (60.446718551038344*h6*q**2)/h3+396.33752593131607*T-
      & (650.8601684277011*T)/h3-83753.25337253512*h6*T+
-     & (140932.8771905448*h6*T)/h3 + 1.7779514612590905*q*T -  
-     & (4.1201474547289845*q*T)/h3 - 14.23100399324848*h6*q*T - 
-     & (199.64146093004214*h6*q*T)/h3 + 0.017586270137944494*q**2*T - 
+     & (140932.8771905448*h6*T)/h3 + 1.7779514612590905*q*T -
+     & (4.1201474547289845*q*T)/h3 - 14.23100399324848*h6*q*T -
+     & (199.64146093004214*h6*q*T)/h3 + 0.017586270137944494*q**2*T -
      & (0.040669111407675304*q**2*T)/h3 - 0.5190592639152767*h6*q**2*T +
-     & (0.4152291779457336*h6*q**2*T)/h3 - 1.6239261240452716*T**2 + 
-     & (2.290370025362425*T**2)/h3 + 323.71145981054207*h6*T**2 -  
-     & (443.70978129586814*h6*T**2)/h3 - 0.016944490878752067*q*T**2 + 
+     & (0.4152291779457336*h6*q**2*T)/h3 - 1.6239261240452716*T**2 +
+     & (2.290370025362425*T**2)/h3 + 323.71145981054207*h6*T**2 -
+     & (443.70978129586814*h6*T**2)/h3 - 0.016944490878752067*q*T**2 +
      & (0.03190748579500371*q*T**2)/h3 + 0.9921294086888162*h6*q*T**2 -
      & (0.017807643647025154*h6*q*T**2)/h3-0.000026182356192850867*q**2*
      & T**2+(0.00018413948144606674*q**2*T**2)/h3+0.001418259144142961*
-     & h6*q**2*T**2 - (0.0005314099952660705*h6*q**2*T**2)/h3 + 
-     & 0.002203350630670886*T**3-(0.002628197592847762*T**3)/h3 - 
-     & 0.41364399538414304*h6*T**3+(0.4236315079925672*h6*T**3)/h3 + 
+     & h6*q**2*T**2 - (0.0005314099952660705*h6*q**2*T**2)/h3 +
+     & 0.002203350630670886*T**3-(0.002628197592847762*T**3)/h3 -
+     & 0.41364399538414304*h6*T**3+(0.4236315079925672*h6*T**3)/h3 +
      & 0.000036034470518775974*q*T**3-(0.00005072877953687334*q*T**3)/h3
      & -0.0025779163615301994*h6*q*T**3-(0.0001801635475946943*h6*q*
-     & T**3)/h3 - 1.0397496813871261e-8_fp*q**2*T**3 -  
+     & T**3)/h3 - 1.0397496813871261e-8_fp*q**2*T**3 -
      & (4.794510915054545e-7_fp*q**2*T**3)/h3+
      & 1.0037940606886203e-6_fp*h6*
      & q**2*T**3 +4057.4863055406972*Log(H2SO4) - (4857.4895775507075*
-     & Log(H2SO4))/h3 - 873923.0975121224*h6*Log(H2SO4) + 
-     & (1.3884698205066123e+6_fp*h6*Log(H2SO4))/h3-  
+     & Log(H2SO4))/h3 - 873923.0975121224*h6*Log(H2SO4) +
+     & (1.3884698205066123e+6_fp*h6*Log(H2SO4))/h3-
      & 16.567334471680468*q*Log(H2SO4)+(39.06695157867744*q*
-     & Log(H2SO4))/h3 + 
-     & 4033.3161579197213*h6*q*Log(H2SO4) - (4837.3892389479715*h6*q* 
-     & Log(H2SO4))/h3 + 0.32643050327864925*q**2*Log(H2SO4) -  
-     & (0.29168894526478634*q**2*Log(H2SO4))/h3 +   3.0197469938934343* 
+     & Log(H2SO4))/h3 +
+     & 4033.3161579197213*h6*q*Log(H2SO4) - (4837.3892389479715*h6*q*
+     & Log(H2SO4))/h3 + 0.32643050327864925*q**2*Log(H2SO4) -
+     & (0.29168894526478634*q**2*Log(H2SO4))/h3 +   3.0197469938934343*
      & h6*q**2*Log(H2SO4) - (13.620934035683936*h6*q**2*Log(H2SO4))/h3 -
      & 50.64853826213881*T*Log(H2SO4) + (46.190674056264115*T*
-     & Log(H2SO4))/h3 +10309.186386370407*h6*T*Log(H2SO4) - 
-     & (13393.112078195805*h6*T* 
-     & Log(H2SO4))/h3 - 0.05988575301198189*q*T*Log(H2SO4) + 
+     & Log(H2SO4))/h3 +10309.186386370407*h6*T*Log(H2SO4) -
+     & (13393.112078195805*h6*T*
+     & Log(H2SO4))/h3 - 0.05988575301198189*q*T*Log(H2SO4) +
      & (0.12991016720908877*q*T*Log(H2SO4))/h3-25.211481437032155*h6*q*
-     & T*Log(H2SO4) + (25.76780209283505*h6*q*T*Log(H2SO4))/h3 -  
-     & 0.0025433151017881413*q**2*T*Log(H2SO4)-(0.00003896417606619728* 
+     & T*Log(H2SO4) + (25.76780209283505*h6*q*T*Log(H2SO4))/h3 -
+     & 0.0025433151017881413*q**2*T*Log(H2SO4)-(0.00003896417606619728*
      & q**2*T*Log(H2SO4))/h3+0.018638367565640454*h6*q**2*T*Log(H2SO4)-
      & (0.009466280650899394*h6*q**2*T*Log(H2SO4))/h3+
      & 0.20947015213812362*T**2*Log(H2SO4)-(0.1282261301435015*T**2*
      & Log(H2SO4))/h3-40.05118528139879*h6*T**2*Log(H2SO4)+
      & (37.82992227601891* h6*T**2*Log(H2SO4))/h3+0.001426085690256897*
      & q*T**2*Log(H2SO4)-(0.0026110978166799066*q*T**2*Log(H2SO4))/h3 -
-     &  0.0017889111275040672*h6*q*T**2*Log(H2SO4) - 
-     & (0.0010479732179162718* h6*q*T**2*Log(H2SO4))/h3 + 
+     &  0.0017889111275040672*h6*q*T**2*Log(H2SO4) -
+     & (0.0010479732179162718* h6*q*T**2*Log(H2SO4))/h3 +
      & 4.179579131654065e-6_fp * q**2*T**2*Log(H2SO4) +
-     & (7.970218003902365e-6_fp * q**2 * 
+     & (7.970218003902365e-6_fp * q**2 *
      & T**2*Log(H2SO4))/h3-0.000116249941623789*h6*q**2*T**2*Log(H2SO4)-
      & 0.0002870253324673844*T**3*Log(H2SO4)+(0.00009186981667688776*
-     & T**3*Log(H2SO4))/h3 + 0.05147918448072947*h6*T**3*Log(H2SO4) -  
-     & (0.028081229965757286*h6*T**3*Log(H2SO4))/h3 - 
-     & 3.560981861287522e-6_fp* q* 
+     & T**3*Log(H2SO4))/h3 + 0.05147918448072947*h6*T**3*Log(H2SO4) -
+     & (0.028081229965757286*h6*T**3*Log(H2SO4))/h3 -
+     & 3.560981861287522e-6_fp* q*
      & T**3*Log(H2SO4)+(4.961243888005889e-6_fp*q*T**3*Log(H2SO4))/h3+
      & 0.0001420993695424454*h6*q*T**3*Log(H2SO4)+
      & 1.2719812342415112e-9_fp*
-     & q**2*T**3*Log(H2SO4) - 124.19545742393447*Log(H2SO4)**2 +   
+     & q**2*T**3*Log(H2SO4) - 124.19545742393447*Log(H2SO4)**2 +
      & (41.54331926307027*Log(H2SO4)**2)/h3 + 26490.80092234763*h6*
-     & Log(H2SO4)**2- (31462.37707525288*h6*Log(H2SO4)**2)/h3 +  
+     & Log(H2SO4)**2- (31462.37707525288*h6*Log(H2SO4)**2)/h3 +
      & 0.8500524958176608*q* Log(H2SO4)**2 - (3.2674516205233317*q*
-     & Log(H2SO4)**2)/h3 - 170.8115272895333*h6*q*Log(H2SO4)**2 + 
-     & (120.16514929908757*h6*q* Log(H2SO4)**2)/h3 - 
+     & Log(H2SO4)**2)/h3 - 170.8115272895333*h6*q*Log(H2SO4)**2 +
+     & (120.16514929908757*h6*q* Log(H2SO4)**2)/h3 -
      & 0.011268864148405246*q**2*Log(H2SO4)**2 +(0.019897271615564007*
-     & q**2*Log(H2SO4)**2)/h3 -  0.2574159414899909* 
+     & q**2*Log(H2SO4)**2)/h3 -  0.2574159414899909*
      & h6*q**2*Log(H2SO4)**2 + (0.5058681955079796*h6*q**2*
-     & Log(H2SO4)**2)/h3 +1.5616031047481935*T*Log(H2SO4)**2 +  
+     & Log(H2SO4)**2)/h3 +1.5616031047481935*T*Log(H2SO4)**2 +
      & (0.04762580087464638*T* Log(H2SO4)**2)/h3 - 313.57384684195245*
      & h6*T*Log(H2SO4)**2+(270.50302801880633*h6*T*Log(H2SO4)**2)/h3 -
-     &  0.0026826956178692776* q* 
-     & T*Log(H2SO4)**2 + (0.02263655181544639*q*T*Log(H2SO4)**2)/h3 +   
+     &  0.0026826956178692776* q*
+     & T*Log(H2SO4)**2 + (0.02263655181544639*q*T*Log(H2SO4)**2)/h3 +
      & 1.4230688700541085*h6*q*T*Log(H2SO4)**2 - (0.6649649390384627*
      &  h6* q* T*Log(H2SO4)**2)/h3 + 0.00009215121101630449*q**2*T*
-     & Log(H2SO4)**2 -  
-     & (0.00010215400234653555*q**2*T*Log(H2SO4)**2)/h3 +  
-     & 0.0010136511879910042*h6*q**2*T*Log(H2SO4)**2 -  
+     & Log(H2SO4)**2 -
+     & (0.00010215400234653555*q**2*T*Log(H2SO4)**2)/h3 +
+     & 0.0010136511879910042*h6*q**2*T*Log(H2SO4)**2 -
      & 0.006504837589925847*T**2*Log(H2SO4)**2 - (0.002702979699750996*
      & T**2*Log(H2SO4)**2)/h3 + 1.223462360247441*h6*T**2*Log(H2SO4)**2-
-     & (0.5623561810520002*h6*T**2*Log(H2SO4)**2)/h3 - 
-     & 0.000024272415265506407*q*T**2*Log(H2SO4)**2 - 
-     & (0.0000317372505770328*q*T**2*Log(H2SO4)**2)/h3 -  
+     & (0.5623561810520002*h6*T**2*Log(H2SO4)**2)/h3 -
+     & 0.000024272415265506407*q*T**2*Log(H2SO4)**2 -
+     & (0.0000317372505770328*q*T**2*Log(H2SO4)**2)/h3 -
      & 0.0028928533476792*h6*q*T**2*
      & Log(H2SO4)**2-1.7589107450560238e-7_fp*
      & q**2*T**2*Log(H2SO4)**
      & 2+8.98009092200891e-6_fp*T**3*Log(H2SO4)**2+
-     & (7.173660190761036e-6_fp*T**3*Log(H2SO4)**2)/h3 -  
+     & (7.173660190761036e-6_fp*T**3*Log(H2SO4)**2)/h3 -
      & 0.0015801362599946241*h6*T**3*
      & Log(H2SO4)**2+8.220297383016583e-8_fp*
      & q*T**3*Log(H2SO4)**2 - 12589.220049398413*Log(RH)+
@@ -9990,145 +9990,145 @@ C     and get the nucleation rate and critical cluster size
      & (2025.2741146328435*h6*q*Log(RH))/h3+0.43253945689885376*q**2*
      & Log(RH) - (0.5285905724764535*q**2*Log(RH))/h3+2.800088035800146*
      & h6*q**2*Log(RH)+(5.830987444741845*h6*q**2*Log(RH))/h3+
-     & 156.76303859222733*T*Log(RH) -  (1050.9788795963977*T* 
-     & Log(RH))/h3 + 2968.558570914762*h6*T*Log(RH)-  
+     & 156.76303859222733*T*Log(RH) -  (1050.9788795963977*T*
+     & Log(RH))/h3 + 2968.558570914762*h6*T*Log(RH)-
      & (13144.694726104603*h6*T*Log(RH))/h3-0.3939836553978611*q*T*
      & Log(RH) - (0.15149542273585964*q*T*Log(RH))/h3-52.00514647221519*
      & h6*q*T*Log(RH)+(33.50499777824741*h6*q*T*Log(RH))/h3-
-     & 0.0044939367750510195*q**2*T*Log(RH)+  
-     & (0.0037387212699065446*q**2*T*Log(RH))/h3 -  
+     & 0.0044939367750510195*q**2*T*Log(RH)+
+     & (0.0037387212699065446*q**2*T*Log(RH))/h3 -
      & 0.019659867844446746*h6*q**2*T*Log(RH) - (0.013728505197733986*
-     & h6*q**2*T*Log(RH))/h3-0.6541703069347068*T**2*Log(RH) + 
-     & (5.190500347012039*T**2*Log(RH))/h3-  
+     & h6*q**2*T*Log(RH))/h3-0.6541703069347068*T**2*Log(RH) +
+     & (5.190500347012039*T**2*Log(RH))/h3-
      & 87.05017506628032*h6*T**2*Log(RH) + (179.83498689899525*h6*T**2*
-     & Log(RH))/h3 + 0.00042182566738198824*q*T**2*Log(RH) +  
+     & Log(RH))/h3 + 0.00042182566738198824*q*T**2*Log(RH) +
      & (0.004271845253967774*q*T**2*Log(RH))/h3+0.12589872273911631*h6*
-     & q* T**2*Log(RH) - (0.08117178992783239*h6*q*T**2*Log(RH))/h3 +   
-     & 0.000010942253625927065*q**2*T**2*Log(RH) - 
-     & (3.4136292496834907e-6_fp*q**2* 
+     & q* T**2*Log(RH) - (0.08117178992783239*h6*q*T**2*Log(RH))/h3 +
+     & 0.000010942253625927065*q**2*T**2*Log(RH) -
+     & (3.4136292496834907e-6_fp*q**2*
      & T**2*Log(RH))/h3+3.7003812518449353e-6_fp*h6*q**2*T**2*Log(RH) +
-     & 0.0009227426647911644*T**3*Log(RH) - (0.008600685587907114*T**3* 
-     & Log(RH))/h3 + 0.23093344962838908*h6*T**3*Log(RH) -  
-     & (0.38790097045592176*h6*T**3*Log(RH))/h3 + 
+     & 0.0009227426647911644*T**3*Log(RH) - (0.008600685587907114*T**3*
+     & Log(RH))/h3 + 0.23093344962838908*h6*T**3*Log(RH) -
+     & (0.38790097045592176*h6*T**3*Log(RH))/h3 +
      & 1.2941739001871342e-6_fp*
-     & q*T**3*Log(RH)-(0.000013459445557723903*q*T**3*Log(RH))/h3 +  
+     & q*T**3*Log(RH)-(0.000013459445557723903*q*T**3*Log(RH))/h3 +
      & 0.00016881487161048804* h6*q*T**3*Log(RH) +
      & 2.609280671396356e-9_fp*
-     & q**2*T**3 *Log(RH)+2130.4592878663534*Log(H2SO4)*Log(RH) -  
-     & (4313.3562495734495*Log(H2SO4)*Log(RH))/h3 - 
-     & 291848.82747478905*h6*Log(H2SO4)*Log(RH) +  
+     & q**2*T**3 *Log(RH)+2130.4592878663534*Log(H2SO4)*Log(RH) -
+     & (4313.3562495734495*Log(H2SO4)*Log(RH))/h3 -
+     & 291848.82747478905*h6*Log(H2SO4)*Log(RH) +
      & (488820.18312982953*h6*Log(H2SO4)*Log(RH))/h3-9.405300971012823*
      & q*Log(H2SO4)*Log(RH) + (12.85263348658218*q*Log(H2SO4)*
-     * Log(RH))/h3+102.49140755096978*h6*q*Log(H2SO4)*Log(RH) - 
-     & (289.1347848442807*h6*q*Log(H2SO4)*Log(RH))/h3 - 
-     & 0.01500268773941549*q**2*Log(H2SO4)*Log(RH) +  
-     & (0.018600134825856034*q**2*Log(H2SO4)*Log(RH))/h3 - 
-     & 0.07717355560425733* 
+     * Log(RH))/h3+102.49140755096978*h6*q*Log(H2SO4)*Log(RH) -
+     & (289.1347848442807*h6*q*Log(H2SO4)*Log(RH))/h3 -
+     & 0.01500268773941549*q**2*Log(H2SO4)*Log(RH) +
+     & (0.018600134825856034*q**2*Log(H2SO4)*Log(RH))/h3 -
+     & 0.07717355560425733*
      & h6*q**2*Log(H2SO4)*Log(RH)-(0.161938896012148*h6*q**2*Log(H2SO4)*
-     & Log(RH))/h3 - 27.134659704074295*T*Log(H2SO4)*Log(RH) + 
+     & Log(RH))/h3 - 27.134659704074295*T*Log(H2SO4)*Log(RH) +
      & (69.2483692103918*T*Log(H2SO4)*Log(RH))/h3 + 1882.179099085481*
      & h6*T*Log(H2SO4)*Log(RH)-(3332.724995554323*h6*T*Log(H2SO4)*
-     & Log(RH))/h3 + 0.0786126279415837*q* 
+     & Log(RH))/h3 + 0.0786126279415837*q*
      & T*Log(H2SO4)*Log(RH) - (0.12353477014379059*q*T*Log(H2SO4)*
-     & Log(RH))/h3+2.221848005253306*h6*q*T*Log(H2SO4)*Log(RH) +  
-     & (0.532770625490143*h6 *q*T*Log(H2SO4)*Log(RH))/h3 + 
-     & 0.00020323051093599427*q**2*T* Log(H2SO4)* 
+     & Log(RH))/h3+2.221848005253306*h6*q*T*Log(H2SO4)*Log(RH) +
+     & (0.532770625490143*h6 *q*T*Log(H2SO4)*Log(RH))/h3 +
+     & 0.00020323051093599427*q**2*T* Log(H2SO4)*
      & Log(RH) - (0.00014374306638210478*q**2*T*Log(H2SO4)*Log(RH))/h3 +
-     & 0.0006995787862129086*h6*q**2*T*Log(H2SO4)*Log(RH) +   
+     & 0.0006995787862129086*h6*q**2*T*Log(H2SO4)*Log(RH) +
      & 0.11535250161710112*T**2*Log(H2SO4)*Log(RH)-(0.37254120769567123*
-     & T**2*Log(H2SO4)*Log(RH))/h3 + 0.3210533828417492*h6*T**2* 
+     & T**2*Log(H2SO4)*Log(RH))/h3 + 0.3210533828417492*h6*T**2*
      & Log(H2SO4)*Log(RH)+(4.899886058456062*h6*T**2*Log(H2SO4)*
-     & Log(RH))/h3-0.00013223802083620908*q*T**2*Log(H2SO4)*Log(RH) +  
-     & (0.00031364246871883094*q*T**2*Log(H2SO4)*Log(RH))/h3 - 
-     & 0.013017818218354784*h6*q*T**2*Log(H2SO4)*Log(RH) - 
-     & 6.285230956812909e-7_fp* 
-     & q**2*T**2*Log(H2SO4)*Log(RH) -0.0001644893214543928*T**3* 
+     & Log(RH))/h3-0.00013223802083620908*q*T**2*Log(H2SO4)*Log(RH) +
+     & (0.00031364246871883094*q*T**2*Log(H2SO4)*Log(RH))/h3 -
+     & 0.013017818218354784*h6*q*T**2*Log(H2SO4)*Log(RH) -
+     & 6.285230956812909e-7_fp*
+     & q**2*T**2*Log(H2SO4)*Log(RH) -0.0001644893214543928*T**3*
      & Log(H2SO4)*Log(RH)+(0.0006683187277334718*T**3*Log(H2SO4)*
      & Log(RH))/h3-0.012564516901538326*h6*T**3*Log(H2SO4)*Log(RH)-
-     & 1.2575655284907035e-7_fp*q*T**3*Log(H2SO4)*Log(RH) - 
-     & 79.49703918541012*Log(H2SO4)**2*Log(RH) -  
-     & (101.22507090731304*Log(H2SO4)**2*Log(RH))/h3 + 
+     & 1.2575655284907035e-7_fp*q*T**3*Log(H2SO4)*Log(RH) -
+     & 79.49703918541012*Log(H2SO4)**2*Log(RH) -
+     & (101.22507090731304*Log(H2SO4)**2*Log(RH))/h3 +
      & 12719.306036991808*h6*Log(H2SO4)**2*Log(RH)-(7977.5339222745315*
-     & h6*Log(H2SO4)**2*Log(RH))/h3 
+     & h6*Log(H2SO4)**2*Log(RH))/h3
      & +0.3744372178099974*q*Log(H2SO4)**2*Log(RH)-(0.025682479965146*q*
-     & Log(H2SO4)**2*Log(RH))/h3-22.19218619809272*h6*q*Log(H2SO4)**2* 
-     & Log(RH) + (5.910834971937343*h6*q*Log(H2SO4)**2*Log(RH))/h3 -   
-     & 0.00037981877987097496*q**2*Log(H2SO4)**2*Log(RH) +  
-     & (0.00032985668220561373*q**2*Log(H2SO4)**2*Log(RH))/h3 - 
-     & 0.0003940881289017262*h6*q**2*Log(H2SO4)**2*Log(RH) + 
-     & 1.0255615837685275*T*Log(H2SO4)**2*Log(RH) +  
-     & (1.0124457331884233*T* 
-     & Log(H2SO4)**2*Log(RH))/h3-111.19643387882614*h6*T*Log(H2SO4)**2* 
-     & Log(RH) + (37.058545749337576*h6*T*Log(H2SO4)**2*Log(RH))/h3 - 
-     & 0.0034094873321621174*q*T*Log(H2SO4)**2*Log(RH) +  
-     & (0.000015597253696421123*q*T*Log(H2SO4)**2*Log(RH))/h3 +   
-     & 0.10750304600542902*h6*q*T*Log(H2SO4)**2*Log(RH) + 
-     &1.8808923253076581e-6_fp* 
+     & Log(H2SO4)**2*Log(RH))/h3-22.19218619809272*h6*q*Log(H2SO4)**2*
+     & Log(RH) + (5.910834971937343*h6*q*Log(H2SO4)**2*Log(RH))/h3 -
+     & 0.00037981877987097496*q**2*Log(H2SO4)**2*Log(RH) +
+     & (0.00032985668220561373*q**2*Log(H2SO4)**2*Log(RH))/h3 -
+     & 0.0003940881289017262*h6*q**2*Log(H2SO4)**2*Log(RH) +
+     & 1.0255615837685275*T*Log(H2SO4)**2*Log(RH) +
+     & (1.0124457331884233*T*
+     & Log(H2SO4)**2*Log(RH))/h3-111.19643387882614*h6*T*Log(H2SO4)**2*
+     & Log(RH) + (37.058545749337576*h6*T*Log(H2SO4)**2*Log(RH))/h3 -
+     & 0.0034094873321621174*q*T*Log(H2SO4)**2*Log(RH) +
+     & (0.000015597253696421123*q*T*Log(H2SO4)**2*Log(RH))/h3 +
+     & 0.10750304600542902*h6*q*T*Log(H2SO4)**2*Log(RH) +
+     &1.8808923253076581e-6_fp*
      & q**2*T*Log(H2SO4)**2*Log(RH) - 0.0044066707400722644*T**2*
      & Log(H2SO4)**2*Log(RH) -  (0.0025163539282379434*T**2*
      & Log(H2SO4)**2*Log(RH))/h3 + 0.24020207161395796*h6*T**2*
      & Log(H2SO4)**2*Log(RH)+7.634986243805219e-6_fp*
      & q*T**2*Log(H2SO4)**2*
-     & Log(RH) + 6.328401246898811e-6_fp*T**3*Log(H2SO4)**2*Log(RH) + 
+     & Log(RH) + 6.328401246898811e-6_fp*T**3*Log(H2SO4)**2*Log(RH) +
      & 3630.6862033225625*Log(RH)**2-(1075.4966438125716*Log(RH)**2)/h3+
      & 54546.69751557024*h6*Log(RH)**2-(49710.530231480734*h6*
-     & Log(RH)**2)/h3 - 1.5893360668636096*q*Log(RH)**2 +   
+     & Log(RH)**2)/h3 - 1.5893360668636096*q*Log(RH)**2 +
      & (7.970183065343727*q*Log(RH)**2)/h3 + 400.88335315886525*h6*q*
-     & Log(RH)**2 -(219.0329650802132*h6*q*Log(RH)**2)/h3 +  
+     & Log(RH)**2 -(219.0329650802132*h6*q*Log(RH)**2)/h3 +
      & 0.015009992625400783*q**2*Log(RH)**2 + (0.0036804085191588995*
-     & q**2*Log(RH)**2)/h3+0.4203732847045355*h6*q**2*Log(RH)**2 +  
+     & q**2*Log(RH)**2)/h3+0.4203732847045355*h6*q**2*Log(RH)**2 +
      & (0.20391771437862574*h6*q**2*Log(RH)**2)/h3 - 44.579109086853684*
-     & T*Log(RH)**2 + (8.53054910480424*T* 
-     & Log(RH)**2)/h3 + 76.04921125760566*h6*T*Log(RH)**2 -  
+     & T*Log(RH)**2 + (8.53054910480424*T*
+     & Log(RH)**2)/h3 + 76.04921125760566*h6*T*Log(RH)**2 -
      & (329.28669019015933*h6*T*Log(RH)**2)/h3 - 0.019940534315381526*q
-     & *T*Log(RH)**2 - (0.050640623913744444*q*T*Log(RH)**2)/h3 - 
+     & *T*Log(RH)**2 - (0.050640623913744444*q*T*Log(RH)**2)/h3 -
      & 1.5765203107981385*h6*q*T*Log(RH)**2 +  (0.3694218342124642*h6*
-     & q*T* Log(RH)**2)/h3-0.0001222138921423729*q**2*T*Log(RH)**2 - 
-     & (0.000049403831741944986*q**2* 
-     & T*Log(RH)**2)/h3 - 0.0025870767829077484*h6*q**2*T*Log(RH)**2 +  
-     & 0.17463801499094986*T**2*Log(RH)**2 - (0.02046987546015939*T**2* 
-     & Log(RH)**2)/h3 - 1.3780954635968534*h6*T**2*Log(RH)**2 +  
-     & (2.0745682824062985*h6*T**2*Log(RH)**2)/h3 +  
-     & 0.00015350888582331981* q*T**2*Log(RH)**2 + 
-     & (0.00011285744022151752*q*T**2*Log(RH)**2)/h3 +  
+     & q*T* Log(RH)**2)/h3-0.0001222138921423729*q**2*T*Log(RH)**2 -
+     & (0.000049403831741944986*q**2*
+     & T*Log(RH)**2)/h3 - 0.0025870767829077484*h6*q**2*T*Log(RH)**2 +
+     & 0.17463801499094986*T**2*Log(RH)**2 - (0.02046987546015939*T**2*
+     & Log(RH)**2)/h3 - 1.3780954635968534*h6*T**2*Log(RH)**2 +
+     & (2.0745682824062985*h6*T**2*Log(RH)**2)/h3 +
+     & 0.00015350888582331981* q*T**2*Log(RH)**2 +
+     & (0.00011285744022151752*q*T**2*Log(RH)**2)/h3 +
      & 0.00004952110557031714*h6*q*T**2*
      &Log(RH)**2+3.968468979853371e-7_fp*
-     & q**2*T**2*Log(RH)**2 - 0.00021374165659919817*T**3*Log(RH)**2 +  
-     & (0.000023714077438108623*T**3*Log(RH)**2)/h3 -  
-     & 0.0010671420677054659* h6* 
-     & T**3*Log(RH)**2 - 1.8562790214558605e-7_fp*q*T**3*Log(RH)**2 - 
-     & 279.60556688841575*Log(H2SO4)*Log(RH)**2 +  (44.483779255378025* 
+     & q**2*T**2*Log(RH)**2 - 0.00021374165659919817*T**3*Log(RH)**2 +
+     & (0.000023714077438108623*T**3*Log(RH)**2)/h3 -
+     & 0.0010671420677054659* h6*
+     & T**3*Log(RH)**2 - 1.8562790214558605e-7_fp*q*T**3*Log(RH)**2 -
+     & 279.60556688841575*Log(H2SO4)*Log(RH)**2 +  (44.483779255378025*
      & Log(H2SO4)*Log(RH)**2)/h3 -11085.947063809159*h6*Log(H2SO4)*
-     & Log(RH)**2 +(10910.046235786824*h6*Log(H2SO4)*Log(RH)**2)/h3 + 
+     & Log(RH)**2 +(10910.046235786824*h6*Log(H2SO4)*Log(RH)**2)/h3 +
      & 0.47924678115681674*q*Log(H2SO4)*Log(RH)**2-(0.3759508982199312*
      & q*Log(H2SO4)*Log(RH)**2)/h3-29.071647637053548*h6*q*Log(H2SO4)*
      & Log(RH)**2 +  (8.887445070958586*h6*q*Log(H2SO4)*Log(RH)**2)/h3-
-     & 0.00029636660559253115*q**2 * Log(H2SO4)*Log(RH)**2 + 
-     & (0.00046301434118339234*q**2*Log(H2SO4)*Log(RH)**2)/h3 +  
-     & 0.005479820108166143*h6*q**2*Log(H2SO4)*Log(RH)**2 +  
-     & 3.2937887074139884*T*Log(H2SO4)*Log(RH)**2 -  
-     & (0.053358185813312024*T*Log(H2SO4)*Log(RH)**2)/h3 + 
-     & 29.117876039650476*h6*T*Log(H2SO4)*Log(RH)**2 -  
-     & (34.13451610985067*h6*T*Log(H2SO4)*Log(RH)**2)/h3 -  
-     & 0.001150661716592889*q*T*Log(H2SO4)*Log(RH)**2 +  
-     & (0.0005497364286653244*q*T* Log(H2SO4)* 
+     & 0.00029636660559253115*q**2 * Log(H2SO4)*Log(RH)**2 +
+     & (0.00046301434118339234*q**2*Log(H2SO4)*Log(RH)**2)/h3 +
+     & 0.005479820108166143*h6*q**2*Log(H2SO4)*Log(RH)**2 +
+     & 3.2937887074139884*T*Log(H2SO4)*Log(RH)**2 -
+     & (0.053358185813312024*T*Log(H2SO4)*Log(RH)**2)/h3 +
+     & 29.117876039650476*h6*T*Log(H2SO4)*Log(RH)**2 -
+     & (34.13451610985067*h6*T*Log(H2SO4)*Log(RH)**2)/h3 -
+     & 0.001150661716592889*q*T*Log(H2SO4)*Log(RH)**2 +
+     & (0.0005497364286653244*q*T* Log(H2SO4)*
      & Log(RH)**2)/h3+0.09171149584822953*h6*q*T*Log(H2SO4)*Log(RH)**2-
-     & 2.9335804996871176e-6_fp*q**2*T*Log(H2SO4)*Log(RH)**2 -  
-     & 0.012024558565450824*T**2*Log(H2SO4)*Log(RH)**2 - 
-     & (0.0008282043267863183*T**2*Log(H2SO4)*Log(RH)**2)/h3 + 
-     & 0.11350434127907331*h6* T**2* 
-     & Log(H2SO4)*Log(RH)**2-3.206307709389464e-6_fp*q*T**2*Log(H2SO4)* 
+     & 2.9335804996871176e-6_fp*q**2*T*Log(H2SO4)*Log(RH)**2 -
+     & 0.012024558565450824*T**2*Log(H2SO4)*Log(RH)**2 -
+     & (0.0008282043267863183*T**2*Log(H2SO4)*Log(RH)**2)/h3 +
+     & 0.11350434127907331*h6* T**2*
+     & Log(H2SO4)*Log(RH)**2-3.206307709389464e-6_fp*q*T**2*Log(H2SO4)*
      & Log(RH)**2 + 0.000012855779740625904*T**3*Log(H2SO4)*Log(RH)**2 +
      & 3.7577104325072703*Log(H2SO4)**2*Log(RH)**2 -(2.6641547962978636*
-     & Log(H2SO4)**2*Log(RH)**2)/h3 +  476.38347866428205*h6* 
+     & Log(H2SO4)**2*Log(RH)**2)/h3 +  476.38347866428205*h6*
      & Log(H2SO4)**2 *Log(RH)**2 - (127.7453688897455*h6*Log(H2SO4)**2*
-     & Log(RH)**2)/h3 -0.01970020856731193*q*Log(H2SO4)**2*Log(RH)**2 + 
+     & Log(RH)**2)/h3 -0.01970020856731193*q*Log(H2SO4)**2*Log(RH)**2 +
      & (0.006983199758249699*q*Log(H2SO4)**2*Log(RH)**2)/h3 +
-     &  0.3243000572140283*h6*q*Log(H2SO4)**2* 
-     & Log(RH)**2+0.00002903250111944733*q**2*Log(H2SO4)**2*Log(RH)**2- 
-     & 0.037500815576593044*T*Log(H2SO4)**2*Log(RH)**2 + 
-     & (0.013073560271857765*T*Log(H2SO4)**2*Log(RH)**2)/h3 - 
-     & 2.2753830913797373*h6*T* Log(H2SO4)**2* 
+     &  0.3243000572140283*h6*q*Log(H2SO4)**2*
+     & Log(RH)**2+0.00002903250111944733*q**2*Log(H2SO4)**2*Log(RH)**2-
+     & 0.037500815576593044*T*Log(H2SO4)**2*Log(RH)**2 +
+     & (0.013073560271857765*T*Log(H2SO4)**2*Log(RH)**2)/h3 -
+     & 2.2753830913797373*h6*T* Log(H2SO4)**2*
      & Log(RH)**2 + 0.00007918460467376976*q*T*Log(H2SO4)**2*Log(RH)**2+
      & 0.00009291148493939081*T**2*Log(H2SO4)**2*Log(RH)**2
 
@@ -10136,143 +10136,143 @@ C     and get the nucleation rate and critical cluster size
 
 
 
-      h4=-233.3693139924163 + 3711.127600293859*h6 - 
-     &  127375.45943800849*h6**2 - 0.6541599370168311*q - 
-     &  8.950348936875036*h6*q + 1420.4060399615116*h6**2*q + 
-     &  0.006010885721884837*q**2 - 0.2514391282801529*h6*q**2 + 
-     &  11.74107168004114*h6**2*q**2 - 27.242866772851034*RH + 
-     &  3230.6550683739456*h6*RH - 7739.349030052802*h6**2*RH + 
-     &  0.02657310586465451*q*RH + 0.8072083676135904*h6*q*RH + 
-     &  21.19451916114249*h6**2*q*RH - 0.0013789987709190107*q**2*RH - 
-     &  0.02985872690339605*h6*q**2*RH + 10.1858919054768*RH**2 + 
-     &  1831.5638235525591*h6*RH**2 - 3345.6757256829833*h6**2*RH**2 - 
-     &  0.006667965604100408*q*RH**2 - 1.6996949068091805*h6*q*RH**2 - 
-     &  0.0002938711589315329*q**2*RH**2 + 20.8476664473087*RH**3 + 
-     &  153.46841353011587*h6*RH**3 - 0.023573221099724897*q*RH**3 + 
-     &  3.1234153503175706*T - 106.11845318552218*h6*T + 
-     &  1616.0925045006472*h6**2*T - 0.000870039433136904*q*T + 
-     &  0.07485289069770486*h6*q*T - 2.8492194924162093*h6**2*q*T - 
+      h4=-233.3693139924163 + 3711.127600293859*h6 -
+     &  127375.45943800849*h6**2 - 0.6541599370168311*q -
+     &  8.950348936875036*h6*q + 1420.4060399615116*h6**2*q +
+     &  0.006010885721884837*q**2 - 0.2514391282801529*h6*q**2 +
+     &  11.74107168004114*h6**2*q**2 - 27.242866772851034*RH +
+     &  3230.6550683739456*h6*RH - 7739.349030052802*h6**2*RH +
+     &  0.02657310586465451*q*RH + 0.8072083676135904*h6*q*RH +
+     &  21.19451916114249*h6**2*q*RH - 0.0013789987709190107*q**2*RH -
+     &  0.02985872690339605*h6*q**2*RH + 10.1858919054768*RH**2 +
+     &  1831.5638235525591*h6*RH**2 - 3345.6757256829833*h6**2*RH**2 -
+     &  0.006667965604100408*q*RH**2 - 1.6996949068091805*h6*q*RH**2 -
+     &  0.0002938711589315329*q**2*RH**2 + 20.8476664473087*RH**3 +
+     &  153.46841353011587*h6*RH**3 - 0.023573221099724897*q*RH**3 +
+     &  3.1234153503175706*T - 106.11845318552218*h6*T +
+     &  1616.0925045006472*h6**2*T - 0.000870039433136904*q*T +
+     &  0.07485289069770486*h6*q*T - 2.8492194924162093*h6**2*q*T -
      &  0.000025041587132070856*q**2*T -
-     &  0.00009872033200025474*h6*q**2*T + 0.1139999815738393*RH*T - 
-     &  59.3235586131405*h6*RH*T + 188.66428911211182*h6**2*RH*T + 
-     &  0.0021232663933975797*q*RH*T + 0.03525906170060478*h6*q*RH*T + 
+     &  0.00009872033200025474*h6*q**2*T + 0.1139999815738393*RH*T -
+     &  59.3235586131405*h6*RH*T + 188.66428911211182*h6**2*RH*T +
+     &  0.0021232663933975797*q*RH*T + 0.03525906170060478*h6*q*RH*T +
      &  5.50009952133025e-6_fp*q**2*RH*T - 0.40949236112495135*RH**2*T -
-     &  9.19061496536003*h6*RH**2*T + 
-     &  0.00018605332374157369*q*RH**2*T - 
-     &  0.15228517482883766*RH**3*T - 0.026779347826859368*T**2 + 
-     &  0.7791278560987452*h6*T**2 - 5.635512845808971*h6**2*T**2 - 
-     &  0.00004290197829367679*q*T**2 - 
-     &  0.00034888935617559023*h6*q*T**2 + 
-     &  3.399576950217114e-8_fp*q**2*T**2 + 
-     &  0.0047495543899101315*RH*T**2 + 
-     &  0.21966980586301704*h6*RH*T**2 - 
-     &  5.402900826149558e-6_fp*q*RH*T**2 + 
-     &  0.00209481671640675*RH**2*T**2 + 0.00004712913787763615*T**3- 
+     &  9.19061496536003*h6*RH**2*T +
+     &  0.00018605332374157369*q*RH**2*T -
+     &  0.15228517482883766*RH**3*T - 0.026779347826859368*T**2 +
+     &  0.7791278560987452*h6*T**2 - 5.635512845808971*h6**2*T**2 -
+     &  0.00004290197829367679*q*T**2 -
+     &  0.00034888935617559023*h6*q*T**2 +
+     &  3.399576950217114e-8_fp*q**2*T**2 +
+     &  0.0047495543899101315*RH*T**2 +
+     &  0.21966980586301704*h6*RH*T**2 -
+     &  5.402900826149558e-6_fp*q*RH*T**2 +
+     &  0.00209481671640675*RH**2*T**2 + 0.00004712913787763615*T**3-
      &  0.0022395082766246705*h6*T**3 + 7.857921629051029e-8_fp*q*T**3 -
-     &  0.000017637397545586075*RH*T**3 + 
-     &  14.487613189612244*Log(H2SO4) + 
-     &  834.2954132542228*h6*Log(H2SO4) - 
-     &  9818.723117205202*h6**2*Log(H2SO4) + 
-     &  0.1293876064755356*q*Log(H2SO4) + 
-     &  0.5266286653232314*h6*q*Log(H2SO4) - 
-     &  85.4813173795405*h6**2*q*Log(H2SO4) - 
-     &  0.0005441269120155648*q**2*Log(H2SO4) + 
-     &  0.013203398533271429*h6*q**2*Log(H2SO4) + 
-     &  2.9312753776692975*RH*Log(H2SO4) + 
-     &  329.1801633051309*h6*RH*Log(H2SO4) - 
-     &  2384.7570613779067*h6**2*RH*Log(H2SO4) - 
-     &  0.02754902616213419*q*RH*Log(H2SO4) - 
-     &  0.39067534860398334*h6*q*RH*Log(H2SO4) + 
-     &  0.000059670451934966084*q**2*RH*Log(H2SO4) + 
-     &  2.1796062691153963*RH**2*Log(H2SO4) - 
-     &  4.33856569910847*h6*RH**2*Log(H2SO4) + 
-     &  0.0016947748838741473*q*RH**2*Log(H2SO4) + 
-     &  0.7647868504545748*RH**3*Log(H2SO4) + 
-     &  0.22920773390043764*T*Log(H2SO4) - 
-     &  8.113046295543565*h6*T*Log(H2SO4) + 
-     &  68.80414049795816*h6**2*T*Log(H2SO4) + 
-     &  0.0014123733231002104*q*T*Log(H2SO4) + 
-     &  0.0062552686253774335*h6*q*T*Log(H2SO4) + 
-     &  3.138422092020368d-8*q**2*T*Log(H2SO4) - 
-     &  0.11854147612732342*RH*T*Log(H2SO4) - 
-     &  2.0186043272890317*h6*RH*T*Log(H2SO4) - 
-     &  0.000017510448352402354*q*RH*T*Log(H2SO4) - 
-     &  0.014662481263341446*RH**2*T*Log(H2SO4) + 
-     &  0.001037948515905241*T**2*Log(H2SO4) + 
-     &  0.04470222473271311*h6*T**2*Log(H2SO4) - 
-     &  7.507637022804968e-7_fp*q*T**2*Log(H2SO4) + 
-     &  0.0002763185325508037*RH*T**2*Log(H2SO4) - 
-     &  2.046693588795596e-6_fp*T**3*Log(H2SO4) - 
-     &  3.3271552306181786*Log(H2SO4)**2 - 
-     &  0.6732293679771482*h6*Log(H2SO4)**2 - 
-     &  123.7357115914075*h6**2*Log(H2SO4)**2 - 
-     &  0.017682151597098173*q*Log(H2SO4)**2 - 
-     &  0.06932927383915821*h6*q*Log(H2SO4)**2 + 
-     &  0.000028013174553488913*q**2*Log(H2SO4)**2 + 
-     &  0.5385357123752617*RH*Log(H2SO4)**2 + 
-     &  4.405735442137794*h6*RH*Log(H2SO4)**2 + 
-     &  0.0007699683891127761*q*RH*Log(H2SO4)**2 - 
-     &  0.01981622019488726*RH**2*Log(H2SO4)**2 - 
-     &  0.02863075409562691*T*Log(H2SO4)**2 - 
-     &  0.3815368435566718*h6*T*Log(H2SO4)**2 - 
-     &  0.000032173458991045656*q*T*Log(H2SO4)**2 + 
-     &  0.0006610846557652917*RH*T*Log(H2SO4)**2 + 
-     &  5.708155280776268e-6_fp*T**2*Log(H2SO4)**2 + 
-     &  0.2841922065650612*Log(H2SO4)**3 + 
-     &  1.937916853785423*h6*Log(H2SO4)**3 + 
-     &  0.00046645968682534585*q*Log(H2SO4)**3 - 
-     &  0.01392240494812053*RH*Log(H2SO4)**3 + 
-     &  0.0005604898286672238*T*Log(H2SO4)**3 - 
+     &  0.000017637397545586075*RH*T**3 +
+     &  14.487613189612244*Log(H2SO4) +
+     &  834.2954132542228*h6*Log(H2SO4) -
+     &  9818.723117205202*h6**2*Log(H2SO4) +
+     &  0.1293876064755356*q*Log(H2SO4) +
+     &  0.5266286653232314*h6*q*Log(H2SO4) -
+     &  85.4813173795405*h6**2*q*Log(H2SO4) -
+     &  0.0005441269120155648*q**2*Log(H2SO4) +
+     &  0.013203398533271429*h6*q**2*Log(H2SO4) +
+     &  2.9312753776692975*RH*Log(H2SO4) +
+     &  329.1801633051309*h6*RH*Log(H2SO4) -
+     &  2384.7570613779067*h6**2*RH*Log(H2SO4) -
+     &  0.02754902616213419*q*RH*Log(H2SO4) -
+     &  0.39067534860398334*h6*q*RH*Log(H2SO4) +
+     &  0.000059670451934966084*q**2*RH*Log(H2SO4) +
+     &  2.1796062691153963*RH**2*Log(H2SO4) -
+     &  4.33856569910847*h6*RH**2*Log(H2SO4) +
+     &  0.0016947748838741473*q*RH**2*Log(H2SO4) +
+     &  0.7647868504545748*RH**3*Log(H2SO4) +
+     &  0.22920773390043764*T*Log(H2SO4) -
+     &  8.113046295543565*h6*T*Log(H2SO4) +
+     &  68.80414049795816*h6**2*T*Log(H2SO4) +
+     &  0.0014123733231002104*q*T*Log(H2SO4) +
+     &  0.0062552686253774335*h6*q*T*Log(H2SO4) +
+     &  3.138422092020368d-8*q**2*T*Log(H2SO4) -
+     &  0.11854147612732342*RH*T*Log(H2SO4) -
+     &  2.0186043272890317*h6*RH*T*Log(H2SO4) -
+     &  0.000017510448352402354*q*RH*T*Log(H2SO4) -
+     &  0.014662481263341446*RH**2*T*Log(H2SO4) +
+     &  0.001037948515905241*T**2*Log(H2SO4) +
+     &  0.04470222473271311*h6*T**2*Log(H2SO4) -
+     &  7.507637022804968e-7_fp*q*T**2*Log(H2SO4) +
+     &  0.0002763185325508037*RH*T**2*Log(H2SO4) -
+     &  2.046693588795596e-6_fp*T**3*Log(H2SO4) -
+     &  3.3271552306181786*Log(H2SO4)**2 -
+     &  0.6732293679771482*h6*Log(H2SO4)**2 -
+     &  123.7357115914075*h6**2*Log(H2SO4)**2 -
+     &  0.017682151597098173*q*Log(H2SO4)**2 -
+     &  0.06932927383915821*h6*q*Log(H2SO4)**2 +
+     &  0.000028013174553488913*q**2*Log(H2SO4)**2 +
+     &  0.5385357123752617*RH*Log(H2SO4)**2 +
+     &  4.405735442137794*h6*RH*Log(H2SO4)**2 +
+     &  0.0007699683891127761*q*RH*Log(H2SO4)**2 -
+     &  0.01981622019488726*RH**2*Log(H2SO4)**2 -
+     &  0.02863075409562691*T*Log(H2SO4)**2 -
+     &  0.3815368435566718*h6*T*Log(H2SO4)**2 -
+     &  0.000032173458991045656*q*T*Log(H2SO4)**2 +
+     &  0.0006610846557652917*RH*T*Log(H2SO4)**2 +
+     &  5.708155280776268e-6_fp*T**2*Log(H2SO4)**2 +
+     &  0.2841922065650612*Log(H2SO4)**3 +
+     &  1.937916853785423*h6*Log(H2SO4)**3 +
+     &  0.00046645968682534585*q*Log(H2SO4)**3 -
+     &  0.01392240494812053*RH*Log(H2SO4)**3 +
+     &  0.0005604898286672238*T*Log(H2SO4)**3 -
      &  0.00648946009121241*Log(H2SO4)**4
 
       H4=EXP(H4)
-      
+
 
       h5=68.64045827314231-3277.3575769882523*h6 + 1.0798559249565618*q-
-     &  25.296110707348316*h6*q + 13.398992645698215*RH + 
-     &  922.4932305036297*h6*RH - 0.27140107873619296*q*RH + 
-     &  20.08312325165439*h6*q*RH + 66.82077511984484*RH**2 + 
-     &  1611.1977384351555*h6*RH**2 - 0.02661518788217287*q*RH**2 + 
-     &  3.0843227537972138*h6*q*RH**2 - 1.4080258142983926*T - 
-     &  1.8568570408634648*h6*T - 0.0037450866352058397*q*T - 
-     &  0.2576980690602505*h6*q*T - 1.3810906781490837*RH*T - 
-     &  17.730890154257356*h6*RH*T + 0.001076745543266636*q*RH*T - 
-     &  0.08909158555166723*h6*q*RH*T - 0.87735596568044*RH**2*T - 
+     &  25.296110707348316*h6*q + 13.398992645698215*RH +
+     &  922.4932305036297*h6*RH - 0.27140107873619296*q*RH +
+     &  20.08312325165439*h6*q*RH + 66.82077511984484*RH**2 +
+     &  1611.1977384351555*h6*RH**2 - 0.02661518788217287*q*RH**2 +
+     &  3.0843227537972138*h6*q*RH**2 - 1.4080258142983926*T -
+     &  1.8568570408634648*h6*T - 0.0037450866352058397*q*T -
+     &  0.2576980690602505*h6*q*T - 1.3810906781490837*RH*T -
+     &  17.730890154257356*h6*RH*T + 0.001076745543266636*q*RH*T -
+     &  0.08909158555166723*h6*q*RH*T - 0.87735596568044*RH**2*T -
      &  5.603639080904061*h6*RH**2*T + 0.0002224812194282388*q*RH**2*T +
-     &  0.015404311250124585*T**2 + 0.009972776386592903*h6*T**2 - 
+     &  0.015404311250124585*T**2 + 0.009972776386592903*h6*T**2 -
      &  7.895537111616416e-7_fp*q*T**2-0.0003918985727565079*h6*q*T**2 +
      &  0.014090613376170114*RH*T**2 + 0.029815313352513736*h6*RH*T**2 -
      &  3.607688962369381e-6_fp*q*RH*T**
-     &  2+0.0028248811086430334*RH**2*T**2- 
-     &  0.00010105566309790024*T**3 - 0.00008368737713099654*h6*T**3 + 
+     &  2+0.0028248811086430334*RH**2*T**2-
+     &  0.00010105566309790024*T**3 - 0.00008368737713099654*h6*T**3 +
      &  1.0956121068002908e-8_fp*q*T**3-0.000042201374093774165*RH*T**3+
-     &  2.429718549962505e-7_fp*T**4 - 0.9150072698367441*Log(H2SO4) + 
+     &  2.429718549962505e-7_fp*T**4 - 0.9150072698367441*Log(H2SO4) +
      &  653.1422380210507*h6*Log(H2SO4) - 0.16169777329907886*q*
      &  Log(H2SO4)+6.860485142132651*h6*q*Log(H2SO4)+13.912279451959678*
-     &  RH*Log(H2SO4) - 12.99843208521885*h6*RH*Log(H2SO4) + 
+     &  RH*Log(H2SO4) - 12.99843208521885*h6*RH*Log(H2SO4) +
      &  0.021566098556935497*q*RH*Log(H2SO4) - 0.17455209117051437*h6*q*
-     &  RH*Log(H2SO4) + 3.4003096116229066*RH**2*Log(H2SO4) - 
+     &  RH*Log(H2SO4) + 3.4003096116229066*RH**2*Log(H2SO4) -
      &  36.48723431979357*h6*RH**2*Log(H2SO4) - 0.001787998461490877*q*
      &  RH**2*Log(H2SO4) - 0.11123959974265946*T*Log(H2SO4) +
      &  1.4641341095178422*h6*T*Log(H2SO4) + 0.0005023439404053182*q*T*
-     &  Log(H2SO4) + 0.031171816066622334*h6*q*T*Log(H2SO4) - 
+     &  Log(H2SO4) + 0.031171816066622334*h6*q*T*Log(H2SO4) -
      &  0.1666443655044969*RH*T*Log(H2SO4) + 0.9274525071251363*h6*RH*T*
-     &  Log(H2SO4) + 0.00003323858217484082*q*RH*T*Log(H2SO4) - 
+     &  Log(H2SO4) + 0.00003323858217484082*q*RH*T*Log(H2SO4) -
      &  0.021039758605777333*RH**2*T*Log(H2SO4) + 0.0018827939246916288*
-     &  T**2*Log(H2SO4) + 0.0014616406839659635*h6*T**2*Log(H2SO4) - 
-     &  2.8887052861955783e-7_fp*q*T**2*Log(H2SO4) + 
+     &  T**2*Log(H2SO4) + 0.0014616406839659635*h6*T**2*Log(H2SO4) -
+     &  2.8887052861955783e-7_fp*q*T**2*Log(H2SO4) +
      &  0.0007036899839828474*
-     &  RH*T**2*Log(H2SO4) - 6.077113667352327e-6_fp*T**3*Log(H2SO4) + 
+     &  RH*T**2*Log(H2SO4) - 6.077113667352327e-6_fp*T**3*Log(H2SO4) +
      &  0.8758449734328851*Log(H2SO4)**2 - 61.130559299849466*h6*
-     &  Log(H2SO4)**2 + 0.007311434341744119*q*Log(H2SO4)**2 - 
+     &  Log(H2SO4)**2 + 0.007311434341744119*q*Log(H2SO4)**2 -
      &  0.4613762652439876*h6*q*Log(H2SO4)**2 + 0.11048996127121676*RH*
-     &  Log(H2SO4)**2 - 5.241218416739315*h6*RH*Log(H2SO4)**2 - 
+     &  Log(H2SO4)**2 - 5.241218416739315*h6*RH*Log(H2SO4)**2 -
      &  0.0009849834685920686*q*RH*Log(H2SO4)**2 + 0.034417912409269905*
-     &  RH**2*Log(H2SO4)**2 - 0.01737690919778605*T*Log(H2SO4)**2 - 
+     &  RH**2*Log(H2SO4)**2 - 0.01737690919778605*T*Log(H2SO4)**2 -
      &  0.10868884345327394*h6*T*Log(H2SO4)**2-0.000013815430650770167*
-     &  q*T*Log(H2SO4)**2 - 0.0038903960432723123*RH*T*Log(H2SO4)**2 + 
+     &  q*T*Log(H2SO4)**2 - 0.0038903960432723123*RH*T*Log(H2SO4)**2 +
      &  0.00005879779401379263*T**2*Log(H2SO4)**2 + 0.03393085910585771*
-     &  Log(H2SO4)**3 + 2.2221405215918755*h6*Log(H2SO4)**3 - 
+     &  Log(H2SO4)**3 + 2.2221405215918755*h6*Log(H2SO4)**3 -
      &  0.00009520679794957912*q*Log(H2SO4)**3 + 0.0166181059051036*RH*
      &  Log(H2SO4)**3 - 0.00014027668903237805*T*Log(H2SO4)**3
 
@@ -10300,7 +10300,7 @@ C     and get the nucleation rate and critical cluster size
       SUBROUTINE CLEANUP_TOMAS
 !
 !******************************************************************************
-!  Subroutine CLEANUP_TOMAS deallocates all module arrays 
+!  Subroutine CLEANUP_TOMAS deallocates all module arrays
 !  (win, 7/9/07)
 !
 !  NOTES:
@@ -10313,7 +10313,7 @@ C     and get the nucleation rate and critical cluster size
       IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE )
 
       ! Return to calling program
-      END SUBROUTINE CLEANUP_TOMAS 
+      END SUBROUTINE CLEANUP_TOMAS
 
 !-----------------------------------------------------------------------------
 

@@ -439,7 +439,7 @@ CONTAINS
     TYPE(Ext_State), POINTER :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,7 +533,7 @@ CONTAINS
           MSG = 'AeroCom: reading ' // TRIM(ThisFile)
           CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDIF
- 
+
        ! Check if file exists
        INQUIRE ( FILE=TRIM(ThisFile), EXIST=FileExist )
        IF ( .NOT. FileExist ) THEN

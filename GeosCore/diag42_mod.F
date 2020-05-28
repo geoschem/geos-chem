@@ -5,11 +5,11 @@
 !
 ! !MODULE: diag42_mod.F
 !
-! !DESCRIPTION: Module DIAG42\_MOD contains arrays and routines for archiving 
-!  the ND42 diagnostic -- secondary organic aerosols [ug/m3]. 
+! !DESCRIPTION: Module DIAG42\_MOD contains arrays and routines for archiving
+!  the ND42 diagnostic -- secondary organic aerosols [ug/m3].
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG42_MOD
 !
@@ -34,7 +34,7 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD42(:,:,:,:)   ! Array for SOA [ug/m3]
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
+!
       PUBLIC :: DIAG42
       PUBLIC :: ZERO_DIAG42
       PUBLIC :: WRITE_DIAG42
@@ -49,7 +49,7 @@
 !  (3 ) Add diagnostics for SOAG and SOAM (tmf, 1/7/09)
 !  (4 ) Increase PD42 to 24. (fp, hotp, 2/3/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
@@ -66,13 +66,13 @@
 !
 ! !IROUTINE: diag42
 !
-! !DESCRIPTION: Subroutine DIAG42 archives SOA concentrations [ug/m3] 
+! !DESCRIPTION: Subroutine DIAG42 archives SOA concentrations [ug/m3]
 !  for the ND42 diagnostic.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( am_I_Root,  Input_Opt, State_Chm, 
+      SUBROUTINE DIAG42( am_I_Root,  Input_Opt, State_Chm,
      &                   State_Grid, State_Met, RC)
 !
 ! !USES:
@@ -107,22 +107,22 @@
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
@@ -149,7 +149,7 @@
       REAL(fp)            :: FACTOR
       CHARACTER(LEN=63)   :: OrigUnit
       CHARACTER(LEN=255)  :: MSG
-     
+
       ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER, SAVE       :: id_POA1,   id_POA2
@@ -161,7 +161,7 @@
       LOGICAL, SAVE       :: IS_ISOPOA
 
       ! Define number of carbon atoms in each irreversible isoprene
-      ! SOA tracer species. Named according to the parent HC (same 
+      ! SOA tracer species. Named according to the parent HC (same
       ! number of carbons):
       REAL(fp), PARAMETER :: NCIMAE   = 4e+0_fp
       REAL(fp), PARAMETER :: NCIEPOX  = 5e+0_fp
@@ -172,14 +172,14 @@
       REAL(fp), PARAMETER :: NCLVOC   = NCIEPOX
       REAL(fp), PARAMETER :: NCISN1   = NCIEPOX
 
-      ! Pointers      
+      ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
 #endif
 
-      !================================================================= 
-      ! DIAG42 begins here! 
-      !================================================================= 
+      !=================================================================
+      ! DIAG42 begins here!
+      !=================================================================
 
       ! Initialize
       RC = GC_SUCCESS
@@ -203,9 +203,9 @@
 
          ! Define logical flags
          IS_POA    = ( id_POA1   > 0 .and. id_POA2   > 0 )
-         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAME  > 0 .and. 
-     &                 id_INDIOL > 0 .and. id_SOAGX  > 0 .and. 
-     &                 id_SOAMG  > 0 .and. id_LVOCOA > 0 .and. 
+         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAME  > 0 .and.
+     &                 id_INDIOL > 0 .and. id_SOAGX  > 0 .and.
+     &                 id_SOAMG  > 0 .and. id_LVOCOA > 0 .and.
      &                 id_ISN1OA > 0 )
 
          ! Reset first-time flag
@@ -216,25 +216,25 @@
       FACTOR = 1e+9_fp
 
       ! Convert species units to [kg] for this routine (ewl, 8/12/15)
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, 'kg',
      &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, 'Start of diag42 in diag42_mod.F')
          RETURN
-      ENDIF 
+      ENDIF
 
       ! Initialize pointers
       Spc    => State_Chm%Species
       AIRVOL => State_Met%AIRVOL
 
-      ! Loop over grid boxes     
-!$OMP PARALLEL DO 
+      ! Loop over grid boxes
+!$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )  
-      DO L = 1, LD42  
-      DO J = 1, State_Grid%NY 
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LD42
+      DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
          !--------------------------------------------------------------
@@ -259,10 +259,10 @@
          ! POA [ug/m3]
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
-            AD42(I,J,L,4) = AD42(I,J,L,4) + OCPO(I,J,L) * FACTOR 
+            AD42(I,J,L,4) = AD42(I,J,L,4) + OCPO(I,J,L) * FACTOR
          ELSE
             AD42(I,J,L,4) = AD42(I,J,L,4) +
-     &                       ( OCPI(I,J,L) + OCPO(I,J,L) ) * FACTOR 
+     &                       ( OCPI(I,J,L) + OCPO(I,J,L) ) * FACTOR
          ENDIF
 
          !--------------------------------------------------------------
@@ -306,7 +306,7 @@
      &              ( State_Chm%SpcData(id_SOAIE)%Info%MW_g * 1e-3_fp ))
      &              + Spc(I,J,L,id_SOAME) * ( NCIMAE  * MWCARB /
      &              ( State_Chm%SpcData(id_SOAME)%Info%MW_g * 1e-3_fp ))
-     &              + Spc(I,J,L,id_INDIOL)* ( NCINDIOL* MWCARB / 
+     &              + Spc(I,J,L,id_INDIOL)* ( NCINDIOL* MWCARB /
      &              ( State_Chm%SpcData(id_INDIOL)%Info%MW_g* 1e-3_fp ))
      &              + Spc(I,J,L,id_SOAGX) * ( NCGLYX  * MWCARB /
      &              ( State_Chm%SpcData(id_SOAGX)%Info%MW_g * 1e-3_fp ))
@@ -325,7 +325,7 @@
          !--------------------------------------------------------------
          AD42(I,J,L,8) = AD42(I,J,L,8) +
      &                   ( TSOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
-          
+
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]
          !--------------------------------------------------------------
@@ -344,7 +344,7 @@
             ENDIF
          ELSE
             IF ( OCFOPOA(I,J) > 0 ) THEN
-               AD42(I,J,L,10) = AD42(I,J,L,10) + 
+               AD42(I,J,L,10) = AD42(I,J,L,10) +
      &                      ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
      &                          OCFOPOA(I,J) ) * FACTOR
             ENDIF
@@ -364,13 +364,13 @@
 
          ! OC [ugC/m3]
          IF ( OCFOPOA(I,J) > 0 ) THEN
-            AD42(I,J,L,12) = AD42(I,J,L,12) + 
-     &                   ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
+            AD42(I,J,L,12) = AD42(I,J,L,12) +
+     &                   ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
      &                       OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          ! BC [ugC/m3]
-         AD42(I,J,L,13) = AD42(I,J,L,13) + 
+         AD42(I,J,L,13) = AD42(I,J,L,13) +
      &                    ( BCPI(I,J,L) + BCPO(I,J,L) ) * FACTOR
 
          ! SO4 [ug/m3]
@@ -383,7 +383,7 @@
          AD42(I,J,L,16) = AD42(I,J,L,16) + NIT(I,J,L) * FACTOR
 
          ! Sea salt [ug/m3]
-         AD42(I,J,L,17) = AD42(I,J,L,17) + 
+         AD42(I,J,L,17) = AD42(I,J,L,17) +
      &                    ( SALA(I,J,L) + SALC(I,J,L) ) * FACTOR
 
          !--------------------------------------------------------------
@@ -392,7 +392,7 @@
          AD42(I,J,L,18) = AD42(I,J,L,18) + PM25(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
-         ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07) 
+         ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07)
          !
          ! Assume SOAGX mass = GLYX mass, SOAMG mass = MGLY mass
          !--------------------------------------------------------------
@@ -411,11 +411,11 @@
 
             ! IEPOX-OA [ug/m3]:
             AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
-     &                       * FACTOR / AIRVOL(I,J,L) 
+     &                       * FACTOR / AIRVOL(I,J,L)
 
             ! IMAE-OA [ug/m3]:
             AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_SOAME )
-     &                       * FACTOR / AIRVOL(I,J,L) 
+     &                       * FACTOR / AIRVOL(I,J,L)
 
             ! INDIOL [ug/m3]:
             AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
@@ -437,13 +437,13 @@
 !$OMP END PARALLEL DO
 
       ! Convert back to original unit (ewl, 8/12/15)
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, 'End of diag42 in diag42_mod.F')
          RETURN
-      ENDIF 
+      ENDIF
 
       ! Free pointers
       Spc    => NULL()
@@ -465,8 +465,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE ZERO_DIAG42
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -493,7 +493,7 @@
 !
 ! !IROUTINE: write_diag42
 !
-! !DESCRIPTION: Subroutine WRITE\_DIAG42 writes the ND42 diagnostic arrays 
+! !DESCRIPTION: Subroutine WRITE\_DIAG42 writes the ND42 diagnostic arrays
 !  to the binary punch file at the proper time.
 !\\
 !\\
@@ -522,14 +522,14 @@
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems  on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Use TS_DIAG for scaling instead of TS_DYN. (ccc, 8/18/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
@@ -541,13 +541,13 @@
 #if defined( BPCH_DIAG )
       INTEGER           :: CENTER180, HALFPOLAR
       INTEGER           :: L,         M,         N
-      INTEGER           :: IFIRST,    JFIRST,    LFIRST        
+      INTEGER           :: IFIRST,    JFIRST,    LFIRST
       REAL*4            :: LONRES,    LATRES
       REAL*4            :: ARRAY(State_Grid%NX,State_Grid%NY,
      &                           State_Grid%NZ)
       REAL(fp)          :: SCALE
       REAL(f8)          :: DIAGb,     DIAGe
-      CHARACTER(LEN=20) :: MODELNAME 
+      CHARACTER(LEN=20) :: MODELNAME
       CHARACTER(LEN=40) :: CATEGORY
       CHARACTER(LEN=40) :: RESERVED
       CHARACTER(LEN=40) :: UNIT
@@ -603,8 +603,8 @@
          ! Write data to disk
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, LD42, IFIRST,     
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               State_Grid%NX, State_Grid%NY, LD42, IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD42) )
       ENDDO
 #endif
@@ -643,8 +643,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
@@ -662,7 +662,7 @@
       RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG )
-     
+
       ! This is no longer necessary (bmy, 12/13/17)
       !! Turn off ND42 if SOA tracers are not used
       !IF ( .not. Input_Opt%LSOA ) THEN
@@ -701,8 +701,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG42
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -712,7 +712,7 @@
       ! CLEANUP_DIAG42 begins here!
       !=================================================================
 #if defined( BPCH_DIAG )
-      IF ( ALLOCATED( AD42 ) ) DEALLOCATE( AD42 ) 
+      IF ( ALLOCATED( AD42 ) ) DEALLOCATE( AD42 )
 #endif
 
       END SUBROUTINE CLEANUP_DIAG42

@@ -5,14 +5,14 @@
 !
 ! !MODULE: hco_logfile_mod
 !
-! !DESCRIPTION: Module HCO\_LOGFILE\_MOD contains some wrapper routines to 
+! !DESCRIPTION: Module HCO\_LOGFILE\_MOD contains some wrapper routines to
 ! write data into the HEMCO logfile.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
-MODULE HCO_LOGFILE_MOD 
-! 
+MODULE HCO_LOGFILE_MOD
+!
 ! !USES:
 !
   USE HCO_ERROR_MOD
@@ -59,7 +59,7 @@ CONTAINS
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     INTEGER,          INTENT(IN)     :: ID         ! HEMCO species ID
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  27 May 2014 - C. Keller   - Initialization
 !EOP
 !------------------------------------------------------------------------------
@@ -67,10 +67,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)  :: MSG 
+    CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
-    ! HCO_Spec2Log begins here 
+    ! HCO_Spec2Log begins here
     !=================================================================
 
     MSG = 'Species ' // TRIM(HcoState%Spc(ID)%SpcName)
@@ -92,7 +92,7 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        write(MSG,*) '--> Henry pKA     : ', HcoState%Spc(ID)%HenryPKA
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-    ENDIF    
+    ENDIF
 
   END SUBROUTINE HCO_Spec2Log
 !EOC
@@ -103,7 +103,7 @@ CONTAINS
 !
 ! !ROUTINE: HCO_PrintList
 !
-! !DESCRIPTION: Subroutine HCO\_PrintList displays the content of List. 
+! !DESCRIPTION: Subroutine HCO\_PrintList displays the content of List.
 !\\
 !\\
 ! !INTERFACE:
@@ -117,7 +117,7 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-      TYPE(HCO_STATE),POINTER    :: HcoState 
+      TYPE(HCO_STATE),POINTER    :: HcoState
       TYPE(ListCont), POINTER    :: List
       INTEGER,        INTENT(IN) :: Verbose
 !
@@ -131,7 +131,7 @@ CONTAINS
 ! !ARGUMENTS:
 !
       TYPE(ListCont), POINTER   :: TmpLct
-      CHARACTER(LEN=255)        :: MSG 
+      CHARACTER(LEN=255)        :: MSG
 
       ! ================================================================
       ! HCO_PrintList begins here
@@ -139,12 +139,12 @@ CONTAINS
 
       ! Point to first element
       TmpLct => List
-      DO WHILE ( ASSOCIATED(TmpLct) ) 
+      DO WHILE ( ASSOCIATED(TmpLct) )
          IF ( ASSOCIATED(TmpLct%Dct) ) THEN
             CALL HCO_PrintDataCont(HcoState,TmpLct%Dct,Verbose)
          ENDIF
          TmpLct => TmpLct%NextCont
-      ENDDO        
+      ENDDO
 
       TmpLct => NULL()
 
@@ -158,7 +158,7 @@ CONTAINS
 ! !ROUTINE: HCO_PrintDataCont
 !
 ! !DESCRIPTION: Subroutine HCO\_PrintDataCont displays the content of the
-! data container Dct. 
+! data container Dct.
 !\\
 !\\
 ! !INTERFACE:
@@ -172,7 +172,7 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-      TYPE(HCO_STATE),POINTER    :: HcoState 
+      TYPE(HCO_STATE),POINTER    :: HcoState
       TYPE(DataCont), POINTER    :: Dct
       INTEGER,        INTENT(IN) :: Verbose
 !
@@ -185,19 +185,19 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      CHARACTER(LEN=255) :: MSG 
-      INTEGER            :: nx, ny, nz, nt      
+      CHARACTER(LEN=255) :: MSG
+      INTEGER            :: nx, ny, nz, nt
       REAL(sp)           :: sm, mn, mx
 
       ! ================================================================
       ! HCO_PrintDataCont begins here
       ! ================================================================
 
-      sm = 0.0_sp 
+      sm = 0.0_sp
       mn = 0.0_sp
       mx = 0.0_sp
-      sm = 0.0_sp 
-      nx = 0 
+      sm = 0.0_sp
+      nx = 0
       ny = 0
       nz = 0
       nt = Dct%Dta%nt
@@ -249,13 +249,13 @@ CONTAINS
          IF ( Dct%Dta%ncRead ) THEN
             write(MSG,*) '   -->Source parameter: ', TRIM(Dct%Dta%ncPara)
             CALL HCO_MSG(HcoState%Config%Err,MSG)
-            write(MSG,*) '   -->Year range      : ', Dct%Dta%ncYrs 
+            write(MSG,*) '   -->Year range      : ', Dct%Dta%ncYrs
             CALL HCO_MSG(HcoState%Config%Err,MSG)
-            write(MSG,*) '   -->Month range     : ', Dct%Dta%ncMts 
+            write(MSG,*) '   -->Month range     : ', Dct%Dta%ncMts
             CALL HCO_MSG(HcoState%Config%Err,MSG)
-            write(MSG,*) '   -->Day range       : ', Dct%Dta%ncDys 
+            write(MSG,*) '   -->Day range       : ', Dct%Dta%ncDys
             CALL HCO_MSG(HcoState%Config%Err,MSG)
-            write(MSG,*) '   -->Hour range      : ', Dct%Dta%ncHrs 
+            write(MSG,*) '   -->Hour range      : ', Dct%Dta%ncHrs
             CALL HCO_MSG(HcoState%Config%Err,MSG)
             write(MSG,*) '   -->SpaceDim        : ', Dct%Dta%SpaceDim
             CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -266,11 +266,11 @@ CONTAINS
             write(MSG,*) '   -->Array dimension : ', nx,ny
          ENDIF
          CALL HCO_MSG(HcoState%Config%Err,MSG)
-         write(MSG,*) '   -->Array sum       : ', sm 
+         write(MSG,*) '   -->Array sum       : ', sm
          CALL HCO_MSG(HcoState%Config%Err,MSG)
          write(MSG,*) '   -->Array min & max : ', mn,mx
          CALL HCO_MSG(HcoState%Config%Err,MSG)
-         write(MSG,*) '   -->Time dimension  : ', nt 
+         write(MSG,*) '   -->Time dimension  : ', nt
          CALL HCO_MSG(HcoState%Config%Err,MSG)
          write(MSG,*) '   -->Delta t[h]      : ', Dct%Dta%DeltaT
          CALL HCO_MSG(HcoState%Config%Err,MSG)

@@ -9,7 +9,7 @@
 # !DESCRIPTION: This makefile compiles the KPP solver code for a given
 #  GEOS-Chem chemistry mechanism. Object files (*.o) are bundled into the
 #  libKpp.a library (located in the LIB directory).  Module files (*.mod) are
-#  copied to the MOD directory. 
+#  copied to the MOD directory.
 #\\
 #\\
 # !REMARKS:
@@ -37,7 +37,7 @@
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options
@@ -76,7 +76,7 @@ SRC      :=$(wildcard gckpp*.F90)
 # Object files
 OBJ      :=$(SRC:.F90=.o)
 
-# Object files for first compilation pass.  These only contain parameters 
+# Object files for first compilation pass.  These only contain parameters
 # that are needed for species database initialization. (bmy, 5/13/16)
 OBJfirst :=gckpp_Precision.o gckpp_Parameters.o gckpp_Monitor.o
 
@@ -113,7 +113,7 @@ help:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -139,7 +139,7 @@ gckpp_Integrator.o    : gckpp_Parameters.o      \
                         gckpp_Function.o        \
                         gckpp_Rates.o           \
                         gckpp_Jacobian.o        \
-                        gckpp_LinearAlgebra.o 
+                        gckpp_LinearAlgebra.o
 
 gckpp_Jacobian.o      : gckpp_Parameters.o      \
                         gckpp_JacobianSP.o
@@ -168,7 +168,7 @@ gckpp_Precision.o     : gckpp_Precision.F90
 gckpp_Rates.o         : gckpp_Parameters.o      \
                         gckpp_Global.o          \
                         gckpp_Monitor.o         \
-			gckpp_HetRates.o 
+			gckpp_HetRates.o
 
 gckpp_Util.o          : gckpp_Parameters.o      \
                         gckpp_Global.o          \

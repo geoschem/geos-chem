@@ -3,12 +3,12 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hemco_standalone.F90 
+! !MODULE: hemco_standalone.F90
 !
 ! !DESCRIPTION: Program HEMCO\_StandAlone is the driver for HEMCO in
-!  in stand-alone mode. It receives the configuration file name as 
-!  input argument and then calls the routine HCOI\_StandAlone\_Run 
-!  (from module file hcoi\_standalone\_mod.F90) to repeatedly call HEMCO 
+!  in stand-alone mode. It receives the configuration file name as
+!  input argument and then calls the routine HCOI\_StandAlone\_Run
+!  (from module file hcoi\_standalone\_mod.F90) to repeatedly call HEMCO
 !  for one or more timesteps on the predefined grid.
 !\\
 !\\

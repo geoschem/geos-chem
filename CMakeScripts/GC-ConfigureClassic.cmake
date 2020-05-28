@@ -10,7 +10,7 @@ function(configureGCClassic)
     else()
         target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
     endif()
-    
+
     # Check that GEOS-Chem's version number matches the run directory's version
     if(EXISTS ${RUNDIR}/Makefile AND NOT "${BUILD_WITHOUT_RUNDIR}")
         # Read ${RUNDIR}/Makefile which has the version number
@@ -32,7 +32,7 @@ function(configureGCClassic)
 
         # Throw error if major.minor versions don't match
         if(NOT "${GC_VERSION}" VERSION_EQUAL "${RUNDIR_VERSION}")
-            message(FATAL_ERROR 
+            message(FATAL_ERROR
                 "Mismatched version numbers. Your run directory's version number "
                 "is ${RUNDIR_VERSION} but the GEOS-Chem source's version number is ${PROJECT_VERSION}"
             )
@@ -60,7 +60,7 @@ function(configureGCClassic)
         "masscons"      "TransportTracers"  "POPs"          "CH4"
         "tagCH4"        "tagO3"             "tagCO"
         "tagHg"         "CO2"               "aerosol"
-        "Hg"    
+        "Hg"
         "HEMCO" # doesn't matter for the HEMCO standalone
     )
     set(TROPCHEM_MECHS

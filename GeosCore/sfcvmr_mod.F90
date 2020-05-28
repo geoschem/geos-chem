@@ -5,7 +5,7 @@
 !
 ! !MODULE: sfcvmr_mod.F90
 !
-! !DESCRIPTION: Module sfcvmr\_mod.F90 is a simple module which forces 
+! !DESCRIPTION: Module sfcvmr\_mod.F90 is a simple module which forces
 !  surface concentrations of relevant species to pre-determined values.
 !\\
 !\\
@@ -25,12 +25,12 @@ MODULE SFCVMR_MOD
   PUBLIC :: fixSfcVMR
 !
 ! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version. 
+!  24 Dec 2016 - S. D. Eastham - Initial version.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES: 
+! !PRIVATE TYPES:
 !
 
 CONTAINS
@@ -49,7 +49,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE fixSfcVMR( am_I_Root, Input_Opt, State_Chm, &
-                        State_Grid, State_Met, RC ) 
+                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -76,8 +76,8 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller   - Initial version
 !  16 Jun 2016 - J. Sheng    - Added tracer index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
 !EOP
@@ -104,7 +104,7 @@ CONTAINS
     Spc => State_Chm%Species
 
     ! ---------------------------------------------------
-    ! JAS, 9/17/15: 
+    ! JAS, 9/17/15:
     ! Set mixing ratio of CH3Cl, CH2Cl2, and CHCl3 in PBL
     ! SDE 2016-12-14: This now replaces the UCX routine
     ! which previously gave only CH3Cl.
@@ -169,7 +169,7 @@ CONTAINS
     ! Nullify pointer
     Nullify(Spc)
 
-    IF ( RC/=GC_SUCCESS ) RETURN 
+    IF ( RC/=GC_SUCCESS ) RETURN
 
   END SUBROUTINE fixSfcVMR
 !EOC

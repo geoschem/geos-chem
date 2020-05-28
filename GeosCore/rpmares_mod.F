@@ -35,7 +35,7 @@
 !  NOTES:
 !  (1 ) Added module variables ELAPSED_SEC and HNO3_sav.  Added module routines
 !        GET_HNO3, SET_HNO3, INIT_RPMARES, CLEANUP_RPMARES. (bmy, 12/16/02)
-!  (2 ) Replace ALOG with F90 intrinsic LOG to facilitate compilation on 
+!  (2 ) Replace ALOG with F90 intrinsic LOG to facilitate compilation on
 !        COMPAQ/Alpha platform. (bmy, 3/23/03)
 !  (3 ) Now references "time_mod.f".  Now removed ELAPSED_SEC module variable
 !        since we can get this info from "time_mod.f".  (bmy, 3/24/03)
@@ -60,19 +60,19 @@
       IMPLICIT NONE
 
       !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
       ! and routines from being seen outside "rpmares_mod.f"
       !=================================================================
 
       ! Make everything PUBLIC
-      PUBLIC 
+      PUBLIC
 
       ! ... except these variables ...
       PRIVATE :: HNO3_sav
 
-      ! ... and these routines 
-      PRIVATE :: GET_HNO3, SET_HNO3, RPMARES, AWATER 
-      PRIVATE :: POLY4,    POLY6,    CUBIC,   ACTCOF  
+      ! ... and these routines
+      PRIVATE :: GET_HNO3, SET_HNO3, RPMARES, AWATER
+      PRIVATE :: POLY4,    POLY6,    CUBIC,   ACTCOF
       PRIVATE :: INIT_RPMARES
 
       !=================================================================
@@ -128,7 +128,7 @@
 !******************************************************************************
 !
 ! !USES:
-!      
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -136,7 +136,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_ 
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -149,7 +149,7 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -171,16 +171,16 @@
 
       ! scalars
       INTEGER                :: I,    J,     L,    N
-      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
-      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
-      CHARACTER(LEN=255)     :: X 
+      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3
+      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4
+      CHARACTER(LEN=255)     :: X
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
+      ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
-      ! For getting fields from HEMCO 
+      ! For getting fields from HEMCO
       LOGICAL :: aIR
 
       !=================================================================
@@ -190,7 +190,7 @@
       ! Assume success
       RC = GC_SUCCESS
 
-      ! am I root? 
+      ! am I root?
       aIR = am_I_Root
 
       ! Error check tracer ID's
@@ -205,12 +205,12 @@
          id_NH4  = Ind_('NH4', 'A')
          id_NIT  = Ind_('NIT', 'A')
          id_HNO3 = Ind_('HNO3','A')
-      
+
          IF ( id_SO4 == 0 ) CALL ERROR_STOP( 'id_SO4 is undefined!', X )
          IF ( id_NH3 == 0 ) CALL ERROR_STOP( 'id_NH3 is undefined!', X )
          IF ( id_NH4 == 0 ) CALL ERROR_STOP( 'id_NH4 is undefined!', X )
          IF ( id_NIT == 0 ) CALL ERROR_STOP( 'id_NIT is undefined!', X )
-    
+
          ! Initialize arrays
          CALL INIT_RPMARES( State_Grid )
 
@@ -225,8 +225,8 @@
             ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
-               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GC_SUCCESS ) 
+               CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 
             ELSE
@@ -254,7 +254,7 @@
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         
+
          ! Skip if we are outside the troposphere (bmy, 4/3/08)
          IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
@@ -263,11 +263,11 @@
          ARH   = State_Met%RH(I,J,L) * 1.e-2_fp
          AVOL  = State_Met%AIRVOL(I,J,L)
 
-         ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3, 
+         ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3,
          ! and aerosol NO3  from [kg] to [ug/m3].
          SO4   = MAX( Spc(I,J,L,id_SO4) * 1.e+9_fp / AVOL, CONMIN )
-         GNH3  = MAX( Spc(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN ) 
-         ANH4  = MAX( Spc(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN ) 
+         GNH3  = MAX( Spc(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN )
+         ANH4  = MAX( Spc(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN )
          ANO3  = MAX( Spc(I,J,L,id_NIT) * 1.e+9_fp / AVOL, CONMIN )
 
          ! For coupled simulations, use HNO3 tracer from Spc array.
@@ -281,7 +281,7 @@
 
          !==============================================================
          ! Call the RPMARES code with the following quantities:
-         ! 
+         !
          ! SO4   : Total sulfate as sulfate                  [ug/m3]
          ! GNO3  : Nitric Acid vapor (actually gaseous HNO3) [ug/m3]
          ! GNH3  : Gas phase ammonia                         [ug/m3]
@@ -295,27 +295,27 @@
          !==============================================================
          CALL RPMARES( SO4,  GNO3,  GNH3, ARH,  ATEMP,
      &                 ASO4, AHSO4, ANO3, AH2O, ANH4 )
-         
-         ! Convert modified concentrations from [ug/m3] to [kg] 
-         ! for ammonium, ammonia, nitric acid (g), and Nitrate         
+
+         ! Convert modified concentrations from [ug/m3] to [kg]
+         ! for ammonium, ammonia, nitric acid (g), and Nitrate
          ! NOTE: We don't modify the total sulfate mass.
-         Spc(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )  
-         Spc(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )  
-         Spc(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )  
+         Spc(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )
+         Spc(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )
+         Spc(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )
 
          ! For coupled runs, convert HNO3 [kg] and store in Spc.
          ! For offline runs, save evolving HNO3 [ug/m3] for next timestep.
          IF ( id_HNO3 > 0 ) THEN
-            Spc(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )  
+            Spc(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )
          ELSE
             CALL SET_HNO3( I, J, L, GNO3 )
-         ENDIF   
-     
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO      
-    
+!$OMP END PARALLEL DO
+
       ! Free pointer
       Spc => NULL()
 
@@ -334,7 +334,7 @@
 !  ============================================================================
 !  (1-3) I, J, L   (INTEGER) : Grid box lon, lat, alt indices
 !
-!  Function Value: 
+!  Function Value:
 !  ============================================================================
 !  (1  ) HNO3_UGM3 (REAL(fp) ) : HNO3 concentration in ug/m3
 !
@@ -399,7 +399,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
       REAL(fp),  INTENT(IN) :: HNO3_UGM3
-      
+
       !=================================================================
       ! SET_HNO3 begins here!
       !=================================================================
@@ -455,16 +455,16 @@
 !
 ! Parameters:
 !
-!  SO4   : Total sulfate in MICROGRAMS/M**3 as sulfate 
-!  GNO3  : Nitric Acid vapor in MICROGRAMS/M**3 as nitric acid 
-!  GNH3  : Gas phase ammonia in MICROGRAMS/M**3 
-!  RH    : Fractional relative humidity 
-!  TEMP  : Temperature in Kelvin 
-!  ASO4  : Aerosol phase sulfate in MICROGRAMS/M**3 
+!  SO4   : Total sulfate in MICROGRAMS/M**3 as sulfate
+!  GNO3  : Nitric Acid vapor in MICROGRAMS/M**3 as nitric acid
+!  GNH3  : Gas phase ammonia in MICROGRAMS/M**3
+!  RH    : Fractional relative humidity
+!  TEMP  : Temperature in Kelvin
+!  ASO4  : Aerosol phase sulfate in MICROGRAMS/M**3
 !  AHSO4 : Aerosol phase in bisulfate in MICROGRAMS/M**3 [rjp, 12/12/01]
-!  ANO3  : Aerosol phase nitrate in MICROGRAMS/M**3 
-!  ANH4  : Aerosol phase ammonium in MICROGRAMS/M**3 
-!  AH2O  : Aerosol phase water in MICROGRAMS/M**3 
+!  ANO3  : Aerosol phase nitrate in MICROGRAMS/M**3
+!  ANH4  : Aerosol phase ammonium in MICROGRAMS/M**3
+!  AH2O  : Aerosol phase water in MICROGRAMS/M**3
 !
 ! Revision History:
 !      Who       When        Detailed description of changes
@@ -525,15 +525,15 @@
 !   F.Binkowski 8/1/97    Changed minimum sulfate from 0.0 to 1.0e-6 i.e.
 !                         1 picogram per cubic meter
 !   F.Binkowski 2/23/98   Changes to code made by Ingmar Ackermann to
-!                         deal with precision problems on workstations 
+!                         deal with precision problems on workstations
 !                         incorporated in to this version.  Also included
-!                         are his improved descriptions of variables. 
-!  F. Binkowski 8/28/98   changed logic as follows: 
+!                         are his improved descriptions of variables.
+!  F. Binkowski 8/28/98   changed logic as follows:
 !                         If iterations fail, initial values of nitrate
-!                          are retained. 
+!                          are retained.
 !                         Total mass budgets are changed to account for gas
 !                         phase returned.
-!  F.Binkowski 10/01/98   Removed setting RATIO to 5 for low to 
+!  F.Binkowski 10/01/98   Removed setting RATIO to 5 for low to
 !                         to zero sulfate sulfate case.
 !  F.Binkowski 01/10/2000 reconcile versions
 !
@@ -559,7 +559,7 @@
       !=================================================================
       REAL(fp) :: SO4              ! Total sulfate in micrograms / m**3
       REAL(fp) :: GNO3             ! Gas-phase nitric acid in micrograms / m**3
-      REAL(fp) :: GNH3             ! Gas-phase ammonia in micrograms / m**3 
+      REAL(fp) :: GNH3             ! Gas-phase ammonia in micrograms / m**3
       REAL(fp) :: RH               ! Fractional relative humidity
       REAL(fp) :: TEMP             ! Temperature in Kelvin
       REAL(fp) :: ASO4             ! Aerosol sulfate in micrograms / m**3
@@ -585,23 +585,23 @@
       REAL(fp), PARAMETER :: MWORG  = 16.0e+0_fp                   ! Organic Species
       REAL(fp), PARAMETER :: MWCL   = 35.453e+0_fp                 ! Chloride
       REAL(fp), PARAMETER :: MWLCT  = 3.0e+0_fp * MWNH4 +          ! Letovicite
-     &                            2.0e+0_fp * MWSO4 + 1.0080e+0_fp  
+     &                            2.0e+0_fp * MWSO4 + 1.0080e+0_fp
       REAL(fp), PARAMETER :: MWAS   = 2.0e+0_fp * MWNH4 + MWSO4    ! Amm. Sulfate
       REAL(fp), PARAMETER :: MWABS  = MWNH4 + MWSO4 + 1.0080e+0_fp ! Amm. Bisulfate
 
       ! Minimum value of sulfate aerosol concentration
-      REAL(fp), PARAMETER :: MINSO4 = 1.0e-6_fp / MWSO4 
+      REAL(fp), PARAMETER :: MINSO4 = 1.0e-6_fp / MWSO4
 
       ! Minimum total nitrate cncentration
-      REAL(fp), PARAMETER :: MINNO3 = 1.0e-6_fp / MWNO3  
+      REAL(fp), PARAMETER :: MINNO3 = 1.0e-6_fp / MWNO3
 
       ! Force a minimum concentration
-      REAL(fp), PARAMETER :: FLOOR  = 1.0e-30_fp 
+      REAL(fp), PARAMETER :: FLOOR  = 1.0e-30_fp
 
       ! Tolerances for convergence test.  NOTE: We now have made these
       ! parameters so they don't lose their values (phs, bmy, 4/10/08)
-      REAL(fp), PARAMETER :: TOLER1 = 0.00001e+0_fp       
-      REAL(fp), PARAMETER :: TOLER2 = 0.001e+0_fp       
+      REAL(fp), PARAMETER :: TOLER1 = 0.00001e+0_fp
+      REAL(fp), PARAMETER :: TOLER2 = 0.001e+0_fp
 
       !=================================================================
       ! SCRATCH LOCAL VARIABLES and their descriptions:
@@ -728,49 +728,49 @@
                                   !   NO3-); (3, HSO4-)  (moles / kg water)
       REAL(fp)  :: CRUTES( 3 )      ! Coefficients and roots of
       REAL(fp)  :: GAMS( 2, 3 )     ! Array of activity coefficients
-      REAL(fp)  :: TMASSHNO3        ! Total nitrate (vapor and particle) 
-      REAL(fp)  :: GNO3_IN, ANO3_IN                
-      
+      REAL(fp)  :: TMASSHNO3        ! Total nitrate (vapor and particle)
+      REAL(fp)  :: GNO3_IN, ANO3_IN
+
       !=================================================================
       ! RPMARES begins here!
       ! convert into micromoles/m**3
       !=================================================================
 
-      ! For extremely low relative humidity ( less than 1% ) set the 
+      ! For extremely low relative humidity ( less than 1% ) set the
       ! water content to a minimum and skip the calculation.
       IF ( RH .LT. 0.01 ) THEN
          AH2O = FLOOR
          RETURN
-      ENDIF 
+      ENDIF
 
       ! total sulfate concentration
-      TSO4 = MAX( FLOOR, SO4 / MWSO4  )      
+      TSO4 = MAX( FLOOR, SO4 / MWSO4  )
       ASO4 = SO4
 
       !Cia models3 merge NH3/NH4 , HNO3,NO3 here
       !c *** recommended by Dr. Ingmar Ackermann
 
       ! total nitrate
-      TNO3      = MAX( 0.0e+0_fp, ( ANO3 / MWNO3 + GNO3 / MWHNO3 ) ) 
+      TNO3      = MAX( 0.0e+0_fp, ( ANO3 / MWNO3 + GNO3 / MWHNO3 ) )
 
       ! total ammonia
       TNH4      = MAX( 0.0e+0_fp, ( GNH3 / MWNH3 + ANH4 / MWNH4 )  )
 
       GNO3_IN   = GNO3
       ANO3_IN   = ANO3
-      TMASSHNO3 = MAX( 0.0e+0_fp, GNO3 + ANO3 )     
+      TMASSHNO3 = MAX( 0.0e+0_fp, GNO3 + ANO3 )
 
       ! set the  molar ratio of ammonium to sulfate
       RATIO = TNH4 / TSO4
 
       ! validity check for negative concentration
-      IF (TSO4 < 0.0e+0_fp .OR. TNO3 < 0.0e+0_fp .OR. TNH4 < 0.0e+0_fp) 
+      IF (TSO4 < 0.0e+0_fp .OR. TNO3 < 0.0e+0_fp .OR. TNH4 < 0.0e+0_fp)
      & THEN
           PRINT*, 'TSO4 : ', TSO4
           PRINT*, 'TNO3 : ', TNO3
           PRINT*, 'TNH4 : ', TNH4
           CALL GEOS_CHEM_STOP
-      ENDIF   
+      ENDIF
 
       ! now set humidity index IRH as a percent
       IRH = NINT( 100.0 * RH )
@@ -780,7 +780,7 @@
       IRH = MIN( 99, IRH )
 
       !=================================================================
-      ! Specify the equilibrium constants at  correct temperature.  
+      ! Specify the equilibrium constants at  correct temperature.
       ! Also change units from ATM to MICROMOLE/M**3 (for KAN, KPH, and K3 )
       ! Values from Kim et al. (1993) except as noted.
       ! Equilibrium constant in Kim et al. (1993)
@@ -796,7 +796,7 @@
 
       !=================================================================
       ! Equilibrium Relation
-      ! 
+      !
       ! HSO4-(aq)         = H+(aq)   + SO4--(aq)  ; K2SA
       ! NH3(g)            = NH3(aq)               ; KPH
       ! NH3(aq) + H2O(aq) = NH4+(aq) + OH-(aq)    ; K1A
@@ -817,7 +817,7 @@
 
       ! Compute temperature dependent equilibrium constant for NH4NO3
       ! (from Mozurkewich, 1993)
-      K3 = EXP( 118.87e+0_fp  - 24084.0e+0_fp / TEMP -  6.025e+0_fp  
+      K3 = EXP( 118.87e+0_fp  - 24084.0e+0_fp / TEMP -  6.025e+0_fp
      &    * LOG( TEMP ) )
 
       ! Convert to (micromoles/m**3) **2
@@ -834,7 +834,7 @@
       GAMAAN = 1.0e+0_fp
       GAMOLD = 1.0e+0_fp
 
-      ! If there is very little sulfate and  nitrate 
+      ! If there is very little sulfate and  nitrate
       ! set concentrations to a very small value and return.
       IF ( ( TSO4 .LT. MINSO4 ) .AND. ( TNO3 .LT. MINNO3 ) ) THEN
          ASO4  = MAX( FLOOR, ASO4  )
@@ -845,7 +845,7 @@
          AH2O  = FLOOR
          GNH3  = MAX( FLOOR, GNH3  )
          GNO3  = MAX( FLOOR, GNO3  )
-         
+
          RETURN
       ENDIF
 
@@ -853,7 +853,7 @@
       ! High Ammonia Case
       !=================================================================
       IF ( RATIO .GT. 2.0e+0_fp ) THEN
-        
+
          GAMAAN = 0.1e+0_fp
 
          ! Set up twice the sulfate for future use.
@@ -866,7 +866,7 @@
          ! ZSR relationship is used to set water levels. Units are
          !  10**(-6) kg water/ (cubic meter of air)
          !  start with ammomium sulfate solution without nitrate
-       
+
          CALL AWATER( IRH, TSO4, YNH4, TNO3, AH2O ) !**** note TNO3
          WH2O = 1.0d-3 * AH2O
          ASO4 = TSO4   * MWSO4
@@ -882,7 +882,7 @@
         IF ( WFRAC .LT. 0.2e+0_fp ) THEN
 
            ! "dry" ammonium sulfate and ammonium nitrate
-           ! compute free ammonia 
+           ! compute free ammonia
            FNH3 = TNH4 - TWOSO4
            CC   = TNO3 * FNH3 - K3
 
@@ -895,7 +895,7 @@
               DISC = BB * BB - 4.0e+0_fp * CC
 
               ! Check for complex roots of the quadratic
-              ! set retain initial values of nitrate and RETURN 
+              ! set retain initial values of nitrate and RETURN
               ! if complex roots are found
               IF ( DISC .LT. 0.0e+0_fp ) THEN
                  XNO3  = 0.0e+0_fp
@@ -921,13 +921,13 @@
            ENDIF                ! CC .LE. 0.0
 
            AH2O  = 1000.0e+0_fp * WH2O
-           YNH4  = TWOSO4 + XNO3          
+           YNH4  = TWOSO4 + XNO3
            ASO4  = TSO4 * MWSO4
            AHSO4 = FLOOR
            ANO3  = XNO3 * MWNO3
            ANH4  = YNH4 * MWNH4
-           GNH3  = MWNH3 * MAX( FLOOR, ( TNH4 - YNH4 )  )      
-           GNO3  = MAX( FLOOR, ( TMASSHNO3 - ANO3 ) )    
+           GNH3  = MWNH3 * MAX( FLOOR, ( TNH4 - YNH4 )  )
+           GNO3  = MAX( FLOOR, ( TMASSHNO3 - ANO3 ) )
            RETURN
         ENDIF                  ! WFRAC .LT. 0.2
 
@@ -955,7 +955,7 @@
            BB    = TWOSO4 + KW2 * ( TNO3 + TNH4 - TWOSO4 )
            CC    = -KW2 * TNO3 * ( TNH4 - TWOSO4 )
 
-           ! This is a quadratic for XNO3 [MICROMOLES / M**3] 
+           ! This is a quadratic for XNO3 [MICROMOLES / M**3]
            ! of nitrate in solution
            DISC = BB * BB - 4.0e+0_fp * AA * CC
 
@@ -972,7 +972,7 @@
               ANO3  = ANO3_IN
               RETURN
            ENDIF
-           
+
            ! Deal with degenerate case (yoj)
            IF ( AA .NE. 0.0e+0_fp ) THEN
               DD  = SQRT( DISC )
@@ -991,15 +991,15 @@
            ENDIF
 
            XNO3 = MIN( XNO3, TNO3 )
-           
+
            ! This version assumes no solid sulfate forms (supersaturated )
            ! Now update water
            CALL AWATER ( IRH, TSO4, YNH4, XNO3, AH2O )
 
            ! ZSR relationship is used to set water levels. Units are
-           ! 10**(-6) kg water/ (cubic meter of air).  The conversion 
+           ! 10**(-6) kg water/ (cubic meter of air).  The conversion
            ! from micromoles to moles is done by the units of WH2O.
-           WH2O = 1.0e-3_fp * AH2O 
+           WH2O = 1.0e-3_fp * AH2O
 
            ! Ionic balance determines the ammonium in solution.
            MAN  = XNO3 / WH2O
@@ -1007,7 +1007,7 @@
            MNH4 = 2.0e+0_fp * MAS + MAN
            YNH4 = MNH4 * WH2O
 
-           ! MAS, MAN and MNH4 are the aqueous concentrations of sulfate, 
+           ! MAS, MAN and MNH4 are the aqueous concentrations of sulfate,
            ! nitrate, and ammonium in molal units (moles/(kg water) ).
            STION    = 3.0e+0_fp * MAS + MAN
            CAT( 1 ) = 0.0e+0_fp
@@ -1040,7 +1040,7 @@
         ! FSB retain the initial values of nitrate particle and vapor
         ! note whether or not convert all bisulfate to sulfate
         ASO4  = TSO4 * MWSO4
-        AHSO4 = FLOOR      
+        AHSO4 = FLOOR
         XNO3  = TNO3 / MWNO3
         YNH4  = TWOSO4
         ANH4  = YNH4 * MWNH4
@@ -1053,12 +1053,12 @@
         RETURN
 
       !================================================================
-      ! Low Ammonia Case 
+      ! Low Ammonia Case
       !
       ! Coded by Dr. Francis S. Binkowski 12/8/91.(4/26/95)
       ! modified 8/28/98
       ! modified 04/09/2001
-      !       
+      !
       ! All cases covered by this logic
       !=================================================================
       ELSE
@@ -1068,7 +1068,7 @@
          WH2O = 1.0e-3_fp * AH2O
          ZH2O = AH2O
 
-         ! convert 10**(-6) kg water/(cubic meter of air) to micrograms 
+         ! convert 10**(-6) kg water/(cubic meter of air) to micrograms
          ! of water per cubic meter of air (1000 g = 1 kg)
          ! in sulfate rich case, preferred form is HSO4-
          !ASO4 = TSO4 * MWSO4
@@ -1077,18 +1077,18 @@
          ANH4  = TNH4 * MWNH4
          ANO3  = ANO3_IN
          GNO3  = TMASSHNO3 - ANO3
-         GNH3  = FLOOR 
-        
+         GNH3  = FLOOR
+
          !==============================================================
          ! *** Examine special cases and return if necessary.
-         !         
-         ! FSB For values of RATIO less than 0.5 do no further 
-         ! calculations.  The code will cycle and still predict the 
-         ! same amount of ASO4, ANH4, ANO3, AH2O so terminate early 
+         !
+         ! FSB For values of RATIO less than 0.5 do no further
+         ! calculations.  The code will cycle and still predict the
+         ! same amount of ASO4, ANH4, ANO3, AH2O so terminate early
          ! to swame computation
          !==============================================================
-         IF ( RATIO .LT. 0.5e+0_fp ) RETURN ! FSB 04/09/2001 
-    
+         IF ( RATIO .LT. 0.5e+0_fp ) RETURN ! FSB 04/09/2001
+
          ! Check for zero water.
          IF ( WH2O .EQ. 0.0e+0_fp ) RETURN
          ZSO4 = TSO4 / WH2O
@@ -1123,25 +1123,25 @@
 
             !------------------------------------------------------------
             ! Add robustness: now check if GAMANA or GAMAS1 is too small
-            ! for the division in RKNA and RK2SA. If they are, return w/ 
-            ! original values: basically replicate the procedure used 
+            ! for the division in RKNA and RK2SA. If they are, return w/
+            ! original values: basically replicate the procedure used
             ! after the current DO-loop in case of no-convergence
             ! (phs, bmy, rjp, 4/10/08)
-            ! Now uses IS_SAFE_DIV to avoid compiler/machine dependency 
-            ! and to check for both underlow and overflow. Also 
-            ! use REAL4 flag to avoid under/overflow when computing A0 
+            ! Now uses IS_SAFE_DIV to avoid compiler/machine dependency
+            ! and to check for both underlow and overflow. Also
+            ! use REAL4 flag to avoid under/overflow when computing A0
             ! and A1 from RKNA and RK2SA (phs, 5/28/08)
             !------------------------------------------------------------
             IF ( .NOT. (
      &           IS_SAFE_DIV( GAMAS2, GAMAS1*GAMAS1*GAMAS1, R4=.TRUE. )
-     &           .AND. IS_SAFE_DIV( KNA, GAMANA*GAMANA, R4=.TRUE. ) 
+     &           .AND. IS_SAFE_DIV( KNA, GAMANA*GAMANA, R4=.TRUE. )
      &           ) ) THEN
-               
+
                WRITE(6,*) 'RPMARES: not safe to divide...exit'
                CALL flush(6)
                GOTO 100
             ENDIF
-            
+
             ! set up equilibrium constants including activities
             ! solve the system for hplus first then sulfate & nitrate
             RK2SA  = K2SA * GAMAS2 * GAMAS2 / (GAMAS1 * GAMAS1 * GAMAS1)
@@ -1160,7 +1160,7 @@
             CALL CUBIC ( A2, A1, A0, NR, CRUTES )
 
             ! Code assumes the smallest positive root is in CRUTES(1)
-            ! But, it can be negative (see CUBIC, case of one real root, 
+            ! But, it can be negative (see CUBIC, case of one real root,
             ! but can also be propagated by over/underflown)... if it is
             ! the case then return with original values (phs, 5/27/08)
             HPLUS = CRUTES( 1 )
@@ -1168,14 +1168,14 @@
             BAL   = HPLUS **3 + A2 * HPLUS**2 + A1 * HPLUS + A0
 
             ! molality of sulfate ion
-            MSO4  = RK2SA * ZSO4 / ( HPLUS + RK2SA ) 
+            MSO4  = RK2SA * ZSO4 / ( HPLUS + RK2SA )
 
             ! molality of bisulfate ion
             ! MAX added 04/09/2001 by FSB
-            MHSO4 = MAX( 1.0e-10_fp, ZSO4 - MSO4 ) 
+            MHSO4 = MAX( 1.0e-10_fp, ZSO4 - MSO4 )
 
             ! molality of nitrate ion
-            MNA   = RKNA * TNO3 / ( HPLUS + RKNWET ) 
+            MNA   = RKNA * TNO3 / ( HPLUS + RKNWET )
             MNA   = MAX( 0.0e+0_fp, MNA )
             MNA   = MIN( MNA, TNO3 / WH2O )
             XNO3  = MNA * WH2O
@@ -1185,13 +1185,13 @@
             AHSO4 = MHSO4 * WH2O * MWSO4 ![rjp, 12/12/01]
 
             ! Calculate ionic strength
-            STION = 0.5e+0_fp * ( HPLUS + MNA + MNH4 + MHSO4 
+            STION = 0.5e+0_fp * ( HPLUS + MNA + MNH4 + MHSO4
      &             + 4.0e+0_fp * MSO4)
 
             ! Update water
             CALL AWATER ( IRH, TSO4, YNH4, XNO3, AH2O )
 
-            ! Convert 10**(-6) kg water/(cubic meter of air) to micrograms 
+            ! Convert 10**(-6) kg water/(cubic meter of air) to micrograms
             ! of water per cubic meter of air (1000 g = 1 kg)
             WH2O     = 1.0e-3_fp * AH2O
             CAT( 1 ) = HPLUS
@@ -1219,7 +1219,7 @@
             IF ( EROR .LE. TOLER2 ) THEN
                RETURN
             ENDIF
-            
+
          ENDDO
 
          ! after NITR iterations, failure to solve the system
@@ -1233,7 +1233,7 @@
          AHSO4= FLOOR           ! [rjp, 12/17/01]
 
          CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
-         
+
          RETURN
 
       ENDIF                     ! ratio .gt. 2.0
@@ -1300,19 +1300,19 @@
 !
 !     coded by Dr. Francis S. Binkowski, 4/8/96.
 !
-! *** modified 05/30/2000 
-!     The use of two values of mfs at an ammonium to sulfate ratio 
-!     representative of ammonium sulfate led to an minor inconsistancy 
+! *** modified 05/30/2000
+!     The use of two values of mfs at an ammonium to sulfate ratio
+!     representative of ammonium sulfate led to an minor inconsistancy
 !     in nitrate behavior as the ratio went from a value less than two
-!     to a value greater than two and vice versa with either ammonium 
-!     held constant and sulfate changing, or sulfate held constant and 
+!     to a value greater than two and vice versa with either ammonium
+!     held constant and sulfate changing, or sulfate held constant and
 !     ammonium changing. the value of Chan et al. (1992) is the only value
-!     now used. 
+!     now used.
 !
 ! *** Modified 09/25/2002
 !     Ported into "rpmares_mod.f".  Now declare all variables with REAL(fp).
-!     Also cleaned up comments and made cosmetic changes.  Force double 
-!     precision explicitly with "D" exponents. 
+!     Also cleaned up comments and made cosmetic changes.  Force double
+!     precision explicitly with "D" exponents.
 !******************************************************************************
 !
       ! Arguments
@@ -1322,8 +1322,8 @@
       ! Local variables
       INTEGER           :: IRH
       REAL(fp)            :: TSO4,  TNH4,  TNO3,  X,      AW,     AWC
-      REAL(fp)            :: MFS0,  MFS1,  MFS15, Y 
-      REAL(fp)            :: Y0,    Y1,    Y15,   Y2,     Y3,     Y40 
+      REAL(fp)            :: MFS0,  MFS1,  MFS15, Y
+      REAL(fp)            :: Y0,    Y1,    Y15,   Y2,     Y3,     Y40
       REAL(fp)            :: Y140,  Y1540, YC,    MFSSO4, MFSNO3
 
       ! Molecular weight parameters
@@ -1331,23 +1331,23 @@
       REAL(fp), PARAMETER :: MWNH4  = 18.0985e+0_fp
       REAL(fp), PARAMETER :: MWNO3  = 62.0649e+0_fp
       REAL(fp), PARAMETER :: MW2    = MWSO4 + 2.0e+0_fp * MWNH4
-      REAL(fp), PARAMETER :: MWANO3 = MWNO3 + MWNH4 
-      
+      REAL(fp), PARAMETER :: MWANO3 = MWNO3 + MWNH4
+
       !=================================================================
-      ! The polynomials use data for aw as a function of mfs from Tang 
-      ! and Munkelwitz, JGR 99: 18801-18808, 1994.  The polynomials were 
+      ! The polynomials use data for aw as a function of mfs from Tang
+      ! and Munkelwitz, JGR 99: 18801-18808, 1994.  The polynomials were
       ! fit to Tang's values of water activity as a function of mfs.
-      ! 
+      !
       ! *** coefficients of polynomials fit to Tang and Munkelwitz data
       !     now give mfs as a function of water activity.
       !=================================================================
-      REAL(fp) :: C1(4)  = (/ 0.9995178e+0_fp,  -0.7952896e+0_fp, 
+      REAL(fp) :: C1(4)  = (/ 0.9995178e+0_fp,  -0.7952896e+0_fp,
      &                      0.99683673e+0_fp, -1.143874e+0_fp /)
 
-      REAL(fp) :: C15(4) = (/ 1.697092e+0_fp, -4.045936e+0_fp, 
+      REAL(fp) :: C15(4) = (/ 1.697092e+0_fp, -4.045936e+0_fp,
      &                      5.833688e+0_fp, -3.463783e+0_fp /)
-      
-      REAL(fp) :: C2(4)  = (/ 2.085067e+0_fp, -6.024139e+0_fp, 
+
+      REAL(fp) :: C2(4)  = (/ 2.085067e+0_fp, -6.024139e+0_fp,
      &                      8.967967e+0_fp, -5.002934e+0_fp /)
 
       !=================================================================
@@ -1360,25 +1360,25 @@
       !       Giaque et al. J.Am. Chem. Soc., 82: 62-70, 1960
       !       Zeleznik J. Phys. Chem. Ref. Data, 20: 157-1200
       !=================================================================
-      REAL(fp) :: C0(4)  =  (/ 0.798079e+0_fp, -1.574367e+0_fp, 
+      REAL(fp) :: C0(4)  =  (/ 0.798079e+0_fp, -1.574367e+0_fp,
      &                       2.536686e+0_fp, -1.735297e+0_fp /)
 
       !=================================================================
       ! Polynomials for ammonium nitrate and ammonium sulfate are from:
       ! Chan et al.1992, Atmospheric Environment (26A): 1661-1673.
       !=================================================================
-      REAL(fp) :: KNO3(6) = (/  0.2906e+0_fp,   6.83665e+0_fp, 
-     &                        -26.9093e+0_fp,   46.6983e+0_fp, 
+      REAL(fp) :: KNO3(6) = (/  0.2906e+0_fp,   6.83665e+0_fp,
+     &                        -26.9093e+0_fp,   46.6983e+0_fp,
      &                         -38.803e+0_fp,   11.8837e+0_fp /)
-      
-      REAL(fp) :: KSO4(6) = (/   2.27515e+0_fp, -11.147e+0_fp, 
-     &                           36.3369e+0_fp,-64.2134e+0_fp,  
+
+      REAL(fp) :: KSO4(6) = (/   2.27515e+0_fp, -11.147e+0_fp,
+     &                           36.3369e+0_fp,-64.2134e+0_fp,
      &                           56.8341e+0_fp,-20.0953e+0_fp /)
 
       !=================================================================
       ! AWATER begins here!
       !=================================================================
-      
+
       ! Check range of per cent relative humidity
       IRH  = IRHX
       IRH  = MAX( 1, IRH )
@@ -1396,7 +1396,7 @@
       IF ( TSO4 .GT. 0.0e+0_fp ) THEN
          X = TNH4 / TSO4
       ELSE
-         IF ( TNO3 .GT. 0.0e+0_fp .AND. TNH4 .GT. 0.0e+0_fp ) 
+         IF ( TNO3 .GT. 0.0e+0_fp .AND. TNH4 .GT. 0.0e+0_fp )
      &     X = 10.0e+0_fp
       ENDIF
 
@@ -1415,7 +1415,7 @@
             MFS15 = POLY4( C15, AW )
             Y1    = ( 1.0e+0_fp - MFS1  ) / MFS1
             Y15   = ( 1.0e+0_fp - MFS15 ) / MFS15
-            Y     = 2.0e+0_fp * ( Y1 * ( 1.5e+0_fp - X ) 
+            Y     = 2.0e+0_fp * ( Y1 * ( 1.5e+0_fp - X )
      &             + Y15 *( X - 1.0e+0_fp ) )
 
          !==============================================================
@@ -1423,16 +1423,16 @@
          !
          ! Crystallization is done as follows:
          !
-         ! For 1.5 <= x, crystallization is assumed to occur 
+         ! For 1.5 <= x, crystallization is assumed to occur
          ! at rh = 0.4
          !
-         ! For x <= 1.0, crystallization is assumed to occur at an 
-         ! rh < 0.01, and since the code does not allow ar rh < 0.01, 
+         ! For x <= 1.0, crystallization is assumed to occur at an
+         ! rh < 0.01, and since the code does not allow ar rh < 0.01,
          ! crystallization is assumed not to occur in this range.
          !
-         ! For 1.0 <= x <= 1.5 the crystallization curve is a straignt 
-         ! line from a value of y15 at rh = 0.4 to a value of zero at 
-         ! y1. From point B to point A in the diagram.  The algorithm 
+         ! For 1.0 <= x <= 1.5 the crystallization curve is a straignt
+         ! line from a value of y15 at rh = 0.4 to a value of zero at
+         ! y1. From point B to point A in the diagram.  The algorithm
          ! does a double interpolation to calculate the amount of
          ! water.
          !
@@ -1449,47 +1449,47 @@
          ELSE
 
             ! rh along the crystallization curve.
-            AWC = 0.80e+0_fp * ( X - 1.0e+0_fp ) 
+            AWC = 0.80e+0_fp * ( X - 1.0e+0_fp )
             Y   = 0.0e+0_fp
 
             ! interpolate using crystalization curve
-            IF ( AW .GE. AWC ) THEN 
+            IF ( AW .GE. AWC ) THEN
                MFS1  = POLY4( C1,  0.40e+0_fp )
                MFS15 = POLY4( C15, 0.40e+0_fp )
                Y140  = ( 1.0e+0_fp - MFS1  ) / MFS1
                Y1540 = ( 1.0e+0_fp - MFS15 ) / MFS15
-               Y40   = 2.0e+0_fp * ( Y140  * ( 1.5e+0_fp - X ) + 
+               Y40   = 2.0e+0_fp * ( Y140  * ( 1.5e+0_fp - X ) +
      &                           Y1540 * ( X - 1.0e+0_fp ) )
 
                ! Y along crystallization curve
-               YC   = 2.0e+0_fp * Y1540 * ( X - 1.0e+0_fp ) 
-               Y    = Y40 - (Y40 - YC) * (0.40e+0_fp - AW) 
+               YC   = 2.0e+0_fp * Y1540 * ( X - 1.0e+0_fp )
+               Y    = Y40 - (Y40 - YC) * (0.40e+0_fp - AW)
      &               / (0.40e+0_fp - AWC)
-            ENDIF              
-         ENDIF                 
+            ENDIF
+         ENDIF
 
       ELSE IF ( X .LT. 2.0e+0_fp ) then               ! changed 12/11/2000 by FSB
          Y = 0.0D0
 
-         IF ( IRH .GE. 40 ) THEN 
-            MFS15  = POLY4( C15, AW )            
+         IF ( IRH .GE. 40 ) THEN
+            MFS15  = POLY4( C15, AW )
             !MFS2  = POLY4( C2,  AW )
             Y15    = ( 1.0e+0_fp - MFS15 ) / MFS15
             !y2    = ( 1.0e+0_fp - MFS2  ) / MFS2
             MFSSO4 = POLY6( KSO4, AW )             ! Changed 05/30/2000 by FSB
             Y2     = ( 1.0e+0_fp - MFSSO4 ) / MFSSO4
-            Y      = 2.0e+0_fp * (Y15 * (2.0e+0_fp - X) + Y2 
+            Y      = 2.0e+0_fp * (Y15 * (2.0e+0_fp - X) + Y2
      &              * (X - 1.5e+0_fp) )
-         ENDIF                  
+         ENDIF
 
       ELSE                                 ! 2.0 <= x changed 12/11/2000 by FSB
 
          !==============================================================
-         ! Regime where ammonium sulfate and ammonium nitrate are 
+         ! Regime where ammonium sulfate and ammonium nitrate are
          ! in solution.
-         ! 
+         !
          ! following cf&s for both ammonium sulfate and ammonium nitrate
-         ! check for crystallization here. their data indicate a 40% 
+         ! check for crystallization here. their data indicate a 40%
          ! value is appropriate.
          !==============================================================
          Y2 = 0.0e+0_fp
@@ -1527,7 +1527,7 @@
 !------------------------------------------------------------------------------
 
       FUNCTION POLY4( A, X ) RESULT( Y )
-      
+
       ! Arguments
       REAL(fp), INTENT(IN) :: A(4), X
 
@@ -1535,7 +1535,7 @@
       REAL(fp)             :: Y
 
       !=================================================================
-      ! POLY4 begins here! 
+      ! POLY4 begins here!
       !=================================================================
       Y = A(1) + X * ( A(2) + X * ( A(3) + X * ( A(4) )))
 
@@ -1548,12 +1548,12 @@
 
       ! Arguments
       REAL(fp), INTENT(IN) :: A(6), X
-      
+
       ! Return value
       REAL(fp)             :: Y
 
       !=================================================================
-      ! POLY6 begins here! 
+      ! POLY6 begins here!
       !=================================================================
       Y = A(1) + X * ( A(2) + X * ( A(3) + X * ( A(4) +
      &           X * ( A(5) + X * ( A(6)  )))))
@@ -1574,7 +1574,7 @@
 ! *** modified 2/23/98 by fsb to incorporate Dr. Ingmar Ackermann's
 !     recommendations for setting a0, a1,a2 as real(fp) variables.
 !
-! Modified by Bob Yantosca (10/15/02) 
+! Modified by Bob Yantosca (10/15/02)
 ! - Now use upper case / white space
 ! - force double precision with "D" exponents
 ! - updated comments / cosmetic changes
@@ -1602,7 +1602,7 @@
       !=================================================================
       A2SQ = A2 * A2
       QQ   = ( A2SQ - 3.e+0_fp*A1 ) / 9.e+0_fp
-      RR   = ( A2*( 2.e+0_fp*A2SQ - 9.e+0_fp*A1 ) 
+      RR   = ( A2*( 2.e+0_fp*A2SQ - 9.e+0_fp*A1 )
      &      + 27.e+0_fp*A0 ) / 54.e+0_fp
 
       ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
@@ -1622,7 +1622,7 @@
             NR        = 0
             CALL ERROR_STOP( 'PHI < 1e-20_fp', 'CUBIC (rpmares_mod.f)' )
          ENDIF
-         
+
          THETA = ACOS( RR / PHI ) / 3.0e+0_fp
          COSTH = COS( THETA )
          SINTH = SIN( THETA )
@@ -1646,7 +1646,7 @@
          CRUTES(1) = MIN( CRUTES(1), CRUTES(2), CRUTES(3) )
          NR        = 3
 
-      ELSE  
+      ELSE
 
          ! Now here we have only one real root
          PART1     = SQRT( RRSQ - DUM1 )
@@ -1659,10 +1659,10 @@
          NR        = 1
 
       ENDIF
-      
+
       ! Return to calling program
       END SUBROUTINE CUBIC
-      
+
 !------------------------------------------------------------------------------
 
        SUBROUTINE ACTCOF( CAT, AN, GAMA, MOLNU, PHIMULT )
@@ -1731,7 +1731,7 @@
       ! Error codes
 
 
-     
+
       !=================================================================
       ! PARAMETERS and their descriptions:
       !=================================================================
@@ -1746,7 +1746,7 @@
       ! ARGUMENTS and their descriptions
       !=================================================================
       REAL(fp)             :: MOLNU            ! tot # moles of all ions
-      REAL(fp)             :: PHIMULT          ! multicomponent paractical 
+      REAL(fp)             :: PHIMULT          ! multicomponent paractical
                                              !   osmotic coef
       REAL(fp)             :: CAT(NCAT)        ! cation conc in moles/kg (input)
       REAL(fp)             :: AN(NAN)          ! anion conc in moles/kg (input)
@@ -1787,11 +1787,11 @@
       REAL(fp)             :: V2    (NCAT,NAN) ! # of anions in electrolyte
                                              !   formula
       ! absolute value of charges of cation
-      REAL(fp)             :: ZP(NCAT) = (/ 1.0e+0_fp, 1.0e+0_fp /)    
+      REAL(fp)             :: ZP(NCAT) = (/ 1.0e+0_fp, 1.0e+0_fp /)
 
       ! absolute value of charges of anion
-      REAL(fp)             :: ZM(NAN)  = (/ 2.0e+0_fp, 1.0e+0_fp, 
-     &                                      1.0e+0_fp /)         
+      REAL(fp)             :: ZM(NAN)  = (/ 2.0e+0_fp, 1.0e+0_fp,
+     &                                      1.0e+0_fp /)
 
       ! Character values.
       CHARACTER(LEN=120)      :: XMSG  = ' '
@@ -1804,7 +1804,7 @@
       ! (1,2)        - Clegg & Brimblecombe (1990)
       ! (2,1);(2,2)  - Chan, Flagen & Seinfeld (1992)
       !================================================================
- 
+
       ! now set the basic constants, BETA0, BETA1, CGAMA
       DATA BETA0(1,1) /2.98e-2_fp/,      BETA1(1,1) / 0.0e+0_fp/,
      &     CGAMA(1,1) /4.38e-2_fp/                                 ! 2H+SO4-
@@ -1872,7 +1872,7 @@
       SRI    = SQRT( I )
       TWOSRI = 2.0e+0_fp * SRI
       TWOI   = 2.0e+0_fp * I
-      TEXPV  = 1.0e+0_fp - EXP( -TWOSRI ) 
+      TEXPV  = 1.0e+0_fp - EXP( -TWOSRI )
      &       * ( 1.0e+0_fp + TWOSRI - TWOI )
       R      = 1.0e+0_fp + 0.75e+0_fp * I
       S      = 1.0e+0_fp + 1.5e+0_fp  * I
@@ -1880,7 +1880,7 @@
 
       ! Compute binary activity coeffs
       FGAMA = -0.392e+0_fp * ( ( SRI / ( 1.0e+0_fp + 1.2e+0_fp * SRI )
-     &      + ( 2.0e+0_fp / 1.2e+0_fp ) 
+     &      + ( 2.0e+0_fp / 1.2e+0_fp )
      &      * LOG( 1.0e+0_fp + 1.2e+0_fp * SRI ) ) )
 
       DO ICAT = 1, NCAT
@@ -1944,7 +1944,7 @@
          TB  = ZP( ICAT ) * ZM( IAN ) / ( ZP( ICAT ) + ZM( IAN ) )
          TC  = ( F2( ICAT ) / ZP( ICAT ) + F1( IAN ) / ZM( IAN ) )
          TRM = TA + TB * TC
-         
+
          IF ( TRM .GT. 30.0e+0_fp ) THEN
             GAMA( ICAT, IAN ) = 1.0d+30
          ELSE
@@ -1958,7 +1958,7 @@
       END SUBROUTINE ACTCOF
 
 !------------------------------------------------------------------------------
-      
+
       SUBROUTINE INIT_RPMARES( State_Grid )
 !
 !*****************************************************************************
@@ -1992,7 +1992,7 @@
       END SUBROUTINE INIT_RPMARES
 
 !-----------------------------------------------------------------------------
-      
+
       SUBROUTINE CLEANUP_RPMARES
 !
 !*****************************************************************************

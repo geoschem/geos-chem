@@ -5,14 +5,14 @@
 !
 ! !MODULE: charpak_mod.F90
 !
-! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK 
+! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK
 !  string and character manipulation package used by GEOS-Chem.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Charpak_Mod
-! 
+!
 ! !USES:
 !
   IMPLICIT NONE
@@ -21,19 +21,19 @@ MODULE Charpak_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: CleanText
-  PUBLIC  :: CntMat     
-  PUBLIC  :: CopyTxt    
-  PUBLIC  :: CStrip     
-  PUBLIC  :: IsDigit    
+  PUBLIC  :: CntMat
+  PUBLIC  :: CopyTxt
+  PUBLIC  :: CStrip
+  PUBLIC  :: IsDigit
   PUBLIC  :: ReadOneLine
   PUBLIC  :: Str2Hash14
   PUBLIC  :: Str2Hash31
-  PUBLIC  :: StrRepl    
-  PUBLIC  :: StrSplit   
-  PUBLIC  :: StrSqueeze 
+  PUBLIC  :: StrRepl
+  PUBLIC  :: StrSplit
+  PUBLIC  :: StrSqueeze
   PUBLIC  :: To_UpperCase
-  PUBLIC  :: TranLc     
-  PUBLIC  :: TranUc     
+  PUBLIC  :: TranLc
+  PUBLIC  :: TranUc
   PUBLIC  :: Txtext
   PUBLIC  :: WordWrapPrint
 !
@@ -41,19 +41,19 @@ MODULE Charpak_Mod
 !
 !
 ! !REMARKS:
-!  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications 
+!  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications
 !  made for GEOS-CHEM by Bob Yantosca (1998, 2002, 2004).
 !
 ! !REVISION HISTORY:
 !  (1 ) Moved "cntmat.f", "copytxt.f", "cstrip.f", "fillstr.f", "txt2inum.f",
-!        "txtext.f", into this F90 module for easier bookkeeping 
+!        "txtext.f", into this F90 module for easier bookkeeping
 !        (bmy, 10/15/01)
 !  (2 ) Moved "tranuc.f" into this F90 module (bmy, 11/15/01)
 !  (3 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
 !        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)
 !  (4 ) Wrote a new file "strrepl.f", which replaces a character pattern
 !        within a string with replacement text.  Moved "tranlc.f" into
-!        this module.  Replaced calls to function LENTRIM with F90 
+!        this module.  Replaced calls to function LENTRIM with F90
 !        intrinsic function LEN_TRIM.  Removed function FILLSTR and
 !        replaced it w/ F90 intrinsic REPEAT. (bmy, 6/25/02)
 !  (5 ) Added routine STRSPLIT as a wrapper for TXTEXT.  Also added
@@ -92,12 +92,12 @@ CONTAINS
 !
   SUBROUTINE CntMat( Str1, Str2, Imat, Locations )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN) ::  Str1             ! Text to scan
     CHARACTER(LEN=*), INTENT(IN) ::  Str2             ! Character to match
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT) :: imat             ! Number of matches
     INTEGER,          OPTIONAL    :: Locations(255)   ! Positions of matches
@@ -124,7 +124,7 @@ CONTAINS
     INTEGER :: TmpLocations(255)
 
     ! Initialize
-    TmpLocations = 0    
+    TmpLocations = 0
     L1           = MAX(1,LEN_TRIM(str1))
     L2           = LEN(str2)
     imat         = 0
@@ -144,7 +144,7 @@ CONTAINS
           ENDIF
        ENDDO
     ENDDO
-   
+
     ! Return positions where matches occured (OPTIONAL)
     IF ( PRESENT( Locations ) ) Locations = TmpLocations
 
@@ -169,12 +169,12 @@ CONTAINS
 !
   SUBROUTINE CopyTxt( col, str1, str2 )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)    :: col
     CHARACTER(LEN=*), INTENT(IN)    :: str1
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: str2
 !
@@ -224,10 +224,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          OPTIONAL      :: KeepSpaces ! If =T, then keep spaces
-                                                  !  but skip all other 
+                                                  !  but skip all other
                                                   !  non-printing chars
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: TEXT       ! Text to be modified
 !
@@ -293,7 +293,7 @@ CONTAINS
 !
   FUNCTION IsDigit( ch ) RESULT( lnum )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=1), INTENT(IN) :: ch
 !
@@ -313,7 +313,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!  
+!
     INTEGER iasc
 
     iasc = ICHAR(ch)
@@ -332,19 +332,19 @@ CONTAINS
 ! !IROUTINE: StrRepl
 !
 ! !DESCRIPTION: Subroutine StrRepl replaces all instances of PATTERN within
-!  a string STR with replacement text REPLTXT. 
+!  a string STR with replacement text REPLTXT.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE StrRepl( Str, Pattern, ReplTxt )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: Pattern   ! Pattern to search for
     CHARACTER(LEN=*), INTENT(IN)    :: ReplTxt   ! Text to replace
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: Str       ! String to be manipulated
 !
@@ -368,11 +368,11 @@ CONTAINS
     !=================================================================
     ! StrRepl begins here!
     !=================================================================
-    DO 
+    DO
 
        ! I1 is the first character that matches the search pattern;
        ! it must be 1 or larger.  Otherwise exit the routine.
-       I1 = INDEX( Str, Pattern )        
+       I1 = INDEX( Str, Pattern )
        IF ( I1 < 1 ) RETURN
 
        ! Replace the text.  I2 is the starting position of the
@@ -391,8 +391,8 @@ CONTAINS
 !
 ! !IROUTINE: StrSplit
 !
-! !DESCRIPTION: Subroutine STRSPLIT returns substrings in a string, separated 
-!  by a separator character (similar to IDL's StrSplit function).  This is 
+! !DESCRIPTION: Subroutine STRSPLIT returns substrings in a string, separated
+!  by a separator character (similar to IDL's StrSplit function).  This is
 !  mainly a convenience wrapper for CHARPAK routine TxtExt.
 !\\
 !\\
@@ -400,12 +400,12 @@ CONTAINS
 !
   SUBROUTINE StrSplit( Str, Sep, Result, N_SubStrs )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: STR           ! String to be searched
     CHARACTER(LEN=1), INTENT(IN)  :: SEP           ! Separator character
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(OUT) :: Result(255)   ! Returned substrings
     INTEGER,          OPTIONAL    :: N_SubStrs     ! # of substrings
@@ -428,10 +428,10 @@ CONTAINS
 
     ! Initialize
     I         = 0
-    COL       = 1 
+    COL       = 1
     IFLAG     = 0
     RESULT(:) = ''
-      
+
     ! Loop until all matches found, or end of string
     DO WHILE ( IFLAG == 0 )
 
@@ -456,9 +456,9 @@ CONTAINS
 !
 ! !IROUTINE: StrSqueeze
 !
-! !DESCRIPTION: Subroutine STRSQUEEZE strips white space from both ends of a 
-!  string.  White space in the middle of the string (i.e. between characters) 
-!  will be preserved as-is.  Somewhat similar (though not exactly) to IDL's 
+! !DESCRIPTION: Subroutine STRSQUEEZE strips white space from both ends of a
+!  string.  White space in the middle of the string (i.e. between characters)
+!  will be preserved as-is.  Somewhat similar (though not exactly) to IDL's
 !  STRCOMPRESS function.
 !\\
 !\\
@@ -466,7 +466,7 @@ CONTAINS
 !
   SUBROUTINE StrSqueeze( Str )
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: Str   ! String to be squeezed
 !
@@ -483,7 +483,7 @@ CONTAINS
     Str = ADJUSTL( TRIM( Str ) )
 
   END SUBROUTINE StrSqueeze
-!EOC      
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -499,7 +499,7 @@ CONTAINS
 !
   SUBROUTINE TranLc( text )
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*) :: text
 !
@@ -533,7 +533,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TranUc 
+! !IROUTINE: TranUc
 !
 ! !DESCRIPTION: Tranlate a character variable to all upper case letters.
 !               Non-alphabetic characters are not affected.
@@ -543,7 +543,7 @@ CONTAINS
 !
   SUBROUTINE TranUc( text )
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*) :: text
 !
@@ -561,7 +561,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: iasc,i,ilen
-      
+
     ilen = LEN(text)
     DO i=1,ilen
        iasc = ICHAR(text(i:i))
@@ -612,21 +612,21 @@ CONTAINS
 !
   SUBROUTINE TxtExt(ch,text,col,word,iflg)
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: ch,text
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: col
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(OUT)   :: word
     INTEGER                         :: iflg
 !
 ! !REMARKS:
-!  TxtExt is short for Text Extraction.  This routine provides a set of 
+!  TxtExt is short for Text Extraction.  This routine provides a set of
 !  powerful line-by-line text search and extraction capabilities in
 !  standard FORTRAN.
 !
@@ -657,7 +657,7 @@ CONTAINS
 
     ! Fill Word with blanks
     WORD = REPEAT( ' ', LEN( WORD ) )
-    
+
     IF (col.GT.Tmax) THEN
        ! Text does not contain any characters past Tmax.
        ! Reset col to one and return flag = {error condition}
@@ -724,7 +724,7 @@ CONTAINS
              iflg=-1
           ENDIF
        ENDDO
-       
+
        IF (iflg.EQ.0) THEN
           ! Copy characters into WORD and set col for return
           CALL CopyTxt(1,Text(T1:T2),Word)
@@ -735,7 +735,7 @@ CONTAINS
           col = 1
        ENDIF
     ENDIF
-     
+
   END SUBROUTINE TxtExt
 !EOC
 !------------------------------------------------------------------------------
@@ -903,7 +903,7 @@ CONTAINS
 !
   FUNCTION To_UpperCase( Text ) RESULT( UpCaseText )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN) :: Text         ! Input test
 !
@@ -923,8 +923,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: C, Ascii 
-    
+    INTEGER :: C, Ascii
+
     !=======================================================================
     ! Convert to uppercase
     !=======================================================================
@@ -937,7 +937,7 @@ CONTAINS
 
        ! Get the ASCII code for each character
        Ascii = ICHAR( UpCaseText(C:C) )
-       
+
        ! If lowercase, convert to uppercase
        IF ( Ascii > 96 .and. Ascii < 123 ) THEN
           UpCaseText(C:C) = CHAR( Ascii - 32 )
@@ -953,10 +953,10 @@ CONTAINS
 !
 ! !IROUTINE: ReadOneLine
 !
-! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
-!  If the global variable VERBOSE is set, the line will be printed to stdout.  
-!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
-!  Otherwise, it will pass a logical flag back to the calling routine, 
+! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.
+!  If the global variable VERBOSE is set, the line will be printed to stdout.
+!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.
+!  Otherwise, it will pass a logical flag back to the calling routine,
 !  where the error trapping will be done.
 !\\
 !\\
@@ -977,11 +977,11 @@ CONTAINS
 ! !RETURN VALUE:
 !
     CHARACTER(LEN=MAXSTRLEN) :: Line       ! Single line from the input file
-! 
+!
 ! !REMARKS:
 !  Mostly used by routines in the History/ folder.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
 !  01 Nov 2017 - R. Yantosca - Moved to charpak_mod.F90
 !EOP
@@ -1003,7 +1003,7 @@ CONTAINS
     READ( fId, '(a)', IOSTAT=IoStatus ) Line
 
     ! IO Status < 0: EOF condition
-    IF ( IoStatus < 0 ) THEN 
+    IF ( IoStatus < 0 ) THEN
        EndOfFile = .TRUE.
        RETURN
     ENDIF
@@ -1031,7 +1031,7 @@ CONTAINS
 !
   FUNCTION CleanText( Str ) RESULT( CleanStr )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN) :: Str        ! Original string
 !
@@ -1059,9 +1059,9 @@ CONTAINS
     ! Remove commas and quotes
     CALL StrRepl   ( CleanStr, ",", " " )
     CALL StrRepl   ( CleanStr, "'", " " )
-    
+
     ! Remove leading and trailing spaces
-    CALL StrSqueeze( CleanStr           ) 
+    CALL StrSqueeze( CleanStr           )
 
   END FUNCTION CleanText
 !EOC
@@ -1080,7 +1080,7 @@ CONTAINS
   !
   SUBROUTINE WordWrapPrint( Text, LineWidth, Delimiter )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN) :: Text        ! Text to print
     INTEGER,          INTENT(IN) :: LineWidth   ! Width (characters) of lines
@@ -1111,13 +1111,13 @@ CONTAINS
     ! WordWrapPrint begins here!
     !=======================================================================
 
-    ! SpaceLoc is the array of where delimiters (usually the " " 
+    ! SpaceLoc is the array of where delimiters (usually the " "
     ! character) occur in the text, and S is its index.
     S           = 1
     SpaceLoc    = 0
 
     ! BreakPts is the array of where line breaks occur
-    ! and B is its index.  
+    ! and B is its index.
     BreakPts    = 0
     B           = 1
     BreakPts(B) = 1
@@ -1133,13 +1133,13 @@ CONTAINS
     CALL CntMat( Text, ' ', Matches, SpaceLoc )
 
     ! Loop through the number of matches
-    DO 
-     
+    DO
+
        ! Move to the next delimiter location
        S = S + 1
 
        ! Compute the length of the line
-       Length = SpaceLoc(S) - BreakPts(B) 
+       Length = SpaceLoc(S) - BreakPts(B)
 
        ! If the length of this segment is greater than the requested
        ! line length, store the position of this line break
@@ -1155,9 +1155,9 @@ CONTAINS
           BreakPts(B) = LEN_TRIM( Text ) + 1
           EXIT
        ENDIF
-     
+
     ENDDO
-  
+
     ! Print each line
     DO C = 1, B-1
        WRITE( 6, '(a)' ) Text( BreakPts(C):BreakPts(C+1)-1 )

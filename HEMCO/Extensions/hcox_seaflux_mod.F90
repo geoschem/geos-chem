@@ -19,33 +19,33 @@
 ! source = Kg * H * Cwater     [kg m-2 s-1]
 ! sink   = Kg / DEPHEIGHT      [s-1]
 !
-! The deposition rate is obtained by dividing the exchange velocity Kg 
-! by the deposition height DEPHEIGHT, e.g. the height over which 
+! The deposition rate is obtained by dividing the exchange velocity Kg
+! by the deposition height DEPHEIGHT, e.g. the height over which
 ! deposition occurs. This can be either the first grid box only, or the
 ! entire planetary boundary layer. The HEMCO option 'PBL\_DRYDEP' determines
-! which option is being used. 
+! which option is being used.
 !\\
 !\\
 ! Kg is calculated following Johnson, 2010, which is largely based on
 ! the work of Nightingale et al., 2000a/b.
-! The salinity and seawater pH are currently set to constant global values 
+! The salinity and seawater pH are currently set to constant global values
 ! of 35 ppt and 8.0, respectively.
-! Since Kg is only little sensitive to these variables, this should not 
+! Since Kg is only little sensitive to these variables, this should not
 ! introduce a notable error.
 !\\
-!\\ 
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
 !\\
-! Air-sea exchange is calculated for all species defined during 
+! Air-sea exchange is calculated for all species defined during
 ! extension initialization. For each species, the following parameter
-! must be specified: species name, model species ID (i.e. ID of this 
+! must be specified: species name, model species ID (i.e. ID of this
 ! species in the external model), parameterization type of Schmidt
 ! number in water, liquid molar volume of species, and the name of the
-! field containing species sea-water concentrations. See initialization 
+! field containing species sea-water concentrations. See initialization
 ! routine for more details.
-! To add new species to this module, the abovementioned arrays have to 
+! To add new species to this module, the abovementioned arrays have to
 ! be extended accordingly.
 !\\
 !\\
@@ -65,12 +65,12 @@
 !    coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
 ! \end{itemize}
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCOX_SeaFlux_Mod
 !
 ! !USES:
-! 
+!
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
   USE HCO_State_MOD,  ONLY : HCO_State
@@ -91,7 +91,7 @@ MODULE HCOX_SeaFlux_Mod
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller   - Initial version
-!  01 Oct 2013 - C. Keller   - Now a HEMCO extension module 
+!  01 Oct 2013 - C. Keller   - Now a HEMCO extension module
 !  11 Dec 2013 - C. Keller   - Now define container name during initialization
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
@@ -115,9 +115,9 @@ MODULE HCOX_SeaFlux_Mod
   END TYPE OcSpec
 
   TYPE :: MyInst
-   ! Tracer IDs 
+   ! Tracer IDs
    INTEGER                :: Instance
-   ! Variables carrying information about ocean species 
+   ! Variables carrying information about ocean species
    INTEGER                :: ExtNr
    INTEGER                :: nOcSpc            ! # of ocean species
    TYPE(OcSpec), POINTER  :: OcSpecs(:)
@@ -136,7 +136,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_SeaFlux_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Run is the run routine to 
+! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Run is the run routine to
 ! calculate oceanic emissions for the current time step.
 !\\
 !\\
@@ -149,19 +149,19 @@ CONTAINS
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
     USE HCO_FLUXARR_MOD,  ONLY : HCO_DepvAdd
     USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
-!    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
+!    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER       :: ExtState  ! Module options  
+    TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
@@ -173,7 +173,7 @@ CONTAINS
     ! Scalars
     TYPE(MyInst), POINTER :: Inst
     INTEGER               :: OcID, HcoID
-    REAL(hp), TARGET      :: SOURCE(HcoState%NX,HcoState%NY) 
+    REAL(hp), TARGET      :: SOURCE(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET      :: SINK  (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET      :: SeaConc(HcoState%NX,HcoState%NY)
     CHARACTER(LEN=255)    :: ContName
@@ -191,11 +191,11 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaFlux_Run (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Return if extension disabled 
+    ! Return if extension disabled
     IF ( ExtState%SeaFlux <= 0 ) RETURN
 
     ! Verbose?
-    verbose = HCO_IsVerb(HcoState%Config%Err,1) 
+    verbose = HCO_IsVerb(HcoState%Config%Err,1)
 
     ! Nullify
     Arr2D => NULL()
@@ -203,7 +203,7 @@ CONTAINS
     ! Get instance
     Inst => NULL()
     CALL InstGet ( ExtState%SeaFlux, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find SeaFlux instance Nr. ', ExtState%SeaFlux
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
@@ -213,19 +213,19 @@ CONTAINS
     ! Calculate emissions
     ! ---------------------------------------------------------------
 
-    ! Loop over all model species 
+    ! Loop over all model species
     DO OcID = 1, Inst%nOcSpc
 
-       ! Get HEMCO species ID 
+       ! Get HEMCO species ID
        HcoID = Inst%OcSpecs(OcID)%HcoID
 
        ! Skip this species if it has no corresponding HEMCO and/or
-       ! model species 
+       ! model species
        IF ( HcoID                     < 0 ) CYCLE
        IF ( HcoState%Spc(HcoID)%ModID < 0 ) CYCLE
 
        IF ( verbose ) THEN
-          WRITE(MSG,'(A40,I5)') & 
+          WRITE(MSG,'(A40,I5)') &
                'Calculate air-sea flux for HEMCO species', HcoID
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Module species name: ', &
@@ -238,7 +238,7 @@ CONTAINS
        CALL HCO_EvalFld ( am_I_Root, HcoState, ContName, SeaConc, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Calculate oceanic source (kg/m2/s) as well as the deposition 
+       ! Calculate oceanic source (kg/m2/s) as well as the deposition
        ! velocity (1/s).
        CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, Inst, &
                            SOURCE,    SINK,     SeaConc,        &
@@ -250,14 +250,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(Inst%OcSpecs(OcID)%OcSpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-          RETURN 
+          RETURN
        ENDIF
        IF ( RC /= HCO_SUCCESS ) RETURN
-      
+
        ! Set deposition velocity in HEMCO object [1/s]
-       CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )  
+       CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-      
+
        ! Free pointers
        !SeaConc => NULL()
 
@@ -268,15 +268,15 @@ CONTAINS
                           cName   = TRIM(ContName), &
                           Array2D = Arr2D,          &
                           COL     = -1,             &
-                          RC      = RC               ) 
-       Arr2D => NULL() 
+                          RC      = RC               )
+       Arr2D => NULL()
     ENDDO !SpcID
 
     ! Cleanup
     Inst => NULL()
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_SeaFlux_Run
 !EOC
@@ -287,7 +287,7 @@ CONTAINS
 !
 ! !IROUTINE: Calc_SeaFlux
 !
-! !DESCRIPTION: Subroutine CALC\_SEAFLUX calculates oceanic emissions 
+! !DESCRIPTION: Subroutine CALC\_SEAFLUX calculates oceanic emissions
 ! of the specified tracer using the parameterization described in
 ! Johnson, 2010.
 !\\
@@ -299,12 +299,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_SeaFlux( am_I_Root, HcoState, ExtState, & 
+  SUBROUTINE Calc_SeaFlux( am_I_Root, HcoState, ExtState, &
                            Inst,      SOURCE,   SINK,     &
                            SeaConc,   OcID,     HcoID, RC  )
 !
 ! !USES:
-! 
+!
     USE Ocean_ToolBox_Mod,  ONLY : CALC_KG
     USE Henry_Mod,          ONLY : CALC_KH, CALC_HEFF
     USE HCO_CALC_MOD,       ONLY : HCO_CheckDepv
@@ -313,30 +313,30 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root           ! root CPU?
-    INTEGER,         INTENT(IN   ) :: OcID                ! ocean species ID 
+    INTEGER,         INTENT(IN   ) :: OcID                ! ocean species ID
     INTEGER,         INTENT(IN   ) :: HcoID               ! HEMCO species ID
     TYPE(HCO_State), POINTER       :: HcoState            ! Output obj
-    TYPE(Ext_State), POINTER       :: ExtState     
-    TYPE(MyInst),    POINTER       :: Inst         
+    TYPE(Ext_State), POINTER       :: ExtState
+    TYPE(MyInst),    POINTER       :: Inst
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),        INTENT(  OUT) :: SOURCE(HcoState%NX,HcoState%NY ) 
+    REAL(hp),        INTENT(  OUT) :: SOURCE(HcoState%NX,HcoState%NY )
     REAL(hp),        INTENT(  OUT) :: SINK  (HcoState%NX,HcoState%NY )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(hp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
-    INTEGER,         INTENT(INOUT) :: RC                 ! Error stat 
+    INTEGER,         INTENT(INOUT) :: RC                 ! Error stat
 
 !
 ! !REMARKS:
-!  For now, the salinity and pH of seawater are prescribed to 35ppt and 8.0, 
-!  respectively.  The oceanic flux is not expected to be sensitive to these 
+!  For now, the salinity and pH of seawater are prescribed to 35ppt and 8.0,
+!  respectively.  The oceanic flux is not expected to be sensitive to these
 !  parameters (which have only little variations anyway), but we may use
 !  climatologies for these parameter at some point nevertheless!
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller   - Initial version
 !  15 Aug 2014 - C. Keller   - Now restrict calculations to temperatures above
 !                              10 deg C.
@@ -344,7 +344,7 @@ CONTAINS
 !                              to avoid negative Schmidt numbers.
 !  07 Oct 2014 - C. Keller   - Now use skin temperature instead of air temperature
 !  06 Mar 2015 - C. Keller   - Now calculate deposition rate over entire PBL.
-!  14 Oct 2015 - R. Yantosca - Pulled variables MW, VB, SCW out of the parallel 
+!  14 Oct 2015 - R. Yantosca - Pulled variables MW, VB, SCW out of the parallel
 !                              loop.
 !  06 Nov 2015 - C. Keller   - Now use HCO_LANDTYPE instead of FRCLND
 !EOP
@@ -367,15 +367,15 @@ CONTAINS
 
     ! For now, hardcode salinity
     REAL(dp), PARAMETER :: S = 35.0_dp
-                  
+
     ! Set seawater PH to constant value of 8
     REAL(dp), PARAMETER :: PH = 8.0_dp
 
     ! Maximum allowed temperature (to avoid neg. Schmidt number)
     ! Set to 45 C (= 318.15 K)
     REAL(dp), PARAMETER :: TMAX = 318.15_dp
- 
-    ! Error handling   
+
+    ! Error handling
     CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
@@ -396,16 +396,16 @@ CONTAINS
     PKA     = HcoState%Spc(HcoID)%HenryPKA
 
     ! molecular weight [g/mol]
-    ! Use real species molecular weight and not the emitted 
+    ! Use real species molecular weight and not the emitted
     ! molecular weight. The molecular weight is only needed to
-    ! calculate the air-side Schmidt number, which should be 
+    ! calculate the air-side Schmidt number, which should be
     ! using the actual species MW.
     MW      = HcoState%Spc(HcoID)%MW_g
 
     ! Liquid molar volume at boiling point [cm3/mol]
     VB      = Inst%OcSpecs(OcID)%LiqVol
 
-    ! Get parameterization type for Schmidt number in water 
+    ! Get parameterization type for Schmidt number in water
     SCW     = Inst%OcSpecs(OcID)%SCWPAR
 
     ! Model surface layer
@@ -418,15 +418,15 @@ CONTAINS
 
 !$OMP PARALLEL DO                                     &
 !$OMP DEFAULT( SHARED )                               &
-!$OMP PRIVATE( I,  J,     N,        TK,        TC   ) & 
+!$OMP PRIVATE( I,  J,     N,        TK,        TC   ) &
 !$OMP PRIVATE( P,  V,     KH,       RC,        HEFF ) &
 !$OMP PRIVATE( KG, IJSRC, PBL_MAX,  DEP_HEIGHT      ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
-      
-       ! Make sure we have no negative seawater concentrations 
+
+       ! Make sure we have no negative seawater concentrations
        IF ( SeaConc(I,J) < 0.0_sp ) SeaConc(I,J) = 0.0_sp
 
        ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
@@ -434,12 +434,12 @@ CONTAINS
 
        ! Do only over the ocean:
        IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
-                          ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN 
+                          ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN
 
           !-----------------------------------------------------------
           ! Get grid box and species specific quantities
           !-----------------------------------------------------------
- 
+
           ! skin surface temp in K
           TK = ExtState%TSKIN%Arr%Val(I,J)
 
@@ -450,7 +450,7 @@ CONTAINS
              WARN = 1
              TK   = TMAX
           ENDIF
- 
+
           ! Temperature in C
           TC = TK - 273.15d0
 
@@ -458,27 +458,27 @@ CONTAINS
           ! This is rather arbitrary, but seawater should be frozen at
           ! that temperature anyways. Also, this ensures that the cal-
           ! culation of KG doesn't produce an overflow error, which occurs
-          ! at temperatures of -10.7 to -10.9 deg C. 
+          ! at temperatures of -10.7 to -10.9 deg C.
           IF ( TC < -10.0d0 ) CYCLE
- 
+
           ! surface pressure [Pa]
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
-          ! 10-m wind speed [m/s] 
+          ! 10-m wind speed [m/s]
           V = ExtState%U10M%Arr%Val(I,J)**2 + &
               ExtState%V10M%Arr%Val(I,J)**2
           V = SQRT(V)
 
-          ! Henry gas over liquid dimensionless constant and 
+          ! Henry gas over liquid dimensionless constant and
           ! effective Henry constant [both unitless].
           CALL CALC_KH ( K0, CR, TK, KH, RC )  ! liquid over gas
           ! Exit here if error. Use error flags from henry_mod.F!
           IF ( RC /= 0 ) THEN
              RC  = HCO_FAIL
-             WRITE(MSG,*) 'Cannot calculate KH: ', K0, CR, TK 
+             WRITE(MSG,*) 'Cannot calculate KH: ', K0, CR, TK
              EXIT
           ENDIF
-          CALL CALC_HEFF ( PKA, PH, KH, HEFF, RC )  ! liquid over gas 
+          CALL CALC_HEFF ( PKA, PH, KH, HEFF, RC )  ! liquid over gas
           ! Exit here if error. Use error flags from henry_mod.F!
           IF ( RC /= 0 ) THEN
              RC  = HCO_FAIL
@@ -495,7 +495,7 @@ CONTAINS
           !-----------------------------------------------------------
 
           ! Get exchange velocity KG (m/s) following Johnson, 2010.
-          ! Kg is defined as 1 / (1/k_air + H/k_water). Note that Kg 
+          ! Kg is defined as 1 / (1/k_air + H/k_water). Note that Kg
           ! is denoted Ka in Johnson, 2010!
           ! Use effective Henry constant here to account for
           ! hydrolysis!
@@ -510,10 +510,10 @@ CONTAINS
           ! Calculate flux from the ocean (kg m-2 s-1):
           !-----------------------------------------------------------
 
-          ! Fwa = KG * Cwater * H (Liss and Slater, 1974) 
-          ! Oceanic concentration is im [kg m-3], H is 
-          ! dimensionless, and KG is [m s-1], so IJSRC is 
-          ! [kg m-2 s-1]. 
+          ! Fwa = KG * Cwater * H (Liss and Slater, 1974)
+          ! Oceanic concentration is im [kg m-3], H is
+          ! dimensionless, and KG is [m s-1], so IJSRC is
+          ! [kg m-2 s-1].
           ! OcArr already accounts for pH effects, so apply the
           ! 'regular' Henry constant H here.
           IJSRC = KG * KH * SeaConc(I,J)
@@ -526,7 +526,7 @@ CONTAINS
           !-----------------------------------------------------------
 
           ! Determine deposition height based on HEMCO option regarding
-          ! the deposition length scale. 
+          ! the deposition length scale.
           IF ( HcoState%Options%PBL_DRYDEP ) THEN
              DO N = HcoState%NZ, 1, -1
                 IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,N) > 0.0_hp ) THEN
@@ -541,7 +541,7 @@ CONTAINS
 
           ! Now calculate deposition rate from velocity and deposition
           ! height: [s-1] = [m s-1] / [m].
-          SINK(I,J) = KG / DEP_HEIGHT 
+          SINK(I,J) = KG / DEP_HEIGHT
 
           ! Check validity of value
           CALL HCO_CheckDepv( am_I_Root, HcoState, SINK(I,J), RC )
@@ -565,7 +565,7 @@ CONTAINS
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE Calc_SeaFlux
 !EOC
@@ -577,9 +577,9 @@ CONTAINS
 ! !IROUTINE: HCOX_SeaFlux_Init
 !
 ! !DESCRIPTION: Subroutine HCOX\_SeaFlux\_Init initializes all module
-! variables, including all species - specific parameter such as 
-! the liquid molar volume (Vb), the parameterization type for the 
-! Schmidt number in water (SCWPAR) and the name of the field containing 
+! variables, including all species - specific parameter such as
+! the liquid molar volume (Vb), the parameterization type for the
+! Schmidt number in water (SCWPAR) and the name of the field containing
 ! oceanic concentrations.
 !\\
 !\\
@@ -599,9 +599,9 @@ CONTAINS
 !
 ! \begin{itemize}
 ! \item Atom/feature Increment/cm3mole-1
-! \item Carbon       7.0 
-! \item Hydrogen     7.0 
-! \item Oxygen       7.0 
+! \item Carbon       7.0
+! \item Hydrogen     7.0
+! \item Oxygen       7.0
 ! \item Nitrogen     7.0
 ! \item Bromine     31.5
 ! \item Chlorine    24.5
@@ -614,22 +614,22 @@ CONTAINS
 ! \end{itemize}
 !
 ! SCWPAR denotes which parameterization will be used to calculate the
-! Schmidt number in water (in ocean\_toolbox\_mod). The following 
+! Schmidt number in water (in ocean\_toolbox\_mod). The following
 ! parameterizations are currently supported:
 !
 ! \begin{enumerate}
 ! \item Parameterization as in Johnson, 2010 (default).
 ! \item Parameterization for DMS according to Saltzman et al., 1993.
-! \item Parameterization for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for Acetone as in former acetone\_mod.F in GC.
 ! \item Parameterization for Acetaldehyde as in ald2\_mod.F from D. Millet
 ! \end{enumerate}
 
 ! The oceanic surface concentrations of all species are obtained from
 ! external fields. These field names are specified in array OcDataName.
-! For now, we obtain these concentrations from netCDF-files through the 
+! For now, we obtain these concentrations from netCDF-files through the
 ! HEMCO core module, i.e. for each species there need to be a
-! corresponding seawater concentration data file specified in the HEMCO 
-! configuration file. Once we use a coupled (ESMF) system, these names 
+! corresponding seawater concentration data file specified in the HEMCO
+! configuration file. Once we use a coupled (ESMF) system, these names
 ! may be used to refer to the names of the concentration fields imported
 ! from the ocean model component.
 !\\
@@ -663,7 +663,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    TYPE(MyInst), POINTER          :: Inst 
+    TYPE(MyInst), POINTER          :: Inst
     INTEGER                        :: ExtNr, I, J, nSpc
     CHARACTER(LEN=255)             :: NAME_OC, MSG, ERR
 
@@ -678,8 +678,8 @@ CONTAINS
     ! Extension Nr.
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
- 
-    ! Enter 
+
+    ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaFlux_Init (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     ERR = 'nOcSpc too low!'
@@ -699,15 +699,15 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
-    ! ---------------------------------------------------------------------- 
-    ! Get species IDs and settings 
-    ! ---------------------------------------------------------------------- 
-    
+    ! ----------------------------------------------------------------------
+    ! Get species IDs and settings
+    ! ----------------------------------------------------------------------
+
     ! # of species for which air-sea exchange will be calculated
     Inst%nOcSpc = 4
 
     ! Initialize vector w/ species information
-    ALLOCATE ( Inst%OcSpecs(Inst%nOcSpc) ) 
+    ALLOCATE ( Inst%OcSpecs(Inst%nOcSpc) )
     DO I = 1, Inst%nOcSpc
        Inst%OcSpecs(I)%HcoID      = -1
        Inst%OcSpecs(I)%OcSpcName  = ''
@@ -781,15 +781,15 @@ CONTAINS
 
     ! ----------------------------------------------------------------------
     ! Match module species with species assigned to this module in config.
-    ! file 
+    ! file
     ! ----------------------------------------------------------------------
 
-    ! HEMCO species IDs of species names defined in config. file 
+    ! HEMCO species IDs of species names defined in config. file
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set information in module variables
-    DO I = 1, Inst%nOcSpc 
+    DO I = 1, Inst%nOcSpc
 
        ! Append ocean tag '__OC' to this species name to make sure
        ! that we will also register non-tagged species.
@@ -797,9 +797,9 @@ CONTAINS
 
        DO J = 1, nSpc
 
-          ! Compare model species names against defined module species. 
+          ! Compare model species names against defined module species.
           ! Also accept species names without the tag __OC, e.g.
-          ! 'ACET' only instead of 'ACET__OC'. 
+          ! 'ACET' only instead of 'ACET__OC'.
           IF ( TRIM(SpcNames(J)) == TRIM(Inst%OcSpecs(I)%OcSpcName) .OR. &
                TRIM(SpcNames(J)) == TRIM(NAME_OC)              ) THEN
              Inst%OcSpecs(I)%HcoID = HcoIDs(J)
@@ -825,7 +825,7 @@ CONTAINS
        ExtState%FRAC_OF_PBL%DoUse = .TRUE.
     ENDIF
 !    ExtState%FRCLND%DoUse      = .TRUE.
-    
+
     ! Enable extensions
     !ExtState%SeaFlux = .TRUE.
 
@@ -843,7 +843,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_SeaFlux_Final
 !
-! !DESCRIPTION: Subroutine HCOX\_SeaFlux\_Final deallocates 
+! !DESCRIPTION: Subroutine HCOX\_SeaFlux\_Final deallocates
 !  all module arrays.
 !\\
 !\\
@@ -853,7 +853,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -866,7 +866,7 @@ CONTAINS
     !=================================================================
     CALL InstRemove( ExtState%SeaFlux )
 
-    !IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
+    !IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs )
 
   END SUBROUTINE HCOX_SeaFlux_Final
 !EOC
@@ -875,14 +875,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -892,7 +892,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -901,11 +901,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -922,21 +922,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -949,7 +949,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -965,7 +965,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -983,7 +983,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -1006,18 +1006,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1033,27 +1033,27 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
-   
+    IF ( ASSOCIATED(Inst) ) THEN
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
-          IF ( ASSOCIATED( Inst%OcSpecs )) DEALLOCATE( Inst%OcSpecs ) 
+          IF ( ASSOCIATED( Inst%OcSpecs )) DEALLOCATE( Inst%OcSpecs )
           PrevInst%NextInst => Inst%NextInst
        ELSE
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_SeaFlux_Mod

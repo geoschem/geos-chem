@@ -5,7 +5,7 @@
 #
 # !IROUTINE: Makefile_Hemco.mk (in doc subdirectory)
 #
-# !DESCRIPTION: This Makefile fragment contains commands to build the 
+# !DESCRIPTION: This Makefile fragment contains commands to build the
 #  documentation for the HEMCO Source Code.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
@@ -20,7 +20,7 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  08 Jul 2014 - R. Yantosca - Initial version
 #  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
 #  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
@@ -45,7 +45,7 @@ DVI4 := GC_v11-02_HEMCO_Modules.dvi
 PDF4 := GC_v11-02_HEMCO_Modules.pdf
 
 # Make commands
-hemcodoc: 
+hemcodoc:
 	rm -f $(TEX4)
 	./protex -sfp $(SRC4) > $(TEX4)
 	latex $(TEX4)

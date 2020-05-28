@@ -7,9 +7,9 @@
 ! !MODULE: hcoio_write_esmf_mod.F90
 !
 ! !DESCRIPTION: Module HCOIO\_Write\_ESMF\_Mod.F90 is the HEMCO output
-! interface for the ESMF environment. 
-! In an ESMF/MAPL environment, the HEMCO diagnostics are not directly 
-! written to disk but passed to the gridded component export state, where 
+! interface for the ESMF environment.
+! In an ESMF/MAPL environment, the HEMCO diagnostics are not directly
+! written to disk but passed to the gridded component export state, where
 ! they can be picked up by the MAPL HISTORY component.
 !\\
 !\\
@@ -35,7 +35,7 @@ MODULE HCOIO_WRITE_ESMF_MOD
 !  at a later time.  They will be turned on when debugging & unit testing.
 !
 ! !REVISION HISTORY:
-!  04 May 2014 - C. Keller   - Initial version. 
+!  04 May 2014 - C. Keller   - Initial version.
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  28 Jul 2014 - C. Keller   - Removed GC specific initialization calls and
@@ -60,14 +60,14 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut is the interface routine to
 ! link the HEMCO diagnostics arrays to the corresponding data pointers of the
-! MAPL/ESMF history component. 
+! MAPL/ESMF history component.
 !\\
 !\\
 ! Since the history component internally organizes many diagnostics tasks such
 ! as output scheduling, file writing, and data averaging, all HEMCO diagnostics
-! are made available to the history component on every time step, e.g. the 
+! are made available to the history component on every time step, e.g. the
 ! entire content of the HEMCO diagnostics list is 'flushed' every time this
-! subroutine is called. 
+! subroutine is called.
 !\\
 !\\
 ! For now, all diagnostics data is copied to the corresponding MAPL data
@@ -75,14 +75,14 @@ CONTAINS
 ! not equal to the ESMF precision.
 !\\
 !\\
-! Once the HEMCO precision is pegged to the ESMF precision, we can just 
+! Once the HEMCO precision is pegged to the ESMF precision, we can just
 ! establish pointers between the export arrays and the diagnostics the first
 ! time this routine is called.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_WRITE_ESMF ( am_I_Root, HcoState, RC, OnlyIfFirst, COL ) 
+  SUBROUTINE HCOIO_WRITE_ESMF ( am_I_Root, HcoState, RC, OnlyIfFirst, COL )
 !
 ! !USES:
 !
@@ -96,16 +96,16 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
-    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object 
-    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst !  
-    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
+    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst !
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 
     INTEGER,                    INTENT(INOUT) :: RC          ! Failure or success
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Aug 2014 - C. Keller    - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 
@@ -128,7 +128,7 @@ CONTAINS
     ! HCOIO_WRITE_ESMF begins here!
     !=================================================================
 
-    ! Assume success until otherwise 
+    ! Assume success until otherwise
     RC  = HCO_SUCCESS
 
     ! Init
@@ -137,7 +137,7 @@ CONTAINS
     Ptr3D     => NULL()
 
     ! Collection number
-    PS = HcoState%Diagn%HcoDiagnIDDefault 
+    PS = HcoState%Diagn%HcoDiagnIDDefault
     IF ( PRESENT(COL) ) PS = COL
 
     ! In an ESMF environment, always get all diagnostics since output
@@ -148,21 +148,21 @@ CONTAINS
     ! Connect diagnostics to export state.
     !-----------------------------------------------------------------
 
-    ! Loop over all diagnostics in diagnostics list 
+    ! Loop over all diagnostics in diagnostics list
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
 
-       ! Get next diagnostics in list. This will return the next 
+       ! Get next diagnostics in list. This will return the next
        ! diagnostics container that contains content to be written
        ! out on this time step.
        CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
-                        ThisDiagn, FLAG, RC, COL=PS ) 
+                        ThisDiagn, FLAG, RC, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
        ! this container and time step.
-       IF ( PRESENT(OnlyIfFirst) ) THEN 
+       IF ( PRESENT(OnlyIfFirst) ) THEN
           IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
        ENDIF
 
@@ -199,7 +199,7 @@ CONTAINS
     ! Cleanup
     ThisDiagn => NULL()
 
-    ! Return 
+    ! Return
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCOIO_WRITE_ESMF

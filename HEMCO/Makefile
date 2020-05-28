@@ -5,7 +5,7 @@
 #
 # !MODULE: Makefile (in the HEMCO/src directory)
 #
-# !DESCRIPTION: Calls makefiles in the subdirectories src\/Core, 
+# !DESCRIPTION: Calls makefiles in the subdirectories src\/Core,
 #  src\/Extensions, src\/Interfaces to compile the HEMCO source code into
 #  library files and to create an executable.
 #\\
@@ -17,7 +17,7 @@
 #
 # To display a complete list of options, type "make help".
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  14 Jul 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ HELP :=$(ROOT)/Help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
 
-# Include header file, which returns various Makefile variables, defines 
+# Include header file, which returns various Makefile variables, defines
 # the compilation rules, and sets the correct C-preprocessor switches.
 include $(ROOT)/Makefile_header.mk
 
@@ -62,7 +62,7 @@ include $(ROOT)/Makefile_header.mk
 all:
 	@$(MAKE) lib
 
-check:  
+check:
 	@$(MAKE) -C $(HCOI) all
 
 clean:

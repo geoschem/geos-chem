@@ -5,7 +5,7 @@
 #
 # !IROUTINE: Makefile_DiagsDoc.mk (in doc subdirectory)
 #
-# !DESCRIPTION: This Makefile fragment contains commands to build the 
+# !DESCRIPTION: This Makefile fragment contains commands to build the
 #  documentation for the GEOS-Chem diagnostics modules.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
@@ -20,7 +20,7 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  12 Jul 2017 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------

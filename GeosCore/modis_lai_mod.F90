@@ -5,11 +5,11 @@
 !
 ! !MODULE: modis_lai_mod.F90
 !
-! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI and CHLR data at 
+! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI and CHLR data at
 !  native resolution and then regrids them to the GEOS-Chem resolution on the
-!  fly. CHLR data is only read if marine organic aerosol tracers are enabled. 
+!  fly. CHLR data is only read if marine organic aerosol tracers are enabled.
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Modis_Lai_Mod
 !
@@ -28,11 +28,11 @@ MODULE Modis_Lai_Mod
 ! !REMARKS:
 !  (1) MODIS LAI data resolution is the same as the Olson land map. The Olson
 !      2001 landmap is the default, therefore, you will use MODIS LAI data at
-!      0.25 x 0.25 resolution. 
+!      0.25 x 0.25 resolution.
 !      Note that MODIS CHLR data is only available at 0.25 x 0.25 resolution.
 !  (2) In HEMCO, MEGAN uses 'offline' MODIS LAI (State_Met%MODISLAI) which
 !      is computed in this module.
-!      in an ESMF environment, in which case State_Met%LAI is used instead. 
+!      in an ESMF environment, in which case State_Met%LAI is used instead.
 !  (3) MODIS LAI arrays and where they are used in GEOS-Chem:
 !       (a) State_Met%XLAI     --> dry deposition routine DEPVEL
 !       (b) State_Met%MODISLAI --> MEGAN (if using standard GC); Hg(0)
@@ -52,12 +52,12 @@ MODULE Modis_Lai_Mod
 !  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
 !                              MODIS_LAI_PM.
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  07 Jul 2015 - E. Lundgren - Now also read and compute MODIS chlorophyll-a 
+!  07 Jul 2015 - E. Lundgren - Now also read and compute MODIS chlorophyll-a
 !                              (B. Gantt, M. Johnson). Use separate end years.
 !  18 Oct 2016 - E. Lundgren - Move module vars GC_LAI and GC_CHLR to State_Met;
 !                              rename as MODISLAI and MODISCHLR; make
 !                              State_Met vars XLAI2 and XCHLR2 module vars
-!  22 Jan 2019 - H.P. Lin    - Move XLAI2 and XCHLR2 to State_Met for 
+!  22 Jan 2019 - H.P. Lin    - Move XLAI2 and XCHLR2 to State_Met for
 !                              compatibility with multi-domain WRF-GC
 !EOP
 !------------------------------------------------------------------------------
@@ -140,7 +140,7 @@ CONTAINS
        ! (variable names are XLAI00, XLAI01, .. XLAI72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'XLAI' , i2.2 )
-       CALL HCO_GetPtr( am_I_Root, HcoState, Name, Ptr2D, RC )
+       call HCO_GetPtr(  HcoState, Name, Ptr2D, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -167,8 +167,8 @@ CONTAINS
 ! !IROUTINE: compute_xlai
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_XLAI computes MODIS-based leaf
-!  area indices (LAI) per land type and grid cell. This computation uses 
-!  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to 
+!  area indices (LAI) per land type and grid cell. This computation uses
+!  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to
 !  the cubed sphere. Variables set include State\_Met%XLAI.
 !\\
 !\\
@@ -208,7 +208,7 @@ CONTAINS
 !  State_Met%MODISLAI is the average LAI per grid box, averaged over all
 !  land types.  This is needed for the HEMCO soil NOx extension.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  18 Oct 2016 - E. Lundgren - Initial version
 !  14 Feb 2019 - R. Yantosca - Renamed to Compute_XLAI, because this is
 !                              now also used for GC-Classic etc.
@@ -237,7 +237,7 @@ CONTAINS
 
        ! Loop over all surface types present in this grid cell
        DO S = 1, State_Met%IREG(I,J)
-       
+
           ! Set current surface type index
           T = State_Met%ILAND(I,J,S) + 1
 
@@ -245,23 +245,23 @@ CONTAINS
           ! from the land type fraction calculated by ExtData
           landFrac = State_Met%LandTypeFrac(I,J,T)
 
-          ! Set XLAI to average LAI for this surface type ( as calculated 
-          ! by ExtData using zeros for coverage by other surface types ) 
+          ! Set XLAI to average LAI for this surface type ( as calculated
+          ! by ExtData using zeros for coverage by other surface types )
           ! divided by the fractional coverage of this surface type.
-          ! The resultant XLAI is the average LAI for only the area 
-          ! with the current surface type, and therefore is larger than 
+          ! The resultant XLAI is the average LAI for only the area
+          ! with the current surface type, and therefore is larger than
           ! XLAI_NATIVE when other surface types exist within the cell.
-          ! 
-          ! NOTE: Unlike XLAI_NATIVE and LandTypeFrac, the 3rd 
+          !
+          ! NOTE: Unlike XLAI_NATIVE and LandTypeFrac, the 3rd
           ! dimension indexes of XLAI are NOT surface types 1-73! Instead,
-          ! It is the surface indexes ILAND-1 and therefore contains 
-          ! zeros beyond the number of surface types present in the cell 
+          ! It is the surface indexes ILAND-1 and therefore contains
+          ! zeros beyond the number of surface types present in the cell
           ! (IREG). This is for backwards compatibility with GC classic
           ! legacy drydep code.
           IF ( landFrac .gt. 1.e-9_fp ) THEN
              State_Met%XLAI(I,J,S) = State_Met%XLAI_NATIVE(I,J,T) / landFrac
           ENDIF
-       
+
        ENDDO
 
        ! Calculate average LAI for this grid cell across all land types

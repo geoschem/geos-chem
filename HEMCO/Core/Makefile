@@ -16,7 +16,7 @@
 #
 # To display a complete list of options, type "make help".
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  21 Jul 2014 - R. Yantosca - Initial version, based on HEMCO standalone
 #                              and modified specifically for GEOS-Chem
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
@@ -99,7 +99,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###

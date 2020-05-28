@@ -5,11 +5,11 @@
 !
 ! !MODULE: diag_mod.F
 !
-! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays 
-!  for use with GEOS-CHEM diagnostics. 
+! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays
+!  for use with GEOS-CHEM diagnostics.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG_MOD
 !
@@ -52,24 +52,24 @@
       REAL(fp),  ALLOCATABLE :: TURBFLUP(:,:,:,:)
 
       ! For ND16 -- Fraction of grid box that is precipitating
-      REAL*4,  ALLOCATABLE :: AD16(:,:,:,:)  
+      REAL*4,  ALLOCATABLE :: AD16(:,:,:,:)
       INTEGER, ALLOCATABLE :: CT16(:,:,:,:)
-      
-      ! For ND17 -- Fraction of tracer lost to rainout 
-      REAL*4,  ALLOCATABLE :: AD17(:,:,:,:,:)   
+
+      ! For ND17 -- Fraction of tracer lost to rainout
+      REAL*4,  ALLOCATABLE :: AD17(:,:,:,:,:)
       INTEGER, ALLOCATABLE :: CT17(:,:,:,:)
 
       ! For ND18 -- Fraction of tracer lost to washout
-      REAL*4,  ALLOCATABLE :: AD18(:,:,:,:,:)   
+      REAL*4,  ALLOCATABLE :: AD18(:,:,:,:,:)
       INTEGER, ALLOCATABLE :: CT18(:,:,:,:)
 
       ! For ND21 -- Optical Depth diagnostic
       REAL*4,  ALLOCATABLE :: AD21(:,:,:,:)
 
       ! For ND22 -- J-value diagnostic
-      REAL*4,  ALLOCATABLE :: AD22(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD22(:,:,:,:)
       INTEGER, ALLOCATABLE :: LTJV(:,:)
-      INTEGER, ALLOCATABLE :: CTJV(:,:) 
+      INTEGER, ALLOCATABLE :: CTJV(:,:)
 
       ! For ND24 -- E/W transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
@@ -93,16 +93,16 @@
       REAL*4,  ALLOCATABLE :: AD35(:,:,:)
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
-      REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)
 
       ! For ND38 -- Rainout in moist convection diagnostic
-      REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)
 
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
-      REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)
 
       ! For ND43 -- OH and HO2 chemical diagnostics
-      REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)
       INTEGER, ALLOCATABLE :: LTOH(:,:)
       INTEGER, ALLOCATABLE :: CTOH(:,:,:)
       INTEGER, ALLOCATABLE :: LTHO2(:,:)
@@ -130,7 +130,7 @@
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
 
       ! For ND47 -- 24-h tracer concentration diagnostic
-      REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)
 
       ! For ND47(O3) / ND65 -- 24-h tracer diagnostic
       INTEGER, ALLOCATABLE :: CTO3_24h(:,:,:)
@@ -167,11 +167,11 @@
       REAL*4,  ALLOCATABLE :: AD59_DUST(:,:,:,:)
 
       ! For ND60 -- TOMAS condensation rate diagnostic
-      REAL*4,  ALLOCATABLE :: AD60_COND(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_COAG(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_NUCL(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_AQOX(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_COND(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_COAG(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_NUCL(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_AQOX(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD60_SOA(:,:,:,:)
 
       ! For ND61 -- 3D TOMAS rate diagnostic
@@ -186,19 +186,19 @@
       REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
 
       ! For ND66 -- I-6 fields diagnostic
-      REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)
 
       ! For ND67 -- DAO surface fields diagnostic
-      REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD67(:,:,:)
 
       ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
-      REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)
 
       ! For ND69 -- DXYP diagnostic
-      REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD69(:,:,:)
 
       ! For ND71 -- Surface peak tracer conc. diagnostic
-      REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD71(:,:,:)
       REAL*4,  ALLOCATABLE :: AD71_HR(:,:,:)
       REAL*4,  ALLOCATABLE :: AD71_DAY(:,:,:)
       INTEGER              :: AD71_COUNT
@@ -234,7 +234,7 @@
 !  (9 ) Add ND43 arrays LTNO2, CTNO2, LTHO2, CTHO2 (rvm, bmy, 2/27/02)
 !  (10) Add AD01, AD02 arrays for Rn-Pb-Be simulation (hyl, bmy, 8/7/02)
 !  (11) Add AD05 array for sulfate P-L diagnostic (rjp, bdf, bmy, 9/20/02)
-!  (12) Added subroutine CLEANUP_DIAG...moved code here from "cleanup.f", 
+!  (12) Added subroutine CLEANUP_DIAG...moved code here from "cleanup.f",
 !        so that it is internal to "diag_mod.f".  Added arrays AD13_NH3_bb,
 !        AD13_NH3_bf, AD13_NH3_an for NH3 emissons in ND13.  Deleted obsolete
 !        allocatable arrays CHEML24, DRYDL24, CTCHDD.  Now also added LTNO3
@@ -243,7 +243,7 @@
 !  (13) Added array AD13_NH3_na for ND13 diagnostic (rjp, bmy, 3/23/03)
 !  (14) Removed P24H and L24H -- these are now defined w/in "tagged_ox_mod.f"
 !        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
-!  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission) 
+!  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission)
 !        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
 !  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
 !  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
@@ -266,12 +266,12 @@
 !       (tmf, 3/6/09)
 !  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
 !  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
-!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)  
-!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB, 
+!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)
+!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB,
 !        AD59_OCIL, and AD59_DUST for size-resolved emission  (win, 1/25/10)
-!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
+!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and
 !        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
-!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
+!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)
 !  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
 !       temperature. (fp, 2/3/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -351,13 +351,13 @@
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )
       IF ( ALLOCATED( AD18        ) ) DEALLOCATE( AD18        )
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
-      IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
-      IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
-      IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
+      IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        )
+      IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        )
+      IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        )
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
-      IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
+      IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
@@ -376,7 +376,7 @@
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
 #if   defined( TOMAS )
-      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) 
+      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   )
       IF ( ALLOCATED( AD59_SULF   ) ) DEALLOCATE( AD59_SULF   )
       IF ( ALLOCATED( AD59_SALT   ) ) DEALLOCATE( AD59_SALT   )
       IF ( ALLOCATED( AD59_ECIL   ) ) DEALLOCATE( AD59_ECIL   )
@@ -391,7 +391,7 @@
       IF ( ALLOCATED( AD60_ERROR  ) ) DEALLOCATE( AD60_ERROR  )
       IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
       IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
-      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) 
+      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   )
 #else
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
@@ -432,6 +432,6 @@
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC
-      END MODULE DIAG_MOD 
+      END MODULE DIAG_MOD
 
 

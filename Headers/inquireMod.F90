@@ -1,4 +1,4 @@
-#if defined( ESMF_ ) 
+#if defined( ESMF_ )
 ! We only need to refer to this include file if we are connecting
 ! to the GEOS-5 GCM via the ESMF/MAPL framework (bmy, 8/3/12)
 #include "MAPL_Generic.h"
@@ -13,10 +13,10 @@
 ! !DESCRIPTION: Module inquireMod contains functions to find free and
 !  unopened logical file units (LUNs) for Fortran I/O.
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE inquireMod
-! 
+!
 ! !USES:
 !
 #if defined( ESMF_ )
@@ -42,7 +42,7 @@ MODULE inquireMod
 !------------------------------------------------------------------------------
 !BOC
   CONTAINS
-!EOC      
+!EOC
 !------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1    !
 !------------------------------------------------------------------------
@@ -59,6 +59,9 @@ MODULE inquireMod
 !
 ! !USES:
 !
+#if defined( MODEL_CESM )
+    USE UNITS,      ONLY : GETUNIT
+#endif
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -77,7 +80,7 @@ MODULE inquireMod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
 !
     INTEGER                    :: i, rc, status
@@ -93,8 +96,11 @@ MODULE inquireMod
 !
 ! !DEFINED PARAMETERS
 !
-    INTEGER, PARAMETER         :: iTop = 199     ! Maximum LUN limit 
+    INTEGER, PARAMETER         :: iTop = 199     ! Maximum LUN limit
 
+#if defined( MODEL_CESM )
+    lun = GETUNIT()
+#else
     !======================================================================
     ! Initialization
     !======================================================================
@@ -103,7 +109,7 @@ MODULE inquireMod
     rc     = 0
 
     !======================================================================
-    ! Find an available logical unit 
+    ! Find an available logical unit
     !======================================================================
     found = .FALSE.
     i     = 11
@@ -116,7 +122,7 @@ MODULE inquireMod
        ENDIF
        i = i + 1
     ENDDO
-    
+
     IF ( .NOT. found ) THEN
        status = 1
        PRINT *,TRIM( Iam ) // ": No available logical units"
@@ -124,6 +130,7 @@ MODULE inquireMod
 
 #if defined( ESMF_ )
     VERIFY_(status)
+#endif
 #endif
 
   END FUNCTION findFreeLUN
@@ -161,7 +168,7 @@ MODULE inquireMod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
 !
     INTEGER                    :: rc, status
@@ -172,7 +179,7 @@ MODULE inquireMod
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
 #else
     CHARACTER(LEN=255)         :: Iam
-#endif 
+#endif
 
     !======================================================================
     ! Initialization
