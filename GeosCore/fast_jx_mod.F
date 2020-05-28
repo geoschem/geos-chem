@@ -1779,20 +1779,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 #endif
 
 
-#if !defined( MODEL_CESM )
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
-#else
-      ! Hardwired for now (tmmf, 11/15/19)
-      ! Odyssey path
-      DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
-     &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
-      ! MIT path
-      DATA_DIR = '/home/fritzt/FAST-JX/'
-      ! Cheyenne path
-      DATA_DIR = '/glade/p/univ/umit0034/ExtData/CHEM_INPUTS/' //
-     & 'FAST_JX/v2019-06/'
-#endif
 
       !=====================================================================
       ! Read in fast-J X-sections (spectral data)
@@ -2485,20 +2473,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
 
-#if !defined( MODEL_CESM )
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
-#else
-      ! Hardwired for now (tmmf, 11/15/19)
-      ! Odyssey path
-      DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
-     &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
-      ! MIT path
-      DATA_DIR = '/home/fritzt/FAST-JX/'
-      ! Cheyenne path
-      DATA_DIR = '/glade/p/univ/umit0034/ExtData/CHEM_INPUTS/' //
-     & 'FAST_JX/v2019-06/'
-#endif
 
       ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
       DATA SPECFIL /"so4.dat","soot.dat","org.dat",
