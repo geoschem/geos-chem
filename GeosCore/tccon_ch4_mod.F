@@ -14,7 +14,7 @@
 !
 ! !USES:
 !
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       USE m_netcdf_io_open       ! netCDF open
       USE m_netcdf_io_get_dimlen ! netCDF dimension queries
       USE m_netcdf_io_read       ! netCDF data reads
@@ -96,7 +96,7 @@
 !\\
 ! !INTERFACE:
 !
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       SUBROUTINE READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
 !
 ! ! USES:
@@ -673,11 +673,12 @@
 
          ! Read the TCC CH4 file for this month
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
-         !CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
-         ! CESM
-         ! TODO - TMMF
+#if defined( MODEL_CESM )
          print*, "DIE HERE IN TCOON_CH4_MOD! DEAL WITH READ_TCC_CH4_OBS"
          CALL EXIT(1)
+#else
+         CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
+#endif
 
          IF ( FIRST ) FIRST = .FALSE.
 

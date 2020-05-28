@@ -14,7 +14,7 @@
 !
 ! !USES:
 !
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       USE m_netcdf_io_open       ! netCDF open
       USE m_netcdf_io_get_dimlen ! netCDF dimension queries
       USE m_netcdf_io_read       ! netCDF data reads
@@ -92,7 +92,7 @@
 !\\
 ! !INTERFACE:
 !
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       SUBROUTINE READ_GOS_CH4_OBS( YYYYMMDD, NGOS )
 !
 ! !USES:
@@ -548,11 +548,12 @@
 
          ! Read the GOS CH4 file for this day
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
-         !CALL READ_GOS_CH4_OBS( YYYYMMDD, NGOS )
-         ! CESM
-         !TODO - TMMF
+#if defined( MODEL_CESM )
          print*, "DIE IN GOSAT_CH4_MOD.F! DEAL WITH READ_GOS_CH4_OBS"
          CALL EXIT(1)
+#else
+         CALL READ_GOS_CH4_OBS( YYYYMMDD, NGOS )
+#endif
 
          IF ( FIRST ) FIRST = .FALSE.
 

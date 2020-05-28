@@ -25,7 +25,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: INIT_TOMS
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       PUBLIC :: READ_TOMS
 #endif
       PUBLIC :: COMPUTE_OVERHEAD_O3
@@ -117,7 +117,7 @@
 !\\
 ! !INTERFACE:
 !
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
       SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
