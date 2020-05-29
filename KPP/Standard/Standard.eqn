@@ -412,12 +412,6 @@ TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
-x01        = IGNORE; {Dummy species to tag reaction}
-x02        = IGNORE; {Dummy species to tag reaction}
-x03        = IGNORE; {Dummy species to tag reaction}
-x04        = IGNORE; {Dummy species to tag reaction}
-x05        = IGNORE; {Dummy species to tag reaction}
-
 
 #DEFFIX
 
@@ -432,8 +426,8 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 //
 O3 + NO = NO2 + O2 :                         GCARR(3.00E-12, 0.0E+00, -1500.0);
 O3 + OH = HO2 + O2 :                         GCARR(1.70E-12, 0.0E+00, -940.0);
-O3 + HO2 = OH + O2 + O2 + x05:               GCARR(1.00E-14, 0.0E+00, -490.0);
-O3 + NO2 = O2 + NO3 + x04:                   GCARR(1.20E-13, 0.0E+00, -2450.0);
+O3 + HO2 = OH + O2 + O2 :                    GCARR(1.00E-14, 0.0E+00, -490.0);
+O3 + NO2 = O2 + NO3 :                        GCARR(1.20E-13, 0.0E+00, -2450.0);
 O3 + MO2 = CH2O + HO2 + O2 :                 GCARR(2.90E-16, 0.0E+00, -1000.0);   {2014/02/03; Eastham2014; SDE}
 OH + OH = H2O + O :                          GCARR(1.80E-12, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 OH + OH {+M} = H2O2 :                        GCJPLPR(6.90E-31, 1.0E+00, 0.0, 2.6E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
@@ -629,7 +623,7 @@ DMS + OH = SO2 + MO2 + CH2O :                GCARR(1.20E-11, 0.0E+00, -280.0);
 DMS + OH = 0.750SO2 + 0.250MSA + MO2 :       GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :        GCARR(1.90E-13, 0.0E+00, 530.0);
 SO2 + OH {+M} = SO4 + HO2 :                  GCJPLPR(3.30E-31, 4.3E+00, 0.0, 1.6E-12, 0.0, 0.0, 0.6, 0.0, 0.0);
-Br + O3 = BrO + O2 + x02:                        GCARR(1.60E-11, 0.0E+00, -780.0);   {2012/06/07; Parrella2012; JPP}
+Br + O3 = BrO + O2:                          GCARR(1.60E-11, 0.0E+00, -780.0);   {2012/06/07; Parrella2012; JPP}
 BrO + HO2 = HOBr + O2 :                      GCARR(4.50E-12, 0.0E+00, 460.0);     {2012/06/07; Parrella2012; JPP}
 Br + HO2 = HBr + O2 :                        GCARR(4.80E-12, 0.0E+00, -310.0);    {2012/06/07; Parrella2012; JPP}
 HBr + OH = Br + H2O :                        GCARR(5.50E-12, 0.0E+00, 200.0);     {2012/06/07; Parrella2012; JPP}
@@ -742,7 +736,7 @@ OH + HCFC142b = Cl + H2O :                   GCARR(1.30E-12, 0.0E+00, -1770.0); 
 OH + HCFC123 = 2.000Cl + H2O :               GCARR(7.40E-13, 0.0E+00, -900.0);    {2017/02/22; JPL 15-10; BHH,MJE}
 CH4 + Cl = HCl + MO2 :                       GCARR(7.10E-12, 0.0E+00, -1270.0);   {2017/03/08; JPL 15-10; TS,BHH,MJE}
 CH2O + Cl = CO + HCl + HO2 :                 GCARR(7.32E-11, 0.0E+00, -30.0);     {2017/09/22; Sherwen2016b; TS,JAS,SDE}
-Cl + O3 = ClO + O2 + x01:                        GCARR(2.30E-11, 0.0E+00, -200.0);   {2014/02/03; Eastham2014; SDE}
+Cl + O3 = ClO + O2  :                        GCARR(2.30E-11, 0.0E+00, -200.0);   {2014/02/03; Eastham2014; SDE}
 Cl + H2 = H + HCl :                          GCARR(3.05E-11, 0.0E+00, -2270.0);   {2014/02/03; Eastham2014; SDE}
 Cl + H2O2 = HO2 + HCl :                      GCARR(1.10E-11, 0.0E+00, -980.0);    {2014/02/03; Eastham2014; SDE}
 Cl + HO2 = O2 + HCl :                        GCARR(1.40E-11, 0.0E+00, 270.0);     {2014/02/03; Eastham2014; SDE}
@@ -803,7 +797,7 @@ OIO + NO = IO + NO2 :                        GCARR(1.10E-12, 0.0E+00, 542.0);   
 IO + ClO = I + OClO :                        GCARR(5.10E-12, 0.0E+00, 280.0);     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 IO + ClO = I + Cl + O2 :                     GCARR(2.81E-12, 0.0E+00, 280.0);     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 IO + ClO = ICl + O2 :                        GCARR(1.02E-12, 0.0E+00, 280.0);     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I + O3 = IO + O2 + x03:                          GCARR(2.30E-11, 0.0E+00, -870.0);   {2017/09/22; Sherwen2017;TS,JAS,SDE}
+I + O3 = IO + O2  :                          GCARR(2.30E-11, 0.0E+00, -870.0);   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 I + HO2 = HI + O2 :                          GCARR(1.50E-11, 0.0E+00, -1090.0);   {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2 + OH = HOI + I :                          GCARR(1.80E-10, 0.0E+00, 0.0);       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HI + OH = I + H2O :                          GCARR(3.00E-11, 0.0E+00, 0.0);       {2017/09/22; Sherwen2016b;TS,JAS,SDE}

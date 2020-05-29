@@ -98,7 +98,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: Gamma_HOBr_CLD     
   PRIVATE :: Gamma_HOBr_AER     
   PRIVATE :: Gamma_ClNO3_AER    
-  PRIVATE :: Gamma_N2O5_Cl      
   PRIVATE :: Gamma_ClNO2        
   PRIVATE :: Gamma_HOCl_AER     
   PRIVATE :: Gamma_HOCl_CLD     
@@ -849,10 +848,10 @@ MODULE GCKPP_HETRATES
       ! the uptake rate of the first reactant only.
      
       HetTemp(1:2) = HETN2O5(1.08E2_fp, 1E-1_fp, CldFr)
-      kITemp = HetTemp(1) + CloudHet( 'N2O5', CldFr, Aliq, Aice, rLiq, rIce, TempK, xDenA)
+      kITemp = HetTemp(1)
       HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('H2O'), &
                kITemp, HetMinLife)
-      State_Chm%GammaN2O5(I,J,L,1) = HetTemp(2)
+      State_Chm%GammaN2O5(I,J,L,1) =HetTemp(2)
 
       !--------------------------------------------------------------------
       ! Br/Cl heterogeneous chemistry
@@ -1177,12 +1176,12 @@ MODULE GCKPP_HETRATES
          HetTemp(1:3) = HETN2O5_SS( CldFr, 1)
          HET(ind_N2O5,  4) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALACL'), &
                                        HetTemp(1), HetMinLife)
-         State_Chm%GammaN2O5(I,J,L,2) = HetTemp(2)
-         State_Chm%GammaN2O5(I,J,L,3) = HetTemp(3)
+         State_Chm%GammaN2O5(I,J,L,2) = HetTemp(1)
 
          HetTemp(1:3) = HETN2O5_SS( CldFr, 2)
          HET(ind_N2O5,  5) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALCCL'), &
                                        HetTemp(1), HetMinLife)
+         State_Chm%GammaN2O5(I,J,L,3) = HetTemp(1)
 
          !----------------------------------------------------------------
          ! Reaction of OH with Cl-, XW 3/12/18)
@@ -1963,6 +1962,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca  - Replace KII_KI with DO_EDUCT local variable
 !  23 Aug 2018 - C. D. Holmes - Updated Gamma values
 !  06 Nov 2019 - R. Yantosca  - Force flexible precision with _fp
+!  28 May 2020 - X. Wang      - Merged with chlorine chemsitry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1993,11 +1993,13 @@ MODULE GCKPP_HETRATES
                xstkcf = 0.01_fp
             case (8)
                ! sulfate
-               if ( relhum < 40.0_fp ) then
-                  xstkcf = 0.001_fp
-               else
-                  xstkcf = 0.002_fp
-               endif
+               !if ( relhum < 40.0_fp ) then
+               !   xstkcf = 0.001_fp
+               !else
+               !   xstkcf = 0.002_fp
+               !endif
+               ! Follow NO3 hydrolysis on SSA+SNA
+               xstkcf = 0.0_fp
             case (9)
                ! BC
                if ( relhum < 50.0_fp ) then
@@ -2010,14 +2012,16 @@ MODULE GCKPP_HETRATES
                xstkcf = 0.005_fp
             case (11:12)
                ! sea salt
-               if ( relhum < 40.0_fp ) then
-                  xstkcf = 0.05_fp
-               elseif ( relhum > 70.0_fp ) then
-                  xstkcf = 0.002_fp
-               else
-                  xstkcf = 0.05_fp + (0.002_fp - 0.05_fp)                    &
-                         * (relhum - 40.0_fp) / (70.0_fp - 40.0_fp)
-               endif
+               !if ( relhum < 40.0_fp ) then
+               !   xstkcf = 0.05_fp
+               !elseif ( relhum > 70.0_fp ) then
+               !   xstkcf = 0.002_fp
+               !else
+               !   xstkcf = 0.05_fp + (0.002_fp - 0.05_fp)                    &
+               !          * (relhum - 40.0_fp) / (70.0_fp - 40.0_fp)
+               !endif
+               ! Follow NO3 hydrolysis on SSA+SNA
+               xstkcf = 0.0_fp
          end select
 
          IF (N.eq.13) THEN
@@ -2388,7 +2392,6 @@ MODULE GCKPP_HETRATES
       TMP1         = 0.0_fp
       TMP2         = 0.0_fp
       GAM_N2O5     = 0.0_fp
-      r_gp         = 1.0_fp
    
       ! Always apply PSC rate adjustment
       DO_EDUCT     = .TRUE.
@@ -2611,7 +2614,8 @@ MODULE GCKPP_HETRATES
       H2Ototal = H2Oinorg + H2Oorg
 
       ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
-      volRatioDry = safe_div((volInorg - H2Oinorg), (volTotal - H2Ototal), 0e+0_fp)
+      volRatioDry = safe_div(max(volInorg - H2Oinorg, 0d0), &
+                             max(volTotal - H2Ototal, 0d0), 0e+0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -2719,8 +2723,7 @@ MODULE GCKPP_HETRATES
       !------------------------------------------------------------------------
 
       ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
-      ! Reduce by 74% following McDuffie (2018) JGR
-      ClNO2_yield = ClNO2_BT( M_Cl, M_H2O ) * 0.25e+0_fp
+      ClNO2_yield = ClNO2_BT( M_Cl, M_H2O ) 
 
       output(1) = gamma
       output(2) = ClNO2_yield
@@ -2739,10 +2742,6 @@ MODULE GCKPP_HETRATES
 ! !DESCRIPTION: Function ClNO2\_BT computes the PHI production yield of ClNO2
 !  from N2O5 loss in sulfate-nitrate-ammonium (SNA) aerosols based on the
 !  recommendation of Bertram and Thornton (2009) ACP.
-!  In this implementation, we assume that SNA and sea salt aerosol are
-!  externally mixed, so [Cl-] = 10% SALA in SNA. We do this because the
-!  surface area of sea salt (coarse and fine) is calculated separately from
-!  the surface area of SNA.
 !\\
 !\\
 ! !INTERFACE:
@@ -2764,6 +2763,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !    13 Dec 2018 - E. McDuffie - Initial version
+!    28 May 2020 - X. Wang     - Merged with chlorine chemsitry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2786,7 +2786,7 @@ MODULE GCKPP_HETRATES
       ELSE
            ! Eq from Bertram and Thronton (2009)
            ! Use safe_div to avoid overflow when Cl ~ 0
-           PHI = 1e+0_fp / ( 1e+0_fp + k2k3 * ( safe_div( H2O, Cl, 0e+0_fp ) ) )
+           PHI = 1e+0_fp / ( 1e+0_fp + k2k3 * ( safe_div( H2O, Cl, 1e+30_fp ) ) )
 
      ENDIF
 
@@ -7500,95 +7500,6 @@ MODULE GCKPP_HETRATES
       END SELECT
 
     END FUNCTION N2O5
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Gamma_N2O5_Cl
-!
-! !DESCRIPTION: Subrountine Gamma_N2O5_Cl computes the GAMMA sticking factor for N2O5 hydrolysis/reaction on Cl- containing aerosols. 
-!\\
-!\\
-! !INTERFACE:
-!
-    SUBROUTINE GAMMA_N2O5_Cl(C_X, RH, X, Gam_N2O5, r_gp)
-!
-! !USES:
-      Use PhysConstants, ONLY : AVO
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(fp),  INTENT(IN) :: C_X       ! Cl- concentration [mol/L]
-      INTEGER,   INTENT(IN) :: X         ! X = 1 fine; 2 coarse
-      REAL(fp),  INTENT(IN) :: RH        ! Relative humidity [1]
-!
-! !OUTPUT PARAMETER:
-      REAL(fp), INTENT(OUT) :: GAM_N2O5, r_gp
-!
-!
-! !REVISION HISTORY:
-!  12 Mar 2018 - X. Wang - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      REAL(fp) :: te1, te2, te3, Ak2f
-      REAL(fp) :: LNIT, LCl, Vol, WaterC
-      REAL(fp) :: TTEMP, FACT, RH_P 
-
-      ! Initialize
-      GAM_N2O5 = 0.00e+0_fp
-      r_gp = 1.0e0_fp
-     
-      WaterC = AWATER(X) / 18e12_fp !mol/cm3 air
-      LCl  = C_X !mol/L water
-
-      IF (X == 1) THEN
-         LNIT = nitConc_SALA !mol/L aerosol
-         Vol = AClAREA * AClRADI * 1.0e-3_fp / 3.0e0_fp !L/cm3 air 
-      ELSE
-         LNIT = nitConc_SALC !mol/L aerosol
-         Vol = XAREA(12) * XRADI(12) * 1.0e-3_fp / 3.0e0_fp !L/cm3 air
-      ENDIF
-
-      WaterC = WaterC / Vol !mol/L aerosol
-
-      ! ClNO2 yield for N2O5+Cl-, Roberts et al. (2009)
-      IF (LCl > 1.0e-20) THEN
-        r_gp = 1.0e0_fp / ( WaterC / (LCl * 450.0e0_fp) + 1.0e0_fp )
-      ELSE
-        r_gp = 0e0_fp
-      ENDIF
-
-      ! Below following Bertram and Thornton (2009)
-
-      IF (LNIT > 1.0e-20) THEN
-          te1 = 6.0e-2_fp * (WaterC / LNIT)
-          IF (LCl > 1.0e-20) THEN
-             te2 = 29.0e0_fp * (LCl / LNIT)
-          ELSE
-             te2 = 0.0e+0_fp
-          ENDIF
-          te3 = 1.0e0_fp - 1.0e0_fp / (te1 + 1.0e0_fp + te2)
-      ELSE 
-          te3 = 1.0e0_fp
-      ENDIF
-
-      Ak2f = 3.2e-8*(1.15e6_fp-1.15e6_fp*exp(-0.13e0_fp*WaterC))
-
-      GAM_N2O5 = Ak2f * te3
-
-      !sensitivity test for N2O5-ClNO2-O3
-      !r_gp = 0.0
-
-      !GAM_N2O5 =  GAM_N2O5 * 0.1_fp
-
-END SUBROUTINE GAMMA_N2O5_Cl
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

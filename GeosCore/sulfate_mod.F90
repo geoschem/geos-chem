@@ -7549,10 +7549,10 @@ CONTAINS
       ! Point to chemical species array [v/v dry]
       Spc      => State_Chm%Species
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L)
-!$OMP+SCHEDULE( DYNAMIC, 1 )
+      !$OMP PARALLEL DO          & 
+      !$OMP DEFAULT( SHARED )    &
+      !$OMP PRIVATE( I, J, L)    &
+      !$OMP SCHEDULE( DYNAMIC, 1 )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -7571,7 +7571,7 @@ CONTAINS
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       ! Free pointer
       Spc => NULL()

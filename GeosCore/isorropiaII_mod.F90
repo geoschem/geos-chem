@@ -832,6 +832,7 @@ CONTAINS
        IF (N==1) THEN
           State_Chm%SulratSav(I,J,L) = MAX(SULFTEMP, 1e-30_fp)
           State_Chm%BisulSav(I,J,L)  = MAX(BISULTEMP, 1e-30_fp)
+          State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
           
           NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         + &
                          Spc(I,J,L,id_NH4) /18e+0_fp         + &
