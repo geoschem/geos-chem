@@ -97,7 +97,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: I, J, L, M, N
+    INTEGER                 :: I, J, L, N, S
     REAL(fp)                :: ToPptv
 
     ! SAVEd scalars
@@ -156,12 +156,12 @@ CONTAINS
     IF ( State_Diag%Archive_DryDep ) THEN
        !$OMP PARALLEL DO           &
        !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, State_Diag%Map_DryDep%count
+       !$OMP PRIVATE( I, J, N, S )
+       DO S = 1, State_Diag%Map_DryDep%nSlots
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Diag%DryDep(I,J,M) = State_Diag%DryDepChm(I,J,M)          &
-                                      + State_Diag%DryDepMix(I,J,M)
+             State_Diag%DryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)          &
+                                      + State_Diag%DryDepMix(I,J,S)
           ENDDO
           ENDDO
        ENDDO
@@ -373,7 +373,7 @@ CONTAINS
 
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: I,      J,       L,     M,        N
+    INTEGER               :: I,      J,       L,     N,        S
 
     ! Strings
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
@@ -419,12 +419,12 @@ CONTAINS
 
           ! Copy species concentrations to diagnostic array.  Only loop
           ! over as many species as indicated by the mapping object.
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED  ) &
-          !$OMP PRIVATE( I, M, N )
-          DO M = 1, mapData%count
-             N = mapData%id(M)
-             Ptr2Data(:,:,:,M) = State_Chm%Species(:,:,:,N)
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( N, S   )
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             Ptr2Data(:,:,:,S) = State_Chm%Species(:,:,:,N)
           ENDDO
           !$OMP END PARALLEL DO
 
@@ -433,7 +433,7 @@ CONTAINS
           ! Copy all species concentrations to diagnostic array
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, N   )
+          !$OMP PRIVATE( N      )
           DO N = 1, State_Chm%nSpecies
              Ptr2Data(:,:,:,N) = State_Chm%Species(:,:,:,N)
           ENDDO
@@ -523,7 +523,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: C, D, I, J, L, N
+    INTEGER               :: D, I, J, L, N, S
     REAL(fp)              :: TmpVal, Conv
 
     ! Strings
@@ -570,10 +570,10 @@ CONTAINS
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( C, N   )
-       DO C = 1, mapData%count
-          N = mapData%id(C)
-          State_Diag%SpeciesConc(:,:,:,C) = State_Chm%Species(:,:,:,N)
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%SpeciesConc(:,:,:,S) = State_Chm%Species(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -596,10 +596,10 @@ CONTAINS
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( C, N   )
-       DO C = 1, mapData%count
-          N = mapData%id(C)
-          State_Diag%SpeciesBC(:,:,:,C) = State_Chm%Species(:,:,:,N)
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -619,7 +619,7 @@ CONTAINS
 
        !$OMP PARALLEL DO        &
        !$OMP DEFAULT( SHARED  ) &
-       !$OMP PRIVATE( N )
+       !$OMP PRIVATE( N       )
        DO N = 1, State_Chm%nSpecies
           State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(:,:,:,N)
        ENDDO
@@ -768,7 +768,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
-    INTEGER             :: I, J, L, M, N, numSpc, region, PBL_TOP
+    INTEGER             :: I, J, L, N, numSpc, region, PBL_TOP, S
     REAL*8, ALLOCATABLE :: SpcMass(:,:,:,:)
 
     !====================================================================
@@ -790,15 +790,15 @@ CONTAINS
                       RC, ThisLoc )
       RETURN
     ENDIF
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L, M, N )
-    DO M = 1, numSpc
+    !$OMP PARALLEL DO              &
+    !$OMP DEFAULT( SHARED        ) &
+    !$OMP PRIVATE( I, J, L, N, S )
+    DO S = 1, numSpc
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       N = SpcMap(M)
-       SpcMass(I,J,L,M) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+       N = SpcMap(S)
+       SpcMass(I,J,L,S) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
     ENDDO
     ENDDO
     ENDDO
@@ -808,14 +808,14 @@ CONTAINS
     ! Full column
     IF ( isFull ) THEN
        region = 1
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, N, S )
+       DO S = 1, numSpc
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          N = SpcMap(M)
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,:,M))
+          N = SpcMap(S)
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,:,S))
        ENDDO
        ENDDO
        ENDDO
@@ -825,14 +825,14 @@ CONTAINS
     ! Troposphere
     IF ( isTrop ) THEN
        region = 2
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, N, S )
+       DO S = 1, numSpc
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          N = SpcMap(M)
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:State_Met%TropLev(I,J),M))
+          N = SpcMap(S)
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:State_Met%TropLev(I,J),S))
        ENDDO
        ENDDO
        ENDDO
@@ -842,15 +842,15 @@ CONTAINS
     ! PBL
     IF ( isPBL ) THEN
        region = 3
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, N, S )
+       DO S = 1, numSpc
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          N = SpcMap(M)
+          N = SpcMap(S)
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:PBL_TOP,M))
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:PBL_TOP,S))
        ENDDO
        ENDDO
        ENDDO

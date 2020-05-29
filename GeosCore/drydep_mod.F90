@@ -269,7 +269,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I,   J,   L,   C,   D,   N,  NDVZ,  A
+    INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A,  S
     REAL(f8)           :: DVZ, THIK
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
@@ -350,7 +350,7 @@ CONTAINS
     !=================================================================
     !$OMP PARALLEL DO                                           &
     !$OMP DEFAULT( SHARED                                     ) &
-    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, C, A )
+    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, S, A )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -503,9 +503,9 @@ CONTAINS
           
           ! Archive dry dep velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
-             C = State_Diag%Map_DryDepVel%allId(D)
-             IF ( C > 0 ) THEN 
-                State_Diag%DryDepVel(I,J,C) = DVZ
+             S = State_Diag%Map_DryDepVel%id2slot(D)
+             IF ( S > 0 ) THEN 
+                State_Diag%DryDepVel(I,J,S) = DVZ
              ENDIF
           ENDIF
           

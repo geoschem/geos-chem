@@ -77,10 +77,10 @@ MODULE State_Diag_Mod
 !
   ! Type for mapping objects
   TYPE, PUBLIC :: DgnMap
-     INTEGER          :: count
-     INTEGER, POINTER :: id(:)
-     INTEGER          :: allCount
-     INTEGER, POINTER :: allId(:)
+     INTEGER          :: nSlots
+     INTEGER, POINTER :: slot2id(:)
+     INTEGER          :: nIds
+     INTEGER, POINTER :: id2slot(:)
      CHARACTER(LEN=1) :: indFlag
   END TYPE DgnMap
 !
@@ -9961,10 +9961,10 @@ CONTAINS
        ! from the modelId as specified in the mapData array 
        !--------------------------------------------------------------------
 
-       ! If indFlag="S", then mapData%id is already the modelId,
+       ! If indFlag="S", then mapData%slot2id is already the modelId,
        ! but e.g. if indFlag="D", then mapData%Id is the drydep Id.
        ! (etc. for other flag values)
-       index = mapData%id(N)
+       index = mapData%slot2id(N)
 
        ! If necessary, convert index to be the  modelId
        ! so that we use it to look up the species name.
@@ -10132,9 +10132,9 @@ CONTAINS
 
        ! Get number of tags for this wildcard.  If the mapData object is
        ! present, then we have already gotten this and saved this
-       ! into mapData%count.  Otherwise, call Get_NumTags.
+       ! into mapData%nSlots.  Otherwise, call Get_NumTags.
        IF ( hasMapData ) THEN
-          nTags = mapData%count
+          nTags = mapData%nSlots
        ELSE IF ( hasNSlots ) THEN
           nTags = nSlots
        ENDIF
@@ -10326,7 +10326,7 @@ CONTAINS
 
        ! Get the total number of tags
        IF ( hasMapData ) THEN
-          nTags = mapData%count
+          nTags = mapData%nSlots
        ELSE
           nTags = nSlots
        ENDIF
@@ -10527,7 +10527,7 @@ CONTAINS
 
     ! Number of tags
     IF ( hasMapData ) THEN
-       nTags = mapData%count
+       nTags = mapData%nSlots
     ELSE IF ( hasNSlots ) THEN
        nTags = nSlots
     ENDIF
@@ -10702,7 +10702,7 @@ CONTAINS
 
        ! Get number of tags
        IF ( hasMapData ) THEN
-          nTags = mapData%count
+          nTags = mapData%nSlots
        ELSE IF ( hasNSlots ) THEN
           nTags = nSlots
        ENDIF
@@ -10903,7 +10903,7 @@ CONTAINS
 
        ! Get the number of tags
        IF ( hasMapData ) THEN
-          nTags = mapData%count
+          nTags = mapData%nSlots
        ELSE IF ( hasNSlots ) THEN
           nTags = nSlots
        ENDIF
@@ -11105,7 +11105,7 @@ CONTAINS
 
     ! Get number of tags
     IF ( hasMapData ) THEN
-       nTags = mapData%count
+       nTags = mapData%nSlots
     ELSE IF ( hasNSlots ) THEN
        nTags = nSlots
     ENDIF
@@ -11445,11 +11445,11 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize fields of mapData (mostly to missing values)
-    mapData%count    = -1
-    mapData%id       => NULL()
-    mapData%allCount = -1
-    mapData%allId    => NULL()
-    mapData%indFlag  =  indFlag
+    mapData%nSlots  = -1
+    mapData%slot2id => NULL()
+    mapData%nIds    = -1
+    mapData%id2slot => NULL()
+    mapData%indFlag =  indFlag
 
     IF ( isWildCard ) THEN
 
@@ -11461,7 +11461,7 @@ CONTAINS
        TagItem => WildCardList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
           wcName = TagItem%name
-          CALL Get_NumTags( wcName, State_Chm, mapData%count, RC )
+          CALL Get_NumTags( wcName, State_Chm, mapData%nSlots, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              errMsg = 'Error encountered in "Get_NumTags"!'
              CALL GC_Error( errMsg, RC, thisLoc )
@@ -11475,15 +11475,15 @@ CONTAINS
        ENDDO
        TagItem => NULL()
 
-       ! Allocate the mapData%id field
-       IF ( ASSOCIATED( mapData%id ) ) DEALLOCATE( mapData%id )
-       ALLOCATE( mapData%id( mapData%count ), STAT=RC )
+       ! Allocate the mapData%slot2id field
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
        CALL GC_CheckVar( mapName2, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%id = -1
+       mapData%slot2id = -1
 
        ! Get the id for each species indicated by wildcard
-       DO index = 1, mapData%count
+       DO index = 1, mapData%nSlots
           CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
                             State_Chm = State_Chm,                           &
                             tagId     = wcName,                              &
@@ -11500,7 +11500,7 @@ CONTAINS
           ENDIF
 
           ! Save the id (and other ID's) in the mapping object
-          mapData%id(index) = Ind_( spcName, indFlag )
+          mapData%slot2id(index) = Ind_( spcName, indFlag )
        ENDDO
 
     ELSE
@@ -11510,22 +11510,22 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Set the number of tags
-       mapData%count = numTags
+       mapData%nSlots = numTags
 
        ! Allocate the mapData%id field
-       IF ( ASSOCIATED( mapData%id ) ) DEALLOCATE( mapData%id )
-       ALLOCATE( mapData%id( mapData%count ), STAT=RC )
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
        CALL GC_CheckVar( mapName2, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       mapData%id = -1
+       mapData%slot2id = -1
 
        ! Loop thru the list of tags and find the relevant ID
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
-          spcName           =  TagItem%name
-          index             =  TagItem%index
-          mapData%id(index) =  Ind_( spcName, indFlag )
-          TagItem           => TagItem%next
+          spcName                =  TagItem%name
+          index                  =  TagItem%index
+          mapData%slot2id(index) =  Ind_( spcName, indFlag )
+          TagItem                => TagItem%next
        ENDDO
        TagItem => NULL()
 
@@ -11536,24 +11536,24 @@ CONTAINS
     !--------------------------------------------------------------------
 
     ! Get max number of species for this indFlag
-    CALL Get_NumTags( indFlag, State_Chm, mapData%allCount, RC )
+    CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    ! Allocate the mapData%allId field
-    IF ( ASSOCIATED( mapData%allId ) ) DEALLOCATE( mapData%allId )
-    ALLOCATE( mapData%allId( mapData%allCount ), STAT=RC )
+    ! Allocate the mapData%id2slot field
+    IF ( ASSOCIATED( mapData%id2slot ) ) DEALLOCATE( mapData%id2slot )
+    ALLOCATE( mapData%id2slot( mapData%nIds ), STAT=RC )
     CALL GC_CheckVar( mapName2, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    mapData%allId = -1
+    mapData%id2slot = -1
     
-    ! Populate the mapData%allId field
-    DO C = 1, mapData%count
-       index = mapData%id(C)
-       mapData%allId(index) = C
+    ! Populate the mapData%id2slot field
+    DO C = 1, mapData%nSlots
+       index = mapData%slot2Id(C)
+       mapData%id2slot(index) = C
     ENDDO
 
   END SUBROUTINE Get_Mapping
@@ -11651,7 +11651,7 @@ CONTAINS
        ENDIF
 
        ! Number of slots to size the 4th dim of Ptr2Data
-       numSlots = mapData%count
+       numSlots = mapData%nSlots
 
     ELSE
 
@@ -12847,22 +12847,22 @@ CONTAINS
     IF ( ASSOCIATED( mapData ) ) THEN
 
        ! Deallocate and nullify the allId
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%allId'
-       IF ( ASSOCIATED( mapData%allId ) ) THEN
-          DEALLOCATE( mapData%allId, STAT=RC )
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%id2slot'
+       IF ( ASSOCIATED( mapData%id2slot ) ) THEN
+          DEALLOCATE( mapData%id2slot, STAT=RC )
           CALL GC_CheckVar( mapId, 2, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
-       mapdata%allId => NULL()
+       mapdata%id2slot => NULL()
 
        ! Deallocate and nullify the id field
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%id'
-       IF ( ASSOCIATED( mapData%id ) ) THEN
-          DEALLOCATE( mapData%id, STAT=RC )
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%slot2id'
+       IF ( ASSOCIATED( mapData%slot2id ) ) THEN
+          DEALLOCATE( mapData%slot2id, STAT=RC )
           CALL GC_CheckVar( mapId, 2, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
-       mapdata%id => NULL()
+       mapdata%slot2id => NULL()
 
        ! Then finalize the mapData object itself
        mapId = 'State_Diag%Map_' // TRIM( diagId )
