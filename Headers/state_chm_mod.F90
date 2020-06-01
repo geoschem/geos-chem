@@ -227,18 +227,14 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
      !----------------------------------------------------------------------
-     REAL(f4),          POINTER :: SFC_CH4    (:,:    ) ! Pointer to HEMCO - not allocated
+     REAL(fp),          POINTER :: SFC_CH4    (:,:    )
 
      !----------------------------------------------------------------------
      ! Fields for TOMS overhead ozone column data
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: TO3_DAILY  (:,:    ) ! Daily overhead ozone
-     REAL(f4),          POINTER :: STOMS      (:,:    )
-     REAL(f4),          POINTER :: TOMS       (:,:    ) ! Pointer to HEMCO TOMS_O3_COL
-     REAL(f4),          POINTER :: TOMS1      (:,:    ) ! Pointer to HEMCO TOMS1_O3_COL
-     REAL(f4),          POINTER :: TOMS2      (:,:    ) ! Pointer to HEMCO TOMS2_O3_COL
-     REAL(f4),          POINTER :: DTOMS1     (:,:    ) ! Pointer to HEMCO DTOMS1_O3_COL
-     REAL(f4),          POINTER :: DTOMS2     (:,:    ) ! Pointer to HEMCO DTOMS2_O3_COL
+     REAL(fp),          POINTER :: TOMS1      (:,:    )
+     REAL(fp),          POINTER :: TOMS2      (:,:    )
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -320,26 +316,27 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: N, C, IM, JM, LM
-    INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    INTEGER                :: nKHLSA, nAerosol, nMatches
+    INTEGER                 :: N, C, IM, JM, LM
+    INTEGER                 :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
+    INTEGER                 :: nKHLSA, nAerosol, nMatches
 
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, ChmID
+    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc, ChmID
 
-    ! Pointers
-    TYPE(Species), POINTER :: ThisSpc
-    INTEGER,       POINTER :: CheckIds(:)
-    REAL(fp),      POINTER :: Ptr2data(:,:,:)
+    ! Objects
+    TYPE(SpcIndCt)          :: SpcCount
+    TYPE(Species),  POINTER :: ThisSpc
+    INTEGER,        POINTER :: CheckIds(:)
+    REAL(fp),       POINTER :: Ptr2data(:,:,:)
+
+    !=======================================================================
+    ! Initialization
+    !=======================================================================
 
     ! Error handling
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
-
-    !=======================================================================
-    ! Initialization
-    !=======================================================================
 
     ! Count the # of chemistry states we have initialized, so SpcData(Local)
     ! is not deallocated until the last ChmState is cleaned up.
@@ -354,8 +351,8 @@ CONTAINS
     ! Number of aerosols
     nAerosol                    =  NDUST + NAER
 
-    ! Number of each type of species
-    State_Chm%nSpecies          =  0
+    ! Initialize or nullify each member of State_Chm
+    ! This will prevent potential deallocation errors
     State_Chm%nAdvect           =  0
     State_Chm%nAeroSpc          =  0
     State_Chm%nAeroType         =  0
@@ -369,11 +366,9 @@ CONTAINS
     State_Chm%nLoss             =  0
     State_Chm%nPhotol           =  0
     State_Chm%nProd             =  0
+    State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
-
-
-    ! Mapping vectors for subsetting each type of species
-    State_Chm%Map_Advect        => NULL()
+    State_Chm%Map_Advect        => NULL()        
     State_Chm%Map_Aero          => NULL()
     State_Chm%Map_DryAlt        => NULL()
     State_Chm%Map_DryDep        => NULL()
@@ -382,73 +377,51 @@ CONTAINS
     State_Chm%Map_KppVar        => NULL()
     State_Chm%Map_KppFix        => NULL()
     State_Chm%Map_KppSpc        => NULL()
-    State_Chm%Name_Loss         => NULL()
     State_Chm%Map_Loss          => NULL()
+    State_Chm%Name_Loss         => NULL()
     State_Chm%Map_Photol        => NULL()
-    State_Chm%Name_Prod         => NULL()
     State_Chm%Map_Prod          => NULL()
+    State_Chm%Name_Prod         => NULL()
     State_Chm%Map_WetDep        => NULL()
     State_Chm%Map_WL            => NULL()
-
-    ! Chemical species
-    State_Chm%Species           => NULL()
-    State_Chm%Spc_Units         = ''
-
-    ! Boundary conditions
-    State_Chm%BoundaryCond      => NULL()
-
-    ! Species database
+#if defined( MODEL_GEOS )
+    State_Chm%DryDepRa2m        => NULL()
+    State_Chm%DryDepRa10m       => NULL()
+#endif
     State_Chm%SpcData           => NULL()
-    ThisSpc                     => NULL()
-
-    ! Aerosol parameters
+    State_Chm%Species           => NULL()
+    State_Chm%Spc_Units         =  ''
+    State_Chm%BoundaryCond      => NULL()
     State_Chm%AeroArea          => NULL()
     State_Chm%AeroRadi          => NULL()
     State_Chm%WetAeroArea       => NULL()
     State_Chm%WetAeroRadi       => NULL()
     State_Chm%AeroH2O           => NULL()
     State_Chm%GammaN2O5         => NULL()
+    State_Chm%SSAlk             => NULL()
+    State_Chm%H2O2AfterChem     => NULL()
+    State_Chm%SO2AfterChem      => NULL()
     State_Chm%OMOC_POA          => NULL()
     State_Chm%OMOC_OPOA         => NULL()
-
-    ! Isoprene SOA
+    State_Chm%DryDepNitrogen    => NULL()
+    State_Chm%WetDepNitrogen    => NULL()
+    State_Chm%pHCloud           => NULL()
+    State_Chm%isCloud           => NULL()
+    State_Chm%KPPHvalue         => NULL()
+    State_Chm%STATE_PSC         => NULL()
+    State_Chm%KHETI_SLA         => NULL()
     State_Chm%pHSav             => NULL()
     State_Chm%HplusSav          => NULL()
     State_Chm%WaterSav          => NULL()
     State_Chm%SulRatSav         => NULL()
     State_Chm%NaRatSav          => NULL()
     State_Chm%AcidPurSav        => NULL()
-    State_Chm%BisulSav          => NULL()
-
-    ! Fields for KPP solver
-    State_Chm%KPPHvalue         => NULL()
-
-    ! Fields for UCX mechanism
-    State_Chm%STATE_PSC         => NULL()
-    State_Chm%KHETI_SLA         => NULL()
-
-    ! pH/alkalinity
-    State_Chm%pHCloud           => NULL()
-    State_Chm%isCloud           => NULL()
-    State_Chm%SSAlk             => NULL()
-
-    ! Fields for sulfate chemistry
-    State_Chm%H2O2AfterChem     => NULL()
-    State_Chm%SO2AfterChem      => NULL()
-
-    ! Fields for nitrogen deposition
-    State_Chm%DryDepNitrogen    => NULL()
-    State_Chm%WetDepNitrogen    => NULL()
-
-    ! Hg species indexing
-    N_Hg0_CATS                  =  0
-    N_Hg2_CATS                  =  0
-    N_HgP_CATS                  =  0
-    State_Chm%N_Hg_CATS         =  0
-    State_Chm%Hg_Cat_Name       => NULL()
+    State_Chm%BiSulSav          => NULL()
+    State_Chm%N_HG_CATS         =  0
     State_Chm%Hg0_Id_List       => NULL()
     State_Chm%Hg2_Id_List       => NULL()
     State_Chm%HgP_Id_List       => NULL()
+    State_Chm%Hg_Cat_Name       => NULL()
     State_Chm%OceanHg0          => NULL()
     State_Chm%OceanHg2          => NULL()
     State_Chm%OceanHgP          => NULL()
@@ -456,13 +429,11 @@ CONTAINS
     State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
-
-    ! For HOBr + S(IV) chemistry
     State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
-
-    ! For Luo et al wetdep
+    State_Chm%DryDepSav         => NULL()
+    State_Chm%TLSTT             => NULL()
     State_Chm%PSO4s             => NULL()
     State_Chm%QQ3D              => NULL()
 
@@ -472,42 +443,54 @@ CONTAINS
     ! For dry deposition
     State_Chm%DryDepSav         => NULL()
 
+    ! Zero local variables
+    N_Hg0_CATS                  =  0
+    N_Hg2_CATS                  =  0
+    N_HgP_CATS                  =  0
+
     ! For global CH4
-    ! This field is not allocated - it points to HEMCO in SET_CH4.
     State_Chm%SFC_CH4           => NULL()
 
     ! For TOMS module
     State_Chm%TO3_DAILY         => NULL()
-    State_Chm%STOMS             => NULL()
-    ! The below are not allocated - pointing to HEMCO in READ_TOMS.
-    State_Chm%TOMS              => NULL()
     State_Chm%TOMS1             => NULL()
     State_Chm%TOMS2             => NULL()
-    State_Chm%DTOMS1            => NULL()
-    State_Chm%DTOMS2            => NULL()
 
     ! Local variables
     Ptr2data                    => NULL()
+    ThisSpc                     => NULL()
 
     !=======================================================================
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
     !=======================================================================
-
-    ! If the species database has already been initialized in this CPU,
-    ! SpcDataLocal in State_Chm_Mod already contains a copy of the species data.
-    ! It can be directly associated to this new chemistry state.
-    ! (assumes one CPU will run one copy of G-C with the same species DB)
     IF ( ASSOCIATED( SpcDataLocal ) ) THEN
-        State_Chm%SpcData => SpcDataLocal
-    ELSE
-        CALL Init_Species_Database( Input_Opt = Input_Opt,                   &
-                                    SpcData   = State_Chm%SpcData,           &
-                                    RC        = RC                           )
 
-        ! Point to a private module copy of the species database
-        ! which will be used by the Ind_ indexing function
-        SpcDataLocal => State_Chm%SpcData
+       ! If the species database has already been initialized on this core,
+       ! State_Chm%SpcDataLocal in already contains a copy of the species
+       ! metadata.  It can be directly associated to this new chemistry state.
+       ! (assumes one core will run one copy of G-C with the same species DB)
+       State_Chm%SpcData => SpcDataLocal
+
+    ELSE
+
+       ! Otherwise, initialize the species database by reading the YAML file.
+       CALL Init_Species_Database( Input_Opt = Input_Opt,                    &
+                                   SpcData   = State_Chm%SpcData,            &
+                                   SpcCount  = SpcCount,                     &
+                                   RC        = RC                           )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in routine "Init_Species_Database"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Point to a private module copy of the species database
+       ! which will be used by the Ind_ indexing function
+       SpcDataLocal => State_Chm%SpcData
+       
     ENDIF
 
     !=======================================================================
@@ -534,20 +517,20 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and
     ! HgP species (these are zero unless the Hg simulation is used).
-    CALL Spc_GetNumSpecies( nAdvect  = State_Chm%nAdvect,                  &
-                            nAeroSpc = State_Chm%nAeroSpc,                 &
-                            nDryAlt  = State_Chm%nDryAlt,                  &
-                            nDryDep  = State_Chm%nDryDep,                  &
-                            nGasSpc  = State_Chm%nGasSpc,                  &
-                            nHygGrth = State_Chm%nHygGrth,                 &
-                            nKppVar  = State_Chm%nKppVar,                  &
-                            nKppFix  = State_Chm%nKppFix,                  &
-                            nKppSpc  = State_Chm%nKppSpc,                  &
-                            nPhotol  = State_Chm%nPhotol,                  &
-                            nWetDep  = State_Chm%nWetDep,                  &
-                            nHg0Cats = N_Hg0_CATS,                         &
-                            nHg2Cats = N_Hg2_CATS,                         &
-                            nHgPCats = N_HgP_CATS                         )
+    State_Chm%nAdvect  = SpcCount%nAdvect
+    State_Chm%nAeroSpc = SpcCount%nAeroSpc
+    State_Chm%nDryAlt  = SpcCount%nDryAlt
+    State_Chm%nDryDep  = SpcCount%nDryDep
+    State_Chm%nGasSpc  = SpcCount%nGasSpc
+    State_Chm%nHygGrth = SpcCount%nHygGrth
+    State_Chm%nKppVar  = SpcCount%nKppVar
+    State_Chm%nKppFix  = SpcCount%nKppFix
+    State_Chm%nKppSpc  = SpcCount%nKppSpc
+    State_Chm%nPhotol  = SpcCount%nPhotol
+    State_Chm%nWetDep  = SpcCount%nWetDep
+    N_Hg0_CATS         = SpcCount%nHg0
+    N_Hg2_CATS         = SpcCount%nHg2
+    N_HgP_CATS         = SpcCount%nHgP
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
@@ -785,8 +768,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Set up the mapping for AEROSOL SPECIES
        !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_Aero ) THEN
-          C                     = ThisSpc%AeroId
+       IF ( ThisSpc%Is_Aerosol ) THEN
+          C                     = ThisSpc%AerosolId
           State_Chm%Map_Aero(C) = ThisSpc%ModelId
        ENDIF
 
@@ -1797,23 +1780,38 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------
+    ! SFC_CH4
+    ! Not registered to the registry as these are fields internal to the
+    ! set_global_ch4_mod module state.
+    !------------------------------------------------------------------
+    chmID = 'SFC_CH4'
+    ALLOCATE( State_Chm%SFC_CH4( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%SFC_CH4', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%SFC_CH4 = 0.0_fp
+
+    !------------------------------------------------------------------
     ! TOMS_MOD
-    ! Not registered to the registry as these are fields internal to the toms_mod
-    ! module state.
+    ! Not registered to the registry as these are fields internal to the
+    ! toms_mod module state.
     !------------------------------------------------------------------
     chmID = 'TO3_DAILY'
-    ALLOCATE( State_Chm%TO3_DAILY( IM, JM ),    &
-              STAT=RC )
+    ALLOCATE( State_Chm%TO3_DAILY( IM, JM ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%TO3_DAILY = 0.0_fp
 
-    chmID = 'STOMS'
-    ALLOCATE( State_Chm%STOMS( IM, JM ),    &
-              STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%STOMS', 0, RC )
+    chmID = 'TOMS1'
+    ALLOCATE( State_Chm%TOMS1( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%TOMS1', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%STOMS = 0.0_fp
+    State_Chm%TOMS1 = 0.0_fp
+
+    chmID = 'TOMS2'
+    ALLOCATE( State_Chm%TOMS2( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%TOMS2', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%TOMS2 = 0.0_fp
 
     !------------------------------------------------------------------
     ! Gan Luo et al wetdep fields
@@ -2376,6 +2374,13 @@ CONTAINS
        State_Chm%QQ3D => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
+       DEALLOCATE( State_Chm%SFC_CH4, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SFC_CH4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SFC_CH4 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%TO3_DAILY ) ) THEN
        DEALLOCATE( State_Chm%TO3_DAILY, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 2, RC )
@@ -2383,11 +2388,18 @@ CONTAINS
        State_Chm%TO3_DAILY => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%STOMS ) ) THEN
-       DEALLOCATE( State_Chm%STOMS, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%STOMS', 2, RC )
+    IF ( ASSOCIATED( State_Chm%TOMS1 ) ) THEN
+       DEALLOCATE( State_Chm%TOMS1, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TOMS1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%STOMS => NULL()
+       State_Chm%TOMS1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TOMS2 ) ) THEN
+       DEALLOCATE( State_Chm%TOMS2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TOMS2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%TOMS2 => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2399,17 +2411,6 @@ CONTAINS
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Chm%xxx => NULL()
     !ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Deassociate arrays that are pointers to HEMCO
-    !-----------------------------------------------------------------------
-    State_Chm%SFC_CH4           => NULL()
-
-    State_Chm%TOMS              => NULL()
-    State_Chm%TOMS1             => NULL()
-    State_Chm%TOMS2             => NULL()
-    State_Chm%DTOMS1            => NULL()
-    State_Chm%DTOMS2            => NULL()
 
     !=======================================================================
     ! Deallocate the species database object field

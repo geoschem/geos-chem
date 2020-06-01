@@ -1275,18 +1275,6 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             IF ( Input_Opt%USE_TOMS_O3 ) THEN
-                ! Get TOMS overhead O3 columns for photolysis from
-                ! the HEMCO data structure (bmy, 3/20/15)
-                CALL Read_TOMS( Input_Opt, State_Chm, RC )
-
-                ! Trap potential errors
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Read_TOMS"!'
-                   CALL Error_Stop( ErrMsg, ThisLoc )
-                ENDIF
-             ENDIF
-
           ENDIF
 
           ! Read data required for Hg2 gas-particle partitioning
@@ -2573,7 +2561,7 @@ CONTAINS
           ! TOMS O3 data or the column O3 directly from the met fields
           CALL Compute_Overhead_O3( Input_Opt, State_Grid, State_Chm, DAY, &
                                     Input_Opt%USE_O3_FROM_MET,  &
-                                    State_Met%TO3 )
+                                    State_Met%TO3, RC )
        ENDIF
     ENDIF
 

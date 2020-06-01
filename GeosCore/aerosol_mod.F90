@@ -172,8 +172,7 @@ CONTAINS
     USE CMN_FJX_MOD,       ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-    USE HCO_Error_Mod
+    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
     USE HCO_INTERFACE_MOD, ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState
@@ -245,6 +244,9 @@ CONTAINS
     REAL(fp), POINTER   :: PMID(:,:,:)
     REAL(fp), POINTER   :: T(:,:,:)
 
+    ! Arrays
+    REAL(fp), ALLOCATABLE :: OMOC(:,:)
+
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
 
@@ -252,7 +254,6 @@ CONTAINS
     CHARACTER(LEN=255)  :: FIELDNAME
     INTEGER             :: MONTH
     LOGICAL             :: FND
-    REAL(f4), POINTER   :: OMOC(:,:) => NULL()
 
     ! For errors
     CHARACTER(LEN=255)  :: ThisLoc
@@ -322,7 +323,7 @@ CONTAINS
     ! or use default global mean values recommended by Aerosols WG
     !=================================================================
 
-    ! Attenot to get pointer to OM/OC for current month from HEMCO
+    ! Get data for OM/OC for current month from HEMCO
     MONTH = GET_MONTH()
     IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
        FieldName = 'OMOC_DJF'
@@ -333,9 +334,13 @@ CONTAINS
     ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
        FieldName = 'OMOC_SON'
     ENDIF
-    CALL HCO_GetPtr( HcoState, FIELDNAME, OMOC, RC, FOUND=FND )
 
-    IF ( RC == HCO_SUCCESS .AND. FND ) THEN
+    ALLOCATE( OMOC(State_Grid%NX, State_Grid%NY), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F: OMOC', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    CALL HCO_EvalFld( HcoState, Trim(FieldName), OMOC, RC, FOUND=FND )
+
+    IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
        ! Set OM/OC using spatially and seasonally varying data from
        ! Philip et al. (2014)
@@ -974,10 +979,12 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Deallocate local array
+    IF ( ALLOCATED( OMOC ) ) DEALLOCATE ( OMOC, STAT=RC )
+
     ! Free pointers
     Spc    => NULL()
     AIRVOL => NULL()
-    OMOC   => NULL()
 
   END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1214,6 +1221,9 @@ CONTAINS
                       ' for NRHAER greater than 5!'
              CALL GC_ERROR( ErrMsg, RC, 'RDAER in aerosol_mod.F90' )
           END SELECT
+
+          ! Free pointer
+          SpcInfo => NULL()
 
        ENDDO
     ENDIF

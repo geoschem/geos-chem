@@ -25,7 +25,7 @@ MODULE RPMARES_MOD
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: HNO3_sav
-  PRIVATE :: GET_HNO3, SET_HNO3, RPMARES, AWATER
+  PRIVATE :: SET_HNO3, RPMARES, AWATER
   PRIVATE :: POLY4,    POLY6,    CUBIC,   ACTCOF
   PRIVATE :: INIT_RPMARES
 !
@@ -39,10 +39,6 @@ MODULE RPMARES_MOD
 !
   ! Array to save evolving HNO3 concentrations
   REAL(fp), ALLOCATABLE :: HNO3_sav(:,:,:)
-
-  ! Pointers to fields in the HEMCO data structure.
-  ! These need to be declared with REAL(f4), aka REAL*4.
-  REAL(f4), POINTER     :: HNO3(:,:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -67,14 +63,16 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AIRMW
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS:
 !
@@ -106,6 +104,7 @@ CONTAINS
 !
     ! SAVEd scalars
     LOGICAL, SAVE          :: FIRST     = .TRUE.
+    LOGICAL, SAVE          :: USE_HNO3_FROM_HEMCO = .FALSE.
     INTEGER, SAVE          :: id_SO4, id_NH3, id_NH4, id_NIT, id_HNO3
     INTEGER, SAVE          :: LASTMONTH = -99
 
@@ -113,12 +112,16 @@ CONTAINS
     INTEGER                :: I,    J,     L,    N
     REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3
     REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4
-    CHARACTER(LEN=255)     :: X
+    REAL(fp)               :: HNO3_UGM3,   HNO3_MW_g
+    CHARACTER(LEN=255)     :: X, ErrMsg, ThisLoc
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
     REAL(fp), POINTER :: Spc(:,:,:,:)
+
+    ! Local array for HNO3 from HEMCO
+    REAL(fp) :: HCO_HNO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
     ! DO_RPMARES begins here!
@@ -159,9 +162,7 @@ CONTAINS
           ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
              ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
-             IF ( RC /= GC_SUCCESS ) &
-                  CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
+             USE_HNO3_FROM_HEMCO = .TRUE.
 
           ELSE
 
@@ -173,6 +174,17 @@ CONTAINS
 
        ! Reset first-time flag
        FIRST = .FALSE.
+    ENDIF
+
+    ! Evaluate offline global HNO3 from HEMCO is using. Doing this every
+    ! timestep allows usage of HEMCO's scaling and masking functionality
+    IF ( USE_HNO3_FROM_HEMCO ) THEN
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', HCO_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, 'rpmares_mod.F90: Do_rpmares' )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -210,7 +222,18 @@ CONTAINS
        IF ( id_HNO3 > 0 ) THEN
           GNO3 = MAX( Spc(I,J,L,id_HNO3) * 1.e+9_fp / AVOL, CONMIN )
        ELSE
-          GNO3 = MAX( GET_HNO3( I, J, L, State_Met ), CONMIN )
+          ! Offline simulation
+          ! Relax to monthly mean HNO3 concentrations every 3 hours
+          ! Otherwise just return the concentration in HNO3_sav
+          IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
+             ! HNO3 is in v/v (from HEMCO), convert to ug/m3
+             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%emMW_g
+             HNO3_UGM3 = HCO_HNO3(I,J,L) * State_Met%AIRDEN(I,J,L) &
+                         * 1.e+9_fp / ( AIRMW / HNO3_MW_g )
+          ELSE
+             HNO3_UGM3 = HNO3_sav(I,J,L)
+          ENDIF
+          GNO3 = MAX( HNO3_UGM3, CONMIN )
        ENDIF
 
        !==============================================================
@@ -255,57 +278,6 @@ CONTAINS
 
   END SUBROUTINE DO_RPMARES
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_HNO3
-!
-! !DESCRIPTION: Function GET_HNO3 allows the HNO3 concentrations to evolve with
-!  time, but relaxes back to the monthly mean concentrations every 3 hours.
-!  (bmy, 12/16/02, 3/24/03)
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
-!
-! !USES:
-!
-    USE PhysConstants,      ONLY : AIRMW
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)  :: I, J, L     ! Grid box indices
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !RETURN VALUE:
-!
-    REAL(fp)                    :: HNO3_UGM3
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Relax to monthly mean HNO3 concentrations every 3 hours
-    ! Otherwise just return the concentration in HNO3_sav
-    IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
-       ! HNO3 is in v/v (from HEMCO), convert to ug/m3
-       ! First convert HNO3 from [v/v] to [kg]
-       HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) / ( AIRMW / 63e+0_fp )
-
-       ! Then convert HNO3 from [kg] to [ug/m3]
-       HNO3_UGM3 = HNO3_UGM3 * 1.e+9_fp / State_Met%AIRVOL(I,J,L)
-    ELSE
-       HNO3_UGM3 = HNO3_sav(I,J,L)
-    ENDIF
-
-  END FUNCTION GET_HNO3
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1981,9 +1953,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     IF ( ALLOCATED( HNO3_sav ) ) DEALLOCATE( HNO3_sav )
-
-    ! Free pointers
-    IF ( ASSOCIATED( HNO3    ) ) HNO3 => NULL()
 
   END SUBROUTINE CLEANUP_RPMARES
 !EOC
