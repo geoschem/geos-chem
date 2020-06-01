@@ -776,15 +776,8 @@ CONTAINS
     thisLoc = &
     " -> at Read Species Database (in module Headers/species_database_mod.F90)"
 
-    !-------------------------------------------------------------------------
     ! Set the directory for the species database file
-    ! USE THIS PATH FOR GEOS-Chem 12.9.0
-    fileDir = "./CodeDir/Headers/"
-    !-------------------------------------------------------------------------
-    ! Set the directory for the species database file
-    ! USE THIS PATH FOR GEOS-Chem 13.0.0 AND LATER
-    !fileDir = "./CodeDir/src/GEOS-Chem/Headers/"
-    !-------------------------------------------------------------------------
+    fileDir = "./CodeDir/src/GEOS-Chem/Headers/"
 
 #if defined(APM)
     !=======================================================================
