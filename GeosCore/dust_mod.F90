@@ -703,7 +703,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                :: I,        J,     L
-    INTEGER                :: N,        NA,    ND
+    INTEGER                :: N,        NA,    ND,   S
     REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
     REAL(fp)               :: REFF,     DEN,   CONST
     REAL(fp)               :: NUM,      LAMDA, FLUX
@@ -760,7 +760,7 @@ CONTAINS
     !$OMP PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    ) &
     !$OMP PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  ) &
     !$OMP PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  ) &
-    !$OMP PRIVATE( NA,    ThisSpc,  ND                             )
+    !$OMP PRIVATE( NA,    ThisSpc,  ND,   S                        )
 
     ! Loop over only the advected dust species
     DO NA = Ind0, Ind1
@@ -888,7 +888,10 @@ CONTAINS
                     ( AIRMW * 1.e-3_fp ) / AREA_CM2
 
              ! Drydep flux in chemistry only
-             State_Diag%DryDepChm(I,J,ND) = FLUX
+             S = State_Diag%Map_DryDepChm%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepChm(I,J,S) = FLUX
+             ENDIF
           ENDIF
        ENDDO
        ENDDO

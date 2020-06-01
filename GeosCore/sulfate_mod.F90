@@ -1446,7 +1446,7 @@ CONTAINS
     ! VTS  Settling velocity of particle (m/s)
     LOGICAL                :: IS_UPTAKE_SPC
     INTEGER                :: I,         J,      L
-    INTEGER                :: DryDep_ID
+    INTEGER                :: DryDep_ID, S
     REAL(fp)               :: DTCHEM
     REAL(fp)               :: DELZ,      DELZ1,  REFF
     REAL(fp)               :: P,         DP,     PDP,      TEMP
@@ -1519,13 +1519,13 @@ CONTAINS
     FAC1          =  C1 * ( RUM**C2 )
     FAC2          =  C3 * ( RUM**C4 )
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                 ) &
     !$OMP PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) &
     !$OMP PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  ) &
     !$OMP PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             ) &
-    !$OMP PRIVATE( RHO1,    WTP                                           ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PRIVATE( RHO1,    WTP,   S                                      ) &
+    !$OMP SCHEDULE( DYNAMIC                                               )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1745,7 +1745,10 @@ CONTAINS
           FLUX     = FLUX * AVO / ( EmMW_g * 1.e-3_fp ) / AREA_CM2
 
           ! Drydep flux in chemistry only
-          State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+          S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
+          IF ( S > 0 ) THEN
+             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+          ENDIF
        ENDIF
 
     ENDDO ! I

@@ -254,7 +254,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect
+    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
     INTEGER                 :: DRYDEPID
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
@@ -415,7 +415,8 @@ CONTAINS
 !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
 !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
 !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
-!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           )
+!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           ) &
+!$OMP PRIVATE( S                                                          )
     DO NA = 1, nAdvect
 
        ! Get the species ID from the advected species ID
@@ -657,10 +658,13 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( ( State_Diag%Archive_DryDepMix .or.        &
-                          State_Diag%Archive_DryDep        ) .and. &
-                          DryDepID > 0 ) THEN
-                      State_Diag%DryDepMix(I,J,DryDepId) = Flux
+                   IF ( ( State_Diag%Archive_DryDepMix .or.                  &
+                          State_Diag%Archive_DryDep        )   .and.         &
+                          DryDepID > 0                       ) THEN
+                      S = State_Diag%Map_DryDepMix%id2slot(DryDepID)
+                      IF ( S > 0 ) THEN
+                         State_Diag%DryDepMix(I,J,S) = Flux
+                      ENDIF
                    ENDIF
 
                 ENDIF ! apply drydep
