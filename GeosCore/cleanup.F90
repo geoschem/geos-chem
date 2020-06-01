@@ -61,7 +61,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
-  USE TOMS_MOD,                ONLY : CLEANUP_TOMS
 #ifdef MODEL_CLASSIC
   USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
   USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
@@ -172,22 +171,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_Grid_Registry( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_Grid_Registry"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  ! Cleanup TOMS module
-  CALL CLEANUP_TOMS( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_TOMS"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  ! Cleanup wet scavenging module
-  CALL CLEANUP_WETSCAV( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF

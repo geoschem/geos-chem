@@ -883,8 +883,8 @@ CONTAINS
     USE Drydep_Toolbox_Mod, ONLY : BioFit
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState

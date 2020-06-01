@@ -447,7 +447,6 @@ CONTAINS
     USE Sulfate_Mod,        ONLY : Init_Sulfate
     USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
-    USE Toms_Mod,           ONLY : Init_Toms
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG

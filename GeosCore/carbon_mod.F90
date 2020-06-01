@@ -313,8 +313,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -4637,7 +4637,7 @@ CONTAINS
    USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
    USE HCO_ERROR_MOD
-   USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID
+   USE HCO_State_GC_MOD,      ONLY : HcoState
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState

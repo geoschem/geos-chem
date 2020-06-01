@@ -205,9 +205,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_Interface_Mod,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -1779,14 +1778,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_Interface_Mod,  ONLY : HcoState
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -2099,16 +2098,16 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_Interface_Mod,  ONLY : HcoState
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE TIME_MOD,         ONLY : GET_MONTH
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
+    USE TIME_MOD,         ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
 !
