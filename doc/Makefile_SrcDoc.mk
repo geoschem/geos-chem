@@ -49,7 +49,6 @@ $(CORE)/wetscav_mod.F                 \
 $(CORE)/mixing_mod.F90                \
 $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/vdiff_mod.F90                 \
-$(CORE)/vdiff_pre_mod.F90             \
 ./gc_drydep.P                         \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/modis_lai_mod.F90             \

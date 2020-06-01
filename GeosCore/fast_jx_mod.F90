@@ -314,7 +314,7 @@ CONTAINS
        ! Overhead ozone column [DU] at (NLON, NLAT)
        ! These values are either from the met fields or TOMS/SBUV,
        ! depending on the settings in input.geos
-       O3_TOMS = GET_OVERHEAD_O3( NLON, NLAT )
+       O3_TOMS = GET_OVERHEAD_O3( State_Chm, NLON, NLAT )
 
        ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
        O3_CTM = 0e+0_fp

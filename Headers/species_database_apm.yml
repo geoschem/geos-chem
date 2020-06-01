@@ -1,0 +1,658 @@
+# GEOS-Chem Species Database (13 May 2020)
+# APM microphysics species only
+# NOTE: Anchors must be defined before any variables that reference them
+APMAMINE1:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_F0: 0.0
+  DD_Hstar: 2.0e+4
+  FullName: APM amines 1
+  Henry_CR: 4100.0
+  Henry_K0: 3.3e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 31.0
+  WD_RetFactor: 5.0e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 6.17395e-1
+APMAMINE2:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_F0: 0.0
+  DD_Hstar: 2.0e+4
+  FullName: APM amines 2
+  Henry_CR: 4100.0
+  Henry_K0: 3.3e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 45.0
+  WD_RetFactor: 5.0e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 6.17395e-1
+APMAMINE3:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_F0: 0.0
+  DD_Hstar: 2.0e+4
+  FullName: APM amines 3
+  Henry_CR: 4100.0
+  Henry_K0: 3.3e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 59.0
+  WD_RetFactor: 5.0e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 6.17395e-1
+APMBCBIN01_PROP: &APMBC1properties
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: C
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 12.01
+  WD_AerScavEff: 0.0
+  WD_KcScaleFac: [1.0, 0.0, 0.0]
+  WD_RainoutEff: [1.0, 0.0, 0.0]
+APMBCBIN01:
+  << : *APMBC1properties
+  FullName: APM black carbon, size bin = 01
+APMBCBIN02:
+  << : *APMBC1properties
+  FullName: APM black carbon, size bin = 02
+APMBCBIN03:
+  << : *APMBC1properties
+  FullName: APM black carbon, size bin = 03
+APMBCBIN04:
+  << : *APMBC1properties
+  FullName: APM black carbon, size bin = 04
+APMBCBIN05:
+  << : *APMBC1properties
+  FullName: APM black carbon, size bin = 05
+APMBCBIN06_PROP: &APMBC6properties
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: C
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 12.01
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMBCBIN06:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 07
+APMBCBIN07:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 07
+APMBCBIN08:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 08
+APMBCBIN09:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 09
+APMBCBIN10:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 10
+APMBCBIN11:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 11
+APMBCBIN12:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 12
+APMBCBIN13:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 13
+APMBCBIN14:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 14
+APMBCBIN15:
+  << : *APMBC6properties
+  FullName: APM black carbon, size bin = 15
+APMCTBC1:
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: SO4
+  FullName: APM CTSO4
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 96.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTBC2:
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: LVSOA
+  FullName: APM CTSLVSOA
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 181.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTDST1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Formula: SO4
+  FullName: APM CTSO4
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 96.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTDST2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Formula: LVSOA
+  FullName: APM CTLVSOA
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 181.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTOC1:
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: SO4
+  FullName: APM CTSO4
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 96.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTOC2:
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: LVSOA
+  FullName: APM CTSLVSOA
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 181.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTSEA1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Formula: SO4
+  FullName: APM CTSO4
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 96.0
+  Radius: 2.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMCTSEA2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Formula: LVSOA
+  FullName: APM CTLVSOA
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 181.0
+  Radius: 2.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMDSTBIN_PROP: &APMDSTproperties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Formula: Dust
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 29.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 0.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 0.5, 0.0]
+  WD_RainoutEff: [1.0, 0.5, 0.0]
+APMDSTBIN01:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 01
+APMDSTBIN02:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 02
+APMDSTBIN03:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 03
+APMDSTBIN04:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 04
+APMDSTBIN05:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 05
+APMDSTBIN06:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 06
+APMDSTBIN07:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 07
+APMDSTBIN08:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 08
+APMDSTBIN09:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 09
+APMDSTBIN10:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 10
+APMDSTBIN11:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 11
+APMDSTBIN12:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 12
+APMDSTBIN13:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 13
+APMDSTBIN14:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 14
+APMDSTBIN15:
+  << : *APMDSTproperties
+  FullName: APM dust, size bin = 15
+APMH2SO4:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: H2SO4
+  FullName: APM sulfuric acid
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 98.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+APMLVSOA:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Formula: LVSOA
+  FullName: APM LVSOA
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 181.0
+  Radius: 5.0e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMLVSOG:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  FullName: APM LV secondary organic gas
+  Is_Aerosol: true    # APMLVSOG is aerosol in Ref code, ask Gan Luo
+  Is_Advected: true
+  Is_DryDep: true
+  #Is_Gas: true       # APMLVSOG is aerosol in Ref code, ask Gan Luo
+  Is_WetDep: true
+  MW_g: 181.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+APMOCBIN_PROP: &APMOC1properties
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1300.0
+  Formula: C
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 12.01
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.5, 0.5, 0.5]
+  WD_RainoutEff: [0.0, 0.0, 0.0]
+APMOCBIN01:
+  << : *APMOC1properties
+  FullName: APM organic carbon, size bin = 01
+APMOCBIN02:
+  << : *APMOC1properties
+  FullName: APM organic carbon, size bin = 02
+APMOCBIN03:
+  << : *APMOC1properties
+  FullName: APM organic carbon, size bin = 03
+APMOCBIN04:
+  << : *APMOC1properties
+  FullName: APM organic carbon, size bin = 04
+APMOCBIN05:
+  << : *APMOC1properties
+  FullName: APM organic carbon, size bin = 05
+APMOCBIN06_PROP: &APMOC6properties
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1300.0
+  Formula: C
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 12.01
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+APMOCBIN06:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 06
+APMOCBIN07:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 07
+APMOCBIN08:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 08
+APMOCBIN09:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 09
+APMOCBIN10:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 10
+APMOCBIN11:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 11
+APMOCBIN12:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 12
+APMOCBIN13:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 13
+APMOCBIN14:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 14
+APMOCBIN15:
+  << : *APMOC6properties
+  FullName: APM organic carbon, size bin = 15
+APMSEABIN_PROP: &APMSEAproperties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 31.4
+  Radius: 2.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMSEABIN01:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 01
+APMSEABIN02:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 02
+APMSEABIN03:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 03
+APMSEABIN04:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 04
+APMSEABIN05:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 05
+APMSEABIN06:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 06
+APMSEABIN07:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 07
+APMSEABIN08:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 08
+APMSEABIN09:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 09
+APMSEABIN10:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 10
+APMSEABIN11:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 11
+APMSEABIN12:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 12
+APMSEABIN13:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 13
+APMSEABIN14:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 14
+APMSEABIN15:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 15
+APMSEABIN16:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 16
+APMSEABIN17:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 17
+APMSEABIN18:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 18
+APMSEABIN19:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 19
+APMSEABIN20:
+  << : *APMSEAproperties
+  FullName: APM sea salt, size bin = 20
+APMSPBIN_PROP: &APMSPproperties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1800.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MP_SizeResAer: true
+  MW_g: 96.0
+  Radius: 5.0e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.0, 0.0, 1.0]
+  WD_RainoutEff: [0.0, 0.0, 1.0]
+APMSPBIN01:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 01
+APMSPBIN02:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 02
+APMSPBIN03:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 03
+APMSPBIN04:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 04
+APMSPBIN05:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 05
+APMSPBIN06:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 06
+APMSPBIN07:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 07
+APMSPBIN08:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 08
+APMSPBIN09:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 09
+APMSPBIN10:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 10
+APMSPBIN11:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 11
+APMSPBIN12:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 12
+APMSPBIN13:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 13
+APMSPBIN14:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 14
+APMSPBIN15:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 15
+APMSPBIN16:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 16
+APMSPBIN17:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 17
+APMSPBIN18:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 18
+APMSPBIN19:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 19
+APMSPBIN20:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 20
+APMSPBIN21:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 21
+APMSPBIN22:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 22
+APMSPBIN23:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 23
+APMSPBIN24:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 24
+APMSPBIN25:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 25
+APMSPBIN26:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 26
+APMSPBIN27:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 27
+APMSPBIN28:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 28
+APMSPBIN29:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 29
+APMSPBIN30:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 30
+APMSPBIN31:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 31
+APMSPBIN32:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 32
+APMSPBIN33:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 33
+APMSPBIN34:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 34
+APMSPBIN35:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 35
+APMSPBIN36:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 36
+APMSPBIN37:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 37
+APMSPBIN38:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 38
+APMSPBIN39:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 39
+APMSPBIN40:
+  << : *APMSPproperties
+  FullName: APM sulfate, size bin = 40

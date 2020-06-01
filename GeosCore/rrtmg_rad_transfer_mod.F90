@@ -721,7 +721,7 @@ CONTAINS
        ! Overhead ozone column [DU]
        ! These values are either from the met fields or TOMS/SBUV,
        ! depending on the settings in input.geos
-       O3COL = GET_OVERHEAD_O3(I,J)
+       O3COL = GET_OVERHEAD_O3(State_Chm, I,J)
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0

@@ -34,9 +34,6 @@ MODULE Vdiff_Mod
 !  (State_Met%SPHU) field.  Therefore, we must pass State_Met as an argument
 !  to DO_PBL_MIX_2 and VDIFFDR with INTENT(INOUT).
 !                                                                             .
-!  Because logical_mod.F and tracer_mod.F have been superseded by Input_Opt,
-!  we now use VDIFF_PRE_MOD to supply values
-!
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  See https://github.com/geoschem/geos-chem for complete history

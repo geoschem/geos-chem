@@ -43,13 +43,11 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
   USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
   USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
-  USE Set_Global_CH4_Mod,      ONLY : Cleanup_Set_Global_CH4
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
   USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
   USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
   USE UCX_MOD,                 ONLY : CLEANUP_UCX
-  USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
@@ -63,7 +61,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
-  USE TOMS_MOD,                ONLY : CLEANUP_TOMS
 #if defined( MODEL_CLASSIC )
   USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
   USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
@@ -154,7 +151,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()
   CALL CLEANUP_SEASALT()
-  Call Cleanup_Set_Global_CH4()
   CALL CLEANUP_SULFATE()
   CALL CLEANUP_STRAT_CHEM()
 
@@ -175,22 +171,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_Grid_Registry( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_Grid_Registry"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  ! Cleanup TOMS module
-  CALL CLEANUP_TOMS( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_TOMS"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  ! Cleanup wet scavenging module
-  CALL CLEANUP_WETSCAV( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF

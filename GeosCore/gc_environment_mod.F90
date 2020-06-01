@@ -442,7 +442,6 @@ CONTAINS
     USE Sulfate_Mod,        ONLY : Init_Sulfate
     USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
-    USE Toms_Mod,           ONLY : Init_Toms
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
@@ -662,16 +661,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Initialize "toms_mod.F90"
-    !-----------------------------------------------------------------
-    CALL Init_Toms( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Toms"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
     !=================================================================

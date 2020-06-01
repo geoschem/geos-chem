@@ -68,15 +68,6 @@ MODULE TAGGED_CO_MOD
   REAL(fp), ALLOCATABLE :: SUMMONOCO  (:,:  )   ! P(CO) from Monoterpenes
   REAL(fp), ALLOCATABLE :: TCOSZ      (:,:  )   ! Daily sum COS(SZA)
 
-  ! Pointers to fields in the HEMCO data structure.
-  ! These need to be declared REAL(f4), aka REAL*4.
-  REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
-  REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
-  REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
-  REAL(f4), POINTER     :: PCO_CH4    (:,:,:) => NULL() ! CH4 P(CO)
-  REAL(f4), POINTER     :: PCO_NMVOC  (:,:,:) => NULL() ! NMVOC P(CO)
-  REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc CH4
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -99,10 +90,9 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : CHECK_VALUE
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-    USE HCO_Error_Mod
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_State_Mod,      ONLY : HCO_GetHcoId
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
@@ -167,7 +157,13 @@ CONTAINS
     CHARACTER(LEN=255)       :: ThisLoc
 
     ! Arrays
-    INTEGER                  :: ERR_LOC(4)
+    INTEGER  :: ERR_LOC(4)
+    REAL(fp) :: SFC_CH4    (State_Grid%NX, State_Grid%NY)
+    REAL(fp) :: GMI_LOSS_CO(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: GMI_PROD_CO(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: GLOBAL_OH  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_CH4    (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_NMVOC  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
     ! Pointers
     REAL(fp),        POINTER :: AD    (:,:,:  )
@@ -283,59 +279,60 @@ CONTAINS
        IDmono   = Ind_( 'COmono'  )
        IDacet   = Ind_( 'COacet'  )
 
-       ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
-       CALL HCO_GetPtr( HcoState, 'GLOBAL_OH', OH,   RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Get pointer to strat P(CO) from GMI
-       CALL HCO_GetPtr( HcoState, 'GMI_PROD_CO', GMI_PROD_CO, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Get pointer to strat L(CO) from GMI
-       CALL HCO_GetPtr( HcoState, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Get pointer to trop P(CO) from CH4 if needed
-       IF ( LPCO_CH4 ) THEN
-          CALL HCO_GetPtr( HcoState, 'PCO_CH4', PCO_CH4, RC )
-          IF ( RC /= HCO_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to PCO_CH4!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( LPCO_NMVOC ) THEN
-          CALL HCO_GetPtr( HcoState, 'PCO_NMVOC', PCO_NMVOC, RC )
-          IF ( RC /= HCO_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       ! Get pointer to surface CH4 data
-       CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
        ! Reset first-time flag
        FIRST = .FALSE.
+    ENDIF
+
+    ! Evaluate global OH from HEMCO
+    CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', GLOBAL_OH,   RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot retrieve data for GLOBAL_OH from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Evaluate strat P(CO) from GMI from HEMCO
+    CALL HCO_EvalFld( HcoState, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot retrieve data for GMI_PROD_CO from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Evaluate strat L(CO) from GMI from HEMCO
+    CALL HCO_EvalFld( HcoState, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot retrieve data for GMI_LOSS_CO from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Evaluate surface CH4 data from HEMCO
+    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4 from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Evaluate trop P(CO) from CH4 in HEMCO if needed
+    IF ( LPCO_CH4 ) THEN
+       CALL HCO_EvalFld( HcoState, 'PCO_CH4', PCO_CH4, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot retrieve data for PCO_CH4 from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Evaluate trop P(CO) from NMVOC in HEMCO if needed
+    IF ( LPCO_NMVOC ) THEN
+       CALL HCO_EvalFld( HcoState, 'PCO_NMVOC', PCO_NMVOC, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot retrieve data for PCO_NMVOC from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=================================================================
@@ -471,7 +468,7 @@ CONTAINS
        !
        ! NOTE: HEMCO brings in OH in kg/m3, so we need to also
        ! apply a conversion to molec/cm3 here. (bmy, 10/12/16)
-       OH_MOLEC_CM3 = ( OH(I,J,L) * kgm3_to_mcm3OH ) * FAC_DIURNAL
+       OH_MOLEC_CM3 = ( GLOBAL_OH(I,J,L) * kgm3_to_mcm3OH ) * FAC_DIURNAL
 
        ! Make sure OH is not negative
        OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -1353,12 +1350,6 @@ CONTAINS
        CALL GC_CheckVar( 'tagged_co_mod.F90:TCOSZ', 2, RC )
        RETURN
     ENDIF
-
-    ! Free pointers
-    GMI_PROD_CO => NULL()
-    GMI_LOSS_CO => NULL()
-    OH          => NULL()
-    SFC_CH4     => NULL()
 
   END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

@@ -188,6 +188,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: UPDVVEL       (:,:,:) ! Updraft vertical velocity
                                                 !  [hPa/s]
      REAL(fp), POINTER :: V             (:,:,:) ! N/S component of wind [m s-1]
+
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
@@ -254,7 +255,22 @@ MODULE State_Met_Mod
                                                 !  and 13 local solar time?
 
      !----------------------------------------------------------------------
-     ! Fields for boundary layer mixing
+     ! Fields for wet scavenging module
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: C_H2O         (:,:,:) ! Mix ratio of H2O [v/v]
+     REAL(fp), POINTER :: CLDICE        (:,:,:) ! Cloud ice mixing ratio [cm3 ice/cm3 air]
+     REAL(fp), POINTER :: CLDLIQ        (:,:,:) ! Cloud liquid water mixing ratio [cm3 H2O/cm3 air]
+     REAL(fp), POINTER :: PDOWN         (:,:,:) ! Precipitation thru the bottom of the grid box
+                                                ! [cm3 H2O/cm2 area/s]
+     REAL(fp), POINTER :: QQ            (:,:,:) ! Rate of new precip formation [cm3 H2O/cm3 air/s]
+     REAL(fp), POINTER :: REEVAP        (:,:,:) ! Rate of precip reevaporation
+                                                ! [cm3 H2O/cm3 air/s]
+#ifdef APM
+     REAL(fp), POINTER :: PSO4_SO2APM2  (:,:,:)
+#endif
+
+     !----------------------------------------------------------------------
+     ! Scalars
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IMIX          (:,:  ) ! Integer and fractional level
      REAL(fp), POINTER :: FPBL          (:,:  ) !  where PBL top occurs
@@ -485,6 +501,16 @@ CONTAINS
     State_Met%AgeOfAir       => NULL()
     State_Met%IMIX           => NULL()
     State_Met%FPBL           => NULL()
+
+    State_Met%C_H2O          => NULL()
+    State_Met%CLDICE         => NULL()
+    State_Met%CLDLIQ         => NULL()
+    State_Met%PDOWN          => NULL()
+    State_Met%QQ             => NULL()
+    State_Met%REEVAP         => NULL()
+#ifdef APM
+    State_Met%PSO4_SO2APM2   => NULL()
+#endif
 
     !=======================================================================
     ! Exit if this is a dry-run simulation
@@ -1901,6 +1927,103 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+
+    !=======================================================================
+    ! Allocate fields used by wet scavenging and other GeosCore modules.
+    !
+    ! They are currently not registered with the registry but may be done
+    ! if they prove to be useful to diagnostics. (hplin, 5/24/20)
+    !=======================================================================
+
+    !-----------------------------------------------------------------
+    ! For wet deposition (wetscav_mod)
+    ! Note some are memory-order ZXY and some are regular XYZ.
+    !
+    ! Only allocate arrays if wetdep or convection is turned on
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+
+        !-------------------------
+        ! C_H2O
+        !-------------------------
+        ALLOCATE( State_Met%C_H2O( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%C_H2O', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%C_H2O = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'C_H2O', State_Met%C_H2O, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+        !-------------------------
+        ! CLDICE
+        !-------------------------
+        ALLOCATE( State_Met%CLDICE( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%CLDICE', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%CLDICE = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'CLDICE', State_Met%CLDICE, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+        !-------------------------
+        ! CLDLIQ
+        !-------------------------
+        ALLOCATE( State_Met%CLDLIQ( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%CLDLIQ', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%CLDLIQ = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'CLDLIQ', State_Met%CLDLIQ, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+        !-------------------------
+        ! PDOWN (ZXY)
+        !-------------------------
+        ALLOCATE( State_Met%PDOWN( LM, IM, JM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%PDOWN', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%PDOWN = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'PDOWN', State_Met%PDOWN, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+        !-------------------------
+        ! QQ (ZXY)
+        !-------------------------
+        ALLOCATE( State_Met%QQ( LM, IM, JM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%QQ', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%QQ = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'QQ', State_Met%QQ, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+        !-------------------------
+        ! REEVAP
+        !-------------------------
+        ALLOCATE( State_Met%REEVAP( LM, IM, JM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%REEVAP', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%REEVAP = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'REEVAP', State_Met%REEVAP, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+
+#ifdef APM
+        !-------------------------
+        ! PSO4_SO2APM2
+        !-------------------------
+        ALLOCATE( State_Met%PSO4_SO2APM2( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Met%PSO4_SO2APM2', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Met%PSO4_SO2APM2 = 0.0_fp
+        ! CALL Register_MetField( Input_Opt, 'PSO4_SO2APM2', State_Met%PSO4_SO2APM2, &
+        !                         State_Met, RC )
+        ! IF ( RC /= GC_SUCCESS ) RETURN
+#endif
+
+    ENDIF
+
     !=======================================================================
     ! Allocate fields for querying which vertical regime a grid box is in
     ! or if a grid box is near local solar noontime.
@@ -3173,6 +3296,60 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%LocalSolarTime => NULL()
     ENDIF
+
+    !=======================================================================
+    ! Fields temporaries used in other modules
+    !=======================================================================
+    IF ( ASSOCIATED( State_Met%C_H2O ) ) THEN
+      DEALLOCATE( State_Met%C_H2O, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%C_H2O', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%C_H2O => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CLDICE ) ) THEN
+      DEALLOCATE( State_Met%CLDICE, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%CLDICE', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%CLDICE => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CLDLIQ ) ) THEN
+      DEALLOCATE( State_Met%CLDLIQ, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%CLDLIQ', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%CLDLIQ => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PDOWN ) ) THEN
+      DEALLOCATE( State_Met%PDOWN, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%PDOWN', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%PDOWN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%QQ ) ) THEN
+      DEALLOCATE( State_Met%QQ, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%QQ', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%QQ => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%REEVAP ) ) THEN
+      DEALLOCATE( State_Met%REEVAP, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%REEVAP', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%REEVAP => NULL()
+    ENDIF
+
+#ifdef APM
+    IF ( ASSOCIATED( State_Met%PSO4_SO2APM2 ) ) THEN
+      DEALLOCATE( State_Met%PSO4_SO2APM2, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%PSO4_SO2APM2', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%PSO4_SO2APM2 => NULL()
+    ENDIF
+#endif
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
