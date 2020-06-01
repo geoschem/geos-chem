@@ -4634,10 +4634,10 @@ CONTAINS
 ! !USES:
 !
    USE ErrCode_Mod
-   USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
+   USE HCO_Error_Mod
+   USE HCO_State_Mod,         ONLY : HCO_GetHcoID
+   USE HCO_State_GC_Mod,      ONLY : HcoState
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
-   USE HCO_ERROR_MOD
-   USE HCO_State_GC_MOD,      ONLY : HcoState
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState

@@ -92,8 +92,8 @@ CONTAINS
     USE ERROR_MOD,          ONLY : CHECK_VALUE
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE HCO_Error_Mod
+    USE HCO_State_Mod,      ONLY : Hco_GetHcoId
     USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_State_Mod,      ONLY : HCO_GetHcoId
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : ChmState, Ind_

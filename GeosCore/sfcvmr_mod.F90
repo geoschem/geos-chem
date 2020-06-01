@@ -229,16 +229,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE Species_Mod,        ONLY : Species
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : Hco_EvalFld
-    USE TIME_MOD,           ONLY : Get_Month
-    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Met_Mod,    ONLY : MetState
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Chm_Mod,    ONLY : Ind_
+    USE Species_Mod,      ONLY : Species
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_Calc_Mod,     ONLY : Hco_EvalFld
+    USE TIME_MOD,         ONLY : Get_Month
 
     ! Needed for the new CHxCly boundary condition
     Use PhysConstants,      Only : AirMW
