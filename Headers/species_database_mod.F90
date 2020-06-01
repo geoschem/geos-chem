@@ -2986,7 +2986,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              Is_Photolysis = T
-             Is_HygroGrowth= F !wbd temporary
+             Is_HygroGrowth= F 
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -3657,7 +3657,7 @@ CONTAINS
              Is_Advected   = Is_Advected
              Is_Gas        = F                            
              Is_Drydep     = T                           
-             Is_HygroGrowth= T !wbd temporary
+             Is_HygroGrowth= T 
              Is_Wetdep     = T
              Density       = 2200.0_fp
              Radius        = Radius
@@ -3750,7 +3750,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
-             Is_HygroGrowth= T !wbd temporary
+             Is_HygroGrowth= T
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -3900,7 +3900,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
-             Is_HygroGrowth= F !wbd Temporary
+             Is_HygroGrowth= F 
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T

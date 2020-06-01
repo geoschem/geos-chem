@@ -956,19 +956,6 @@ CONTAINS
                 chmID = 'AeroAreaSSA'
              CASE( 12 )
                 chmID = 'AeroAreaSSC'
-!             CASE( 13 )
-!                chmID = 'AeroAreaNITS'
-!             CASE( 14 )
-!                chmID = 'AeroAreaSALACL'
-!             CASE( 15 )
-!                chmID = 'AeroAreaSALCCL'
-!             CASE( 16 )
-!                chmID = 'AeroAreaSO4S'
-!             CASE( 17 )
-!                chmID = 'AeroAreaBGSULF'
-!             CASE( 18 )
-!                chmID = 'AeroAreaICEI'             
-!wbd
              CASE( 13 )
                 chmID = 'AeroAreaBGSULF'
              CASE( 14 )
@@ -1079,19 +1066,6 @@ CONTAINS
                 chmID = 'WetAeroAreaSSA'
              CASE( 12 )
                 chmID = 'WetAeroAreaSSC'
-!             CASE( 13 )
-!                chmID = 'AeroAreaNITS'
-!             CASE( 14 )
-!                chmID = 'AeroAreaSALACL'
-!             CASE( 15 )
-!                chmID = 'AeroAreaSALCCL'
-!             CASE( 16 )
-!                chmID = 'AeroAreaSO4S'
-!             CASE( 17 )
-!                chmID = 'AeroAreaBGSULF'
-!             CASE( 18 )
-!                chmID = 'AeroAreaICEI'             
-!wbd
              CASE( 13 )
                 chmID = 'WetAeroAreaBGSULF'
              CASE( 14 )
@@ -2682,30 +2656,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-!       CASE ( 'AEROAREANITS' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol area for inorganic nitrates on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AEROAREASALACL' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol area for chloride in Accumulation' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AEROAREASALCCL' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol area for chloride in coarse' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AEROAREASO4S' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol area for sulfate  on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!wbd
        CASE ( 'AEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
                                  // ' stratospheric sulfate'
@@ -2779,30 +2729,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-!       CASE ( 'AERORADINITS' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for inorganic nitrates on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AERORADISALACL' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for chloride in Accumulation' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AERORADISALCCL' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for chloride in coarse' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'AERORADISO4S' )
-!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for sulfate  on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm'
-!          IF ( isRank  ) Rank  = 3
-!wbd
        CASE ( 'AERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for background' &
                                  // ' stratospheric sulfate'
@@ -2876,30 +2802,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-!       CASE ( 'WETAEROAREANITS' )
-!          IF ( isDesc  ) Desc  = 'Wet aerosol area for inorganic nitrates on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'WETAEROAREASALACL' )
-!          IF ( isDesc  ) Desc  = 'Wet aerosol area for chloride in Accumulation' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'WETAEROAREASALCCL' )
-!          IF ( isDesc  ) Desc  = 'Wet aerosol area for chloride in coarse' &
-!                                  // 'mode seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!
-!       CASE ( 'WETAEROAREASO4S' )
-!          IF ( isDesc  ) Desc  = 'Wet aerosol area for sulfate  on' &
-!                                  // 'surface of seasalt aerosol'
-!          IF ( isUnits ) Units = 'cm2/cm3'
-!          IF ( isRank  ) Rank  = 3
-!wbd
        CASE ( 'WETAEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for background' &
                                  // ' stratospheric sulfate'
@@ -3088,7 +2990,7 @@ CONTAINS
           IF ( isRank  ) Rank = 3
 
        CASE ( 'GAMMAN2O5FINE' )
-          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma N2O5 and fine aerosol' !wbd fix
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma N2O5 and fine aerosol'
           IF ( isUnits ) Units = 'l'
           IF ( isRank  ) Rank = 3
 
