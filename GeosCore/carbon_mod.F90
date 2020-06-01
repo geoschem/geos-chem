@@ -17,7 +17,6 @@ MODULE CARBON_MOD
 ! !USES:
 !
   USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
-  USE HCO_ERROR_MOD     ! For HEMCO error reporting
   USE PhysConstants     ! Physical constants
   USE PRECISION_MOD     ! For GEOS-Chem Precisions
 
@@ -142,8 +141,6 @@ MODULE CARBON_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Number of BB fires for parameterization (ramnarine 12/27/2018)
-  REAL(f4), POINTER :: FIRE_NUM(:,:) => NULL()
 
   ! Molecules OH  per kg OH [molec/kg]
   REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
@@ -265,11 +262,10 @@ MODULE CARBON_MOD
   ! Days per month (based on 1998)
   INTEGER :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
 
-  ! Pointers to fields contained in the HEMCO data structure
-  ! These must all be declared as REAL(f4), aka REAL*4.
-  REAL(f4), POINTER     :: O3(:,:,:)  => NULL()
-  REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
-  REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
+  ! Offline fields contained in the HEMCO data structure
+  REAL(fp), ALLOCATABLE :: OFFLINE_O3(:,:,:)
+  REAL(fp), ALLOCATABLE :: OFFLINE_OH(:,:,:)
+  REAL(fp), ALLOCATABLE :: OFFLINE_NO3(:,:,:)
 
   ! Species ID flags
   INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
@@ -317,8 +313,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-    USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -330,7 +326,6 @@ CONTAINS
     USE APM_INIT_MOD,       ONLY : APMIDS
     USE APM_INIT_MOD,       ONLY : NBCOC,CEMITBCOC1
     USE HCO_DIAGN_MOD
-    USE HCO_ERROR_MOD
     USE HCO_TYPES_MOD,      ONLY : DiagnCont
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 #endif
@@ -377,6 +372,7 @@ CONTAINS
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LSOA
     LOGICAL            :: LEMIS
+    LOGICAL            :: FND
     REAL(fp)           :: NEWSOA
     REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
     INTEGER            :: L
@@ -391,6 +387,7 @@ CONTAINS
 
     ! For getting fields from HEMCO
     CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F90)'
+    CHARACTER(LEN=255) :: ErrMsg
 
 #ifdef APM
     TYPE(DiagnCont), POINTER :: DiagnCnt
@@ -441,20 +438,6 @@ CONTAINS
           IF ( id_ASOG2 > 0 ) Spc(:,:,:,id_ASOG2) = 0.0_fp
           IF ( id_ASOG3 > 0 ) Spc(:,:,:,id_ASOG3) = 0.0_fp
 
-          IF ( LSOA ) THEN
-             ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_OH',  OH,  RC )
-             IF ( RC /= GC_SUCCESS ) &
-                CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
-
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_NO3', NO3, RC )
-             IF ( RC /= GC_SUCCESS ) &
-                CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
-
-             CALL HCO_GetPtr( HcoState, 'O3',         O3,  RC )
-             IF ( RC /= GC_SUCCESS ) &
-                CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
-          ENDIF
 
           ! initialize SOA Precursor and SOA for simplified SOA sims
           IF ( id_SOAP > 0 ) THEN
@@ -487,6 +470,37 @@ CONTAINS
 
        ! Reset first-time flag
        FIRSTCHEM = .FALSE.
+
+    ENDIF
+
+    ! Evaluate offline fields from HEMCO every timestep to allow
+    ! optional use of scaling or masking in HEMCO configuration file
+    IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
+
+       ! Evaluate offline oxidant fields from HEMCO: global OH
+       CALL HCO_EvalFld(HcoState, 'GLOBAL_OH', OFFLINE_OH, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, LOC )
+          RETURN
+       ENDIF
+
+       ! Evaluate offline oxidant fields from HEMCO: global O3
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', OFFLINE_O3, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, LOC )
+          RETURN
+       ENDIF
+
+       ! Evaluate offline oxidant fields from HEMCO: global NO3
+       CALL HCO_EvalFld(HcoState, 'GLOBAL_NO3', OFFLINE_NO3, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, LOC )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !=================================================================
@@ -549,7 +563,7 @@ CONTAINS
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
        ! Add into EMITRATE array (or set to zero if not found)
-       IF ( FLAG == HCO_SUCCESS ) THEN
+       IF ( FLAG == GC_SUCCESS ) THEN
           EMITRATE = DiagnCnt%Arr2D%Val
        ELSE
           IF ( Input_Opt%amIRoot ) THEN
@@ -566,7 +580,7 @@ CONTAINS
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
 
-       IF ( FLAG==HCO_SUCCESS ) THEN
+       IF ( FLAG==GC_SUCCESS ) THEN
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
           !$OMP PRIVATE( J, I )
@@ -657,7 +671,7 @@ CONTAINS
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
        ! Add biomass OCPO diagnostic to EMITRATE (if it's found)
-       IF ( FLAG==HCO_SUCCESS ) THEN
+       IF ( FLAG==GC_SUCCESS ) THEN
           EMITRATE = DiagnCnt%Arr2D%Val
        ELSE
           IF ( Input_Opt%amIRoot ) THEN
@@ -673,7 +687,7 @@ CONTAINS
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
        ! Add anthropogenic OCPO diagnostic to EMITRATE (if it's found)
-       IF(FLAG==HCO_SUCCESS)THEN
+       IF(FLAG==GC_SUCCESS)THEN
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
           !$OMP PRIVATE( J, I )
@@ -2069,13 +2083,18 @@ CONTAINS
       ! hotp diagnostic (3/11/09)
       GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
-      ! Check equilibrium (hotp 5/18/10)
-      IF ( prtDebug ) THEN
-         ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
-         ! Low NOX (non-volatile) aromatic product is IPR=4
-         CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
-                          ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
-      ENDIF
+      !--------------------------------------------------------------------
+      ! Comment out for now.  This produces a lot of excess debug output.
+      ! (bmy, 5/5/20)
+      !! Check equilibrium (hotp 5/18/10)
+      !IF ( prtDebug ) THEN
+      !   ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
+      !   ! Low NOX (non-volatile) aromatic product is IPR=4
+      !   CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
+      !                    ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
+      !ENDIF
+      !--------------------------------------------------------------------
+
 
    ENDDO
    ENDDO
@@ -4615,10 +4634,10 @@ CONTAINS
 ! !USES:
 !
    USE ErrCode_Mod
-   USE HCO_State_GC_Mod,      ONLY : HcoState
    USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
    USE HCO_ERROR_MOD
+   USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
@@ -4800,6 +4819,10 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE ERROR_MOD
+   USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+   USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+   USE HCO_Interface_Common, ONLY : GetHcoDiagn
+   USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Grid_Mod,       ONLY : GrdState
@@ -4809,9 +4832,6 @@ CONTAINS
    USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
    USE TOMAS_MOD,            ONLY : CHECKMN
-   USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-   USE HCO_Interface_Common, ONLY : GetHcoDiagn
-   USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
 !
 ! !INPUT PARAMETERS:
 !
@@ -4840,29 +4860,33 @@ CONTAINS
    INTEGER                  :: I, I0, IREF, J, J0, JREF, N
    INTEGER                  :: FLAG, ERR
    REAL(fp)                 :: DTSRCE, AREA_M2
-   REAL(fp)                 :: XTRA_ORG_A(State_Grid%NX,State_Grid%NY)
    REAL(fp)                 :: CO_ANTH_TOTAL
-   REAL(fp)                 :: BCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
-   REAL(fp)                 :: OCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
-   REAL(fp)                 :: NUMBSRC(State_Grid%NX,State_Grid%NY,IBINS)
-   REAL(fp)                 :: AREA(State_Grid%NX, State_Grid%NY)
-   REAL(fp)                 :: SIZE_DIST(State_Grid%NX,State_Grid%NY,IBINS,4) !(ramnarine 12/27/2018)
    REAL*4                   :: BOXVOL  ! calculated from State_Met
    REAL*4                   :: TEMPTMS ! calculated from State_Met
    REAL*4                   :: PRES    ! calculated from State_Met
-   REAL(fp)                 :: TMP_MASS(State_Grid%NX,State_Grid%NY,IBINS)
    REAL(fp)                 :: OC2OM = 1.8d0
    LOGICAL                  :: SGCOAG = .True.
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
    CHARACTER(LEN=63)        :: OrigUnit
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
+   LOGICAL, SAVE            :: USE_FIRE_NUM = .FALSE.
    LOGICAL                  :: FND !(ramnarine 1/2/2019)
    LOGICAL                  :: prtDebug
 
+   ! Arrays
+   REAL(fp)                 :: XTRA_ORG_A(State_Grid%NX,State_Grid%NY)
+   REAL(fp)                 :: BCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
+   REAL(fp)                 :: OCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
+   REAL(fp)                 :: NUMBSRC(State_Grid%NX,State_Grid%NY,IBINS)
+   REAL(fp)                 :: AREA(State_Grid%NX, State_Grid%NY)
+   REAL(fp)                 :: TMP_MASS(State_Grid%NX,State_Grid%NY,IBINS)
+   REAL(fp)                 :: SIZE_DIST(State_Grid%NX,State_Grid%NY,IBINS,4) !(ramnarine 12/27/2018)
+   REAL(fp)                 :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
+
    ! Strings
    CHARACTER(LEN= 63)       :: DgnName
-   CHARACTER(LEN=255)       :: MSG
+   CHARACTER(LEN=255)       :: MSG, ErrMsg
    CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F90)'
 
    ! Pointers
@@ -4937,7 +4961,8 @@ CONTAINS
       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
                         ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
-         CALL HCO_WARNING( 'Not found: '//TRIM(DgnName),ERR, THISLOC=LOC )
+         CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
+                           ERR, THISLOC=LOC )
       ELSE
          emis2d(:,:) = 0.0d0
 
@@ -4964,7 +4989,8 @@ CONTAINS
    DgnName = 'BCPI_BB'
    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-      CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+                       ERR, THISLOC=LOC)
    ELSE
       BCPI_BIOB_BULK = Ptr2D(:,:)
    ENDIF
@@ -4973,7 +4999,8 @@ CONTAINS
    DgnName = 'BCPO_BB'
    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-      CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+                       ERR, THISLOC=LOC)
    ELSE
       BCPO_BIOB_BULK = Ptr2D(:,:)
    ENDIF
@@ -4982,7 +5009,8 @@ CONTAINS
    DgnName = 'OCPI_BB'
    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-      CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+                       ERR, THISLOC=LOC)
    ELSE
       OCPI_BIOB_BULK = Ptr2D(:,:)
    ENDIF
@@ -4991,7 +5019,8 @@ CONTAINS
    DgnName = 'OCPO_BB'
    CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-      CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+                      ERR, THISLOC=LOC)
    ELSE
       OCPO_BIOB_BULK = Ptr2D(:,:)
    ENDIF
@@ -5000,16 +5029,37 @@ CONTAINS
    ! ---- Fire Number -------------------------------------
    ! (ramnarine 12/27/2018)
    IF ( FIRST ) THEN
-      ! Get a pointer to the fire number field if in use
-      CALL HCO_GetPtr( HcoState, 'FINN_DAILY_NUMBER', FIRE_NUM, RC, FOUND=FND )
+
+      ! Check if fire number is available in HEMCO, and use it if it is
+      CALL HCO_GetPtr( HcoState, 'FINN_DAILY_NUMBER', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error getting pointer to FINN_DAILY_NUMBER in HEMCO!'
+         CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS' )
+         RETURN
+      ELSEIF ( FND ) THEN
+         USE_FIRE_NUM = .TRUE.
+      ENDIF
+      Ptr2D => NULL()
+
       !if biomass burning subgrid coagulation is in use,
-      !FIRE_NUM will not be NULL() and therefore will not be ASSOCIATED()
+      !FIRE_NUM will not be found and USE_FIRE_NUM will be false
 
       !reset first time flag
       FIRST = .FALSE.
    ENDIF
 
-   IF ( ASSOCIATED(FIRE_NUM) ) THEN
+   IF ( USE_FIRE_NUM ) THEN
+
+      ! Number of BB fires for parameterization (ramnarine 12/27/2018)
+      ! Evalulate the fire number from HEMCO every timestep to apply masks
+      ! and scaling configured in HEMCO config
+      CALL HCO_EvalFld( HcoState, 'FINN_DAILY_NUMBER', FIRE_NUM, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error evaluating FINN_DAILY_NUMBER in HEMCO data list!'
+         CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS' )
+         RETURN
+      ENDIF
+
       ! ---- Calling BB subgrid coag parameterization --------
       ! (ramnarine 12/27/2018)
       SIZE_DIST = SAKAMOTO_SIZE( State_Grid, State_Met, FIRE_NUM, &
@@ -5025,7 +5075,7 @@ CONTAINS
    OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
 
    !2d bioburn
-   IF ( ASSOCIATED(FIRE_NUM) ) THEN
+   IF ( USE_FIRE_NUM ) THEN
       DO K = 1, IBINS        !ramnarine 12/27/2018
          BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
          BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
@@ -5456,7 +5506,7 @@ CONTAINS
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OH(I,J,L)                                * &
+         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L)                        * &
                         ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   * &
                         ( 86400e+0_fp / GET_TS_CHEM() )
 
@@ -5602,7 +5652,8 @@ CONTAINS
       ELSE
 
          ! At night: Get NO3 [v/v] and convert it to [kg]
-         NO3_MOLEC_CM3 = NO3(I,J,L) * State_Met%AD(I,J,L) * ( 62e+0_fp/AIRMW )
+         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AD(I,J,L) &
+                         * ( 62e+0_fp/AIRMW )
 
          ! Convert NO3 from [kg] to [molec/cm3]
          BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -5719,7 +5770,7 @@ CONTAINS
       IF ( L <= State_Grid%MaxChemLev ) THEN
 
          ! Get O3 [v/v] and convert it to [kg]
-         O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) * &
+         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AD(I,J,L) * &
                         ( 48e+0_fp / AIRMW )            ! hard-coded MW
 
          ! Convert O3 from [kg] to [molec/cm3]
@@ -7377,7 +7428,7 @@ CONTAINS
 !
    TYPE(GrdState),  INTENT(IN)  :: State_Grid ! Grid State object
    TYPE(MetState),  INTENT(IN)  :: State_Met  ! Meteorology State object
-   REAL(sp),        INTENT(IN)  :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
+   REAL(fp),        INTENT(IN)  :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
    REAL(fp),        INTENT(IN)  :: OCPIBULKEMIS(State_Grid%NX,State_Grid%NY) ![kgm-2s-1]
    REAL(fp),        INTENT(IN)  :: BCPIBULKEMIS(State_Grid%NX,State_Grid%NY) ![kgm-2s-1]
    REAL(fp),        INTENT(IN)  :: OCPOBULKEMIS(State_Grid%NX,State_Grid%NY) ![kgm-2s-1]
@@ -7806,6 +7857,28 @@ CONTAINS
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
       SPECSOAEVAP = 0e+0_fp
 
+
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+         ! Offline global OH
+         ALLOCATE( OFFLINE_OH(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
+                   STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_OH' )
+         OFFLINE_OH = 0e+0_fp
+         
+         ! Offline global O3
+         ALLOCATE( OFFLINE_O3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
+                   STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_O3' )
+         OFFLINE_O3 = 0e+0_fp
+         
+         ! Offline global NO3
+         ALLOCATE( OFFLINE_NO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
+                   STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_NO3' )
+         OFFLINE_NO3 = 0e+0_fp
+      ENDIF
+
    ENDIF
 
  END SUBROUTINE INIT_CARBON
@@ -7846,6 +7919,9 @@ CONTAINS
    IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
    IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
    IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
+   IF ( ALLOCATED( OFFLINE_OH    ) ) DEALLOCATE( OFFLINE_OH    )
+   IF ( ALLOCATED( OFFLINE_O3    ) ) DEALLOCATE( OFFLINE_O3    )
+   IF ( ALLOCATED( OFFLINE_NO3   ) ) DEALLOCATE( OFFLINE_NO3   )
 #ifdef APM
    IF ( ALLOCATED( BCCONVNEW     ) ) DEALLOCATE( BCCONVNEW     )
    IF ( ALLOCATED( OCCONVNEW     ) ) DEALLOCATE( OCCONVNEW     )
@@ -7867,7 +7943,6 @@ CONTAINS
    IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
    IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
    IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
-   FIRE_NUM                       => NULL() !(ramnarine 12/27/2018)
 #endif
 
  END SUBROUTINE CLEANUP_CARBON

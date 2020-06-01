@@ -20,32 +20,69 @@
 MODULE State_Diag_Mod
 !
 ! USES:
-!
-  USE CMN_Size_Mod,     ONLY : NDUST
+  USE CMN_FJX_MOD,        ONLY : W_
+  USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
-  USE Dictionary_M,     ONLY : dictionary_t
+  USE Dictionary_M,       ONLY : dictionary_t
   USE ErrCode_Mod
+  USE gckpp_Parameters,   ONLY : NREACT
   USE Precision_Mod
   USE Registry_Mod
-  USE Species_Mod,      ONLY : Species
-  USE State_Chm_Mod,    ONLY : ChmState
-  USE CMN_FJX_MOD,      ONLY : W_
-  USE gckpp_Parameters, ONLY : NREACT
+  USE Species_Mod,        ONLY : Species
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE TaggedDiagList_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Init_State_Diag
   PUBLIC :: Cleanup_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
   PUBLIC :: Get_NameInfo
+  PUBLIC :: Get_NumTags
   PUBLIC :: Get_TagInfo
+  PUBLIC :: Init_State_Diag
 !
-! !PRIVATE MEMBER FUNCTIONS
+! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Finalize
+  PRIVATE :: Finalize_MapData
+  PRIVATE :: Finalize_R4_2D
+  PRIVATE :: Finalize_R4_3D
+  PRIVATE :: Finalize_R4_4D
+  PRIVATE :: Finalize_R8_2D
+  PRIVATE :: Finalize_R8_3D
+  PRIVATE :: Finalize_R8_4D
+  PRIVATE :: Get_DiagNameDesc
+  PRIVATE :: Get_MapData_and_NumSlots
+  PRIVATE :: Get_Mapping
+  PRIVATE :: Init_and_Register
+  PRIVATE :: Init_and_Register_R4_2D
+  PRIVATE :: Init_and_Register_R4_3D
+  PRIVATE :: Init_and_Register_R4_4D
+  PRIVATE :: Init_and_Register_R8_2D
+  PRIVATE :: Init_and_Register_R8_3D
+  PRIVATE :: Init_and_Register_R8_4D
+  PRIVATE :: Init_RRTMG_Indices
   PRIVATE :: Register_DiagField
+  PRIVATE :: Register_DiagField_R4_2D
+  PRIVATE :: Register_DiagField_R4_3D
+  PRIVATE :: Register_DiagField_R4_4D
+  PRIVATE :: Register_DiagField_R8_2D
+  PRIVATE :: Register_DiagField_R8_3D
+  PRIVATE :: Register_DiagField_R8_4D
+!
+! !PUBLIC DATA MEMBERS:
+!
+  ! Type for mapping objects
+  TYPE, PUBLIC :: DgnMap
+     INTEGER          :: nSlots
+     INTEGER, POINTER :: slot2id(:)
+     INTEGER          :: nIds
+     INTEGER, POINTER :: id2slot(:)
+     CHARACTER(LEN=1) :: indFlag
+  END TYPE DgnMap
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -59,20 +96,22 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! Restart file fields
-     REAL(f8),  POINTER :: SpeciesRst(:,:,:,:) ! Spc Conc for GC restart
-     LOGICAL :: Archive_SpeciesRst
+     REAL(f8),     POINTER :: SpeciesRst(:,:,:,:)
+     LOGICAL               :: Archive_SpeciesRst
 
      ! Boundary condition fields
-     REAL(f8),  POINTER :: SpeciesBC(:,:,:,:) ! Spc Conc for BCs
-     LOGICAL :: Archive_SpeciesBC
+     REAL(f8),     POINTER :: SpeciesBC(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_SpeciesBC
+     LOGICAL               :: Archive_SpeciesBC
 
      ! Concentrations
-     REAL(f8),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
-     LOGICAL :: Archive_SpeciesConc
+     REAL(f8),     POINTER :: SpeciesConc(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_SpeciesConc
+     LOGICAL               :: Archive_SpeciesConc
 
      ! Time spent in the troposphere
-     REAL(f4), POINTER :: FracOfTimeInTrop(:,:,:)
-     LOGICAL :: Archive_FracOfTimeInTrop
+     REAL(f4),     POINTER :: FracOfTimeInTrop(:,:,:)
+     LOGICAL               :: Archive_FracOfTimeInTrop
 
      ! Budget diagnostics
      REAL(f8),  POINTER :: BudgetEmisDryDepFull     (:,:,:)
@@ -122,14 +161,21 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_Budget
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
-     REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
-     REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
-     REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
-     LOGICAL :: Archive_DryDepChm
-     LOGICAL :: Archive_DryDepMix
-     LOGICAL :: Archive_DryDep
-     LOGICAL :: Archive_DryDepVel
+     REAL(f4),     POINTER :: DryDepChm(:,:,:)
+     TYPE(DgnMap), POINTER :: Map_DryDepChm
+     LOGICAL               :: Archive_DryDepChm
+
+     REAL(f4),     POINTER :: DryDepMix(:,:,:)
+     TYPE(DgnMap), POINTER :: Map_DryDepMix
+     LOGICAL               :: Archive_DryDepMix
+
+     REAL(f4),     POINTER :: DryDep(:,:,:)
+     TYPE(DgnMap), POINTER :: Map_DryDep
+     LOGICAL               :: Archive_DryDep
+
+     REAL(f4),     POINTER :: DryDepVel(:,:,:)
+     TYPE(DgnMap), POINTER :: Map_DryDepVel
+     LOGICAL               :: Archive_DryDepVel
 
      ! Drydep resistances and related quantities
 #ifdef MODEL_GEOS
@@ -181,12 +227,15 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: O3concAfterChem (:,:,:  ) ! O3
      REAL(f4),  POINTER :: RO2concAfterChem(:,:,:  ) ! RO2
      REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
-     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_JValIndiv
      LOGICAL :: Archive_RxnRconst
      LOGICAL :: Archive_O3concAfterChem
      LOGICAL :: Archive_RO2concAfterChem
      LOGICAL :: Archive_CH4pseudoFlux
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_KppError
 #endif
 
@@ -641,6 +690,24 @@ MODULE State_Diag_Mod
 !
 ! !MODULE INTERFACES:
 !
+  INTERFACE Finalize
+     MODULE PROCEDURE Finalize_R4_2D
+     MODULE PROCEDURE Finalize_R4_3D
+     MODULE PROCEDURE Finalize_R4_4D
+     MODULE PROCEDURE Finalize_R8_2D
+     MODULE PROCEDURE Finalize_R8_3D
+     MODULE PROCEDURE Finalize_R8_4D
+  END INTERFACE Finalize
+
+  INTERFACE Init_and_Register
+     MODULE PROCEDURE Init_and_Register_R4_2D
+     MODULE PROCEDURE Init_and_Register_R4_3D
+     MODULE PROCEDURE Init_and_Register_R4_4D
+     MODULE PROCEDURE Init_and_Register_R8_2D
+     MODULE PROCEDURE Init_and_Register_R8_3D
+     MODULE PROCEDURE Init_and_Register_R8_4D
+  END INTERFACE Init_and_Register
+
   INTERFACE Register_DiagField
      MODULE PROCEDURE Register_DiagField_R4_2D
      MODULE PROCEDURE Register_DiagField_R4_3D
@@ -670,8 +737,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm, &
-                              State_Grid, Diag_List, State_Diag, RC )
+  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm,       State_Grid,        &
+                              Diag_List, TaggedDiag_List, State_Diag, RC    )
 !
 ! !USES:
 !
@@ -680,18 +747,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
-    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt        ! Input otions object
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm        ! Chemistry state
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid       ! Grid state object
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List        ! Diagnostics list
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostic State object
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag       ! Diagnostic State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Return code
+    INTEGER,             INTENT(OUT)   :: RC               ! Return code
 !
 ! !REMARKS:
 !  For consistency, maybe this should be moved to a different module.
@@ -706,17 +774,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=5  )     :: TmpWL
-    CHARACTER(LEN=10 )     :: TmpHt
-    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
-    CHARACTER(LEN=255)     :: arrayID,  diagID
+    CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=10 ) :: TmpHt
+    CHARACTER(LEN=255) :: errMsg,    thisLoc, errMsg_ir
+    CHARACTER(LEN=255) :: arrayID,   diagID
 
     ! Scalars
-    INTEGER                :: N,        IM,      JM,      LM
-    INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
-    INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nRad,    nDryAlt
-    LOGICAL                :: EOF,      Found,   Found2,  am_I_Root
+    INTEGER            :: N,         IM,      JM,        LM,      C
+    INTEGER            :: nSpecies,  nAdvect, nDryDep,   nKppSpc
+    INTEGER            :: nWetDep,   nPhotol, nProd,     nLoss
+    INTEGER            :: nHygGrth,  nRad,    nDryAlt
+    LOGICAL            :: am_I_Root, EOF,     Found,     found2
+    LOGICAL            :: forceDefine
+
+    integer :: nfields
 
     !=======================================================================
     ! Initialize
@@ -724,15 +795,14 @@ CONTAINS
     RC        =  GC_SUCCESS
     arrayID   = ''
     diagID    = ''
-    ErrMsg    = ''
-    ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
+    errMsg    = ''
+    errMsg_ir = 'Error encountered in "Init_and_Register", diagID = '
+    thisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
     TmpWL     = ''
     TmpHt     = AltAboveSfc
-
-    ! Save shadow variables from Input_Opt
-    Is_UCX    = Input_Opt%LUCX
     am_I_Root = Input_Opt%amIRoot
+    Is_UCX    = Input_Opt%LUCX
 
     ! Shorten grid parameters for readability
     IM        = State_Grid%NX ! # latitudes
@@ -752,18 +822,7 @@ CONTAINS
     nWetDep   = State_Chm%nWetDep
 
     ! %%% Free pointers and set logicals %%%
-
-    ! Restart file fields
-    State_Diag%SpeciesRst                          => NULL()
-    State_Diag%Archive_SpeciesRst                  = .FALSE.
-
-    ! Boundary condition fields
-    State_Diag%SpeciesBC                           => NULL()
-    State_Diag%Archive_SpeciesBC                   = .FALSE.
-
-    ! Species concentration diagnostics
-    State_Diag%SpeciesConc                         => NULL()
-    State_Diag%Archive_SpeciesConc                 = .FALSE.
+    ! %%% This will be done in Init_and_Register below %%%
 
     ! Budget diagnostics
     State_Diag%BudgetEmisDryDepFull                => NULL()
@@ -814,12 +873,16 @@ CONTAINS
 
     ! Drydep diagnostics
     State_Diag%DryDep                              => NULL()
-    State_Diag%DryDepChm                           => NULL()
-    State_Diag%DryDepMix                           => NULL()
-    State_Diag%DryDepVel                           => NULL()
+    State_Diag%Map_DryDep                          => NULL()
     State_Diag%Archive_DryDep                      = .FALSE.
+    State_Diag%DryDepChm                           => NULL()
+    State_Diag%Map_DryDepChm                       => NULL()
     State_Diag%Archive_DryDepChm                   = .FALSE.
+    State_Diag%DryDepMix                           => NULL()
+    State_Diag%Map_DryDepMix                       => NULL()
     State_Diag%Archive_DryDepMix                   = .FALSE.
+    State_Diag%DryDepVel                           => NULL()
+    State_Diag%Map_DryDepVel                       => NULL()
     State_Diag%Archive_DryDepVel                   = .FALSE.
 #ifdef MODEL_GEOS
     State_Diag%DryDepRa2m                          => NULL()
@@ -868,12 +931,15 @@ CONTAINS
     State_Diag%O3concAfterChem                     => NULL()
     State_Diag%RO2concAfterChem                    => NULL()
     State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%KppError                            => NULL()
     State_Diag%Archive_JValIndiv                   = .FALSE.
     State_Diag%Archive_RxnRconst                   = .FALSE.
     State_Diag%Archive_O3concAfterChem             = .FALSE.
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+    State_Diag%KppError                            => NULL()
     State_Diag%Archive_KppError                    = .FALSE.
 #endif
 
@@ -1303,64 +1369,79 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration for restart file
+    ! Restart file -- species concentrations
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesRst'
     diagID  = 'SpeciesRst'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( Input_Opt%amIRoot ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesRst = 0.0_f8
-       State_Diag%Archive_SpeciesRst = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesRst, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesRst,                             &
+         archiveData    = State_Diag%Archive_SpeciesRst,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration for boundary conditions
+    ! Transport boundary conditions diagnostic
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesBC'
     diagID  = 'SpeciesBC'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesBC( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesBC = 0.0_f8
-       State_Diag%Archive_SpeciesBC = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesBC, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesBC,                              &
+         archiveData    = State_Diag%Archive_SpeciesBC,                      &
+         mapData        = State_Diag%Map_SpeciesBC,                          &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration
+    ! Species concentration diagnostic
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesConc'
-    diagID  = 'SpeciesConc'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConc = 0.0_f8
-       State_Diag%Archive_SpeciesConc = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesConc,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    diagId  = 'SpeciesConc'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConc,                            &
+         archiveData    = State_Diag%Archive_SpeciesConc,                    &
+         mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
     ! Fraction of total time each grid box spent in the troposphere
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%FracOfTimeInTrop'
     diagID  = 'FracOfTimeInTrop'
+    arrayID = 'State_Diag%' // TRIM( diagID )
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1378,8 +1459,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetEmisDryDepFull'
     diagID  = 'BudgetEmisDryDepFull'
+    arrayID = 'State_Diag%' // TRIM( diagID )
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1395,8 +1476,8 @@ CONTAINS
     ENDIF
 
     ! Trop-only emissions
-    arrayID = 'State_Diag%BudgetEmisDryDepTrop'
     diagID  = 'BudgetEmisDryDepTrop'
+    arrayID = 'State_Diag%' // TRIM( diagID )
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1412,8 +1493,8 @@ CONTAINS
     ENDIF
 
     ! PBL-only emissions
-    arrayID = 'State_Diag%BudgetEmisDryDepPBL'
     diagID  = 'BudgetEmisDryDepPBL'
+    arrayID = 'State_Diag%' // TRIM( diagID )
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1735,84 +1816,112 @@ CONTAINS
        State_Diag%Archive_BudgetWetDep = .TRUE.
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Dry deposition flux from chemistry
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepChm'
+    ! NOTE: Turn on this diagnostic if we are saving total drydep
+    !------------------------------------------------------------------------
+
+    ! Check if the "DryDep" diagnostic is also in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine, RC )
+
     diagID  = 'DryDepChm'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
-    IF ( Found .OR. Found2 ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( ArrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepChm = 0.0_f4
-       State_Diag%Archive_DryDepChm = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepChm,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepChm,                              &
+         archiveData    = State_Diag%Archive_DryDepChm,                      &
+         mapData        = State_Diag%Map_DryDepChm,                          &
+         diagId         = diagId,                                            &
+         forceDefine    = forceDefine,                                       &
+         speciesFlag    = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Dry deposition flux from mixing
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepMix'
+    !------------------------------------------------------------------------
+    ! Dry deposition flux from chemistry
+    ! NOTE: Turn on this diagnostic if we are saving total drydep
+    !------------------------------------------------------------------------
     diagID  = 'DryDepMix'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
-    IF ( Found .OR. Found2 ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepMix = 0.0_f4
-       State_Diag%Archive_DryDepMix = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepMix,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepMix,                              &
+         archiveData    = State_Diag%Archive_DryDepMix,                      &
+         mapData        = State_Diag%Map_DryDepMix,                          &
+         forceDefine    = forceDefine,                                       &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Total dry deposition flux
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDep'
+    !------------------------------------------------------------------------
+    ! Total dry deposition flux = DryDepChm + DryDepMix
+    !------------------------------------------------------------------------
     diagID  = 'DryDep'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDep = 0.0_f4
-       State_Diag%Archive_DryDep = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDep,        &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDep,                                 &
+         archiveData    = State_Diag%Archive_DryDep,                         &
+         mapData        = State_Diag%Map_DryDep,                             &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Dry deposition velocity
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVel,                              &
+         archiveData    = State_Diag%Archive_DryDepVel,                      &
+         mapData        = State_Diag%Map_DryDepVel,                          &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'D',                                               &
 #ifdef MODEL_GEOS
-    ! DryDepVel is needed by some other diagnostics, always use with GEOS-5
-    Found = .TRUE.
+         ! DryDepVel always needs to be defined for MODEL_GEOS
+         forceDefine    = .TRUE.,                                            &
 #endif
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVel = 0.0_f4
-       State_Diag%Archive_DryDepVel = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepVel,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
 #ifdef MODEL_GEOS
@@ -1939,7 +2048,7 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nFields ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxVert = 0.0_f4
@@ -3068,7 +3177,9 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -6113,7 +6224,7 @@ CONTAINS
              CASE( 33 )
                 diagId = 'FluxHg2HgPfromAirToSnow'
              CASE( 34 )
-                diagId = 'FluxHg0fromAirToOcean'
+                diagId = 'FluxHg0froimAirToOcean'
              CASE( 35 )
                 diagId = 'FluxHg0fromOceanToAir'
              CASE( 36 )
@@ -6158,19 +6269,24 @@ CONTAINS
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
     !!-------------------------------------------------------------------
-    !arrayID = 'State_Diag%xxx'
     !diagID  = 'xxx'
-    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    !IF ( Found ) THEN
-    !   IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-    !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
-    !   CALL GC_CheckVar( arrayID, 0, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
-    !   State_Diag%xxx = 0.0_f4
-    !   State_Diag%Archive_xxx = .TRUE.
-    !   CALL Register_DiagField( Input_Opt, diagID, State_Diag%xxx, &
-    !                            State_Chm, State_Diag, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !CALL Init_and_Register(                                                  &
+    !     Input_Opt      = Input_Opt,                                         &
+    !     State_Chm      = State_Chm,                                         &
+    !     State_Diag     = State_Diag,                                        &
+    !     State_Grid     = State_Grid,                                        &
+    !     DiagList       = Diag_List,                                         &
+    !     TaggedDiagList = TaggedDiag_List,                                   &
+    !     Ptr2Data       = State_Diag%xxx,                                    &
+    !     archiveData    = State_Diag%Archive_xxx,                            &
+    !     mapData        = State_Diag%Map_xxx,                                &
+    !     diagId         = diagId,                                            &
+    !     RC             = RC                                                )
+    !
+    !IF( RC /= GC_SUCCESS ) THEN
+    !   errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+    !   CALL GC_Error( errMsg, RC, thisLoc )
+    !   RETURN
     !ENDIF
 
     !========================================================================
@@ -6341,30 +6457,26 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> Cleanup_State_Diag (in Headers/state_diag_mod.F90)'
 
-    !=======================================================================
+    !========================================================================
     ! Deallocate module variables
-    !=======================================================================
+    !========================================================================
+    CALL Finalize( diagId   = 'SpeciesRst',                                  &
+                   Ptr2Data = State_Diag%SpeciesRst,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesRst ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesRst, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesRst', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesRst => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'SpeciesBC',                                   &
+                   Ptr2Data = State_Diag%SpeciesBC,                          &
+                   mapData  = State_Diag%Map_SpeciesBC,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesBC ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesBC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesBC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesBC => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'SpeciesConc',                                 &
+                   Ptr2Data = State_Diag%SpeciesConc,                        &
+                   mapData  = State_Diag%Map_SpeciesConc,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConc => NULL()
-    ENDIF
 
     IF ( ASSOCIATED( State_Diag%FracOfTimeInTrop ) ) THEN
        DEALLOCATE( State_Diag%FracOfTimeInTrop, STAT=RC )
@@ -6513,33 +6625,29 @@ CONTAINS
        State_Diag%BudgetWetDepPBL => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
-       DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepChm', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepChm => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'DryDepChm',                                   &
+                   Ptr2Data = State_Diag%DryDepChm,                          &
+                   mapData  = State_Diag%Map_DryDepChm,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%DryDepMix ) ) THEN
-       DEALLOCATE( State_Diag%DryDepMix, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepMix', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepMix    => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'DryDepMix',                                   &
+                   Ptr2Data = State_Diag%DryDepMix,                          &
+                   mapData  = State_Diag%Map_DryDepMix,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%DryDep ) ) THEN
-       DEALLOCATE( State_Diag%DryDep, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDep', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDep => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'DryDep',                                      &
+                   Ptr2Data = State_Diag%DryDep,                             &
+                   mapData  = State_Diag%Map_DryDep,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%DryDepVel ) ) THEN
-       DEALLOCATE( State_Diag%DryDepVel, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepVel', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVel => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'DryDepVel',                                   &
+                   Ptr2Data = State_Diag%DryDepVel,                          &
+                   mapData  = State_Diag%Map_DryDepVel,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
@@ -7166,7 +7274,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CH4pseudoflux => NULL()
     ENDIF
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
        DEALLOCATE( State_Diag%KppError, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
@@ -8464,7 +8574,9 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
+#endif
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'
@@ -9298,7 +9410,118 @@ CONTAINS
        RETURN
     ENDIF
 
-   END SUBROUTINE Get_Metadata_State_Diag
+  END SUBROUTINE Get_Metadata_State_Diag
+  !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_NumTags
+!
+! !DESCRIPTION: Returns the number of tags (i.e. individual species or
+!  other quantities) per GEOS-Chem wildcard.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_NumTags( tagId, State_Chm, numTags, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: tagId      ! Wildcard name
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm  ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: numTags    ! Number of tags per wildcard
+    INTEGER,          INTENT(OUT) :: RC         ! Success or failure?
+!
+! !REMARKS:
+!  Split off from routine Get_TagInfo.
+!
+! !REVISION HISTORY:
+!  27 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !=======================================================================
+    ! Get_NumTags begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Get_NumTags (in module "Headers/state_diag_mod.F90)'
+
+    ! Get the number of tags per wildcard name
+    SELECT CASE( TRIM( tagId ) )
+       CASE( 'ALL', 'S' )
+          numTags = State_Chm%nSpecies
+       CASE( 'ADV', 'A' )
+          numTags = State_Chm%nAdvect
+       CASE( 'AER'      )
+          numTags = State_Chm%nAeroSpc
+       CASE( 'DRY', 'D' )
+          numTags = State_Chm%nDryDep
+       CASE( 'DRYALT'   )
+          numTags = State_Chm%nDryAlt
+       CASE( 'DUSTBIN'  )
+          numTags = NDUST
+       CASE( 'FIX', 'F' )
+          numTags = State_Chm%nKppFix
+       CASE( 'GAS', 'G' )
+          numTags = State_Chm%nGasSpc
+      !------------------------------------------------------
+      ! Prior to 10/24/18:
+      ! Disable Hg tagging for now, but leave commented out
+      ! for future reference (bmy, 10/24/18)
+      !CASE( 'HG0'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HG2'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HGP'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !------------------------------------------------------
+       CASE( 'HYG', 'H' )
+          numTags = State_Chm%nHygGrth
+       CASE( 'KPP', 'K' )
+          numTags = State_Chm%nKppSpc
+       CASE( 'LOS'      )
+          numTags = State_Chm%nLoss
+       CASE( 'PHO', 'P' )
+          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
+       CASE( 'UVFLX'    )
+          numTags = W_
+       CASE( 'PRD'      )
+          numTags = State_Chm%nProd
+       CASE( 'RRTMG'    )
+          numTags = nRadFlux
+       CASE( 'RXN'      )
+          numTags = NREACT
+       CASE( 'VAR', 'V' )
+          numTags = State_Chm%nKppVar
+       CASE( 'WET', 'W' )
+          numTags = State_Chm%nWetDep
+       CASE DEFAULT
+          ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
+                   ' is not implemented for getting number of tags'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+  END SUBROUTINE Get_NumTags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -9358,9 +9581,9 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    ErrMsg     = ''
-    ThisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
-    Found      = .TRUE.
+    errMsg     = ''
+    thisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
+    found      = .TRUE.
     numTags    = 0
 
     ! Optional arguments present?
@@ -9370,7 +9593,7 @@ CONTAINS
 
     ! Exit with error if getting tag name but index not specified
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be specified if retrieving an individual tag name'
+       errMsg = 'Index must be specified if retrieving an individual tag name'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -9378,61 +9601,12 @@ CONTAINS
     !=======================================================================
     ! Get number of tags
     !=======================================================================
-    SELECT CASE( TRIM( tagId ) )
-       CASE( 'ALL'     )
-          numTags = State_Chm%nSpecies
-       CASE( 'ADV'     )
-          numTags = State_Chm%nAdvect
-       CASE( 'AER'     )
-          numTags = State_Chm%nAeroSpc
-       CASE( 'DRY'     )
-          numTags = State_Chm%nDryDep
-       CASE( 'DRYALT'  )
-          numTags = State_Chm%nDryAlt
-       CASE( 'DUSTBIN' )
-          numTags = NDUST
-       CASE( 'FIX'     )
-          numTags = State_Chm%nKppFix
-       CASE( 'GAS'     )
-          numTags = State_Chm%nGasSpc
-       !------------------------------------------------------
-       ! Prior to 10/24/18:
-       ! Disable Hg tagging for now, but leave commented out
-       ! for future reference (bmy, 10/24/18)
-       !CASE( 'HG0'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HG2'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HGP'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !------------------------------------------------------
-       CASE( 'HYG'     )
-          numTags = State_Chm%nHygGrth
-       CASE( 'KPP'     )
-          numTags = State_Chm%nKppSpc
-       CASE( 'LOS'     )
-          numTags = State_Chm%nLoss
-       CASE( 'PHO'     )
-          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'   )
-          numTags = W_
-       CASE( 'PRD'     )
-          numTags = State_Chm%nProd
-       CASE( 'RRTMG'   )
-          numTags = nRadFlux
-       CASE( 'RXN'     )
-          numTags = NREACT
-       CASE( 'VAR'     )
-          numTags = State_Chm%nKppVar
-       CASE( 'WET'     )
-          numTags = State_Chm%nWetDep
-       CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
-                   ' is not implemented for getting number of tags'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-    END SELECT
+    CALL Get_NumTags( tagId, State_Chm, numTags, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in routine "Get_NumTags"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Sanity checks -- exit under certain conditions
@@ -9446,9 +9620,9 @@ CONTAINS
 
     ! Exit with error if index exceeds number of tags for this wildcard
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be greater than total number of tags for wildcard' &
+       errMsg = 'Index must be greater than total number of tags for wildcard' &
                 // TRIM(tagId)
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
@@ -9494,10 +9668,10 @@ CONTAINS
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
        CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM( tagId ) // &
+          found= .FALSE.
+          errMsg = 'Handling of tagId ' // TRIM( tagId ) // &
                    ' is not implemented for getting tag name'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
     END SELECT
 
@@ -9713,6 +9887,146 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Get_DiagNameDesc returns the diagnostic name plus any tags, as well
+!  as the diagnostic description plus any tags.  This is a convenience routine
+!  that was abstracted out of the Register_DiagField* routines.
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_DiagNameDesc( Input_Opt, State_Chm, metadataId,             &
+                               desc,      N,         tagId,                  &
+                               diagName,  diagDesc,  RC,                     &
+                               mapData                                      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm   ! Chemistry state object
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId  ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: desc        ! Description metadata
+    INTEGER,               INTENT(IN)  :: N           ! Current tag number
+    CHARACTER(LEN=*),      INTENT(IN)  :: tagId       ! Tag name (e.g. wildcard)
+    TYPE(DgnMap), POINTER, OPTIONAL    :: mapData     ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=255),    INTENT(OUT) :: diagName    ! Diagnostic name + tag
+    CHARACTER(LEN=255),    INTENT(OUT) :: diagDesc    ! Diagnostic desc + tag
+    INTEGER,               INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found
+    INTEGER            :: index
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg
+    CHARACTER(LEN=255) :: tagName
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Get_DiagNameDesc begins here!
+    !=======================================================================
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    index      = -1
+    diagName   = ''
+    diagDesc   = ''
+    tagName    = ''
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = ' -> at Get_TagName (in module Headers/state_diag_mod.F90)'
+
+    IF ( PRESENT( mapData ) ) THEN
+
+       !--------------------------------------------------------------------
+       ! If the mapping object is passed, get the name of each species
+       ! from the modelId as specified in the mapData array 
+       !--------------------------------------------------------------------
+
+       ! If indFlag="S", then mapData%slot2id is already the modelId,
+       ! but e.g. if indFlag="D", then mapData%Id is the drydep Id.
+       ! (etc. for other flag values)
+       index = mapData%slot2id(N)
+
+       ! If necessary, convert index to be the  modelId
+       ! so that we use it to look up the species name.
+       SELECT CASE( mapData%indFlag )
+          CASE( 'A' )
+             index = State_Chm%Map_Advect(index)
+          CASE( 'D' )
+             index = State_Chm%Map_DryDep(index)
+          CASE( 'F' )
+             index = State_Chm%Map_KppFix(index)
+          CASE( 'G' )
+             index = State_Chm%Map_GasSpc(index)
+          CASE( 'H' )
+             index = State_Chm%Map_HygGrth(index)
+          CASE( 'K' )
+             index = State_Chm%Map_KppSpc(index)
+          CASE( 'P' )
+             index = State_Chm%Map_Photol(index)
+          CASE( 'V' )
+             index = State_Chm%Map_KppVar(index)
+          CASE( 'W' )
+             index = State_Chm%Map_WetDep(index)
+          CASE DEFAULT
+             ! Pass
+       END SELECT
+
+       ! Now get the species name fromthe species database
+       tagName = State_Chm%SpcData(index)%info%name
+
+    ELSE
+
+       ! Otherwise, call Get_TagInfo to get tagName
+       CALL Get_TagInfo( Input_Opt = Input_Opt,                              &
+                         State_Chm = State_Chm,                              &
+                         tagID     = tagId,                                  &
+                         N         = N,                                      &
+                         tagName   = tagName,                                &
+                         found     = found,                                  &
+                         RC        = RC                                     )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+    ! Add the tag name to the diagnostic name and description
+    diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+    diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
+
+  END SUBROUTINE Get_DiagNameDesc
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Register_DiagField_R4_2D
 !
 ! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State\_Diag,
@@ -9722,7 +10036,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -9731,17 +10046,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! JDiag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -9752,20 +10070,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -9798,17 +10122,21 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagId /= '' ) THEN
 
-       ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get number of tags for this wildcard.  If the mapData object is
+       ! present, then we have already gotten this and saved this
+       ! into mapData%nSlots.  Otherwise, call Get_NumTags.
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -9822,22 +10150,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
-                      ' where tagID is ' // TRIM( tagID      ) //            &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Get_DiagNameDesc!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add taginfo to diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -9901,7 +10234,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -9910,17 +10244,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! Size for Ptr2Data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -9931,20 +10268,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: Found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagID, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -9981,21 +10324,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
 
-       ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       ! Get the total number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
-       IF ( nTags /=  SIZE(Ptr2Data,3) ) THEN
+       IF ( nTags /=  SIZE( Ptr2Data, 3 ) ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
                 '; number of tags is inconsistent with array size'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -10005,22 +10342,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
                       ' where tagID is ' // TRIM( tagID      )            // &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add the tag name to the diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10087,7 +10429,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10096,20 +10439,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
-!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID       ! Name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:,:)! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots           ! # of slots to
+!                                                            !  size Ptr2Data
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC                ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10120,20 +10463,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10166,22 +10516,26 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged if 4D, get number of tags
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,                &
-                      nTags=nTags )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-               '; Abnormal exit from routine "Get_TagInfo", could not '   // &
-               'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+    ! Make sure one of mapData or nSlots is passed!
+    IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+       errMsg = 'One of mapData or nSlots must be passed '             // &
+            'for tagged diagnostic : ' // TRIM( metadataId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    ! Number of tags
+    IF ( hasMapData ) THEN
+       nTags = mapData%nSlots
+    ELSE IF ( hasNSlots ) THEN
+       nTags = nSlots
     ENDIF
 
     ! Check that number of tags is consistent with array size
     IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-             '; number of tags is inconsistent with array size'
+            '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -10191,22 +10545,27 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
-       ! Get the tag name
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                         N=N, tagName=tagName )
+       ! Get the diagnostic name and description
+       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              metadataId = metadataId,                       &
+                              desc       = desc,                             &
+                              N          = N,                                &
+                              tagId      = tagId,                            &
+                              mapData    = mapData,                          &
+                              diagName   = diagName,                         &
+                              diagDesc   = diagDesc,                         &
+                              RC         = RC                               )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
                    ' where tagID is ' // TRIM( tagID      )               // &
-                   '; Abnormal exit from routine "Get_TagInfo"!'
+                   '; Abnormal exit from routine "Get_DiagNameDesc"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Add the tag name to the diagnostic name and description
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
        CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
@@ -10246,7 +10605,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10255,17 +10615,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10276,20 +10639,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: hasMapData, hasNSlots, found
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_2D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10322,17 +10692,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagId /= '' ) THEN
 
-       ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10346,22 +10718,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
-          ! Trap potential errors
+         ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
-                      ' where tagID is ' // TRIM( tagID      ) //            &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add taginfo to diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10425,7 +10802,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10434,17 +10812,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10455,20 +10836,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: Found,      onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagID, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_3D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10505,17 +10893,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
 
-       ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get the number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10529,22 +10919,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
-          ! Trap potential errors
+         ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
                       ' where tagID is ' // TRIM( tagID      )            // &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add the tag name to the diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10569,7 +10964,7 @@ CONTAINS
        ENDDO
 
     !-----------------------------------------------------------------------
-    ! If not tied to species then simply add the single field
+    ! If not tied to species, then simply add the single field
     !-----------------------------------------------------------------------
     ELSE
 
@@ -10611,7 +11006,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData ,  nSlots                    )
 !
 ! !USES:
 !
@@ -10620,20 +11016,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
-!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID       ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:,:)! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots           ! # of slots to
+!                                                            !  size Ptr2Data
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC                ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10644,20 +11040,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10687,22 +11090,29 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Assume always tagged. Get number of tags.
+    ! Assume always tagged -- get number of tags.
+    ! If the mapData object is passed, then we have already gotten the
+    ! number of tags in routine Get_Mapping.
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, nTags=nTags   )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+    ! Make sure one of mapData or nSlots is passed!
+    IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+       errMsg = 'One of mapData or nSlots must be passed '                // &
+                'for tagged diagnostic : ' // TRIM( metadataId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    ! Get number of tags
+    IF ( hasMapData ) THEN
+       nTags = mapData%nSlots
+    ELSE IF ( hasNSlots ) THEN
+       nTags = nSlots
     ENDIF
 
     ! Check that number of tags is consistent with array size
     IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
              '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -10713,21 +11123,27 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
-       ! Get the tag name
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         N=N, tagName=tagName )
+       ! Get the diagnostic name and description
+       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              metadataId = metadataId,                       &
+                              desc       = desc,                             &
+                              N          = N,                                &
+                              tagId      = tagId,                            &
+                              mapData    = mapData,                          &
+                              diagName   = diagName,                         &
+                              diagDesc   = diagDesc,                         &
+                              RC         = RC                               )
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
                    ' where tagID is ' // TRIM( tagID      )               // &
-                   '; Abnormal exit from routine "Get_TagInfo"!'
+                   '; Abnormal exit from routine "Get_DiagNameDesc"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Add the tag name to the diagnostic name and description
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
        CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
@@ -10911,5 +11327,1920 @@ CONTAINS
 110 FORMAT( a, a                )
 
   END SUBROUTINE Init_RRTMG_Indices
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Mapping
+!
+! !DESCRIPTION: Computes a mapping array which contains the index of each
+!  species in its State_Diag array.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Mapping( Input_Opt,   State_Chm, TaggedDiagList,            &
+                          metadataID,  mapData,   indFlag,                   &
+                          RC                                                )
+!
+! !USES:
+!
+    USE CharPak_Mod,        ONLY : CntMat
+    USE CharPak_Mod,        ONLY : Unique
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
+
+!    USE State_Chm_Mod, ONLY : NumSpecies_
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt      ! Root CPU?
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm      ! Chemistry State
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList ! Tags or wildcards
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataId     ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)    :: indFlag        ! Flag for Ind_
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, INTENT(OUT)   :: mapData        ! Mapping object
+    INTEGER,               INTENT(OUT)   :: RC             ! Success/failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+ !LOCAL VARIABLES:
+
+    ! Scalars
+    LOGICAL                   :: found
+    LOGICAL                   :: isWildCard
+    INTEGER                   :: C
+    INTEGER                   :: numTags
+    INTEGER                   :: numWildCards
+    INTEGER                   :: nTags
+    INTEGER                   :: index
+
+    ! Strings
+    CHARACTER(LEN=512)        :: errMsg
+    CHARACTER(LEN=255)        :: mapName
+    CHARACTER(LEN=255)        :: mapName2
+    CHARACTER(LEN=255)        :: tagName
+    CHARACTER(LEN=255)        :: thisLoc
+    CHARACTER(LEN=255)        :: spcName
+    CHARACTER(LEN=255)        :: wcName
+
+    ! Objects
+    TYPE(DgnTagItem), POINTER :: TagItem
+    TYPE(DgnTagList)          :: TagList
+    TYPE(DgnTagList)          :: WildCardList
+
+    !=======================================================================
+    ! Get_Mapping begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    mapName    = 'Map_ ' // TRIM( metadataId )
+    mapName2   = TRIM( mapName ) // '%id'
+    spcName    = ''
+    wcName     = ''
+    errMsg     = ''
+    thisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
+
+    !=======================================================================
+    ! Get info about the TaggedDiagList attached to this diagnostic
+    !=======================================================================
+    CALL Query_TaggedDiagList( Input_Opt      = Input_Opt,       &
+                               TaggedDiagList = TaggedDiagList,  &
+                               diagName       = metadataId,      &
+                               Found          = Found,           &
+                               isWildCard     = isWildCard,      &
+                               numWildCards   = numWildCards,    &
+                               WildCardList   = WildCardList,    &
+                               numTags        = numTags,         &
+                               TagList        = TagList,         &
+                               RC             = RC              )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Query_TaggedDiagList"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate and populate the mapData object
+    !=======================================================================
+
+    ! Allocate mapData (because it is a pointer, we have to
+    ! allocate the main object before any of the subfields)
+    IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+    ALLOCATE( mapData, STAT=RC )
+    CALL GC_CheckVar( mapName, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize fields of mapData (mostly to missing values)
+    mapData%nSlots  = -1
+    mapData%slot2id => NULL()
+    mapData%nIds    = -1
+    mapData%id2slot => NULL()
+    mapData%indFlag =  indFlag
+
+    IF ( isWildCard ) THEN
+
+       !--------------------------------------------------------------------
+       ! Diagnostic has a wildcard
+       !--------------------------------------------------------------------
+
+       ! Find the number of tags for this wildcard
+       TagItem => WildCardList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+          wcName = TagItem%name
+          CALL Get_NumTags( wcName, State_Chm, mapData%nSlots, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_NumTags"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             TagItem => NULL()
+             RETURN
+          ENDIF
+
+          ! Advance to next wildcard in list
+          ! NOTE: Most diagnostics will only have one wildcard!
+          TagItem => TagItem%next
+       ENDDO
+       TagItem => NULL()
+
+       ! Allocate the mapData%slot2id field
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%slot2id = -1
+
+       ! Get the id for each species indicated by wildcard
+       DO index = 1, mapData%nSlots
+          CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
+                            State_Chm = State_Chm,                           &
+                            tagId     = wcName,                              &
+                            N         = index,                               &
+                            tagName   = spcName,                             &
+                            found     = found,                               &
+                            RC        = RC                                  )
+
+           ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_Mapping!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
+          ! Save the id (and other ID's) in the mapping object
+          mapData%slot2id(index) = Ind_( spcName, indFlag )
+       ENDDO
+
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! Diagnostic has tags (i.e. individual non-wildcard species)
+       !--------------------------------------------------------------------
+
+       ! Set the number of tags
+       mapData%nSlots = numTags
+
+       ! Allocate the mapData%id field
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%slot2id = -1
+
+       ! Loop thru the list of tags and find the relevant ID
+       TagItem => TagList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+          spcName                =  TagItem%name
+          index                  =  TagItem%index
+          mapData%slot2id(index) =  Ind_( spcName, indFlag )
+          TagItem                => TagItem%next
+       ENDDO
+       TagItem => NULL()
+
+    ENDIF
+
+    !--------------------------------------------------------------------
+    ! Create an index array with the max number of possible Id's
+    !--------------------------------------------------------------------
+
+    ! Get max number of species for this indFlag
+    CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Allocate the mapData%id2slot field
+    IF ( ASSOCIATED( mapData%id2slot ) ) DEALLOCATE( mapData%id2slot )
+    ALLOCATE( mapData%id2slot( mapData%nIds ), STAT=RC )
+    CALL GC_CheckVar( mapName2, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    mapData%id2slot = -1
+    
+    ! Populate the mapData%id2slot field
+    DO C = 1, mapData%nSlots
+       index = mapData%slot2Id(C)
+       mapData%id2slot(index) = C
+    ENDDO
+
+  END SUBROUTINE Get_Mapping
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_MapData_and_NumSlots
+!
+! !DESCRIPTION: Returns the mapping object (if passed) for a given
+!  diagnostic, as well as the number of slots to size the last dimension
+!  of the diagnostic array.  This is a convenience routine that was
+!  abstracted from the various Init_and_Register_* routines in order
+!  to reduce repetition of code.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_MapData_and_NumSlots( Input_Opt,      State_Chm,            &
+                                       TaggedDiagList, metadataId,           &
+                                       numSlots,       RC,                   &
+                                       indFlag,        mapData              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt      ! Input Options
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
+    TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags/WCs per diag
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diangnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        ! 
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, OPTIONAL    :: mapData        ! Mapping object
+    INTEGER,               INTENT(OUT) :: numSlots       ! # of slots to
+                                                         !  size data array
+    INTEGER,               INTENT(OUT) :: RC             ! Success or failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found
+
+    ! Strings
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC    = GC_SUCCESS
+    found = .FALSE.
+    errMsg = ''
+    tagId  = ''
+    thisLoc = &
+     ' -> at Get_MapData_and_NumSlots (in module Headers/state_diag_mod.F90)'
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+
+       ! If the mapping array is passed, then get the vector which contains
+       ! the list of ModelID's from the species database for each
+       ! quantity in the diagnostic, as well as the number of slots
+       ! to allocate for the 4th dimension of Ptr2Data.
+       CALL Get_Mapping( Input_Opt      = Input_Opt,                         &
+                         State_Chm      = State_Chm,                         &
+                         TaggedDiagList = TaggedDiagList,                    &
+                         metadataId     = metadataId,                        &
+                         indFlag        = indFlag,                           &
+                         mapData        = mapData,                           &
+                         RC             = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Get_Mapping": '// TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Number of slots to size the 4th dim of Ptr2Data
+       numSlots = mapData%nSlots
+
+    ELSE
+
+       ! If the mapping array is not passed, then find the wildcard
+       ! that is attached to this diagnostic ...
+       CALL Get_Metadata_State_Diag( am_I_Root  = Input_Opt%amIRoot,          &
+                                     metadataId = metadataId,                 &
+                                     Found      = Found,                      &
+                                     tagId      = tagID,                      &
+                                     RC         = RC                         )
+
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          ErrMsg = 'Error encountered in "Get_MetaData_State_Diag", '      // &
+                   'could not get tagId for ' // TRIM( metadataId )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! ... and then find the number of "tags" corresponding to
+       ! this wilcard.  This will be the number of slots for
+       ! allocating the 4th dimension of Ptr2Data.
+       IF ( found ) THEN
+          CALL Get_NumTags( tagId, State_Chm, numSlots, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Abnormal exit from routine "Get_NumTags", could  ' // &
+                      'not get nTags for !' // TRIM( metadataId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+    ENDIF
+
+  END SUBROUTINE Get_MapData_and_NumSlots
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_2D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_2D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      dim1d,       speciesFlag              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1-D data
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)    ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NW,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_2D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_2D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the id for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+
+    ! Get dimension if this is 1-D tagged data
+    IF ( PRESENT( dim1d ) ) THEN
+       NW = dim1d
+    ELSE
+       NW = -1
+    ENDIF
+
+    ! Allocate the data array
+    IF ( numSlots > 0 .and. NW > 0 ) THEN
+       ALLOCATE( Ptr2Data( NW, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField" (hasMapData=T)!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_3D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 3-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_3D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)  ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_3D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_3D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    IF ( numSlots > 0 ) THEN
+       ALLOCATE( Ptr2Data( NX, NY, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY, NZ       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    print*, '### diagId: ', TRIM(diagId)
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_4D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 4-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_4D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:)! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_4D begins here!
+    !=======================================================================
+
+    ! Initialzie
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_4D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    ALLOCATE( Ptr2Data( NX, NY, NZ, numSlots ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                      &
+                             State_Chm  = State_Chm,                      &
+                             State_Diag = State_Diag,                     &
+                             metadataId = diagId,                         &
+                             Ptr2Data   = Ptr2Data,                       &
+                             mapData    = mapData,                        &
+                             nSlots     = numSlots,                       &
+                             RC         = RC                             )
+
+     ! Trap potential errors
+     IF ( RC /= GC_SUCCESS ) THEN
+        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+        CALL GC_Error( errMsg, RC, thisLoc )
+        RETURN
+     ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_2D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_2D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      dim1d,       speciesFlag              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1d data
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)    ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NW,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_4D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    numSlots   = -1
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_2D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+
+    IF ( PRESENT( dim1d ) ) THEN
+       NW = State_Grid%NZ
+    ELSE
+       NW = -1
+    ENDIF
+
+    ! Allocate array
+    IF ( numSlots > 0 .and. NW > 0 ) THEN
+       ALLOCATE( Ptr2Data( NW, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_3D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 3-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_3D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)  ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_3D begins here!
+    !=======================================================================
+
+    ! Initialzie
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_3D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    IF ( numSlots > 0 ) THEN
+       ALLOCATE( Ptr2Data( NX, NY, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY, NZ       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                             )
+
+     ! Trap potential errors
+     IF ( RC /= GC_SUCCESS ) THEN
+        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+        CALL GC_Error( errMsg, RC, thisLoc )
+        RETURN
+     ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_4D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 4-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_4D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      speciesFlag                           )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:)! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_4D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_4D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( speciesFlag ) ) THEN
+       indFlag = speciesFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    ALLOCATE( Ptr2Data( NX, NY, NZ, numSlots ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+     ! Trap potential errors
+     IF ( RC /= GC_SUCCESS ) THEN
+        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+        CALL GC_Error( errMsg, RC, thisLoc )
+        RETURN
+     ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_MapData
+!
+! !DESCRIPTION: Finalizes a mapping data object
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_MapData( diagId, mapData, RC )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId   ! Diagnostic name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, INTENT(INOUT) :: mapData  ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?!
+!
+! !REVISION HISTORY:
+!  01 Apr 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: mapId
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( ASSOCIATED( mapData ) ) THEN
+
+       ! Deallocate and nullify the allId
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%id2slot'
+       IF ( ASSOCIATED( mapData%id2slot ) ) THEN
+          DEALLOCATE( mapData%id2slot, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%id2slot => NULL()
+
+       ! Deallocate and nullify the id field
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%slot2id'
+       IF ( ASSOCIATED( mapData%slot2id ) ) THEN
+          DEALLOCATE( mapData%slot2id, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%slot2id => NULL()
+
+       ! Then finalize the mapData object itself
+       mapId = 'State_Diag%Map_' // TRIM( diagId )
+       DEALLOCATE( mapData, STAT=RC )
+       CALL GC_CheckVar( mapId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+    ENDIF
+
+    ! Nullify mapData
+    mapData => NULL()
+
+  END SUBROUTINE Finalize_MapData
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_2D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_2D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)     ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_3D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 3-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_3D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)   ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_4D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 4-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_4D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_2D
+!
+! !DESCRIPTION: Deallocates and nullifies an 8-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_2D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)     ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_3D
+!
+! !DESCRIPTION: Deallocates and nullifies an 8-byte, 3-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_3D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)   ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_4D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_4D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_4D
 !EOC
 END MODULE State_Diag_Mod

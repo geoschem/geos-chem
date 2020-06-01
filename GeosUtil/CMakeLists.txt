@@ -15,7 +15,6 @@ add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
 	ifort_errmsg.F90
 	pressure_mod.F90
 	regrid_a2a_mod.F90
-        roundoff_mod.F90
 	time_mod.F90
 	timers_mod.F90
 	transfer_mod.F90

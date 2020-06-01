@@ -103,9 +103,6 @@ MODULE SULFATE_MOD
   !% ESO4_an    : SO4 anthropogenic emissions      [kg SO4/box/s]
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !
-  ! JH2O2      : Monthly mean J(H2O2) values      [s-1]
-  ! O3m        : Monthly mean O3 concentration    [v/v]
-  ! PH2O2m     : Monthly mean P(H2O2)             [molec/cm3/s]
   ! PMSA_DMS   : P(MSA) from DMS                  [v/v/timestep]
   ! PSO2_DMS   : P(SO2) from DMS                  [v/v/timestep]
   ! PSO4_SO2   : P(SO4) from SO2                  [v/v/timestep]
@@ -136,6 +133,8 @@ MODULE SULFATE_MOD
   REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
   REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
   REAL(fp),  ALLOCATABLE :: COSZM(:,:)
+  REAL(fp),  ALLOCATABLE :: GLOBAL_OH(:,:,:)
+  REAL(fp),  ALLOCATABLE :: GLOBAL_HNO3(:,:,:)
 
 #ifdef APM
   REAL(fp),  ALLOCATABLE :: PSO4_SO2APM(:,:,:)
@@ -151,12 +150,7 @@ MODULE SULFATE_MOD
 
   ! These are pointers to fields in the HEMCO data structure.
   ! Declare these with REAL(fp), aka REAL*4. (bmy, 3/4/15)
-  REAL(f4), POINTER      :: O3m(:,:,:)      => NULL()
-  REAL(f4), POINTER      :: PH2O2m(:,:,:)   => NULL()
-  REAL(f4), POINTER      :: JH2O2(:,:,:)    => NULL()
   REAL(f4), POINTER      :: OH(:,:,:)       => NULL()
-  REAL(f4), POINTER      :: NO3(:,:,:)      => NULL()
-  REAL(f4), POINTER      :: HNO3(:,:,:)     => NULL()
   REAL(f4), POINTER      :: NDENS_SALA(:,:) => NULL()
   REAL(f4), POINTER      :: NDENS_SALC(:,:) => NULL()
 
@@ -211,8 +205,9 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
     USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_Interface_Mod,  ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -262,7 +257,6 @@ CONTAINS
     LOGICAL                  :: LGRAVSTRAT
     LOGICAL                  :: LDSTUP
     LOGICAL                  :: LUCX
-    LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
     LOGICAL                  :: prtDebug
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
@@ -272,7 +266,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp),        POINTER :: Spc(:,:,:,:)
+    REAL(fp), POINTER :: Spc(:,:,:,:)
 #ifdef APM
     INTEGER           :: IDNH3,IDSO2
     REAL(fp)          :: A_M2
@@ -291,7 +285,6 @@ CONTAINS
     LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
     LDSTUP               = Input_Opt%LDSTUP
     LUCX                 = Input_Opt%LUCX
-    IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     ! Initialize pointers
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
@@ -303,52 +296,22 @@ CONTAINS
     MONTH                = GET_MONTH()
 
     ! If it's an offline simulation ...
-    IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-       ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
-       IF ( FIRSTCHEM ) THEN
+       ! Evaluate offline global OH from HEMCO
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', GLOBAL_OH, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for GLOBAL_OH from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-          CALL HCO_GetPtr( HcoState, 'O3', O3m, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to O3!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState, 'PH2O2', PH2O2m, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg =  'Cannot get pointer to PH2O2!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState, 'JH2O2', JH2O2,  RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to JH2O2!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState, 'GLOBAL_OH',  OH,    RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState, 'GLOBAL_NO3', NO3,   RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to GLOBAL_NO3!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to GLOBAL_HNO3!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+       ! Evaluate offline global HNO3 from HEMCO
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', GLOBAL_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for GLOBAL_HNO3 from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! And compute time scaling arrays for offline OH, NO3
@@ -556,7 +519,7 @@ CONTAINS
        ENDIF
 
        ! For offline runs only ...
-       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
           !--------------------------------
           ! DMS chemistry (offline only)
@@ -1816,6 +1779,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_Interface_Mod,  ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -1893,8 +1858,14 @@ CONTAINS
     REAL(fp)            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
     REAL(fp)            :: LNO3, BOXVL
 
+    ! Strings
+    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+
     ! Pointers
     REAL(fp), POINTER   :: Spc(:,:,:,:)
+
+    ! Arrays
+    REAL(fp)            :: GLOBAL_NO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
     ! CHEM_DMS begins here!
@@ -1903,6 +1874,9 @@ CONTAINS
 
     ! Assume success
     RC          = GC_SUCCESS
+
+    ! Set location for error messages
+    ThisLoc  = ' -> at CHEM_DMS (in module GeosCore/sulfate_mod.F90)'
     
     ! Copy fields from INPUT_OPT to local variables for use below
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -1915,6 +1889,14 @@ CONTAINS
 
     ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
     f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
+
+    ! Evaluate offline global NO3 from HEMCO
+    CALL HCO_EvalFld( HcoState, 'GLOBAL_NO3', GLOBAL_NO3, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get data for GLOBAL_NO3 from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=================================================================
     ! Do the chemistry over all chemically-active grid boxes!
@@ -1934,11 +1916,30 @@ CONTAINS
        ! Temperature [K]
        TK     = State_Met%T(I,J,L)
 
-       ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
+       ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3]
        O2     = State_Met%AIRDEN(I,J,L) * f * 0.21e+0_fp
        DMS0   = Spc(I,J,L,id_DMS)
        OH     = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
-       XNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+
+       ! Get NO3 [molec/cm3]
+       !==============================================================
+       ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
+       ! If at nighttime, use the monthly mean NO3 concentration from
+       ! the NO3 array.  If during the daytime, set the NO3 concentration
+       ! to zero.  We don't have to relax to the monthly mean
+       ! concentration every 3 hours (as for HNO3) since NO3 has a
+       ! very short lifetime. (rjp, bmy, 12/16/02)
+       !==============================================================       
+       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN       
+          ! NO3 goes to zero during the day
+          XNO3 = 0e+0_fp
+       ELSE       
+          ! At night: Get global offline NO3 [v/v] and convert to [molec/cm3]
+          XNO3 = GLOBAL_NO3(I,J,L) * State_Met%AIRDEN(I,J,L) * 1.0e-3_fp &
+                                   * AVO / AIRMW
+       ENDIF
+       ! Make sure NO3 is not negative
+       XNO3  = MAX( XNO3, 0e+0_fp )
 
        !==============================================================
        ! (1) DMS + OH:  RK1 - addition channel
@@ -2098,14 +2099,16 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
-    USE TIME_MOD,       ONLY : GET_MONTH
-    USE TIME_MOD,       ONLY : GET_TS_CHEM
-    USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_Interface_Mod,  ONLY : HcoState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -2144,10 +2147,11 @@ CONTAINS
     REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
 
     ! Strings
-    CHARACTER(LEN=255) :: FILENAME
+    CHARACTER(LEN=255) :: FILENAME, ErrMsg, ThisLoc
 
     ! Arrays
-    REAL*4             :: ARRAY(State_Grid%NX,State_Grid%NY,State_Grid%MaxChemLev)
+    REAL(fp)           :: PH2O2m(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(fp)           :: JH2O2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
     REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -2160,6 +2164,9 @@ CONTAINS
     ! Assume success
     RC        = GC_SUCCESS
 
+    ! Set location for error messages
+    ThisLoc  = ' -> at CHEM_H2O2 (in module GeosCore/sulfate_mod.F90)'
+
     ! Point to chemical species array [v/v dry]
     Spc       => State_Chm%Species
 
@@ -2168,6 +2175,22 @@ CONTAINS
 
     ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
     F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
+
+    ! Evaluate offline fields from HEMCO for P(H2O2)
+    CALL HCO_EvalFld( HcoState, 'PH2O2', PH2O2m, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get data for PH2O2 from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Evaluate offline fields from HEMCO for J(H2O2)
+    CALL HCO_EvalFld( HcoState, 'JH2O2', JH2O2, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get data for JH2O2 from HEMCO!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=================================================================
     ! Loop over tropopsheric grid boxes and do chemistry
@@ -2258,6 +2281,9 @@ CONTAINS
     USE ErrCode_Mod           
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
     USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
     USE State_Chm_Mod,        ONLY : ChmState
@@ -2266,11 +2292,9 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
 #ifdef APM
-    USE APM_DRIV_MOD,       ONLY : PSO4GAS
-    USE APM_DRIV_MOD,       ONLY : XO3
+    USE APM_DRIV_MOD,         ONLY : PSO4GAS
+    USE APM_DRIV_MOD,         ONLY : XO3
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2380,6 +2404,7 @@ CONTAINS
     !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
     ! dust size bins, based on a size- and area-weighted formulism
     ! (GET_DUST_ALK)
+    REAL(fp)              :: O3m(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
     REAL(fp), POINTER     :: Spc(:,:,:,:)
@@ -2392,8 +2417,7 @@ CONTAINS
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
 
-    CHARACTER(LEN=255)    :: ErrMsg
-    CHARACTER(LEN=255)    :: ThisLoc
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
 #ifdef LUO_WETDEP
     ! For Luo et al wetdep scheme
@@ -2476,6 +2500,16 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
+    ! If offline aerosol simulation, evaluate offline oxidant fields from HEMCO
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+       CALL HCO_EvalFld( HcoState, 'O3', O3m, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for O3 from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -2519,7 +2553,24 @@ CONTAINS
        ELSE
           HOBr0  = 0.e+0_fp
        ENDIF
-       O3 = GET_O3( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met )
+
+       ! Calculate O3, defined only in the chemistry grid
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ! Get O3 from State_Chm%Species [v/v]
+          IF ( State_Met%InChemGrid(I,J,L) ) THEN
+             O3 = State_Chm%Species(I,J,L,id_O3)
+          ELSE
+             O3 = 0e+0_fp
+          ENDIF
+       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+          ! Get offline mean O3 [v/v] for this gridbox and month
+          IF ( L <= State_Grid%MaxChemLev ) THEN
+             O3 = O3m(I,J,L)
+          ELSE
+             O3 = 0e+0_fp
+          ENDIF
+       ENDIF
+
 #ifdef APM
        XO3(I,J,L)= O3
 #endif
@@ -2863,7 +2914,7 @@ CONTAINS
              GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
           ELSE IF ( IS_OFFLINE ) THEN
              TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
-             GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+             GNO3  = GLOBAL_HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
              ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
              TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
           ENDIF
@@ -3769,7 +3820,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        HNO3_vv = Spc(I,J,L,id_HNO3)
     ELSE
-       HNO3_vv = HNO3(I,J,L)
+       HNO3_vv = GLOBAL_HNO3(I,J,L)
     ENDIF
 
     ! Convert HNO3 [v/v] to [equivalents]
@@ -4217,7 +4268,7 @@ CONTAINS
     ELSE
 
        ! HNO3 is in v/v (from HEMCO)
-       HNO3_vv = HNO3(I,J,L)
+       HNO3_vv = GLOBAL_HNO3(I,J,L)
 
        ! Convert HNO3 [v/v] to [equivalents]
        HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) / 63.e-3_fp
@@ -5814,7 +5865,6 @@ CONTAINS
     USE APM_INIT_MOD,   ONLY : IFEMITBCOCS
     USE APM_DRIV_MOD,   ONLY : PSO4GAS
     USE APM_DRIV_MOD,   ONLY : FCLOUD
-    USE WETSCAV_MOD,    ONLY : PSO4_SO2APM2
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -5861,6 +5911,9 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER :: Spc(:,:,:,:)
+#ifdef APM
+    REAL(fp), POINTER :: PSO4_SO2APM2(:,:,:)
+#endif
 
 #ifdef APM
     REAL*8            :: MASS0, MASS, PMASS
@@ -5887,6 +5940,8 @@ CONTAINS
     CALL WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
                           State_Met, RC )
 
+    ! Point to PSO4_SO2APM2 now moved to State_Met
+    PSO4_SO2APM2 => State_Met%PSO4_SO2APM2
 #endif
 
     ! Point to chemical species array [kg]
@@ -6524,7 +6579,7 @@ CONTAINS
        IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
           ! Impose a diurnal variation on OH during the day
-          OH_MOLEC_CM3 = OH(I,J,L)  * &
+          OH_MOLEC_CM3 = GLOBAL_OH(I,J,L)  * &
                          ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) * &
                          ( 86400e+0_fp           / GET_TS_CHEM() )
 
@@ -6544,209 +6599,6 @@ CONTAINS
     ENDIF
 
   END FUNCTION GET_OH
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_no3
-!
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species (for
-!  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
-!  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02)
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met ) &
-       RESULT( NO3_MOLEC_CM3 )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp) :: NO3_MOLEC_CM3
-    REAL(fp) :: BOXVL
-
-    !=================================================================
-    ! GET_NO3 begins here!
-    !=================================================================
-
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       !%%% NOTE: we are not sure GET_NO3 is called for a full-chemistry
-       !%%% simulation. It only seems to be called for CHEM_DMS, which
-       !%%% is only called for the aerosol-only simulation
-
-       !--------------------
-       ! Coupled simulation
-       !--------------------
-
-       ! Take NO3 from State_Chm%Species [molec/cm3]
-       ! NO3 is defined only in the chemistry grid
-       IF ( State_Met%InChemGrid(I,J,L) ) THEN
-
-          ! Grid box volume [cm3]
-          BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-          ! At night: Get NO3 [v/v] and convert it to [kg]
-          NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3) &
-                          * State_Met%AD(I,J,L) * ( 62e+0_fp/AIRMW )
-
-          ! Convert NO3 from [kg] to [molec/cm3]
-          NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
-
-       ELSE
-          NO3_MOLEC_CM3 = 0e+0_fp
-       ENDIF
-
-    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-       !==============================================================
-       ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-       ! in [v/v].  Convert these to [molec/cm3] as follows:
-       !
-       !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-       !  ------- = --------- * -------- * ---------------- =  kg NO3
-       !  vol air   moles air      1        kg air/mole air
-       !
-       ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-       !
-       !  kg NO3   molec NO3   mole NO3     1     molec NO3
-       !  ------ * --------- * -------- * ----- = ---------
-       !     1     mole NO3     kg NO3     cm3       cm3
-       !          ^                    ^
-       !          |____________________|
-       !            this is XNUMOL_NO3
-       !
-       ! If at nighttime, use the monthly mean NO3 concentration from
-       ! the NO3 array.  If during the daytime, set the NO3 concentration
-       ! to zero.  We don't have to relax to the monthly mean
-       ! concentration every 3 hours (as for HNO3) since NO3 has a
-       ! very short lifetime. (rjp, bmy, 12/16/02)
-       !==============================================================
-
-       ! Test if daylight
-       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
-
-          ! NO3 goes to zero during the day
-          NO3_MOLEC_CM3 = 0e+0_fp
-
-       ELSE
-
-          ! Grid box volume [cm3]
-          BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-          ! At night: Get NO3 [v/v] and convert it to [kg]
-          NO3_MOLEC_CM3 = NO3(I,J,L)     * State_Met%AD(I,J,L) * &
-                          ( 62e+0_fp/AIRMW )
-
-          ! Convert NO3 from [kg] to [molec/cm3]
-          NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
-
-       ENDIF
-
-       ! Make sure NO3 is not negative
-       NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0e+0_fp )
-
-    ENDIF
-
-  END FUNCTION GET_NO3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_o3
-!
-! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
-!  aerosol simulations. (bmy, 12/16/02, 10/25/05)
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met ) &
-       RESULT( O3_VV )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp)              :: O3_VV
-
-    !=================================================================
-    ! GET_O3 begins here!
-    !=================================================================
-
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       !--------------------
-       ! Coupled simulation
-       !--------------------
-
-       ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
-       ! O3 is defined only in the chemistry grid
-       IF ( State_Met%InChemGrid(I,J,L) ) THEN
-          O3_VV = State_Chm%Species(I,J,L,id_O3)
-       ELSE
-          O3_VV = 0e+0_fp
-       ENDIF
-
-    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-       !--------------------
-       ! Offline simulation
-       !--------------------
-
-       ! Get O3 [v/v] for this gridbox & month
-       ! O3 is defined only in the chemistry grid
-       IF ( L <= State_Grid%MaxChemLev ) THEN
-          O3_VV = O3m(I,J,L)
-       ELSE
-          O3_VV = 0e+0_fp
-       ENDIF
-
-    ENDIF
-
-  END FUNCTION GET_O3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7360,6 +7212,16 @@ CONTAINS
        CALL GC_CheckVar( 'sulfate_mod.F90:COSZM', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        COSZM = 0e+0_fp
+
+       ALLOCATE(GLOBAL_OH(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC)
+       CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_OH', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       GLOBAL_OH = 0e+0_fp
+
+       ALLOCATE(GLOBAL_HNO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC)
+       CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_HNO3', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       GLOBAL_HNO3 = 0e+0_fp
     ENDIF
 
     !================================================================
@@ -7486,14 +7348,10 @@ CONTAINS
     IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
     IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )
     IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
+    IF ( ALLOCATED( GLOBAL_OH  ) ) DEALLOCATE( GLOBAL_OH  )
+    IF ( ALLOCATED( GLOBAL_HNO3) ) DEALLOCATE( GLOBAL_HNO3)
 
     ! Free pointers
-    IF ( ASSOCIATED( O3m        ) ) O3m        => NULL()
-    IF ( ASSOCIATED( PH2O2m     ) ) PH2O2m     => NULL()
-    IF ( ASSOCIATED( JH2O2      ) ) JH2O2      => NULL()
-    IF ( ASSOCIATED( OH         ) ) OH         => NULL()
-    IF ( ASSOCIATED( NO3        ) ) NO3        => NULL()
-    IF ( ASSOCIATED( HNO3       ) ) HNO3       => NULL()
     IF ( ASSOCIATED( NDENS_SALA ) ) NDENS_SALA => NULL()
     IF ( ASSOCIATED( NDENS_SALC ) ) NDENS_SALC => NULL()
 

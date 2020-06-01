@@ -144,8 +144,9 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -181,25 +182,27 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                    :: I, J, L, N, NA
-    INTEGER                    :: nAdvect
-    REAL(fp)                   :: A_CM2, DTSRCE, E_CO2
+    INTEGER               :: I, J, L, N, NA
+    INTEGER               :: nAdvect
+    REAL(fp)              :: A_CM2, DTSRCE, E_CO2
 
     ! SAVEd scalars
-    LOGICAL,         SAVE      :: FIRST      = .TRUE.
+    LOGICAL, SAVE         :: FIRST = .TRUE.
 
     ! Strings
-    CHARACTER(LEN=255)         :: ThisLoc
-    CHARACTER(LEN=512)         :: ErrMsg
+    CHARACTER(LEN=255)    :: ThisLoc
+    CHARACTER(LEN=512)    :: ErrMsg
 
     ! Pointers
-    REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  )
-    REAL(fp),        POINTER   :: Spc       (:,:,:,:)
+    REAL(fp), POINTER     :: Spc(:,:,:,:)
+
+    ! Arrays
+    REAL(fp) :: CO2_COPROD(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL(fp),        PARAMETER :: CM2PERM2 = 1.d4
-    REAL(fp),        PARAMETER :: CM3PERM3 = 1.d6
+    REAL(fp), PARAMETER   :: CM2PERM2 = 1.d4
+    REAL(fp), PARAMETER   :: CM3PERM3 = 1.d6
 
     !=================================================================
     ! EMISSCO2 begins here!
@@ -208,8 +211,7 @@ CONTAINS
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at EMISSCO2 (in module GeosCore/co2_mod.F)'
-    CO2_COPROD  => NULL()
+    ThisLoc     = ' -> at EMISSCO2 (in module GeosCore/co2_mod.F90)'
     Spc         => NULL()
 
     ! Import emissions from HEMCO (through HEMCO state)
@@ -261,14 +263,10 @@ CONTAINS
        ! Point to chemical species array [kg/kg dry air]
        Spc => State_Chm%Species
 
-       ! %%% NOTE: This might be able to be done just in init %%%
-       ! %%% as the HEMCO pointer will evolve in time %%%%%%%%%%%
-       ! Get a pointer to the CO2 production from CO oxidation
-       ! This is now listed in the NON-EMISSIONS DATA section of
-       ! the HEMCO configuration file. (bmy, 4/17/15)
-       CALL HCO_GetPtr( HcoState, 'CO2_COPROD', CO2_COPROD, RC )
+       ! Evalulate the CO2 production from HEMCO
+       CALL HCO_EvalFld( HcoState, 'CO2_COPROD', CO2_COPROD, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'CO2 production is not defined in HEMCO!'
+          ErrMsg = 'CO_COPROD not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -321,9 +319,8 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-    ! Free pointers
+    ! Free pointer
     Spc        => NULL()
-    CO2_COPROD => NULL()
 
   END SUBROUTINE EMISSCO2
 !EOC

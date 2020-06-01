@@ -207,12 +207,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, &
-                               State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE GC_Init_StateObj( am_I_Root,  Diag_List, TaggedDiag_List,       &
+                               Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
 !
 ! !USES:
 !
     USE DiagList_Mod
+    USE TaggedDiagList_Mod
     USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
@@ -223,19 +225,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    LOGICAL,             INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    TYPE(GrdState), INTENT(INOUT) :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    TYPE(GrdState),      INTENT(INOUT) :: State_Grid  ! Grid State object
+    TYPE(MetState),      INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,             INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  Need to add better error checking, currently we just return upon error.
@@ -275,12 +279,13 @@ CONTAINS
     !=======================================================================
     ! Initialize the Diagnostics State object
     !=======================================================================
-    CALL Init_State_Diag( Input_Opt  = Input_Opt,   &  ! Input Options
-                          State_Chm  = State_Chm,   &  ! Chemistry State
-                          State_Grid = State_Grid,  &  ! Grid State
-                          Diag_List  = Diag_List,   &  ! Diagnostic list obj
-                          State_Diag = State_Diag,  &  ! Diagnostics State
-                          RC         = RC          )   ! Success or failure
+    CALL Init_State_Diag( Input_Opt       = Input_Opt,                      &  
+                          State_Chm       = State_Chm,                      &  
+                          State_Grid      = State_Grid,                     &  
+                          Diag_List       = Diag_List,                      &  
+                          TaggedDiag_List = TaggedDiag_List,                &
+                          State_Diag      = State_Diag,                     &  
+                          RC              = RC                             )   
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -662,16 +667,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Initialize "toms_mod.F90"
-    !-----------------------------------------------------------------
-    CALL Init_Toms( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Toms"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
     !=================================================================

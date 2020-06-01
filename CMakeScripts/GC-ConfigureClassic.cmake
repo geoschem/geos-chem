@@ -9,6 +9,7 @@ function(configureGCClassic)
     )
     gc_pretty_print(VARIABLE OMP IS_BOOLEAN)
     if("${OMP}")
+       set(NO_OMP "OFF" CACHE STRING "Boolean opposite of the OMP switch, needed for backwards compatibility")
        find_package(OpenMP REQUIRED)
        target_compile_options(GEOSChemBuildProperties
            INTERFACE ${OpenMP_Fortran_FLAGS}
@@ -20,6 +21,10 @@ function(configureGCClassic)
        target_compile_definitions(GEOSChemBuildProperties
            INTERFACE NO_OMP
        )
+        set(NO_OMP "ON" CACHE STRING "Boolean opposite of the OMP switch, needed for backwards compatibility")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "NO_OMP"
+        )
     endif()
 
     #----------------------------------------------------------------

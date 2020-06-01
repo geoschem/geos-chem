@@ -318,7 +318,7 @@ PROGRAM GEOS_Chem
   ! Read the user-defined options for the simulation, etc.
   !-----------------------------------------------------------------
 
-  ! Initialize fields of the Input Options object
+  ! Initialize fields of the Input Options object (including amIRoot)
   CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
@@ -502,22 +502,26 @@ PROGRAM GEOS_Chem
         CALL Timer_Start( "All diagnostics",           RC )
         CALL Timer_Start( "=> History (netCDF diags)", RC )
      ENDIF
-     ! Don't initialize diagnostics when in dry-run mode
-     historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
-     CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
+
+     ! Initialize the Diag_List (list of all diagnostics)
+     historyConfigFile = 'HISTORY.rc'
+     CALL Init_DiagList( Input_Opt%amIroot, historyConfigFile, Diag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_DiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
-     CALL Init_TaggedDiagList( am_I_Root, Diag_List, TaggedDiag_List, RC )
+
+     ! Initialize the TaggedDiag_List (list of wildcards/tags per diagnostic)
+     CALL Init_TaggedDiagList( Input_Opt, Diag_List, TaggedDiag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
-     !###  Print diagnostic lists if needed for debugging
-     IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
-     IF ( prtDebug ) CALL Print_TaggedDiagList( am_I_Root, TaggedDiag_List, RC )
+     IF ( prtDebug ) THEN
+        CALL Print_DiagList( Input_Opt%amIRoot, Diag_List, RC )
+        CALL Print_TaggedDiagList( Input_Opt, TaggedDiag_List, RC )
+     ENDIF
 
      IF ( Input_Opt%useTimers ) THEN
         CALL Timer_End( "All diagnostics",           RC )
@@ -546,10 +550,17 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
 
   ! Initialize State_Met, State_Chm, and State_Diag objects
-  CALL GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, &
-                         State_Diag, State_Grid, State_Met, RC )
+  CALL GC_Init_StateObj( am_I_Root       = am_I_Root,                       &
+                         Diag_List       = Diag_List,                       &
+                         TaggedDiag_List = TaggedDiag_List,                 &
+                         Input_Opt       = Input_Opt,                       &
+                         State_Chm       = State_Chm,                       &
+                         State_Diag      = State_Diag,                      &
+                         State_Grid      = State_Grid,                      &
+                         State_Met       = State_Met,                       &
+                         RC              = RC                              )
   IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "GC_Init_All!"!'
+     ErrMsg = 'Error encountered in "GC_Init_StateObj!"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
@@ -1257,18 +1268,6 @@ PROGRAM GEOS_Chem
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Get_UvAlbedo"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( Input_Opt%USE_TOMS_O3 ) THEN
-                ! Get TOMS overhead O3 columns for photolysis from
-                ! the HEMCO data structure (bmy, 3/20/15)
-                CALL Read_TOMS( Input_Opt, RC )
-
-                ! Trap potential errors
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Read_TOMS"!'
-                   CALL Error_Stop( ErrMsg, ThisLoc )
-                ENDIF
              ENDIF
 
           ENDIF
@@ -2568,9 +2567,9 @@ CONTAINS
 
           ! Get the overhead O3 column for FAST-J.  Take either the
           ! TOMS O3 data or the column O3 directly from the met fields
-          CALL Compute_Overhead_O3( Input_Opt, State_Grid, DAY, &
+          CALL Compute_Overhead_O3( Input_Opt, State_Grid, State_Chm, DAY, &
                                     Input_Opt%USE_O3_FROM_MET,  &
-                                    State_Met%TO3 )
+                                    State_Met%TO3, RC )
        ENDIF
     ENDIF
 

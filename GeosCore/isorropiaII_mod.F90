@@ -19,7 +19,6 @@ MODULE ISORROPIAII_MOD
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD    ! For real precisions (hp)
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
@@ -33,7 +32,6 @@ MODULE ISORROPIAII_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: GET_HNO3
   PRIVATE :: INIT_ISORROPIAII
   PRIVATE :: SAFELOG10
   PRIVATE :: SET_HNO3
@@ -81,9 +79,6 @@ MODULE ISORROPIAII_MOD
   ! Array for offline use in sulfate_mod (SEASALT_CHEM)
   REAL(fp), ALLOCATABLE :: GAS_HNO3(:,:,:)
 
-  ! HEMCO pointers
-  REAL(sp), POINTER     :: HNO3(:,:,:) => NULL()
-
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
 !%%% and/or temperature lie outside of the range that will produce a stable
@@ -127,8 +122,9 @@ CONTAINS
     USE ERROR_MOD,            ONLY : ERROR_STOP
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE HCO_State_GC_Mod,     ONLY : HcoState
-    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : AIRMW
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Chm_Mod,        ONLY : Ind_
@@ -136,6 +132,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
     USE IsorropiaII_Main_Mod, ONLY : Isorropia
 !
 ! !INPUT PARAMETERS:
@@ -190,6 +187,7 @@ CONTAINS
     REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
     REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
     REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
+    REAL(fp)                 :: HNO3_UGM3
     REAL(f8)                 :: AERLIQ(NIONSA+NGASAQA+2)
     REAL(f8)                 :: AERSLD(NSLDSA)
     REAL(f8)                 :: GAS(NGASAQA)
@@ -215,13 +213,13 @@ CONTAINS
     ! Temporary variable for NO3-
     REAL(fp)                 :: NITRTEMP
 
-
     ! debug variables
     INTEGER                  :: Itemp, Jtemp, Ltemp
     LOGICAL, SAVE            :: FIRSTCHECK = .TRUE.
 
     LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
     LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL, SAVE            :: USE_HNO3_FROM_HEMCO = .FALSE.
     LOGICAL                  :: prtDebug
 
     ! Pointers
@@ -229,6 +227,9 @@ CONTAINS
 
     ! Are we out of the range of valid inputs?
     Logical                  :: OutOfBounds
+
+    ! Local array for HNO3 from HEMCO
+    REAL(fp) :: OFFLINE_HNO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
     ! DO_ISORROPIAII begins here!
@@ -308,13 +309,8 @@ CONTAINS
           ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
              ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_HNO3!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
+             USE_HNO3_FROM_HEMCO = .TRUE.
+ 
           ELSE
 
              ! ISORROPIA is only valid for full-chem or aerosol-only sims
@@ -342,6 +338,17 @@ CONTAINS
     ! Initialize for each timestep (bec, bmy, 4/15/05)
     IF ( IT_IS_AN_AEROSOL_SIM ) THEN
        GAS_HNO3 = 0e+0_fp
+    ENDIF
+
+    ! Evaluate offline global HNO3 from HEMCO is using. Doing this every
+    ! timestep allows usage of HEMCO's scaling and masking functionality
+    IF ( USE_HNO3_FROM_HEMCO ) THEN
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', OFFLINE_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Point to chemical species array [kg]
@@ -462,10 +469,18 @@ CONTAINS
           ! OFFLINE SIMULATION
           !---------------------
 
+          ! Relax to monthly mean HNO3 concentrations every 3 hours
+          ! Otherwise just use the concentration in HNO3_sav
+          IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
+             ! HNO3 is in v/v (from HEMCO), convert to ug/m3
+             HNO3_UGM3 = OFFLINE_HNO3(I,J,L) * State_Met%AIRDEN(I,J,L) &
+                         * 1.e+9_fp / ( AIRMW / 63.e+0_fp )
+          ELSE
+             HNO3_UGM3 = HNO3_sav(I,J,L)
+          ENDIF
+
           ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
-          ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to
-          ! monthly mean values every 3h.
-          TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.e-6_fp / 63.e+0_fp
+          TNO3  = HNO3_UGM3 * 1.e-6_fp / 63.e+0_fp
 
           ANO3 = 0.0e+0_fp
           GNO3 = TNO3
@@ -717,66 +732,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_hno3
-!
-! !DESCRIPTION: Subroutine GET\_HNO3 allows the HNO3 concentrations to evolve
-!  with time, but relaxes back to the monthly mean concentrations every 3
-!  hours.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
-!
-! !USES:
-!
-    USE PhysConstants,      ONLY : AIRMW
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)  :: I           ! GEOS-Chem longitude index
-    INTEGER,        INTENT(IN)  :: J           ! GEOS-Chem latitude index
-    INTEGER,        INTENT(IN)  :: L           ! GEOS-Chem level index
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REVISION HISTORY:
-!  16 Dec 2002 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp) :: HNO3_UGM3
-
-    !=================================================================
-    ! GET_HNO3 begins here!
-    !=================================================================
-
-    ! Relax to monthly mean HNO3 concentrations every 3 hours
-    ! Otherwise just return the concentration in HNO3_sav
-    IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
-       ! HNO3 is in v/v (from HEMCO), convert to ug/m3
-       ! First convert HNO3 from [v/v] to [kg]
-       HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) / &
-                   ( AIRMW / 63e+0_fp )
-
-       ! Then convert HNO3 from [kg] to [ug/m3]
-       HNO3_UGM3 = HNO3_UGM3 * 1.e+9_fp / State_Met%AIRVOL(I,J,L)
-    ELSE
-       HNO3_UGM3 = HNO3_sav(I,J,L)
-    ENDIF
-
-  END FUNCTION GET_HNO3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: set_hno3
 !
 ! !DESCRIPTION: Subroutine SET\_HNO3 stores the modified HNO3 value back
@@ -928,9 +883,6 @@ CONTAINS
 
     IF ( ALLOCATED( HNO3_sav    ) ) DEALLOCATE( HNO3_sav )
     IF ( ALLOCATED( GAS_HNO3    ) ) DEALLOCATE( GAS_HNO3 )
-
-    ! Free pointers
-    IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()
 
   END SUBROUTINE CLEANUP_ISORROPIAII
 !EOC
