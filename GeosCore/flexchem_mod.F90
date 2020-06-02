@@ -520,6 +520,7 @@ CONTAINS
     ! Absolute tolerance
     ATOL      = 1e-2_dp
 
+
     ! Relative tolerance
     IF ( Input_Opt%LUCX  ) THEN
        ! UCX-based mechanisms
@@ -832,6 +833,7 @@ CONTAINS
           KppID = PL_Kpp_Id(F)
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
+
 
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)

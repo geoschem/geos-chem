@@ -2139,7 +2139,6 @@ contains
        ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !--------------------------------------------------------------------
        DO NA = 1, nAdvect
-
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp

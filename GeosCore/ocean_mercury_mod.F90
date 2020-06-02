@@ -246,12 +246,12 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod
 #ifdef BPCH_DIAG
     USE CMN_DIAG_MOD
     USE DIAG03_MOD,         ONLY : ND03
     USE TIME_MOD,           ONLY : SET_Hg2_DIAG
 #endif
-    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr

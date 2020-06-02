@@ -201,7 +201,6 @@ CONTAINS
     ! HEMCO data list, phase 2 will perform the emission calculations.
     CALL HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, &
                       State_Met, EmisTime,  Phase,     RC          )
-
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "HCOI_GC_Run"!'
@@ -302,7 +301,6 @@ CONTAINS
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
           CALL FixSfcVMR_Run( Input_Opt, State_Chm, State_Grid, State_Met, RC )
