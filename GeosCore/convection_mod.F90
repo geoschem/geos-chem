@@ -94,7 +94,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, NA, nAdvect, NW, EC, ISOL
+    INTEGER            :: N, NA, nAdvect, NW, EC, ISOL, S
     INTEGER            :: I, J, L, NN, TS_DYN
     REAL(fp)           :: AREA_M2, DT
     LOGICAL            :: DO_ND14, DoConvFlux
@@ -166,9 +166,9 @@ CONTAINS
     !=================================================================
 
     ! Loop over advected species
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL )
+    !$OMP PARALLEL DO                           &
+    !$OMP DEFAULT( SHARED                     ) &
+    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL, S )
     DO NA = 1, nAdvect
 
        ! Species ID
@@ -192,7 +192,10 @@ CONTAINS
        ! Fraction of soluble species lost in convective updrafts
        !--------------------------------------------------------------
        IF ( State_Diag%Archive_WetLossConvFrac .and. ISOL > 0 ) THEN
-          State_Diag%WetLossConvFrac(:,:,:,ISOL) = p_FSOL
+          S = State_Diag%Map_WetLossConvFrac%id2Slot(ISOL)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossConvFrac(:,:,:,S) = p_FSOL
+          ENDIF
        ENDIF
 
        ! Free pointer memory
@@ -215,10 +218,10 @@ CONTAINS
     ! to DO_CLOUD_CONVECTION, to gain computational efficiency
     !=================================================================
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC ) &
-    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW ) &
+    !$OMP PARALLEL DO                                      &
+    !$OMP DEFAULT( SHARED                                ) &
+    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
+    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -272,10 +275,11 @@ CONTAINS
        ! NOTE: May be replaced soon with better flux diagnostics
        !--------------------------------------------------------------
        IF ( State_Diag%Archive_CloudConvFlux ) THEN
-          DO N = 1, State_Chm%nAdvect
-          DO L = 1, State_Grid%NZ
-             State_Diag%CloudConvFlux(I,J,L,N) = Diag14(L,N)
-          ENDDO
+          DO S = 1, State_Diag%Map_CloudConvFlux%nSlots
+             N = State_Diag%Map_CloudConvFlux%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%CloudConvFlux(I,J,L,S) = Diag14(L,N)
+             ENDDO
           ENDDO
        ENDIF
 
@@ -286,10 +290,11 @@ CONTAINS
        ! NOTE: May be replaced soon with better flux diagnostics
        !--------------------------------------------------------------
        IF ( State_Diag%Archive_WetLossConv ) THEN
-          DO NW = 1, State_Chm%nWetDep
-          DO L  = 1, State_Grid%NZ
-             State_Diag%WetLossConv(I,J,L,NW) = Diag38(L,NW)
-          ENDDO
+          DO S = 1, State_Diag%Map_WetLossConv%nSlots
+             NW = State_Diag%Map_WetLossConv%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
+             ENDDO
           ENDDO
        ENDIF
 

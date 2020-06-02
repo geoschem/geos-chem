@@ -367,25 +367,29 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_PBLFlux
 
      ! Convection
-     REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
-     REAL(f4),  POINTER :: WetLossConvFrac (:,:,:,:) ! Fraction of soluble
-                                                     !  species lost in
-                                                     !  convective updraft
-     REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
-     LOGICAL :: Archive_CloudConvFlux
-     LOGICAL :: Archive_WetLossConvFrac
-     LOGICAL :: Archive_WetLossConv
+     REAL(f4),     POINTER :: CloudConvFlux(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_CloudConvFlux
+     LOGICAL               :: Archive_CloudConvFlux
+
+     REAL(f4),     POINTER :: WetLossConvFrac(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_WetLossConvFrac
+     LOGICAL               :: Archive_WetLossConvFrac
+
+     REAL(f4),     POINTER :: WetLossConv(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_WetLossConv
+     LOGICAL               :: Archive_WetLossConv
 
      ! Wet deposition
-     REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS
-                                                     ! rainout/washout
-     REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
-     REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
-     REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
-     LOGICAL :: Archive_WetLossLS
-     LOGICAL :: Archive_PrecipFracLS
-     LOGICAL :: Archive_RainFracLS
-     LOGICAL :: Archive_WashFracLS
+     REAL(f4),     POINTER :: WetLossLS(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_WetLossLS
+     LOGICAL               :: Archive_WetLossLS
+
+     !REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  )
+     !REAL(f4),  POINTER :: RainFracLS      (:,:,:,:)
+     !REAL(f4),  POINTER :: WashFracLS      (:,:,:,:)
+     !LOGICAL :: Archive_PrecipFracLS
+     !LOGICAL :: Archive_RainFracLS
+     !LOGICAL :: Archive_WashFracLS
 
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
@@ -1071,21 +1075,28 @@ CONTAINS
 
     ! Convection diagnostics
     State_Diag%CloudConvFlux                       => NULL()
-    State_Diag%WetLossConvFrac                     => NULL()
-    State_Diag%WetLossConv                         => NULL()
+    State_Diag%Map_CloudConvFlux                   => NULL()
     State_Diag%Archive_CloudConvFlux               = .FALSE.
+
+    State_Diag%WetLossConvFrac                     => NULL()
+    State_Diag%Map_WetLossConvFrac                 => NULL()
     State_Diag%Archive_WetLossConvFrac             = .FALSE.
+
+    State_Diag%WetLossConv                         => NULL()
+    State_Diag%Map_WetLossConv                     => NULL()
     State_Diag%Archive_WetLossConv                 = .FALSE.
 
     ! Wetdep diagnostics
     State_Diag%WetLossLS                           => NULL()
-    State_Diag%PrecipFracLS                        => NULL()
-    State_Diag%RainFracLS                          => NULL()
-    State_Diag%WashFracLS                          => NULL()
+    State_Diag%Map_WetLossLS                       => NULL()
     State_Diag%Archive_WetLossLS                   = .FALSE.
-    State_Diag%Archive_PrecipFracLS                = .FALSE.
-    State_Diag%Archive_RainFracLS                  = .FALSE.
-    State_Diag%Archive_WashFracLS                  = .FALSE.
+
+    !State_Diag%PrecipFracLS                        => NULL()
+    !State_Diag%RainFracLS                          => NULL()
+    !State_Diag%WashFracLS                          => NULL()
+    !State_Diag%Archive_PrecipFracLS                = .FALSE.
+    !State_Diag%Archive_RainFracLS                  = .FALSE.
+    !State_Diag%Archive_WashFracLS                  = .FALSE.
 
     ! Carbon aerosol diagnostics
     State_Diag%ProdBCPIfromBCPO                    => NULL()
@@ -2097,129 +2108,153 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Mass change due to cloud convection
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%CloudConvFlux'
     diagID  = 'CloudConvFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%CloudConvFlux( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%CloudConvFlux = 0.0_f4
-       State_Diag%Archive_CloudConvFlux = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%CloudConvFlux, &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CloudConvFlux,                          &
+         archiveData    = State_Diag%Archive_CloudConvFlux,                  &
+         mapData        = State_Diag%Map_CloudConvFlux,                      &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Fraction of soluble species lost in convective updrafts
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossConvFrac'
     diagID  = 'WetLossConvFrac'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossConvFrac( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConvFrac = 0.0_f4
-       State_Diag%Archive_WetLossConvFrac = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%WetLossConvFrac,                  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossConvFrac,                        &
+         archiveData    = State_Diag%Archive_WetLossConvFrac,                &
+         mapData        = State_Diag%Map_WetLossConvFrac,                    &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Loss of soluble species in convective updrafts
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossConv'
     diagID  = 'WetLossConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConv = 0.0_f4
-       State_Diag%Archive_WetLossConv = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossConv,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossConv,                            &
+         archiveData    = State_Diag%Archive_WetLossConv,                    &
+         mapData        = State_Diag%Map_WetLossConv,                        &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Loss of solutble species in large-scale rainout/washout
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossLS'
     diagID  = 'WetLossLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossLS = 0.0_f4
-       State_Diag%Archive_WetLossLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossLS,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossLS,                              &
+         archiveData    = State_Diag%Archive_WetLossLS,                      &
+         mapData        = State_Diag%Map_WetLossLS,                          &
+         diagId         = diagId,                                            &
+         speciesFlag    = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Fraction of grid box undergoing large-scale precipitation
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PrecipFracLS'
-    diagID  = 'PrecipFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracLS = 0.0_f4
-       State_Diag%Archive_PrecipFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PrecipFracLS,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to rainout in large-scale precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RainFracLS'
-    diagID  = 'RainFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracLS = 0.0_f4
-       State_Diag%Archive_RainFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%RainFracLS,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to washout in large-scale precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WashFracLS'
-    diagID  = 'WashFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracLS = 0.0_f4
-       State_Diag%Archive_WashFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WashFracLS,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of grid box undergoing large-scale precipitation
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%PrecipFracLS'
+!###    diagID  = 'PrecipFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%PrecipFracLS = 0.0_f4
+!###       State_Diag%Archive_PrecipFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PrecipFracLS,  &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
+!###
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of soluble species lost to rainout in large-scale precip
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%RainFracLS'
+!###    diagID  = 'RainFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%RainFracLS = 0.0_f4
+!###       State_Diag%Archive_RainFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%RainFracLS,    &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
+!###
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of soluble species lost to washout in large-scale precip
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%WashFracLS'
+!###    diagID  = 'WashFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%WashFracLS = 0.0_f4
+!###       State_Diag%Archive_WashFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WashFracLS,    &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
 
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
@@ -6789,54 +6824,46 @@ CONTAINS
        State_Diag%PBLFlux => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%CloudConvFlux ) ) THEN
-       DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%CloudConvFlux', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%CloudConvFlux => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'CloudConvFlux',                               &
+                   Ptr2Data = State_Diag%CloudConvFlux,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%WetLossConv ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConv, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossConv', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConv => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'WetLossConv',                                 &
+                   Ptr2Data = State_Diag%WetLossConv,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%WetLossConvFrac ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConvFrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossConvFrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConvFrac => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'WetLossConvFrac',                             &
+                   Ptr2Data = State_Diag%WetLossConvFrac,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
-       DEALLOCATE( State_Diag%WetLossLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossLS => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'WetLossLS',                                   &
+                   Ptr2Data = State_Diag%WetLossLS,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
-       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
-       DEALLOCATE( State_Diag%RainFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
-       DEALLOCATE( State_Diag%WashFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracLS => NULL()
-    ENDIF
+!    IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%PrecipFracLS => NULL()
+!    ENDIF
+!
+!    IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%RainFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%RainFracLS => NULL()
+!    ENDIF
+!
+!    IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%WashFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%WashFracLS => NULL()
+!    ENDIF
 
     IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
        DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC )
@@ -9958,7 +9985,7 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! If the mapping object is passed, get the name of each species
-       ! from the modelId as specified in the mapData array 
+       ! from the modelId as specified in the mapData array
        !--------------------------------------------------------------------
 
        ! If indFlag="S", then mapData%slot2id is already the modelId,
@@ -11535,6 +11562,17 @@ CONTAINS
     ! Create an index array with the max number of possible Id's
     !--------------------------------------------------------------------
 
+    ! Before proceeding, make sure that slot2Id contains valid values
+    IF ( ANY( mapData%slot2id < 0 ) ) THEN
+       errMsg = 'The mapData%slot2Id array corresponding to collection "' // &
+                TRIM( metadataId ) // '" contains missing values! '       // &
+                'This can indicate that this collection is either '       // &
+                'undefined or turned off.  Please check the HISTORY.rc '  // &
+                'configuration file in your run directory.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! Get max number of species for this indFlag
     CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -11549,7 +11587,7 @@ CONTAINS
     CALL GC_CheckVar( mapName2, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     mapData%id2slot = -1
-    
+
     ! Populate the mapData%id2slot field
     DO C = 1, mapData%nSlots
        index = mapData%slot2Id(C)
@@ -11590,7 +11628,7 @@ CONTAINS
     TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
     TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags/WCs per diag
     CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diangnostic name
-    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        ! 
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        !
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -11780,7 +11818,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the id for all 
+    ! If speciesFlag is not passed, then we will get the id for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag
@@ -11971,7 +12009,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! If speciesFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag
@@ -12040,7 +12078,6 @@ CONTAINS
     !=======================================================================
     ! Register the diagnostic
     !=======================================================================
-    print*, '### diagId: ', TRIM(diagId)
     CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
                              State_Chm  = State_Chm,                         &
                              State_Diag = State_Diag,                        &
@@ -12157,7 +12194,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! If speciesFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag
@@ -12339,7 +12376,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! If speciesFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag
@@ -12529,7 +12566,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! If speciesFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag
@@ -12714,7 +12751,7 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all 
+    ! If speciesFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
     IF ( PRESENT( speciesFlag ) ) THEN
        indFlag = speciesFlag

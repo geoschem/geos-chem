@@ -206,9 +206,10 @@ CONTAINS
     !
     ! *FracLs diagnostics might need work...
     !------------------------------------------
-    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
-    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
-    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
+!###    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
+!###    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
     IF ( State_Diag%Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
 
     !------------------------------------------
@@ -3470,7 +3471,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N,        NW
+    INTEGER            :: N,        NW,      S
     REAL(fp)           :: RAINFRAC, WETLOSS
 
     ! Strings
@@ -3510,19 +3511,20 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
-                                        F_Rainout
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +  &
+!###                                        F_Rainout
+!###    ENDIF
 
     !-----------------------------------------------------------------
     ! Loop over all wet deposition species
     !-----------------------------------------------------------------
     DO NW = 1, State_Chm%nWetDep
 
-       ! Get the wetdep ID from the species ID
+       ! Get the species ID from the wetdep ID
        N = State_Chm%Map_WetDep(NW)
 
        ! Call subroutine RAINOUT to comptue the fraction
@@ -3608,17 +3610,21 @@ CONTAINS
        !     Here we add the component from rainout.
        !--------------------------------------------------------------------
 
-       ! Units: [1]
-       IF ( State_Diag%Archive_RainFracLs .and. &
-            F_Rainout > 0.0_fp ) THEN
-          State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
-       ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###       ! Units: [1]
+!###       IF ( State_Diag%Archive_RainFracLs .and. &
+!###            F_Rainout > 0.0_fp ) THEN
+!###          State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
+!###       ENDIF
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-       IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) +  &
-                                           ( WetLoss / DT ) *                &
-                                           State_Grid%Area_M2(I,J)
+       IF ( State_Diag%Archive_WetLossLS ) THEN
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLs(I,J,L,S) =                                 &
+             State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -3807,7 +3813,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: KIN,       DO_REEVAP
-    INTEGER            :: N,         NW
+    INTEGER            :: N,         NW,          S
     REAL(fp)           :: ALPHA,     ALPHA2,      GAINED,   LOST
     REAL(fp)           :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
     REAL(fp)           :: TK,        TF
@@ -3850,12 +3856,13 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
-                                        F_Washout
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +  &
+!###                                        F_Washout
+!###    ENDIF
 
     ! air temperature [K]
     TK  = State_Met%T(I,J,L)
@@ -4065,10 +4072,11 @@ CONTAINS
           ! Here we only handle the soluble aerosol species
           !-----------------------------------------------------------------
 
-          ! Units: [1]
-          IF ( State_Diag%Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
-             State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
-          ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###          ! Units: [1]
+!###          IF ( State_Diag%Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
+!###             State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
+!###          ENDIF
 
        !====================================================================
        ! Washout of non-aerosol species
@@ -4116,10 +4124,11 @@ CONTAINS
           ! accounted for in the equations above.
           !-----------------------------------------------------------------
 
-          ! Units: [1]
-          IF ( State_Diag%Archive_WashFracLS ) THEN
-             State_Diag%WashFracLS(I,J,L,NW) = WashFrac
-          ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###          ! Units: [1]
+!###          IF ( State_Diag%Archive_WashFracLS ) THEN
+!###             State_Diag%WashFracLS(I,J,L,NW) = WashFrac
+!###          ENDIF
 
        ENDIF
 
@@ -4133,10 +4142,13 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-       IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) +  &
-                                           ( WetLoss / DT ) *                &
-                                           State_Grid%Area_M2(I,J)
+       IF ( State_Diag%Archive_WetLossLS ) THEN
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLS(I,J,L,S) =                                 &
+             State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
+                                           *  State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -4256,7 +4268,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, NW
+    INTEGER            :: N, NW, S
     REAL(fp)           :: WETLOSS
 
     ! Strings
@@ -4388,9 +4400,12 @@ CONTAINS
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
-                                           State_Grid%Area_M2(I,J)
+          S = State_Diag%Map_WetLossLs%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLs(I,J,L,S) =                                 &
+             State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -4518,7 +4533,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: KIN
-    INTEGER            :: N,        NW
+    INTEGER            :: N,        NW,      S
     REAL(fp)           :: WASHFRAC, WETLOSS, TMP, TK
 
     ! Strings
@@ -4552,11 +4567,12 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + F
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + F
+!###    ENDIF
 
     ! air temperature [K]
     TK = State_Met%T(I,J,L)
@@ -4619,19 +4635,20 @@ CONTAINS
        ! Archive the fraction of soluble species lost to washout
        ! in large-scale precipitation (WashFracLS)
        !--------------------------------------------------------------
-       IF ( State_Diag%Archive_WashFracLS ) THEN
-
-          ! Only divide WASHFRAC by F for aerosols, since
-          ! for non-aerosols this is already accounted for
-          IF ( KIN ) THEN
-             Tmp = WashFrac / F
-          ELSE
-             TMP = WashFrac
-          ENDIF
-
-          ! Units: [1]
-          State_Diag%WashFracLS(I,J,L,NW) = Tmp
-       ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###       IF ( State_Diag%Archive_WashFracLS ) THEN
+!###
+!###          ! Only divide WASHFRAC by F for aerosols, since
+!###          ! for non-aerosols this is already accounted for
+!###          IF ( KIN ) THEN
+!###             Tmp = WashFrac / F
+!###          ELSE
+!###             TMP = WashFrac
+!###          ENDIF
+!###
+!###          ! Units: [1]
+!###          State_Diag%WashFracLS(I,J,L,NW) = Tmp
+!###       ENDIF
 
        !--------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
@@ -4644,9 +4661,12 @@ CONTAINS
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLS ) THEN
-          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
-                                           State_Grid%Area_M2(I,J)
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLS(I,J,L,S) =                                 &
+             State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s (check source code for this routine - ewl )
