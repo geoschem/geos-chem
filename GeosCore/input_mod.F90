@@ -310,6 +310,14 @@ CONTAINS
              RETURN
           ENDIF
 
+       ELSE IF ( INDEX( LINE, 'OBSPACK MENU' ) > 0 ) THEN
+          CALL READ_OBSPACK_MENU( Input_Opt, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error in "Read_ObsPack_Menu"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
 #ifdef BPCH_DIAG
        !==============================================================
        ! Skip BPCH-related menus unless compiled with BPCH_DIAG=y
