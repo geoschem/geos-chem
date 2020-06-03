@@ -22,18 +22,19 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-  !#if !defined(ESMF_)
+#if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
   USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
   USE m_netcdf_io_read                    ! netCDF data reads
   USE m_netcdf_io_close                   ! netCDF close
-  !#endif
+#endif
 
   IMPLICIT NONE
-  !#if !defined(ESMF_)
+
+#if !defined( EXTERNAL_GRID )
 # include "netcdf.inc"
-  !#endif
+#endif
 
   PRIVATE
 
@@ -98,10 +99,13 @@ MODULE UCX_MOD
   INTEGER,  PARAMETER           :: I_SPA=2
   INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( EXTERNAL_GRID )
   ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
   ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not
   ! preprocessed for external grid (hplin, 8/15/18).
+  ! Turn off UCXNETCDF when coupling GEOS-Chem with CESM.
+  ! More generally, never use NETCDF files when running with
+  ! an external grid (tfritz, 11/15/19).
   LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
   LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
@@ -332,6 +336,14 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+
+#if defined( MODEL_CESM )
+    IF ( Input_Opt%amIRoot .and. ( LASTMONTH==0 ) ) THEN
+       WRITE(6,'(a)') 'UCX_NOX NOT YET IMPLEMENTED FOR CESM'
+    ENDIF
+    LASTMONTH = 1
+    RETURN
+#endif
 
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
@@ -4146,6 +4158,14 @@ CONTAINS
     ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
     NOXCOEFF = 0.0e+0_fp
+
+#if defined( MODEL_CESM )
+      ! Will fix this... eventually
+      IF ( Input_Opt%amIRoot ) THEN
+          WRITE(6,'(a)') ' --GC UCX CESM--> Skipping NOx data read in'
+      ENDIF
+      RETURN
+#endif
 
     ! Fill array
     DO IMON  = 1,12

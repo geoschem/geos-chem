@@ -195,6 +195,11 @@ CONTAINS
     ! unique species list is the list of advected species from input.geos.
     !=======================================================================
     CALL Unique_Species_Names( Input_Opt, nSpecies, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = "Could not determine species names!"
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Initialize the species database vector and
     ! set all tags for each species to missing values

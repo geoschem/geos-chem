@@ -20,7 +20,11 @@ MODULE CMN_SIZE_MOD
 ! !DEFINED PARAMETERS:
 !
   ! Model top pressure (mb)
+#if defined( MODEL_CESM )
+  REAL*8             :: PTOP
+#else
   REAL*8,  PARAMETER :: PTOP = 0.01d0
+#endif
 
   ! Maximum number of surface types: 73 olson
   INTEGER, PARAMETER :: NSURFTYPE = 73

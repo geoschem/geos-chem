@@ -327,12 +327,18 @@ CONTAINS
     ! TS_EMIS is the emission timestep (in seconds). This is a module
     ! variable, hence define only on first call.
     IF ( FIRSTCHEM ) THEN
+#if defined( MODEL_CESM )
+       ! Do not use HEMCO state in CESM
+       TS_EMIS = 60.0e+0_fp * real( Input_Opt%TS_EMIS, fp )
+#else
+
        IF ( .NOT. ASSOCIATED(HcoState) ) THEN
           ErrMsg = 'Cannot get HEMCO state variable "HCOState"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
        TS_EMIS = HcoState%TS_EMIS
+#endif
     ENDIF
 
 #ifdef APM
@@ -6878,12 +6884,18 @@ CONTAINS
 
        ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
        ! kg/m2/s.
+#if defined( MODEL_CESM )
+       ! (T. Fritz) Temporary!
+       ALK1 = 0.0e+00_fp
+       ALK2 = 0.0e+00_fp
+#else
        CALL GetHcoValEmis( id_SALA, I, J, 1, FOUND, ALK1 )
        CALL GetHcoValEmis( id_SALC, I, J, 1, FOUND, ALK2 )
 
        ! kg/m2/s --> kg. Weight by fraction of PBL
        ALK1 = MAX(ALK1,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
        ALK2 = MAX(ALK2,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
+#endif
 
        ! Get number densities in # / cm3. Weight by fraction of PBL
        !IF ( ASSOCIATED(NDENS_SALA) ) THEN

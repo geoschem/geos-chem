@@ -34,8 +34,10 @@ MODULE GC_Environment_Mod
   PUBLIC  :: GC_Allocate_All
   PUBLIC  :: GC_Init_StateObj
   PUBLIC  :: GC_Init_Grid
+#if !defined( MODEL_CESM )
   PUBLIC  :: GC_Init_Extra
   PUBLIC  :: GC_Init_Regridding
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -397,6 +399,7 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Grid
 !EOC
+#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -826,6 +829,8 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Extra
 !EOC
+#endif
+#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -919,6 +924,7 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Regridding
 !EOC
+#endif
 #ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

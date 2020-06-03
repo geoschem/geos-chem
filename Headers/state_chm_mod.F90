@@ -212,6 +212,8 @@ MODULE State_Chm_Mod
      ! Fields for dry deposition
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
+     REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition 
+                                                        ! velocities [m/s]
 
      !----------------------------------------------------------------------
      ! Fields for Linoz stratospheric ozone algorithm
@@ -652,7 +654,7 @@ CONTAINS
        State_Chm%Map_DryAlt = 0
     ENDIF
 
-    IF (  State_Chm%nDryDep > 0 ) THEN
+    IF ( State_Chm%nDryDep > 0 ) THEN
        ALLOCATE( State_Chm%Map_Drydep( State_Chm%nDryDep ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Drydep', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1768,6 +1770,21 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------
+    ! DryDepVel
+    !------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmID = 'DryDepVel'
+        ALLOCATE( State_Chm%DryDepVel( IM, JM, State_Chm%nDryDep ), STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%DryDepVel', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%DryDepVel = 0.0_fp
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepVel,       &
+                                State_Chm, RC                               )
+        CALL GC_CheckVar( 'State_Chm%DryDepVel', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !------------------------------------------------------------------
     ! TLSTT (Linoz)
     !------------------------------------------------------------------
     IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
@@ -2366,6 +2383,15 @@ CONTAINS
     ENDIF
 #endif
 
+    ! Dry deposition velocities
+    IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
+       DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepVel => NULL()
+    ENDIF
+    
+    ! Dry deposition frequencies
     IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
        DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
@@ -3177,6 +3203,11 @@ CONTAINS
        CASE( 'DRYDEPSAV' )
           IF ( isDesc  ) Desc  = 'Dry deposition frequencies'
           IF ( isUnits ) Units = 's-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'DRYDEPVEL' )
+          IF ( isDesc  ) Desc  = 'Dry deposition velocities'
+          IF ( isUnits ) Units = 'm/s'
           IF ( isRank  ) Rank  = 3
 
        CASE( 'TLSTT' )

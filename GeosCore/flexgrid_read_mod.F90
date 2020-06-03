@@ -1,4 +1,4 @@
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if defined( MODEL_CLASSIC )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

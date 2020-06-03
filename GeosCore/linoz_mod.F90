@@ -1022,6 +1022,10 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE InquireMod,    ONLY : findFreeLun
+#if defined( MODEL_CESM )
+    USE UNITS,         ONLY : freeUnit
+#endif
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1193,6 +1197,10 @@ CONTAINS
 
     ! Close the files
     CLOSE( IU_FILE )
+
+#if defined( MODEL_CESM )
+    CALL freeUnit( IU_FILE )
+#endif
 
   END SUBROUTINE LINOZ_READ
 !EOC

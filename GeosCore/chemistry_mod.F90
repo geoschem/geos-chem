@@ -76,8 +76,13 @@ CONTAINS
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
+#if !defined( MODEL_CESM )
+    ! The CPP statement simply reflect the dependence in
+    ! these two modules on other code incompatible with
+    ! the coupling of FullChem to CESM - MSL 1-18-18
     USE MERCURY_MOD,     ONLY : CHEMMERCURY
     USE POPS_MOD,        ONLY : CHEMPOPS
+#endif
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
     USE RPMARES_MOD,     ONLY : DO_RPMARES
     USE SEASALT_MOD,     ONLY : CHEMSEASALT
@@ -797,10 +802,15 @@ CONTAINS
              RETURN
           ENDIF
 
+#if !defined( MODEL_CESM )
        !====================================================================
        ! Mercury (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
 
           ! Do Hg chemistry
           CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
@@ -828,6 +838,12 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
+
+#endif
 
        ENDIF
 
