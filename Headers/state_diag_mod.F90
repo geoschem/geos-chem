@@ -75,7 +75,9 @@ MODULE State_Diag_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
+  !=========================================================================
   ! Type for mapping objects
+  !=========================================================================
   TYPE, PUBLIC :: DgnMap
      INTEGER          :: nSlots
      INTEGER, POINTER :: slot2id(:)
@@ -83,9 +85,7 @@ MODULE State_Diag_Mod
      INTEGER, POINTER :: id2slot(:)
      CHARACTER(LEN=1) :: indFlag
   END TYPE DgnMap
-!
-! !PUBLIC DATA MEMBERS:
-!
+
   !=========================================================================
   ! Derived type for Diagnostics State
   !=========================================================================
@@ -191,9 +191,23 @@ MODULE State_Diag_Mod
 #endif
 
      ! Chemistry
-     REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
-     REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
-     REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
+     REAL(f4),     POINTER :: JVal(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_JVal
+     LOGICAL               :: Archive_JVal
+
+     REAL(f4),     POINTER :: JValO3O1D(:,:,:)
+     LOGICAL               :: Archive_JValO3O1D
+
+     REAL(f4),     POINTER :: JValO3O3P(:,:,:)
+     LOGICAL               :: Archive_JValO3O3P
+
+     REAL(f4),     POINTER :: JNoon(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_JNoon
+     LOGICAL               :: Archive_JNoon
+
+     REAL(f4),     POINTER :: JNoonFrac(:,:)
+     LOGICAL               :: Archive_JNoonFrac
+
      REAL(f4),  POINTER :: RxnRate         (:,:,:,:) ! KPP eqn eaction rates
      REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
@@ -205,9 +219,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver
      REAL(f4),  POINTER :: Loss            (:,:,:,:) ! Chemical loss of species
      REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
-     LOGICAL :: Archive_JVal
-     LOGICAL :: Archive_JNoon
-     LOGICAL :: Archive_JNoonFrac
      LOGICAL :: Archive_RxnRate
      LOGICAL :: Archive_OHreactivity
      LOGICAL :: Archive_UVFluxDiffuse
@@ -682,9 +693,6 @@ MODULE State_Diag_Mod
 
   END TYPE DgnState
 !
-! !REMARKS:
-!  TBD
-!
 ! !REVISION HISTORY:
 !  05 Jul 2017 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -733,100 +741,50 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_State_Diag
+! !IROUTINE: Zero_State_Diag
 !
-! !DESCRIPTION: Subroutine INIT\_STATE\_DIAG allocates all fields of
-!  the diagnostics state object.
+! !DESCRIPTION: Nullifies all fields of State_Diag.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm,       State_Grid,        &
-                              Diag_List, TaggedDiag_List, State_Diag, RC    )
+  SUBROUTINE Zero_State_Diag( State_Diag, RC )
 !
-! !USES:
+! !USES
 !
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Grid_Mod, ONLY : GrdState
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)    :: Input_Opt        ! Input otions object
-    TYPE(ChmState),      INTENT(IN)    :: State_Chm        ! Chemistry state
-    TYPE(GrdState),      INTENT(IN)    :: State_Grid       ! Grid state object
-    TYPE(DgnList),       INTENT(IN)    :: Diag_List        ! Diagnostics list
-    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState),      INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT)   :: RC               ! Return code
-!
-! !REMARKS:
-!  For consistency, maybe this should be moved to a different module.
+    INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  05 Jul 2017 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-    ! Strings
-    CHARACTER(LEN=5  ) :: TmpWL
-    CHARACTER(LEN=10 ) :: TmpHt
-    CHARACTER(LEN=255) :: errMsg,    thisLoc, errMsg_ir
-    CHARACTER(LEN=255) :: arrayID,   diagID
-
-    ! Scalars
-    INTEGER            :: N,         IM,      JM,        LM,      C
-    INTEGER            :: nSpecies,  nAdvect, nDryDep,   nKppSpc
-    INTEGER            :: nWetDep,   nPhotol, nProd,     nLoss
-    INTEGER            :: nHygGrth,  nRad,    nDryAlt
-    LOGICAL            :: am_I_Root, EOF,     Found,     found2
-    LOGICAL            :: forceDefine
-
-    integer :: nfields
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC        =  GC_SUCCESS
-    arrayID   = ''
-    diagID    = ''
-    errMsg    = ''
-    errMsg_ir = 'Error encountered in "Init_and_Register", diagID = '
-    thisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
-    Found     = .FALSE.
-    TmpWL     = ''
-    TmpHt     = AltAboveSfc
-    am_I_Root = Input_Opt%amIRoot
-    Is_UCX    = Input_Opt%LUCX
-
-    ! Shorten grid parameters for readability
-    IM        = State_Grid%NX ! # latitudes
-    JM        = State_Grid%NY ! # longitudes
-    LM        = State_Grid%NZ ! # levels
-
-    ! Number of species per category
-    nSpecies  = State_Chm%nSpecies
-    nAdvect   = State_Chm%nAdvect
-    nDryAlt   = State_Chm%nDryAlt
-    nDryDep   = State_Chm%nDryDep
-    nHygGrth  = State_Chm%nHygGrth
-    nKppSpc   = State_Chm%nKppSpc
-    nLoss     = State_Chm%nLoss
-    nPhotol   = State_Chm%nPhotol
-    nProd     = State_Chm%nProd
-    nWetDep   = State_Chm%nWetDep
+    ! Assume success
+    RC = GC_SUCCESS
 
     ! %%% Free pointers and set logicals %%%
-    ! %%% This will be done in Init_and_Register below %%%
+    State_Diag%SpeciesRst                          => NULL()
+    State_Diag%Archive_SpeciesRst                  = .FALSE.
+
+    State_Diag%SpeciesBC                           => NULL()
+    State_Diag%Archive_SpeciesBC                   = .FALSE.
+
+    State_Diag%SpeciesConc                         => NULL()
+    State_Diag%Map_SpeciesConc                     => NULL()
+    State_Diag%Archive_SpeciesConc                 = .FALSE.
+
+    State_Diag%FracOfTimeInTrop                    => NULL()
+    State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
     ! Budget diagnostics
     State_Diag%BudgetEmisDryDepFull                => NULL()
@@ -876,76 +834,75 @@ CONTAINS
     State_Diag%Archive_Budget                      = .FALSE.
 
     ! Drydep diagnostics
-    State_Diag%DryDep                              => NULL()
-    State_Diag%Map_DryDep                          => NULL()
-    State_Diag%Archive_DryDep                      = .FALSE.
     State_Diag%DryDepChm                           => NULL()
     State_Diag%Map_DryDepChm                       => NULL()
     State_Diag%Archive_DryDepChm                   = .FALSE.
+
     State_Diag%DryDepMix                           => NULL()
     State_Diag%Map_DryDepMix                       => NULL()
     State_Diag%Archive_DryDepMix                   = .FALSE.
+
+    State_Diag%DryDep                              => NULL()
+    State_Diag%Map_DryDep                          => NULL()
+    State_Diag%Archive_DryDep                      = .FALSE.
+
     State_Diag%DryDepVel                           => NULL()
     State_Diag%Map_DryDepVel                       => NULL()
     State_Diag%Archive_DryDepVel                   = .FALSE.
+
 #ifdef MODEL_GEOS
-    State_Diag%DryDepRa2m                          => NULL()
-    State_Diag%DryDepRa10m                         => NULL()
-    State_Diag%MoninObukhov                        => NULL()
-    State_Diag%Bry                                 => NULL()
-    State_Diag%Archive_DryDepRa2m                  = .FALSE.
-    State_Diag%Archive_DryDepRa10m                 = .FALSE.
-    State_Diag%Archive_MoninObukhov                = .FALSE.
-    State_Diag%Archive_Bry                         = .FALSE.
 #endif
 
     ! Chemistry, J-value, Prod/Loss diagnostics
     State_Diag%JVal                                => NULL()
-    State_Diag%JNoon                               => NULL()
-    State_Diag%JNoonFrac                           => NULL()
-    State_Diag%RxnRate                             => NULL()
-    State_Diag%OHreactivity                        => NULL()
-    State_Diag%UVFluxDiffuse                       => NULL()
-    State_Diag%UVFluxDirect                        => NULL()
-    State_Diag%UVFluxNet                           => NULL()
-    State_Diag%OHconcAfterChem                     => NULL()
-    State_Diag%HO2concAfterChem                    => NULL()
-    State_Diag%O1DconcAfterChem                    => NULL()
-    State_Diag%O3PconcAfterChem                    => NULL()
-    State_Diag%Loss                                => NULL()
-    State_Diag%Prod                                => NULL()
+    State_Diag%Map_JVal                            => NULL()
     State_Diag%Archive_JVal                        = .FALSE.
+
+    State_Diag%JValO3O1D                           => NULL()
+    State_Diag%Archive_JValO3O1D                   = .FALSE.
+
+    State_Diag%JValO3O3P                           => NULL()
+    State_Diag%Archive_JValO3O3P                   = .FALSE.
+
+    State_Diag%JNoon                               => NULL()
+    State_Diag%Map_JNoon                           => NULL()
     State_Diag%Archive_JNoon                       = .FALSE.
+
+    State_Diag%JNoonFrac                           => NULL()
     State_Diag%Archive_JNoonFrac                   = .FALSE.
+
+    State_Diag%RxnRate                             => NULL()
     State_Diag%Archive_RxnRate                     = .FALSE.
+
+    State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
+
+    State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
+
+    State_Diag%UVFluxDirect                        => NULL()
     State_Diag%Archive_UVFluxDirect                = .FALSE.
+
+    State_Diag%UVFluxNet                           => NULL()
     State_Diag%Archive_UVFluxNet                   = .FALSE.
+
+    State_Diag%OHconcAfterChem                     => NULL()
     State_Diag%Archive_OHconcAfterChem             = .FALSE.
+
+    State_Diag%HO2concAfterChem                    => NULL()
     State_Diag%Archive_HO2concAfterChem            = .FALSE.
+
+    State_Diag%O1DconcAfterChem                    => NULL()
     State_Diag%Archive_O1DconcAfterChem            = .FALSE.
+
+    State_Diag%O3PconcAfterChem                    => NULL()
     State_Diag%Archive_O3PconcAfterChem            = .FALSE.
+
+    State_Diag%Loss                                => NULL()
     State_Diag%Archive_Loss                        = .FALSE.
+
+    State_Diag%Prod                                => NULL()
     State_Diag%Archive_Prod                        = .FALSE.
-
-#ifdef MODEL_GEOS
-    State_Diag%JValIndiv                           => NULL()
-    State_Diag%RxnRconst                           => NULL()
-    State_Diag%O3concAfterChem                     => NULL()
-    State_Diag%RO2concAfterChem                    => NULL()
-    State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%Archive_JValIndiv                   = .FALSE.
-    State_Diag%Archive_RxnRconst                   = .FALSE.
-    State_Diag%Archive_O3concAfterChem             = .FALSE.
-    State_Diag%Archive_RO2concAfterChem            = .FALSE.
-    State_Diag%Archive_CH4pseudoflux               = .FALSE.
-#endif
-
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-    State_Diag%KppError                            => NULL()
-    State_Diag%Archive_KppError                    = .FALSE.
-#endif
 
     ! Aerosol hygroscopic growth diagnostics
     State_Diag%AerHygGrowth                        => NULL()
@@ -1042,23 +999,6 @@ CONTAINS
     State_Diag%Archive_TotalOC                     = .FALSE.
     State_Diag%Archive_TotalBiogenicOA             = .FALSE.
 
-#ifdef MODEL_GEOS
-    State_Diag%PM25ni                              => NULL()
-    State_Diag%PM25su                              => NULL()
-    State_Diag%PM25oc                              => NULL()
-    State_Diag%PM25bc                              => NULL()
-    State_Diag%PM25du                              => NULL()
-    State_Diag%PM25ss                              => NULL()
-    State_Diag%PM25soa                             => NULL()
-    State_Diag%Archive_PM25ni                      = .FALSE.
-    State_Diag%Archive_PM25su                      = .FALSE.
-    State_Diag%Archive_PM25oc                      = .FALSE.
-    State_Diag%Archive_PM25bc                      = .FALSE.
-    State_Diag%Archive_PM25du                      = .FALSE.
-    State_Diag%Archive_PM25ss                      = .FALSE.
-    State_Diag%Archive_PM25soa                     = .FALSE.
-#endif
-
     ! Transport diagnostics
     State_Diag%AdvFluxZonal                        => NULL()
     State_Diag%AdvFluxMerid                        => NULL()
@@ -1073,30 +1013,29 @@ CONTAINS
     State_Diag%Archive_PBLMixFrac                  = .FALSE.
     State_Diag%Archive_PBLFlux                     = .FALSE.
 
-    ! Convection diagnostics
     State_Diag%CloudConvFlux                       => NULL()
     State_Diag%Map_CloudConvFlux                   => NULL()
     State_Diag%Archive_CloudConvFlux               = .FALSE.
-
-    State_Diag%WetLossConvFrac                     => NULL()
-    State_Diag%Map_WetLossConvFrac                 => NULL()
-    State_Diag%Archive_WetLossConvFrac             = .FALSE.
 
     State_Diag%WetLossConv                         => NULL()
     State_Diag%Map_WetLossConv                     => NULL()
     State_Diag%Archive_WetLossConv                 = .FALSE.
 
-    ! Wetdep diagnostics
+    State_Diag%WetLossConvFrac                     => NULL()
+    State_Diag%Map_WetLossConvFrac                 => NULL()
+    State_Diag%Archive_WetLossConvFrac             = .FALSE.
+
     State_Diag%WetLossLS                           => NULL()
     State_Diag%Map_WetLossLS                       => NULL()
     State_Diag%Archive_WetLossLS                   = .FALSE.
 
-    !State_Diag%PrecipFracLS                        => NULL()
-    !State_Diag%RainFracLS                          => NULL()
-    !State_Diag%WashFracLS                          => NULL()
-    !State_Diag%Archive_PrecipFracLS                = .FALSE.
-    !State_Diag%Archive_RainFracLS                  = .FALSE.
-    !State_Diag%Archive_WashFracLS                  = .FALSE.
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    State_Diag%PrecipFracLS                        => NULL()
+!###    State_Diag%RainFracLS                          => NULL()
+!###    State_Diag%WashFracLS                          => NULL()
+!###    State_Diag%Archive_PrecipFracLS                = .FALSE.
+!###    State_Diag%Archive_RainFracLS                  = .FALSE.
+!###    State_Diag%Archive_WashFracLS                  = .FALSE.
 
     ! Carbon aerosol diagnostics
     State_Diag%ProdBCPIfromBCPO                    => NULL()
@@ -1362,6 +1301,170 @@ CONTAINS
     State_Diag%ObsPack_Species_Name                => NULL()
     State_Diag%ObsPack_Species_LName               => NULL()
 
+#ifdef MODEL_GEOS
+    !=======================================================================
+    ! These diagnostics are only activated when running GC in NASA/GEOS
+    !=======================================================================
+    State_Diag%DryDepRa2m                          => NULL()
+    State_Diag%Archive_DryDepRa2m                  = .FALSE.
+
+    State_Diag%DryDepRa10m                         => NULL()
+    State_Diag%Archive_DryDepRa10m                 = .FALSE.
+
+    State_Diag%MoninObukhov                        => NULL()
+    State_Diag%Archive_MoninObukhov                = .FALSE.
+
+    State_Diag%Bry                                 => NULL()
+    State_Diag%Archive_Bry                         = .FALSE.
+
+    State_Diag%JValIndiv                           => NULL()
+    State_Diag%Archive_JValIndiv                   = .FALSE.
+
+    State_Diag%RxnRconst                           => NULL()
+    State_Diag%Archive_RxnRconst                   = .FALSE.
+
+    State_Diag%O3concAfterChem                     => NULL()
+    State_Diag%Archive_O3concAfterChem             = .FALSE.
+
+    State_Diag%RO2concAfterChem                    => NULL()
+    State_Diag%Archive_RO2concAfterChem            = .FALSE.
+
+    State_Diag%CH4pseudoflux                       => NULL()
+    State_Diag%Archive_CH4pseudoflux               = .FALSE.
+
+    State_Diag%PM25ni                              => NULL()
+    State_Diag%Archive_PM25ni                      = .FALSE.
+
+    State_Diag%PM25su                              => NULL()
+    State_Diag%Archive_PM25su                      = .FALSE.
+
+    State_Diag%PM25oc                              => NULL()
+    State_Diag%Archive_PM25oc                      = .FALSE.
+
+    State_Diag%PM25bc                              => NULL()
+    State_Diag%Archive_PM25bc                      = .FALSE.
+
+    State_Diag%PM25du                              => NULL()
+    State_Diag%Archive_PM25du                      = .FALSE.
+
+    State_Diag%PM25ss                              => NULL()
+    State_Diag%Archive_PM25ss                      = .FALSE.
+
+    State_Diag%PM25soa                             => NULL()
+    State_Diag%Archive_PM25soa                     = .FALSE.
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+    !=======================================================================
+    ! These diagnostics are only activated when running GC
+    ! either in NASA/GEOS or in WRF
+    !=======================================================================
+    State_Diag%KppError                            => NULL()
+    State_Diag%Archive_KppError                    = .FALSE.
+#endif
+
+  END SUBROUTINE Zero_State_Diag
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_State_Diag
+!
+! !DESCRIPTION: Subroutine INIT\_STATE\_DIAG allocates all fields of
+!  the diagnostics state object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm,       State_Grid,        &
+                              Diag_List, TaggedDiag_List, State_Diag, RC    )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt        ! Input otions object
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm        ! Chemistry state
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid       ! Grid state object
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List        ! Diagnostics list
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag       ! Diagnostic State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)   :: RC               ! Return code
+!
+! !REMARKS:
+!  For consistency, maybe this should be moved to a different module.
+!
+! !REVISION HISTORY:
+!  05 Jul 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=10 ) :: TmpHt
+    CHARACTER(LEN=255) :: errMsg,    thisLoc, errMsg_ir
+    CHARACTER(LEN=255) :: arrayID,   diagID
+
+    ! Scalars
+    INTEGER            :: N,         IM,      JM,        LM,      C
+    INTEGER            :: nSpecies,  nAdvect, nDryDep,   nKppSpc
+    INTEGER            :: nWetDep,   nPhotol, nProd,     nLoss
+    INTEGER            :: nHygGrth,  nRad,    nDryAlt
+    LOGICAL            :: am_I_Root, EOF,     Found,     found2
+    LOGICAL            :: forceDefine
+
+    integer :: nfields
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC        =  GC_SUCCESS
+    arrayID   = ''
+    diagID    = ''
+    errMsg    = ''
+    errMsg_ir = 'Error encountered in "Init_and_Register", diagID = '
+    thisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
+    Found     = .FALSE.
+    TmpWL     = ''
+    TmpHt     = AltAboveSfc
+    am_I_Root = Input_Opt%amIRoot
+    Is_UCX    = Input_Opt%LUCX
+
+    ! Shorten grid parameters for readability
+    IM        = State_Grid%NX ! # latitudes
+    JM        = State_Grid%NY ! # longitudes
+    LM        = State_Grid%NZ ! # levels
+
+    ! Number of species per category
+    nSpecies  = State_Chm%nSpecies
+    nAdvect   = State_Chm%nAdvect
+    nDryAlt   = State_Chm%nDryAlt
+    nDryDep   = State_Chm%nDryDep
+    nHygGrth  = State_Chm%nHygGrth
+    nKppSpc   = State_Chm%nKppSpc
+    nLoss     = State_Chm%nLoss
+    nPhotol   = State_Chm%nPhotol
+    nProd     = State_Chm%nProd
+    nWetDep   = State_Chm%nWetDep
+
+    ! Nullify pointer fields and set logical fields to false
+    CALL Zero_State_Diag( State_Diag, RC )
+
     !------------------------------------------------------------------------
     ! Exit if this is a dry-run simulation
     !------------------------------------------------------------------------
@@ -1440,6 +1543,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_SpeciesConc,                    &
          mapData        = State_Diag%Map_SpeciesConc,                        &
          diagId         = diagId,                                            &
+         speciesFlag    = 'S',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1452,20 +1556,24 @@ CONTAINS
     ! Fraction of total time each grid box spent in the troposphere
     !------------------------------------------------------------------------
     diagID  = 'FracOfTimeInTrop'
-    arrayID = 'State_Diag%' // TRIM( diagID )
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%FracOfTimeInTrop( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FracOfTimeInTrop = 0.0_f4
-       State_Diag%Archive_FracOfTimeInTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%FracOfTimeInTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%FracOfTimeInTrop,                       &
+         archiveData    = State_Diag%Archive_FracOfTimeInTrop,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
+
 
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
@@ -2623,23 +2731,70 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
-       !
-       ! NOTE: Dimension array nPhotol+2 to archive special photolysis
-       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol+2 ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JVal = 0.0_f4
-          State_Diag%Archive_JVal = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%JVal,       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JVal,                                &
+            archiveData    = State_Diag%Archive_JVal,                        &
+            mapData        = State_Diag%Map_JVal,                            &
+            diagId         = diagId,                                         &
+            speciesFlag    = 'P',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! J-Values for O3_O1D (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'JValO3O1D'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JValO3O1D,                           &
+            archiveData    = State_Diag%Archive_JValO3O1D,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! J-Values for O3_O3P (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'JValO3O3P'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JValO3O3P,                           &
+            archiveData    = State_Diag%Archive_JValO3O3P,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
@@ -2648,37 +2803,44 @@ CONTAINS
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
        ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JNoon'
        diagID  = 'JNoon'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoon = 0.0_f4
-          State_Diag%Archive_JNoon = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,     State_Diag%JNoon,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JNoon,                               &
+            archiveData    = State_Diag%Archive_JNoon,                       &
+            mapData        = State_Diag%Map_JNoon,                           &
+            diagId         = diagId,                                         &
+            speciesFlag    = 'P',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
-       ! Counter array for noontime J-value boxes
-       ! Must be saved in conjunction with State_Diag%JNoon
-       arrayID = 'State_Diag%JNoonFrac'
        diagID  = 'JNoonFrac'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoonFrac( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoonFrac = 0.0_f4
-          State_Diag%Archive_JNoonFrac = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%JNoonFrac,                     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JNoonFrac,                           &
+            archiveData    = State_Diag%Archive_JNoonFrac,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
@@ -6512,13 +6674,10 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-
-    IF ( ASSOCIATED( State_Diag%FracOfTimeInTrop ) ) THEN
-       DEALLOCATE( State_Diag%FracOfTimeInTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FracOfTimeInTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FracOfTimeInTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'FracOfTimeInTrop',                            &
+                   Ptr2Data = State_Diag%FracOfTimeInTrop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
        DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
@@ -6714,12 +6873,21 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
-       DEALLOCATE( State_Diag%JVal, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JVal => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'JVal',                                        &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   mapData  = State_Diag%Map_JVal,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JValO3O1D',                                   &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JValO3O3P',                                   &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Diag%JValIndiv ) ) THEN
@@ -6730,19 +6898,16 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
-       DEALLOCATE( State_Diag%JNoon, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JNoon => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'JNoon',                                       &
+                   Ptr2Data = State_Diag%JNoon,                              &
+                   mapData  = State_Diag%Map_JNoon,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%JNoonFrac ) ) THEN
-       DEALLOCATE( State_Diag%JNoonFrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JNoonFrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JNoonFrac => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'JNoonFrac',                                   &
+                   Ptr2Data = State_Diag%JNoonFrac,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     IF ( ASSOCIATED( State_Diag%RxnRate ) ) THEN
        DEALLOCATE( State_Diag%RxnRate, STAT=RC )
@@ -8354,6 +8519,16 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JVALO3O1D' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O1D'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JVALO3O3P' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O3P'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'JNOON' ) THEN
        IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species'
        IF ( isUnits   ) Units = 's-1'
@@ -9494,6 +9669,8 @@ CONTAINS
 
     ! Get the number of tags per wildcard name
     SELECT CASE( TRIM( tagId ) )
+       CASE( '' )
+          numTags = 0
        CASE( 'ALL', 'S' )
           numTags = State_Chm%nSpecies
        CASE( 'ADV', 'A' )
@@ -9528,14 +9705,14 @@ CONTAINS
        CASE( 'LOS'      )
           numTags = State_Chm%nLoss
        CASE( 'PHO', 'P' )
-          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'    )
+          numTags = State_Chm%nPhotol
+       CASE( 'UVFLX', 'U' )
           numTags = W_
        CASE( 'PRD'      )
           numTags = State_Chm%nProd
        CASE( 'RRTMG'    )
           numTags = nRadFlux
-       CASE( 'RXN'      )
+       CASE( 'RXN', 'R' )
           numTags = NREACT
        CASE( 'VAR', 'V' )
           numTags = State_Chm%nKppVar
@@ -9687,11 +9864,7 @@ CONTAINS
        CASE( 'KPP'  )
           D = State_Chm%Map_KppSpc(N)
        CASE( 'PHO'  )
-          IF ( N > State_Chm%nPhotol ) THEN  ! NOTE: To denote the nPhotol+1
-             D = 5000 + N                    ! and nPhotol+2 slots, add a
-          ELSE                               ! large offset, so that we don't
-             D = State_Chm%Map_Photol(N)     ! clobber any existing species #'s
-          ENDIF
+          D = State_Chm%Map_Photol(N)
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
        CASE DEFAULT
@@ -9728,32 +9901,6 @@ CONTAINS
           tagName = State_Chm%Name_Prod(N)
           D       = INDEX( tagName, '_' )
           tagName = tagName(D+1:)
-
-       ! Photolysis species
-       CASE( 'PHO' )
-
-          ! Save O1_O3D (UCX) or O3 (non-UCX) in the nPhotol+1 slot
-          IF ( D == 5001 + State_Chm%nPhotol ) THEN
-             IF ( Is_UCX ) THEN
-                tagName = 'O3O1D'
-             ELSE
-                tagName = 'O3O1Da'
-             ENDIF
-
-          ! Save O3_O3P (UCX) or POH (non UCX) in the nPhotol+2 slot
-          ELSE IF ( D == 5002 + State_Chm%nPhotol ) THEN
-             IF ( Is_UCX ) THEN
-                tagName = 'O3O3P'
-             ELSE
-                tagName = 'O3O1Db'
-             ENDIF
-
-          ! For all other photolysis species, get the name
-          ! from the GEOS-Chem species database
-          ELSE
-             tagName = State_Chm%SpcData(D)%Info%Name
-
-          ENDIF
 
        ! RRTMG requested output fluxes
        CASE( 'RRTMG' )
@@ -9993,37 +10140,64 @@ CONTAINS
        ! (etc. for other flag values)
        index = mapData%slot2id(N)
 
-       ! If necessary, convert index to be the  modelId
-       ! so that we use it to look up the species name.
+       ! If necessary, convert index to be the modelId so that we use it to
+       ! look up the species name.  NOTE: For some wild cards, there is no
+       ! corresponding species in the species database.  For these, call
+       ! routine Get_TagInfo to look up the tag name.  (bmy, 6/3/20)
        SELECT CASE( mapData%indFlag )
           CASE( 'A' )
-             index = State_Chm%Map_Advect(index)
+             index   = State_Chm%Map_Advect(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'D' )
-             index = State_Chm%Map_DryDep(index)
+             index   = State_Chm%Map_DryDep(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'F' )
-             index = State_Chm%Map_KppFix(index)
-          CASE( 'G' )
-             index = State_Chm%Map_GasSpc(index)
+             index   = State_Chm%Map_KppFix(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'H' )
-             index = State_Chm%Map_HygGrth(index)
+             index   = State_Chm%Map_HygGrth(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'K' )
-             index = State_Chm%Map_KppSpc(index)
+             index   = State_Chm%Map_KppSpc(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'P' )
-             index = State_Chm%Map_Photol(index)
+             index   = State_Chm%Map_Photol(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'U' )
+             ! We need to call Get_TagInfo for UVFLX tags,
+             ! as these aren't regular defined species.
+             CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
+                               State_Chm = State_Chm,                     &
+                               tagID     = tagId,                         &
+                               N         = N,                             &
+                               tagName   = tagName,                       &
+                               found     = found,                         &
+                               RC        = RC                            )
           CASE( 'V' )
-             index = State_Chm%Map_KppVar(index)
+             index   = State_Chm%Map_KppVar(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'W' )
-             index = State_Chm%Map_WetDep(index)
+             index   = State_Chm%Map_WetDep(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE DEFAULT
-             ! Pass
+             tagName = State_Chm%SpcData(index)%info%name
        END SELECT
 
-       ! Now get the species name fromthe species database
-       tagName = State_Chm%SpcData(index)%info%name
+       ! Make sure there was no error above
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_reg ) // TRIM( metaDataId )            // &
+                   ' where tagID is ' // TRIM( tagID      )            // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ELSE
 
-       ! Otherwise, call Get_TagInfo to get tagName
+       !--------------------------------------------------------------------
+       ! If the mapping object was not passed, then
+       ! call routine  Get_TagInfo to get the tagName
+       !--------------------------------------------------------------------
        CALL Get_TagInfo( Input_Opt = Input_Opt,                              &
                          State_Chm = State_Chm,                              &
                          tagID     = tagId,                                  &
@@ -11406,7 +11580,7 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: found
     LOGICAL                   :: isWildCard
-    INTEGER                   :: C
+    INTEGER                   :: S
     INTEGER                   :: numTags
     INTEGER                   :: numWildCards
     INTEGER                   :: nTags
@@ -11527,6 +11701,7 @@ CONTAINS
           ENDIF
 
           ! Save the id (and other ID's) in the mapping object
+          ! Special handling for the extra 2 slots for the Jvalue diags
           mapData%slot2id(index) = Ind_( spcName, indFlag )
        ENDDO
 
@@ -11555,7 +11730,6 @@ CONTAINS
           TagItem                => TagItem%next
        ENDDO
        TagItem => NULL()
-
     ENDIF
 
     !--------------------------------------------------------------------
@@ -11589,9 +11763,9 @@ CONTAINS
     mapData%id2slot = -1
 
     ! Populate the mapData%id2slot field
-    DO C = 1, mapData%nSlots
-       index = mapData%slot2Id(C)
-       mapData%id2slot(index) = C
+    DO S = 1, mapData%nSlots
+       index = mapData%slot2Id(S)
+       mapData%id2slot(index) = S
     ENDDO
 
   END SUBROUTINE Get_Mapping
@@ -11657,11 +11831,12 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC    = GC_SUCCESS
-    found = .FALSE.
-    errMsg = ''
-    tagId  = ''
-    thisLoc = &
+    RC       = GC_SUCCESS
+    found    = .FALSE.
+    numSlots = 1
+    errMsg   = ''
+    tagId    = ''
+    thisLoc   = &
      ' -> at Get_MapData_and_NumSlots (in module Headers/state_diag_mod.F90)'
 
     !=======================================================================
@@ -11714,7 +11889,7 @@ CONTAINS
        IF ( found ) THEN
           CALL Get_NumTags( tagId, State_Chm, numSlots, RC )
           IF ( RC /= GC_SUCCESS ) THEN
-             errMsg = 'Abnormal exit from routine "Get_NumTags", could  ' // &
+             errMsg = 'Abnormal exit from routine "Get_NumTags", could  '  // &
                       'not get nTags for !' // TRIM( metadataId )
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
@@ -12268,12 +12443,12 @@ CONTAINS
                              nSlots     = numSlots,                       &
                              RC         = RC                             )
 
-     ! Trap potential errors
-     IF ( RC /= GC_SUCCESS ) THEN
-        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
-        CALL GC_Error( errMsg, RC, thisLoc )
-        RETURN
-     ENDIF
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Print info about diagnostic
     IF ( Input_Opt%amIRoot ) THEN
@@ -12644,12 +12819,12 @@ CONTAINS
                              nSlots     = numSlots,                          &
                              RC         = RC                             )
 
-     ! Trap potential errors
-     IF ( RC /= GC_SUCCESS ) THEN
-        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
-        CALL GC_Error( errMsg, RC, thisLoc )
-        RETURN
-     ENDIF
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Print info about diagnostic
     IF ( Input_Opt%amIRoot ) THEN
@@ -12760,13 +12935,10 @@ CONTAINS
     ENDIF
 
     ! Zero/nullify the data and mapping variables
-    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    !IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
     Ptr2Data => NULL()
     archiveData = .FALSE.
-    IF ( PRESENT( mapData ) ) THEN
-       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
-       mapData => NULL()
-    ENDIF
+    IF ( PRESENT( mapData ) ) mapData => NULL()
 
     !=======================================================================
     ! First determine if the diagnostic is turned on
@@ -12825,12 +12997,12 @@ CONTAINS
                              nSlots     = numSlots,                          &
                              RC         = RC                                )
 
-     ! Trap potential errors
-     IF ( RC /= GC_SUCCESS ) THEN
-        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
-        CALL GC_Error( errMsg, RC, thisLoc )
-        RETURN
-     ENDIF
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Print info about diagnostic
     IF ( Input_Opt%amIRoot ) THEN

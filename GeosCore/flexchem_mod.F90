@@ -164,9 +164,9 @@ CONTAINS
     LOGICAL                :: prtDebug,  IsLocNoon
     INTEGER                :: I,         J,        L,         N
     INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      Day   
+    INTEGER                :: P,         MONTH,    YEAR,      Day
     INTEGER                :: WAVELENGTH
-    INTEGER                :: IERR
+    INTEGER                :: IERR,      S
     INTEGER                :: Thread
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
     REAL(fp)               :: TOUT
@@ -589,7 +589,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  ISTATUS                   )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC                        )&
+    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC,    S                  )&
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP SCHEDULE ( DYNAMIC,  1                                            )
@@ -735,23 +735,50 @@ CONTAINS
 
              ! If this FAST_JX photolysis species maps to a valid
              ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 ) THEN
+             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Diag%Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
-                                            + PHOTOL(N)
+                   S = State_Diag%Map_JVal%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%JVal(I,J,L,S) =                             &
+                      State_Diag%JVal(I,J,L,S) + PHOTOL(N)
+                   ENDIF
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Met%IsLocalNoon(I,J) ) THEN
                    IF ( State_Diag%Archive_JNoon ) THEN
-                      State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
-                                                + PHOTOL(N)
+                      S = State_Diag%Map_JNoon%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%JNoon(I,J,L,S) =                         &
+                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                      ENDIF
                    ENDIF
                 ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O1D ) THEN
+                   State_Diag%JValO3O1D(I,J,L) =                             &
+                   State_Diag%JValO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O3P ) THEN
+                   State_Diag%JValO3O3P(I,J,L) =                             &
+                   State_Diag%JValO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
              ENDIF
           ENDDO
 
@@ -793,7 +820,7 @@ CONTAINS
        !====================================================================
        IF ( DO_HETCHEM ) THEN
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Het chem rates", RC, & 
+             CALL Timer_Start( "  -> Het chem rates", RC, &
                                InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
 
