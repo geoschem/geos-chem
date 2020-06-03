@@ -438,7 +438,6 @@ CONTAINS
     State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
-    State_Chm%DryDepSav         => NULL()
     State_Chm%TLSTT             => NULL()
     State_Chm%PSO4s             => NULL()
     State_Chm%QQ3D              => NULL()
@@ -448,6 +447,7 @@ CONTAINS
 
     ! For dry deposition
     State_Chm%DryDepSav         => NULL()
+    State_Chm%DryDepVel         => NULL()
     State_Chm%SurfaceFlux       => NULL()
 
     ! Zero local variables
@@ -1778,8 +1778,8 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%DryDepVel', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%DryDepVel = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepVel,       &
-                                State_Chm, RC                               )
+        CALL Register_ChmField( Input_Opt, chmID, State_Chm%DryDepVel,       &
+                                State_Chm, RC )
         CALL GC_CheckVar( 'State_Chm%DryDepVel', 1, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF

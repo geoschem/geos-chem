@@ -294,9 +294,6 @@ CONTAINS
     REAL(f8) :: SUNCOS_MID(State_Grid%NX,State_Grid%NY) ! COS(SZA) @ midt of
                                                         ! current chem timestep
 
-    ! Objects
-    TYPE(Species), POINTER :: SpcInfo
-
     !=================================================================
     ! DO_DRYDEP begins here!
     !=================================================================
@@ -305,7 +302,6 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Initialize
-    SpcInfo  => NULL()
     ErrMsg   = ''
     ThisLoc  = ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F90)'
 
@@ -334,8 +330,8 @@ CONTAINS
 #if !defined( MODEL_CESM )
     ! Call UPDATE_DRYDEPSAV to update dry deposition frequencies [s-1]
     ! from dry deposition velocities [m/s].
-    CALL UPDATE_DRYDEPSAV( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
-                           State_Grid, State_Met, RC )
+    CALL UPDATE_DRYDEPSAV( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                           State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -365,13 +361,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE UPDATE_DRYDEPSAV( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
-                               State_Grid, State_Met, RC )
+  SUBROUTINE UPDATE_DRYDEPSAV( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                               State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -412,6 +409,9 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER  :: DEPSAV (:,:,:) ! Dry deposition frequencies [s-1]
+
+    ! Objects
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! UPDATE_DRYDEPSAV begins here!
@@ -602,7 +602,7 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-  END SUBROUTINE UPDATE_DRYDEPSAVE
+  END SUBROUTINE UPDATE_DRYDEPSAV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
