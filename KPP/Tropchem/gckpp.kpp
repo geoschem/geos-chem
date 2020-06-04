@@ -17,7 +17,6 @@ LCH4 : CH4;
 PH2O2 : H2O2;
 
 
-
 #INLINE F90_RATES
   REAL(kind=dp) FUNCTION ARRPLUS( A0,B0,C0,D0,E0 )
      REAL A0,B0,C0,D0,E0 
@@ -411,7 +410,7 @@ PH2O2 : H2O2;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------

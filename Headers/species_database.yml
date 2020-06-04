@@ -227,10 +227,17 @@ Br2:
   MW_g: 159.80
   WD_RetFactor: 0.0
 BrCl:
+  DD_F0: 0.0
+  DD_Hstar: 9.7e-1
+  Henry_CR: 5600.0
+  Henry_K0: 9.7e-1
   Formula: BrCl
   FullName: Bromine chloride
   Is_Advected: true
   Is_Gas: true
+  Is_DryDep: true
+  Is_WetDep: true
+  WD_RetFactor: 0.0
   Is_Photolysis: true
   MW_g: 115.45
 BrNO2:
@@ -569,11 +576,16 @@ Cl:
   Is_Gas: true
   MW_g: 35.45
 Cl2:
+  DD_F0: 0.0
+  DD_Hstar: 9.2e-2
   Formula: Cl2
   FullName: Molecular chlorine
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
+  Is_DryDep: true
+  Henry_K0: 9.2e-2
+  Henry_CR: 2000.0
   MW_g: 70.90
 Cl2O2:
   Formula: Cl2O2
@@ -583,11 +595,14 @@ Cl2O2:
   Is_Photolysis: true
   MW_g: 102.91
 ClNO2:
+  DD_F0: 0.0
+  DD_Hstar: 4.5e-2
   Formula: ClNO2
   FullName: Nitryl chloride
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
+  Is_DryDep: true
   MW_g: 81.45
 ClNO3:
   DD_F0: 0.0
@@ -598,20 +613,31 @@ ClNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
+  Henry_K0: 1.0e+20
+  Henry_CR: 0.0
+  WD_RetFactor: 1.0
   MW_g: 97.45
 ClO:
+  DD_F0: 0.0
+  DD_Hstar: 7.0e-1
   Formula: ClO
   FullName: Chlorine monoxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
+  Is_DryDep: true
   MW_g: 51.45
 ClOO:
+  DD_F0: 0.0
+  DD_Hstar: 1.0
   Formula: ClOO
   FullName: Chlorine dioxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
+  Is_DryDep: true
+  Henry_K0: 1.0
+  Henry_CR: 3500.0
   MW_g: 67.45
 CO2_PROP: &CO2properties
   Formula: CO2
@@ -1061,11 +1087,11 @@ HCFC22:
   MW_g: 86.47
 HCl:
   DD_F0: 0.0
-  DD_Hstar: 2.05e+13
+  DD_Hstar: 2.0e+13
   Formula: HCl
   FullName: Hydrochloric acid
-  Henry_CR: 11000.0
-  Henry_K0: 7.0e+10
+  Henry_CR: 9000.0
+  Henry_K0: 6.3e+10
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -1467,11 +1493,11 @@ HO2:
   MW_g: 33.01
 HOBr:
   DD_F0: 0.0
-  DD_Hstar: 6.1e+3
+  DD_Hstar: 1.3e+3
   Formula: HOBr
   FullName: Hypobromous acid
-  Henry_CR: 6014.0
-  Henry_K0: 6.1e+3
+  Henry_CR: 4000.0
+  Henry_K0: 1.3e+3
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2897,7 +2923,7 @@ OClO:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 67.5
+  MW_g: 67.45
 OCPI:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3607,11 +3633,33 @@ SALA:
   FullName: Fine (0.01-0.05 microns) sea salt aerosol
   Is_HygroGrowth: true
   MW_g: 31.4
+SALAAL:
+  << : *SALAproperties
+  FullName: Accumulation mode sea salt alkalinity
+  Is_HygroGrowth: true
+  MW_g: 31.4
+SALACL:
+  << : *SALAproperties
+  FullName: Chloride in Accumulation mode sea salt aerosol
+  Is_HygroGrowth: true
+  MW_g: 35.45
 SALC:
   << : *SALCproperties
   FullName: Coarse (0.5-8 microns) sea salt aerosol
   Is_HygroGrowth: true
   MW_g: 31.4
+  WD_CoarseAer: true
+SALCAL:
+  << : *SALCproperties
+  FullName: Coarse mode sea salt alkalinity
+  Is_HygroGrowth: true
+  MW_g: 31.4
+  WD_CoarseAer: true
+SALCCL:
+  << : *SALCproperties
+  FullName: Chloride in Coarse mode sea salt aerosol
+  Is_HygroGrowth: true
+  MW_g: 35.45
   WD_CoarseAer: true
 SF6Tracer:
   Formula: SF6
@@ -3678,6 +3726,16 @@ SO4H1:
 SO4H2:
   Formula: SO4
   FullName: Sulfate produced by HOBr
+  Is_Gas: true
+  MW_g: 96.06
+SO4H3:
+  Formula: SO4
+  FullName: Sulfate produced by HOCl
+  Is_Gas: true
+  MW_g: 96.06
+SO4H4:
+  Formula: SO4
+  FullName: Sulfate produced by HOCl
   Is_Gas: true
   MW_g: 96.06
 SO4s:

@@ -310,6 +310,14 @@ CONTAINS
              RETURN
           ENDIF
 
+       ELSE IF ( INDEX( LINE, 'OBSPACK MENU' ) > 0 ) THEN
+          CALL READ_OBSPACK_MENU( Input_Opt, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error in "Read_ObsPack_Menu"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
 #ifdef BPCH_DIAG
        !==============================================================
        ! Skip BPCH-related menus unless compiled with BPCH_DIAG=y
@@ -763,6 +771,16 @@ CONTAINS
     Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOL'          )
 
     !-----------------------------------------------------------------
+    ! Species database file
+    !-----------------------------------------------------------------
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Spc Database', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%SpcDatabaseFile
+
+    !-----------------------------------------------------------------
     ! Turn on debug output
     !-----------------------------------------------------------------
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Debug output', RC )
@@ -812,6 +830,8 @@ CONTAINS
                         TRIM( Input_Opt%MetField )
        WRITE( 6, 110 ) 'Simulation name             : ', &
                         TRIM( Input_Opt%SimulationName )
+       WRITE( 6, 110 ) 'Species database file       : ', &
+                        TRIM( Input_Opt%SpcDatabaseFile )
        WRITE( 6, 120 ) 'Turn on debug output        : ', &
                         Input_Opt%LPRT
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ', &
