@@ -553,7 +553,7 @@ CONTAINS
    Hg_Cat_Name => NULL()
 
    ! Name of this routine
-   LOC = ' -> at Get_GC_Restart (in GeosCore/hcoi_gc_main_mod.F90)'
+   LOC = ' -> at Get_GC_Restart (in GeosCore/hco_utilities_gc_mod.F90)'
 
    ! Set minimum value threshold for [mol/mol]
    SMALL_NUM = 1.0e-30_fp
@@ -1355,7 +1355,7 @@ CONTAINS
    Spc       => State_Chm%Species
 
    ! Name of this routine
-   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F90)'
+   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hco_utilities_gc_mod.F90)'
 
    ! Find the proper time-slice to read from disk
    t_index = ( HHMMSS / 030000 ) + 1
@@ -1588,7 +1588,7 @@ CONTAINS
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
-    ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hcoi_gc_main_mod.F90)'
+    ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_utilities_gc_mod.F90)'
 
     ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
     IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
