@@ -2904,6 +2904,15 @@ CONTAINS
        IF ( Direction /= 0 ) HasFile = .FALSE.
     ENDIF
 
+    ! If this is a HEMCO dry-run simulation then do not enter the loop
+    ! where we will attempt to go back in time until a file is found.
+    ! For the dry-run we need to report all files, even missing.
+    ! This fixes Github issue geoschem/geos-chem #312. (bmy, 6/4/20)
+    IF ( HcoState%Options%isDryRun ) THEN
+       RC = HCO_SUCCESS
+       RETURN
+    ENDIF
+
     ! If file does not exist, check if we can adjust prefYr, prefMt, etc.
     IF ( .NOT. HasFile .AND. Lct%Dct%DctType /= HCO_CFLAG_EXACT ) THEN
 

@@ -2976,7 +2976,18 @@ CONTAINS
     ENDIF
     do J = 1,JVN_
        read (NUNIT,'(i4,1x,a50,4x,f5.3,2x,a6)') JJ,T_REACT,F_FJX,T_FJX
-       if (JJ.gt.JVN_) goto 20
+       IF (JJ.gt.JVN_) THEN
+          IF ( JJ .eq. 9999 ) THEN
+             close(NUNIT)
+             exit
+          ELSE
+             ErrMsg = 'Number of reactions in FJX_j2j.dat exceeds JVN_.' //&
+                      'Adjust JVN_ in CMN_FJX_mod.F90 to get past this error.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
        JLABEL(JJ) = T_REACT
        JFACTA(JJ) = F_FJX
        JMAP(JJ) = T_FJX
@@ -2994,8 +3005,6 @@ CONTAINS
           ENDIF
        ENDDO
     enddo
-
-20  close(NUNIT)
 
     ! Zero / Set index arrays that map Jvalue(j) onto rates
     do K = 1,NRATJ

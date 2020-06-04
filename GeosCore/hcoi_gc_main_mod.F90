@@ -2949,6 +2949,24 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
+    ! Lightning NOx extension
+    !
+    ! The lightning NOx extension is only used in fullchem simulations. We 
+    ! will create a shadow field (Input_Opt%DoLightningNOx) to determine if
+    ! the FLASH_DENS and CONV_DEPTH fields are needed in flexgrid_read_mod.F90
+    !-----------------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       ExtNr = GetExtNr( HcoConfig%ExtList, 'LightNOx' )
+       IF ( ExtNr <= 0 ) THEN
+          Input_Opt%DoLightNOx = .FALSE.
+       ELSE
+          Input_Opt%DoLightNOx = .TRUE.
+       ENDIF
+    ELSE
+       Input_Opt%DoLightNOx = .FALSE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! UV Albedo
     !
     ! UV albedoes are needed for photolysis.  Photolysis is only used in

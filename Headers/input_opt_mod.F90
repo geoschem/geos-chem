@@ -68,6 +68,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: MetField
      CHARACTER(LEN=255)          :: SimulationName
+     CHARACTER(LEN=255)          :: SpcDatabaseFile
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
@@ -146,9 +147,10 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
-     INTEGER                     :: CFCYEAR
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
+     LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
+
      !----------------------------------------
      ! CO MENU fields
      !----------------------------------------
@@ -539,6 +541,7 @@ CONTAINS
     Input_Opt%CHEM_INPUTS_DIR        = './'
     Input_Opt%MetField               = ''
     Input_Opt%SimulationName         = ''
+    Input_Opt%SpcDatabaseFile        = ''
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
@@ -634,9 +637,10 @@ CONTAINS
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
-    Input_Opt%CFCYEAR                = 0
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
+    Input_Opt%DoLightNOx             = .FALSE.
+
     !----------------------------------------
     ! CO MENU fields
     !----------------------------------------
