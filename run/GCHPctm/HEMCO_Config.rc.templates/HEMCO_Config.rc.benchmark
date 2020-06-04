@@ -100,6 +100,8 @@ Warnings:                    1
 # corresponding HEMCO extension to 'off':
 #   OFFLINE_DUST        - DustDead or DustGinoux
 #   OFFLINE_BIOGENICVOC - MEGAN
+#    - Note: MEGAN must always be on for certain
+#            species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
 #--------------------------------------------
@@ -141,14 +143,14 @@ Warnings:                    1
 #C720 --> Mass tuning factor     : 2.3e-4
     --> Mass tuning factor     :       @MASS_TUNING_FACTOR
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : on   SALA/SALC/Br2/BrSALA/BrSALC/MOPO/MOPI
+107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/Br2/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
     --> Emit Br2               :       false
     --> Br2 scaling            :       1.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -2432,19 +2434,19 @@ Warnings:                    1
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2016/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2015-10/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2016/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2019/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2015-10/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2016/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2019/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -2587,8 +2589,10 @@ Warnings:                    1
 # and convective depth are now prescribed as offline meteorology.
 #                                                    --Lee Murray (16 Jan 2019)
 #==============================================================================
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2019-01/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2019-01/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+(((LightNOx
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+)))LightNOx
 
 )))METEOROLOGY
 
@@ -2616,7 +2620,7 @@ Warnings:                    1
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_  $ROOT/SAMPLE_BCs/v2019-12/tropchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2019/1-12/1-31/0-23 RFY xyz 1 * - 1 1
+* BC_  $ROOT/SAMPLE_BCs/v2020-03/tropchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2019/1-12/1-31/* RFY xyz 1 * - 1 1
 )))GC_BCs
 
 (((CHEMISTRY_INPUT
@@ -3219,15 +3223,15 @@ Warnings:                    1
 # --- NOAA GMD monthly mean surface CH4 ---
 #==============================================================================
 (((GMD_SFC_CH4
-* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 C xy ppbv * - 1 1
+* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 RY xy ppbv * - 1 1
 )))GMD_SFC_CH4
 
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 ---
-# NOTE: This is only used if NOAA data is unavailible (pre 1979)
+# NOTE: This is only used if NOAA data is unavailable (pre 1979)
 #==============================================================================
 (((CMIP6_SFC_CH4
-* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 C xy ppbv * - 1 1
+* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 EY xy ppbv * - 1 1
 )))CMIP6_SFC_CH4
 
 #==============================================================================

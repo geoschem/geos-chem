@@ -83,17 +83,19 @@ EmisBENZ_Ship      BENZ   0      10  -1   2   kg/m2/s  BENZ_emission_flux_from_s
 ###############################################################################
 #####  C2H2 emissions                                                    ######
 ###############################################################################
-EmisC2H2_Total     C2H2   -1     -1  -1   3   kg/m2/s  C2H2_emission_flux_from_all_sectors
-EmisC2H2_Anthro    C2H2   0      1   -1   3   kg/m2/s  C2H2_emission_flux_from_anthropogenic
-EmisC2H2_Ship      C2H2   0      10  -1   2   kg/m2/s  C2H2_emission_flux_from_ships
+# C2H2 is not an active species in GEOS-Chem; disable for now
+#EmisC2H2_Total     C2H2   -1     -1  -1   3   kg/m2/s  C2H2_emission_flux_from_all_sectors
+#EmisC2H2_Anthro    C2H2   0      1   -1   3   kg/m2/s  C2H2_emission_flux_from_anthropogenic
+#EmisC2H2_Ship      C2H2   0      10  -1   2   kg/m2/s  C2H2_emission_flux_from_ships
 
 ###############################################################################
 #####  C2H4 emissions                                                    ######
 ###############################################################################
-EmisC2H4_Total     C2H4   -1     -1  -1   3   kg/m2/s  C2H4_emission_flux_from_all_sectors
-EmisC2H4_Anthro    C2H4   0      1   -1   3   kg/m2/s  C2H4_emission_flux_from_anthropogenic
-EmisC2H4_Biogenic  C2H4   108    -1  -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
-EmisC2H4_Ship      C2H4   0      10  -1   2   kg/m2/s  C2H4_emission_flux_from_ships
+# C2H4 is not an active species in GEOS-Chem; disable for now
+#EmisC2H4_Total     C2H4   -1     -1  -1   3   kg/m2/s  C2H4_emission_flux_from_all_sectors
+#EmisC2H4_Anthro    C2H4   0      1   -1   3   kg/m2/s  C2H4_emission_flux_from_anthropogenic
+#EmisC2H4_Biogenic  C2H4   108    -1  -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
+#EmisC2H4_Ship      C2H4   0      10  -1   2   kg/m2/s  C2H4_emission_flux_from_ships
 
 ###############################################################################
 #####  C2H6 emissions                                                    ######
@@ -396,7 +398,8 @@ EmisRCHO_Anthro    RCHO   0      1   -1   3   kg/m2/s  RCHO_emission_flux_from_a
 ###############################################################################
 #####  SESQ emissions                                                     #####
 ###############################################################################
-EmisSESQ_Biogenic  SESQ   108    -1  -1   2   kg/m2/s  SESQ_emission_flux_from_biogenic_sources
+# SESQ is not an active species in GEOS-Chem; disable for now
+#EmisSESQ_Biogenic  SESQ   108    -1  -1   2   kg/m2/s  SESQ_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  Sea salt emissions                                                 #####
@@ -799,14 +802,16 @@ InvSeaSalt_SALC      SALC   107  -1  -1  2   kg/m2/s  SALC_emission_flux_from_Se
 # MEGAN Extension
 #=============================
 InvMEGAN_ALD2        ALD2   108   -1 -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
-InvMEGAN_C2H4        C2H4   108   -1 -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
+# C2H4 is not an active species in GEOS-Chem; disable for now
+#InvMEGAN_C2H4        C2H4   108   -1 -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_EOH         EOH    108   -1 -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_ISOP        ISOP   108   -1 -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_LIMO        LIMO   108   -1 -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_MTPA        MTPA   108   -1 -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_MTPO        MTPO   108   -1 -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_PRPE        PRPE   108   -1 -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
-InvMEGAN_SESQ        SESQ   108   -1 -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
+# SESQ is not an active species in GEOS-Chem; disable for now
+#InvMEGAN_SESQ        SESQ   108   -1 -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_SOAP        SOAP   108   -1 -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_SOAS        SOAS   108   -1 -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_ACET        ACET   108   -1 -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension

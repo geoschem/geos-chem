@@ -279,16 +279,6 @@ Warnings:                    1
 * SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV       1980-2019/1-12/1-31/1/+1day     RFY xyz 1  * -  1 1
 * TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T        1980-2019/1-12/1-31/1/+1day     RFY xyz 1  * -  1 1
 
-#==============================================================================
-# --- Fields for lightning emissions (Extension 103) ---
-#
-# Native-resolution lightning flash rates constrained to LIS/OTD climatology
-# and convective depth are now prescribed as offline meteorology.
-#                                                    --Lee Murray (16 Jan 2019)
-#==============================================================================
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2019-01/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2019-01/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2019/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-
 )))METEOROLOGY
 
 #==============================================================================
