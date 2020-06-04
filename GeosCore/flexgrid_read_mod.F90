@@ -1098,24 +1098,39 @@ CONTAINS
     CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%PFLLSAN = Qe
 
-    ! Read FLASH_DENS
-    v_name = "FLASH_DENS"
-    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
-    State_Met%FLASH_DENS = Q2
+    !======================================================================
+    ! Get lightning fields from HEMCO when LightNOx extension is on
+    !======================================================================
+    IF ( Input_Opt%DoLightNOx) THEN
 
-    ! Read CONV_DEPTH
-    v_name = "CONV_DEPTH"
-    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
-    State_Met%CONV_DEPTH = Q2
+       ! Read FLASH_DENS
+       v_name = "FLASH_DENS"
+       CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+       State_Met%FLASH_DENS = Q2
+
+       ! Read CONV_DEPTH
+       v_name = "CONV_DEPTH"
+       CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+       State_Met%CONV_DEPTH = Q2
+
+    ELSE
+
+       ! Print message to log file
+       IF ( Input_Opt%amIRoot) THEN
+          Print*, '    - LightNOX extension is off. Skipping FLASH_DENS' // &
+                  ' and CONV_DEPTH fields in FlexGrid_Read_A3mstE.'
+       ENDIF
+
+    ENDIF
+
+    !=================================================================
+    ! Diagnostics, cleanup and quit
+    !=================================================================
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
  10 FORMAT( '     - Found all A3mstE met fields for ', a )
-
-    !=================================================================
-    ! Diagnostics, cleanup and quit
-    !=================================================================
 
     ! CLDTOPS = highest location of CMFMC in the column (I,J)
     DO J = 1, State_Grid%NY

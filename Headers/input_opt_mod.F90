@@ -147,6 +147,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
+     LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
 
      !----------------------------------------
      ! CO MENU fields
@@ -634,6 +635,7 @@ CONTAINS
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%DoLightNOx             = .FALSE.
 
     !----------------------------------------
     ! CO MENU fields
