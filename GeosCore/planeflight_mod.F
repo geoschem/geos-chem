@@ -1879,145 +1879,135 @@
                   CASE ( 1109 )
                      VARI(V) = State_Met%SEAICE90(I,J)
 
-                  !--------------------------
-                  ! Column aerosol optical
-                  ! depths [unitless]
-                  !--------------------------
-                  CASE ( 2001:2006 )
+                !--------------------------
+                ! Grid AOD [unitless], zhaisx May 29, 2020
+                !--------------------------
+                CASE ( 2001:2005 )!2001:2005: SULF, BLKC, ORGC, SALA, SALC
 
-                   ! Remove MISSING flag
-                   VARI(V) = 0e+0_fp
+                 ! Remove MISSING flag
+                 VARI(V) = 0e+0_fp
 
-                   ! Aerosol number
-                   N = PVAR(V) - 2000
+                 ! Aerosol number
+                 N = PVAR(V) - 2000
+          
+                 IF ( .not. LINTERP ) THEN
+                    VARI(V) = VARI(V) + ODAER(I,J,L,IWVSELECT(1,1),N)
+                 ELSE
+                   ! Interpolated using angstrom exponent between
+                   ! Closest available wavelengths
+                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                   !catch any zero values before interpolation
+                    IF ((ODAER(I,J,L,IWVSELECT(2,1),N).GT.0).AND.
+     &                  (ODAER(I,J,L,IWVSELECT(1,1),N).GT.0)) THEN 
+                         VARI(V) = VARI(V) +
+     &            (ODAER(I,J,L,IWVSELECT(2,1),N)*ACOEF_WV(1)**
+     &            (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),N)/
+     &                            ODAER(I,J,L,IWVSELECT(2,1),N))))
+                    ENDIF
+                 ENDIF
 
-                   ! Loop over RH bins
-                   DO  ISPC= 1, NAER
-                    IF ( .not. LINTERP ) THEN
-                     DO LL = 1, State_Grid%NZ
-                      ! Accumulate
-                      VARI(V) = VARI(V) +
-     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
-                     ENDDO
-                    ELSE
-                     DO LL = 1, State_Grid%NZ
-                      ! Interpolated using angstrom exponent between
-                      ! Closest available wavelengths
-                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                      !catch any zero values before interpolation
-                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
-     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                           VARI(V) = VARI(V) +
-     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
-     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
-     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
-                      ENDIF
-                     ENDDO
+                !DUST
+                CASE ( 2006 )
+                 ! Remove MISSING flag
+                 VARI(V) = 0e+0_fp
+                 
+                 IF ( .not. LINTERP ) THEN
+                   DO ISPC = 1, NDUST
+                    VARI(V) = VARI(V) +
+     &                 ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                   ENDDO
+                 ELSE
+                   ! Interpolated using angstrom exponent between
+                   ! Closest available wavelengths
+                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                   !catch any zero values before interpolation
+                   DO ISPC = 1, NDUST
+                    IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                  (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                         VARI(V) = VARI(V) +
+     &            (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &         (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                          ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
                     ENDIF
                    ENDDO
+                 ENDIF
 
-                   !now add in the dust
-                   IF ( .not. LINTERP ) THEN
-                    DO LL = 1, State_Grid%NZ
-                     DO ISPC = 1, NDUST
-                      ! Accumulate
-                      VARI(V) = VARI(V) +
-     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
-                     ENDDO
-                    ENDDO
-                   ELSE
-                    DO LL = 1, State_Grid%NZ
-                     ! Interpolated using angstrom exponent between
-                     ! Closest available wavelengths
-                     ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                     !catch any zero values before interpolation
-                     DO ISPC = 1, NDUST
-                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
-     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                           VARI(V) = VARI(V) +
-     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
-     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
-     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
-                      ENDIF
-                     ENDDO
-                    ENDDO
-                   ENDIF
+                !--------------------------
+                ! Aerosol optical depths
+                ! above plane [unitless], zhaisx May 29, 2020
+                !--------------------------
+                CASE ( 3001:3005 )
 
-                  !--------------------------
-                  ! Aerosol optical depths
-                  ! below plane [unitless]
-                  !--------------------------
-                  CASE ( 3001:3006 )
+                 ! Remove MISSING flag
+                 VARI(V) = 0e+0_fp
 
-                   ! Remove MISSING flag
-                   VARI(V) = 0e+0_fp
+                 ! Aerosol number
+                 N = PVAR(V) - 3000
 
-                   ! Aerosol number
-                   N = PVAR(V) - 3000
+                  IF ( .not. LINTERP ) THEN
+                   DO LL = L, State_Grid%NZ 
+                    ! Skip non-tropospheric boxes
+                    IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
+                    ! Accumulate
+                    VARI(V) = VARI(V) +
+     &              ODAER(I,J,LL,IWVSELECT(1,1),N)
+                   ENDDO
+                  ELSE
+                   DO LL = L, State_Grid%NZ
+                    ! Skip non-tropospheric boxes
+                    IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
 
-                   ! Loop over RH bins
-                   DO  ISPC= 1, NAER
-
-                    IF ( .not. LINTERP ) THEN
-                     DO LL = 1, State_Grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
-
-                      ! Accumulate
-                      VARI(V) = VARI(V) +
-     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
-                     ENDDO
-                    ELSE
-                     DO LL = 1, State_Grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
-
-                      ! Interpolated using angstrom exponent between
-                      ! Closest available wavelengths
-                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                      !catch any zero values before interpolation
-                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
-     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                           VARI(V) = VARI(V) +
-     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
-     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
-     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
-                      ENDIF
-                     ENDDO
+                    ! Interpolated using angstrom exponent between
+                    ! Closest available wavelengths
+                    ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                    !catch any zero values before interpolation
+                    IF ((ODAER(I,J,LL,IWVSELECT(2,1),N).GT.0).AND.
+     &                  (ODAER(I,J,LL,IWVSELECT(1,1),N).GT.0)) THEN
+                         VARI(V) = VARI(V) +
+     &            (ODAER(I,J,LL,IWVSELECT(2,1),N)*ACOEF_WV(1)**
+     &            (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),N)/
+     &                             ODAER(I,J,LL,IWVSELECT(2,1),N))))
                     ENDIF
                    ENDDO
+                  ENDIF
 
-                   !now add in the dust
-                   IF ( .not. LINTERP ) THEN
-                    DO LL = 1, State_Grid%NZ
-                     ! Skip non-tropospheric boxes
-                     IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
-                     DO ISPC = 1, NDUST
-                      ! Accumulate
-                      VARI(V) = VARI(V) +
-     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
-                      ENDDO
-                     ENDDO
-                    ELSE
-                     DO LL = 1, State_grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
 
-                      ! Interpolated using angstrom exponent between
-                      ! Closest available wavelengths
-                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                      !catch any zero values before interpolation
-                      DO ISPC = 1, NDUST
-                       IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
-     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                           VARI(V) = VARI(V) +
-     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
-     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
-     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
-                       ENDIF
-                      ENDDO
-                     ENDDO
-                    ENDIF
+                !DUST
+                CASE ( 3006 )
+
+                 ! Remove MISSING flag
+                 VARI(V) = 0e+0_fp
+
+                 IF ( .not. LINTERP ) THEN
+                  DO LL = L, State_Grid%NZ
+                   ! Skip non-tropospheric boxes
+                   IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
+                   DO ISPC = 1, NDUST
+                    ! Accumulate
+                    VARI(V) = VARI(V) +
+     &                ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                   ENDDO
+                  ENDDO
+                 ELSE
+                   DO LL = L, State_grid%NZ
+                    ! Skip non-tropospheric boxes
+                    IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
+
+                    ! Interpolated using angstrom exponent between
+                    ! Closest available wavelengths
+                    ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                    !catch any zero values before interpolation
+                    DO ISPC = 1, NDUST
+                     IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                  (ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                         VARI(V) = VARI(V) +
+     &         (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &         (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                          ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                     ENDIF
+                    ENDDO
+                   ENDDO
+                 ENDIF
 
                   !--------------------------
                   ! Hg(II) partitioning eds 10/27/11
