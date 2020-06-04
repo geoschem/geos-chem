@@ -3410,6 +3410,7 @@ CONTAINS
     REAL(fp) :: FDIRECT (JXL1_)
     REAL(fp) :: FDIFFUSE(JXL1_)
     REAL(fp) :: UVX_CONST
+    INTEGER  :: S
 
     ! Logical flags
     LOGICAL :: IS_HALOGENS
@@ -3760,21 +3761,30 @@ CONTAINS
           DO L = 1, State_Grid%NZ
 
              IF ( State_Diag%Archive_UVFluxNet ) THEN
-                State_Diag%UVFluxNet(ILON,ILAT,L,K) = &
-                State_Diag%UVFluxNet(ILON,ILAT,L,K) + &
-                     ( ( FDIRECT(L) + FDIFFUSE(L) ) * UVX_CONST )
+                S = State_Diag%UvFluxNet%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%UVFluxNet(ILON,ILAT,L,S) =                     &
+                   State_Diag%UVFluxNet(ILON,ILAT,L,S) +                     &
+                        ( ( FDIRECT(L) + FDIFFUSE(L) ) * UVX_CONST )
+                ENDIF
              ENDIF
 
              IF ( State_Diag%Archive_UVFluxDirect ) THEN
-                State_Diag%UVFluxDirect(ILON,ILAT,L,K) = &
-                State_Diag%UVFluxDirect(ILON,ILAT,L,K) + &
-                     ( FDIRECT(L) * UVX_CONST )
+                S = State_Diag%UvFluxDirect%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%UVFluxDirect(ILON,ILAT,L,S) =                  &
+                   State_Diag%UVFluxDirect(ILON,ILAT,L,S) +                  &
+                        ( FDIRECT(L) * UVX_CONST )
+                ENDIF
              ENDIF
 
              IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-                State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) = &
-                State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) + &
-                     ( FDIFFUSE(L) * UVX_CONST )
+                S = State_Diag%UvFluxDiffuse%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) =                 &
+                   State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) +                 &
+                        ( FDIFFUSE(L) * UVX_CONST )
+                ENDIF
              ENDIF
           ENDDO
        ENDDO

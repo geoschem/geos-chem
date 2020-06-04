@@ -177,17 +177,20 @@ MODULE State_Diag_Mod
      TYPE(DgnMap), POINTER :: Map_DryDepVel
      LOGICAL               :: Archive_DryDepVel
 
-     ! Drydep resistances and related quantities
 #ifdef MODEL_GEOS
      ! GEOS-5 only
-     REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m
-     REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
-     REAL(f4),  POINTER :: MoninObukhov    (:,:    ) ! MoninObukhov length
-     REAL(f4),  POINTER :: Bry             (:,:,:  ) ! MoninObukhov length
-     LOGICAL :: Archive_DryDepRa2m
-     LOGICAL :: Archive_DryDepRa10m
-     LOGICAL :: Archive_MoninObukhov
-     LOGICAL :: Archive_Bry
+     ! Drydep resistances and related quantities
+     REAL(f4),     POINTER :: DryDepRa2m(:,:)
+     LOGICAL               :: Archive_DryDepRa2m
+
+     REAL(f4),     POINTER :: DryDepRa10m(:,:)
+     LOGICAL               :: Archive_DryDepRa10m
+
+     REAL(f4),     POINTER :: MoninObukhov(:,:)
+     LOGICAL               :: Archive_MoninObukhov
+
+     REAL(f4),     POINTER :: Bry(:,:,:)
+     LOGICAL               :: Archive_Bry
 #endif
 
      ! Chemistry
@@ -208,28 +211,41 @@ MODULE State_Diag_Mod
      REAL(f4),     POINTER :: JNoonFrac(:,:)
      LOGICAL               :: Archive_JNoonFrac
 
-     REAL(f4),  POINTER :: RxnRate         (:,:,:,:) ! KPP eqn eaction rates
-     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
-     REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
-     REAL(f4),  POINTER :: UVFluxDirect    (:,:,:,:) ! Direct UV flux per bin
-     REAL(f4),  POINTER :: UVFluxNet       (:,:,:,:) ! Net UV flux per bin
-     REAL(f4),  POINTER :: OHconcAfterChem (:,:,:  ) ! OH, HO2, O1D, and O3P
-     REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations
-     REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
-     REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver
-     REAL(f4),  POINTER :: Loss            (:,:,:,:) ! Chemical loss of species
-     REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
-     LOGICAL :: Archive_RxnRate
-     LOGICAL :: Archive_OHreactivity
-     LOGICAL :: Archive_UVFluxDiffuse
-     LOGICAL :: Archive_UVFluxDirect
-     LOGICAL :: Archive_UVFluxNet
-     LOGICAL :: Archive_OHconcAfterChem
-     LOGICAL :: Archive_HO2concAfterChem
-     LOGICAL :: Archive_O1DconcAfterChem
-     LOGICAL :: Archive_O3PconcAfterChem
-     LOGICAL :: Archive_Loss
-     LOGICAL :: Archive_Prod
+     REAL(f4),     POINTER :: UVFluxDiffuse(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_UvFluxDiffuse
+     LOGICAL               :: Archive_UVFluxDiffuse
+
+     REAL(f4),     POINTER :: UVFluxDirect(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_UvFluxDirect
+     LOGICAL               :: Archive_UVFluxDirect
+
+     REAL(f4),     POINTER :: UVFluxNet(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_UvFluxNet
+     LOGICAL               :: Archive_UVFluxNet
+
+     REAL(f4),     POINTER :: RxnRate(:,:,:,:) 
+     LOGICAL               :: Archive_RxnRate
+
+     REAL(f4),     POINTER :: OHreactivity(:,:,:)
+     LOGICAL               :: Archive_OHreactivity
+
+     REAL(f4),     POINTER :: OHconcAfterChem(:,:,:)
+     LOGICAL               :: Archive_OHconcAfterChem
+
+     REAL(f4),     POINTER :: HO2concAfterChem(:,:,:)
+     LOGICAL               :: Archive_HO2concAfterChem
+
+     REAL(f4),     POINTER :: O1DconcAfterChem(:,:,:)
+     LOGICAL               :: Archive_O1DconcAfterChem
+
+     REAL(f4),     POINTER :: O3PconcAfterChem(:,:,:)
+     LOGICAL               :: Archive_O3PconcAfterChem
+
+     REAL(f4),     POINTER :: Loss(:,:,:,:)
+     LOGICAL               :: Archive_Loss
+
+     REAL(f4),     POINTER :: Prod(:,:,:,:)
+     LOGICAL               :: Archive_Prod
 
 #ifdef MODEL_GEOS
      ! GEOS-5 only
@@ -878,12 +894,15 @@ CONTAINS
     State_Diag%Archive_OHreactivity                = .FALSE.
 
     State_Diag%UVFluxDiffuse                       => NULL()
+    State_Diag%Map_UvFluxDiffuse                   => NULL()
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
 
     State_Diag%UVFluxDirect                        => NULL()
+    State_Diag%Map_UvFluxDirect                    => NULL()
     State_Diag%Archive_UVFluxDirect                = .FALSE.
 
     State_Diag%UVFluxNet                           => NULL()
+    State_Diag%Map_UvFluxNet                       => NULL()
     State_Diag%Archive_UVFluxNet                   = .FALSE.
 
     State_Diag%OHconcAfterChem                     => NULL()
@@ -2846,57 +2865,73 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diffuse UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxDiffuse'
-       diagID  = 'UVFluxDiffuse'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxDiffuse = 0.0_f4
-          State_Diag%Archive_UVFluxDiffuse = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%UVFluxDiffuse,                 &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID  = 'UvFluxDiffuse'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxDiffuse,                       &
+            archiveData    = State_Diag%Archive_UvFluxDiffuse,               &
+            mapData        = State_Diag%Map_UvFluxDiffuse,                   &
+            diagId         = diagId,                                         &
+            speciesFlag    = 'U',                                            &
+            RC             = RC                                             )
+    
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Direct UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxDirect'
        diagID  = 'UVFluxDirect'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxDirect = 0.0_f4
-          State_Diag%Archive_UVFluxDirect = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%UVFluxDirect,                  &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxDirect,                        &
+            archiveData    = State_Diag%Archive_UvFluxDirect,                &
+            mapData        = State_Diag%Map_UvFluxDirect,                    &
+            diagId         = diagId,                                         &
+            speciesFlag    = 'U',                                            &
+            RC             = RC                                             )
+    
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Net UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxNet'
        diagID  = 'UVFluxNet'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxNet = 0.0_f4
-          State_Diag%Archive_UVFluxNet = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%UVFluxNet, &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxNet,                           &
+            archiveData    = State_Diag%Archive_UvFluxNet,                   &
+            mapData        = State_Diag%Map_UvFluxNet,                       &
+            diagId         = diagId,                                         &
+            speciesFlag    = 'U',                                            &
+            RC             = RC                                             )
+    
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
@@ -6932,27 +6967,23 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxDiffuse', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDiffuse => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
+                   Ptr2Data = State_Diag%UvFluxDiffuse,                      &
+                   mapData  = State_Diag%Map_UvFluxDiffuse,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%UVFluxDirect ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxDirect', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDirect => NULL()
+    CALL Finalize( diagId   = 'UvFluxDirect',                                &
+                   Ptr2Data = State_Diag%UvFluxDirect,                       &
+                   mapData  = State_Diag%Map_UvFluxDirect,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%UVFluxNet ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxNet, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxNet', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxNet => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'UvFluxNet',                                   &
+                   Ptr2Data = State_Diag%UvFluxNet,                          &
+                   mapData  = State_Diag%Map_UvFluxNet,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     IF ( ASSOCIATED( State_Diag%AdvFluxZonal ) ) THEN
        DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC )
@@ -11580,6 +11611,7 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: found
     LOGICAL                   :: isWildCard
+    LOGICAL                   :: isUvFlux
     INTEGER                   :: S
     INTEGER                   :: numTags
     INTEGER                   :: numWildCards
@@ -11608,6 +11640,7 @@ CONTAINS
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
     mapName2   = TRIM( mapName ) // '%id'
+    isUvFlux   = ( indFlag == 'U' )
     spcName    = ''
     wcName     = ''
     errMsg     = ''
@@ -11701,8 +11734,13 @@ CONTAINS
           ENDIF
 
           ! Save the id (and other ID's) in the mapping object
-          ! Special handling for the extra 2 slots for the Jvalue diags
-          mapData%slot2id(index) = Ind_( spcName, indFlag )
+          ! Special handling for UVFlux* diagnostic slots, which
+          ! are not represented in the species database
+          IF ( isUvFlux ) THEN
+             mapData%slot2id(index) = index
+          ELSE
+             mapData%slot2id(index) = Ind_( spcName, indFlag )
+          ENDIF
        ENDDO
 
     ELSE
@@ -11724,10 +11762,15 @@ CONTAINS
        ! Loop thru the list of tags and find the relevant ID
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
-          spcName                =  TagItem%name
-          index                  =  TagItem%index
-          mapData%slot2id(index) =  Ind_( spcName, indFlag )
-          TagItem                => TagItem%next
+          index = TagItem%index
+
+          IF ( isUvFlux ) THEN 
+             mapData%slot2id(index) = index
+          ELSE
+             mapData%slot2id(index) = Ind_( TagItem%name, indFlag )
+          ENDIF
+
+          TagItem => TagItem%next
        ENDDO
        TagItem => NULL()
     ENDIF
