@@ -107,7 +107,7 @@ Warnings:                    1
 #--------------------------------------------
     --> OFFLINE_DUST           :       true
     --> OFFLINE_BIOGENICVOC    :       true
-    --> OFFLINE_SEASALT        :       true
+    --> OFFLINE_SEASALT        :       false
     --> OFFLINE_SOILNOX        :       true
 # ----- NON-EMISSIONS DATA ------------------
     --> UVALBEDO               :       true
