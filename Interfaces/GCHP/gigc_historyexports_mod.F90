@@ -965,7 +965,6 @@ CONTAINS
                                 Registry  = State_Met%Registry,      &
                                 RegDict   = State_Met%RegDict,       &
                                 State     = State_Met%State,         &
-                                RegDict   = State_Met%RegDict,       &
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
