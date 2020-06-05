@@ -248,6 +248,14 @@ cp ./ExtData.rc.templates/ExtData.rc.${sim_type}            ${rundir}/ExtData.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 
+# Copy the species database yaml file from the source code
+if [[ -d ../../Headers ]]; then
+    spcdb_dir=../../Headers
+else
+    spcdb_dir=../src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/Headers
+fi
+cp $spcdb_dir/species_database.yml ${rundir}
+
 # If benchmark simulation, put gchp.run script in directory; else do not.
 if [ "${sim_name}" == "benchmark" ]; then
     cp ./runScriptSamples/gchp.benchmark.run           ${rundir}/gchp.benchmark.run
