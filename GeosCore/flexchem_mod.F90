@@ -282,9 +282,6 @@ CONTAINS
 #ifdef MODEL_GEOS
     GLOB_RCONST = 0.0_f4
     GLOB_JVAL   = 0.0_f4
-
-    ! testing only
-    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
     IF ( Input_Opt%useTimers ) THEN
@@ -870,12 +867,14 @@ CONTAINS
        ! Update KPP rates
        !==================================================================
 
+       !--------------------------------------------------------------------
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
        !
        ! NOTE: Because VAR and FIX are !$OMP THREADPRIVATE, they
        ! cannot appear in an EQUIVALENCE statement.  Therfore, we
        ! will just copy the relevant elements of C to VAR and FIX
        ! here. (bmy, 3/28/16)
+       !--------------------------------------------------------------------
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
@@ -890,16 +889,17 @@ CONTAINS
           CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
-       ! Archive KPP reaction rates
+       !--------------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive KPP reaction rates [s-1]
+       ! See gckpp_Monitor.F90 for a list of chemical reactions
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-#if !defined( MODEL_GEOS )
-          DO N = 1, NREACT
-             State_Diag%RxnRate(I,J,L,N) = Aout(N)
-#else
-          DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
-#endif
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
 

@@ -223,7 +223,8 @@ MODULE State_Diag_Mod
      TYPE(DgnMap), POINTER :: Map_UvFluxNet
      LOGICAL               :: Archive_UVFluxNet
 
-     REAL(f4),     POINTER :: RxnRate(:,:,:,:) 
+     REAL(f4),     POINTER :: RxnRate(:,:,:,:)
+     TYPE(DgnMap), POINTER :: Map_RxnRate
      LOGICAL               :: Archive_RxnRate
 
      REAL(f4),     POINTER :: OHreactivity(:,:,:)
@@ -888,6 +889,7 @@ CONTAINS
     State_Diag%Archive_JNoonFrac                   = .FALSE.
 
     State_Diag%RxnRate                             => NULL()
+    State_Diag%Map_RxnRate                         => NULL()
     State_Diag%Archive_RxnRate                     = .FALSE.
 
     State_Diag%OHreactivity                        => NULL()
@@ -1538,7 +1540,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_SpeciesBC,                      &
          mapData        = State_Diag%Map_SpeciesBC,                          &
          diagId         = diagId,                                            &
-         speciesFlag    = 'A',                                               &
+         diagFlag       = 'A',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1562,7 +1564,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_SpeciesConc,                    &
          mapData        = State_Diag%Map_SpeciesConc,                        &
          diagId         = diagId,                                            &
-         speciesFlag    = 'S',                                               &
+         diagFlag       = 'S',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1975,7 +1977,7 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepChm,                          &
          diagId         = diagId,                                            &
          forceDefine    = forceDefine,                                       &
-         speciesFlag    = 'D',                                               &
+         diagFlag       = 'D',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2001,7 +2003,7 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepMix,                          &
          forceDefine    = forceDefine,                                       &
          diagId         = diagId,                                            &
-         speciesFlag    = 'D',                                               &
+         diagFlag       = 'D',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2025,7 +2027,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDep,                         &
          mapData        = State_Diag%Map_DryDep,                             &
          diagId         = diagId,                                            &
-         speciesFlag    = 'D',                                               &
+         diagFlag       = 'D',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2049,7 +2051,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDepVel,                      &
          mapData        = State_Diag%Map_DryDepVel,                          &
          diagId         = diagId,                                            &
-         speciesFlag    = 'D',                                               &
+         diagFlag       = 'D',                                               &
 #ifdef MODEL_GEOS
          ! DryDepVel always needs to be defined for MODEL_GEOS
          forceDefine    = .TRUE.,                                            &
@@ -2247,7 +2249,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_CloudConvFlux,                  &
          mapData        = State_Diag%Map_CloudConvFlux,                      &
          diagId         = diagId,                                            &
-         speciesFlag    = 'A',                                               &
+         diagFlag       = 'A',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2271,7 +2273,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_WetLossConvFrac,                &
          mapData        = State_Diag%Map_WetLossConvFrac,                    &
          diagId         = diagId,                                            &
-         speciesFlag    = 'W',                                               &
+         diagFlag       = 'W',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2295,7 +2297,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_WetLossConv,                    &
          mapData        = State_Diag%Map_WetLossConv,                        &
          diagId         = diagId,                                            &
-         speciesFlag    = 'W',                                               &
+         diagFlag       = 'W',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2319,7 +2321,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_WetLossLS,                      &
          mapData        = State_Diag%Map_WetLossLS,                          &
          diagId         = diagId,                                            &
-         speciesFlag    = 'W',                                               &
+         diagFlag       = 'W',                                               &
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2702,50 +2704,50 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-#ifndef MODEL_GEOS
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RxnRate'
        diagID  = 'RxnRate'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, NREACT ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RxnRate = 0.0_f4
-          State_Diag%Archive_RxnRate = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%RxnRate,   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnRate,                             &
+            archiveData    = State_Diag%Archive_RxnRate,                     &
+            mapData        = State_Diag%Map_RxnRate,                         &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-#else
-       IF ( INPUT_Opt%NN_RxnRates > 0 ) THEN
-          State_Diag%Archive_RxnRate = .TRUE.
-          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, Input_Opt%NN_RxnRates ), &
-                    STAT=RC )
-          State_Diag%RxnRate = 0.0_f4
-       ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%OHreactivity'
        diagID  = 'OHreactivity'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%OHreactivity = 0.0_f4
-          State_Diag%Archive_OHreactivity = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%OHreactivity,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OHreactivity,                        &
+            archiveData    = State_Diag%Archive_OHreactivity,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
@@ -2763,7 +2765,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_JVal,                        &
             mapData        = State_Diag%Map_JVal,                            &
             diagId         = diagId,                                         &
-            speciesFlag    = 'P',                                            &
+            diagFlag       = 'P',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2834,7 +2836,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_JNoon,                       &
             mapData        = State_Diag%Map_JNoon,                           &
             diagId         = diagId,                                         &
-            speciesFlag    = 'P',                                            &
+            diagFlag       = 'P',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2877,9 +2879,9 @@ CONTAINS
             archiveData    = State_Diag%Archive_UvFluxDiffuse,               &
             mapData        = State_Diag%Map_UvFluxDiffuse,                   &
             diagId         = diagId,                                         &
-            speciesFlag    = 'U',                                            &
+            diagFlag       = 'U',                                            &
             RC             = RC                                             )
-    
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -2901,9 +2903,9 @@ CONTAINS
             archiveData    = State_Diag%Archive_UvFluxDirect,                &
             mapData        = State_Diag%Map_UvFluxDirect,                    &
             diagId         = diagId,                                         &
-            speciesFlag    = 'U',                                            &
+            diagFlag       = 'U',                                            &
             RC             = RC                                             )
-    
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -2925,9 +2927,9 @@ CONTAINS
             archiveData    = State_Diag%Archive_UvFluxNet,                   &
             mapData        = State_Diag%Map_UvFluxNet,                       &
             diagId         = diagId,                                         &
-            speciesFlag    = 'U',                                            &
+            diagFlag       = 'U',                                            &
             RC             = RC                                             )
-    
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6944,19 +6946,15 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%RxnRate ) ) THEN
-       DEALLOCATE( State_Diag%RxnRate, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RxnRate', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRate=> NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'RxnRate',                                     &
+                   Ptr2Data = State_Diag%RxnRate,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
-       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%OHreactivity', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%OHreactivity => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'OHreactivity',                                &
+                   Ptr2Data = State_Diag%OHreactivity,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
@@ -10194,16 +10192,8 @@ CONTAINS
           CASE( 'P' )
              index   = State_Chm%Map_Photol(index)
              tagName = State_Chm%SpcData(index)%info%name
-          CASE( 'U' )
-             ! We need to call Get_TagInfo for UVFLX tags,
-             ! as these aren't regular defined species.
-             CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
-                               State_Chm = State_Chm,                     &
-                               tagID     = tagId,                         &
-                               N         = N,                             &
-                               tagName   = tagName,                       &
-                               found     = found,                         &
-                               RC        = RC                            )
+          CASE( 'S' )
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'V' )
              index   = State_Chm%Map_KppVar(index)
              tagName = State_Chm%SpcData(index)%info%name
@@ -10211,7 +10201,15 @@ CONTAINS
              index   = State_Chm%Map_WetDep(index)
              tagName = State_Chm%SpcData(index)%info%name
           CASE DEFAULT
-             tagName = State_Chm%SpcData(index)%info%name
+             ! We need to call Get_TagInfo for diagnostics that
+             ! aren't chemical species (e.g. UVFLX, RXN, etc.)
+             CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
+                               State_Chm = State_Chm,                     &
+                               tagID     = tagId,                         &
+                               N         = index,                         &
+                               tagName   = tagName,                       &
+                               found     = found,                         &
+                               RC        = RC                            )
        END SELECT
 
        ! Make sure there was no error above
@@ -11588,16 +11586,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),        INTENT(IN)    :: Input_Opt      ! Root CPU?
-    TYPE(ChmState),        INTENT(IN)    :: State_Chm      ! Chemistry State
-    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList ! Tags or wildcards
-    CHARACTER(LEN=*),      INTENT(IN)    :: metadataId     ! Diagnostic name
-    CHARACTER(LEN=*),      INTENT(IN)    :: indFlag        ! Flag for Ind_
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt      ! Root CPU?
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
+    TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags or wildcards
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        ! Flag for Ind_
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(DgnMap), POINTER, INTENT(OUT)   :: mapData        ! Mapping object
-    INTEGER,               INTENT(OUT)   :: RC             ! Success/failure?
+    TYPE(DgnMap), POINTER, INTENT(OUT) :: mapData        ! Mapping object
+    INTEGER,               INTENT(OUT) :: RC             ! Success/failure?
 !
 ! !REVISION HISTORY:
 !  31 Mar 2020 - R. Yantosca - Initial version
@@ -11610,22 +11608,25 @@ CONTAINS
 
     ! Scalars
     LOGICAL                   :: found
+    LOGICAL                   :: isRxnRate
+    LOGICAL                   :: isUvFlx
     LOGICAL                   :: isWildCard
-    LOGICAL                   :: isUvFlux
-    INTEGER                   :: S
+    LOGICAL                   :: skipInd
+    INTEGER                   :: index
     INTEGER                   :: numTags
     INTEGER                   :: numWildCards
     INTEGER                   :: nTags
-    INTEGER                   :: index
+    INTEGER                   :: S
 
     ! Strings
-    CHARACTER(LEN=512)        :: errMsg
+    CHARACTER(LEN=3  )        :: rxnStr
     CHARACTER(LEN=255)        :: mapName
     CHARACTER(LEN=255)        :: mapName2
     CHARACTER(LEN=255)        :: tagName
     CHARACTER(LEN=255)        :: thisLoc
     CHARACTER(LEN=255)        :: spcName
     CHARACTER(LEN=255)        :: wcName
+    CHARACTER(LEN=512)        :: errMsg
 
     ! Objects
     TYPE(DgnTagItem), POINTER :: TagItem
@@ -11640,7 +11641,9 @@ CONTAINS
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
     mapName2   = TRIM( mapName ) // '%id'
-    isUvFlux   = ( indFlag == 'U' )
+    isRxnRate  = ( indFlag == 'R'         )
+    isUvFlx    = ( indflag == 'U'         )
+    skipInd    = ( isRxnRate .or. isUvFlx )
     spcName    = ''
     wcName     = ''
     errMsg     = ''
@@ -11717,6 +11720,8 @@ CONTAINS
        mapData%slot2id = -1
 
        ! Get the id for each species indicated by wildcard
+       ! For diagnostics that are not defined species in the
+       ! species database, skip calling the Ind_ function.
        DO index = 1, mapData%nSlots
           CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
                             State_Chm = State_Chm,                           &
@@ -11733,10 +11738,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Save the id (and other ID's) in the mapping object
-          ! Special handling for UVFlux* diagnostic slots, which
-          ! are not represented in the species database
-          IF ( isUvFlux ) THEN
+          ! Save the in the mapping object
+          IF ( skipInd ) THEN
              mapData%slot2id(index) = index
           ELSE
              mapData%slot2id(index) = Ind_( spcName, indFlag )
@@ -11760,16 +11763,33 @@ CONTAINS
        mapData%slot2id = -1
 
        ! Loop thru the list of tags and find the relevant ID
+       ! For diagnostics that are not defined species in the
+       ! species database, skip calling the Ind_ function.
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
-          index = TagItem%index
 
-          IF ( isUvFlux ) THEN 
-             mapData%slot2id(index) = index
+          IF ( isRxnRate ) THEN
+
+             ! RxnRate: the last 3 characters is the index #
+             S      = LEN_TRIM( TagItem%name )
+             rxnStr = TagItem%name(S-2:S)
+             READ( rxnstr, '(I3.3) ' ) index
+             mapData%slot2id(TagItem%index) = index
+
+          ELSE IF ( isUvFlx ) THEN
+
+             ! UvFlx: The index i
+             mapData%slot2id(TagItem%index) = TagItem%index
+
           ELSE
-             mapData%slot2id(index) = Ind_( TagItem%name, indFlag )
+
+             ! Otherwise, this is a defined species.
+             ! Call Ind_() to get the proper index
+             mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )
+
           ENDIF
 
+          ! Go to next tag
           TagItem => TagItem%next
        ENDDO
        TagItem => NULL()
@@ -11963,7 +11983,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      dim1d,       speciesFlag              )
+                                      dim1d,       diagFlag                 )
 !
 ! !USES:
 !
@@ -11981,7 +12001,7 @@ CONTAINS
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1-D data
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12036,10 +12056,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the id for all
+    ! If diagFlag is not passed, then we will get the id for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
@@ -12155,7 +12175,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      speciesFlag                           )
+                                      diagFlag                              )
 !
 ! !USES:
 !
@@ -12172,7 +12192,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12227,10 +12247,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all
+    ! If diagFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
@@ -12340,7 +12360,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      speciesFlag                           )
+                                      diagFlag                              )
 !
 ! !USES:
 !
@@ -12357,7 +12377,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12412,10 +12432,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all
+    ! If diagFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
@@ -12521,7 +12541,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      dim1d,       speciesFlag              )
+                                      dim1d,       diagFlag                 )
 !
 ! !USES:
 !
@@ -12539,7 +12559,7 @@ CONTAINS
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
     INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1d data
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12594,10 +12614,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all
+    ! If diagFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
@@ -12712,7 +12732,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      speciesFlag                           )
+                                      diagFlag                              )
 !
 ! !USES:
 !
@@ -12729,7 +12749,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12784,10 +12804,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all
+    ! If diagFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
@@ -12897,7 +12917,7 @@ CONTAINS
                                       Ptr2Data,    diagId,                   &
                                       archiveData, RC,                       &
                                       mapData,     forceDefine,              &
-                                      speciesFlag                           )
+                                      diagFlag                              )
 !
 ! !USES:
 !
@@ -12914,7 +12934,7 @@ CONTAINS
     TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
     CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
     LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
-    CHARACTER(LEN=*),      OPTIONAL      :: speciesFlag      ! Flag for Ind_
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -12969,10 +12989,10 @@ CONTAINS
        alwaysDefine = .FALSE.
     ENDIF
 
-    ! If speciesFlag is not passed, then we will get the modelId for all
+    ! If diagFlag is not passed, then we will get the modelId for all
     ! species (instead of restricting to advected, drydep, wetdep, etc.)
-    IF ( PRESENT( speciesFlag ) ) THEN
-       indFlag = speciesFlag
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
     ELSE
        indFlag = 'S'
     ENDIF
