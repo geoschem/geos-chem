@@ -935,8 +935,6 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        
-       write(*,*) "nAerosol"
-       write(*,*) nAerosol
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
