@@ -2575,7 +2575,7 @@ CONTAINS
 
     !%%%%% Specific humidity %%%%%
     IF ( ExtState%SPHU%DoUse ) THEN
-       Name = 'SPHU1'
+       Name = 'SPHU'
        CALL ExtDat_Set( HcoState,     ExtState%SPHU,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -2589,7 +2589,7 @@ CONTAINS
 
     !%%%%% Temperature %%%%%
     IF ( ExtState%TK%DoUse ) THEN
-       Name = 'TMPU1'
+       Name = 'TMPU'
        CALL ExtDat_Set( HcoState,     ExtState%TK,                           &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN

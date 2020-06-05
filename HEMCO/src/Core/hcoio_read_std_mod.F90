@@ -1669,8 +1669,10 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! Do not continue search if data is not discontinuous (mps, 10/23/19)
-       IF ( .not. Lct%Dct%Dta%Discontinuous ) THEN
+       ! Do not continue search if data is to be interpolated and is
+       ! not discontinuous (mps, 10/23/19)
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER .and. &
+            .not. Lct%Dct%Dta%Discontinuous ) THEN
           ExitSearch = .TRUE.
        ENDIF
 

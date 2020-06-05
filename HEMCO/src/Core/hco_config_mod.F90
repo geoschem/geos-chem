@@ -2185,6 +2185,54 @@ CONTAINS
 
     ENDDO
 
+#ifndef MODEL_GEOS
+#ifndef MODEL_WRF
+#ifndef MODEL_CESM
+#ifndef ESMF_
+    !=======================================================================
+    ! Look for met field and grid resolution.  When running the HEMCO
+    ! standalone these will need to be read from the configuration file.
+    ! Otherwise, HEMCO will inherit the met field and grid resolution
+    ! of the parent model (GC-Classic, GCHP, etc.)
+    !
+    ! NOTE: Only do this check if not using GEOS-Chem in an external ESM!
+    !=======================================================================
+
+    ! Look for met field
+    CALL GetExtOpt( HcoConfig, CoreNr, 'MET', &
+                    OptValChar=MetField, FOUND=FOUND, RC=RC )
+    IF ( FOUND ) THEN
+       HcoConfig%MetField = TRIM( MetField )
+    ENDIF
+
+    Print*, 'HcoConfig%MetField', HcoConfig%MetField
+
+    ! Look for grid resolution
+    ! Make sure resolution string is in the proper FlexGrid format
+    CALL GetExtOpt( HcoConfig, CoreNr, 'RES', &
+                    OptValChar=GridRes, FOUND=FOUND, RC=RC )
+    IF ( FOUND ) THEN
+       SELECT CASE( TRIM( GridRes ) )
+          CASE( '4x5' )
+             GridRes = '4.0x5.0'
+          CASE( '2x25', '2x2.5' )
+             GridRes = '2.0x2.5'
+          CASE( '05x0625' )
+             GridRes = '0.5x0.625'
+          CASE( '025x03125' )
+             GridRes = '0.25x0.3125'
+          CASE DEFAULT
+             Msg = 'Improperly formatted grid resolution: ' // TRIM( GridRes )
+             CALL HCO_Error( HcoConfig%Err, Msg, RC, Loc )
+             RETURN
+       END SELECT
+       HcoConfig%GridRes = TRIM( GridRes )
+    ENDIF
+#endif
+#endif
+#endif
+#endif
+
     !-----------------------------------------------------------------------
     ! Initialize error object if needed.
     ! Extract values to initialize error module and set some further
@@ -2236,52 +2284,6 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF
-
-#ifndef MODEL_GEOS
-#ifndef MODEL_WRF
-#ifndef MODEL_CESM
-#ifndef ESMF_
-    !=======================================================================
-    ! Look for met field and grid resolution.  When running the HEMCO
-    ! standalone these will need to be read from the configuration file.
-    ! Otherwise, HEMCO will inherit the met field and grid resolution
-    ! of the parent model (GC-Classic, GCHP, etc.)
-    !
-    ! NOTE: Only do this check if not using GEOS-Chem in an external ESM!
-    !=======================================================================
-
-    ! Look for met field
-    CALL GetExtOpt( HcoConfig, CoreNr, 'MET', &
-                    OptValChar=MetField, FOUND=FOUND, RC=RC )
-    IF ( FOUND ) THEN
-       HcoConfig%MetField = TRIM( MetField )
-    ENDIF
-
-    ! Look for grid resolution
-    ! Make sure resolution string is in the proper FlexGrid format
-    CALL GetExtOpt( HcoConfig, CoreNr, 'RES', &
-                    OptValChar=GridRes, FOUND=FOUND, RC=RC )
-    IF ( FOUND ) THEN
-       SELECT CASE( TRIM( GridRes ) )
-          CASE( '4x5' )
-             GridRes = '4.0x5.0'
-          CASE( '2x25', '2x2.5' )
-             GridRes = '2.0x2.5'
-          CASE( '05x0625' )
-             GridRes = '0.5x0.625'
-          CASE( '025x03125' )
-             GridRes = '0.25x0.3125'
-          CASE DEFAULT
-             Msg = 'Improperly formatted grid resolution: ' // TRIM( GridRes )
-             CALL HCO_Error( HcoConfig%Err, Msg, RC, Loc )
-             RETURN
-       END SELECT
-       HcoConfig%GridRes = TRIM( GridRes )
-    ENDIF
-#endif
-#endif
-#endif
-#endif
 
     ! Leave w/ success
     RC = HCO_SUCCESS
