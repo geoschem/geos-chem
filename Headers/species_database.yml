@@ -3636,12 +3636,12 @@ SALA:
 SALAAL:
   << : *SALAproperties
   FullName: Accumulation mode sea salt alkalinity
-  Is_HygroGrowth: true
+  Is_HygroGrowth: false
   MW_g: 31.4
 SALACL:
   << : *SALAproperties
   FullName: Chloride in Accumulation mode sea salt aerosol
-  Is_HygroGrowth: true
+  Is_HygroGrowth: false
   MW_g: 35.45
 SALC:
   << : *SALCproperties
@@ -3652,13 +3652,13 @@ SALC:
 SALCAL:
   << : *SALCproperties
   FullName: Coarse mode sea salt alkalinity
-  Is_HygroGrowth: true
+  Is_HygroGrowth: false
   MW_g: 31.4
   WD_CoarseAer: true
 SALCCL:
   << : *SALCproperties
   FullName: Chloride in Coarse mode sea salt aerosol
-  Is_HygroGrowth: true
+  Is_HygroGrowth: false
   MW_g: 35.45
   WD_CoarseAer: true
 SF6Tracer:

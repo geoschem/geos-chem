@@ -1229,12 +1229,10 @@ CONTAINS
              Map_NRHAER(N) = 2
           CASE ( 'OCPI', 'POA1' )
              Map_NRHAER(N) = 3
-          CASE ( 'SALA' )
+          CASE ( 'SALA', 'SALAAL', 'SALACL' )
              Map_NRHAER(N) = 4
-          CASE ( 'SALC' )
+          CASE ( 'SALC', 'SALCAL', 'SALCCL' )
              Map_NRHAER(N) = 5
-          CASE ( 'SALAAL', 'SALACL', 'SALCAL', 'SALCCL')
-             SpcID = 0
           CASE DEFAULT
              ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
                       ' for NRHAER greater than 5!'

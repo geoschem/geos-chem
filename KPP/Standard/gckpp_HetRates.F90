@@ -8288,7 +8288,7 @@ MODULE GCKPP_HETRATES
          ! xnw, 02/05/18
          conc_x =  (n_x / AVO) / V_tot ! mol/L
          !conc_x = MIN(conc_x,5.0e0_fp)
-         !conc_x = MAX(conc_x,1.0e-20_fp)
+         conc_x = MAX(conc_x,1.0e-20_fp)
       ENDIF
 
       END SUBROUTINE GET_HALIDE_SSACONC

@@ -7608,7 +7608,7 @@ CONTAINS
       !$OMP DEFAULT( SHARED )    &
       !$OMP PRIVATE( I, J, L)    &
       !$OMP SCHEDULE( DYNAMIC, 1 )
-      DO L = 1, State_Grid%NZ
+      DO L = 1, State_Grid%MaxChemLev
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
