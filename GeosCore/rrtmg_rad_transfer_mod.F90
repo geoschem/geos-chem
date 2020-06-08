@@ -1000,33 +1000,28 @@ CONTAINS
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
-
-                !if UCX on, we need to go above the tropopause to get
-                !the strat AOD, but only for IS=8 and IS=9
-                IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
-
-                   IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND. &
-                      (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
-                      !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET
-                      !OD*SSA WEIGHTED ASYM
-                      ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) / &
-                                            SSAAER(I,J,L,IB_SW)
-                      !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
-                      SSAAER(I,J,L,IB_SW) = SSAAER(I,J,L,IB_SW) / &
-                                            TAUAER_SW(I,J,L,IB_SW)
-                   ENDIF
-                   !AND DO THE SAME FOR THE SPECIES WE'RE INTERESTED IN
-                   IF ((TAUAERDIAG(I,J,L,IB_SW).GT.0).AND. &
-                      ( SSAAERDIAG(I,J,L,IB_SW).GT.0)) THEN
-                      !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET
-                      !OD*SSA WEIGHTED ASYM
-                      ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) / &
-                                                SSAAERDIAG(I,J,L,IB_SW)
-                      !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
-                      SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) / &
-                                                TAUAERDIAG(I,J,L,IB_SW)
-                   ENDIF
+                ! Needs to be run on every cell, as stratosphere may contain
+                ! some aerosol
+                IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND. &
+                   (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
+                   !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET
+                   !OD*SSA WEIGHTED ASYM
+                   ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) / &
+                                         SSAAER(I,J,L,IB_SW)
+                   !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
+                   SSAAER(I,J,L,IB_SW) = SSAAER(I,J,L,IB_SW) / &
+                                         TAUAER_SW(I,J,L,IB_SW)
+                ENDIF
+                !AND DO THE SAME FOR THE SPECIES WE'RE INTERESTED IN
+                IF ((TAUAERDIAG(I,J,L,IB_SW).GT.0).AND. &
+                   ( SSAAERDIAG(I,J,L,IB_SW).GT.0)) THEN
+                   !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET
+                   !OD*SSA WEIGHTED ASYM
+                   ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) / &
+                                             SSAAERDIAG(I,J,L,IB_SW)
+                   !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
+                   SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) / &
+                                             TAUAERDIAG(I,J,L,IB_SW)
                 ENDIF
              ENDDO
              ENDDO
@@ -1047,22 +1042,15 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-
-             !if UCX on, we need to go above the tropopause to get
-             !the strat AOD, but only for IS=8 and IS=9
-             IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
-
-                IF (IB.LE.16) THEN
-                   TAUAER_LW(I,J,L,IB)    = 0.0
-                ELSE
-                   TAUAER_SW(I,J,L,IB_SW) = 0.0D0
-                   SSAAER(I,J,L,IB_SW)    = 0.99D0
-                   ASMAER(I,J,L,IB_SW)    = 0.2D0
-                   TAUAERDIAG(I,J,L,IB_SW) = 0.0D0
-                   SSAAERDIAG(I,J,L,IB_SW) = 0.99D0
-                   ASMAERDIAG(I,J,L,IB_SW) = 0.2D0
-                ENDIF
+             IF (IB.LE.16) THEN
+                TAUAER_LW(I,J,L,IB)    = 0.0
+             ELSE
+                TAUAER_SW(I,J,L,IB_SW) = 0.0D0
+                SSAAER(I,J,L,IB_SW)    = 0.99D0
+                ASMAER(I,J,L,IB_SW)    = 0.2D0
+                TAUAERDIAG(I,J,L,IB_SW) = 0.0D0
+                SSAAERDIAG(I,J,L,IB_SW) = 0.99D0
+                ASMAERDIAG(I,J,L,IB_SW) = 0.2D0
              ENDIF
           ENDDO
           ENDDO
