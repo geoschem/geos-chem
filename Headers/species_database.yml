@@ -3183,7 +3183,7 @@ POPG_PYR:
   Is_WetDep: true
   MW_g: 202.26
   WD_RetFactor: 0.0
-POPBCPI_BaP:
+POPPBCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3196,7 +3196,7 @@ POPBCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
-POPBCPI_PHE:
+POPPBCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3209,7 +3209,7 @@ POPBCPI_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
-POPBCPI_PYR:
+POPPBCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3222,7 +3222,7 @@ POPBCPI_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
-POPBCPO_BaP:
+POPPBCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3235,7 +3235,7 @@ POPBCPO_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-POPBCPO_PHE:
+POPPBCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3248,7 +3248,7 @@ POPBCPO_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-POPBCPO_PYR:
+POPPBCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3261,7 +3261,7 @@ POPBCPO_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-POPOCPI_BaP:
+POPPOCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3274,7 +3274,7 @@ POPOCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-POPOCPI_PHE:
+POPPOCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3287,7 +3287,7 @@ POPOCPI_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-POPOCPI_PYR:
+POPPOCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3300,7 +3300,7 @@ POPOCPI_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-POPOCPO_BaP:
+POPPOCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3313,7 +3313,7 @@ POPOCPO_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_RainoutEff: [0.0, 0.0, 0.0]
-POPOCPO_PHE:
+POPPOCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
@@ -3326,7 +3326,7 @@ POPOCPO_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_RainoutEff: [0.0, 0.0, 0.0]
-POPOCPO_PYR:
+POPPOCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar_old: 0.0
