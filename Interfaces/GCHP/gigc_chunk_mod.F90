@@ -984,7 +984,7 @@ CONTAINS
           ! Slot # of netCDF diagnostic arrays to update
           iNcDiag = N
 
-          If ( Input_Opt%amIRoot ) Then
+          If ( Input_Opt%amIRoot .and. FIRST ) Then
              ! Echo info
              WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
 520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
