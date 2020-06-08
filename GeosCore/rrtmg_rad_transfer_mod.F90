@@ -1001,10 +1001,12 @@ CONTAINS
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 
+                ! SDE 2020-06-08 IS was a loop variable, so this
+                ! was just never evaluated in the stratosphere.
                 !if UCX on, we need to go above the tropopause to get
                 !the strat AOD, but only for IS=8 and IS=9
-                IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+                !IF ( State_Met%InTroposphere(I,J,L) .OR. &
+                !   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
                    IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND. &
                       (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
@@ -1027,7 +1029,7 @@ CONTAINS
                       SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) / &
                                                 TAUAERDIAG(I,J,L,IB_SW)
                    ENDIF
-                ENDIF
+                !ENDIF
              ENDDO
              ENDDO
              ENDDO
@@ -1048,10 +1050,12 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
+             ! SDE 2020-06-08 IS was a loop variable, so this
+             ! was just never evaluated in the stratosphere.
              !if UCX on, we need to go above the tropopause to get
              !the strat AOD, but only for IS=8 and IS=9
-             IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+             !IF ( State_Met%InTroposphere(I,J,L) .OR. &
+             !   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
                 IF (IB.LE.16) THEN
                    TAUAER_LW(I,J,L,IB)    = 0.0
@@ -1063,7 +1067,7 @@ CONTAINS
                    SSAAERDIAG(I,J,L,IB_SW) = 0.99D0
                    ASMAERDIAG(I,J,L,IB_SW) = 0.2D0
                 ENDIF
-             ENDIF
+             !ENDIF
           ENDDO
           ENDDO
           ENDDO
@@ -1804,7 +1808,7 @@ CONTAINS
     !EXTRA SPECIES ARE ADDED AFTER NAER (BEFORE NDUST AND GASES)
     !SO WE NEED TO BUMP ALL THE SPECIES AFTER THAT BY NXTRA
     !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
-    !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
+    !E.G. IF UCX=YES THEN NSPECRAD=18 AND STS AND NAT ARE INCLUDED
     !IN RTODAER INDEX 8 AND 9, BEFORE DUST
     NXTRA=NSPECRAD-16
 
