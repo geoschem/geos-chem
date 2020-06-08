@@ -777,7 +777,11 @@ CONTAINS
     " -> at Read Species Database (in module Headers/species_database_mod.F90)"
 
     ! Set the directory for the species database file
+#if defined( MODEL_CLASSIC )
     fileDir = "./CodeDir/src/GEOS-Chem/Headers/"
+#elif defined( MODEL_GCHP )
+    fileDir = "./CodeDir/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/Headers/"
+#endif
 
 #if defined(APM)
     !=======================================================================
