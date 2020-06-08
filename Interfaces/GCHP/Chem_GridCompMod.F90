@@ -1714,6 +1714,7 @@ CONTAINS
     CALL MAPL_TimerAdd(GC, NAME="GC_CHEM"  , __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_WETDEP", __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_DIAGN" , __RC__)
+    CALL MAPL_TimerAdd(GC, NAME="GC_RAD"   , __RC__)
 
     ! Generic Set Services
     ! --------------------

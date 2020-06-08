@@ -92,6 +92,11 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
+#if defined( RRTMG )
+    USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
+    USE RRTMG_LW_Init,           ONLY : RRTMG_LW_Ini
+    USE RRTMG_SW_Init,           ONLY : RRTMG_SW_Ini
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -242,6 +247,22 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
     ENDIF
 
+#if defined( RRTMG )
+    ! Initialize module variables
+    CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
+
+    ! Trap potential errors
+    _ASSERT(RC==GC_SUCCESS, 'Error calling "Init_RRTMG_Rad_Transfer"!')
+
+    ! Initialize RRTMG code in the GeosRad folder
+    CALL Rrtmg_Lw_Ini()
+    CALL Rrtmg_Sw_Ini()
+
+    ! Settings
+    State_Chm%RRTMG_iCld  = 0
+    State_Chm%RRTMG_iSeed = 10
+#endif
+
     ! Initialize HEMCO
     CALL EMISSIONS_INIT( Input_Opt, State_Chm, State_Grid, State_Met, RC, &
                          HcoConfig=HcoConfig )
@@ -356,6 +377,11 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
+#if defined( RRTMG )
+    USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
+    USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
+#endif
+
 #if defined( MODEL_GEOS )
     USE Derived_Met_Mod,    ONLY : GET_COSINE_SZA
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn
@@ -410,7 +436,7 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam, OrigUnit
     INTEGER                        :: STATUS, HCO_PHASE, RST
 #if defined( MODEL_GEOS )
-    INTEGER                        :: N, I, J, L
+    INTEGER                        :: I, J, L
 #endif
 
     ! Local logicals to turn on/off individual components
@@ -437,6 +463,11 @@ CONTAINS
 #if defined( MODEL_GEOS )
     LOGICAL, SAVE                  :: LSETH2O_orig
 #endif
+
+    ! For RRTMG
+    INTEGER                        :: iSpecMenu
+    INTEGER                        :: iNcDiag
+    INTEGER                        :: N
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
     LOGICAL, SAVE                  :: scaleMR = .FALSE.
@@ -936,6 +967,54 @@ CONTAINS
                            State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling RECOMPUTE_OD')
     ENDIF
+
+#if defined( RRTMG )
+    If ( DoRad ) Then
+       CALL MAPL_TimerOn( STATE, 'GC_RAD' )
+       State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
+       If (Input_Opt%LSKYRAD(2) ) Then
+          State_Chm%RRTMG_iCld = 1
+       Else
+          State_Chm%RRTMG_iCld = 0
+       End If
+       Do N = 1, State_Diag%nRadFlux
+          ! Index number for RRTMG (see list above)
+          iSpecMenu = State_Diag%RadFluxInd(N)
+
+          ! Slot # of netCDF diagnostic arrays to update
+          iNcDiag = N
+
+          If ( Input_Opt%amIRoot ) Then
+             ! Echo info
+             WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
+520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
+                     a2, ' (Index = ', i2.2, ')' )
+          End If
+
+          ! Generate mask for species in RT
+          CALL Set_SpecMask( iSpecMenu )
+
+          ! Compute radiative fluxes for the given output
+          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                   &
+                                      ThisMonth  = Month,                 &
+                                      iCld       = State_Chm%RRTMG_iCld,  &
+                                      iSpecMenu  = iSpecMenu,             &
+                                      iNcDiag    = iNcDiag,               &
+                                      iSeed      = State_Chm%RRTMG_iSeed, &
+                                      Input_Opt  = Input_Opt,             &
+                                      State_Chm  = State_Chm,             &
+                                      State_Diag = State_Diag,            &
+                                      State_Grid = State_Grid,            &
+                                      State_Met  = State_Met,             &
+                                      RC         = RC                     )
+
+          ! Trap potential errors
+          _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer' )
+          
+       End Do
+       CALL MAPL_TimerOff( STATE, 'GC_RAD' )
+    End if
+#endif
 
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do diagnostics now'
     CALL MAPL_TimerOn( STATE, 'GC_DIAGN' )
