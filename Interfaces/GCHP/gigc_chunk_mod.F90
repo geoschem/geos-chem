@@ -308,7 +308,7 @@ CONTAINS
                              day,        dayOfYr,    hour,       minute,     &
                              second,     utc,        hElapsed,   Input_Opt,  &
                              State_Chm,  State_Diag, State_Grid, State_Met,  &
-                             Phase,      IsChemTime,                         &
+                             Phase,      IsChemTime, IsRadTime,              &
 #if defined( MODEL_GEOS )
                              FrstRewind, &
 #endif
@@ -376,6 +376,7 @@ CONTAINS
     REAL*4,         INTENT(IN)    :: hElapsed    ! Elapsed hours
     INTEGER,        INTENT(IN)    :: Phase       ! Run phase (-1, 1 or 2)
     LOGICAL,        INTENT(IN)    :: IsChemTime  ! Time for chemistry? 
+    LOGICAL,        INTENT(IN)    :: IsRadTime   ! Time for RRTMG? 
 #if defined( MODEL_GEOS )
     LOGICAL,        INTENT(IN)    :: FrstRewind  ! Is it the first rewind? 
 #endif
@@ -422,6 +423,7 @@ CONTAINS
     LOGICAL                        :: DoTurb 
     LOGICAL                        :: DoChem
     LOGICAL                        :: DoWetDep
+    LOGICAL                        :: DoRad
 
     ! First call?
     LOGICAL, SAVE                  :: FIRST = .TRUE.
@@ -515,6 +517,7 @@ CONTAINS
 #endif
     DoChem   = Input_Opt%LCHEM .AND. IsChemTime   ! chemistry time step
     DoWetDep = Input_Opt%LWETD                    ! dynamic time step 
+    DoRad    = Input_Opt%LRAD  .AND. IsRadTime    ! radiation time step
 
 #if defined( MODEL_GCHP )
     ! Make sure chemistry timestep components are run in first timestep

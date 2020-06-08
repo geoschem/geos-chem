@@ -3026,6 +3026,7 @@ CONTAINS
     ! Scalars                                     
     LOGICAL                      :: am_I_Root     ! Are we on the root PET?
     LOGICAL                      :: IsChemTime    ! Chemistry alarm proxy
+    LOGICAL                      :: IsRadTime     ! Radiation alarm proxy
     LOGICAL                      :: IsRunTime     ! Time to call GEOS-Chem
     LOGICAL                      :: IsTendTime    ! Time to calculate tendencies
     INTEGER                      :: IND           ! Species or tracer index
@@ -3226,6 +3227,9 @@ CONTAINS
     IF ( IsChemTime .AND. PHASE /= 1 ) THEN
        CALL ESMF_AlarmRingerOff(ALARM, __RC__ )
     ENDIF
+
+    ! Query the radiation alarm (dummy)
+    IsRadTime = IsChemTime
 
     ! Get Internal state
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
@@ -3972,6 +3976,7 @@ CONTAINS
                                   State_Met  = State_Met,  & ! Meteorology State
                                   Phase      = Phase,      & ! Run phase
                                   IsChemTime = IsChemTime, & ! Time for chem?
+                                  IsRadTime  = IsRadTime,  & ! Time for RRTMG?
 #if defined( MODEL_GEOS )
                                   FrstRewind = FirstRewind,& ! First rewind?
 #endif
