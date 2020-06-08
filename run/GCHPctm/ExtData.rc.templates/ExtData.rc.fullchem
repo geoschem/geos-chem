@@ -1744,6 +1744,36 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 #CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
 
 #==============================================================================
+# --- RRTMG (RRTMG) ---
+#==============================================================================
+MODIS_ALBDFNIR      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDFNIR       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDFVIS      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDFVIS       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDRNIR      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDRNIR       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDRVIS      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDRVIS       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_EMISSIVITY_01 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band01 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_02 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band02 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_03 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band03 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_04 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band04 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_05 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band05 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_06 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band06 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_07 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band07 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_08 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band08 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_09 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band09 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_10 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band10 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_11 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band11 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_12 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band12 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_13 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band13 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_14 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band14 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_15 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band15 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_16 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band16 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+TES_CLIM_CCL4       ppbv   N Y -                      none none CCl4           ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC11      ppbv   N Y -                      none none CFC11          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC12      ppbv   N Y -                      none none CFC12          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC22      ppbv   N Y -                      none none CFC22          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CH4        ppbv   N Y -                      none none CH4            ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_N2O        ppbv   N Y -                      none none N2O            ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+
+#==============================================================================
 # --- Surface VMR (SfcVMR) ---
 #==============================================================================
 SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
