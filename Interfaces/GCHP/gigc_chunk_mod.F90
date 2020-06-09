@@ -977,6 +977,10 @@ CONTAINS
        Else
           State_Chm%RRTMG_iCld = 0
        End If
+       If (Input_Opt%amIRoot .and. NCALLS<10) Then
+          Write(6,'(a,x,I3,x,a)') ' --> Calling RRTMG ', &
+                              State_Diag%nRadFlux, ' times'
+       End If
        Do N = 1, State_Diag%nRadFlux
           ! Index number for RRTMG (see list above)
           iSpecMenu = State_Diag%RadFluxInd(N)
@@ -984,12 +988,13 @@ CONTAINS
           ! Slot # of netCDF diagnostic arrays to update
           iNcDiag = N
 
-          If ( Input_Opt%amIRoot .and. FIRST ) Then
-             ! Echo info
-             WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
-520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
-                     a2, ' (Index = ', i2.2, ')' )
-          End If
+          ! For really excessive output, uncomment the following
+!          If ( Input_Opt%amIRoot .and. FIRST ) Then
+!             ! Echo info
+!             WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
+!520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
+!                     a2, ' (Index = ', i2.2, ')' )
+!          End If
 
           ! Generate mask for species in RT
           CALL Set_SpecMask( iSpecMenu )
