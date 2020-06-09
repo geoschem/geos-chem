@@ -1892,6 +1892,7 @@ CONTAINS
     TYPE(ESMF_Time)              :: currTime
     TYPE(ESMF_Time)              :: ringTime
     type(ESMF_TimeInterval)      :: tsRad_TI
+    type(ESMF_TimeInterval)      :: tsChem_TI
     type (ESMF_Calendar)         :: CAL
     INTEGER                      :: yyyy, mm, dd   ! Year, month, day
     INTEGER                      :: h,    m,  s    ! Hour, minute, seconds
@@ -2642,6 +2643,13 @@ CONTAINS
     _ASSERT(STATUS==0,'Could not extract start time information')
     call ESMF_TimeSet( ringTime,  YY = yyyy, MM = mm, DD = dd, H=0, M=0, S=0, rc = STATUS )
     _ASSERT(STATUS==0,'Could not set initial radiation alarm ring time')
+
+    ! NOTE: RRTMG is run AFTER chemistry has completed. So we actually want the
+    ! alarm to go off on the chemistry timestep immediately before the target
+    ! output time.
+    call ESMF_TimeIntervalSet(tsChem_TI, S=nint(tsChem), calendar=cal, RC=STATUS)
+    _ASSERT(STATUS==0,'Could not set chemistry alarm time interval')
+    ringTime = ringTime - tsChem_TI
 
     ! Advance ring time until it is at or after current time
     do while (ringTime < currTime)
