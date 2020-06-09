@@ -332,6 +332,11 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_Hstar = DBLE( v_real )       ! Don't round off
 
+          ELSE IF ( INDEX( key, "%DD_KOA" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%DD_KOA = DBLE( v_real )       ! Don't round off
+
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
