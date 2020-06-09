@@ -1655,11 +1655,11 @@ CONTAINS
     ! Set up tracer indices
     DO N = 1, nSpc
        SELECT CASE( TRIM( SpcNames(N) ) )
-          CASE( 'POPG' )
+          CASE( 'POPG', 'POPG_BaP', 'POPG_PHE', 'POPG_PYR' )
              Inst%IDTPOPG     = HcoIDs(N)
-          CASE( 'POPPOCPO' )
+          CASE( 'POPPOCPO', 'POPPOCPO_BaP', 'POPPOCPO_PHE', 'POPPOCPO_PYR' )
              Inst%IDTPOPPOCPO = HcoIDs(N)
-          CASE( 'POPPBCPO' )
+          CASE( 'POPPBCPO', 'POPPBCPO_BaP', 'POPPBCPO_PHE', 'POPPBCPO_PYR' )
              Inst%IDTPOPPBCPO = HcoIDs(N)
           CASE DEFAULT
              ! Do nothing
