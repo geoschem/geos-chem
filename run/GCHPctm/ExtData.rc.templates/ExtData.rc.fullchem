@@ -92,9 +92,7 @@ CLDF     '1'         N Y F0;013000 none none         CLOUD      ./MetDir/%y4/%m2
 DTRAIN   '1'         N Y F0;013000 none none         DTRAIN     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 OMEGA    'Pa s-1'    N Y F0;013000 none none         OMEGA      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 RH       '-'         N Y F0;013000 none none         RH         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-UC;VC    'm s-1'     N Y F0;013000 none none         U;V        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-ULL      'm s-1'     N Y F0;013000 none none         U          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-VLL      'm s-1'     N Y F0;013000 none none         V          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+UA;VA    'm s-1'     N Y F0;013000 none none         U;V        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 DQRCU    '1'         N Y F0;013000 none none         DQRCU      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
 DQRLSAN  '1'         N Y F0;013000 none none         DQRLSAN    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
 REEVAPCN '1'         N Y F0;013000 none none         REEVAPCN   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}

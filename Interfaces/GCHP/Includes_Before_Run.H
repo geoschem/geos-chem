@@ -60,10 +60,10 @@
   State_Met%SNOMAS              = SNOMAS                     ! kg/m2
   State_Met%SUNCOS              = zenith                     ! unitless
   State_Met%SUNCOSmid           = zenith                     ! 1
-  State_Met%U                   = ULL                        ! m/s
+  State_Met%U                   = UA                         ! m/s
   State_Met%U10M                = U10M                       ! m/s
   State_Met%USTAR               = USTAR                      ! m/s
-  State_Met%V                   = VLL                        ! m/s
+  State_Met%V                   = VA                         ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
 
