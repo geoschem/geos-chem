@@ -130,7 +130,7 @@ MODULE AEROSOL_MOD
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
   INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
   INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-  INTEGER :: id_DUST1, id_SOAS,  id_SALACL,id_SALCCL
+  INTEGER :: id_DUST1, id_SOAS,  id_SALACL
   INTEGER :: id_SOAGX, id_SOAIE
   INTEGER :: id_INDIOL,id_LVOCOA
 
@@ -1229,9 +1229,9 @@ CONTAINS
              Map_NRHAER(N) = 2
           CASE ( 'OCPI', 'POA1' )
              Map_NRHAER(N) = 3
-          CASE ( 'SALA', 'SALAAL', 'SALACL' )
+          CASE ( 'SALA' )
              Map_NRHAER(N) = 4
-          CASE ( 'SALC', 'SALCAL', 'SALCCL' )
+          CASE ( 'SALC' )
              Map_NRHAER(N) = 5
           CASE DEFAULT
              ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
@@ -2284,7 +2284,6 @@ CONTAINS
     id_SALA   = Ind_( 'SALA'   )
     id_SALC   = Ind_( 'SALC'   )
     id_SALACL = Ind_( 'SALACL' )
-    id_SALCCL = Ind_( 'SALCCL' )
     id_SO4    = Ind_( 'SO4'    )
     id_SO4s   = Ind_( 'SO4s'   )
     id_NITs   = Ind_( 'NITs'   )
