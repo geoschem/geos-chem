@@ -427,6 +427,7 @@ CONTAINS
     State_Chm%SulRatSav         => NULL()
     State_Chm%NaRatSav          => NULL()
     State_Chm%AcidPurSav        => NULL()
+    State_Chm%ClRatSav          => NULL()
     State_Chm%BiSulSav          => NULL()
     State_Chm%N_HG_CATS         =  0
     State_Chm%Hg0_Id_List       => NULL()

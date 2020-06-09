@@ -188,7 +188,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255)            :: thisUnit, LevUnit, LevName
-    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=512)            :: MSG
     CHARACTER(LEN=1023)           :: srcFile, srcFile2
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
@@ -266,6 +266,12 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse( HcoState, Lct, srcFile, FOUND, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Error encountered in routine "SrcFile_Parse", located '     // &
+             'module src/Core/hcoio_read_std_mod.F90!'
+        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+        RETURN
+    ENDIF
 
     ! Handle found or not in the standard way if HEMCO is in regular run mode.
     IF ( .NOT. HcoState%Options%isDryRun ) THEN
@@ -337,7 +343,7 @@ CONTAINS
                      TRIM(srcFile) // ' - Cannot get field '              // &
                      TRIM(Lct%Dct%cName) // '. Please check file name '   // &
                      'and time (incl. time range flag) in the config. file'
-                CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+                CALL HCO_Warning( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
                 ! Write a msg to stdout (NOT FOUND)
                 WRITE( 6, 300 ) TRIM( srcFile )
@@ -2848,7 +2854,7 @@ CONTAINS
     INTEGER :: origYr,  origMt, origDy, origHr
     LOGICAL :: hasFile, hasYr,  hasMt,  hasDy, hasHr
     LOGICAL :: nextTyp
-    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=512)  :: MSG
     CHARACTER(LEN=1023) :: srcFileOrig
 
     ! maximum # of iterations for file search
@@ -2906,11 +2912,29 @@ CONTAINS
        IF ( Direction /= 0 ) HasFile = .FALSE.
     ENDIF
 
-    ! If this is a HEMCO dry-run simulation then do not enter the loop
+    !-----------------------------------------------------------------------
+    ! If this is a HEMCO dry-run simulation, then do not enter the loop
     ! where we will attempt to go back in time until a file is found.
     ! For the dry-run we need to report all files, even missing.
-    ! This fixes Github issue geoschem/geos-chem #312. (bmy, 6/4/20)
+    ! This fixes Github issue geoschem/geos-chem #312. (bmy, 6/9/20)
+    !-----------------------------------------------------------------------
     IF ( HcoState%Options%isDryRun ) THEN
+
+       ! Make sure that the year is not 1, this indicates that the
+       ! preferred year is outside of the years specified in the
+       ! time range settings in the configuration file, and will
+       ! lead to files with a year of "0001" in the path.
+       ! (bmy, 6/9/20)
+       IF ( prefyr == 1 ) THEN
+          MSG = 'Cannot find file for current simulation time: ' // &
+               TRIM(srcFile) // ' - Cannot get field ' // &
+               TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+               'and time (incl. time range flag) in the config. file'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+          RETURN
+       ENDIF
+
+       ! Otherwise return with success
        RC = HCO_SUCCESS
        RETURN
     ENDIF
