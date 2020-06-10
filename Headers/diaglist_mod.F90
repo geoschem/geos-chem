@@ -82,7 +82,7 @@ MODULE DiagList_Mod
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
   CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=2),  PUBLIC  :: RadFlux(12)  ! Names of RRTMG flux outputs
+  CHARACTER(LEN=4),  PUBLIC  :: RadFlux(12)  ! Names of RRTMG flux outputs
   INTEGER,           PUBLIC  :: nRadFlux     ! # of selected RRTMG flux outputs
   LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
@@ -747,18 +747,19 @@ CONTAINS
              ! If a tag is not explicity stated, then manually define all
              ! slots of the RadFlux array (and update nRadFlux accordingly)
              ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-             RadFlux(1 ) = 'O3'
-             RadFlux(2 ) = 'ME'
-             RadFlux(3 ) = 'SU'
-             RadFlux(4 ) = 'NI'
-             RadFlux(5 ) = 'AM'
-             RadFlux(6 ) = 'BC'
-             RadFlux(7 ) = 'OA'
-             RadFlux(8 ) = 'SS'
-             RadFlux(9 ) = 'DU'
-             RadFlux(10) = 'PM'
-             RadFlux(11) = 'ST'
-             nRadFlux    = 11
+             RadFlux(1 ) = 'BASE'
+             RadFlux(2 ) = 'NOO3'
+             RadFlux(3 ) = 'NOME'
+             RadFlux(4 ) = 'NOSU'
+             RadFlux(5 ) = 'NONI'
+             RadFlux(6 ) = 'NOAM'
+             RadFlux(7 ) = 'NOBC'
+             RadFlux(8 ) = 'NOOA'
+             RadFlux(9 ) = 'NOSS'
+             RadFlux(10) = 'NODU'
+             RadFlux(11) = 'NOPM'
+             RadFlux(12) = 'NOST'
+             nRadFlux    = 12
 
           ENDIF
        ENDIF
