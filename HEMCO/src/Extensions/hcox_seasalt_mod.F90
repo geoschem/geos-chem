@@ -36,10 +36,6 @@ MODULE HCOX_SeaSalt_Mod
   PUBLIC :: HCOX_SeaSalt_Run
   PUBLIC :: HCOX_SeaSalt_Final
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: EMIT_SSABr2
-!
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension module
 !  09 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
@@ -61,10 +57,8 @@ MODULE HCOX_SeaSalt_Mod
    INTEGER             :: IDTSALC           ! Coarse aerosol model species ID
    INTEGER             :: IDTMOPO           ! marine organic aerosol - phobic
    INTEGER             :: IDTMOPI           ! marine organic aerosol - philic
-   INTEGER             :: IDTBr2            ! Br2 model species ID
    INTEGER             :: IDTBrSALA         ! Br- in accum. sea salt aerosol
    INTEGER             :: IDTBrSALC         ! Br- in coarse sea salt aerosol
-   LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
    LOGICAL             :: CalcBrSalt        ! Calculate Br- content?
    INTEGER             :: IDTSALACL         ! Fine aerosol Chloride species ID
    INTEGER             :: IDTSALCCL         ! Coarse aerosol Chloride species ID
@@ -72,7 +66,6 @@ MODULE HCOX_SeaSalt_Mod
    INTEGER             :: IDTSALCAL         ! Coarse SSA Alkalinity species ID
 
    ! Scale factors
-   REAL*8              :: Br2Scale          ! Br2 scale factor
    REAL*8              :: BrContent         ! Ratio of Br- to dry SSA (mass)
    REAL*8              :: WindScale         ! Wind adjustment factor
 
@@ -192,13 +185,12 @@ CONTAINS
 !
     TYPE(MyInst), POINTER  :: Inst
     INTEGER                :: I, J, N, R
-    REAL*8                 :: SALT, SALT_N, SSA_BR2, CHLR
+    REAL*8                 :: SALT, SALT_N, CHLR
     REAL*8                 :: A_M2
     REAL*8                 :: W10M
     REAL                   :: FLUX
     REAL(hp), TARGET       :: FLUXSALA  (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXSALC  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: FLUXBr2   (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXBrSalA(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXBrSalC(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXMOPO  (HcoState%NX,HcoState%NY)
@@ -211,7 +203,7 @@ CONTAINS
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
     ! jpp, 3/2/10
-    REAL*8                 :: BR2_NR, SALT_NR
+    REAL*8                 :: SALT_NR
     ! B. Gantt, M. Johnson (7,9/15)
     REAL*8                 :: OMSS1, OMSS2
 
@@ -245,7 +237,6 @@ CONTAINS
     ! Init values
     FLUXSALA   = 0.0_hp
     FLUXSALC   = 0.0_hp
-    FLUXBr2    = 0.0_hp
     FLUXBrSalA = 0.0_hp
     FLUXBrSalC = 0.0_hp
     FLUXMOPO   = 0.0_hp
@@ -270,8 +261,8 @@ CONTAINS
     !=================================================================
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, SSA_BR2, N              ) &
-!$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, BR2_NR, RC                  ) &
+!$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, N                       ) &
+!$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, RC                          ) &
 !$OMP PRIVATE( OMSS1, OMSS2, CHLR                                    ) &
 !$OMP SCHEDULE( DYNAMIC )
 
@@ -307,10 +298,6 @@ CONTAINS
        ! Eventually apply wind scaling factor.
        SCALE = SCALE * Inst%WindScale
 
-       ! Reset sea salt aerosol emissions of Br2, which are integrated
-       ! over accumulation and coarse mode
-       SSA_BR2 = 0d0
-
        ! Do for accumulation and coarse mode, and Marine POA if enabled
        DO N = 1,Inst%NSALT
 
@@ -332,30 +319,6 @@ CONTAINS
                 ! (bec, bmy, 4/13/05)
                 SALT_N = SALT_N +                               &
                          ( SCALE * Inst%SRRC_N(R,N) * A_M2 * W10M**3.41d0 )
-
-                ! --------------------------------------------------
-                ! jpp, 3/2/10: Accounting for the bromine emissions
-                ! now. Store mass flux [kg] of Br2 based on how much
-                ! aerosol there is emitted in this box.
-                ! --------------------------------------------------
-                IF ( Inst%CalcBr2 ) THEN
-
-                   ! jpp, 3/3/10: since the SALT arrays are integrations
-                   !              I cannot use them for each independent
-                   !              radius... that's why I'm getting too
-                   !              much bromine. So I'm making a tmp
-                   !              array to store only the current
-                   !              Dry Radius bin. [kg]
-                   SALT_NR = ( Inst%SRRC(R,N) * A_M2 * W10M**3.41d0 )
-                   CALL EMIT_SSABr2( ExtState,  HcoState, Inst,            &
-                                     I, J,      Inst%RRMID(R,N), SALT_NR,  &
-                                     BR2_NR,    RC                         )
-                   IF ( RC /= HCO_SUCCESS ) THEN
-                      ERR = .TRUE.
-                      EXIT
-                   ENDIF
-                   SSA_Br2 = SSA_Br2 + BR2_NR
-                ENDIF
 
              ENDIF
 
@@ -413,41 +376,7 @@ CONTAINS
              Inst%NDENS_MOPI(I,J) = SALT_N
           ENDIF
 
-!=============================================================================
-!            ! Alkalinity [kg] (bec, bmy, 4/13/05)
-!            ALK_EMIS(I,J,L,N) = SALT
-!
-!            ! Number density [#/m3] (bec, bmy, 4/13/05)
-!            N_DENS(I,J,L,N)   = SALT_N / State_Met%AIRVOL(I,J,L)
-
-!            ! ND08 diagnostic: sea salt emissions [kg]
-!            IF ( ND08 > 0 ) THEN
-!               AD08(I,J,N) = AD08(I,J,N) + SALT
-!            ENDIF
-!=============================================================================
-
        ENDDO !N
-
-       ! Store Br2 flux in tendency array in [kg/m2/s]
-       IF ( Inst%CalcBr2 ) THEN
-
-          ! kg --> kg/m2/s
-          FLUXBR2(I,J) = SSA_Br2 / A_M2 / HcoState%TS_EMIS
-       ENDIF
-
-!=============================================================================
-!          ! Add to diagnostics
-!          ! ND08 diagnostic: sea salt emissions [kg]
-!          IF ( ND08 > 0 ) THEN
-!             AD08(I,J,N) = AD08(I,J,N) + SALT(I,J)
-!          ENDIF
-!
-!          IF ( ND46 > 0 ) THEN
-!             ! store the emission in the AD46 Biogenic Emissions
-!             ! diagnostic array [kg/m2/s]
-!             AD46(I,J,16) = AD46(I,J,16) + ( SSA_Br2 / A_M2 / DTEMIS )
-!          ENDIF
-!=============================================================================
 
     ENDDO !I
     ENDDO !J
@@ -534,19 +463,6 @@ CONTAINS
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCAL', RC)
           RETURN
        ENDIF
-    ENDIF
-
-    ! BR2
-    IF ( Inst%CalcBr2 ) THEN
-
-       ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXBr2, Inst%IDTBr2, &
-                         RC,       ExtNr=Inst%ExtNrSS )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBr2', RC )
-          RETURN
-       ENDIF
-
     ENDIF
 
     ! Bromine incorporated into sea salt
@@ -696,21 +612,6 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in
     !       the config. file!
-    CALL GetExtOpt( HcoState%Config, Inst%ExtNrSS, 'Emit Br2', &
-                     OptValBool=Inst%CalcBr2, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    IF ( Inst%CalcBr2 ) THEN
-       minLen = 3
-       CALL GetExtOpt( HcoState%Config, Inst%ExtNrSS, 'Br2 scaling', &
-                       OptValDp=Inst%Br2Scale, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ELSE
-       minLen   = 2
-       Inst%IDTBr2   = -1
-       Inst%Br2Scale = 1.0d0
-    ENDIF
-
     Call GetExtOpt ( HcoState%Config, Inst%ExtNrSS, 'Model sea salt Br-', &
     	 	     OptValBool=Inst%CalcBrSalt, RC=RC )
     IF ( Inst%CalcBrSalt ) THEN
@@ -739,12 +640,11 @@ CONTAINS
     Inst%IDTSALCCL = HcoIDsSS(4)
     Inst%IDTSALAAL = HcoIDsSS(5)
     Inst%IDTSALCAL = HcoIDsSS(6)
-    IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(7)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(8)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(9)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(7)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(8)
     IF ( HcoState%MarinePOA ) THEN
-       Inst%IDTMOPO = HcoIDsSS(10)
-       Inst%IDTMOPI = HcoIDsSS(11)
+       Inst%IDTMOPO = HcoIDsSS(9)
+       Inst%IDTMOPI = HcoIDsSS(10)
     ENDIF
 
     ! Get aerosol radius'
@@ -762,9 +662,6 @@ CONTAINS
     CALL GetExtOpt( HcoState%Config, Inst%ExtNrSS, 'SALC upper radius', &
                     OptValDp=SALC_REDGE_um(2), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Final Br2 flag
-    Inst%CalcBr2 = ( Inst%CalcBr2 .AND. Inst%IDTBR2 > 0 )
 
     ! Final BrSalt flag
     Inst%CalcBrSalt = ( Inst%CalcBrSalt .and. Inst%IDTBrSALA > 0 .and. Inst%IDTBrSALC > 0 )
@@ -817,13 +714,6 @@ CONTAINS
        WRITE(MSG,*) 'Coarse Alkalinity: ', TRIM(SpcNamesSS(6)),  &
                     ':', Inst%IDTSALCAL
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-
-       IF ( Inst%CalcBr2 ) THEN
-          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(7)), Inst%IDTBr2
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Br2 scale factor: ', Inst%Br2Scale
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-       ENDIF
 
        IF ( Inst%CalcBrSalt ) THEN
           WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(8)), Inst%IDTBrSALA
@@ -1170,179 +1060,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Emit_SsaBr2
-!
-! !DESCRIPTION: Subroutine Emit\_SsaBr2 calculates aerosol emissions
-!  of Br2.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Emit_SsaBr2(  ExtState, HcoState, Inst, &
-                          ilon, ilat, rmid, p_kgsalt, br2_emiss_kg, RC )
-!
-! !USE:
-!
-    USE HCO_Clock_Mod, ONLY : HcoClock_Get
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(Ext_State), POINTER        :: ExtState  ! Module options
-    TYPE(HCO_State), POINTER        :: HcoState  ! Output obj
-    TYPE(MyInst),    POINTER        :: Inst      ! Instance
-    INTEGER,         INTENT(IN)     :: ilon      ! Grid longitude index
-    INTEGER,         INTENT(IN)     :: ilat      ! Grid latitude index
-    REAL*8,          INTENT(IN)     :: rmid      ! Dry radius of aerosol
-    REAL*8,          INTENT(IN)     :: p_kgsalt  ! SeaSalt aerosol production [kgNaCl]
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,         INTENT(INOUT)  :: RC           ! Success or failure?
-    REAL*8,          INTENT(OUT)    :: br2_emiss_kg ! Br2 emissions [kg NaCl]
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1)  Parrella, J. P., Jacob, D. J., Liang, Q., Zhang, Y., Mickley, L. J.,
-!        Miller, B., Evans, M. J., Yang, X., Pyle, J. A., Theys, N., and Van
-!        Roozendael, M.: Tropospheric bromine chemistry: implications for
-!        present and pre-industrial ozone and mercury, Atmos. Chem. Phys., 12,
-!        6723-6740, doi:10.5194/acp-12-6723-2012, 2012.
-!  (2 ) Yang, X., Cox, R. A., Warwick, N. J., Pyle, J. A., Carver, G. D.,
-!        O'Connor, F. M., and Savage, N. H.: Tropospheric bromine chemistry and
-!        its impacts on ozone: A model study, J. Geophys. Res., 110, D23311,
-!        doi:10.1029/2005JD006244, 2005.
-!  (2 ) Yang, X., Pyle, J. A., and Cox, R. A.: Sea salt aerosol production and
-!        bromine release: Role of snow on sea ice, Geophys. Res. Lett., 35,
-!        L16815, doi:10.1029/2008GL034536, 2008.
-!
-! !REVISION HISTORY:
-!  02 Mar 2010 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!  08 Aug 2012 - M. Payer    - Modified for size-dependent depletion factors
-!                              from Yang et al. (2008)
-!  07 Aug 2013 - C. Keller   - Moved to SeaSalt_mod.F
-!  15 Dec 2013 - C. Keller   - Now a HEMCO extension
-!  19 Oct 2015 - C. Keller   - Now use lon and lat index to work on curvilinear
-!                              grids.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    REAL*4, PARAMETER :: dfmax=0.7
-    REAL*4, PARAMETER :: dfmin=0.1
-    REAL*4, PARAMETER :: Ra=0.00223     ! Ratio of Br/NaCl [g/g]
-
-    ! Use size-dependent sea salt bromine depletion factors from
-    ! Table 1 of Yang et al. (2008)
-    REAL*8, PARAMETER :: dmid_ref(10) = (/  0.2d0,   0.4d0,  &
-                                            0.8d0,   1.0d0,  &
-                                            1.25d0,  1.5d0,  &
-                                            2.0d0,   4.0d0,  &
-                                            5.0d0,   10.0d0   /)
-    REAL*8, PARAMETER :: df_size(10)  = (/ -3.82d0, -2.54d0, &
-                                            0.0d0,   0.23d0, &
-                                            0.38d0,  0.37d0, &
-                                            0.31d0,  0.21d0, &
-                                            0.16d0,  0.11d0   /)
-!
-! !LOCAL VARIABLES:
-!
-
-    INTEGER :: month, IDF
-    REAL*8  :: DF
-    REAL*8  :: dmid         ! Dry diameter of aerosol [um]
-    REAL*8  :: seasonal     ! Seasonal depletion factor
-
-    !=================================================================
-    ! EMIT_SSABr2 begins here!
-    !=================================================================
-
-    ! Dry diameter of aerosol [um]
-    dmid = rmid * 2
-
-    ! only do calculation if we're inside the
-    ! range of aerosol sizes observed to be
-    ! depeleted in bromide.
-    IF ( (dmid < 0.2) .or. (dmid > 10.0) ) THEN
-       br2_emiss_kg = 0.d0
-       RC = HCO_SUCCESS
-       RETURN
-    ENDIF
-
-    ! store the month
-    CALL HcoClock_Get( HcoState%Clock, cMM=month, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! --------------------------------------------
-    ! 1. Calculate Depletion Factor DF, based on:
-    !    (a) sea salt diameter (b) month and (c) latitude.
-    !
-    ! following Yang et al. 2005, 2008
-    ! --------------------------------------------
-
-    ! Sort into diameter bins
-    IF (      dmid <= 0.4  ) THEN
-       IDF = 1
-    ELSE IF ( dmid <= 0.8  ) THEN
-       IDF = 2
-    ELSE IF ( dmid <= 1.0  ) THEN
-       IDF = 3
-    ELSE IF ( dmid <= 1.25 ) THEN
-       IDF = 4
-    ELSE IF ( dmid <= 1.5  ) THEN
-       IDF = 5
-    ELSE IF ( dmid <= 2.0  ) THEN
-       IDF = 6
-    ELSE IF ( dmid <= 4.0  ) THEN
-       IDF = 7
-    ELSE IF ( dmid <= 5.0  ) THEN
-       IDF = 8
-    ELSE
-       IDF = 9
-    ENDIF
-
-    ! Interpolate between sea salt diameters
-    DF = df_size(IDF) + ( dmid            - dmid_ref(IDF) ) / &
-                        ( dmid_ref(IDF+1) - dmid_ref(IDF) ) * &
-                        ( df_size(IDF+1)  - df_size(IDF)  )
-
-
-    ! Apply seasonality to latitudes south of 30S
-    IF ( HcoState%Grid%YMID%Val(ilon,ilat) < -30.0 ) THEN
-       ! Divide by mean value 0.4 = (dfmax+dfmin)/2 to keep
-       ! seasonal dependence along with size dependence
-       seasonal = ( dfmax + (dfmin - dfmax) / 2.d0 *                  &
-                  ( sin( HcoState%Phys%PI*(month/6.d0 - 0.5) ) + 1 )) &
-                  / 0.4
-    ELSE
-       ! no seasonal dependence for the NH
-       seasonal = 1.d0
-    ENDIF
-    DF = DF * seasonal
-
-    ! --------------------------------------------
-    ! Now return the emissions for Br2 given the
-    ! Sea-salt mass production.
-    ! --------------------------------------------
-    ! divide by 2 for stoichiometry of Br- to Br2
-    br2_emiss_kg = p_kgsalt * Ra * DF / 2.0d0
-
-    ! Apply Br scaling
-    br2_emiss_kg = br2_emiss_kg * Inst%Br2Scale
-
-    ! RETURN w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE Emit_SsaBr2
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: InstGet
 !
 ! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
@@ -1457,12 +1174,9 @@ CONTAINS
     Inst%IDTSALC       = -1
     Inst%IDTMOPI       = -1
     Inst%IDTMOPO       = -1
-    Inst%IDTBr2        = -1
     Inst%IDTBrSALA     = -1
     Inst%IDTBrSALC     = -1
-    Inst%CalcBr2       = .FALSE.
     Inst%CalcBrSalt    = .FALSE.
-    Inst%Br2Scale      = 1.0
     Inst%BrContent     = 1.0
     Inst%WindScale     = 1.0
 
