@@ -59,6 +59,63 @@ MODULE State_Chm_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   !=========================================================================
+  ! Derived types for passing modelId and MW of species to HetChem routines
+  !=========================================================================
+  TYPE, PUBLIC :: HetSpc
+     INTEGER  :: modelId
+     REAL(fp) :: MW_g
+  END TYPE HetSpc
+
+  TYPE, PUBLIC :: HetState
+     TYPE(HetSpc) :: BrNO3  
+     TYPE(HetSpc) :: ClNO3
+     TYPE(HetSpc) :: GLYX   
+     TYPE(HetSpc) :: HBr    
+     TYPE(HetSpc) :: HCl 
+     TYPE(HetSpc) :: HI     
+     TYPE(HetSpc) :: HO2       
+     TYPE(HetSpc) :: HOI
+     TYPE(HetSpc) :: HOBr      
+     TYPE(HetSpc) :: HOCl      
+     TYPE(HetSpc) :: HONIT
+     TYPE(HetSpc) :: HMML      
+     TYPE(HetSpc) :: I2O2      
+     TYPE(HetSpc) :: I2O3   
+     TYPE(HetSpc) :: I2O4
+     TYPE(HetSpc) :: IEPOXA    
+     TYPE(HetSpc) :: IEPOXB 
+     TYPE(HetSpc) :: IEPOXD
+     TYPE(HetSpc) :: ICHE
+     TYPE(HetSpc) :: IDN
+     TYPE(HetSpc) :: IHN1      
+     TYPE(HetSpc) :: IHN2   
+     TYPE(HetSpc) :: IHN3
+     TYPE(HetSpc) :: IHN4
+     TYPE(HetSpc) :: INPB   
+     TYPE(HetSpc) :: INPD
+     TYPE(HetSpc) :: IONITA    
+     TYPE(HetSpc) :: IONO      
+     TYPE(HetSpc) :: IONO2  
+     TYPE(HetSpc) :: ITHN      
+     TYPE(HetSpc) :: ITCN   
+     TYPE(HetSpc) :: LVOC   
+     TYPE(HetSpc) :: MCRHN  
+     TYPE(HetSpc) :: MCRHNB
+     TYPE(HetSpc) :: MGLY
+     TYPE(HetSpc) :: MONITA 
+     TYPE(HetSpc) :: MONITS    
+     TYPE(HetSpc) :: MONITU 
+     TYPE(HetSpc) :: MVKN      
+     TYPE(HetSpc) :: N2O5      
+     TYPE(HetSpc) :: NO2    
+     TYPE(HetSpc) :: NO3
+     TYPE(HetSpc) :: O3        
+     TYPE(HetSpc) :: OH
+     TYPE(HetSpc) :: PYAC
+     TYPE(HetSpc) :: R4N2      
+  END TYPE HetState
+
+  !=========================================================================
   ! Derived type for Chemistry State
   !=========================================================================
   TYPE, PUBLIC :: ChmState
@@ -248,6 +305,11 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
+
+     !----------------------------------------------------------------------
+     ! Indices and MW's of species in heterogenous chemistry
+     !----------------------------------------------------------------------
+     TYPE(HetState)             :: HetInfo
 
   END TYPE ChmState
 !
@@ -624,6 +686,10 @@ CONTAINS
 
     !### Debug: Show the values in the lookup table
     !###CALL State_Chm%SpcDict%Show()
+
+    ! Populate the HetInfo object, which is used to cleanly pass
+    ! modelId's and molecular weights to the het chem routine
+    CALL Init_HetInfo( State_Chm, RC )
 
     !=======================================================================
     ! Exit if this is a dry-run simulation
@@ -4323,5 +4389,420 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE MapProdLossSpecies
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_HetInfo
+!
+! !DESCRIPTION: Initializes the HetInfo object.  Copies modelId's and
+!  MW's from the species database to the HetInfo object, so that we can
+!  pre-compute these outside of the het chem routines.  This is much more
+!  computationally efficient.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_HetInfo( State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!
+! !REVISION HISTORY:
+!  12 Jun 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
+
+    !=======================================================================
+    ! Init_HetInfo begins here!
+    !=======================================================================
+    RC = GC_SUCCESS
+
+    N = Ind_('BrNO3')
+    State_Chm%HetInfo%BrNO3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%BrNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%BrNO3%MW_g = -999.0_fp
+    ENDIF
+     
+    N = Ind_('ClNO3')
+    State_Chm%HetInfo%ClNO3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ClNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%ClNO3%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('GLYX')
+    State_Chm%HetInfo%GLYX%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%GLYX%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%GLYX%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HBr')
+    State_Chm%HetInfo%HBr%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HBr%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HCl')
+    State_Chm%HetInfo%HCl%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HCl%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HI')
+    State_Chm%HetInfo%HI%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HI%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HO2')
+    State_Chm%HetInfo%HO2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HO2%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HOI')
+    State_Chm%HetInfo%HOI%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HOI%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HOBr')
+    State_Chm%HetInfo%HOBr%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HOBr%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HOCl')
+    State_Chm%HetInfo%HOCl%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HOCl%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HONIT')
+    State_Chm%HetInfo%HONIT%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HONIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HONIT%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('HMML')
+    State_Chm%HetInfo%HMML%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HMML%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%HMML%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('I2O2')
+    State_Chm%HetInfo%I2O2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%I2O2%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('I2O3')
+    State_Chm%HetInfo%I2O3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%I2O3%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('I2O4')
+    State_Chm%HetInfo%I2O4%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%I2O4%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IEPOXA')
+    State_Chm%HetInfo%IEPOXA%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IEPOXA%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IEPOXB')
+    State_Chm%HetInfo%IEPOXB%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IEPOXB%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IEPOXD')
+    State_Chm%HetInfo%IEPOXD%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IEPOXD%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('ICHE')
+    State_Chm%HetInfo%ICHE%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ICHE%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%ICHE%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IDN')
+    State_Chm%HetInfo%IDN%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IDN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IDN%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IHN1')
+    State_Chm%HetInfo%IHN1%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN1%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IHN1%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IHN2')
+    State_Chm%HetInfo%IHN2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IHN2%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IHN3')
+    State_Chm%HetInfo%IHN3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IHN3%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IHN4')
+    State_Chm%HetInfo%IHN4%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IHN4%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('INPB')
+    State_Chm%HetInfo%INPB%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%INPB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%INPB%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('INPD')
+    State_Chm%HetInfo%INPD%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%INPD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%INPD%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IONITA')
+    State_Chm%HetInfo%IONITA%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IONITA%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IONO')
+    State_Chm%HetInfo%IONO%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONO%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IONO%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('IONO2')
+    State_Chm%HetInfo%IONO2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%IONO2%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('ITCN')
+    State_Chm%HetInfo%ITCN%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ITCN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%ITCN%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('ITHN')
+    State_Chm%HetInfo%ITHN%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ITHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%ITHN%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('LVOC')
+    State_Chm%HetInfo%LVOC%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%LVOC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%LVOC%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MCRHN')
+    State_Chm%HetInfo%MCRHN%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MCRHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MCRHN%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MCRHNB')
+    State_Chm%HetInfo%MCRHNB%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MCRHNB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MCRHNB%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MGLY')
+    State_Chm%HetInfo%MGLY%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MGLY%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MGLY%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MONITA')
+    State_Chm%HetInfo%MONITA%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MONITA%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MONITS')
+    State_Chm%HetInfo%MONITS%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MONITS%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MONITS%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MONITU')
+    State_Chm%HetInfo%MONITU%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MONITU%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MONITU%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('MVKN')
+    State_Chm%HetInfo%MVKN%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MVKN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%MVKN%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('N2O5')
+    State_Chm%HetInfo%N2O5%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%N2O5%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%N2O5%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('NO2')
+    State_Chm%HetInfo%NO2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%NO2%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('NO3')
+    State_Chm%HetInfo%NO3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%NO3%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('O3')
+    State_Chm%HetInfo%O3%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%O3%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('OH')
+    State_Chm%HetInfo%OH%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%OH%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%OH%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('PYAC')
+    State_Chm%HetInfo%PYAC%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%PYAC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%PYAC%MW_g = -999.0_fp
+    ENDIF
+
+    N = Ind_('R4N2')
+    State_Chm%HetInfo%R4N2%modelId = N
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%R4N2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+    ELSE
+       State_Chm%HetInfo%R4N2%MW_g = -999.0_fp
+    ENDIF
+
+  END SUBROUTINE Init_HetInfo
 !EOC
 END MODULE State_Chm_Mod
