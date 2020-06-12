@@ -4754,7 +4754,7 @@ CONTAINS
       ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
-         CALL GetHcoValEmis ( SESQID, I, J, 1, FOUND, EMIS )
+         CALL GetHcoValEmis ( Input_Opt, State_Grid, SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)

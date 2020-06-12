@@ -449,7 +449,7 @@ CONTAINS
           ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
-             CALL GetHcoValDep ( N, 1, 1, 1, DryDepSpec, TMP )
+             CALL GetHcoValDep ( Input_Opt, State_Grid, N, 1, 1, 1, DryDepSpec, TMP )
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
@@ -463,7 +463,12 @@ CONTAINS
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
-          CALL GetHcoValEmis ( N, 1, 1, 1, EmisSpec, TMP )
+          ! FIXME hplin: This is rather inefficient in the HEMCO intermediate grid
+          ! implementation, as it will trigger a on-demand regrid while
+          ! this is just an INQUIRY to whether this EmisSpec exists.
+          ! It should be optimized into another subroutine in the future.
+          ! (hplin, 6/6/20)
+          CALL GetHcoValEmis ( Input_Opt, State_Grid, N, 1, 1, 1, EmisSpec, TMP )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
@@ -575,7 +580,7 @@ CONTAINS
                 ! dry deposition frequencies for air-sea exchange and
                 ! from ship NOx plume parameterization (PARANOx). The
                 ! units are [s-1].
-                CALL GetHcoValDep ( N, I, J, 1, FND, TMP )
+                CALL GetHcoValDep ( Input_Opt, State_Grid, N, I, J, 1, FND, TMP )
 
                 ! Add to dry dep frequency from drydep_mod.F90
                 IF ( FND ) FRQ = FRQ + TMP
@@ -673,7 +678,7 @@ CONTAINS
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                CALL GetHcoValEmis ( N, I, J, L, FND, TMP )
+                CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP )
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -705,7 +710,7 @@ CONTAINS
 
                       ! Get soil absorption from HEMCO. Units are [kg/m2/s].
                       ! CH4_SAB is species #15
-                      CALL GetHcoValEmis ( 15, I, J, L, FND, TMP )
+                      CALL GetHcoValEmis ( Input_Opt, State_Grid, 15, I, J, L, FND, TMP )
 
                       ! Remove soil absorption from total CH4 emissions
                       IF ( FND ) THEN

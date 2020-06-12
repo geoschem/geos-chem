@@ -938,7 +938,7 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-      ! Return if option not set
+    ! Return if option not set
 #ifdef MODEL_GEOS
     IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
 #endif
@@ -1248,6 +1248,9 @@ CONTAINS
     ! Compute cosine(SZA) quantities for the current time
     CALL COSSZA( DOY, HOUR, State_Grid, State_Met )
 
+    ! Compute sum of COSSZA for HEMCO
+    CALL Calc_SumCosZa ( State_Grid, State_Met )
+
   END SUBROUTINE GET_COSINE_SZA
 !EOC
 !------------------------------------------------------------------------------
@@ -1422,6 +1425,147 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE COSSZA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_sumcosza
+!
+! !DESCRIPTION:
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Calc_SumCosZa( State_Grid, State_Met )
+!
+! !USES:
+!
+    USE PhysConstants
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER, SAVE :: SAVEDOY = -1
+    INTEGER       :: I, J, L, N, NT, NDYSTEP
+    REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+    REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+    REAL(fp)      :: SUNTMP(State_Grid%NX,State_Grid%NY)
+
+    !=======================================================================
+    ! CALC_SUMCOSZA begins here!
+    !=======================================================================
+
+    !  Solar declination angle (low precision formula, good enough for us):
+    A0 = 0.006918
+    A1 = 0.399912
+    A2 = 0.006758
+    A3 = 0.002697
+    B1 = 0.070257
+    B2 = 0.000907
+    B3 = 0.000148
+    R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+
+    DEC = A0 - A1*cos(  R) + B1*sin(  R) &
+             - A2*cos(2*R) + B2*sin(2*R) &
+             - A3*cos(3*R) + B3*sin(3*R)
+
+    LHR0 = int(float( GET_NHMSb() )/10000.)
+
+    ! Only do the following at the start of a new day
+    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN
+
+       ! Zero arrays
+       State_Met%SUNCOSsum(:,:) = 0e+0_fp
+
+       ! NDYSTEP is # of chemistry time steps in this day
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()
+
+       ! NT is the elapsed time [s] since the beginning of the run
+       NT = GET_ELAPSED_SEC()
+
+       ! Loop forward through NDYSTEP "fake" timesteps for this day
+       DO N = 1, NDYSTEP
+
+          ! Zero SUNTMP array
+          SUNTMP = 0e+0_fp
+
+          ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP DEFAULT( SHARED )
+!!$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Grid box latitude center [radians]
+             YMID_R = State_Grid%YMid_R(I,J)
+
+             TIMLOC = real(LHR0) + real(NT)/3600.0 + &
+                      State_Grid%XMid(I,J) / 15.0
+
+             DO WHILE (TIMLOC .lt. 0)
+                TIMLOC = TIMLOC + 24.0
+             ENDDO
+
+             DO WHILE (TIMLOC .gt. 24.0)
+                TIMLOC = TIMLOC - 24.0
+             ENDDO
+
+             AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+
+             !===========================================================
+             ! The cosine of the solar zenith angle (SZA) is given by:
+             !
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+             !
+             ! where LAT = the latitude angle,
+             !       DEC = the solar declination angle,
+             !       AHR = the hour angle, all in radians.
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and
+             ! therefore does not contribute to any solar heating.
+             !===========================================================
+
+             ! Compute Cos(SZA)
+             SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +          &
+                           cos(YMID_R) * cos(DEC) * cos(AHR)
+
+             ! SUMCOSZA is the sum of SUNTMP at location (I,J)
+             ! Do not include negative values of SUNTMP
+             State_Met%SUNCOSsum(I,J) = State_Met%SUNCOSsum(I,J) + &
+                             MAX(SUNTMP(I,J),0e+0_fp)
+
+          ENDDO
+          ENDDO
+!!$OMP END PARALLEL DO
+
+          ! Increment elapsed time [sec]
+          NT = NT + GET_TS_CHEM()
+       ENDDO
+
+       ! Set saved day of year to current day of year
+       SAVEDOY = GET_DAY_OF_YEAR()
+
+    ENDIF
+
+  END SUBROUTINE Calc_SumCosZa
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
