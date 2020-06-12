@@ -232,6 +232,7 @@ CONTAINS
     LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
     LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
     LOGICAL, SAVE            :: USE_HNO3_FROM_HEMCO = .FALSE.
+    LOGICAL, SAVE            :: USE_HCl_FROM_HEMCO  = .FALSE.
     LOGICAL                  :: prtDebug
 
     ! Pointers
@@ -240,8 +241,9 @@ CONTAINS
     ! Are we out of the range of valid inputs?
     Logical                  :: OutOfBounds
 
-    ! Local array for HNO3 from HEMCO
+    ! Local array for HNO3, HCl from HEMCO
     REAL(fp) :: OFFLINE_HNO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(fp) :: OFFLINE_HCl (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
     ! DO_ISORROPIAII begins here!
@@ -316,9 +318,6 @@ CONTAINS
        IF ( id_SALACL <= 0 ) THEN
           CALL ERROR_STOP( 'SALACL is an undefined species!', X )
        ENDIF
-       IF ( id_HCL <= 0 ) THEN
-          CALL ERROR_STOP( 'HCL is an undefined species!', X )
-       ENDIF
        IF ( id_SALC <= 0 ) THEN
           CALL ERROR_STOP( 'SALC is an undefined species!', X )
        ENDIF
@@ -369,6 +368,31 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Check to see if we need to get HCl from HEMCO
+       IF ( id_HCL <= 0 ) THEN
+
+          IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+             ! Coupled simulation: stop w/ error since we need HCl
+             ErrMsg = 'HCl is an undefined species!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+
+          ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+
+             ! Offline simulation: get HCl from HEMCO (mps, 6/11/2020)
+             USE_HCl_FROM_HEMCO = .TRUE.
+ 
+          ELSE
+
+             ! ISORROPIA is only valid for full-chem or aerosol-only sims
+             ErrMsg = 'Invalid simulation type!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+
+          ENDIF
+       ENDIF
+
        ! Print out
        IF ( Input_Opt%amIRoot ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
@@ -394,6 +418,17 @@ CONTAINS
        CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', OFFLINE_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Evaluate offline global HCl from HEMCO is using. Doing this every
+    ! timestep allows usage of HEMCO's scaling and masking functionality
+    IF ( USE_HCl_FROM_HEMCO ) THEN
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCl', OFFLINE_HCl, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'GLOBAL_HCl not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -461,7 +496,9 @@ CONTAINS
          !-----------------------------------------------------------
 
          ! This is for saving PHCl
-         PHCl = Spc(I,J,L,id_HCL) !initial HCl, kg
+         IF ( id_HCl > 0 ) THEN
+            PHCl = Spc(I,J,L,id_HCL) !initial HCl, kg
+         ENDIF
 
          ! Only do coarse mode cacluation when SALC exists
          ! SET NM = 1 to skip coarse SSA thermodynamic
@@ -517,23 +554,22 @@ CONTAINS
             ELSE
 
                ! Total SO4 [mole/m3], also consider SO4s in SALC
-
                TSO4 = Spc(I,J,L,id_SO4s) &
                      * 1.e+3_fp * AlkR / (31.4e+0_fp * VOL) + &
                      Spc(I,J,L,id_SALC)*0.08_fp               & 
                      * 1.e+3_fp * AlkR / (96.e+0_fp * VOL)    
 
                ! Total NH3 [mole/m3]
-               !TNH3 = Spc(I,J,L,id_NH4s)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+
-!     &                Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL)
+               !TNH3 = Spc(I,J,L,id_NH4s)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+ &
+               !       Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL)
                TNH3  = 0e+0_fp
 
             ENDIF
 
             IF (N == 1) THEN
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            !TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
-!     &        ( 22.99e+0_fp  * VOL  )
+            !TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp / &
+            !      ( 22.99e+0_fp  * VOL  )
 
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
             ! increase to account for all cations, xnw 11/26/17
@@ -541,8 +577,8 @@ CONTAINS
                     * AlkR / ( 23.e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            !TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
-!     &           ( 35.45e+0_fp  * VOL  )
+            !TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp / &
+            !      ( 35.45e+0_fp  * VOL  )
 
             ! track chloride in sea salt correctly, xnw 10/12/17
             ! Aerosol phase Cl-, [mole/m3]
@@ -558,7 +594,13 @@ CONTAINS
             ENDIF
 
             ! Gas phase Cl-, [mole/m3]
-            GCL = Spc(I,J,L,id_HCL) * 1.e+3_fp /(36.45e+0_fp * VOL)
+            IF ( id_HCl > 0 ) THEN
+               GCL = Spc(I,J,L,id_HCL) * 1.e+3_fp /(36.45e+0_fp * VOL)
+            ELSE
+               ! HCl is in v/v (from HEMCO)
+               GCL = OFFLINE_HCl(I,J,L) / VOL
+            ENDIF
+
             ! Total Cl- [mole/m3]
             TCL = ACL + GCL
 
