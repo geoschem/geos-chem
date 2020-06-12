@@ -121,6 +121,8 @@ MODULE State_Met_Mod
                                                 !   current time
      REAL(fp), POINTER :: SUNCOSmid     (:,:  ) ! COS(solar zenith angle) at
                                                 !  midpoint of chem timestep
+     REAL(fp), POINTER :: SUNCOSsum     (:,:  ) ! Sum of COS(SZA) for HEMCO OH
+                                                !  diurnal variability
      REAL(fp), POINTER :: SWGDN         (:,:  ) ! Incident radiation @ ground
                                                 !  [W/m2]
      REAL(fp), POINTER :: TO3           (:,:  ) ! Total overhead O3 column [DU]
@@ -430,6 +432,7 @@ CONTAINS
     State_Met%SNOMAS         => NULL()
     State_Met%SUNCOS         => NULL()
     State_Met%SUNCOSmid      => NULL()
+    State_Met%SUNCOSsum      => NULL()
     State_Met%SWGDN          => NULL()
     State_Met%TropLev        => NULL()
     State_Met%TropHt         => NULL()
@@ -1154,6 +1157,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%SUNCOSmid = 0.0_fp
     CALL Register_MetField( Input_Opt, 'SUNCOSmid', State_Met%SUNCOSmid, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SUNCOSsum [1]
+    !-------------------------
+    ALLOCATE( State_Met%SUNCOSsum( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SUNCOSsum', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SUNCOSsum = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'SUNCOSsum', State_Met%SUNCOSsum, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -2569,6 +2583,13 @@ CONTAINS
        State_Met%SUNCOSmid => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%SUNCOSsum ) ) THEN
+       DEALLOCATE( State_Met%SUNCOSsum, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SUNCOSsum', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SUNCOSsum => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%SWGDN ) ) THEN
        DEALLOCATE( State_Met%SWGDN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SWGDN', 2, RC )
@@ -3739,6 +3760,11 @@ CONTAINS
        CASE ( 'SUNCOSMID' )
           IF ( isDesc  ) Desc  = 'Cosine of solar zenith angle, at ' // &
                                  'midpoint of chemistry timestep'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SUNCOSSUM' )
+          IF ( isDesc  ) Desc  = 'Sum of Cosine of solar zenith angle, current time'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 

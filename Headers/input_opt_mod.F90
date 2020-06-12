@@ -147,6 +147,9 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
 
+     ! For HEMCO "intermediate" grid (hplin, 6/2/20)
+     LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
+
      !----------------------------------------
      ! CO MENU fields
      !----------------------------------------
@@ -632,6 +635,7 @@ CONTAINS
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%LIMGRID                = .FALSE.
 
     !----------------------------------------
     ! CO MENU fields

@@ -52,7 +52,6 @@ MODULE HCO_Interface_GC_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Calc_SumCosZa
   PRIVATE :: ExtState_InitTargets
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
@@ -61,6 +60,10 @@ MODULE HCO_Interface_GC_Mod
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
+
+#if defined( MODEL_CLASSIC )
+  PRIVATE :: Get_Met_Fields
+#endif
 !
 ! !REMARKS:
 !  Formerly HCOI\_GC\_Main\_Mod.
@@ -90,19 +93,70 @@ MODULE HCO_Interface_GC_Mod
 
   ! Internal met fields (will be used by some extensions)
   INTEGER,  TARGET    :: HCO_PBL_MAX                      ! level
-  REAL(hp), POINTER   :: HCO_FRAC_OF_PBL(:,:,:)
-  REAL(hp), POINTER   :: HCO_SZAFACT(:,:)
+  REAL(hp), POINTER, PUBLIC   :: HCO_SZAFACT(:,:)
 
   ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), POINTER   :: JNO2(:,:)
-  REAL(hp), POINTER   :: JOH(:,:)
+  REAL(hp), POINTER, PUBLIC   :: JNO2(:,:)
+  REAL(hp), POINTER, PUBLIC   :: JOH(:,:)
 
-  ! Sigma coordinate (temporary)
-  REAL(hp), POINTER   :: ZSIGMA(:,:,:)
+#if defined( MODEL_CLASSIC )
 
-  ! Sum of cosine of the solar zenith angle. Used to impose a
-  ! diurnal variability on OH concentrations
-  REAL(fp), POINTER   :: SUMCOSZA(:,:)
+  !------------------------------------------------
+  ! %%% Internal HEMCO intermediate resolution %%% 
+  ! %%%        meteorological fields           %%% 
+  !------------------------------------------------
+
+  ! These will ONLY be allocated and used if HEMCO-intermediate grid
+  ! is enabled (resolutions differ)
+  !
+  ! Note: These could be migrated to inside a derived-type object
+  ! by storing directly in ExtState through array assertions. However,
+  ! this would involve a lot of code path branching as we do not want
+  ! to assert arrays for other models when not running IMGrid and incurring
+  ! waste of memory. For the sake of maintaining old code implementations
+  ! "as-is" and making the intermediate an as-seamless-possible patch over
+  ! the original implementation, we list all these module variables here.
+  ! I am aware that there is a cleaner implementation. (hplin, 6/9/20)
+
+  ! 2-D fields
+  REAL(hp), POINTER :: H_SZAFACT   (:,:)
+  REAL(hp), POINTER :: H_JNO2      (:,:)
+  REAL(hp), POINTER :: H_JOH       (:,:)
+  REAL(hp), POINTER :: H_PSC2_WET  (:,:)
+  REAL(hp), POINTER :: H_FRCLND    (:,:)
+  REAL(hp), POINTER :: H_MODISLAI  (:,:)
+  REAL(hp), POINTER :: H_CNV_FRC   (:,:)
+  INTEGER, POINTER  :: H_TropLev   (:,:)
+
+  REAL(hp), POINTER :: H_TROPP     (:,:)
+  REAL(hp), POINTER :: H_FLASH_DENS(:,:)
+  REAL(hp), POINTER :: H_CONV_DEPTH(:,:)
+  REAL(hp), POINTER :: H_SUNCOS    (:,:)
+
+  REAL(hp), POINTER :: H_DRY_TOTN  (:,:)
+  REAL(hp), POINTER :: H_WET_TOTN  (:,:)
+
+  ! 3-D fields
+  REAL(hp), POINTER :: H_T         (:,:,:)
+  REAL(hp), POINTER :: H_AD        (:,:,:)
+  REAL(hp), POINTER :: H_AIRVOL    (:,:,:)
+  REAL(hp), POINTER :: H_AIRDEN    (:,:,:)
+  REAL(hp), POINTER :: H_F_OF_PBL  (:,:,:)
+
+  REAL(hp), POINTER :: H_SPHU      (:,:,:)                ! Note: Only need ZBND = 1 sfc value
+
+  REAL(hp), POINTER :: H_SpcO3     (:,:,:)
+  REAL(hp), POINTER :: H_SpcNO2    (:,:,:)
+  REAL(hp), POINTER :: H_SpcNO     (:,:,:)
+  REAL(hp), POINTER :: H_SpcHNO3   (:,:,:)
+  REAL(hp), POINTER :: H_SpcPOPG   (:,:,:)
+
+  ! Intermediate temporaries for regridding
+  REAL(hp), POINTER :: REGR_3DI    (:,:,:)                ! Regridding temporary pointer (in)
+  REAL(hp), POINTER :: REGR_3DO    (:,:,:)                ! (out)
+
+#endif
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -126,6 +180,14 @@ CONTAINS
 ! provide a (previously read) HEMCO configuration object via input argument
 ! `HcoConfig`. In this case the HEMCO configuration file will not be read
 ! any more.
+!\\
+!\\
+! It is also possible to specify an optional, State_Grid_HCO argument.
+! If this is specified, the HEMCO 'intermediate grid' implementation will be
+! enabled and HEMCO will operate on a distinct grid from the GEOS-Chem simulation,
+! and met fields and emissions will be regridded on-demand in memory. This permits
+! the use of higher resolution masks, scaling factors and HEMCO extensions.
+! (hplin, 6/2/20)
 !\\
 !\\
 ! !INTERFACE:
@@ -159,18 +221,26 @@ CONTAINS
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
+
+#ifdef MODEL_CLASSIC
+    ! HEMCO Intermediate Grid specification
+    USE HCO_State_GC_Mod,   ONLY : State_Grid_HCO
+    USE GC_Grid_Mod,        ONLY : Compute_Grid
+    USE State_Grid_Mod,     ONLY : Allocate_State_Grid
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state
-    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid state
-    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )           :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )           :: State_Grid ! Grid state
+    TYPE(MetState),   INTENT(IN   )           :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)          :: Input_Opt  ! Input opts
-    TYPE(ConfigObj),  POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
-    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+    TYPE(OptInput),   INTENT(INOUT)           :: Input_Opt  ! Input opts
+    TYPE(ConfigObj),  POINTER,      OPTIONAL  :: HcoConfig  ! HEMCO config object
+    INTEGER,          INTENT(INOUT)           :: RC         ! Failure or success
 !
 ! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
@@ -202,7 +272,7 @@ CONTAINS
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at HCOI_GC_Init (in module GeosCore/hcoi_gc_main_mod.F90)'
+    ThisLoc  = ' -> at HCOI_GC_Init (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -214,10 +284,90 @@ CONTAINS
     id_O3    = Ind_('O3'  )
     id_POPG  = Ind_('POPG')
 
+#ifdef MODEL_CLASSIC
+    ! Initialize the intermediate grid descriptor.
+    ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
+    ! equal to State_Grid%DY, State_Grid%DX (e.g. 2x2.5, 4x5, ...)
+    !
+    ! TODO: Read in the grid parameters via input.geos. For now, hardcode the DY and DX
+    ! as 1.0x1.0 degree.
+    ! State_Grid_HCO%DY = 1.0_fp
+    ! State_Grid_HCO%DX = 1.0_fp
+
+    ! To test GC-Classic WITHOUT intermediate grid
+    State_Grid_HCO%DY = State_Grid%DY
+    State_Grid_HCO%DX = State_Grid%DX
+
+    ! Are we using HEMCO intermediate grid implementation?
+    ! Note: The mere presence of State_Grid_HCO does not mean
+    ! that the intermediate grid is necessarily different. 
+    ! The code path is decided if the intermediate is actually a different grid.
+    IF ( State_Grid_HCO%DX .ne. State_Grid%DX .or. &
+         State_Grid_HCO%DY .ne. State_Grid%DY ) THEN
+      Input_Opt%LIMGRID = .true.
+
+      write(State_Grid_HCO%GridRes, '(f10.4,a,f10.4)') State_Grid_HCO%DX, "x", State_Grid_HCO%DY
+    
+      ! In intermediate grid implementation
+      ! Compute the grid parameters exactly like GEOS-Chem model grid. Copy params over.
+      State_Grid_HCO%HalfPolar  = State_Grid%HalfPolar
+      State_Grid_HCO%NestedGrid = State_Grid%NestedGrid
+      State_Grid_HCO%XMin = State_Grid%XMin
+      State_Grid_HCO%XMax = State_Grid%XMax
+
+      ! Compute the new NX
+      State_Grid_HCO%NX   = FLOOR((State_Grid_HCO%XMax - State_Grid_HCO%XMin) / State_Grid_HCO%DX)
+      IF( State_Grid_HCO%NestedGrid ) THEN
+         State_Grid_HCO%NX = State_Grid_HCO%NX + 1
+         State_Grid_HCO%HalfPolar = .false.
+      ENDIF
+
+      State_Grid_HCO%YMin = State_Grid%YMin
+      State_Grid_HCO%YMax = State_Grid%YMax
+
+      ! Compute the new NY
+      State_Grid_HCO%NY   = FLOOR((State_Grid_HCO%YMax - State_Grid_HCO%YMin) / State_Grid_HCO%DY) + 1
+
+      ! The intermediate grid has the same vertical discretization as the model grid.
+      State_Grid_HCO%NZ   = State_Grid%NZ
+
+      ! Allocate State_Grid_HCO arrays
+      CALL Allocate_State_Grid( Input_Opt, State_Grid_HCO, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+      ENDIF
+
+      ! Reuse GC_Grid_Mod to compute the grid information
+      ! This will output the grid information too.
+      WRITE(6, *) "HEMCO INTERMEDIATE GRID:"
+      CALL Compute_Grid ( Input_Opt, State_Grid_HCO, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Compute_Grid"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+      ENDIF
+
+      ! Initialize module temporaries for regridding
+      ALLOCATE( REGR_3DI( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Init:REGR_3DI', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ALLOCATE( REGR_3DO( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Init:REGR_3DO', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+      ! Intermediate grid is same as model grid. Maintain current implementation
+      ! all computations about State_Grid_HCO can be skipped to save memory.
+    ENDIF
+#endif
+
     ! Create a splash page
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       IF ( Input_Opt%LIMGRID ) THEN
+         WRITE( 6, '(a)' ) 'HEMCO is running on a different grid than the model', State_Grid_HCO%GridRes
+       ENDIF
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
  100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
@@ -259,6 +409,14 @@ CONTAINS
 
     ! Met and grid parameters
     iHcoConfig%MetField = Input_Opt%MetField
+
+    ! In any way, even if the intermediate grid is enabled, the grid resolution
+    ! tokens ($RES$) should be replaced with the token that is most appropriate
+    ! with the model native resolution.
+    !
+    ! This might not be the case in the future, but it involves other
+    ! science implications that should be discussed with the scientific GCSC!
+    ! (hplin, 6/4/20)
     iHcoConfig%GridRes  = State_Grid%GridRes
 
     ! Pass GEOS-Chem species information to HEMCO config object to
@@ -398,7 +556,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set the HEMCO grid
     !-----------------------------------------------------------------------
-    CALL SetHcoGrid( State_Grid, State_Met, HcoState, RC )
+#ifdef MODEL_CLASSIC
+    IF ( Input_Opt%LIMGRID ) THEN
+      CALL SetHcoGrid( State_Grid_HCO, State_Met, HcoState, RC )
+    ELSE
+#endif
+      CALL SetHcoGrid( State_Grid, State_Met, HcoState, RC )
+#ifdef MODEL_CLASSIC
+    ENDIF
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -578,7 +744,12 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly
     ! connected.
     !-----------------------------------------------------------------------
-    CALL ExtState_InitTargets( HcoState, ExtState, State_Grid, HMRC )
+    IF ( Input_Opt%LIMGRID ) THEN
+      ! Use the HEMCO "intermediate" grid -- allocate arrays accordingly
+      CALL ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, HMRC, State_Grid_HCO )
+    ELSE
+      CALL ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, HMRC )
+    ENDIF
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -655,7 +826,6 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
     ! HEMCO utility routines for GEOS-Chem
     USE HCO_Utilities_GC_Mod, ONLY : Get_GC_Restart
-    USE HCO_Utilities_GC_Mod, ONLY : Get_Met_Fields
     USE HCO_Utilities_GC_Mod, ONLY : Get_Boundary_Conditions
 #endif
 !
@@ -792,7 +962,7 @@ CONTAINS
     ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
     IF ( Phase /= 0 .and. notDryRun ) THEN
-       CALL GridEdge_Set( State_Grid, State_Met, HcoState, HMRC  )
+       CALL GridEdge_Set( Input_Opt, State_Grid, State_Met, HcoState, HMRC  )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -804,7 +974,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     ! Check if HEMCO has already been called for this timestep
     IF ( ( Phase == 1 ) .and. ( GET_TAU() == PrevTAU ) .and. Input_Opt%amIRoot ) THEN
        Print*, 'HEMCO already called for this timestep. Returning.'
@@ -910,7 +1080,9 @@ CONTAINS
        ! connected.
        !--------------------------------------------------------------------
        IF ( notDryRun ) THEN
-          CALL ExtState_SetFields( State_Chm, State_Met, &
+          ! Set fields either as pointer targets or else.
+          ! TODO: Eventually need to regrid those for ImGrid.
+          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Met, &
                                    HcoState,  ExtState,  HMRC )
 
           ! Trap potential errors
@@ -922,6 +1094,8 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! Update fields directly from State_Met.
+          ! TODO: Eventually need to regrid those for ImGrid.
           CALL ExtState_UpdateFields( Input_Opt, State_Chm,            &
                                       State_Grid, State_Met, HcoState, &
                                       ExtState,   HMRC )
@@ -1106,41 +1280,38 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Deallocate module variables
     !-----------------------------------------------------------------------
-    IF ( ASSOCIATED( ZSIGMA ) ) THEN
-       DEALLOCATE( ZSIGMA, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:ZSIGMA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( HCO_FRAC_OF_PBL ) ) THEN
-       DEALLOCATE( HCO_FRAC_OF_PBL, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
 
     IF ( ASSOCIATED( HCO_SZAFACT ) ) THEN
        DEALLOCATE( HCO_SZAFACT, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( JNO2 ) ) THEN
        DEALLOCATE( JNO2, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( JOH ) ) THEN
        DEALLOCATE( JOH, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( SUMCOSZA ) ) THEN
-       DEALLOCATE( SUMCOSZA, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 2, RC )
+#if defined( MODEL_CLASSIC )
+    IF ( ASSOCIATED( REGR_3DI ) ) THEN
+       DEALLOCATE( REGR_3DI  )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Final:REGR_3DI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    IF ( ASSOCIATED( REGR_3DO ) ) THEN
+       DEALLOCATE( REGR_3DO  )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Final:REGR_3DO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -1260,24 +1431,33 @@ CONTAINS
 ! !DESCRIPTION: SUBROUTINE ExtState\_InitTargets allocates some local arrays
 ! that act as targets for the ExtState object.
 !\\
-! Note that for now, this explicitly assumes that the HEMCO emissions grid is
-! the same as the GEOS-Chem simulation grid. To support other grids, the met
-! data has to be regridded explicitly at every time step!
+! If State_Grid_HCO is not given or Input_Opt%LIMGRID is set to false (from Init),
+! this explicitly assumes that the HEMCO emissions grid is the same as the GEOS-Chem 
+! simulation grid. 
+! 
+! Otherwise, the met data has to be regridded explicitly at every time step!
+! This is performed by creating a set of in-memory array temporaries within this module,
+! that can be pointed to by ExtState. Note that a SET of temporaries MUST be always
+! present -- you cannot cheat and swap them in memory.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_InitTargets( HcoState, ExtState, State_Grid, RC )
+  SUBROUTINE ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, RC, &
+                                   State_Grid_HCO )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HCO_Arr_Mod,    ONLY : HCO_ArrAssert
     USE State_Grid_Mod, ONLY : GrdState
+    USE Input_Opt_Mod,  ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
+    TYPE(OptInput),   INTENT(IN   )           :: Input_Opt      ! Input options
+    TYPE(GrdState),   INTENT(IN   )           :: State_Grid     ! Grid State object
+    TYPE(GrdState),   INTENT(IN   ), OPTIONAL :: State_Grid_HCO ! HEMCO ImGrid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1297,6 +1477,9 @@ CONTAINS
     ! Scalars
     INTEGER            :: HMRC
 
+    INTEGER            :: IM, JM, LM
+    INTEGER            :: IMh, JMh              ! HEMCO grid sizes
+
     ! Strings
     CHARACTER(LEN=255) :: ThisLoc, Instr
     CHARACTER(LEN=512) :: ErrMsg
@@ -1310,9 +1493,209 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at ExtState_InitTargets (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at ExtState_InitTargets (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
+
+    ! Shorthands
+    IM     = State_Grid%NX
+    JM     = State_Grid%NY
+    LM     = State_Grid%NZ
+
+    ! By default, HEMCO grid sizes are the same as model. These values will be
+    ! overwritten later
+    IMh    = IM
+    JMh    = JM
+
+#if defined( MODEL_CLASSIC )
+    IF ( Input_Opt%LIMGRID ) THEN
+      IMh  = State_Grid_HCO%NX
+      JMh  = State_Grid_HCO%NY
+    ENDIF
+
+    
+    !-----------------------------------------------------------------------
+    ! Notes for HEMCO Intermediate Grid:
+    ! Due to the extensions requiring met fields and some of them are derived
+    ! data, we need to initialize targets here.
+    !
+    ! Some variables are stored on the MODEL grid, e.g. SZAFACT, JNO2, JOH.
+    ! Because they need to be computed here, before a regrid.
+    !
+    ! Shadow targets for all derived met fields (not read from HEMCO) are
+    ! initialized if Input_Opt%LIMGRID (Intermediate enabled) and kept updated
+    ! at every ExtState_UpdateFields.
+    !-----------------------------------------------------------------------
+    IF ( Input_Opt%LIMGRID ) THEN
+
+      ! 2-D Fields
+      IF ( ExtState%SZAFACT%DoUse ) THEN
+         ALLOCATE( H_SZAFACT( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SZAFACT', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SZAFACT = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%JNO2%DoUse ) THEN
+         ALLOCATE( H_JNO2( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_JNO2', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_JNO2 = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%JOH%DoUse ) THEN
+         ALLOCATE( H_JOH( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_JOH', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_JOH = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%PSC2_WET%DoUse ) THEN
+         ALLOCATE( H_PSC2_WET( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_PSC2_WET', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_PSC2_WET = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%FRCLND%DoUse ) THEN
+         ALLOCATE( H_FRCLND( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_FRCLND', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_FRCLND = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%LAI%DoUse ) THEN
+         ALLOCATE( H_MODISLAI( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_MODISLAI', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_MODISLAI = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%CNV_FRC%DoUse ) THEN
+         ALLOCATE( H_CNV_FRC( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_CNV_FRC', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_CNV_FRC = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%TropLev%DoUse ) THEN
+         ALLOCATE( H_TropLev( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_TropLev', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_TropLev = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%TROPP%DoUse ) THEN
+         ALLOCATE( H_TROPP( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_TROPP', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_TROPP = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%FLASH_DENS%DoUse ) THEN
+         ALLOCATE( H_FLASH_DENS( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_FLASH_DENS', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_FLASH_DENS = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+         ALLOCATE( H_CONV_DEPTH( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_CONV_DEPTH', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_CONV_DEPTH = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%DRY_TOTN%DoUse ) THEN
+         ALLOCATE( H_DRY_TOTN( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_DRY_TOTN', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_DRY_TOTN = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%WET_TOTN%DoUse ) THEN
+         ALLOCATE( H_WET_TOTN( IMh, JMh ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_WET_TOTN', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_WET_TOTN = 0.0e0_hp
+      ENDIF
+
+      ! Almost 3-D Fields
+      IF ( ExtState%SPHU%DoUse ) THEN
+         ALLOCATE( H_SPHU( IMh, JMh, 1 ), STAT=RC )         ! Only need SURFACE SPHU
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SPHU', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SPHU = 0.0e0_hp
+      ENDIF
+
+      ! 3-D Fields
+      IF ( ExtState%TK%DoUse ) THEN
+         ALLOCATE( H_T( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_T', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_T = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%AIR%DoUse ) THEN
+         ALLOCATE( H_AD( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_AD', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_AD = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%AIRVOL%DoUse ) THEN
+         ALLOCATE( H_AIRVOL( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_AIRVOL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_AIRVOL = 0.0e0_hp
+      ENDIF
+
+      IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
+         ALLOCATE( H_F_OF_PBL( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_F_OF_PBL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_F_OF_PBL = 0.0e0_hp
+      ENDIF
+
+      ! 3-D State_Chm fields
+      IF ( id_O3 > 0 ) THEN
+        ALLOCATE( H_SpcO3( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SpcO3', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SpcO3 = 0.0e0_hp
+      ENDIF
+
+      IF ( id_NO2 > 0 ) THEN
+        ALLOCATE( H_SpcNO2( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SpcNO2', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SpcNO2 = 0.0e0_hp
+      ENDIF
+
+      IF ( id_NO > 0 ) THEN
+        ALLOCATE( H_SpcNO( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SpcNO', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SpcNO = 0.0e0_hp
+      ENDIF
+
+      IF ( id_HNO3 > 0 ) THEN
+        ALLOCATE( H_SpcHNO3( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SpcHNO3', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SpcHNO3 = 0.0e0_hp
+      ENDIF
+
+      IF ( id_POPG > 0 ) THEN
+        ALLOCATE( H_SpcPOPG( IMh, JMh, LM ), STAT=RC )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:H_SpcPOPG', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         H_SpcPOPG = 0.0e0_hp
+      ENDIF
+
+    ENDIF
+#endif
+
 
     !-----------------------------------------------------------------------
     ! HCO_SZAFACT is not defined in Met_State.  Hence need to
@@ -1320,27 +1703,18 @@ CONTAINS
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
+    !
+    ! Removed HCO_FRAC_OF_PBL, can directly point to State_Met%F_OF_PBL.
+    ! Moved SUMCOSZA to State_Met%SUNCOSsum
+    ! (hplin, 6/9/20)
     ! ----------------------------------------------------------------------
     IF ( ExtState%SZAFACT%DoUse ) THEN
 
-       ALLOCATE( SUMCOSZA( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       SUMCOSZA = 0.0_fp
-
-       ALLOCATE( HCO_SZAFACT( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       ALLOCATE( HCO_SZAFACT( IM, JM ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_SZAFACT = 0e0_hp
 
-    ENDIF
-
-    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-       ALLOCATE( HCO_FRAC_OF_PBL( State_Grid%NX, State_Grid%NY, &
-                                  State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       HCO_FRAC_OF_PBL = 0.0_hp
     ENDIF
 
     ! Initialize max. PBL
@@ -1351,14 +1725,14 @@ CONTAINS
     ! need to compute them separately.
     ! ----------------------------------------------------------------------
     IF ( ExtState%JNO2%DoUse ) THEN
-       ALLOCATE( JNO2( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       ALLOCATE( JNO2( IM, JM ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        JNO2 = 0.0e0_hp
     ENDIF
 
     IF ( ExtState%JOH%DoUse ) THEN
-       ALLOCATE( JOH( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       ALLOCATE( JOH( IM, JM ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 0, RC )
        JOH = 0.0e0_hp
     ENDIF
@@ -1366,12 +1740,13 @@ CONTAINS
     ! ----------------------------------------------------------------------
     ! Arrays to be copied physically because HEMCO units are not the
     ! same as in GEOS-Chem
+    !
+    ! In ImGrid, they also need to be regridded on the fly.
     ! ----------------------------------------------------------------------
 
     ! TROPP: GEOS-Chem TROPP is in hPa, while HEMCO uses Pa.
     IF ( ExtState%TROPP%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%TROPP%Arr, State_Grid%NX, State_Grid%NY, &
-                           HMRC )
+       CALL HCO_ArrAssert( ExtState%TROPP%Arr, IMh, JMh, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1386,8 +1761,7 @@ CONTAINS
     ! SPHU: GEOS-Chem SPHU is in g/kg, while HEMCO uses kg/kg.
     ! NOTE: HEMCO only uses SPHU surface values.
     IF ( ExtState%SPHU%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%SPHU%Arr, State_Grid%NX, State_Grid%NY, &
-                           1, HMRC )
+       CALL HCO_ArrAssert( ExtState%SPHU%Arr, IMh, JMh, 1, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1401,8 +1775,7 @@ CONTAINS
 
     ! FLASH_DENS
     IF ( ExtState%FLASH_DENS%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%FLASH_DENS%Arr, State_Grid%NX, &
-                           State_Grid%NY, HMRC )
+       CALL HCO_ArrAssert( ExtState%FLASH_DENS%Arr, IMh, JMh, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1416,8 +1789,7 @@ CONTAINS
 
     ! CONV_DEPTH
     IF ( ExtState%CONV_DEPTH%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%CONV_DEPTH%Arr, State_Grid%NX, &
-                           State_Grid%NY, HMRC )
+       CALL HCO_ArrAssert( ExtState%CONV_DEPTH%Arr, IMh, JMh, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1432,8 +1804,7 @@ CONTAINS
     ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
     ! subroutine
     IF ( ExtState%SUNCOS%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, State_Grid%NX, State_Grid%NY, &
-                           HMRC )
+       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, IMh, JMh, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1485,12 +1856,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( State_Chm, State_Met, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Met, HcoState, ExtState, RC )
 !
 ! !USES:
 !
     USE Hcox_State_Mod, ONLY : ExtDat_Set
     USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Drydep_Mod,     ONLY : DryCoeff
@@ -1500,6 +1872,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
@@ -1541,13 +1914,31 @@ CONTAINS
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
+    ! If using intermediate grid (MODEL_CLASSIC and LIMGRID), then load data
+    ! from the shadow H_* arrays which have been regridded to HEMCO sizes.
+    ! The data is regridded at every call to ExtState_UpdateFields.
+    !
+    ! Otherwise, simply load as before, either from module variables or
+    ! directly from State_Met.
+    ! To avoid code duplication, in GEOS-Chem classic data is also loaded
+    ! directly from HEMCO met pointers, when possible.
+
     !-----------------------------------------------------------------------
     ! Pointers to local module arrays
     !-----------------------------------------------------------------------
 
     ! SZAFACT
-    CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
-                     HMRC,     FIRST,            HCO_SZAFACT )
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
+                       HMRC,     FIRST,            HCO_SZAFACT )
+#if defined( MODEL_CLASSIC )
+    ELSE
+      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
+                       HMRC,     FIRST,            H_SZAFACT )
+    ENDIF
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1558,8 +1949,17 @@ CONTAINS
     ENDIF
 
     ! JNO2
-    CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
-                     HMRC,     FIRST,         JNO2 )
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
+                       HMRC,     FIRST,         JNO2 )
+#if defined( MODEL_CLASSIC )
+    ELSE
+      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
+                       HMRC,     FIRST,         H_JNO2 )
+    ENDIF
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1570,8 +1970,17 @@ CONTAINS
     ENDIF
 
     ! JOH
-    CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
-                     HMRC,     FIRST,        JOH )
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
+                       HMRC,     FIRST,        JOH )
+#if defined( MODEL_CLASSIC )
+    ELSE
+      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
+                       HMRC,     FIRST,        H_JOH )
+    ENDIF
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1581,9 +1990,241 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! ----------------------------------------------------------------------
+    ! 2D fields requiring interpolation (for GC-Classic)
+    ! ----------------------------------------------------------------------
+
+    ! PSC2_WET
+    ! Computed in calc_met_mod
+    IF ( ExtState%PSC2_WET%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
+                         HMRC,     FIRST,             State_Met%PSC2_WET )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
+                         HMRC,     FIRST,             H_PSC2_WET )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( PSC2_WET_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! FRCLND
+    ! Computed in olson_landmap_mod
+    IF ( ExtState%FRCLND%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
+                         HMRC,     FIRST,           State_Met%FRCLND )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
+                         HMRC,     FIRST,           H_FRCLND )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( FRCLND_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! LAI
+    ! Calculated in modis_lai_mod from XLAI_NATIVE
+    IF ( ExtState%LAI%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
+                         HMRC,     FIRST,        State_Met%MODISLAI )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
+                         HMRC,     FIRST,        H_MODISLAI )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( LAI_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! CNV_FRC Convective fractions
+    ! Apparently this is not used anywhere right now? maybe it is a GCHP thing
+    IF ( ExtState%CNV_FRC%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
+                         HMRC,     FIRST,             State_Met%CNV_FRC,  &
+                         NotFillOk=.TRUE. )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
+                         HMRC,     FIRST,             H_CNV_FRC,  &
+                         NotFillOk=.TRUE. )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( CNV_FRC_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! Tropopause level
+    IF ( ExtState%TropLev%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
+                         HMRC,     FIRST,            State_Met%TropLev )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
+                         HMRC,     FIRST,            H_TropLev )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( TropLev )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! ----------------------------------------------------------------------
+    ! 3D fields requiring interpolation (for GC-Classic)
+    ! ----------------------------------------------------------------------
+
+    ! TK
+    IF ( ExtState%TK%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
+                         HMRC,     FIRST,       State_Met%T )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
+                         HMRC,     FIRST,       H_T )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( TK_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! Air mass [kg/grid box]
+    IF ( ExtState%AIR%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
+                         HMRC,     FIRST,        State_Met%AD )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
+                         HMRC,     FIRST,        H_AD )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( AIR_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! AIRVOL_FOR_EMIS
+    IF ( ExtState%AIRVOL%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
+                         HMRC,     FIRST,           State_Met%AIRVOL )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
+                         HMRC,     FIRST,           H_AIRVOL )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( AIRVOL_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! Dry air density [kg/m3]
+    IF ( ExtState%AIRDEN%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
+                         HMRC,     FIRST,           State_Met%AIRDEN )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
+                         HMRC,     FIRST,           H_AIRDEN )
+      ENDIF
+#endif
+    ENDIF
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( AIRDEN )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
     ! Frac of PBL
-    CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
-                     HMRC,     FIRST,                HCO_FRAC_OF_PBL )
+    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
+                         HMRC,     FIRST,                State_Met%F_OF_PBL )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
+                         HMRC,     FIRST,                H_F_OF_PBL )
+      ENDIF
+#endif
+    ENDIF
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1594,12 +2235,26 @@ CONTAINS
     ENDIF
 
     ! ----------------------------------------------------------------------
-    ! 2D fields
+    ! 2D fields directly readable from HEMCO (for GC-Classic)
+    ! 2D fields (for other models)
     ! ----------------------------------------------------------------------
 
+    ! For MODEL_CLASSIC with the optional HEMCO intermediate grid option,
+    ! the meteorological field pointers point to the HEMCO pointers directly.
+    ! This avoids an extra regridding in the GC -> HEMCO direction.
+    !
+    ! For this, simply specify the met field name directly in the FldName arg
+    ! call to ExtDat_Set. This will prompt HEMCO to call HCO_EvalFld directly
+    ! (hplin, 6/2/20)
+
     ! U10M
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M_FOR_EMIS', &
                      HMRC,     FIRST,         State_Met%U10M )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1610,8 +2265,13 @@ CONTAINS
     ENDIF
 
     ! V10M
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M_FOR_EMIS', &
                      HMRC,     FIRST,         State_Met%V10M )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1623,8 +2283,13 @@ CONTAINS
     ENDIF
 
     ! ALBD
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBEDO', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBD_FOR_EMIS', &
                      HMRC,     FIRST,         State_Met%ALBD )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1634,9 +2299,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! WLI
+    ! WLI (LWI)
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%WLI, 'LWI', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%WLI, 'WLI_FOR_EMIS', &
                      HMRC,     FIRST,        State_Met%LWI )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1646,8 +2316,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! T2M
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M_FOR_EMIS', &
                      HMRC,     FIRST,        State_Met%TS )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1658,8 +2334,13 @@ CONTAINS
     ENDIF
 
     ! TSKIN
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TS', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN_FOR_EMIS', &
                      HMRC,     FIRST,          State_Met%TSKIN )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1670,8 +2351,13 @@ CONTAINS
     ENDIF
 
     ! GWETROOT
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT_FOR_EMIS', &
                      HMRC,     FIRST,             State_Met%GWETROOT )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1682,8 +2368,13 @@ CONTAINS
     ENDIF
 
     ! GWETTOP
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP_FOR_EMIS', &
                      HMRC,     FIRST,            State_Met%GWETTOP )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1693,8 +2384,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! USTAR
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR_FOR_EMIS', &
                      HMRC,     FIRST,          State_Met%USTAR )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1705,8 +2402,13 @@ CONTAINS
     ENDIF
 
     ! Z0
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0M', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0_FOR_EMIS', &
                      HMRC,     FIRST,       State_Met%Z0 )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1716,8 +2418,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! PARDR
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR_FOR_EMIS', &
                      HMRC,     FIRST,          State_Met%PARDR )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1728,8 +2436,13 @@ CONTAINS
     ENDIF
 
     ! PARDF
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF_FOR_EMIS', &
                      HMRC, FIRST,              State_Met%PARDF )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1739,21 +2452,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! PSC2_WET
-    CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%PSC2_WET )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( PSC2_WET_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! RADSWG
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'SWGDN', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'RADSWG_FOR_EMIS', &
                      HMRC,     FIRST,           State_Met%SWGDN )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1763,21 +2469,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! FRCLND
-    CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%FRCLND )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( FRCLND_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! CLDFRC
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDTOT', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDFRC_FOR_EMIS', &
                      HMRC,     FIRST,           State_Met%CLDFRC )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1789,8 +2488,13 @@ CONTAINS
 
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOMAS', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOWHGT_FOR_EMIS', &
                      HMRC,     FIRST,            State_Met%SNOMAS )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1800,9 +2504,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! SNOWDP is in m
+    ! SNOWDP [m]
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP_FOR_EMIS', &
-                     HMRC,    FIRST,           State_Met%SNODP )
+                     HMRC,     FIRST,          State_Met%SNODP )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1813,8 +2522,13 @@ CONTAINS
     ENDIF
 
     ! FRLAND
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND_FOR_EMIS', &
                      HMRC,     FIRST,           State_Met%FRLAND )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1825,8 +2539,13 @@ CONTAINS
     ENDIF
 
     ! FROCEAN
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN_FOR_EMIS', &
                      HMRC,     FIRST,            State_Met%FROCEAN )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1837,8 +2556,13 @@ CONTAINS
     ENDIF
 
     ! FRLAKE
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE_FOR_EMIS', &
                      HMRC,     FIRST,           State_Met%FRLAKE )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1849,8 +2573,13 @@ CONTAINS
     ENDIF
 
     ! FRLANDIC
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC', &
+                     HMRC,     FIRST=FIRST )
+#else
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
                      HMRC,     FIRST,             State_Met%FRLANDIC )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1860,39 +2589,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! LAI
-    CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%MODISLAI )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( LAI_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! Convective fractions
-    CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%CNV_FRC,  &
-                     NotFillOk=.TRUE. )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( CNV_FRC_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     !-----------------------------------------------------------------------
     ! 3D fields
     !-----------------------------------------------------------------------
 
     ! CNV_MFC
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CMFMC', &
+                     HMRC,      FIRST,            OnLevEdge=.TRUE. )
+#else
     CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CNV_MFC_FOR_EMIS', &
                      HMRC,      FIRST,            State_Met%CMFMC,    &
                      OnLevEdge=.TRUE. )
+#endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1902,72 +2611,34 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
-                     HMRC,     FIRST,       State_Met%T )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( TK_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! Air mass [kg/grid box]
-    CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%AD )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( AIR_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! AIRVOL_FOR_EMIS
-    CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%AIRVOL )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( AIRVOL_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! Dry air density [kg/m3]
-    CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
-                     HMRC,     FIRST,           State_Met%AIRDEN )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( AIRDEN )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! Tropopause level
-    CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
-                     HMRC,     FIRST,            State_Met%TropLev )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( TropLev )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! ----------------------------------------------------------------
     ! Species concentrations
+    ! All of these require interpolation on-demand.
     ! ----------------------------------------------------------------
+
+    ! Note: ExtDat_Set points DIRECTLY to the assigned target when received
+    ! through ExtDat%Arr%Val => Trgt. This means that the array temporary
+    ! must be maintained through time in memory. It may be particularly taxing
+    ! for a GC-classic run with intermediate grid option, as all of these must
+    ! be maintained in regridded HIGH-RESOLUTION (HEMCO resolution) array
+    ! temporaries now! (hplin, 6/2/20)
+
     IF ( id_O3 > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_O3)
-       CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
-                        HMRC,     FIRST,       Trgt3D )
+
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        Trgt3D => State_Chm%Species(:,:,:,id_O3)
+        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
+                         HMRC,     FIRST,       Trgt3D )
+
+        Trgt3D => NULL()
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
+                         HMRC,     FIRST,       H_SpcO3 )
+      ENDIF
+#endif
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1976,14 +2647,24 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-       Trgt3D => NULL()
     ENDIF
 
     IF ( id_NO2 > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_NO2)
-       CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
-                        HMRC,     FIRST,        Trgt3D )
+
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        Trgt3D => State_Chm%Species(:,:,:,id_NO2)
+        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
+                         HMRC,     FIRST,        Trgt3D )
+
+        Trgt3D => NULL()
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
+                         HMRC,     FIRST,        H_SpcNO2 )
+      ENDIF
+#endif
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1992,14 +2673,24 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-       Trgt3D => NULL()
     ENDIF
 
     IF ( id_NO > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_NO)
-       CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
-                        HMRC,     FIRST,       Trgt3D )
+
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        Trgt3D => State_Chm%Species(:,:,:,id_NO)
+        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
+                         HMRC,     FIRST,       Trgt3D )
+
+        Trgt3D => NULL()
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
+                         HMRC,     FIRST,       H_SpcNO )
+      ENDIF
+#endif
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2008,14 +2699,24 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-       Trgt3D => NULL()
     ENDIF
 
     IF ( id_HNO3 > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
-       CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
-                        HMRC,     FIRST,         Trgt3D )
+
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
+        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
+                         HMRC,     FIRST,         Trgt3D )
+
+        Trgt3D => NULL()
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
+                         HMRC,     FIRST,         H_SpcHNO3 )
+      ENDIF
+#endif
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2024,14 +2725,24 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-       Trgt3D => NULL()
     ENDIF
 
     IF ( id_POPG > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_POPG)
-       CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
-                        HMRC,     FIRST,         Trgt3D )
+
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        Trgt3D => State_Chm%Species(:,:,:,id_POPG)
+        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
+                         HMRC,     FIRST,         Trgt3D )
+
+        Trgt3D => NULL()
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
+                         HMRC,     FIRST,         H_SpcPOPG )
+      ENDIF
+#endif
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2040,8 +2751,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-       Trgt3D => NULL()
     ENDIF
 
     ! ----------------------------------------------------------------------
@@ -2049,8 +2758,19 @@ CONTAINS
     ! ----------------------------------------------------------------------
 
     ! DRY_TOTN
-    CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Chm%DryDepNitrogen )
+    IF ( ExtState%DRY_TOTN%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
+                         HMRC,     FIRST,             State_Chm%DryDepNitrogen )
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
+                         HMRC,     FIRST,             H_DRY_TOTN )
+      ENDIF
+#endif
+    ENDIF
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2061,8 +2781,20 @@ CONTAINS
     ENDIF
 
     ! WET_TOTN
-    CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Chm%WetDepNitrogen )
+    IF ( ExtState%WET_TOTN%DoUse ) THEN
+#if defined( MODEL_CLASSIC )
+      IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+        CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
+                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )  
+#if defined( MODEL_CLASSIC )
+      ELSE
+        CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
+                         HMRC,     FIRST,             H_WET_TOTN )
+      ENDIF
+#endif
+    ENDIF
+
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2077,6 +2809,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( FIRST ) THEN
        IF ( ExtState%WET_TOTN%DoUse .OR. ExtState%DRY_TOTN%DoUse ) THEN
+          ! Polynomial coefficients for dry deposition, array target in drydep_mod
           ExtState%DRYCOEFF => DRYCOEFF
        ENDIF
 
@@ -2133,16 +2866,20 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,      ONLY : ZPJ
+    USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
-    USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Met_Mod,    ONLY : MetState
+    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
+    USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 #ifdef ESMF_
-    USE HCOI_ESMF_MOD,    ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,        ONLY : HCO_SetExtState_ESMF
+#endif
+#if defined( MODEL_CLASSIC )
+    USE HCO_State_GC_Mod,     ONLY : State_Grid_HCO    ! HEMCO intermediate grid
+    USE HCO_Utilities_GC_Mod, ONLY : Regrid_MDL2HCO
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2190,29 +2927,36 @@ CONTAINS
 
     !=======================================================================
     ! Update fields in the HEMCO Extension state
+    ! Directly from State_Met if not intermediate
     !=======================================================================
 
-    ! TROPP: convert from hPa to Pa
-    IF ( ExtState%TROPP%DoUse ) THEN
-       ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
-    ENDIF
+    IF ( .not. Input_Opt%LIMGRID ) THEN
 
-    ! SPHU: convert from g/kg to kg/kg. Only need surface value.
-    IF ( ExtState%SPHU%DoUse ) THEN
-       ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
-    ENDIF
+      ! TROPP: convert from hPa to Pa
+      IF ( ExtState%TROPP%DoUse ) THEN
+         ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
+      ENDIF
 
-    ! FLASH_DENS: flash density [#/km2/s]
-    IF ( ExtState%FLASH_DENS%DoUse ) THEN
-       ExtState%FLASH_DENS%Arr%Val = State_Met%FLASH_DENS
-    ENDIF
+      ! SPHU: convert from g/kg to kg/kg. Only need surface value.
+      IF ( ExtState%SPHU%DoUse ) THEN
+         ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
+      ENDIF
 
-    ! CONV_DEPTH: convective cloud depth [m]
-    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
-       ExtState%CONV_DEPTH%Arr%Val = State_Met%CONV_DEPTH
+      ! FLASH_DENS: flash density [#/km2/s]
+      IF ( ExtState%FLASH_DENS%DoUse ) THEN
+         ExtState%FLASH_DENS%Arr%Val = State_Met%FLASH_DENS
+      ENDIF
+
+      ! CONV_DEPTH: convective cloud depth [m]
+      IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+         ExtState%CONV_DEPTH%Arr%Val = State_Met%CONV_DEPTH
+      ENDIF
+
     ENDIF
 
     ! SUNCOS
+    ! Calculated by HEMCO on its own grid - simply need to allocate
+    ! at correct sizes
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_GetSUNCOS( HcoState, ExtState%SUNCOS%Arr%Val, 0, HMRC )
 
@@ -2225,14 +2969,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
-    ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
-    ! here.  CALC_SUMCOSZA computes the sum of cosine of the solar zenith
-    ! angle over a 24 hour day, as well as the total length of daylight.
-    ! This information is required by GET_SZAFACT. (bmy, 3/11/15)
-    IF ( ExtState%SZAFACT%DoUse ) THEN
-       CALL Calc_SumCosZa( State_Grid )
-    ENDIF
+    ! Compute SZAFACT, JNO2 and JOH on MODEL GRID
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
@@ -2247,11 +2984,6 @@ CONTAINS
        ! scale factor has to be imposed on monthly mean OH concentrations.)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
           HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
-       ENDIF
-
-       ! Fraction of PBL for each box [unitless]
-       IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-          HCO_FRAC_OF_PBL(I,J,L) = State_Met%F_OF_PBL(I,J,L)
        ENDIF
 
        ! Maximum extent of the PBL [model level]
@@ -2289,6 +3021,262 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
+#if defined ( MODEL_CLASSIC )
+    IF ( Input_Opt%LIMGRID ) THEN
+    !=======================================================================
+    ! GEOS-Chem Classic HEMCO "Intermediate" Grid: Regrid appropriate met fields
+    !=======================================================================
+
+    ! Template for 3D Edge
+    ! REGR_3DI(:,:,:) = State_Met%PEDGE * 100.0_hp
+    ! CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+    !                      REGR_3DI,  REGR_3DO,   ZBND=State_Grid_HCO%NZ+1, &
+    !                      ResetRegrName=.true. )
+    ! PEDGE(:,:,:)    = REGR_3DO(:,:,:)
+
+    ! Template for 2D
+    ! REGR_3DI(:,:,1) = State_Met%PHIS(:,:)
+    ! CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+    !                      REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+    !                      ResetRegrName=.true. )
+    ! ZSFC(:,:)       = REGR_3DO(:,:,1)
+
+    !-----------------------------------------------------------------------
+    ! Local module arrays
+    !-----------------------------------------------------------------------
+
+    ! SZAFACT
+    IF ( ExtState%SZAFACT%DoUse ) THEN
+      REGR_3DI(:,:,1) = HCO_SZAFACT(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_SZAFACT(:,:)  = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! JNO2
+    IF ( ExtState%JNO2%DoUse ) THEN
+      REGR_3DI(:,:,1) = JNO2(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_JNO2(:,:)     = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! JOH
+    IF ( ExtState%JOH%DoUse ) THEN
+      REGR_3DI(:,:,1) = JOH(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_JOH(:,:)     = REGR_3DO(:,:,1)
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! 2-D State_Met
+    !-----------------------------------------------------------------------
+
+    ! PSC2_WET
+    IF ( ExtState%PSC2_WET%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%PSC2_WET(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_PSC2_WET(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! FRCLND
+    IF ( ExtState%FRCLND%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%FRCLND(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_FRCLND(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! MODISLAI
+    IF ( ExtState%LAI%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%MODISLAI(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_MODISLAI(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! CNV_FRC
+    IF ( ExtState%CNV_FRC%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%FRCLND(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_FRCLND(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! TropLev
+    IF ( ExtState%TropLev%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%TropLev(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_TropLev(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! TROPP - requires conversion
+    IF ( ExtState%TROPP%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%TROPP(:,:) * 100.0_hp    ! hPa -> Pa
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_TROPP(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! FLASH_DENS
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%FLASH_DENS(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_FLASH_DENS(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! CONV_DEPTH
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%CONV_DEPTH(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_CONV_DEPTH(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! 3-D State_Met
+    !-----------------------------------------------------------------------
+
+    ! SPHU - 3-D up to level 1
+    IF ( ExtState%SPHU%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_SPHU(:,:,:) = 0.0_hp
+      H_SPHU(:,:,1) = REGR_3DO(:,:,1)
+    ENDIF
+
+    ! TK/T
+    IF ( ExtState%TK%DoUse ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%SPHU(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_T(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! AIR/AD
+    IF ( ExtState%AIR%DoUse ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%AD(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_AD(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! AIRVOL
+    IF ( ExtState%AIRVOL%DoUse ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%AIRVOL(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_AIRVOL(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! AIRDEN
+    IF ( ExtState%AIRDEN%DoUse ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%AIRDEN(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_AIRDEN(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! FRAC_OF_PBL
+    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%F_OF_PBL(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_F_OF_PBL(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! 3-D State_Chm
+    !-----------------------------------------------------------------------
+
+    ! O3
+    IF ( id_O3 > 0 ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_O3)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_SpcO3(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! NO2
+    IF ( id_NO2 > 0 ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO2)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_SpcNO2(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! NO
+    IF ( id_NO > 0 ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_SpcNO(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! HNO3
+    IF ( id_HNO3 > 0 ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_HNO3)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_SpcHNO3(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! POPG
+    IF ( id_POPG > 0 ) THEN
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_POPG)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
+                           ResetRegrName=.true. )
+      H_SpcPOPG(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+
+    ! DRY_TOTN
+    IF ( ExtState%DRY_TOTN%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Chm%DryDepNitrogen(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_DRY_TOTN(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+    IF ( ExtState%WET_TOTN%DoUse ) THEN
+      REGR_3DI(:,:,1) = State_Chm%WetDepNitrogen(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      H_WET_TOTN(:,:) = REGR_3DO(:,:,1)
+    ENDIF
+
+
+    ENDIF
+#endif
+
   END SUBROUTINE ExtState_UpdateFields
 !EOC
 !------------------------------------------------------------------------------
@@ -2304,7 +3292,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GridEdge_Set( State_Grid, State_Met, HcoState, RC )
+  SUBROUTINE GridEdge_Set( Input_Opt, State_Grid, State_Met, HcoState, RC )
 !
 ! !USES:
 !
@@ -2314,20 +3302,26 @@ CONTAINS
     USE HCO_GeoTools_Mod, ONLY : HCO_SetPBLm
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
+    USE Input_Opt_Mod,    ONLY : OptInput
+#if defined( MODEL_CLASSIC )
+    USE HCO_State_GC_Mod, ONLY : State_Grid_HCO    ! HEMCO intermediate grid
+    USE HCO_Utilities_GC_Mod, ONLY : Regrid_MDL2HCO
+#endif
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC          ! Success or failure?
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REMARKS:
 !  GridEdge_Set defines the HEMCO vertical grid used in GEOS-Chem "classic"
-!  simulations.  (GCHP uses its own interface to HEMCO.)
+!  and WRF-GC simulations.  (GCHP and HEMCO-CESM-GC uses their own interface to HEMCO.)
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
@@ -2363,27 +3357,94 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at GridEdge_Set (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at GridEdge_Set (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'
+               'HEMCO log file for additional error messages!'  
 
     !-----------------------------------------------------------------------
-    ! Allocate the PEDGE array, which holds level edge pressures [Pa]
-    ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
-    ! make PEDGE be a pointer and allocate/deallocate it on each call.
+    ! Allocate all arrays.
     !-----------------------------------------------------------------------
-    ALLOCATE( PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PEDGE', 0, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Edge and surface pressures [Pa]
-    PEDGE    =  State_Met%PEDGE * 100.0_hp  ! Convert hPa -> Pa
-    PSFC     => PEDGE(:,:,1)
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+      ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
+      ! make PEDGE be a pointer and allocate/deallocate it on each call.
+      ALLOCATE( PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PEDGE', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Point to other fields of State_Met
-    ZSFC     => State_Met%PHIS
-    BXHEIGHT => State_Met%BXHEIGHT
-    TK       => State_Met%T
+      ! Edge and surface pressures [Pa]
+      PEDGE    =  State_Met%PEDGE * 100.0_hp  ! Convert hPa -> Pa
+      PSFC     => PEDGE(:,:,1)
+
+      ! Point to other fields of State_Met
+      ZSFC     => State_Met%PHIS
+      BXHEIGHT => State_Met%BXHEIGHT
+      TK       => State_Met%T
+
+      ALLOCATE( PBLM( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+#if defined( MODEL_CLASSIC )
+    ELSE
+      ! If intermediate grid, allocate and manually regrid meteorological fields.
+      ALLOCATE( PEDGE( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:IMG_PEDGE', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ALLOCATE( ZSFC( State_Grid_HCO%NX, State_Grid_HCO%NY ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:IMG_PHIS', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ALLOCATE( BXHEIGHT( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:IMG_BXHEIGHT', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ALLOCATE( TK( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:IMG_TK', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ALLOCATE( PBLM( State_Grid_HCO%NX, State_Grid_HCO%NY ), STAT=RC )
+      CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:IMG_PBLM', 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Fill and respectively regrid to targets.
+      ! IO, SG, SGH, PtrIn, PtrOut, ZBND, ResetRegrName=.true.
+
+      ! Edge pressures [Pa] (hPa->Pa convert)
+      REGR_3DI(:,:,:) = State_Met%PEDGE * 100.0_hp
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid_HCO%NZ+1, &
+                           ResetRegrName=.true. )
+      PEDGE(:,:,:)    = REGR_3DO(:,:,:)
+
+      ! Surface pressure
+      PSFC            => PEDGE(:,:,1)
+
+      ! ZSFC
+      REGR_3DI(:,:,1) = State_Met%PHIS(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      ZSFC(:,:)       = REGR_3DO(:,:,1)
+
+      ! BXHEIGHT
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%BXHEIGHT(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid_HCO%NZ,   & ! 2D data
+                           ResetRegrName=.true. )
+      BXHEIGHT(:,:,1:State_Grid%NZ) = REGR_3DO(:,:,1:State_Grid%NZ)
+
+      ! TK
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%T(:,:,1:State_Grid%NZ)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=State_Grid_HCO%NZ,   & ! 2D data
+                           ResetRegrName=.true. )
+      TK(:,:,1:State_Grid%NZ)       = REGR_3DO(:,:,1:State_Grid%NZ)
+    ENDIF
+#endif
+    
 
     !-----------------------------------------------------------------------
     ! Calculate vertical grid properties
@@ -2401,19 +3462,29 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set PBL heights
     !-----------------------------------------------------------------------
-    ALLOCATE( PBLM( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PBLM', 0, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J )
-    DO J=1,State_Grid%NY
-    DO I=1,State_Grid%NX
-       PBLM(I,J) = State_Met%PBL_TOP_m(I,J)
-    ENDDO
-    ENDDO
+      DO J=1,State_Grid%NY
+      DO I=1,State_Grid%NX
+         PBLM(I,J) = State_Met%PBL_TOP_m(I,J)
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
+#if defined( MODEL_CLASSIC )
+    ELSE
+      ! Intermediate grid
+      ! PBLM
+      REGR_3DI(:,:,1) = State_Met%PBL_TOP_m(:,:)
+      CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
+                           REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
+                           ResetRegrName=.true. )
+      PBLM(:,:)       = REGR_3DO(:,:,1)
+    ENDIF
+#endif
 
     ! Use the met field PBL field to initialize HEMCO
     CALL HCO_SetPBLm( HcoState, FldName='PBL_HEIGHT', &
@@ -2434,24 +3505,63 @@ CONTAINS
     ! Deallocate and PEDGE
     IF ( ASSOCIATED( PEDGE ) ) THEN
        DEALLOCATE( PEDGE, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PEDGE', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PEDGE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! Deallocate PBLM
     IF ( ASSOCIATED( PBLM ) ) THEN
        DEALLOCATE( PBLM  )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PBLM', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    ! Free pointers
-    ZSFC     => NULL()
-    BXHEIGHT => NULL()
-    TK       => NULL()
-    PSFC     => NULL()
-    PEDGE    => NULL()
-    PBLM     => NULL()
+#if defined( MODEL_CLASSIC )
+    IF ( .not. Input_Opt%LIMGRID ) THEN
+#endif
+      ! Free pointers
+      ZSFC     => NULL()
+      BXHEIGHT => NULL()
+      TK       => NULL()
+      PSFC     => NULL()
+      PEDGE    => NULL()
+      PBLM     => NULL()
+#if defined( MODEL_CLASSIC )
+    ELSE
+      ! Deallocate arrays
+      IF ( ASSOCIATED( ZSFC ) ) THEN
+         DEALLOCATE( ZSFC  )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:ZSFC', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ASSOCIATED( BXHEIGHT ) ) THEN
+         DEALLOCATE( BXHEIGHT  )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:BXHEIGHT', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ASSOCIATED( TK ) ) THEN
+         DEALLOCATE( TK  )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:TK', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      PSFC     => NULL()
+
+      IF ( ASSOCIATED( PEDGE ) ) THEN
+         DEALLOCATE( PEDGE  )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PEDGE', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ASSOCIATED( PBLM ) ) THEN
+         DEALLOCATE( PBLM  )
+         CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+    ENDIF
+#endif
 
   END SUBROUTINE GridEdge_Set
 !EOC
@@ -3220,10 +4330,10 @@ CONTAINS
 
     ! Test for sunlight...
     IF ( State_Met%SUNCOS(I,J) > 0e+0_fp  .AND. &
-         SUMCOSZA(I,J)         > 0e+0_fp ) THEN
+         State_Met%SUNCOSsum(I,J) > 0e+0_fp ) THEN
 
        ! Impose a diurnal variation on OH during the day
-       FACT = ( State_Met%SUNCOS(I,J) / SUMCOSZA(I,J) ) &
+       FACT = ( State_Met%SUNCOS(I,J) / State_Met%SUNCOSsum(I,J) ) &
               * ( 86400e+0_fp / GET_TS_CHEM() )
 
     ELSE
@@ -3235,34 +4345,52 @@ CONTAINS
 
   END FUNCTION Get_SzaFact
 !EOC
+#if defined ( MODEL_CLASSIC )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: calc_sumcosza
+! !IROUTINE: get_met_fields
 !
-! !DESCRIPTION:
-!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
-!  angle over a 24 hour day, as well as the total length of daylight.
+! !DESCRIPTION: Subroutine GET\_MET\_FIELDS calls the various routines to get
+! met fields from HEMCO.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_SumCosZa( State_Grid )
+ SUBROUTINE Get_Met_Fields( Input_Opt, State_Chm, State_Grid, &
+                            State_Met, Phase, RC )
 !
-! !USES:
+! ! USES:
 !
-    USE PhysConstants
-    USE State_Grid_Mod, ONLY : GrdState
-    USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+   USE Calc_Met_Mod
+   USE ErrCode_Mod
+   USE FlexGrid_Read_Mod 
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
+   USE Input_Opt_Mod,        ONLY : OptInput
+   USE Pressure_Mod,         ONLY : Set_Floating_Pressures
+   USE State_Chm_Mod,        ONLY : ChmState
+   USE State_Grid_Mod,       ONLY : GrdState
+   USE State_Met_Mod,        ONLY : MetState
+   USE Time_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
+   TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
+   INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
+   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
+   INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+!
+! !REMARKS:
 !
 ! !REVISION HISTORY:
+!  07 Feb 2012 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3270,108 +4398,236 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER, SAVE :: SAVEDOY = -1
-    INTEGER       :: I, J, L, N, NT, NDYSTEP
-    REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
-    REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-    REAL(fp)      :: SUNTMP(State_Grid%NX,State_Grid%NY)
+   INTEGER              :: N_DYN              ! Dynamic timestep in seconds
+   INTEGER              :: D(2)               ! Variable for date and time
+   LOGICAL              :: FOUND              ! Found in restart file?
+   LOGICAL              :: Update_MR          ! Update species mixing ratio?
+   CHARACTER(LEN=255)   :: v_name             ! Variable name
 
-    !=======================================================================
-    ! CALC_SUMCOSZA begins here!
-    !=======================================================================
+   ! Pointers
+   REAL*4,  POINTER     :: Ptr2D(:,:)
+   REAL*4,  POINTER     :: Ptr3D(:,:,:)
 
-    !  Solar declination angle (low precision formula, good enough for us):
-    A0 = 0.006918
-    A1 = 0.399912
-    A2 = 0.006758
-    A3 = 0.002697
-    B1 = 0.070257
-    B2 = 0.000907
-    B3 = 0.000148
-    R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+   !=================================================================
+   !    *****  R E A D   M E T   F I E L D S    *****
+   !    *****  At the start of the GEOS-Chem simulation  *****
+   !=================================================================
 
-    DEC = A0 - A1*cos(  R) + B1*sin(  R) &
-             - A2*cos(2*R) + B2*sin(2*R) &
-             - A3*cos(3*R) + B3*sin(3*R)
+   ! Assume success
+   RC        = GC_SUCCESS
 
-    LHR0 = int(float( GET_NHMSb() )/10000.)
+   ! Initialize pointers
+   Ptr2D       => NULL()
+   Ptr3D       => NULL()
 
-    ! Only do the following at the start of a new day
-    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN
+   !----------------------------------
+   ! Read time-invariant data (Phase 0 only)
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      CALL FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
+   ENDIF
 
-       ! Zero arrays
-       SUMCOSZA(:,:) = 0e+0_fp
+   !----------------------------------
+   ! Read 1-hr time-averaged data
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_A1_TIME()
+   ELSE
+      D = GET_A1_TIME()
+   ENDIF
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() .and. &
+        .not. ITS_TIME_FOR_EXIT() ) THEN
+      CALL FlexGrid_Read_A1( D(1), D(2), Input_Opt, State_Grid, State_Met )
+   ENDIF
 
-       ! NDYSTEP is # of chemistry time steps in this day
-       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()
+   !----------------------------------
+   ! Read 3-hr time averaged data
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_A3_TIME()
+   ELSE
+      D = GET_A3_TIME()
+   ENDIF
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() .and. &
+        .not. ITS_TIME_FOR_EXIT() ) THEN
+      CALL FlexGrid_Read_A3( D(1), D(2), Input_Opt, State_Grid, State_Met )
+   ENDIF
 
-       ! NT is the elapsed time [s] since the beginning of the run
-       NT = GET_ELAPSED_SEC()
+   !----------------------------------
+   ! Read 3-hr instantanous data
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_I3_TIME()
+      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-       ! Loop forward through NDYSTEP "fake" timesteps for this day
-       DO N = 1, NDYSTEP
+      ! On first call, attempt to get instantaneous met fields for prior
+      ! timestep from the GEOS-Chem restart file. Otherwise, initialize
+      ! to met fields for this timestep.
 
-          ! Zero SUNTMP array
-          SUNTMP = 0e+0_fp
+      !-------------
+      ! TMPU
+      !-------------
 
-          ! Loop over surface grid boxes
-!!$OMP PARALLEL DO
-!!$OMP DEFAULT( SHARED )
-!!$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
+      ! Define variable name
+      v_name = 'TMPU1'
 
-             ! Grid box latitude center [radians]
-             YMID_R = State_Grid%YMid_R(I,J)
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
-             TIMLOC = real(LHR0) + real(NT)/3600.0 + &
-                      State_Grid%XMid(I,J) / 15.0
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%TMPU1 = Ptr3D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize TMPU1    from restart file'
+         ENDIF
+      ELSE
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'TMPU1    not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
 
-             DO WHILE (TIMLOC .lt. 0)
-                TIMLOC = TIMLOC + 24.0
-             ENDDO
+      ! Nullify pointer
+      Ptr3D => NULL()
 
-             DO WHILE (TIMLOC .gt. 24.0)
-                TIMLOC = TIMLOC - 24.0
-             ENDDO
+      !-------------
+      ! SPHU
+      !-------------
 
-             AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+      ! Define variable name
+      v_name = 'SPHU1'
 
-             !===========================================================
-             ! The cosine of the solar zenith angle (SZA) is given by:
-             !
-             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
-             !
-             ! where LAT = the latitude angle,
-             !       DEC = the solar declination angle,
-             !       AHR = the hour angle, all in radians.
-             !
-             ! If SUNCOS < 0, then the sun is below the horizon, and
-             ! therefore does not contribute to any solar heating.
-             !===========================================================
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
-             ! Compute Cos(SZA)
-             SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +          &
-                           cos(YMID_R) * cos(DEC) * cos(AHR)
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%SPHU1 = Ptr3D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize SPHU1    from restart file'
+         ENDIF
+      ELSE
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'SPHU1    not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
 
-             ! SUMCOSZA is the sum of SUNTMP at location (I,J)
-             ! Do not include negative values of SUNTMP
-             SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
-                             MAX(SUNTMP(I,J),0e+0_fp)
+      ! Nullify pointer
+      Ptr3D => NULL()
 
-          ENDDO
-          ENDDO
-!!$OMP END PARALLEL DO
+      !-------------
+      ! PS1_WET
+      !-------------
 
-          ! Increment elapsed time [sec]
-          NT = NT + GET_TS_CHEM()
-       ENDDO
+      ! Define variable name
+      v_name = 'PS1WET'
 
-       ! Set saved day of year to current day of year
-       SAVEDOY = GET_DAY_OF_YEAR()
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
-    ENDIF
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%PS1_WET = Ptr2D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize PS1_WET  from restart file'
+         ENDIF
+      ELSE
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'PS1_WET  not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
 
-  END SUBROUTINE Calc_SumCosZa
+      ! Nullify pointer
+      Ptr2D => NULL()
+
+      !-------------
+      ! PS1_DRY
+      !-------------
+
+      ! Define variable name
+      v_name = 'PS1DRY'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%PS1_DRY = Ptr2D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize PS1_DRY  from restart file'
+         ENDIF
+      ELSE
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'PS1_DRY  not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr2D => NULL()
+
+      !-------------
+      ! DELP_DRY
+      !-------------
+
+      ! Define variable name
+      v_name = 'DELPDRY'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%DELP_DRY = Ptr3D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize DELP_DRY from restart file'
+         ENDIF
+      ELSE
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
+      CALL AvgPole( State_Grid, State_Met%PS1_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Grid, State_Met%PS1_WET )
+
+      ! Initialize surface pressures prior to interpolation
+      ! to allow initialization of floating pressures
+      State_Met%PSC2_WET = State_Met%PS1_WET
+      State_Met%PSC2_DRY = State_Met%PS1_DRY
+      CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
+
+      ! Call AIRQNT to compute initial air mass quantities
+      ! Do not update initial tracer concentrations since not read
+      ! from restart file yet (ewl, 10/28/15)
+      CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                   RC, update_mixing_ratio=.FALSE. )
+
+   ENDIF
+
+   ! Read in I3 fields at t+3hours for this timestep
+   IF ( ITS_TIME_FOR_I3() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
+
+      D = GET_I3_TIME()
+      CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
+      
+      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+      CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Grid, State_Met%PS2_WET )
+
+   ENDIF
+
+ END SUBROUTINE Get_Met_Fields
 !EOC
+#endif
 END MODULE Hco_Interface_GC_Mod

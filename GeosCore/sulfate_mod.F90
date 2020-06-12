@@ -6878,8 +6878,8 @@ CONTAINS
 
        ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
        ! kg/m2/s.
-       CALL GetHcoValEmis( id_SALA, I, J, 1, FOUND, ALK1 )
-       CALL GetHcoValEmis( id_SALC, I, J, 1, FOUND, ALK2 )
+       CALL GetHcoValEmis( Input_Opt, State_Grid, id_SALA, I, J, 1, FOUND, ALK1 )
+       CALL GetHcoValEmis( Input_Opt, State_Grid, id_SALC, I, J, 1, FOUND, ALK2 )
 
        ! kg/m2/s --> kg. Weight by fraction of PBL
        ALK1 = MAX(ALK1,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS

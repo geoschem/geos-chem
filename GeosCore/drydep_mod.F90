@@ -869,22 +869,21 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : NTYPE
-    USE Drydep_Toolbox_Mod, ONLY : BioFit
+    USE CMN_SIZE_MOD,         ONLY : NTYPE
+    USE Drydep_Toolbox_Mod,   ONLY : BioFit
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : Species
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 #ifdef APM
-    USE APM_INIT_MOD,       ONLY : APMIDS
-    USE APM_INIT_MOD,       ONLY : RDRY, RSALT, RDST, DENDST
-    USE APM_DRIV_MOD,       ONLY : GFTOT3D, DENWET3D, MWSIZE3D
+    USE APM_INIT_MOD,         ONLY : APMIDS
+    USE APM_INIT_MOD,         ONLY : RDRY, RSALT, RDST, DENDST
+    USE APM_DRIV_MOD,         ONLY : GFTOT3D, DENWET3D, MWSIZE3D
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1143,13 +1142,13 @@ CONTAINS
 
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
-       CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'surf_iodide', HCO_Iodide, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
-       CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'surf_salinity', HCO_Salinity, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
