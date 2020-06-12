@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Thu Jun 11 19:07:11 2020
+! Time                 : Fri Jun 12 11:16:58 2020
 ! Working directory    : /n/home06/wdowns/GC/GCCcode/Code.12.9.0/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -69,7 +69,7 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------
