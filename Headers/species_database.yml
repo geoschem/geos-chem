@@ -2487,7 +2487,6 @@ MOPI:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 12.01
   WD_AerScavEff: 1.0
