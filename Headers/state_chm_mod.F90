@@ -62,57 +62,72 @@ MODULE State_Chm_Mod
   ! Derived types for passing modelId and MW of species to HetChem routines
   !=========================================================================
   TYPE, PUBLIC :: HetSpc
-     INTEGER  :: modelId
+     INTEGER  :: mId
      REAL(fp) :: MW_g
+     REAL(fp) :: K0
+     REAL(fp) :: CR
+     REAL(fp) :: TK
   END TYPE HetSpc
 
   TYPE, PUBLIC :: HetState
-     TYPE(HetSpc) :: BrNO3  
+     TYPE(HetSpc) :: BrNO3
+     TYPE(HetSpc) :: BrSALA
+     TYPE(HetSpc) :: BrSALC
+     TYPE(HetSpc) :: ClNO2
      TYPE(HetSpc) :: ClNO3
-     TYPE(HetSpc) :: GLYX   
-     TYPE(HetSpc) :: HBr    
-     TYPE(HetSpc) :: HCl 
-     TYPE(HetSpc) :: HI     
-     TYPE(HetSpc) :: HO2       
+     TYPE(HetSpc) :: GLYX
+     TYPE(HetSpc) :: H2O
+     TYPE(HetSpc) :: HBr
+     TYPE(HetSpc) :: HCl
+     TYPE(HetSpc) :: HI
+     TYPE(HetSpc) :: HO2
      TYPE(HetSpc) :: HOI
-     TYPE(HetSpc) :: HOBr      
-     TYPE(HetSpc) :: HOCl      
+     TYPE(HetSpc) :: HOBr
+     TYPE(HetSpc) :: HOCl
      TYPE(HetSpc) :: HONIT
-     TYPE(HetSpc) :: HMML      
-     TYPE(HetSpc) :: I2O2      
-     TYPE(HetSpc) :: I2O3   
+     TYPE(HetSpc) :: HMML
+     TYPE(HetSpc) :: HNO3
+     TYPE(HetSpc) :: I2O2
+     TYPE(HetSpc) :: I2O3
      TYPE(HetSpc) :: I2O4
-     TYPE(HetSpc) :: IEPOXA    
-     TYPE(HetSpc) :: IEPOXB 
+     TYPE(HetSpc) :: IEPOXA
+     TYPE(HetSpc) :: IEPOXB
      TYPE(HetSpc) :: IEPOXD
      TYPE(HetSpc) :: ICHE
      TYPE(HetSpc) :: IDN
-     TYPE(HetSpc) :: IHN1      
-     TYPE(HetSpc) :: IHN2   
+     TYPE(HetSpc) :: IHN1
+     TYPE(HetSpc) :: IHN2
      TYPE(HetSpc) :: IHN3
      TYPE(HetSpc) :: IHN4
-     TYPE(HetSpc) :: INPB   
+     TYPE(HetSpc) :: INPB
      TYPE(HetSpc) :: INPD
-     TYPE(HetSpc) :: IONITA    
-     TYPE(HetSpc) :: IONO      
-     TYPE(HetSpc) :: IONO2  
-     TYPE(HetSpc) :: ITHN      
-     TYPE(HetSpc) :: ITCN   
-     TYPE(HetSpc) :: LVOC   
-     TYPE(HetSpc) :: MCRHN  
+     TYPE(HetSpc) :: IONITA
+     TYPE(HetSpc) :: IONO
+     TYPE(HetSpc) :: IONO2
+     TYPE(HetSpc) :: ITHN
+     TYPE(HetSpc) :: ITCN
+     TYPE(HetSpc) :: LVOC
+     TYPE(HetSpc) :: MCRHN
      TYPE(HetSpc) :: MCRHNB
      TYPE(HetSpc) :: MGLY
-     TYPE(HetSpc) :: MONITA 
-     TYPE(HetSpc) :: MONITS    
-     TYPE(HetSpc) :: MONITU 
-     TYPE(HetSpc) :: MVKN      
-     TYPE(HetSpc) :: N2O5      
-     TYPE(HetSpc) :: NO2    
+     TYPE(HetSpc) :: MONITA
+     TYPE(HetSpc) :: MONITS
+     TYPE(HetSpc) :: MONITU
+     TYPE(HetSpc) :: MVKN
+     TYPE(HetSpc) :: N2O5
+     TYPE(HetSpc) :: NIT
+     TYPE(HetSpc) :: NITs
+     TYPE(HetSpc) :: NO2
      TYPE(HetSpc) :: NO3
-     TYPE(HetSpc) :: O3        
+     TYPE(HetSpc) :: O3
      TYPE(HetSpc) :: OH
      TYPE(HetSpc) :: PYAC
-     TYPE(HetSpc) :: R4N2      
+     TYPE(HetSpc) :: R4N2
+     TYPE(HetSpc) :: SALA
+     TYPE(HetSpc) :: SALACL
+     TYPE(HetSpc) :: SALC
+     TYPE(HetSpc) :: SALCCL
+     TYPE(HetSpc) :: SO4
   END TYPE HetState
 
   !=========================================================================
@@ -201,7 +216,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
      REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
      REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
-     
+
      !----------------------------------------------------------------------
      ! Fields for nitrogen deposition
      !----------------------------------------------------------------------
@@ -268,7 +283,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
                                                         ! HOBr removal by SO2
                                                         ! [unitless]
-     REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for 
+     REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for
                                                         ! HOCl removal by SO2
                                                         ! [unitless]
      !----------------------------------------------------------------------
@@ -309,7 +324,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Indices and MW's of species in heterogenous chemistry
      !----------------------------------------------------------------------
-     TYPE(HetState)             :: HetInfo
+     TYPE(HetState),    POINTER :: HetInfo
 
   END TYPE ChmState
 !
@@ -436,7 +451,7 @@ CONTAINS
     State_Chm%nProd             =  0
     State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
-    State_Chm%Map_Advect        => NULL()        
+    State_Chm%Map_Advect        => NULL()
     State_Chm%Map_Aero          => NULL()
     State_Chm%Map_DryAlt        => NULL()
     State_Chm%Map_DryDep        => NULL()
@@ -481,7 +496,7 @@ CONTAINS
     State_Chm%KHETI_SLA         => NULL()
     State_Chm%ACLArea           => NULL()
     State_Chm%ACLRadi           => NULL()
-   
+
     ! Isoprene SOA
     State_Chm%pHSav             => NULL()
     State_Chm%HplusSav          => NULL()
@@ -506,7 +521,7 @@ CONTAINS
     State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
-    State_Chm%fupdateHOCl       => NULL()    
+    State_Chm%fupdateHOCl       => NULL()
     State_Chm%DryDepSav         => NULL()
     State_Chm%TLSTT             => NULL()
 
@@ -567,7 +582,7 @@ CONTAINS
        ! Point to a private module copy of the species database
        ! which will be used by the Ind_ indexing function
        SpcDataLocal => State_Chm%SpcData
-       
+
     ENDIF
 
     !=======================================================================
@@ -1001,7 +1016,7 @@ CONTAINS
     ! the various fullchem simulations or the aerosol-only simulation
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       
+
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
@@ -1014,7 +1029,7 @@ CONTAINS
        State_Chm%AeroArea = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType         
+       DO N = 1, State_Chm%nAeroType
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
@@ -1574,14 +1589,14 @@ CONTAINS
        !------------------------------------------------------------------
        chmID = 'fupdateHOCl'
        ALLOCATE( State_Chm%fupdateHOCl( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 0, RC )    
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%fupdateHOCl = 0.0_fp
        CALL Register_ChmField( Input_Opt, chmID, State_Chm%fupdateHOCl,     &
                                State_Chm, RC                               )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 1, RC )    
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-      
+
 
 
        !------------------------------------------------------------------
@@ -2102,6 +2117,13 @@ CONTAINS
     !=======================================================================
     ! Deallocate and nullify pointer fields of State_Chm
     !=======================================================================
+    IF ( ASSOCIATED( State_Chm%HetInfo ) ) THEN
+       DEALLOCATE( State_Chm%HetInfo, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HetInfo', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HetInfo => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_Advect ) ) THEN
        DEALLOCATE( State_Chm%Map_Advect, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 2, RC )
@@ -4411,11 +4433,11 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC
 !
@@ -4428,379 +4450,822 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER :: N
+
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
 
     !=======================================================================
     ! Init_HetInfo begins here!
     !=======================================================================
-    RC = GC_SUCCESS
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Init_HetInfo (in module Headers/state_chm_mod.F90)'
+
+    ! Allocate the HetInfo object
+    ALLOCATE( State_Chm%HetInfo, STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%HetInfo', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     N = Ind_('BrNO3')
-    State_Chm%HetInfo%BrNO3%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%BrNO3%mId  = N
        State_Chm%HetInfo%BrNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%BrNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%BrNO3%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%BrNO3%MW_g = -999.0_fp
+       errMsg = &
+        'BrNO3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
-     
-    N = Ind_('ClNO3')
-    State_Chm%HetInfo%ClNO3%modelId = N
+
+    N = Ind_('BrSALA')
     IF ( N > 0 ) THEN
-       State_Chm%HetInfo%ClNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrSALA%mId  = N
+       State_Chm%HetInfo%BrSALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrSALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%BrSALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%BrSALA%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%ClNO3%MW_g = -999.0_fp
+       errMsg = &
+        'BrSALA is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('BrSALC')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%BrSALC%mId  = N
+       State_Chm%HetInfo%BrSALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrSALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%BrSALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%BrSALC%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'BrSALC is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('ClNO2')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ClNO2%mId  = N
+       State_Chm%HetInfo%ClNO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ClNO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%ClNO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%ClNO2%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'ClNO2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('ClNO3')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ClNO3%mId  = N
+       State_Chm%HetInfo%ClNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ClNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%ClNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%ClNO3%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'ClNO3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('GLYX')
-    State_Chm%HetInfo%GLYX%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%GLYX%mId  = N
        State_Chm%HetInfo%GLYX%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%GLYX%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%GLYX%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%GLYX%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%GLYX%MW_g = -999.0_fp
+       errMsg = &
+        'GLYX is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('H2O')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%H2O%mId  = N
+       State_Chm%HetInfo%H2O%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%H2O%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%H2O%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%H2O%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'H2O is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HBr')
-    State_Chm%HetInfo%HBr%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HBr%mId  = N
        State_Chm%HetInfo%HBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HBr%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HBr%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HBr%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HBr%MW_g = -999.0_fp
+       errMsg = &
+        'HBr is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HCl')
-    State_Chm%HetInfo%HCl%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HCl%mId  = N
        State_Chm%HetInfo%HCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HCl%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HCl%MW_g = -999.0_fp
+       errMsg = &
+        'HCl is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HI')
-    State_Chm%HetInfo%HI%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HI%mId  = N
        State_Chm%HetInfo%HI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HI%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HI%MW_g = -999.0_fp
+       errMsg = &
+        'HI is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('HNO3')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HNO3%mId  = N
+       State_Chm%HetInfo%HNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HNO3%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'HNO3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HO2')
-    State_Chm%HetInfo%HO2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HO2%mId  = N
        State_Chm%HetInfo%HO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HO2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HO2%MW_g = -999.0_fp
+       errMsg = &
+        'HO2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HOI')
-    State_Chm%HetInfo%HOI%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOI%mId  = N
        State_Chm%HetInfo%HOI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HOI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HOI%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HOI%MW_g = -999.0_fp
+       errMsg = &
+        'HOI is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HOBr')
-    State_Chm%HetInfo%HOBr%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOBr%mId  = N
        State_Chm%HetInfo%HOBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOBr%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HOBr%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HOBr%TK   = 298.15_fp
     ELSE
-       State_Chm%HetInfo%HOBr%MW_g = -999.0_fp
+       errMsg = &
+        'HOBr is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HOCl')
-    State_Chm%HetInfo%HOCl%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HOCl%mId  = N
        State_Chm%HetInfo%HOCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HOCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HOCl%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HOCl%MW_g = -999.0_fp
+       errMsg = &
+        'HOCl is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HONIT')
-    State_Chm%HetInfo%HONIT%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HONIT%mId  = N
        State_Chm%HetInfo%HONIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HONIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HONIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HONIT%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HONIT%MW_g = -999.0_fp
+       errMsg = &
+        'HONIT is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('HMML')
-    State_Chm%HetInfo%HMML%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%HMML%mId  = N
        State_Chm%HetInfo%HMML%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HMML%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%HMML%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%HMML%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%HMML%MW_g = -999.0_fp
+       errMsg = &
+        'HONIT is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('I2O2')
-    State_Chm%HetInfo%I2O2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O2%mId  = N
        State_Chm%HetInfo%I2O2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%I2O2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%I2O2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%I2O2%MW_g = -999.0_fp
+       errMsg = &
+        'I2O2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('I2O3')
-    State_Chm%HetInfo%I2O3%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O3%mId  = N
        State_Chm%HetInfo%I2O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%I2O3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%I2O3%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%I2O3%MW_g = -999.0_fp
+       errMsg = &
+        'I2O3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('I2O4')
-    State_Chm%HetInfo%I2O4%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%I2O4%mId  = N
        State_Chm%HetInfo%I2O4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%I2O4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%I2O4%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%I2O4%MW_g = -999.0_fp
+       errMsg = &
+        'I2O4 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IEPOXA')
-    State_Chm%HetInfo%IEPOXA%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXA%mId  = N
        State_Chm%HetInfo%IEPOXA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IEPOXA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IEPOXA%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IEPOXA%MW_g = -999.0_fp
+       errMsg = &
+        'IEPOXA is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IEPOXB')
-    State_Chm%HetInfo%IEPOXB%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXB%mId  = N
        State_Chm%HetInfo%IEPOXB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IEPOXB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IEPOXB%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IEPOXB%MW_g = -999.0_fp
+       errMsg = &
+        'IEPOXB is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IEPOXD')
-    State_Chm%HetInfo%IEPOXD%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IEPOXD%mId  = N
        State_Chm%HetInfo%IEPOXD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IEPOXD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IEPOXD%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IEPOXD%MW_g = -999.0_fp
+       errMsg = &
+        'IEPOXD is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('ICHE')
-    State_Chm%HetInfo%ICHE%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ICHE%mId  = N
        State_Chm%HetInfo%ICHE%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ICHE%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%ICHE%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%ICHE%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%ICHE%MW_g = -999.0_fp
+       errMsg = &
+        'ICHE is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IDN')
-    State_Chm%HetInfo%IDN%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IDN%mId  = N
        State_Chm%HetInfo%IDN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IDN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IDN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IDN%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IDN%MW_g = -999.0_fp
+       errMsg = &
+        'IDN is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IHN1')
-    State_Chm%HetInfo%IHN1%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN1%mId  = N
        State_Chm%HetInfo%IHN1%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN1%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IHN1%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IHN1%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IHN1%MW_g = -999.0_fp
+       errMsg = &
+        'IHN1 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IHN2')
-    State_Chm%HetInfo%IHN2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN2%mId  = N
        State_Chm%HetInfo%IHN2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IHN2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IHN2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IHN2%MW_g = -999.0_fp
+       errMsg = &
+        'IHN2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IHN3')
-    State_Chm%HetInfo%IHN3%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN3%mId  = N
        State_Chm%HetInfo%IHN3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IHN3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IHN3%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IHN3%MW_g = -999.0_fp
+       errMsg = &
+        'IHN3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IHN4')
-    State_Chm%HetInfo%IHN4%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IHN4%mId  = N
        State_Chm%HetInfo%IHN4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IHN4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IHN4%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IHN4%MW_g = -999.0_fp
+       errMsg = &
+        'IHN4 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('INPB')
-    State_Chm%HetInfo%INPB%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%INPB%mId  = N
        State_Chm%HetInfo%INPB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%INPB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%INPB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%INPB%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%INPB%MW_g = -999.0_fp
+       errMsg = &
+        'INPB is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('INPD')
-    State_Chm%HetInfo%INPD%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%INPD%mId  = N
        State_Chm%HetInfo%INPD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%INPD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%INPD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%INPD%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%INPD%MW_g = -999.0_fp
+       errMsg = &
+        'INPD is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IONITA')
-    State_Chm%HetInfo%IONITA%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONITA%mId  = N
        State_Chm%HetInfo%IONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IONITA%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IONITA%MW_g = -999.0_fp
+       errMsg = &
+        'IHN4 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IONO')
-    State_Chm%HetInfo%IONO%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONO%mId  = N
        State_Chm%HetInfo%IONO%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONO%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IONO%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IONO%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IONO%MW_g = -999.0_fp
+       errMsg = &
+        'IONO is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('IONO2')
-    State_Chm%HetInfo%IONO2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%IONO2%mId  = N
        State_Chm%HetInfo%IONO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%IONO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%IONO2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%IONO2%MW_g = -999.0_fp
+       errMsg = &
+        'IONO2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('ITCN')
-    State_Chm%HetInfo%ITCN%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ITCN%mId  = N
        State_Chm%HetInfo%ITCN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ITCN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%ITCN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%ITCN%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%ITCN%MW_g = -999.0_fp
+       errMsg = &
+        'ITCN is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('ITHN')
-    State_Chm%HetInfo%ITHN%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%ITHN%mId  = N
        State_Chm%HetInfo%ITHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ITHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%ITHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%ITHN%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%ITHN%MW_g = -999.0_fp
+       errMsg = &
+        'ITHN is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('LVOC')
-    State_Chm%HetInfo%LVOC%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%LVOC%mId  = N
        State_Chm%HetInfo%LVOC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%LVOC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%LVOC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%LVOC%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%LVOC%MW_g = -999.0_fp
+       errMsg = &
+        'LVOC is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MCRHN')
-    State_Chm%HetInfo%MCRHN%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MCRHN%mId  = N
        State_Chm%HetInfo%MCRHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MCRHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MCRHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MCRHN%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MCRHN%MW_g = -999.0_fp
+       errMsg = &
+        'MCRHN is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MCRHNB')
-    State_Chm%HetInfo%MCRHNB%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MCRHNB%mId  = N
        State_Chm%HetInfo%MCRHNB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MCRHNB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MCRHNB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MCRHNB%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MCRHNB%MW_g = -999.0_fp
+       errMsg = &
+        'MCRHNB is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MGLY')
-    State_Chm%HetInfo%MGLY%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MGLY%mId  = N
        State_Chm%HetInfo%MGLY%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MGLY%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MGLY%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MGLY%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MGLY%MW_g = -999.0_fp
+       errMsg = &
+        'MGLY is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MONITA')
-    State_Chm%HetInfo%MONITA%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MONITA%mId  = N
        State_Chm%HetInfo%MONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MONITA%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MONITA%MW_g = -999.0_fp
+       errMsg = &
+        'MONITA is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MONITS')
-    State_Chm%HetInfo%MONITS%modelId = N
     IF ( N > 0 ) THEN
-       State_Chm%HetInfo%MONITS%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITS%mId = N
+       State_Chm%HetInfo%MONITS%MW_g  = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITS%K0    = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MONITS%CR    = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MONITS%TK    = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MONITS%MW_g = -999.0_fp
+       errMsg = &
+        'MONITS is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MONITU')
-    State_Chm%HetInfo%MONITU%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MONITU%mId  = N
        State_Chm%HetInfo%MONITU%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITU%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MONITU%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MONITU%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MONITU%MW_g = -999.0_fp
+       errMsg = &
+        'MONITU is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('MVKN')
-    State_Chm%HetInfo%MVKN%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%MVKN%mId  = N
        State_Chm%HetInfo%MVKN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MVKN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%MVKN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%MVKN%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%MVKN%MW_g = -999.0_fp
+       errMsg = &
+        'MVKN is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('N2O5')
-    State_Chm%HetInfo%N2O5%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%N2O5%mId  = N
        State_Chm%HetInfo%N2O5%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%N2O5%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%N2O5%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%N2O5%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%N2O5%MW_g = -999.0_fp
+       errMsg = &
+        'N2O5 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('NIT')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NIT%mId  = N
+       State_Chm%HetInfo%NIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%NIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%NIT%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'NIT is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('NITS')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NITS%mId  = N
+       State_Chm%HetInfo%NITS%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NITS%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%NITS%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%NITS%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'NITS is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('NO2')
-    State_Chm%HetInfo%NO2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NO2%mId  = N
        State_Chm%HetInfo%NO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%NO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%NO2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%NO2%MW_g = -999.0_fp
+       errMsg = &
+        'NO2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('NO3')
-    State_Chm%HetInfo%NO3%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%NO3%mId  = N
        State_Chm%HetInfo%NO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%NO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%NO3%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%NO3%MW_g = -999.0_fp
+       errMsg = &
+        'NO3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('O3')
-    State_Chm%HetInfo%O3%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%O3%mId  = N
        State_Chm%HetInfo%O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%O3%K0   = 1.1e-2_fp
+       State_Chm%HetInfo%O3%CR   = 2300.0_fp
+       State_Chm%HetInfo%O3%TK   = 298.15_fp
     ELSE
-       State_Chm%HetInfo%O3%MW_g = -999.0_fp
+       errMsg = &
+        'O3 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('OH')
-    State_Chm%HetInfo%OH%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%OH%mId  = N
        State_Chm%HetInfo%OH%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%OH%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%OH%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%OH%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%OH%MW_g = -999.0_fp
+       errMsg = &
+        'OH is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('PYAC')
-    State_Chm%HetInfo%PYAC%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%PYAC%mId  = N
        State_Chm%HetInfo%PYAC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%PYAC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%PYAC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%PYAC%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%PYAC%MW_g = -999.0_fp
+       errMsg = &
+        'PYAC is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     N = Ind_('R4N2')
-    State_Chm%HetInfo%R4N2%modelId = N
     IF ( N > 0 ) THEN
+       State_Chm%HetInfo%R4N2%mId  = N
        State_Chm%HetInfo%R4N2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%R4N2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%R4N2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%R4N2%TK   = -999.0_fp
     ELSE
-       State_Chm%HetInfo%R4N2%MW_g = -999.0_fp
+       errMsg = &
+        'R4N2 is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('SALA')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%SALA%mId  = N
+       State_Chm%HetInfo%SALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%SALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%SALA%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'SALA is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('SALACL')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%SALACL%mId  = N
+       State_Chm%HetInfo%SALACL%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALACL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%SALACL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%SALACL%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'SALACL is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('SALC')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%SALC%mId  = N
+       State_Chm%HetInfo%SALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%SALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%SALC%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'SALC is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('SALCCL')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%SALCCL%mId  = N
+       State_Chm%HetInfo%SALCCL%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALCCL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%SALCCL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%SALCCL%TK   = -999.0_fp
+    ELSE
+       errMsg = &
+        'SALCCL is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE Init_HetInfo
