@@ -744,26 +744,38 @@ MODULE GCKPP_HETRATES
                              VIce, VAir, TempK, CLDFr, pHCloud, brConc_Cldg, clConc_Cldg)
 
       brConc_Cld = brConc_Cldg
-      brConc_Cldg = brConc_Cld * spcVec(Ind_('HBr')) / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))     
-      brConc_CldA = brConc_Cld * spcVec(Ind_('BrSALA'))*0.7e+0_fp / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
-      brConc_CldC = brConc_Cld * spcVec(Ind_('BrSALC')) / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
-      brConc_Cldg = MAX(brConc_Cldg, 1.0e-20_fp)
-      brConc_CldA = MAX(brConc_CldA, 1.0e-20_fp)
-      brConc_CldC = MAX(brConc_CldC, 1.0e-20_fp)
+      IF ((spcvec(ind_('HBr'))<=0).and.(spcvec(ind_('BrSALA'))<=0).and.(spcvec(ind_('BrSALC'))<=0)) THEN
+         brConc_Cldg = 1.0e-20_fp
+         brConc_CldA = 1.0e-20_fp
+         brConc_CldC = 1.0e-20_fp
+      ELSE
+         brConc_Cldg = brConc_Cld * spcVec(Ind_('HBr')) / &
+              (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))     
+         brConc_CldA = brConc_Cld * spcVec(Ind_('BrSALA'))*0.7e+0_fp / &
+              (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
+         brConc_CldC = brConc_Cld * spcVec(Ind_('BrSALC')) / &
+              (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
+         brConc_Cldg = MAX(brConc_Cldg, 1.0e-20_fp)
+         brConc_CldA = MAX(brConc_CldA, 1.0e-20_fp)
+         brConc_CldC = MAX(brConc_CldC, 1.0e-20_fp)
+      ENDIF
 
       clConc_Cld = clConc_Cldg   
-      clConc_Cldg = clConc_Cld * spcVec(Ind_('HCl')) / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))   
-      clConc_CldA = clConc_Cld * spcVec(Ind_('SALACL'))*0.7e+0_fp / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
-      clConc_Cldc = clConc_Cld * spcVec(Ind_('SALCCL')) / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
-      clConc_Cldg = MAX(clConc_Cldg, 1.0e-20_fp)
-      clConc_CldA = MAX(clConc_CldA, 1.0e-20_fp)
-      clConc_CldC = MAX(clConc_CldC, 1.0e-20_fp)
+      IF ((spcvec(ind_('HCl'))<=0).and.(spcvec(ind_('SALACL'))<=0).and.(spcvec(ind_('SALCCL'))<=0)) THEN
+         clConc_Cldg = 1.0e-20_fp
+         clConc_CldA = 1.0e-20_fp
+         clConc_CldC = 1.0e-20_fp
+      ELSE
+         clConc_Cldg = clConc_Cld * spcVec(Ind_('HCl')) / &
+              (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))   
+         clConc_CldA = clConc_Cld * spcVec(Ind_('SALACL'))*0.7e+0_fp / &
+              (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
+         clConc_Cldc = clConc_Cld * spcVec(Ind_('SALCCL')) / &
+              (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
+         clConc_Cldg = MAX(clConc_Cldg, 1.0e-20_fp)
+         clConc_CldA = MAX(clConc_CldA, 1.0e-20_fp)
+         clConc_CldC = MAX(clConc_CldC, 1.0e-20_fp)
+      ENDIF
 
       ! Get halide concentrations, in aerosol
       ! Note that here Br/ClSALA = Br/Cl- in (SALA + sulfate)
@@ -6058,7 +6070,7 @@ MODULE GCKPP_HETRATES
                               hso3Conc, so3Conc, hConc_LCl, GAM_HOBr, r_gp)
           X1 = GAM_HOBr 
           r1 = r_gp * r_ac 
-
+          
           CALL Gamma_HOBr_ICE(Y, TK, hno3_th, hcl_th, hbr_th, GAM_HOBr, r_gp)
           X2 = GAM_HOBr
           IF ( (X >= 5) .AND. (X<=6) ) THEN
@@ -6329,7 +6341,9 @@ MODULE GCKPP_HETRATES
 
      GAM_HOBr = g1 + g2
 
-     IF ( X==1 ) THEN
+     IF ( GAM_HOBr == 0) THEN
+        r_gp=0.0_fp
+     ELSEIF ( X==1 ) THEN
          r_gp = g1 / GAM_HOBr
      ELSEIF ( X==2 ) THEN
          r_gp = g2 / GAM_HOBr
