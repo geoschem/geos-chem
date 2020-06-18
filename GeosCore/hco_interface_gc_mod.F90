@@ -50,6 +50,8 @@ MODULE HCO_Interface_GC_Mod
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
   PUBLIC  :: HCOI_GC_WriteDiagn
+
+  PUBLIC  :: Compute_Sflx_For_Vdiff
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -94,11 +96,11 @@ MODULE HCO_Interface_GC_Mod
 
   ! Internal met fields (will be used by some extensions)
   INTEGER,  TARGET    :: HCO_PBL_MAX                      ! level
-  REAL(hp), POINTER, PUBLIC   :: HCO_SZAFACT(:,:)
+  REAL(hp), POINTER   :: HCO_SZAFACT(:,:)
 
   ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), POINTER, PUBLIC   :: JNO2(:,:)
-  REAL(hp), POINTER, PUBLIC   :: JOH(:,:)
+  REAL(hp), POINTER   :: JNO2(:,:)
+  REAL(hp), POINTER   :: JOH(:,:)
 
 #if defined( MODEL_CLASSIC )
 
@@ -225,8 +227,7 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     ! HEMCO Intermediate Grid specification
     USE HCO_State_GC_Mod,   ONLY : State_Grid_HCO
-    USE GC_Grid_Mod,        ONLY : Compute_Grid
-    USE State_Grid_Mod,     ONLY : Allocate_State_Grid
+    USE GC_Grid_Mod,        ONLY : Compute_Scaled_Grid
 #endif
 
 !
@@ -302,63 +303,30 @@ CONTAINS
     ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
     ! equal to State_Grid%DY, State_Grid%DX (e.g. 2x2.5, 4x5, ...)
     !
-    ! TODO: Read in the grid parameters via input.geos. For now, hardcode the DY and DX
-    ! as 1.0x1.0 degree.
-    ! State_Grid_HCO%DY = 1.0_fp
-    ! State_Grid_HCO%DX = 1.0_fp
+    ! TODO: Read in the grid parameters via input.geos. For now, hardcode the scale factor.
+    Input_Opt%IMGRID_XSCALE = 1
+    Input_Opt%IMGRID_YSCALE = 1
 
     ! To test GC-Classic WITHOUT intermediate grid
-    State_Grid_HCO%DY = State_Grid%DY
-    State_Grid_HCO%DX = State_Grid%DX
+    ! Input_Opt%IMGRID_SCALE = 1
 
     ! Are we using HEMCO intermediate grid implementation?
     ! Note: The mere presence of State_Grid_HCO does not mean
     ! that the intermediate grid is necessarily different. 
     ! The code path is decided if the intermediate is actually a different grid.
-    IF ( State_Grid_HCO%DX .ne. State_Grid%DX .or. &
-         State_Grid_HCO%DY .ne. State_Grid%DY ) THEN
+    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN 
+      ! Force .or. .true. to waste CPU cycles in regridding and debug Map_A2A above
       Input_Opt%LIMGRID = .true.
 
-      write(State_Grid_HCO%GridRes, '(f10.4,a,f10.4)') State_Grid_HCO%DX, "x", State_Grid_HCO%DY
-    
       ! In intermediate grid implementation
-      ! Compute the grid parameters exactly like GEOS-Chem model grid. Copy params over.
-      State_Grid_HCO%HalfPolar  = State_Grid%HalfPolar
-      State_Grid_HCO%NestedGrid = State_Grid%NestedGrid
-      State_Grid_HCO%XMin = State_Grid%XMin
-      State_Grid_HCO%XMax = State_Grid%XMax
-
-      ! Compute the new NX
-      State_Grid_HCO%NX   = FLOOR((State_Grid_HCO%XMax - State_Grid_HCO%XMin) / State_Grid_HCO%DX)
-      IF( State_Grid_HCO%NestedGrid ) THEN
-         State_Grid_HCO%NX = State_Grid_HCO%NX + 1
-         State_Grid_HCO%HalfPolar = .false.
-      ENDIF
-
-      State_Grid_HCO%YMin = State_Grid%YMin
-      State_Grid_HCO%YMax = State_Grid%YMax
-
-      ! Compute the new NY
-      State_Grid_HCO%NY   = FLOOR((State_Grid_HCO%YMax - State_Grid_HCO%YMin) / State_Grid_HCO%DY) + 1
-
-      ! The intermediate grid has the same vertical discretization as the model grid.
-      State_Grid_HCO%NZ   = State_Grid%NZ
-
-      ! Allocate State_Grid_HCO arrays
-      CALL Allocate_State_Grid( Input_Opt, State_Grid_HCO, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-      ENDIF
-
-      ! Reuse GC_Grid_Mod to compute the grid information
-      ! This will output the grid information too.
       WRITE(6, *) "HEMCO INTERMEDIATE GRID:"
-      CALL Compute_Grid ( Input_Opt, State_Grid_HCO, RC )
+      CALL Compute_Scaled_Grid ( Input_Opt, State_Grid, State_Grid_HCO, Input_Opt%IMGRID_XSCALE, Input_Opt%IMGRID_YSCALE, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Compute_Grid"!'
+         ErrMsg = 'Error encountered in "Compute_Scaled_Grid"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
       ENDIF
+
+      write(State_Grid_HCO%GridRes, '(f10.4,a,f10.4)') State_Grid_HCO%DX, "x", State_Grid_HCO%DY
 
       ! Initialize module temporaries for regridding
       ALLOCATE( REGR_3DI( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
@@ -1526,7 +1494,6 @@ CONTAINS
       JMh  = State_Grid_HCO%NY
     ENDIF
 
-    
     !-----------------------------------------------------------------------
     ! Notes for HEMCO Intermediate Grid:
     ! Due to the extensions requiring met fields and some of them are derived
@@ -4634,4 +4601,541 @@ CONTAINS
  END SUBROUTINE Get_Met_Fields
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_Compute_Sflx_for_Vdiff
+!
+! !DESCRIPTION: Computes the surface flux (\= emissions - drydep) for the
+!  non-local PBL mixing.  This code was removed from within the non-local
+!  PBL mixing driver routine VDIFFDR.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Sflx_for_Vdiff( Input_Opt,  State_Chm, State_Diag,      &
+                                     State_Grid, State_Met, RC              )
+!
+! ! USES:
+!
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_HgP_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
+    USE ErrCode_Mod
+    USE Get_Ndep_Mod,         ONLY : Soil_Drydep
+    USE Global_CH4_Mod,       ONLY : CH4_Emis
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
+    USE HCO_EmisList_Mod,     ONLY : HCO_GetPtr
+    USE HCO_State_GC_Mod,     ONLY : ExtState
+    USE HCO_State_GC_Mod,     ONLY : HcoState   
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE Mercury_Mod,          ONLY : HG_Emis
+    USE PhysConstants
+    USE Species_Mod,          ONLY : Species
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE Time_Mod,             ONLY : Get_Ts_Conv
+    USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State
+    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostics State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  The loop order of this routine was changed from I,J,N to N,I,J. This allows
+!  us to keep one species in memory at a time, to avoid regridding over and over
+!  again when the HEMCO grid is not the same as the model grid.
+!  The on-demand regridder caches the LAST SPECIES information, so the outermost
+!  loop should be based on the species ID.
+!
+! !REVISION HISTORY:
+!  18 May 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! SAVEd scalars
+    LOGICAL, SAVE           :: first    = .TRUE.
+    INTEGER, SAVE           :: id_O3    = -1
+    INTEGER, SAVE           :: id_HNO3  = -1
+
+    ! Scalars
+    LOGICAL                 :: found,   zeroHg0Dep
+    INTEGER                 :: I,       J
+    INTEGER                 :: L,       NA
+    INTEGER                 :: ND,      N
+    INTEGER                 :: Hg_Cat,  topMix
+    INTEGER                 :: S
+    REAL(fp)                :: dep,     emis
+    REAL(fp)                :: MW_kg,   fracNoHg0Dep
+    REAL(fp)                :: tmpFlx
+
+    ! Strings
+    CHARACTER(LEN=63)       :: origUnit
+    CHARACTER(LEN=255)      :: errMsg,  thisLoc
+
+    ! Arrays
+    REAL(fp), TARGET        :: eflx(State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Chm%nAdvect                       )
+
+    ! Pointers and Objects
+    REAL(fp),       POINTER :: spc(:,:,:)
+    REAL(f4), SAVE, POINTER :: PNOxLoss_O3  (:,:) => NULL()
+    REAL(f4), SAVE, POINTER :: PNoxLoss_HNO3(:,:) => NULL()
+    TYPE(Species),  POINTER :: ThisSpc
+
+    !=======================================================================
+    ! Compute_Sflx_For_Vdiff begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      =  GC_SUCCESS
+    dflx    =  0.0_fp
+    eflx    =  0.0_fp
+    spc     => State_Chm%Species(:,:,1,1:State_Chm%nAdvect)
+    ThisSpc => NULL()
+    errMsg  = ''
+    thisLoc = &
+    ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
+
+    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
+    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+       State_Diag%DryDepMix = 0.0_f4
+    ENDIF
+
+    !=======================================================================
+    ! Convert units to v/v dry
+    !=======================================================================
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
+                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! First-time setup: Get pointers to the PARANOX loss fluxes.
+    ! These are stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist.
+    !=======================================================================
+    IF ( FIRST ) THEN
+
+       ! Get species IDs
+       id_O3   = Ind_('O3'  )
+       id_HNO3 = Ind_('HNO3')
+
+#if !defined( MODEL_CESM )
+       IF ( id_O3 > 0 ) THEN
+          CALL GetHcoDiagn(                                                  &
+               HcoState       = HcoState,                                    &
+               ExtState       = ExtState,                                    &
+               DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                &
+               StopIfNotFound = .FALSE.,                                     &
+               Ptr2D          = PNOxLoss_O3,                                 &
+               RC             = RC                                          )
+       ENDIF
+
+       IF ( id_HNO3 > 0 ) THEN
+          CALL GetHcoDiagn(                                                  &
+               HcoState       = HcoState,                                    &
+               ExtState       = ExtState,                                    &
+               DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',              &
+               StopIfNotFound = .FALSE.,                                     &
+               Ptr2D          = PNOxLoss_HNO3,                               &
+               RC             = RC                                          )
+       ENDIF
+#endif
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+    ENDIF
+
+    !=======================================================================
+    ! Add emissions & deposition values calculated in HEMCO.
+    ! Here we only consider emissions below the PBL top.
+    !
+    ! The loop has been separated to go over N, J, I in order to optimize
+    ! for retrieving regridded data from HEMCO. There is only one regrid
+    ! buffer per field (emis/dep, N) so these must not be intertwined,
+    ! or there will be a large performance penalty.
+    !=======================================================================
+
+    ! Advected species loop
+    DO NA = 1, State_Chm%nAdvect
+
+      ! Get the modelId
+      N = State_Chm%Map_Advect(NA)
+
+      ! Point to the corresponding entry in the species database
+      ThisSpc => State_Chm%SpcData(N)%Info
+
+      !$OMP PARALLEL DO                                                        &
+      !$OMP DEFAULT( SHARED )                                                  &
+      !$OMP PRIVATE( I,       J,            topMix                            )&
+      !$OMP PRIVATE( tmpflx,  found,        emis,      dep                    )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+      ! Below emissions. Do not apply for MODEL_CESM as its handled by
+      ! HEMCO-CESM independently
+#if !defined( MODEL_CESM )
+        ! PBL top level [integral model levels]
+        topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
+
+        !------------------------------------------------------------------
+        ! Add total emissions in the PBL to the EFLX array
+        ! which tracks emission fluxes.  Units are [kg/m2/s].
+        !------------------------------------------------------------------
+        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+
+           ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
+           ! We use CH4_EMIS here instead of the HEMCO internal emissions
+           ! only to make sure that total CH4 emissions are properly defined
+           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
+           ! and/or all other source types, we could use the HEMCO internal
+           ! values set above and would not need the code below.
+           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
+           !
+           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           eflx(I,J,NA) = CH4_EMIS(I,J,NA)
+
+        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+           ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
+           ! This is a workaround to ensure backwards compatibility.
+           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
+           !
+           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           eflx(I,J,NA) = HG_EMIS(I,J,NA)
+
+        ELSE
+
+           ! Compute emissions for all other simulation
+           tmpFlx = 0.0_fp
+           DO L = 1, topMix
+              CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
+              IF ( .NOT. found ) EXIT
+              tmpFlx = tmpFlx + emis
+           ENDDO
+           eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
+
+        ENDIF
+#endif
+
+        !------------------------------------------------------------------
+        ! Also add drydep frequencies calculated by HEMCO (e.g. from the
+        ! air-sea exchange module) to DFLX.  These values are stored
+        ! in 1/s.  They are added in the same manner as the DEPSAV values
+        ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
+        ! (ckeller, 04/01/2014)
+        !------------------------------------------------------------------
+        CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
+        IF ( found ) THEN
+           dflx(I,J,NA) = dflx(I,J,NA)                                     &
+                        + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
+        ENDIF
+      ENDDO ! I
+      ENDDO ! J
+      !$OMP END PARALLEL DO
+
+      ! Free pointers
+      ThisSpc => NULL()
+    ENDDO   ! NA
+
+    !=======================================================================
+    ! Add emissions & deposition values calculated in HEMCO.
+    ! Here we only consider emissions below the PBL top.
+    !
+    ! For the full-chemistry simulations, emissions above the PBL
+    ! top will be applied in routine SETEMIS, which occurs just
+    ! before the SMVGEAR/KPP solvers are invoked.
+    !
+    ! For the specialty simulations, emissions above the PBL top
+    ! will be applied in the chemistry routines for each
+    ! specialty simulation.
+    !
+    ! For more information, please see this wiki page:
+    ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+    !========================================================================
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED )                                                  &
+    !$OMP PRIVATE( I,       J,            N                                 )&
+    !$OMP PRIVATE( thisSpc, dep                                             )&
+    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep, Hg_cat                )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       !=====================================================================
+       ! Apply dry deposition frequencies
+       ! These are the frequencies calculated in drydep_mod.F90
+       ! The HEMCO drydep frequencies (from air-sea exchange and
+       ! PARANOX) were already added above.
+       !
+       ! NOTES:
+       ! (1) Loops over only the drydep species
+       ! (2) If drydep is turned off, nDryDep=0 and the loop won't execute
+       ! (3) Tagged species are included in this loop. via species database
+       !=====================================================================
+       DO ND = 1, State_Chm%nDryDep
+
+          ! Get the species ID from the drydep ID
+          N = State_Chm%Map_DryDep(ND)
+
+          IF ( N <= 0 ) CYCLE
+
+          ! Point to the corresponding Species Database entry
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! only use the lowest model layer for calculating drydep fluxes
+          ! given that spc is in v/v
+          dflx(I,J,N) = dflx(I,J,N) &
+                      + State_Chm%DryDepFreq(I,J,ND) * spc(I,J,N)             &
+                      /  ( AIRMW                    / ThisSpc%MW_g        )
+
+
+          IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
+
+             ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
+             ! so disable deposition over water here.
+             ! Turn off Hg(0) deposition to snow and ice because we haven't yet
+             ! included emission from these surfaces and most field studies
+             ! suggest Hg(0) emissions exceed deposition during sunlit hours.
+             fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
+                                 State_Met%FRSNO(I,J)   + &
+                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+             zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
+
+             IF ( zeroHg0Dep ) THEN
+                dflx(I,J,N) = dflx(I,J,N) * MAX( 1.0_fp-fracNoHg0Dep, 0.0_fp )
+             ENDIF
+          ENDIF
+
+          ! Free species database pointer
+          ThisSpc => NULL()
+       ENDDO
+
+       !=====================================================================
+       ! Convert DFLX from 1/s to kg/m2/s
+       !
+       ! If applicable, add PARANOX loss to this term. The PARANOX
+       ! loss term is already in kg/m2/s. PARANOX loss (deposition) is
+       ! calculated for O3 and HNO3 by the PARANOX module, and data is
+       ! exchanged via the HEMCO diagnostics.  The data pointers PNOXLOSS_O3
+       ! and PNOXLOSS_HNO3 have been linked to these diagnostics at the
+       ! beginning of this routine (ckeller, 4/10/15).
+       !=====================================================================
+       dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1)                        &
+                                 / State_Grid%Area_M2(I,J)
+
+       IF ( ASSOCIATED( PNOxLoss_O3 ) .AND. id_O3 > 0 ) THEN
+          dflx(I,J,id_O3) = dflx(I,J,id_O3) + PNOxLoss_O3(I,J)
+       ENDIF
+
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. id_HNO3 > 0 ) THEN
+          dflx(I,J,id_HNO3) = dflx(I,J,id_HNO3) + PNOxLOss_HNO3(I,J)
+       ENDIF
+
+       !=====================================================================
+       ! Surface flux (SFLX) = emissions (EFLX) - dry deposition (DFLX)
+       !
+       ! SFLX is what we need to pass into routine VDIFF
+       !=====================================================================
+       State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
+
+       !=====================================================================
+       ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
+       !=====================================================================
+       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+          ! Loop over only the drydep species
+          ! If drydep is turned off, nDryDep=0 and the loop won't execute
+          DO ND = 1, State_Chm%nDryDep
+
+             ! Get the species ID from the drydep ID
+             N = State_Chm%Map_DryDep(ND)
+
+             ! Point to the Species Database entry for tracer N
+             ThisSpc => State_Chm%SpcData(N)%Info
+
+             ! Deposition mass, kg
+             dep = dflx(I,J,N) * State_Grid%Area_M2(I,J) * GET_TS_CONV()
+
+             IF ( ThisSpc%Is_Hg2 ) THEN
+
+                ! Get the category number for this Hg2 tracer
+                Hg_Cat = ThisSpc%Hg_Cat
+
+                ! Archive dry-deposited Hg2
+                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, dep                    )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                                       State_Met, State_Chm, State_Diag     )
+
+             ELSE IF ( ThisSpc%Is_HgP ) THEN
+
+                ! Get the category number for this HgP tracer
+                Hg_Cat = ThisSpc%Hg_Cat
+
+                ! Archive dry-deposited HgP
+                CALL ADD_HgP_DD      ( I, J, Hg_Cat, dep                    )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                                       State_Met, State_Chm, State_Diag     )
+
+             ENDIF
+
+             ! Free pointer
+             ThisSpc => NULL()
+          ENDDO
+       ENDIF
+
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    !### Uncomment for debug output
+    !WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
+    !DO NA = 1, State_Chm%nAdvect
+    !   WRITE(6,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
+    !   WRITE(6,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
+    !   WRITE(6,*) 'sflx TRACER ', NA, ': ', SUM(State_Chm%SurfaceFlux(:,:,NA))
+    !ENDDO
+
+    !=======================================================================
+    ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
+    !
+    ! NOTE: Dry deposition of "tagged" species (e.g. in tagO3, tagCO, tagHg
+    ! specialty simulations) are accounted for in species 1..nDrydep,
+    ! so we don't need to do any further special handling.
+    !=======================================================================
+    IF ( Input_Opt%LGTMM              .or. Input_Opt%LSOILNOX          .or.  &
+         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+
+       ! Loop over only the drydep species
+       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
+       DO ND = 1, State_Chm%nDryDep
+
+          ! Get the species ID from the drydep ID
+          N = State_Chm%Map_DryDep(ND)
+
+          ! Skip if not a valid species
+          IF ( N <= 0 ) CYCLE
+
+          ! Point to the Species Database entry for this tracer
+          ! NOTE: Assumes a 1:1 tracer index to species index mapping
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! Get the molecular weight of the species in kg
+          MW_kg = ThisSpc%MW_g * 1.e-3_fp
+
+          !-----------------------------------------------------------------
+          ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
+          !
+          ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
+          !
+          ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
+          ! (2) multiplying by ( AVO / MW_KG )    => molec/cm2/s
+          !
+          ! The term AVO/MW_kg = (molec/mol) / (kg/mol) = molec/kg
+          !
+          ! NOTE: we don't need to multiply by the ratio of TS_CONV /
+          ! TS_CHEM, as the updating frequency for HISTORY is determined
+          ! by the "frequency" setting in the "HISTORY.rc"input file.
+          ! The old bpch diagnostics archived the drydep due to chemistry
+          ! every chemistry timestep = 2X the dynamic timestep.  So in
+          ! order to avoid double-counting the drydep flux from mixing,
+          ! you had to multiply by TS_CONV / TS_CHEM.
+          !
+          ! ALSO NOTE: When comparing History output to bpch output,
+          ! you must use an updating frequency equal to the dynamic
+          ! timestep so that the drydep fluxes due to mixing will
+          ! be equivalent w/ the bpch output.  It is also recommended to
+          ! turn off chemistry so as to be able to compare the drydep
+          ! fluxes due to mixing in bpch vs. History as an "apples-to-
+          ! apples" comparison.
+          !
+          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+          !-----------------------------------------------------------------
+          IF ( State_Diag%Archive_DryDepMix   .or.                           &
+               State_Diag%Archive_DryDep    ) THEN
+             S = State_Diag%Map_DryDepMix%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepMix(:,:,S) = Dflx(:,:,N)                    &
+                                            * 1.0e-4_fp                      &
+                                            * ( AVO / MW_kg  )
+             ENDIF
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! If Soil NOx is turned on, then call SOIL_DRYDEP to
+          ! archive dry deposition fluxes for nitrogen species
+          ! (SOIL_DRYDEP will exit if it can't find a match.
+          !-----------------------------------------------------------------
+          IF ( Input_Opt%LSOILNOX ) THEN
+             tmpFlx = 0.0_fp
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+                tmpFlx = dflx(I,J,N)                                         &
+                       / MW_kg                                               &
+                       * AVO           * 1.e-4_fp                            &
+                       * GET_TS_CONV() / GET_TS_EMIS()
+
+                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
+             ENDDO
+             ENDDO
+          ENDIF
+
+          ! Free species database pointer
+          ThisSpc => NULL()
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    !=======================================================================
+    ! Unit conversion #2: Convert back to the original units
+    !=======================================================================
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
+                            State_Met, OrigUnit,  RC                        )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Compute_Sflx_For_Vdiff
+!EOC
 END MODULE Hco_Interface_GC_Mod

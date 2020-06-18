@@ -207,7 +207,7 @@ CONTAINS
     USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
     USE HCO_Interface_Common, ONLY : GetHcoDiagn
     USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE Species_Mod,          ONLY : Species
@@ -411,13 +411,29 @@ CONTAINS
     !=======================================================================
     ! Do for every advected species and grid box
     !=======================================================================
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED                                                 ) &
-    !$OMP PRIVATE( I,        J,            L,          L1,       L2       ) &
-    !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId ) &
-    !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2  ) &
-    !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP ) &
-    !$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA       ) &
+    ! Note: For GEOS-Chem Classic HEMCO "Intermediate Grid" feature,
+    ! where HEMCO is running on a distinct grid from the model, the
+    ! on-demand regridding is most optimized when contiguous accesses
+    ! to GetHcoValEmis and GetHcoValDep are performed for the given species.
+    ! Therefore, it is most optimal to call in the following fashion (IJKN)
+    !    Emis(1,1,1,1) -> Emis(1,1,2,1) -> ... -> Dep(1,1,1,1) -> Dep(1,1,2,1)
+    ! By switching emis/dep or the species # LAST, as either of these changing
+    ! WILL trigger a new regrid and thrashing of the old buffer.
+    !
+    ! Therefore, the loop below has been adjusted to two grid loops to
+    ! balance memory and performance:
+    !  By NA = 1, nAdvect
+    !     By I, J ... for emissions ...
+    !     By I, J ... for dry dep and everything else ...
+    ! (hplin, 6/13/20)
+
+    !$OMP PARALLEL DO                                                           &
+    !$OMP DEFAULT( SHARED                                                     ) &
+    !$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
+    !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
+    !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
+    !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
+    !$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           )
     !$OMP PRIVATE( S,        ErrorMsg                                     )
     DO NA = 1, nAdvect
 
@@ -449,7 +465,7 @@ CONTAINS
           ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
-             CALL GetHcoValDep ( Input_Opt, State_Grid, N, 1, 1, 1, DryDepSpec, TMP )
+             CALL InquireHco ( N, Dep=DryDepSpec )
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
@@ -463,12 +479,7 @@ CONTAINS
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
-          ! FIXME hplin: This is rather inefficient in the HEMCO intermediate grid
-          ! implementation, as it will trigger a on-demand regrid while
-          ! this is just an INQUIRY to whether this EmisSpec exists.
-          ! It should be optimized into another subroutine in the future.
-          ! (hplin, 6/6/20)
-          CALL GetHcoValEmis ( Input_Opt, State_Grid, N, 1, 1, 1, EmisSpec, TMP )
+          CALL InquireHco ( N, Emis=EmisSpec )
        ELSE
           EmisSpec = .FALSE.
        ENDIF

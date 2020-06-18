@@ -121,8 +121,7 @@ CONTAINS
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE ERROR_MOD,            ONLY : ERROR_STOP
     USE ERROR_MOD,            ONLY : SAFE_DIV
-    USE HCO_State_GC_Mod,     ONLY : HcoState
-    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AIRMW, PI
     USE PhysConstants,        ONLY : PI
@@ -414,7 +413,7 @@ CONTAINS
     ! Evaluate offline global HNO3 from HEMCO is using. Doing this every
     ! timestep allows usage of HEMCO's scaling and masking functionality
     IF ( USE_HNO3_FROM_HEMCO ) THEN
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', OFFLINE_HNO3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HNO3', OFFLINE_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

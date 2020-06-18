@@ -497,7 +497,7 @@ CONTAINS
     ! Read V10M
     v_name = "V10M"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-    State_Met% V10M = Q
+    State_Met%V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"

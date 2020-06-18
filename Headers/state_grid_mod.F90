@@ -199,7 +199,7 @@ CONTAINS
 !
 ! !IROUTINE: Allocate_State_Grid
 !
-! !DESCRIPTION: Subroutine ALLOCATE\_STATE\_GRID initializes variables and!
+! !DESCRIPTION: Subroutine ALLOCATE\_STATE\_GRID initializes variables and
 !  allocates module arrays.
 !\\
 !\\

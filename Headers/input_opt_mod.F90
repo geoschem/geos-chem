@@ -151,6 +151,8 @@ MODULE Input_Opt_Mod
 
      ! For HEMCO "intermediate" grid (hplin, 6/2/20)
      LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
+     INTEGER                     :: IMGRID_XSCALE
+     INTEGER                     :: IMGRID_YSCALE
 
      !----------------------------------------
      ! CO MENU fields
@@ -646,6 +648,8 @@ CONTAINS
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
     Input_Opt%LIMGRID                = .FALSE.
+    Input_Opt%IMGRID_XSCALE          = 1
+    Input_Opt%IMGRID_YSCALE          = 1
 
     !----------------------------------------
     ! CO MENU fields

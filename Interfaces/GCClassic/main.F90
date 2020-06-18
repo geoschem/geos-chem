@@ -758,7 +758,7 @@ PROGRAM GEOS_Chem
   IF ( notDryRun ) THEN
 
      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
-     CALL Init_LandTypeFrac( Input_Opt, State_Met, RC )
+     CALL Init_LandTypeFrac( Input_Opt, State_Grid, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_LandTypeFrac"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1119,7 +1119,7 @@ PROGRAM GEOS_Chem
        IF ( ITS_A_NEW_DAY() .and. notDryRun ) THEN
 
           ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
-          CALL Get_XlaiNative_from_HEMCO( Input_Opt, State_Met, RC )
+          CALL Get_XlaiNative_from_HEMCO( Input_Opt, State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
