@@ -61,18 +61,17 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PhysConstants,      ONLY : AIRMW
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
+    USE ERROR_MOD,            ONLY : ERROR_STOP
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : AIRMW
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_MONTH
+    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS:
 !
@@ -179,7 +178,7 @@ CONTAINS
     ! Evaluate offline global HNO3 from HEMCO is using. Doing this every
     ! timestep allows usage of HEMCO's scaling and masking functionality
     IF ( USE_HNO3_FROM_HEMCO ) THEN
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', HCO_HNO3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HNO3', HCO_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'rpmares_mod.F90: Do_rpmares' )

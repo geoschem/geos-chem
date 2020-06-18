@@ -336,15 +336,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE ERROR_MOD,            ONLY : GEOS_CHEM_STOP
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 
     IMPLICIT NONE
 !
@@ -454,7 +454,7 @@ CONTAINS
     CALL GC_CheckVar( 'tagged_o3_mod.F: P24H', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     P24H = 0.0_fp
-    CALL HCO_EvalFld( HcoState, 'O3_PROD', P24H, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'O3_PROD', P24H, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get pointer to O3_PROD!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -469,7 +469,7 @@ CONTAINS
     CALL GC_CheckVar( 'tagged_o3_mod.F: L24H', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     L24H = 0.0_fp
-    CALL HCO_EvalFld( HcoState, 'O3_LOSS', L24H, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'O3_LOSS', L24H, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get pointer to O3_LOSS!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -512,13 +512,12 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_Gc_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -632,7 +631,7 @@ CONTAINS
     !================================================================
 
     ! Evalulate the global OH from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', BOH, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', BOH, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_OH not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -640,7 +639,7 @@ CONTAINS
     ENDIF
 
     ! Evalulate the global Cl from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_Cl', BOH, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', BOH, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_Cl not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1076,14 +1075,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Grid_Mod,    ONLY : GrdState
-    USE State_Met_Mod,     ONLY : MetState
-    USE TIME_MOD,          ONLY : GET_TS_CHEM
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -1149,7 +1147,7 @@ CONTAINS
 
     ! Evalulate CH4 loss frequency from HEMCO. This must be done
     ! every timestep to allow masking or scaling in HEMCO config.
-    CALL HCO_EvalFld( HcoState, 'CH4_LOSS', CH4LOSS, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_LOSS', CH4LOSS, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'CH4_LOSS not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

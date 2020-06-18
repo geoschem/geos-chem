@@ -33,12 +33,11 @@ MODULE HCO_Utilities_GC_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC   :: InquireHco                    ! Inquire availability of emis/drydep field
   PUBLIC   :: GetHcoValEmis
   PUBLIC   :: GetHcoValDep
   PUBLIC   :: HCO_GC_EvalFld                ! Shim interface for HCO_EvalFld
   PUBLIC   :: HCO_GC_GetPtr                 ! Shim interface for HCO_GetPtr
-
-  PUBLIC   :: Compute_Sflx_For_Vdiff
 
 #if defined( MODEL_CLASSIC )
   !=========================================================================
@@ -85,17 +84,26 @@ MODULE HCO_Utilities_GC_Mod
   !
   ! They are refreshed every Regrid_x2y so do not point data to here
   ! beyond one subroutine call.
+  !
+  ! For performance optimization, there are TWO model buffers (H2M, H2Mb)
+  ! which allow for some edge cases where GetHcoValDep is interspersed
+  ! with GetHcoValEmis, or there may be two species. By default,
+  ! GetHcoValDep uses H2Mb and GetHcoValEmis can choose the default or b,
+  ! using an optional argument. This allows shimming as much of the
+  ! operating specifics from GEOS-Chem core code as possible.
   !------------------------------------------------------
-  REAL(hp), POINTER                    :: TMP_MDL(:,:,:)
-  REAL(hp), POINTER                    :: TMP_HCO(:,:,:)
+  REAL(hp), POINTER                    :: TMP_MDL (:,:,:)
+  REAL(hp), POINTER                    :: TMP_MDLb(:,:,:)
+  REAL(hp), POINTER                    :: TMP_HCO (:,:,:)
 
   ! f4 variant temporaries.
-  ! not directly used for regrid, used for pointing
-  REAL(f4), POINTER                    :: TMP_MDL_r4(:,:,:)         
+  ! not directly used for regrid, used for pointing and downgrading data
+  REAL(f4), POINTER                    :: TMP_MDL_r4(:,:,:)
   REAL(f4), POINTER                    :: TMP_HCO_r4(:,:,:)
 
   CHARACTER(LEN=255)                   :: LAST_TMP_REGRID_M2H       ! Last regridded container name
   CHARACTER(LEN=255)                   :: LAST_TMP_REGRID_H2M       ! ... HEMCO to Model
+  CHARACTER(LEN=255)                   :: LAST_TMP_REGRID_H2Mb      ! ... HEMCO to Model (alt bfr)
   INTEGER                              :: LAST_TMP_MDL_ZBND         ! Last z-boundary for TMP_MDL_r4 ptr
 
   ! Temporaries for Map_A2A shadow input variables.
@@ -114,6 +122,53 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: InquireHco
+!
+! !DESCRIPTION: Subroutine InquireHco INQUIRES to the HEMCO emissions list whether
+!  the given tracer ID has emissions or dry deposition spec.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InquireHco ( TrcID, Emis, Dep )
+!
+! !USES:
+!
+    USE HCO_Interface_Common, ONLY : GetHcoVal
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+!
+! !INPUT ARGUMENTS:
+!
+    INTEGER,            INTENT(IN   )  :: TrcID      ! GEOS-Chem tracer ID
+!
+! !OUTPUT ARGUMENTS:
+!
+    LOGICAL, OPTIONAL,  INTENT(  OUT)  :: Dep        ! Dep?
+    LOGICAL, OPTIONAL,  INTENT(  OUT)  :: Emis       ! Emis?
+!
+! !REMARKS:
+!  Note this assumes TrcID == HcoID.
+!
+! !REVISION HISTORY:
+!  13 Jun 2020 - H.P. Lin  - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+  IF ( PRESENT( Dep ) ) THEN
+    Dep = ASSOCIATED( HcoState%Spc(TrcID)%Depv%Val )
+  ENDIF
+
+  IF ( PRESENT(Emis) ) THEN
+    Emis = ASSOCIATED( HcoState%Spc(TrcID)%Emis%Val )
+  ENDIF
+
+  END SUBROUTINE InquireHco
+!EOC
+!------------------------------------------------------------------------------
+!                    Harmonized Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: GetHcoValEmis
 !
 ! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an
@@ -125,7 +180,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoValEmis ( Input_Opt, State_Grid, TrcID, I, J, L, Found, Emis )
+  SUBROUTINE GetHcoValEmis ( Input_Opt, State_Grid, TrcID, I, J, L, Found, Emis, AltBuffer )
 !
 ! !USES:
 !
@@ -145,6 +200,7 @@ CONTAINS
     TYPE(GrdState),     INTENT(IN   )  :: State_Grid ! Grid State
     INTEGER,            INTENT(IN   )  :: TrcID      ! GEOS-Chem tracer ID
     INTEGER,            INTENT(IN   )  :: I, J, L    ! Position
+    LOGICAL, OPTIONAL,  INTENT(IN   )  :: AltBuffer  ! Alternate buffer? (Use B)
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -171,8 +227,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_Trc_<id>
+    CHARACTER(LEN=32)  :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_Trc_<id>
     INTEGER            :: ZBND
+    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
+    REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
+
+    TMP_MDL_target => NULL()
 
     IF ( Input_Opt%LIMGRID ) THEN
       ! The below section must be OMP CRITICAL because it is stateful.
@@ -184,19 +244,38 @@ CONTAINS
         CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
       ENDIF
 
+      IF ( PRESENT(AltBuffer) ) THEN
+        IF ( AltBuffer ) THEN
+          TMP_AltBuffer = .true.
+        ENDIF
+      ENDIF
+
+      IF ( TMP_AltBuffer ) THEN 
+        TMP_MDL_target => TMP_MDLb
+      ELSE
+        TMP_MDL_target => TMP_MDL
+      ENDIF
+
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_Trc_", TrcID
-      IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2M ) THEN   ! Not already in buffer
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName
-        ! Retrieve data into the HEMCO temporary!
-        ! First, clear the buffer name. We are not sure if this was found yet.
-        LAST_TMP_REGRID_H2M = "_HCO_Trc_TBD"
+      IF( (.not. TMP_AltBuffer .and. TMP_TrcIDFldName /= LAST_TMP_REGRID_H2M) .and. &
+          (      TMP_AltBuffer .and. TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb) ) THEN   ! Not already in buffer
 
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val) ) THEN  ! Present! Read in the data
+            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb, TMP_AltBuffer
+
+            ! Retrieve data into the HEMCO temporary!
+            ! First, clear the buffer name. We are not sure if this was found yet.
+            IF (.not. TMP_AltBuffer) THEN
+              LAST_TMP_REGRID_H2M  = "_HCO_Trc_TBD"
+            ELSE
+              LAST_TMP_REGRID_H2Mb = "_HCO_Trc_TBD"
+            ENDIF
+
             ZBND = SIZE( HcoState%Spc(TrcID)%Emis%Val, 3 )
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1:ZBND) = HcoState%Spc(TrcID)%Emis%Val(:,:,1:ZBND)
@@ -204,20 +283,25 @@ CONTAINS
             IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Read from HEMCO"
 
             ! Now perform the on-demand regrid
-            CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
+            CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL_target, ZBND )
 
-            ! Now in TMP_MDL, read the pointer data
+            ! Now in TMP_MDL_target, read the pointer data
             ! FIXME: Could use a little DRY here (hplin, 6/6/20)
             Found = .true.
-            Emis = TMP_MDL(I,J,L)
-            LAST_TMP_REGRID_H2M = TMP_TrcIDFldName
+            Emis = TMP_MDL_target(I,J,L)
+
+            IF (.not. TMP_AltBuffer) THEN
+              LAST_TMP_REGRID_H2M  = TMP_TrcIDFldName
+            ELSE
+              LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
+            ENDIF
 
             IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return"
           ENDIF
         ENDIF
       ELSE ! Already in buffer! Just read the pointer data
         Found = .true.
-        Emis  = TMP_MDL(I,J,L)
+        Emis  = TMP_MDL_target(I,J,L)
       ENDIF
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
@@ -227,6 +311,8 @@ CONTAINS
       CALL GetHcoVal( HcoState, ExtState, TrcID, I, J, L, Found, Emis=Emis )
 #ifdef MODEL_CLASSIC
     ENDIF
+
+    TMP_MDL_target => NULL()
 #endif
 
   END SUBROUTINE GetHcoValEmis
@@ -293,11 +379,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_TrcD_<id>
+    CHARACTER(LEN=32)  :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_TrcD_<id>
 
     IF ( Input_Opt%LIMGRID ) THEN
       ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
+      ! The first call to the critical section will update the container!
       !$OMP CRITICAL
 
       ! Initialize shadow regridding handles if they are not ready
@@ -308,16 +394,17 @@ CONTAINS
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_TrcD_", TrcID
-      IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2M ) THEN   ! Not already in buffer
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName
-        ! Retrieve data into the HEMCO temporary!
-        ! First, clear the buffer name. We are not sure if this was found yet.
-        LAST_TMP_REGRID_H2M = "_HCO_TrcD_TBD"
-
+      IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val) ) THEN  ! Present! Read in the data
+            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
+
+            ! Retrieve data into the HEMCO temporary!
+            ! First, clear the buffer name. We are not sure if this was found yet.
+            LAST_TMP_REGRID_H2Mb = "_HCO_TrcD_TBD"
+
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1) = HcoState%Spc(TrcID)%Depv%Val(:,:)
 
@@ -325,20 +412,20 @@ CONTAINS
 
             ! Now perform the on-demand regrid
             ! Note deposition is surface layer, so L is always 1. Read ZBND = 1
-            CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
+            CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDLb, 1 )
 
-            ! Now in TMP_MDL, read the pointer data
+            ! Now in TMP_MDLb, read the pointer data
             ! FIXME: Could use a little DRY here (hplin, 6/6/20)
             Found = .true.
-            Dep = TMP_MDL(I,J,1)
-            LAST_TMP_REGRID_H2M = TMP_TrcIDFldName
+            Dep = TMP_MDLb(I,J,1)
+            LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
 
             IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Regrid OK return"
           ENDIF
         ENDIF
       ELSE ! Already in buffer! Just read the pointer data
         Found = .true.
-        Dep  = TMP_MDL(I,J,1)
+        Dep  = TMP_MDLb(I,J,1)
       ENDIF
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
@@ -542,6 +629,9 @@ CONTAINS
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=512)               :: ErrMsg
 
+    ! debug
+    INTEGER                          :: II
+
     ! Assume success
     RC      = GC_SUCCESS
     ErrMsg  = ''
@@ -582,6 +672,17 @@ CONTAINS
         ! If not found, return
         IF ( FND ) THEN
 
+          ! IF ( cName == "LANDTYPE02" ) THEN
+          !   WRITE(6,*) "====================================="
+          !   WRITE(6,*) "hplin debug EvalFld_2D: BEFORE REGRID field", cName
+          !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
+          !   DO II = 1, State_Grid_HCO%NX
+          !     WRITE(6,*) "I(HCOGrid) = ", II
+          !     WRITE(6,*) "Field(I,:)", TMP_HCO(II,:,1)
+          !   ENDDO
+          !   WRITE(6,*) "====================================="
+          ! ENDIF
+
           ! For safety, overwrite the temporary
           LAST_TMP_REGRID_H2M = "_HCO_Eval2D_TBD"
 
@@ -591,6 +692,17 @@ CONTAINS
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
           IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Regrid complete"
+
+          ! IF ( cName == "LANDTYPE02" ) THEN
+          !   WRITE(6,*) "====================================="
+          !   WRITE(6,*) "hplin debug EvalFld_2D: AFTER REGRID field", cName
+          !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
+          !   DO II = 1, State_Grid%NX
+          !     WRITE(6,*) "I(MDLGrid) = ", II
+          !     WRITE(6,*) "Field(I,:)", TMP_MDL(II,:,1)
+          !   ENDDO
+          !   WRITE(6,*) "====================================="
+          ! ENDIF
 
           ! Note that we cannot pass Arr2D to call above directly because it accepts a
           ! 3-D argument. So we regrid to the target dummy and copy
@@ -746,16 +858,16 @@ CONTAINS
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
 
           ! hplin debug PS
-          IF ( DctName == "PS" ) THEN
-            WRITE(6,*) "====================================="
-            WRITE(6,*) "hplin debug GetPtr_2D: field", DctName, iTIDX, SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
-            WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
-            DO II = 1, State_Grid_HCO%NX
-              WRITE(6,*) "I(HCOGrid) = ", II
-              WRITE(6,*) "Field(I,:)", TMP_Ptr2D(II,:)
-            ENDDO
-            WRITE(6,*) "====================================="
-          ENDIF
+          ! IF ( DctName == "USTAR" ) THEN
+          !   WRITE(6,*) "====================================="
+          !   WRITE(6,*) "hplin debug GetPtr_2D: BEFORE REGRID field", DctName, iTIDX, SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
+          !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
+          !   DO II = 1, State_Grid_HCO%NX
+          !     WRITE(6,*) "I(HCOGrid) = ", II
+          !     WRITE(6,*) "Field(I,:)", TMP_Ptr2D(II,:)
+          !   ENDDO
+          !   WRITE(6,*) "====================================="
+          ! ENDIF
 
           ! Regrid the buffer appropriately. We do not use TMP_MDL here in EvalFld,
           ! because the field target is given.
@@ -765,16 +877,16 @@ CONTAINS
           IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid complete"
 
           ! hplin debug PS
-          IF ( DctName == "PS" ) THEN
-            WRITE(6,*) "====================================="
-            WRITE(6,*) "hplin debug GetPtr_2D: AFTER REGRID field"
-            WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
-            DO II = 1, State_Grid%NX
-              WRITE(6,*) "I(Grid) = ", II
-              WRITE(6,*) "Field_MDL(I,:,1)", TMP_MDL(II,:,1)
-            ENDDO
-            WRITE(6,*) "====================================="
-          ENDIF
+          ! IF ( DctName == "USTAR" ) THEN
+          !   WRITE(6,*) "====================================="
+          !   WRITE(6,*) "hplin debug GetPtr_2D: AFTER REGRID field", DctName
+          !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
+          !   DO II = 1, State_Grid%NX
+          !     WRITE(6,*) "I(Grid) = ", II
+          !     WRITE(6,*) "Field_MDL(I,:,1)", TMP_MDL(II,:,1)
+          !   ENDDO
+          !   WRITE(6,*) "====================================="
+          ! ENDIF
 
           ! Copy to the r4 so you can downgrade the precision for GetPtr calls
           ! for backwards compatibility
@@ -811,9 +923,13 @@ CONTAINS
     IF( PRESENT(FILLED) ) THEN
       FILLED = iFILLED
     ELSEIF ( .not. iFILLED ) THEN
-      RC = GC_FAILURE
-      ErrMsg = 'Could not fill last GetPtr container!'
-      CALL GC_Error( ErrMsg, RC, ThisLoc )
+      ! RC = GC_FAILURE
+      ! ErrMsg = 'Could not fill last GetPtr container!'
+      ! CALL GC_Error( ErrMsg, RC, ThisLoc )
+
+      Ptr2D => NULL()
+      ! FIXME: Maybe need to throw a HEMCO error from here. See behavior
+      ! in HCO_EmisList_Mod
     ENDIF
 
   END SUBROUTINE HCO_GC_GetPtr_2D
@@ -976,9 +1092,11 @@ CONTAINS
     IF( PRESENT(FILLED) ) THEN
       FILLED = iFILLED
     ELSEIF ( .not. iFILLED ) THEN
-      RC = GC_FAILURE
-      ErrMsg = 'Could not fill last GetPtr_3D container!'
-      CALL GC_Error( ErrMsg, RC, ThisLoc )
+      ! RC = GC_FAILURE
+      ! ErrMsg = 'Could not fill last GetPtr_3D container!'
+      ! CALL GC_Error( ErrMsg, RC, ThisLoc )
+
+      Ptr3D => NULL()
     ENDIF
 
   END SUBROUTINE HCO_GC_GetPtr_3D
@@ -1008,7 +1126,6 @@ CONTAINS
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_State_GC_Mod,  ONLY : HcoState
-   USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
    USE PhysConstants,     ONLY : AIRMW
    USE Input_Opt_Mod,     ONLY : OptInput
    USE Species_Mod,       ONLY : Species
@@ -1154,8 +1271,8 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), &
-                       Ptr3D,    RC,       FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), &
+                          Ptr3D,     RC,         FOUND=FOUND )
 
       ! Check if species data is in file
       IF ( FOUND ) THEN
@@ -1176,9 +1293,9 @@ CONTAINS
          ! the restart file in mol/mol
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
-                            MINVAL( Ptr3D ), MAXVAL( Ptr3D )
+                            MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D(:,:,1:State_Grid%NZ) )
 120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
-                    '  Max = ',es15.9)
+                    '  Max = ',es15.9, ' Sum = ',es15.9)
          ENDIF
 
          ! Convert file value [mol/mol] to [kg/kg dry] for storage
@@ -1408,7 +1525,7 @@ CONTAINS
       v_name = 'KPP_HVALUE'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1440,7 +1557,7 @@ CONTAINS
       v_name = 'WETDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1465,7 +1582,7 @@ CONTAINS
       v_name = 'DRYDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1498,7 +1615,7 @@ CONTAINS
       v_name = 'H2O2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1523,7 +1640,7 @@ CONTAINS
       v_name = 'SO2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1555,7 +1672,7 @@ CONTAINS
       v_name = 'STATE_PSC'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -1616,7 +1733,7 @@ CONTAINS
          v_name = 'OCEAN_' // TRIM( HgSpc )
 
          ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
@@ -1675,7 +1792,7 @@ CONTAINS
                         '_'      // TRIM( Hg_Cat_Name(N) )
 
                ! Get variable from HEMCO and store in local array
-               CALL HCO_GetPtr( HcoState, TRIM(v_name), &
+               CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), &
                                 Ptr2D, RC, FOUND=FOUND )
 
                ! Check if variable is in file
@@ -1741,7 +1858,7 @@ CONTAINS
             ENDIF
 
             ! Get variable from HEMCO and store in local array
-            CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
+            CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
             ! Check if variable is in file
             IF ( FOUND ) THEN
@@ -1825,7 +1942,6 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE HCO_State_GC_Mod, ONLY : HcoState
-   USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
    USE Input_Opt_Mod,    ONLY : OptInput
    USE PhysConstants,    ONLY : AIRMW
    USE Species_Mod,      ONLY : Species
@@ -1938,7 +2054,7 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, &
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, &
                        TIDX=t_index, FOUND=FOUND )
 
       ! Check if BCs are found
@@ -2026,7 +2142,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Regrid_HCO2MDL ( Input_Opt, State_Grid, State_Grid_HCO, PtrIn, PtrOut, ZBND )
+  SUBROUTINE Regrid_HCO2MDL ( Input_Opt, State_Grid, State_Grid_HCO, &
+                              PtrIn,     PtrOut,     ZBND, Debug )
 !
 ! !USES:
 !
@@ -2041,6 +2158,7 @@ CONTAINS
     TYPE(GrdState),   INTENT(IN   )     :: State_Grid_HCO   ! Optional, HEMCO intermediate
     REAL(hp),         INTENT(IN   )     :: PtrIn (:,:,:)    ! 3-D input data
     INTEGER, OPTIONAL,INTENT(IN   )     :: ZBND             ! z-level bounds of data
+    LOGICAL, OPTIONAL,INTENT(IN   )     :: Debug            ! For debugging
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -2068,11 +2186,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                             :: NZ, L
+    LOGICAL                             :: DBG
 
     IF ( PRESENT( ZBND ) ) THEN
       NZ = MIN(ZBND, State_Grid%NZ+1)                ! May be equal to NZ+1 maximum
     ELSE
       NZ = State_Grid%NZ
+    ENDIF
+
+    IF ( PRESENT( Debug ) ) THEN
+      DBG = Debug
+    ELSE
+      DBG = .false.
     ENDIF
 
     ! Intermediate grid functionality?
@@ -2095,7 +2220,8 @@ CONTAINS
         State_Grid%NX,     State_Grid%NY,        &   ! Output grid dimensions
         LonEdgeM,          LatEdgeM,             &
         PtrOut(:,:,L),                           &
-        0, 0)                                        ! Pole treatment, scalar quantity
+        0, 0,                                    &   ! Pole treatment, scalar quantity
+        missval=-1.e31_hp)                           ! Important to prevent crash
     ENDDO
 
     ! Return happily ever after
@@ -2196,7 +2322,7 @@ CONTAINS
         State_Grid_HCO%NX, State_Grid_HCO%NY,    &   ! Output grid dimensions
         LonEdgeH,          LatEdgeH,             &
         PtrOut(:,:,L),                           &
-        0, 0)                                        ! Pole treatment, scalar quantity
+        0, 0, missval=-1.e31_hp )                    ! Pole treatment, scalar quantity
     ENDDO
 
     ! Return happily ever after
@@ -2255,8 +2381,8 @@ CONTAINS
     ! Intermediate grid functionality?
     IF ( .not. Input_Opt%LIMGRID ) RETURN
 
-    ! TMP_MDL, TMP_HCO 3D IJK
-    ! LAST_TMP_REGRID_M2H, LAST_TMP_REGRID_H2M
+    ! TMP_MDL, TMP_HCO 3D IJK, TMP_MDLb (alternate model buffer)
+    ! LAST_TMP_REGRID_M2H, LAST_TMP_REGRID_H2M, H2Mb
     ! LonEdgeH, LatEdgeH (actually SIN), LonEdgeM, LatEdgeM (actually SIN) -- NX+1, NY+1
 
     ! Allocate arrays
@@ -2282,8 +2408,9 @@ CONTAINS
     !
     ! Using NZ+1 in case the data is on vertical grid edges.
     ! Probably used for some met field stuff.
-    ALLOCATE(TMP_MDL(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
-    ALLOCATE(TMP_HCO(State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_MDL (State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_MDLb(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_HCO (State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
 
     ALLOCATE(TMP_MDL_r4(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
     ALLOCATE(TMP_HCO_r4(State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
@@ -2296,509 +2423,4 @@ CONTAINS
   END SUBROUTINE Init_IMGrid
 !EOC
 #endif
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCOI_Compute_Sflx_for_Vdiff
-!
-! !DESCRIPTION: Computes the surface flux (\= emissions - drydep) for the
-!  non-local PBL mixing.  This code was removed from within the non-local
-!  PBL mixing driver routine VDIFFDR.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Sflx_for_Vdiff( Input_Opt,  State_Chm, State_Diag,      &
-                                     State_Grid, State_Met, RC              )
-!
-! ! USES:
-!
-    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_DD
-    USE Depo_Mercury_Mod,     ONLY : Add_HgP_DD
-    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
-    USE ErrCode_Mod
-    USE Get_Ndep_Mod,         ONLY : Soil_Drydep
-    USE Global_CH4_Mod,       ONLY : CH4_Emis
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_EmisList_Mod,     ONLY : HCO_GetPtr
-    USE HCO_State_GC_Mod,     ONLY : ExtState
-    USE HCO_State_GC_Mod,     ONLY : HcoState   
-    USE Input_Opt_Mod,        ONLY : OptInput
-    USE Mercury_Mod,          ONLY : HG_Emis
-    USE PhysConstants
-    USE Species_Mod,          ONLY : Species
-    USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Chm_Mod,        ONLY : Ind_
-    USE State_Diag_Mod,       ONLY : DgnState
-    USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Met_Mod,        ONLY : MetState
-    USE Time_Mod,             ONLY : Get_Ts_Conv
-    USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State
-    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State
-    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostics State
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  18 May 2020 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! SAVEd scalars
-    LOGICAL, SAVE           :: first    = .TRUE.
-    INTEGER, SAVE           :: id_O3    = -1
-    INTEGER, SAVE           :: id_HNO3  = -1
-
-    ! Scalars
-    LOGICAL                 :: found,   zeroHg0Dep
-    INTEGER                 :: I,       J
-    INTEGER                 :: L,       NA
-    INTEGER                 :: ND,      N
-    INTEGER                 :: Hg_Cat,  topMix
-    REAL(fp)                :: dep,     emis
-    REAL(fp)                :: EmMW_kg, fracNoHg0Dep
-    REAL(fp)                :: tmpFlx
-
-    ! Strings
-    CHARACTER(LEN=63)       :: origUnit
-    CHARACTER(LEN=255)      :: errMsg,  thisLoc
-
-    ! Arrays
-    REAL(fp), TARGET        :: eflx(State_Grid%NX,                           &
-                                    State_Grid%NY,                           &
-                                    State_Chm%nAdvect                       )
-    REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
-                                    State_Grid%NY,                           &
-                                    State_Chm%nAdvect                       )
-
-    ! Pointers and Objects
-    REAL(fp),       POINTER :: spc(:,:,:)
-    REAL(f4), SAVE, POINTER :: PNOxLoss_O3  (:,:) => NULL()
-    REAL(f4), SAVE, POINTER :: PNoxLoss_HNO3(:,:) => NULL()
-    TYPE(Species),  POINTER :: ThisSpc
-
-    !=======================================================================
-    ! Compute_Sflx_For_Vdiff begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC      =  GC_SUCCESS
-    dflx    =  0.0_fp
-    eflx    =  0.0_fp
-    spc     => State_Chm%Species(:,:,1,1:State_Chm%nAdvect)
-    ThisSpc => NULL()
-    errMsg  = ''
-    thisLoc = &
-    ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hcoi_gc_main_mod.F90)'
-
-    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
-    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
-
-    !=======================================================================
-    ! Convert units to v/v dry
-    !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
-
-    ! Trap potential error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !=======================================================================
-    ! First-time setup: Get pointers to the PARANOX loss fluxes.
-    ! These are stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-    ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist.
-    !=======================================================================
-    IF ( FIRST ) THEN
-
-       ! Get species IDs
-       id_O3   = Ind_('O3'  )
-       id_HNO3 = Ind_('HNO3')
-
-       IF ( id_O3 > 0 ) THEN
-          CALL GetHcoDiagn(                                                  &
-               HcoState       = HcoState,                                    &
-               ExtState       = ExtState,                                    &
-               DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                &
-               StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = PNOxLoss_O3,                                 &
-               RC             = RC                                          )
-       ENDIF
-
-       IF ( id_HNO3 > 0 ) THEN
-          CALL GetHcoDiagn(                                                  &
-               HcoState       = HcoState,                                    &
-               ExtState       = ExtState,                                    &
-               DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',              &
-               StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = PNOxLoss_HNO3,                               &
-               RC             = RC                                          )
-       ENDIF
-
-       ! Reset first-time flag
-       FIRST = .FALSE.
-    ENDIF
-
-    !=======================================================================
-    ! Add emissions & deposition values calculated in HEMCO.
-    ! Here we only consider emissions below the PBL top.
-    !
-    ! For the full-chemistry simulations, emissions above the PBL
-    ! top will be applied in routine SETEMIS, which occurs just
-    ! before the SMVGEAR/KPP solvers are invoked.
-    !
-    ! For the specialty simulations, emissions above the PBL top
-    ! will be applied in the chemistry routines for each
-    ! specialty simulation.
-    !
-    ! For more information, please see this wiki page:
-    ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-    !========================================================================
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED )                                                  &
-    !$OMP PRIVATE( I,       J,            topMix,     NA,     N             )&
-    !$OMP PRIVATE( thisSpc, tmpflx,       found,      emis,   dep           )&
-    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep, Hg_cat                )
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! PBL top level [integral model levels]
-       topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-
-       ! Loop over advected species
-       DO NA = 1, State_Chm%nAdvect
-
-          ! Get the modelId
-          N = State_Chm%Map_Advect(NA)
-
-          ! Point to the corresponding entry in the species database
-          ThisSpc => State_Chm%SpcData(N)%Info
-
-          !------------------------------------------------------------------
-          ! Add total emissions in the PBL to the EFLX array
-          ! which tracks emission fluxes.  Units are [kg/m2/s].
-          !------------------------------------------------------------------
-          IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-             ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
-             ! We use CH4_EMIS here instead of the HEMCO internal emissions
-             ! only to make sure that total CH4 emissions are properly defined
-             ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-             ! and/or all other source types, we could use the HEMCO internal
-             ! values set above and would not need the code below.
-             ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-             !
-             !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-             eflx(I,J,NA) = CH4_EMIS(I,J,NA)
-
-          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-             ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
-             ! This is a workaround to ensure backwards compatibility.
-             ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-             !
-             !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-             eflx(I,J,NA) = HG_EMIS(I,J,NA)
-
-          ELSE
-
-             ! Compute emissions for all other simulation
-             tmpFlx = 0.0_fp
-             DO L = 1, topMix
-                CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
-                IF ( .NOT. found ) EXIT
-                tmpFlx = tmpFlx + emis
-             ENDDO
-             eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
-
-          ENDIF
-
-          !------------------------------------------------------------------
-          ! Also add drydep frequencies calculated by HEMCO (e.g. from the
-          ! air-sea exchange module) to DFLX.  These values are stored
-          ! in 1/s.  They are added in the same manner as the DEPSAV values
-          ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
-          ! (ckeller, 04/01/2014)
-          !------------------------------------------------------------------
-          CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
-          IF ( found ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%EmMW_g)  )
-          ENDIF
-
-          ! Free pointers
-          ThisSpc => NULL()
-       ENDDO
-
-       !=====================================================================
-       ! Apply dry deposition frequencies
-       ! These are the frequencies calculated in drydep_mod.F90
-       ! The HEMCO drydep frequencies (from air-sea exchange and
-       ! PARANOX) were already added above.
-       !
-       ! NOTES:
-       ! (1) Loops over only the drydep species
-       ! (2) If drydep is turned off, nDryDep=0 and the loop won't execute
-       ! (3) Tagged species are included in this loop. via species database
-       !=====================================================================
-       DO ND = 1, State_Chm%nDryDep
-
-          ! Get the species ID from the drydep ID
-          N = State_Chm%Map_DryDep(ND)
-
-          IF ( N <= 0 ) CYCLE
-
-          ! Point to the corresponding Species Database entry
-          ThisSpc => State_Chm%SpcData(N)%Info
-
-          ! only use the lowest model layer for calculating drydep fluxes
-          ! given that spc is in v/v
-          dflx(I,J,N) = dflx(I,J,N) &
-                      + State_Chm%DryDepSav(I,J,ND) * spc(I,J,N)             &
-                      /  ( AIRMW                    / ThisSpc%EmMW_g        )
-
-
-          IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
-
-             ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
-             ! so disable deposition over water here.
-             ! Turn off Hg(0) deposition to snow and ice because we haven't yet
-             ! included emission from these surfaces and most field studies
-             ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-             fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
-                                 State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
-             zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
-
-             IF ( zeroHg0Dep ) THEN
-                dflx(I,J,N) = dflx(I,J,N) * MAX( 1.0_fp-fracNoHg0Dep, 0.0_fp )
-             ENDIF
-          ENDIF
-
-          ! Free species database pointer
-          ThisSpc => NULL()
-       ENDDO
-
-       !=====================================================================
-       ! Convert DFLX from 1/s to kg/m2/s
-       !
-       ! If applicable, add PARANOX loss to this term. The PARANOX
-       ! loss term is already in kg/m2/s. PARANOX loss (deposition) is
-       ! calculated for O3 and HNO3 by the PARANOX module, and data is
-       ! exchanged via the HEMCO diagnostics.  The data pointers PNOXLOSS_O3
-       ! and PNOXLOSS_HNO3 have been linked to these diagnostics at the
-       ! beginning of this routine (ckeller, 4/10/15).
-       !=====================================================================
-       dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1)                        &
-                                 / State_Grid%Area_M2(I,J)
-
-       IF ( ASSOCIATED( PNOxLoss_O3 ) .AND. id_O3 > 0 ) THEN
-          dflx(I,J,id_O3) = dflx(I,J,id_O3) + PNOxLoss_O3(I,J)
-       ENDIF
-
-       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. id_HNO3 > 0 ) THEN
-          dflx(I,J,id_HNO3) = dflx(I,J,id_HNO3) + PNOxLOss_HNO3(I,J)
-       ENDIF
-
-       !=====================================================================
-       ! Surface flux (SFLX) = emissions (EFLX) - dry deposition (DFLX)
-       !
-       ! SFLX is what we need to pass into routine VDIFF
-       !=====================================================================
-       State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
-
-       !=====================================================================
-       ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
-       !=====================================================================
-       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-          ! Loop over only the drydep species
-          ! If drydep is turned off, nDryDep=0 and the loop won't execute
-          DO ND = 1, State_Chm%nDryDep
-
-             ! Get the species ID from the drydep ID
-             N = State_Chm%Map_DryDep(ND)
-
-             ! Point to the Species Database entry for tracer N
-             ThisSpc => State_Chm%SpcData(N)%Info
-
-             ! Deposition mass, kg
-             dep = dflx(I,J,N) * State_Grid%Area_M2(I,J) * GET_TS_CONV()
-
-             IF ( ThisSpc%Is_Hg2 ) THEN
-
-                ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
-                ! Archive dry-deposited Hg2
-                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
-                                       State_Met, State_Chm, State_Diag     )
-
-             ELSE IF ( ThisSpc%Is_HgP ) THEN
-
-                ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
-                ! Archive dry-deposited HgP
-                CALL ADD_HgP_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
-                                       State_Met, State_Chm, State_Diag     )
-
-             ENDIF
-
-             ! Free pointer
-             ThisSpc => NULL()
-          ENDDO
-       ENDIF
-
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    !### Uncomment for debug output
-    !WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
-    !DO NA = 1, State_Chm%nAdvect
-    !   WRITE(6,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
-    !   WRITE(6,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
-    !   WRITE(6,*) 'sflx TRACER ', NA, ': ', SUM(State_Chm%SurfaceFlux(:,:,NA))
-    !ENDDO
-
-    !=======================================================================
-    ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
-    !
-    ! NOTE: Dry deposition of "tagged" species (e.g. in tagO3, tagCO, tagHg
-    ! specialty simulations) are accounted for in species 1..nDrydep,
-    ! so we don't need to do any further special handling.
-    !=======================================================================
-    IF ( Input_Opt%LGTMM              .or. Input_Opt%LSOILNOX          .or.  &
-         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-
-       ! Loop over only the drydep species
-       ! If drydep is turned off, nDryDep=0 and the loop won't execute
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, EmMw_kg, tmpFlx                       )
-       DO ND = 1, State_Chm%nDryDep
-
-          ! Get the species ID from the drydep ID
-          N = State_Chm%Map_DryDep(ND)
-
-          ! Skip if not a valid species
-          IF ( N <= 0 ) CYCLE
-
-          ! Point to the Species Database entry for this tracer
-          ! NOTE: Assumes a 1:1 tracer index to species index mapping
-          ThisSpc => State_Chm%SpcData(N)%Info
-
-          ! Get the (emitted) molecular weight of the species in kg
-          EmMW_kg = ThisSpc%emMW_g * 1.e-3_fp
-
-          !-----------------------------------------------------------------
-          ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
-          !
-          ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
-          !
-          ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
-          ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
-          !
-          ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
-          !
-          ! NOTE: we don't need to multiply by the ratio of TS_CONV /
-          ! TS_CHEM, as the updating frequency for HISTORY is determined
-          ! by the "frequency" setting in the "HISTORY.rc"input file.
-          ! The old bpch diagnostics archived the drydep due to chemistry
-          ! every chemistry timestep = 2X the dynamic timestep.  So in
-          ! order to avoid double-counting the drydep flux from mixing,
-          ! you had to multiply by TS_CONV / TS_CHEM.
-          !
-          ! ALSO NOTE: When comparing History output to bpch output,
-          ! you must use an updating frequency equal to the dynamic
-          ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to
-          ! turn off chemistry so as to be able to compare the drydep
-          ! fluxes due to mixing in bpch vs. History as an "apples-to-
-          ! apples" comparison.
-          !
-          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
-          !-----------------------------------------------------------------
-          IF ( State_Diag%Archive_DryDepMix   .or.                           &
-               State_Diag%Archive_DryDep    ) THEN
-             State_Diag%DryDepMix(:,:,ND) = Dflx(:,:,N)                      &
-                                            * 1.0e-4_fp                      &
-                                            * ( AVO / EmMW_kg  )
-          ENDIF
-
-          !-----------------------------------------------------------------
-          ! If Soil NOx is turned on, then call SOIL_DRYDEP to
-          ! archive dry deposition fluxes for nitrogen species
-          ! (SOIL_DRYDEP will exit if it can't find a match.
-          !
-          ! Locate position of each tracer in DEPSAV
-          ! (get tracer id)
-          ! NOTE: trc_id was previously NN and drydep id D
-          ! was previously N. This is changed for convention consistency
-          ! within subroutine (ewl, 1/25/16)
-          !-----------------------------------------------------------------
-	        IF ( Input_Opt%LSOILNOX ) THEN
-             tmpFlx = 0.0_fp
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-                tmpFlx = dflx(I,J,N)                                         &
-                 / EmMW_kg                                             &
-                       * AVO           * 1.e-4_fp                            &
-                       * GET_TS_CONV() / GET_TS_EMIS()
-
-                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
-             ENDDO
-             ENDDO
-	        ENDIF
-
-          ! Free species database pointer
-          ThisSpc => NULL()
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
-
-    !=======================================================================
-    ! Unit conversion #2: Convert back to the original units
-    !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Compute_Sflx_For_Vdiff
-!EOC
 END MODULE HCO_Utilities_GC_Mod
