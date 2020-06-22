@@ -2017,6 +2017,21 @@ CONTAINS
                                 State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%QQ3D', 1, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF   
+
+    !------------------------------------------------------------------
+    ! Isop_from_Ecophy
+    !------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 .and. Input_Opt%LIsop_from_Ecophy ) THEN
+        chmID = 'Isop_from_Ecophy'
+        ALLOCATE( State_Chm%Isop_from_Ecophy( IM, JM ) , STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%Isop_from_Ecophy', 0, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%Isop_from_Ecophy = 0.0_fp
+        CALL Register_ChmField( Input_Opt, chmID, State_Chm%Isop_from_Ecophy,   &
+                                State_Chm, RC                                )
+        CALL GC_CheckVar( 'State_Chm%Isop_from_Ecophy', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !========================================================================

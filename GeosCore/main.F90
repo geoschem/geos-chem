@@ -77,6 +77,7 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
   USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
   USE DRYDEP_MOD            ! For dry deposition
+  USE ECOPHY_MOD            ! For ecophysiology
   USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
 
   !-----------------------------------------------------------------
@@ -202,6 +203,7 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: LCONV
   LOGICAL                  :: LDRYD
   LOGICAL                  :: LDYNOCEAN
+  LOGICAL                  :: LECOPHY
   LOGICAL                  :: LEMIS
   LOGICAL                  :: LGTMM
   LOGICAL                  :: LLINOZ
@@ -464,6 +466,7 @@ PROGRAM GEOS_Chem
   LCONV               =  Input_Opt%LCONV
   LDRYD               =  Input_Opt%LDRYD
   LDYNOCEAN           =  Input_Opt%LDYNOCEAN
+  LECOPHY             =  Input_Opt%LECOPHY
   LEMIS               =  Input_Opt%LEMIS
   LGTMM               =  Input_Opt%LGTMM
   LLINOZ              =  Input_Opt%LLINOZ
@@ -968,6 +971,24 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
+       ! Zero out diagnostics at the start of emission timestep for 
+       ! ecophysiology module outputs (Joey Lam, 1 Feb 21)
+       IF ( notDryRun ) THEN
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",           RC )
+             CALL Timer_Start( "=> History (netCDF diags)", RC )
+          ENDIF
+
+          IF ( ITS_TIME_FOR_EMIS() ) THEN
+             CALL Zero_Diagnostics_StartofTimestep( am_I_Root, &
+                  State_Chm, State_Diag, RC )
+          ENDIF
+          
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",           RC )
+             CALL Timer_End( "=> History (netCDF diags)", RC )
+          ENDIF
+       ENDIF         
        !==============================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
        !

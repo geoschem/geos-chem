@@ -241,6 +241,9 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: CO2_REF
      REAL(fp)                    :: RS_SCALE
      INTEGER                     :: RA_Alt_Above_Sfc
+     LOGICAL                     :: LECOPHY
+     CHARACTER(LEN=3)            :: O3dmg_opt 
+     REAL(fp)                    :: Ecophy_CO2
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -754,7 +757,9 @@ CONTAINS
     Input_Opt%CO2_EFFECT             = .FALSE.
     Input_Opt%RS_SCALE               = 1.0_fp
     Input_Opt%RA_Alt_Above_Sfc       = 10       ! default height
-
+    Input_Opt%LECOPHY                = .FALSE.
+    Input_Opt%O3dmg_opt              = 'OFF'
+    Input_Opt%Ecophy_CO2             = 390.0
 
     !----------------------------------------
     ! GAMAP_MENU fields

@@ -254,6 +254,7 @@ CONTAINS
 !
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
+    USE Time_Mod,         ONLY : ITS_TIME_FOR_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -289,6 +290,57 @@ CONTAINS
     ThisLoc = ' -> Zero_Diagnostics_StartofTimestep ' // ModLoc
 
     ! Zero diagnostics here
+    IF ( ITS_TIME_FOR_EMIS() ) THEN
+       ! Zero diagnostics here
+       IF ( State_Diag%Archive_EcophyG_CAN_OUT    ) THEN
+          State_Diag%EcophyG_CAN_OUT    ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyA_CAN_OUT    ) THEN
+          State_Diag%EcophyA_CAN_OUT    ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRESP_CAN_OUT ) THEN
+          State_Diag%EcophyRESP_CAN_OUT ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyG_LEAF_OUT   ) THEN
+          State_Diag%EcophyG_LEAF_OUT   ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyCO2_IN       ) THEN
+          State_Diag%EcophyCO2_IN       ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyA_NET_OUT    ) THEN
+          State_Diag%EcophyA_NET_OUT    ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRESP_OUT     ) THEN
+          State_Diag%EcophyRESP_OUT     ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyFLUXO3_CAN   ) THEN
+          State_Diag%EcophyFLUXO3_CAN   ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyFLUXO3       ) THEN
+          State_Diag%EcophyFLUXO3       ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyFACTOR_O3    ) THEN
+          State_Diag%EcophyFACTOR_O3    ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyBETA         ) THEN
+          State_Diag%EcophyBETA         ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyV_CMAX       ) THEN
+          State_Diag%EcophyV_CMAX       ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRATE_LIGHT   ) THEN
+          State_Diag%EcophyRATE_LIGHT   ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRATE_RUBISCO ) THEN
+          State_Diag%EcophyRATE_RUBISCO ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRATE_PRODUCT ) THEN
+          State_Diag%EcophyRATE_PRODUCT ( :,:,: ) = 0.0_fp
+       ENDIF
+       IF ( State_Diag%Archive_EcophyA_GROSS      ) THEN
+          State_Diag%EcophyA_GROSS      ( :,:,: ) = 0.0_fp
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC

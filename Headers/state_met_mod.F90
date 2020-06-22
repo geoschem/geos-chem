@@ -104,6 +104,7 @@ MODULE State_Met_Mod
                                                 !  end of timestep [hPa]
      REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
                                                 !  pressure [hPa]
+     REAL(fp), POINTER :: QV2M          (:,:  ) ! 2m specific humidity [kg/kg]
      REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
@@ -239,6 +240,15 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: XLAI_NATIVE   (:,:,:) ! avg LAI per type (I,J,type)
      REAL(fp), POINTER :: XLAI2         (:,:,:) ! MODIS LAI per land type,
                                                 !  for next month
+     !----------------------------------------------------------------------
+     ! Soil parameters for ecophysiology (Joey Lam, 26 Feb 2019)
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: THETA_CRIT    (:,:  ) ! Soil moisture at critical
+                                                ! point (I,J)
+     REAL(fp), POINTER :: THETA_SATU    (:,:  ) ! Soil moisture at saturation
+                                                ! point (I,J)
+     REAL(fp), POINTER :: THETA_WILT    (:,:  ) ! Soil moisture at wilting
+                                                ! point (I,J)
 
      !----------------------------------------------------------------------
      ! Fields for querying in which vertical regime a grid box is in
@@ -471,6 +481,7 @@ CONTAINS
     State_Met%PMID_DRY       => NULL()
     State_Met%QI             => NULL()
     State_Met%QL             => NULL()
+    State_Met%QV2M           => NULL()
     State_Met%REEVAPCN       => NULL()
     State_Met%REEVAPLS       => NULL()
     State_Met%RH             => NULL()
@@ -478,6 +489,9 @@ CONTAINS
     State_Met%SPHU1          => NULL()
     State_Met%SPHU2          => NULL()
     State_Met%T              => NULL()
+    State_Met%THETA_CRIT     => NULL()
+    State_Met%THETA_SATU     => NULL()
+    State_Met%THETA_WILT     => NULL()
     State_Met%TMPU1          => NULL()
     State_Met%TMPU2          => NULL()
     State_Met%TV             => NULL()
@@ -989,6 +1003,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
+    ! QV2M [kg/kg]
+    !-------------------------
+    ALLOCATE( State_Met%QV2M( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%QV2M', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%QV2M = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'QV2M', State_Met%QV2M, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
     ! SEAICE00 [1]
     !-------------------------
     ALLOCATE( State_Met%SEAICE00( IM, JM ), STAT=RC )
@@ -1161,6 +1186,39 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%SWGDN = 0.0_fp
     CALL Register_MetField( Input_Opt, 'SWGDN', State_Met%SWGDN, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! THETA_CRIT [1]
+    !-------------------------
+    ALLOCATE( State_Met%THETA_CRIT( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%THETA_CRIT', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%THETA_CRIT = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'THETA_CRIT', State_Met%THETA_CRIT, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! THETA_SATU [1]
+    !-------------------------
+    ALLOCATE( State_Met%THETA_SATU( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%THETA_SATU', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%THETA_SATU = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'THETA_SATU', State_Met%THETA_SATU, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! THETA_WILT [1]
+    !-------------------------
+    ALLOCATE( State_Met%THETA_WILT( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%THETA_WILT', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%THETA_WILT = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'THETA_WILT', State_Met%THETA_WILT, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1906,7 +1964,6 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-
     !=======================================================================
     ! Allocate fields used by wet scavenging and other GeosCore modules.
     !
@@ -2443,6 +2500,13 @@ CONTAINS
        State_Met%PSC2_DRY => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%QV2M ) ) THEN
+       DEALLOCATE( State_Met%QV2M, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%QV2M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%QV2M => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%SEAICE00 ) ) THEN
        DEALLOCATE( State_Met%SEAICE00, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SEAICE00', 2, RC )
@@ -2553,6 +2617,27 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%SWGDN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%SWGDN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%THETA_CRIT ) ) THEN
+      DEALLOCATE( State_Met%THETA_CRIT, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%THETA_CRIT', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%THETA_CRIT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%THETA_SATU ) ) THEN
+      DEALLOCATE( State_Met%THETA_SATU, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%THETA_SATU', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%THETA_SATU => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%THETA_WILT ) ) THEN
+      DEALLOCATE( State_Met%THETA_WILT, STAT=RC )
+      CALL GC_CheckVar( 'State_Met%THETA_WILT', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Met%THETA_WILT => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TropLev ) ) THEN
@@ -3626,6 +3711,11 @@ CONTAINS
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'QV2M' )
+          IF ( isDesc  ) Desc  = '2-meter specific humidity'
+          IF ( isUnits ) Units = 'kg kg-1'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'SEAICE00' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 00-10%'
           IF ( isUnits ) Units = '1'
@@ -4130,6 +4220,24 @@ CONTAINS
 !          IF ( isDesc  ) Desc  = 'Is each grid box in the planetary boundary layer?'
 !          IF ( isUnits ) Units = 'boolean'
 !          IF ( isRank  ) Rank  = 3
+
+       !--------------------------------------------------------------------
+       ! Soil moisture 2D fields
+       !--------------------------------------------------------------------
+       CASE ( 'THETA_WILT' )
+          IF ( isDesc  ) Desc  = 'Soil moisture conc. at wilting point'
+          IF ( isUnits ) Units = 'm3 m-3'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'THETA_CRIT' )
+          IF ( isDesc  ) Desc  = 'Soil moisture conc. at critical point'
+          IF ( isUnits ) Units = 'm3 m-3'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'THETA_SATU' )
+          IF ( isDesc  ) Desc  = 'Soil moisture conc. at saturation'
+          IF ( isUnits ) Units = 'm3 m-3'
+          IF ( isRank  ) Rank  = 2
 
        CASE DEFAULT
           Found = .False.

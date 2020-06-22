@@ -126,10 +126,61 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
      REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
+     REAL(f4),  POINTER :: DryDepVel_PFT1  (:,:,:  ) ! Dry deposition velocity for broadleaf tree
+     REAL(f4),  POINTER :: DryDepVel_PFT2  (:,:,:  ) ! Dry deposition velocity for needleleaf tree
+     REAL(f4),  POINTER :: DryDepVel_PFT3  (:,:,:  ) ! Dry deposition velocity for C3 grass
+     REAL(f4),  POINTER :: DryDepVel_PFT4  (:,:,:  ) ! Dry deposition velocity for C4 grass
+     REAL(f4),  POINTER :: DryDepVel_PFT5  (:,:,:  ) ! Dry deposition velocity for shrub
      LOGICAL :: Archive_DryDepChm
      LOGICAL :: Archive_DryDepMix
      LOGICAL :: Archive_DryDep
      LOGICAL :: Archive_DryDepVel
+     LOGICAL :: Archive_DryDepVel_anyPFT
+     LOGICAL :: Archive_DryDepVel_PFT1
+     LOGICAL :: Archive_DryDepVel_PFT2
+     LOGICAL :: Archive_DryDepVel_PFT3
+     LOGICAL :: Archive_DryDepVel_PFT4
+     LOGICAL :: Archive_DryDepVel_PFT5
+
+     ! Ecophysiology: PFT-level diagnostics (Joey Lam 22 Aug 2019)
+     REAL(f4),  POINTER :: EcophyIUSE_PFT     ( :,:,: ) ! fraction of grid box occupied by PFT 
+     REAL(f4),  POINTER :: EcophyLAI          ( :,:,: ) ! Leaf area index of PFT
+     REAL(f4),  POINTER :: EcophyRA           ( :,:   ) ! Aerodynamic resistance
+     REAL(f4),  POINTER :: EcophyRB_O3        ( :,:   ) ! Boundary layer resistance
+     REAL(f4),  POINTER :: EcophyG_CAN_OUT    ( :,:,: ) ! Bulk canopy stomatal conductance
+     REAL(f4),  POINTER :: EcophyA_CAN_OUT    ( :,:,: ) ! Bulk canopy photosynthesis
+     REAL(f4),  POINTER :: EcophyRESP_CAN_OUT ( :,:,: ) ! Bulk canopy respiration
+     REAL(f4),  POINTER :: EcophyG_LEAF_OUT   ( :,:,: ) ! Leaf level stomatal conductance
+     REAL(f4),  POINTER :: EcophyCO2_IN       ( :,:,: ) ! CO2 internal partial pressure
+     REAL(f4),  POINTER :: EcophyA_NET_OUT    ( :,:,: ) ! Leaf level net photosynthesis
+     REAL(f4),  POINTER :: EcophyRESP_OUT     ( :,:,: ) ! Leaf level respiration
+     REAL(f4),  POINTER :: EcophyFLUXO3_CAN   ( :,:,: ) ! Canopy ozone uptake flux
+     REAL(f4),  POINTER :: EcophyFACTOR_O3    ( :,:,: ) ! Ozone damage factor 
+     REAL(f4),  POINTER :: EcophyBETA         ( :,:,: ) ! Soil moisture stress factor
+     REAL(f4),  POINTER :: EcophyV_CMAX       ( :,:,: ) ! Maximum Rubisco Carboxylation rate
+     REAL(f4),  POINTER :: EcophyRATE_LIGHT   ( :,:,: ) ! Light-limited photosynthetic rate
+     REAL(f4),  POINTER :: EcophyRATE_RUBISCO ( :,:,: ) ! Rubisco-limited photosynthetic rate
+     REAL(f4),  POINTER :: EcophyRATE_PRODUCT ( :,:,: ) ! Product-limited photosynthetic rate
+     REAL(f4),  POINTER :: EcophyA_GROSS      ( :,:,: ) ! Gross photosynthesis
+     LOGICAL :: Archive_EcophyIUSE_PFT
+     LOGICAL :: Archive_EcophyLAI
+     LOGICAL :: Archive_EcophyRA
+     LOGICAL :: Archive_EcophyRB_O3
+     LOGICAL :: Archive_EcophyG_CAN_OUT
+     LOGICAL :: Archive_EcophyA_CAN_OUT
+     LOGICAL :: Archive_EcophyRESP_CAN_OUT
+     LOGICAL :: Archive_EcophyG_LEAF_OUT
+     LOGICAL :: Archive_EcophyCO2_IN
+     LOGICAL :: Archive_EcophyA_NET_OUT
+     LOGICAL :: Archive_EcophyRESP_OUT
+     LOGICAL :: Archive_EcophyFLUXO3_CAN
+     LOGICAL :: Archive_EcophyFACTOR_O3
+     LOGICAL :: Archive_EcophyBETA
+     LOGICAL :: Archive_EcophyV_CMAX
+     LOGICAL :: Archive_EcophyRATE_LIGHT
+     LOGICAL :: Archive_EcophyRATE_RUBISCO
+     LOGICAL :: Archive_EcophyRATE_PRODUCT
+     LOGICAL :: Archive_EcophyA_GROSS
 
      ! Drydep resistances and related quantities
 #ifdef MODEL_GEOS
@@ -718,7 +769,7 @@ CONTAINS
     INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nRad,    nDryAlt
+    INTEGER                :: nHygGrth, nRad,    nDryAlt, nPFT
     LOGICAL                :: EOF,      Found,   Found2,  am_I_Root
 
     !=======================================================================
@@ -753,6 +804,7 @@ CONTAINS
     nPhotol   = State_Chm%nPhotol
     nProd     = State_Chm%nProd
     nWetDep   = State_Chm%nWetDep
+    nPFT      = 5      ! # of PFTs
 
     ! %%% Free pointers and set logicals %%%
 
@@ -820,10 +872,62 @@ CONTAINS
     State_Diag%DryDepChm                           => NULL()
     State_Diag%DryDepMix                           => NULL()
     State_Diag%DryDepVel                           => NULL()
+    State_Diag%DryDepVel_PFT1                      => NULL()
+    State_Diag%DryDepVel_PFT2                      => NULL()
+    State_Diag%DryDepVel_PFT3                      => NULL()
+    State_Diag%DryDepVel_PFT4                      => NULL()
+    State_Diag%DryDepVel_PFT5                      => NULL()
     State_Diag%Archive_DryDep                      = .FALSE.
     State_Diag%Archive_DryDepChm                   = .FALSE.
     State_Diag%Archive_DryDepMix                   = .FALSE.
     State_Diag%Archive_DryDepVel                   = .FALSE.
+    State_Diag%Archive_DryDepVel_anyPFT            = .FALSE.
+    State_Diag%Archive_DryDepVel_PFT1              = .FALSE.
+    State_Diag%Archive_DryDepVel_PFT2              = .FALSE.
+    State_Diag%Archive_DryDepVel_PFT3              = .FALSE.
+    State_Diag%Archive_DryDepVel_PFT4              = .FALSE.
+    State_Diag%Archive_DryDepVel_PFT5              = .FALSE.
+
+    ! Ecophy diagnostics (Joey Lam, 02 Apr 2019)
+    State_Diag%EcophyIUSE_PFT                      => NULL()
+    State_Diag%EcophyLAI                           => NULL()
+    State_Diag%EcophyRA                            => NULL()
+    State_Diag%EcophyRB_O3                         => NULL()
+    State_Diag%EcophyG_CAN_OUT                     => NULL()
+    State_Diag%EcophyA_CAN_OUT                     => NULL()
+    State_Diag%EcophyRESP_CAN_OUT                  => NULL()
+    State_Diag%EcophyG_LEAF_OUT                    => NULL()
+    State_Diag%EcophyCO2_IN                        => NULL()
+    State_Diag%EcophyA_NET_OUT                     => NULL()
+    State_Diag%EcophyRESP_OUT                      => NULL()
+    State_Diag%EcophyFLUXO3_CAN                    => NULL()
+    State_Diag%EcophyFACTOR_O3                     => NULL()
+    State_Diag%EcophyBETA                          => NULL()
+    State_Diag%EcophyV_CMAX                        => NULL()
+    State_Diag%EcophyRATE_LIGHT                    => NULL()
+    State_Diag%EcophyRATE_RUBISCO                  => NULL()
+    State_Diag%EcophyRATE_PRODUCT                  => NULL()
+    State_Diag%EcophyA_GROSS                       => NULL()
+    State_Diag%Archive_EcophyIUSE_PFT              = .FALSE.
+    State_Diag%Archive_EcophyLAI                   = .FALSE.
+    State_Diag%Archive_EcophyRA                    = .FALSE.
+    State_Diag%Archive_EcophyRB_O3                 = .FALSE.
+    State_Diag%Archive_EcophyG_CAN_OUT             = .FALSE.
+    State_Diag%Archive_EcophyA_CAN_OUT             = .FALSE.
+    State_Diag%Archive_EcophyRESP_CAN_OUT          = .FALSE.
+    State_Diag%Archive_EcophyG_LEAF_OUT            = .FALSE.
+    State_Diag%Archive_EcophyCO2_IN                = .FALSE.
+    State_Diag%Archive_EcophyA_NET_OUT             = .FALSE.
+    State_Diag%Archive_EcophyRESP_OUT              = .FALSE.
+    State_Diag%Archive_EcophyFLUXO3_CAN            = .FALSE.
+    State_Diag%Archive_EcophyFACTOR_O3             = .FALSE.
+    State_Diag%Archive_EcophyBETA                  = .FALSE.
+    State_Diag%Archive_EcophyV_CMAX                = .FALSE.
+    State_Diag%Archive_EcophyRATE_LIGHT            = .FALSE.
+    State_Diag%Archive_EcophyRATE_RUBISCO          = .FALSE.
+    State_Diag%Archive_EcophyRATE_PRODUCT          = .FALSE.
+    State_Diag%Archive_EcophyA_GROSS               = .FALSE.
+
 #ifdef MODEL_GEOS
     State_Diag%DryDepRa2m                          => NULL()
     State_Diag%DryDepRa10m                         => NULL()
@@ -1818,6 +1922,447 @@ CONTAINS
        State_Diag%Archive_DryDepVel = .TRUE.
        CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepVel,     &
                                 State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for broadleaf tree
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%DryDepVel_PFT1'
+    diagID  = 'DryDepVel_PFT1'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepVel_PFT1( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT1 = 0.0_f4
+       State_Diag%Archive_DryDepVel_PFT1 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel_PFT1,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for needleleaf tree
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%DryDepVel_PFT2'
+    diagID  = 'DryDepVel_PFT2'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepVel_PFT2( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT2 = 0.0_f4
+       State_Diag%Archive_DryDepVel_PFT2 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel_PFT2,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for C3 grass
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%DryDepVel_PFT3'
+    diagID  = 'DryDepVel_PFT3'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepVel_PFT3( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT3 = 0.0_f4
+       State_Diag%Archive_DryDepVel_PFT3 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel_PFT3,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for C4 grass
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%DryDepVel_PFT4'
+    diagID  = 'DryDepVel_PFT4'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepVel_PFT4( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT4 = 0.0_f4
+       State_Diag%Archive_DryDepVel_PFT4 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel_PFT4,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for shrub
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%DryDepVel_PFT5'
+    diagID  = 'DryDepVel_PFT5'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepVel_PFT5( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT5 = 0.0_f4
+       State_Diag%Archive_DryDepVel_PFT5 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel_PFT5,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    ! High-level logical for PFT-specific dry deposition velocity
+    IF ( State_Diag%Archive_DryDepVel_PFT1 .OR. &
+         State_Diag%Archive_DryDepVel_PFT2 .OR. &
+         State_Diag%Archive_DryDepVel_PFT3 .OR. &
+         State_Diag%Archive_DryDepVel_PFT4 .OR. &
+         State_Diag%Archive_DryDepVel_PFT5 ) THEN
+       State_Diag%Archive_DryDepVel_anyPFT = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Fraction of grid box occupied by the PFT
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyIUSE_PFT'
+    diagID  = 'EcophyIUSE_PFT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyIUSE_PFT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyIUSE_PFT = 0.0_f4
+       State_Diag%Archive_EcophyIUSE_PFT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyIUSE_PFT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf area index of the PFT
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyLAI'
+    diagID  = 'EcophyLAI'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyLAI ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyLAI = 0.0_f4
+       State_Diag%Archive_EcophyLAI = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyLAI, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+     !-----------------------------------------------------------------------
+     ! Aerodynamic resistance
+     !-----------------------------------------------------------------------
+     arrayID = 'State_Diag%EcophyRA'
+     diagID  = 'EcophyRA'
+     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+     IF ( Found ) THEN
+        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+        ALLOCATE( State_Diag%EcophyRA ( IM,JM ), STAT=RC )
+        CALL GC_CheckVar( arrayID, 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Diag%EcophyRA = 0.0_f4
+        State_Diag%Archive_EcophyRA = .TRUE.
+        CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRA, &
+                                 State_Chm, State_Diag, RC                    )
+        IF ( RC /= GC_SUCCESS ) RETURN
+     ENDIF
+ 
+     !-----------------------------------------------------------------------
+     ! Boundary layer resistance
+     !-----------------------------------------------------------------------
+     arrayID = 'State_Diag%EcophyRB_O3'
+     diagID  = 'EcophyRB_O3'
+     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+     IF ( Found ) THEN
+        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+        ALLOCATE( State_Diag%EcophyRB_O3 ( IM,JM ), STAT=RC )
+        CALL GC_CheckVar( arrayID, 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Diag%EcophyRB_O3 = 0.0_f4
+        State_Diag%Archive_EcophyRB_O3 = .TRUE.
+        CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRB_O3, &
+                                 State_Chm, State_Diag, RC                    )
+        IF ( RC /= GC_SUCCESS ) RETURN
+     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy stomatal conductance
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyG_CAN_OUT'
+    diagID  = 'EcophyG_CAN_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyG_CAN_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyG_CAN_OUT = 0.0_f4
+       State_Diag%Archive_EcophyG_CAN_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyG_CAN_OUT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy photosynthesis
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyA_CAN_OUT'
+    diagID  = 'EcophyA_CAN_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyA_CAN_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_CAN_OUT = 0.0_f4
+       State_Diag%Archive_EcophyA_CAN_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyA_CAN_OUT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy respiration
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyRESP_CAN_OUT'
+    diagID  = 'EcophyRESP_CAN_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyRESP_CAN_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRESP_CAN_OUT = 0.0_f4
+       State_Diag%Archive_EcophyRESP_CAN_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRESP_CAN_OUT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf level Stomatal conductance
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyG_LEAF_OUT'
+    diagID  = 'EcophyG_LEAF_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyG_LEAF_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyG_LEAF_OUT = 0.0_f4
+       State_Diag%Archive_EcophyG_LEAF_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyG_LEAF_OUT,  &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CO2 internal partial pressure
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyCO2_IN'
+    diagID  = 'EcophyCO2_IN'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyCO2_IN ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyCO2_IN = 0.0_f4
+       State_Diag%Archive_EcophyCO2_IN = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyCO2_IN,  &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf level net photosynthesis
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyA_NET_OUT'
+    diagID  = 'EcophyA_NET_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyA_NET_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_NET_OUT = 0.0_f4
+       State_Diag%Archive_EcophyA_NET_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyA_NET_OUT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf level respiration
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyRESP_OUT'
+    diagID  = 'EcophyRESP_OUT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyRESP_OUT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRESP_OUT = 0.0_f4
+       State_Diag%Archive_EcophyRESP_OUT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRESP_OUT,  &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Canopy ozone uptake flux
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyFLUXO3_CAN'
+    diagID  = 'EcophyFLUXO3_CAN'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyFLUXO3_CAN ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyFLUXO3_CAN = 0.0_f4
+       State_Diag%Archive_EcophyFLUXO3_CAN = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyFLUXO3_CAN, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Ozone damage factor
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyFACTOR_O3'
+    diagID  = 'EcophyFACTOR_O3'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyFACTOR_O3 ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyFACTOR_O3 = 0.0_f4
+       State_Diag%Archive_EcophyFACTOR_O3 = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyFACTOR_O3, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Soil moisture stress factor
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyBETA'
+    diagID  = 'EcophyBETA'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyBETA ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyBETA = 0.0_f4
+       State_Diag%Archive_EcophyBETA = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyBETA,  &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Maximum Rubisco Carboxylation rate
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyV_CMAX'
+    diagID  = 'EcophyV_CMAX'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyV_CMAX ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyV_CMAX = 0.0_f4
+       State_Diag%Archive_EcophyV_CMAX = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyV_CMAX,  &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Light-limited photosynthetic rate
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyRATE_LIGHT'
+    diagID  = 'EcophyRATE_LIGHT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyRATE_LIGHT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_LIGHT   = 0.0_f4
+       State_Diag%Archive_EcophyRATE_LIGHT   = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRATE_LIGHT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Rubisco-limited photosynthetic rate
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyRATE_RUBISCO'
+    diagID  = 'EcophyRATE_RUBISCO'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyRATE_RUBISCO ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_RUBISCO = 0.0_f4
+       State_Diag%Archive_EcophyRATE_RUBISCO = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRATE_RUBISCO, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Product-limited photosynthetic rate 
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyRATE_PRODUCT'
+    diagID  = 'EcophyRATE_PRODUCT'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyRATE_PRODUCT ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_PRODUCT = 0.0_f4
+       State_Diag%Archive_EcophyRATE_PRODUCT = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyRATE_PRODUCT, &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf level gross photosynthesis
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%EcophyA_GROSS'
+    diagID  = 'EcophyA_GROSS'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%EcophyA_GROSS ( IM,JM,nPFT ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_GROSS      = 0.0_f4
+       State_Diag%Archive_EcophyA_GROSS      = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%EcophyA_GROSS,  &
+                                State_Chm, State_Diag, RC                    )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -6549,6 +7094,181 @@ CONTAINS
        State_Diag%DryDepVel => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%DryDepVel_PFT1 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel_PFT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel_PFT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVel_PFT2 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel_PFT2, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel_PFT2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT2 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVel_PFT3 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel_PFT3, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel_PFT3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVel_PFT4 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel_PFT4, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel_PFT4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT4 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVel_PFT5 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel_PFT5, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel_PFT5', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel_PFT5 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyLAI ) ) THEN
+       DEALLOCATE( State_Diag%EcophyLAI, STAT=RC )
+       CALL GC_CheckVar( 'EcophyLAI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyLAI => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRA ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRA, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRB_O3 ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRB_O3, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRB_O3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRB_O3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyIUSE_PFT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyIUSE_PFT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyIUSE_PFT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyIUSE_PFT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyG_CAN_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyG_CAN_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyG_CAN_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyG_CAN_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyA_CAN_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyA_CAN_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyA_CAN_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_CAN_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRESP_CAN_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRESP_CAN_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRESP_CAN_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRESP_CAN_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyG_LEAF_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyG_LEAF_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyG_LEAF_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyG_LEAF_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyCO2_IN ) ) THEN
+       DEALLOCATE( State_Diag%EcophyCO2_IN, STAT=RC )
+       CALL GC_CheckVar( 'EcophyCO2_IN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyCO2_IN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyA_NET_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyA_NET_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyA_NET_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_NET_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRESP_OUT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRESP_OUT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRESP_OUT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRESP_OUT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyFLUXO3_CAN ) ) THEN
+       DEALLOCATE( State_Diag%EcophyFLUXO3_CAN, STAT=RC )
+       CALL GC_CheckVar( 'EcophyFLUXO3_CAN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyFLUXO3_CAN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyFLUXO3 ) ) THEN
+       DEALLOCATE( State_Diag%EcophyFLUXO3, STAT=RC )
+       CALL GC_CheckVar( 'EcophyFLUXO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyFLUXO3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyFACTOR_O3 ) ) THEN
+       DEALLOCATE( State_Diag%EcophyFACTOR_O3, STAT=RC )
+       CALL GC_CheckVar( 'EcophyFACTOR_O3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyFACTOR_O3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyBETA ) ) THEN
+       DEALLOCATE( State_Diag%EcophyBETA, STAT=RC )
+       CALL GC_CheckVar( 'EcophyBETA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyBETA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyV_CMAX ) ) THEN
+       DEALLOCATE( State_Diag%EcophyV_CMAX, STAT=RC )
+       CALL GC_CheckVar( 'EcophyV_CMAX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyV_CMAX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRATE_LIGHT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRATE_LIGHT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRATE_LIGHT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_LIGHT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRATE_RUBISCO ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRATE_RUBISCO, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRATE_RUBISCO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_RUBISCO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyRATE_PRODUCT ) ) THEN
+       DEALLOCATE( State_Diag%EcophyRATE_PRODUCT, STAT=RC )
+       CALL GC_CheckVar( 'EcophyRATE_PRODUCT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyRATE_PRODUCT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EcophyA_GROSS ) ) THEN
+       DEALLOCATE( State_Diag%EcophyA_GROSS, STAT=RC )
+       CALL GC_CheckVar( 'EcophyA_GROSS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EcophyA_GROSS => NULL()
+    ENDIF
+
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC )
@@ -8199,6 +8919,153 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL_PFT1' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for broadleaf tree'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL_PFT2' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for needleleaf tree'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL_PFT3' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for C3 grass'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL_PFT4' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for C4 grass'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL_PFT5' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for shrub'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYIUSE_PFT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Fraction of grid box occupied by the PFT'
+       IF ( isUnits   ) Units = '1000'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYLAI' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf area index of the PFT'
+       IF ( isUnits   ) Units = 'm2 m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRA' ) THEN 
+       IF ( isDesc    ) Desc  = 'Aerodynamic resistance'
+       IF ( isUnits   ) Units = 's m-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRB_O3' ) THEN 
+       IF ( isDesc    ) Desc  = 'Boundary layer resistance'
+       IF ( isUnits   ) Units = 's m-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYG_CAN_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy stomatal conductance'
+       IF ( isUnits   ) Units = 'm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYA_CAN_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy photosynthesis'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRESP_CAN_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy respiration'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYG_LEAF_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf level stomatal conductance'
+       IF ( isUnits   ) Units = 'm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYCO2_IN' ) THEN 
+       IF ( isDesc    ) Desc  = 'CO2 internal partial pressure'
+       IF ( isUnits   ) Units = 'Pa'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYA_NET_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf level net photosynthesis'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRESP_OUT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf level respiration'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYFLUXO3_CAN' ) THEN 
+       IF ( isDesc    ) Desc  = 'Canopy ozone uptake flux'
+       IF ( isUnits   ) Units = 'nmol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYFACTOR_O3' ) THEN 
+       IF ( isDesc    ) Desc  = 'Ozone damage factor'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYBETA' ) THEN 
+       IF ( isDesc    ) Desc  = 'Soil moisture stress factor'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYV_CMAX' ) THEN 
+       IF ( isDesc    ) Desc  = 'Maximum Rubisco Carboxylation rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRATE_LIGHT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Light-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRATE_RUBISCO' ) THEN 
+       IF ( isDesc    ) Desc  = 'Rubisco-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRATE_PRODUCT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Product-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYA_GROSS' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf level gross photosynthesis'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA2M' ) THEN
        IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
@@ -9438,6 +10305,8 @@ CONTAINS
           numTags = State_Chm%nKppVar
        CASE( 'WET'     )
           numTags = State_Chm%nWetDep
+       CASE( 'PFT'     )
+          numTags = 5
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
@@ -9468,7 +10337,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN', 'PFT' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -9540,6 +10409,11 @@ CONTAINS
           D       = INDEX( tagName, '_' )
           tagName = tagName(D+1:)
 
+       ! Olson land types
+       CASE( 'PFT' )
+          WRITE ( Nstr, "(I1)" ) D
+          tagName = 'PFT' // TRIM(Nstr)
+          
        ! Photolysis species
        CASE( 'PHO' )
 
