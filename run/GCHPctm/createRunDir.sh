@@ -99,27 +99,27 @@ fi
 # Ask user to select simulation type
 #-----------------------------------------------------------------
 printf "\nChoose simulation type:\n"
-printf "  1. TransportTracers\n"
-printf "  2. Standard\n"
-printf "  3. Benchmark\n"
+printf "  1. Standard\n"
+printf "  2. Benchmark\n"
+printf "  3. TransportTracers\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]
 do
     read sim_num
-    if [[ ${sim_num} = "1" ]]; then
-	sim_name=TransportTracers
-	sim_name_long=${sim_name}
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "2" ]]; then
+    elif [[ ${sim_num} = "1" ]]; then
 	sim_name=standard
 	sim_name_long=${sim_name}
 	sim_type=fullchem
 	valid_sim=1
-    elif [[ ${sim_num} = "3" ]]; then
+    elif [[ ${sim_num} = "2" ]]; then
 	sim_name=benchmark
 	sim_name_long=${sim_name}
 	sim_type=fullchem
+	valid_sim=1
+    elif [[ ${sim_num} = "3" ]]; then
+	sim_name=TransportTracers
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
 	valid_sim=1
     else
 	printf "Invalid simulation option. Try again.\n"
@@ -130,25 +130,13 @@ done
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
 printf "\nChoose meteorology source:\n"
-printf "  1. GEOS-FP (0.25x0.125)\n"
-printf "  2. MERRA2 (0.5x0.625)\n"
+printf "  1. MERRA-2 (0.5x0.625) - Recommended\n"
+printf "  2. GEOS-FP (0.25x0.3125)\n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]
 do
     read met_num
     if [[ ${met_num} = "1" ]]; then
-	met_name='GEOSFP'
-	met_resolution='025x03125'
-	met_native='0.25x0.3125'
-	met_latres='025'
-	met_lonres='03125'
-	met_extension='nc'
-	met_cn_year='2011'
-	pressure_unit='hPa'
-	pressure_scale='1.0 '
-	valid_met=1
-	dust_sf='6.42e-5'
-    elif [[ ${met_num} = "2" ]]; then
 	met_name='MERRA2'
 	met_resolution='05x0625'
 	met_native='0.5x0.625'
@@ -160,6 +148,18 @@ do
 	pressure_scale='0.01'
 	valid_met=1
 	dust_sf='3.86e-4'
+    elif [[ ${met_num} = "2" ]]; then
+	met_name='GEOSFP'
+	met_resolution='025x03125'
+	met_native='0.25x0.3125'
+	met_latres='025'
+	met_lonres='03125'
+	met_extension='nc'
+	met_cn_year='2011'
+	pressure_unit='hPa'
+	pressure_scale='1.0 '
+	valid_met=1
+	dust_sf='6.42e-5'
     else
 	printf "Invalid meteorology option. Try again.\n"
     fi
