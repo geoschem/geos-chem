@@ -4476,7 +4476,7 @@ CONTAINS
        State_Chm%HetInfo%BrNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%BrNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%BrNO3%TK   = -999.0_fp
+       State_Chm%HetInfo%BrNO3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'BrNO3 is undefined, but is needed for heterogeneous chemistry!'
@@ -4490,7 +4490,7 @@ CONTAINS
        State_Chm%HetInfo%BrSALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%BrSALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrSALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%BrSALA%TK   = -999.0_fp
+       State_Chm%HetInfo%BrSALA%TK   = 298.15_fp
     ELSE
        errMsg = &
         'BrSALA is undefined, but is needed for heterogeneous chemistry!'
@@ -4504,7 +4504,7 @@ CONTAINS
        State_Chm%HetInfo%BrSALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%BrSALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrSALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%BrSALC%TK   = -999.0_fp
+       State_Chm%HetInfo%BrSALC%TK   = 298.15_fp
     ELSE
        errMsg = &
         'BrSALC is undefined, but is needed for heterogeneous chemistry!'
@@ -4518,7 +4518,7 @@ CONTAINS
        State_Chm%HetInfo%ClNO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%ClNO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ClNO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%ClNO2%TK   = -999.0_fp
+       State_Chm%HetInfo%ClNO2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'ClNO2 is undefined, but is needed for heterogeneous chemistry!'
@@ -4532,7 +4532,7 @@ CONTAINS
        State_Chm%HetInfo%ClNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%ClNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ClNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%ClNO3%TK   = -999.0_fp
+       State_Chm%HetInfo%ClNO3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'ClNO3 is undefined, but is needed for heterogeneous chemistry!'
@@ -4546,7 +4546,7 @@ CONTAINS
        State_Chm%HetInfo%GLYX%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%GLYX%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%GLYX%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%GLYX%TK   = -999.0_fp
+       State_Chm%HetInfo%GLYX%TK   = 298.15_fp
     ELSE
        errMsg = &
         'GLYX is undefined, but is needed for heterogeneous chemistry!'
@@ -4560,7 +4560,7 @@ CONTAINS
        State_Chm%HetInfo%H2O%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%H2O%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%H2O%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%H2O%TK   = -999.0_fp
+       State_Chm%HetInfo%H2O%TK   = 298.15_fp
     ELSE
        errMsg = &
         'H2O is undefined, but is needed for heterogeneous chemistry!'
@@ -4574,7 +4574,7 @@ CONTAINS
        State_Chm%HetInfo%HBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HBr%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HBr%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HBr%TK   = -999.0_fp
+       State_Chm%HetInfo%HBr%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HBr is undefined, but is needed for heterogeneous chemistry!'
@@ -4588,7 +4588,7 @@ CONTAINS
        State_Chm%HetInfo%HCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HCl%TK   = -999.0_fp
+       State_Chm%HetInfo%HCl%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HCl is undefined, but is needed for heterogeneous chemistry!'
@@ -4602,7 +4602,7 @@ CONTAINS
        State_Chm%HetInfo%HI%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HI%TK   = -999.0_fp
+       State_Chm%HetInfo%HI%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HI is undefined, but is needed for heterogeneous chemistry!'
@@ -4616,7 +4616,7 @@ CONTAINS
        State_Chm%HetInfo%HNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HNO3%TK   = -999.0_fp
+       State_Chm%HetInfo%HNO3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HNO3 is undefined, but is needed for heterogeneous chemistry!'
@@ -4630,7 +4630,7 @@ CONTAINS
        State_Chm%HetInfo%HO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HO2%TK   = -999.0_fp
+       State_Chm%HetInfo%HO2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HO2 is undefined, but is needed for heterogeneous chemistry!'
@@ -4644,7 +4644,7 @@ CONTAINS
        State_Chm%HetInfo%HOI%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HOI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HOI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HOI%TK   = -999.0_fp
+       State_Chm%HetInfo%HOI%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HOI is undefined, but is needed for heterogeneous chemistry!'
@@ -4672,7 +4672,7 @@ CONTAINS
        State_Chm%HetInfo%HOCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HOCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HOCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HOCl%TK   = -999.0_fp
+       State_Chm%HetInfo%HOCl%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HOCl is undefined, but is needed for heterogeneous chemistry!'
@@ -4686,7 +4686,7 @@ CONTAINS
        State_Chm%HetInfo%HONIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HONIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HONIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HONIT%TK   = -999.0_fp
+       State_Chm%HetInfo%HONIT%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HONIT is undefined, but is needed for heterogeneous chemistry!'
@@ -4700,7 +4700,7 @@ CONTAINS
        State_Chm%HetInfo%HMML%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%HMML%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HMML%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%HMML%TK   = -999.0_fp
+       State_Chm%HetInfo%HMML%TK   = 298.15_fp
     ELSE
        errMsg = &
         'HONIT is undefined, but is needed for heterogeneous chemistry!'
@@ -4714,7 +4714,7 @@ CONTAINS
        State_Chm%HetInfo%I2O2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%I2O2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%I2O2%TK   = -999.0_fp
+       State_Chm%HetInfo%I2O2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'I2O2 is undefined, but is needed for heterogeneous chemistry!'
@@ -4728,7 +4728,7 @@ CONTAINS
        State_Chm%HetInfo%I2O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%I2O3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%I2O3%TK   = -999.0_fp
+       State_Chm%HetInfo%I2O3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'I2O3 is undefined, but is needed for heterogeneous chemistry!'
@@ -4742,7 +4742,7 @@ CONTAINS
        State_Chm%HetInfo%I2O4%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%I2O4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%I2O4%TK   = -999.0_fp
+       State_Chm%HetInfo%I2O4%TK   = 298.15_fp
     ELSE
        errMsg = &
         'I2O4 is undefined, but is needed for heterogeneous chemistry!'
@@ -4756,7 +4756,7 @@ CONTAINS
        State_Chm%HetInfo%IEPOXA%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IEPOXA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IEPOXA%TK   = -999.0_fp
+       State_Chm%HetInfo%IEPOXA%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IEPOXA is undefined, but is needed for heterogeneous chemistry!'
@@ -4770,7 +4770,7 @@ CONTAINS
        State_Chm%HetInfo%IEPOXB%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IEPOXB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IEPOXB%TK   = -999.0_fp
+       State_Chm%HetInfo%IEPOXB%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IEPOXB is undefined, but is needed for heterogeneous chemistry!'
@@ -4784,7 +4784,7 @@ CONTAINS
        State_Chm%HetInfo%IEPOXD%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IEPOXD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IEPOXD%TK   = -999.0_fp
+       State_Chm%HetInfo%IEPOXD%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IEPOXD is undefined, but is needed for heterogeneous chemistry!'
@@ -4798,7 +4798,7 @@ CONTAINS
        State_Chm%HetInfo%ICHE%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%ICHE%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ICHE%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%ICHE%TK   = -999.0_fp
+       State_Chm%HetInfo%ICHE%TK   = 298.15_fp
     ELSE
        errMsg = &
         'ICHE is undefined, but is needed for heterogeneous chemistry!'
@@ -4812,7 +4812,7 @@ CONTAINS
        State_Chm%HetInfo%IDN%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IDN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IDN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IDN%TK   = -999.0_fp
+       State_Chm%HetInfo%IDN%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IDN is undefined, but is needed for heterogeneous chemistry!'
@@ -4826,7 +4826,7 @@ CONTAINS
        State_Chm%HetInfo%IHN1%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IHN1%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN1%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IHN1%TK   = -999.0_fp
+       State_Chm%HetInfo%IHN1%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IHN1 is undefined, but is needed for heterogeneous chemistry!'
@@ -4840,7 +4840,7 @@ CONTAINS
        State_Chm%HetInfo%IHN2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IHN2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IHN2%TK   = -999.0_fp
+       State_Chm%HetInfo%IHN2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IHN2 is undefined, but is needed for heterogeneous chemistry!'
@@ -4854,7 +4854,7 @@ CONTAINS
        State_Chm%HetInfo%IHN3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IHN3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IHN3%TK   = -999.0_fp
+       State_Chm%HetInfo%IHN3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IHN3 is undefined, but is needed for heterogeneous chemistry!'
@@ -4868,7 +4868,7 @@ CONTAINS
        State_Chm%HetInfo%IHN4%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IHN4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IHN4%TK   = -999.0_fp
+       State_Chm%HetInfo%IHN4%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IHN4 is undefined, but is needed for heterogeneous chemistry!'
@@ -4882,7 +4882,7 @@ CONTAINS
        State_Chm%HetInfo%INPB%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%INPB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%INPB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%INPB%TK   = -999.0_fp
+       State_Chm%HetInfo%INPB%TK   = 298.15_fp
     ELSE
        errMsg = &
         'INPB is undefined, but is needed for heterogeneous chemistry!'
@@ -4896,7 +4896,7 @@ CONTAINS
        State_Chm%HetInfo%INPD%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%INPD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%INPD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%INPD%TK   = -999.0_fp
+       State_Chm%HetInfo%INPD%TK   = 298.15_fp
     ELSE
        errMsg = &
         'INPD is undefined, but is needed for heterogeneous chemistry!'
@@ -4910,7 +4910,7 @@ CONTAINS
        State_Chm%HetInfo%IONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IONITA%TK   = -999.0_fp
+       State_Chm%HetInfo%IONITA%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IHN4 is undefined, but is needed for heterogeneous chemistry!'
@@ -4924,7 +4924,7 @@ CONTAINS
        State_Chm%HetInfo%IONO%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IONO%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONO%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IONO%TK   = -999.0_fp
+       State_Chm%HetInfo%IONO%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IONO is undefined, but is needed for heterogeneous chemistry!'
@@ -4938,7 +4938,7 @@ CONTAINS
        State_Chm%HetInfo%IONO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%IONO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%IONO2%TK   = -999.0_fp
+       State_Chm%HetInfo%IONO2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'IONO2 is undefined, but is needed for heterogeneous chemistry!'
@@ -4952,7 +4952,7 @@ CONTAINS
        State_Chm%HetInfo%ITCN%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%ITCN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ITCN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%ITCN%TK   = -999.0_fp
+       State_Chm%HetInfo%ITCN%TK   = 298.15_fp
     ELSE
        errMsg = &
         'ITCN is undefined, but is needed for heterogeneous chemistry!'
@@ -4966,7 +4966,7 @@ CONTAINS
        State_Chm%HetInfo%ITHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%ITHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ITHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%ITHN%TK   = -999.0_fp
+       State_Chm%HetInfo%ITHN%TK   = 298.15_fp
     ELSE
        errMsg = &
         'ITHN is undefined, but is needed for heterogeneous chemistry!'
@@ -4980,7 +4980,7 @@ CONTAINS
        State_Chm%HetInfo%LVOC%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%LVOC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%LVOC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%LVOC%TK   = -999.0_fp
+       State_Chm%HetInfo%LVOC%TK   = 298.15_fp
     ELSE
        errMsg = &
         'LVOC is undefined, but is needed for heterogeneous chemistry!'
@@ -4994,7 +4994,7 @@ CONTAINS
        State_Chm%HetInfo%MCRHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MCRHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MCRHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MCRHN%TK   = -999.0_fp
+       State_Chm%HetInfo%MCRHN%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MCRHN is undefined, but is needed for heterogeneous chemistry!'
@@ -5008,7 +5008,7 @@ CONTAINS
        State_Chm%HetInfo%MCRHNB%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MCRHNB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MCRHNB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MCRHNB%TK   = -999.0_fp
+       State_Chm%HetInfo%MCRHNB%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MCRHNB is undefined, but is needed for heterogeneous chemistry!'
@@ -5022,7 +5022,7 @@ CONTAINS
        State_Chm%HetInfo%MGLY%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MGLY%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MGLY%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MGLY%TK   = -999.0_fp
+       State_Chm%HetInfo%MGLY%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MGLY is undefined, but is needed for heterogeneous chemistry!'
@@ -5036,7 +5036,7 @@ CONTAINS
        State_Chm%HetInfo%MONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MONITA%TK   = -999.0_fp
+       State_Chm%HetInfo%MONITA%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MONITA is undefined, but is needed for heterogeneous chemistry!'
@@ -5050,7 +5050,7 @@ CONTAINS
        State_Chm%HetInfo%MONITS%MW_g  = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MONITS%K0    = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITS%CR    = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MONITS%TK    = -999.0_fp
+       State_Chm%HetInfo%MONITS%TK    = 298.15_fp
     ELSE
        errMsg = &
         'MONITS is undefined, but is needed for heterogeneous chemistry!'
@@ -5064,7 +5064,7 @@ CONTAINS
        State_Chm%HetInfo%MONITU%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MONITU%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITU%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MONITU%TK   = -999.0_fp
+       State_Chm%HetInfo%MONITU%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MONITU is undefined, but is needed for heterogeneous chemistry!'
@@ -5078,7 +5078,7 @@ CONTAINS
        State_Chm%HetInfo%MVKN%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%MVKN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MVKN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%MVKN%TK   = -999.0_fp
+       State_Chm%HetInfo%MVKN%TK   = 298.15_fp
     ELSE
        errMsg = &
         'MVKN is undefined, but is needed for heterogeneous chemistry!'
@@ -5092,7 +5092,7 @@ CONTAINS
        State_Chm%HetInfo%N2O5%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%N2O5%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%N2O5%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%N2O5%TK   = -999.0_fp
+       State_Chm%HetInfo%N2O5%TK   = 298.15_fp
     ELSE
        errMsg = &
         'N2O5 is undefined, but is needed for heterogeneous chemistry!'
@@ -5106,7 +5106,7 @@ CONTAINS
        State_Chm%HetInfo%NIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%NIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%NIT%TK   = -999.0_fp
+       State_Chm%HetInfo%NIT%TK   = 298.15_fp
     ELSE
        errMsg = &
         'NIT is undefined, but is needed for heterogeneous chemistry!'
@@ -5120,7 +5120,7 @@ CONTAINS
        State_Chm%HetInfo%NITS%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%NITS%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NITS%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%NITS%TK   = -999.0_fp
+       State_Chm%HetInfo%NITS%TK   = 298.15_fp
     ELSE
        errMsg = &
         'NITS is undefined, but is needed for heterogeneous chemistry!'
@@ -5134,7 +5134,7 @@ CONTAINS
        State_Chm%HetInfo%NO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%NO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%NO2%TK   = -999.0_fp
+       State_Chm%HetInfo%NO2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'NO2 is undefined, but is needed for heterogeneous chemistry!'
@@ -5148,7 +5148,7 @@ CONTAINS
        State_Chm%HetInfo%NO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%NO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%NO3%TK   = -999.0_fp
+       State_Chm%HetInfo%NO3%TK   = 298.15_fp
     ELSE
        errMsg = &
         'NO3 is undefined, but is needed for heterogeneous chemistry!'
@@ -5176,7 +5176,7 @@ CONTAINS
        State_Chm%HetInfo%OH%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%OH%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%OH%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%OH%TK   = -999.0_fp
+       State_Chm%HetInfo%OH%TK   = 298.15_fp
     ELSE
        errMsg = &
         'OH is undefined, but is needed for heterogeneous chemistry!'
@@ -5190,7 +5190,7 @@ CONTAINS
        State_Chm%HetInfo%PYAC%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%PYAC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%PYAC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%PYAC%TK   = -999.0_fp
+       State_Chm%HetInfo%PYAC%TK   = 298.15_fp
     ELSE
        errMsg = &
         'PYAC is undefined, but is needed for heterogeneous chemistry!'
@@ -5204,7 +5204,7 @@ CONTAINS
        State_Chm%HetInfo%R4N2%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%R4N2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%R4N2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%R4N2%TK   = -999.0_fp
+       State_Chm%HetInfo%R4N2%TK   = 298.15_fp
     ELSE
        errMsg = &
         'R4N2 is undefined, but is needed for heterogeneous chemistry!'
@@ -5218,7 +5218,7 @@ CONTAINS
        State_Chm%HetInfo%SALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%SALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%SALA%TK   = -999.0_fp
+       State_Chm%HetInfo%SALA%TK   = 298.15_fp
     ELSE
        errMsg = &
         'SALA is undefined, but is needed for heterogeneous chemistry!'
@@ -5232,7 +5232,7 @@ CONTAINS
        State_Chm%HetInfo%SALACL%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%SALACL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALACL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%SALACL%TK   = -999.0_fp
+       State_Chm%HetInfo%SALACL%TK   = 298.15_fp
     ELSE
        errMsg = &
         'SALACL is undefined, but is needed for heterogeneous chemistry!'
@@ -5246,7 +5246,7 @@ CONTAINS
        State_Chm%HetInfo%SALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%SALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%SALC%TK   = -999.0_fp
+       State_Chm%HetInfo%SALC%TK   = 298.15_fp
     ELSE
        errMsg = &
         'SALC is undefined, but is needed for heterogeneous chemistry!'
@@ -5260,10 +5260,24 @@ CONTAINS
        State_Chm%HetInfo%SALCCL%MW_g = State_Chm%SpcData(N)%Info%MW_g
        State_Chm%HetInfo%SALCCL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALCCL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
-       State_Chm%HetInfo%SALCCL%TK   = -999.0_fp
+       State_Chm%HetInfo%SALCCL%TK   = 298.15_fp
     ELSE
        errMsg = &
         'SALCCL is undefined, but is needed for heterogeneous chemistry!'
+       CALL GC_Error( errmsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    N = Ind_('SO4')
+    IF ( N > 0 ) THEN
+       State_Chm%HetInfo%SO4%mId  = N
+       State_Chm%HetInfo%SO4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SO4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
+       State_Chm%HetInfo%SO4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
+       State_Chm%HetInfo%SO4%TK   = 298.15_fp
+    ELSE
+       errMsg = &
+        'SO4 is undefined, but is needed for heterogeneous chemistry!'
        CALL GC_Error( errmsg, RC, thisLoc )
        RETURN
     ENDIF
