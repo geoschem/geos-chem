@@ -172,7 +172,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE BIOMASSHG( Input_Opt, EHg0_bb, RC )
+  SUBROUTINE BIOMASSHG( Input_Opt, State_Grid, EHg0_bb, RC )
 !
 ! !USES:
 !
@@ -181,11 +181,14 @@ CONTAINS
     USE HCO_STATE_MOD,        ONLY : HCO_STATE
     USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
     USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),           INTENT(IN)  :: Input_Opt   ! Input Options
+    TYPE(GrdState),           INTENT(IN)  :: State_Grid
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -248,7 +251,7 @@ CONTAINS
        ! by HEMCO automatically. Output unit is as specified when
        ! defining diagnostics (kg/m2/s).
        DgnName = 'BIOMASS_HG0'
-       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )

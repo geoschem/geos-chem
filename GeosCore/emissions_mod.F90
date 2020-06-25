@@ -277,7 +277,7 @@ CONTAINS
     ! diagnostics output. (bmy, mps, 10/19/18)
     IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
        ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-       CALL EmissCh4( Input_Opt, State_Met, RC )
+       CALL EmissCh4( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

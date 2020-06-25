@@ -216,8 +216,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
@@ -269,8 +268,9 @@ CONTAINS
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
     REAL(fp)                :: PNOXLOSS
-    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
-    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+    REAL(f4), POINTER       :: Ptr2D        (:,:) => NULL()
+    REAL(f4), POINTER       :: PNOXLOSS_O3  (:,:)
+    REAL(f4), POINTER       :: PNOXLOSS_HNO3(:,:)
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
@@ -316,6 +316,9 @@ CONTAINS
     ! Initialize pointer
     SpcInfo           => NULL()
     DEPSAV            => State_Chm%DryDepSav
+
+    PNOxLoss_O3       => NULL()
+    PNOxLoss_HNO3     => NULL()
 
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
@@ -380,22 +383,37 @@ CONTAINS
        id_HBr  = Ind_('HBr'  )
        id_BrNO3= Ind_('BrNO3')
 
-       ! On first call, get pointers to the PARANOX loss fluxes. These are
-       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-       ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-       ! respective diagnostics. The pointers will remain unassociated if
-       ! the diagnostics do not exist.
-       ! This is only needed if non-local PBL scheme is not being used.
-       ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
-       !  (ckeller, 4/10/2015)
-       IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_O3_DEPOSITION_FLUX', &
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_HNO3_DEPOSITION_FLUX',&
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
-       ENDIF
        FIRST = .FALSE.
+    ENDIF
+
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist.
+    ! This is only needed if non-local PBL scheme is not being used.
+    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
+    !  (ckeller, 4/10/2015)
+    !
+    ! If using HEMCO Intermediate grid feature, then the call needs to be
+    ! refreshed at every time step for regridding. (hplin, 6/21/20)
+    IF ( .NOT. Input_Opt%LNLPBL ) THEN
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_O3_DEPOSITION_FLUX', &
+                            .FALSE.,   RC, Ptr2D = Ptr2D          )
+      IF( ASSOCIATED( Ptr2D )) THEN
+        ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        PNOxLoss_O3(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_HNO3_DEPOSITION_FLUX',&
+                            .FALSE.,   RC, Ptr2D = Ptr2D        )
+      IF( ASSOCIATED( Ptr2D )) THEN
+        ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -839,6 +857,9 @@ CONTAINS
 
   ! Nullify pointers
   NULLIFY( DEPSAV )
+
+  IF ( ASSOCIATED( PNOxLoss_O3 ) )   DEALLOCATE( PNOxLoss_O3 )
+  IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
 
   END SUBROUTINE DO_TEND
 !EOC

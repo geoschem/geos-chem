@@ -1566,7 +1566,7 @@ CONTAINS
     ! print error and cut off JXTRAL at lower L if too many levels
     if ( failed ) then
        IF ( Input_Opt%FJX_EXTRAL_ERR ) THEN
-          write(6,'(A,2I5,F9.2)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
        ENDIF
        do L = L2,1,-1
           JXTRA(L) = 0
@@ -1584,7 +1584,7 @@ CONTAINS
     do L2 = L2X,1,-1
        JTOTL  = JTOTL + JXTRA(L2)
        if (JTOTL .gt. NX/2)  then
-          write(6,'(A,2I5,F9.2)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
           do L = L2,1,-1
              JXTRA(L) = 0
           enddo
