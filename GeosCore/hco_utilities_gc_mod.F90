@@ -38,6 +38,7 @@ MODULE HCO_Utilities_GC_Mod
   PUBLIC   :: GetHcoValDep
   PUBLIC   :: HCO_GC_EvalFld                ! Shim interface for HCO_EvalFld
   PUBLIC   :: HCO_GC_GetPtr                 ! Shim interface for HCO_GetPtr
+  PUBLIC   :: HCO_GC_GetDiagn               ! Shim interface for GetHcoDiagn
 
 #if defined( MODEL_CLASSIC )
   !=========================================================================
@@ -46,7 +47,7 @@ MODULE HCO_Utilities_GC_Mod
   !=========================================================================
   PUBLIC   :: Regrid_MDL2HCO
   PUBLIC   :: Regrid_HCO2MDL
-  PRIVATE  :: Init_IMGrid
+  PUBLIC   :: Init_IMGrid
 
   !=========================================================================
   ! These are only needed for GEOS-Chem "Classic"
@@ -72,7 +73,12 @@ MODULE HCO_Utilities_GC_Mod
   INTERFACE HCO_GC_GetPtr
     MODULE PROCEDURE HCO_GC_GetPtr_2D
     MODULE PROCEDURE HCO_GC_GetPtr_3D
-  END INTERFACE HCO_Gc_GetPtr
+  END INTERFACE HCO_GC_GetPtr
+
+  INTERFACE HCO_GC_GetDiagn
+    MODULE PROCEDURE HCO_GC_GetDiagn_2D
+    MODULE PROCEDURE HCO_GC_GetDiagn_3D
+  END INTERFACE HCO_GC_GetDiagn
 !
 ! !PRIVATE TYPES:
 !
@@ -98,8 +104,9 @@ MODULE HCO_Utilities_GC_Mod
 
   ! f4 variant temporaries.
   ! not directly used for regrid, used for pointing and downgrading data
-  REAL(f4), POINTER                    :: TMP_MDL_r4(:,:,:)
-  REAL(f4), POINTER                    :: TMP_HCO_r4(:,:,:)
+  REAL(f4), POINTER                    :: TMP_MDL_r4 (:,:,:)
+  REAL(f4), POINTER                    :: TMP_MDL_r4b(:,:,:)
+  REAL(f4), POINTER                    :: TMP_HCO_r4 (:,:,:)
 
   CHARACTER(LEN=255)                   :: LAST_TMP_REGRID_M2H       ! Last regridded container name
   CHARACTER(LEN=255)                   :: LAST_TMP_REGRID_H2M       ! ... HEMCO to Model
@@ -235,15 +242,6 @@ CONTAINS
     TMP_MDL_target => NULL()
 
     IF ( Input_Opt%LIMGRID ) THEN
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
-      !$OMP CRITICAL
-
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
-
       IF ( PRESENT(AltBuffer) ) THEN
         IF ( AltBuffer ) THEN
           TMP_AltBuffer = .true.
@@ -258,16 +256,23 @@ CONTAINS
 
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
-      WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_Trc_", TrcID
-      IF( (.not. TMP_AltBuffer .and. TMP_TrcIDFldName /= LAST_TMP_REGRID_H2M) .and. &
-          (      TMP_AltBuffer .and. TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb) ) THEN   ! Not already in buffer
 
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
+      WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_Trc_", TrcID
+      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
+
+        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb, TMP_AltBuffer
+
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val) ) THEN  ! Present! Read in the data
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb, TMP_AltBuffer
-
             ! Retrieve data into the HEMCO temporary!
             ! First, clear the buffer name. We are not sure if this was found yet.
             IF (.not. TMP_AltBuffer) THEN
@@ -297,8 +302,8 @@ CONTAINS
             ENDIF
 
             IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return"
-          ENDIF
-        ENDIF
+          ENDIF ! Associated
+        ENDIF ! TrcID > 0
       ELSE ! Already in buffer! Just read the pointer data
         Found = .true.
         Emis  = TMP_MDL_target(I,J,L)
@@ -382,24 +387,23 @@ CONTAINS
     CHARACTER(LEN=32)  :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_TrcD_<id>
 
     IF ( Input_Opt%LIMGRID ) THEN
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!
-      !$OMP CRITICAL
-
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
-
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_TrcD_", TrcID
+
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val)) ) RETURN
+
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!
+      !$OMP CRITICAL
       IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
+
+        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val) ) THEN  ! Present! Read in the data
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
 
             ! Retrieve data into the HEMCO temporary!
             ! First, clear the buffer name. We are not sure if this was found yet.
@@ -503,11 +507,6 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
-
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
 
       ! Sanity check - output array must be sized correctly for MODEL grid 
       IF ( SIZE(Arr3D, 1) /= State_Grid%NX .or. SIZE(Arr3D, 2) /= State_Grid%NY ) THEN
@@ -642,11 +641,6 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
-
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
 
       ! Sanity check - output array must be sized correctly for MODEL grid 
       IF ( SIZE(Arr2D, 1) /= State_Grid%NX .or. SIZE(Arr2D, 2) /= State_Grid%NY ) THEN
@@ -807,7 +801,7 @@ CONTAINS
 
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=512)               :: ErrMsg
-    CHARACTER(LEN=255)               :: TMP_GetPtrFldName
+    CHARACTER(LEN=80)                :: TMP_GetPtrFldName
 
     ! Pointers
     REAL(sp), POINTER                :: TMP_Ptr2D(:,:)
@@ -825,12 +819,6 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
-
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
-
       ! Build the name which requires a unique recognition of the time index,
       ! in case they are read sequentially
       write(TMP_GetPtrFldName, '(a,i4)') DctName, iTIDX
@@ -840,7 +828,7 @@ CONTAINS
         IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
-        LAST_TMP_REGRID_H2M = "_HCO_Eval2D_TBD"
+        LAST_TMP_REGRID_H2M = "_HCO_Ptr2D_TBD"
 
         ! Now retrieve data into the HEMCO temporary!
         CALL HCO_GetPtr( HcoState, DctName, TMP_Ptr2D, RC, iTIDX, iFOUND, iFILLED )
@@ -848,17 +836,19 @@ CONTAINS
         ! If failure, return up the chain. The calls to this function will
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
-
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
         
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
+
+          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Dim Debug", SIZE(TMP_HCO, 1), SIZE(TMP_HCO, 2), SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
 
           ! hplin debug PS
-          ! IF ( DctName == "USTAR" ) THEN
+          ! IF ( DctName == "TO3" ) THEN
           !   WRITE(6,*) "====================================="
           !   WRITE(6,*) "hplin debug GetPtr_2D: BEFORE REGRID field", DctName, iTIDX, SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
           !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
@@ -876,8 +866,11 @@ CONTAINS
 
           IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid complete"
 
+          ! Free the pointer
+          TMP_Ptr2D => NULL()
+
           ! hplin debug PS
-          ! IF ( DctName == "USTAR" ) THEN
+          ! IF ( DctName == "TO3" ) THEN
           !   WRITE(6,*) "====================================="
           !   WRITE(6,*) "hplin debug GetPtr_2D: AFTER REGRID field", DctName
           !   WRITE(6,*) "Grid sizes: GridNXNY, GridHCONXNY", State_Grid%NX, State_Grid%NY, State_Grid_HCO%NX, State_Grid_HCO%NY
@@ -912,6 +905,17 @@ CONTAINS
 #endif
       ! In which case, we just pass the call through
       CALL HCO_GetPtr( HcoState, DctName, Ptr2D, RC, iTIDX, iFOUND, iFILLED )
+
+      ! IF ( DctName == "TO3" ) THEN
+      !     WRITE(6,*) "====================================="
+      !     WRITE(6,*) "hplin debug GetPtr_2D: no REGRID field", DctName, iTIDX, SIZE(Ptr2D, 1), SIZE(Ptr2D, 2)
+      !     WRITE(6,*) "Grid sizes: GridNXNY", State_Grid%NX, State_Grid%NY
+      !     DO II = 1, State_Grid%NX
+      !       WRITE(6,*) "I(MdlGrid) = ", II
+      !       WRITE(6,*) "Field(I,:)", Ptr2D(II,:)
+      !     ENDDO
+      !     WRITE(6,*) "====================================="
+      !   ENDIF
 #ifdef MODEL_CLASSIC
     ENDIF
 #endif
@@ -996,7 +1000,7 @@ CONTAINS
 
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=512)               :: ErrMsg
-    CHARACTER(LEN=255)               :: TMP_GetPtrFldName
+    CHARACTER(LEN=80)                :: TMP_GetPtrFldName
 
     ! Pointers
     REAL(sp), POINTER                :: TMP_Ptr3D(:,:,:)
@@ -1015,11 +1019,6 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
 
-      ! Initialize shadow regridding handles if they are not ready
-      IF ( .not. ASSOCIATED( LonEdgeM ) ) THEN
-        CALL Init_IMGrid ( Input_Opt, State_Grid, State_Grid_HCO )
-      ENDIF
-
       ! Build the name which requires a unique recognition of the time index,
       ! in case they are read sequentially
       write(TMP_GetPtrFldName, '(a,i4)') DctName, iTIDX
@@ -1029,7 +1028,7 @@ CONTAINS
         IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
-        LAST_TMP_REGRID_H2M = "_HCO_Eval3D_TBD"
+        LAST_TMP_REGRID_H2M = "_HCO_Ptr3D_TBD"
 
         ! Now retrieve data into the HEMCO temporary!
         CALL HCO_GetPtr( HcoState, DctName, TMP_Ptr3D, RC, iTIDX, iFOUND, iFILLED )
@@ -1037,14 +1036,14 @@ CONTAINS
         ! If failure, return up the chain. The calls to this function will
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
-
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
         
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
 
           ! Get z-boundary
           ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
@@ -1055,6 +1054,9 @@ CONTAINS
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
           IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Regrid complete"
+
+          ! Free the pointer
+          TMP_Ptr3D => NULL()
 
           ! Copy to the r4 so you can downgrade the precision for GetPtr calls
           ! for backwards compatibility
@@ -1100,6 +1102,348 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE HCO_GC_GetPtr_3D
+!EOC
+!------------------------------------------------------------------------------
+!                    Harmonized Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_GetDiagn_3D
+!
+! !DESCRIPTION: Subroutine HCO_GC_GetDiagn is a shim for the original GetHcoDiagn.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GC_GetDiagn_3D ( Input_Opt,      State_Grid, DiagnName, &
+                                  StopIfNotFound, RC,         Ptr3D,     &
+                                  COL,            AutoFill,   AltBuffer )
+!
+! !USES:
+!
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : ExtState
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+#ifdef MODEL_CLASSIC
+    USE HCO_State_GC_Mod,     ONLY : State_Grid_HCO
+#endif
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(OptInput),     INTENT(IN   )  :: Input_Opt  ! Input options
+    TYPE(GrdState),     INTENT(IN   )  :: State_Grid ! Grid State
+    CHARACTER(LEN=*),   INTENT(IN   )  :: DiagnName  ! Name of diagnostics
+    LOGICAL,            INTENT(IN   )  :: StopIfNotFound
+
+    INTEGER, OPTIONAL,  INTENT(IN   )  :: COL        ! Collection Nr.
+    INTEGER, OPTIONAL,  INTENT(IN   )  :: AutoFill   ! Autofill diagnostics only?
+
+    LOGICAL, OPTIONAL,  INTENT(IN   )  :: AltBuffer  ! Alternate buffer? (Use B)
+!
+! !OUTPUT ARGUMENTS:
+!
+    REAL(sp),           POINTER        :: Ptr3D(:,:,:)
+    INTEGER,            INTENT(INOUT)  :: RC
+!
+! !REMARKS:
+!  See GetPtr. Note that this allows an alternative buffer to be used to
+!  avoid conflict in reading the cached pointer.
+!
+!  FOR SAFETY SAKE, DESTROY THE POINTER READ FROM THIS ROUTINE BEFORE THE NEXT
+!  CALL TO HCO_GC_GetDiagn OR YOU WILL HAVE WRONG DATA FED TO YOU!
+!
+! !REVISION HISTORY:
+!  21 Jun 2020 - H.P. Lin  - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+#ifdef MODEL_CLASSIC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
+    INTEGER            :: ZBND
+    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
+    REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
+    REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
+
+    ! Subroutine call temporaries
+    INTEGER            :: iCOL, iAF
+    REAL(sp), POINTER  :: TMP_Ptr3D(:,:,:)
+
+    iCOL = HcoState%Diagn%HcoDiagnIDManual
+    IF ( PRESENT(COL) ) THEN
+      iCOL = COL
+    ENDIF
+
+    iAF = -1
+    IF ( PRESENT(AutoFill) ) THEN
+      iAF = AutoFill
+    ENDIF
+
+    TMP_MDL_target => NULL()
+
+    IF ( Input_Opt%LIMGRID ) THEN
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
+
+      IF ( PRESENT(AltBuffer) ) THEN
+        IF ( AltBuffer ) THEN
+          TMP_AltBuffer = .true.
+        ENDIF
+      ENDIF
+
+      IF ( TMP_AltBuffer ) THEN 
+        TMP_MDL_target => TMP_MDLb
+        TMP_MDL_target4 => TMP_MDL_r4b
+      ELSE
+        TMP_MDL_target => TMP_MDL
+        TMP_MDL_target4 => TMP_MDL_r4
+      ENDIF
+
+      ! ... on-demand intermediate regridding. Check if we already have this field
+      WRITE(TMP_DiagnFldName, *) "_Dgn_", DiagnName
+      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
+
+        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+
+        ! For safety, overwrite the temporary
+        LAST_TMP_REGRID_H2M = "_HCO_Dgn3D_TBD"
+
+        ! Now retrieve data into the HEMCO temporary!
+        ! Note that the data is in sp and has to be promoted for regridding,
+        ! then demoted again for output.
+        CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
+                          Ptr3D=TMP_Ptr3D,    COL=iCOL,  AutoFill=iAF )
+
+        ! If failure, return up the chain. The calls to this function will
+        ! be able to propagate the error above.
+        IF ( RC /= GC_SUCCESS ) RETURN
+        
+        ! If not found, return
+        IF ( ASSOCIATED( TMP_Ptr3D ) ) THEN
+
+          ! Get z-boundary
+          ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Lookup complete", TMP_DiagnFldName, ZBND
+
+          ! Copy data to the temporary
+          TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
+
+          CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid complete"
+
+          ! Free the pointer
+          TMP_Ptr3D => NULL()
+
+          ! Copy to the r4 so you can downgrade the precision for GetPtr calls
+          ! for backwards compatibility
+          TMP_MDL_target4(:,:,1:ZBND) = TMP_MDL(:,:,1:ZBND)
+
+          ! Point to target dummy
+          Ptr3D => TMP_MDL_target4(:,:,1:ZBND)
+
+          ! The output should be pointing to Ptr2D (in TMP_MDL:,:,1) and ready to go.
+          LAST_TMP_REGRID_H2M = TMP_DiagnFldName
+          LAST_TMP_MDL_ZBND   = ZBND ! Remember the z-boundary ... will be used later
+
+        ENDIF
+
+      ELSE ! Already in buffer! Just read the pointer data
+        Ptr3D => TMP_MDL_target4(:,:,1:LAST_TMP_MDL_ZBND)
+        ! ... fill the ptr
+      ENDIF
+      !$OMP END CRITICAL
+      ! End of LIMGRID OMP Critical section
+    ELSE
+#endif
+      ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
+      CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
+                        Ptr3D=Ptr3D,        COL=iCOL,  AutoFill=iAF )
+#ifdef MODEL_CLASSIC
+    ENDIF
+
+    TMP_MDL_target => NULL()
+    TMP_MDL_target4 => NULL()
+#endif
+
+  END SUBROUTINE HCO_GC_GetDiagn_3D
+!EOC
+!------------------------------------------------------------------------------
+!                    Harmonized Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_GetDiagn_2D
+!
+! !DESCRIPTION: Subroutine HCO_GC_GetDiagn is a shim for the original GetHcoDiagn.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GC_GetDiagn_2D ( Input_Opt,      State_Grid, DiagnName, &
+                                  StopIfNotFound, RC,         Ptr2D,     &
+                                  COL,            AutoFill,   AltBuffer )
+!
+! !USES:
+!
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : ExtState
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+#ifdef MODEL_CLASSIC
+    USE HCO_State_GC_Mod,     ONLY : State_Grid_HCO
+#endif
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(OptInput),     INTENT(IN   )  :: Input_Opt  ! Input options
+    TYPE(GrdState),     INTENT(IN   )  :: State_Grid ! Grid State
+    CHARACTER(LEN=*),   INTENT(IN   )  :: DiagnName  ! Name of diagnostics
+    LOGICAL,            INTENT(IN   )  :: StopIfNotFound
+
+    INTEGER, OPTIONAL,  INTENT(IN   )  :: COL        ! Collection Nr.
+    INTEGER, OPTIONAL,  INTENT(IN   )  :: AutoFill   ! Autofill diagnostics only?
+
+    LOGICAL, OPTIONAL,  INTENT(IN   )  :: AltBuffer  ! Alternate buffer? (Use B)
+!
+! !OUTPUT ARGUMENTS:
+!
+    REAL(sp),           POINTER        :: Ptr2D(:,:)
+    INTEGER,            INTENT(INOUT)  :: RC
+!
+! !REMARKS:
+!  See GetPtr. Note that this allows an alternative buffer to be used to
+!  avoid conflict in reading the cached pointer.
+!
+!  FOR SAFETY SAKE, DESTROY THE POINTER READ FROM THIS ROUTINE BEFORE THE NEXT
+!  CALL TO HCO_GC_GetDiagn OR YOU WILL HAVE WRONG DATA FED TO YOU!
+!
+! !REVISION HISTORY:
+!  21 Jun 2020 - H.P. Lin  - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+#ifdef MODEL_CLASSIC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
+    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
+    REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
+    REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
+
+    ! Subroutine call temporaries
+    INTEGER            :: iCOL, iAF
+    REAL(sp), POINTER  :: TMP_Ptr2D(:,:)
+
+    TMP_MDL_target => NULL()
+
+    iCOL = HcoState%Diagn%HcoDiagnIDManual
+    IF ( PRESENT(COL) ) THEN
+      iCOL = COL
+    ENDIF
+
+    iAF = -1
+    IF ( PRESENT(AutoFill) ) THEN
+      iAF = AutoFill
+    ENDIF
+
+    IF ( Input_Opt%LIMGRID ) THEN
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
+
+      IF ( PRESENT(AltBuffer) ) THEN
+        IF ( AltBuffer ) THEN
+          TMP_AltBuffer = .true.
+        ENDIF
+      ENDIF
+
+      IF ( TMP_AltBuffer ) THEN 
+        TMP_MDL_target => TMP_MDLb
+        TMP_MDL_target4 => TMP_MDL_r4b
+      ELSE
+        TMP_MDL_target => TMP_MDL
+        TMP_MDL_target4 => TMP_MDL_r4
+      ENDIF
+
+      ! ... on-demand intermediate regridding. Check if we already have this field
+      WRITE(TMP_DiagnFldName, *) "_Dgn_", DiagnName
+      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
+
+        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+
+        ! For safety, overwrite the temporary
+        LAST_TMP_REGRID_H2M = "_HCO_Dgn2D_TBD"
+
+        ! Now retrieve data into the HEMCO temporary!
+        ! Note that the data is in sp and has to be promoted for regridding,
+        ! then demoted again for output.
+        CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
+                          Ptr2D=TMP_Ptr2D,    COL=iCOL,  AutoFill=iAF )
+
+        ! If failure, return up the chain. The calls to this function will
+        ! be able to propagate the error above.
+        IF ( RC /= GC_SUCCESS ) RETURN
+        
+        ! If not found, return
+        IF ( ASSOCIATED( TMP_Ptr2D ) ) THEN
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Lookup complete", TMP_DiagnFldName
+
+          ! Copy data to the temporary
+          TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
+
+          CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
+
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Regrid complete"
+
+          ! Free the pointer
+          TMP_Ptr2D => NULL()
+
+          ! Copy to the r4 so you can downgrade the precision for GetDgn calls
+          ! for backwards compatibility
+          TMP_MDL_target4(:,:,1) = TMP_MDL(:,:,1)
+
+          ! Point to target dummy
+          Ptr2D => TMP_MDL_target4(:,:,1)
+
+          ! The output should be pointing to Ptr2D (in TMP_MDL:,:,1) and ready to go.
+          LAST_TMP_REGRID_H2M = TMP_DiagnFldName
+          LAST_TMP_MDL_ZBND   = 1 ! Remember the z-boundary ... will be used later
+
+        ENDIF
+
+      ELSE ! Already in buffer! Just read the pointer data
+        Ptr2D => TMP_MDL_target4(:,:,1)
+        ! ... fill the ptr
+      ENDIF
+      !$OMP END CRITICAL
+      ! End of LIMGRID OMP Critical section
+    ELSE
+#endif
+      ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
+      CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
+                        Ptr2D=Ptr2D,        COL=iCOL,  AutoFill=iAF )
+#ifdef MODEL_CLASSIC
+    ENDIF
+
+    TMP_MDL_target => NULL()
+    TMP_MDL_target4 => NULL()
+#endif
+
+  END SUBROUTINE HCO_GC_GetDiagn_2D
 !EOC
 #if defined ( MODEL_CLASSIC )
 !------------------------------------------------------------------------------
@@ -1676,7 +2020,7 @@ CONTAINS
 210         FORMAT( 12x, ' STATE_PSC: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF ( Input_OPt%amIRoot ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
 #ifdef ESMF_
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
@@ -2070,6 +2414,12 @@ CONTAINS
          ! and convert from [mol/mol] to [kg/kg dry]
          State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
 
+         ! Debug
+         ! Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
+         !         MINVAL(State_Chm%BoundaryCond(:,:,:,N)), &
+         !         MAXVAL(State_Chm%BoundaryCond(:,:,:,N)), &
+         !         SUM(State_Chm%BoundaryCond(:,:,:,N))
+
       ELSE
 
          ! Print to log if debug is turned on in input.geos
@@ -2395,6 +2745,9 @@ CONTAINS
     ! Intermediate grid functionality?
     IF ( .not. Input_Opt%LIMGRID ) RETURN
 
+    ! Are we allocated?
+    IF ( ASSOCIATED(LonEdgeM) ) RETURN
+
     ! TMP_MDL, TMP_HCO 3D IJK, TMP_MDLb (alternate model buffer)
     ! LAST_TMP_REGRID_M2H, LAST_TMP_REGRID_H2M, H2Mb
     ! LonEdgeH, LatEdgeH (actually SIN), LonEdgeM, LatEdgeM (actually SIN) -- NX+1, NY+1
@@ -2426,8 +2779,9 @@ CONTAINS
     ALLOCATE(TMP_MDLb(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
     ALLOCATE(TMP_HCO (State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
 
-    ALLOCATE(TMP_MDL_r4(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
-    ALLOCATE(TMP_HCO_r4(State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_MDL_r4 (State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_MDL_r4b(State_Grid    %NX, State_Grid    %NY, State_Grid%NZ+1), STAT=RC)
+    ALLOCATE(TMP_HCO_r4 (State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid%NZ+1), STAT=RC)
 
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in allocating model and HEMCO temporaries!'

@@ -85,20 +85,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSCH4( Input_Opt, State_Met, RC )
+  SUBROUTINE EMISSCH4( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState ! for extension 
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE ErrCode_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Met_Mod,        ONLY : MetState
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -197,7 +199,7 @@ CONTAINS
     ! Oil
     !-------------------
     DgnName = 'CH4_OIL'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -216,7 +218,7 @@ CONTAINS
     ! Gas
     !-------------------
     DgnName = 'CH4_GAS'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -235,7 +237,7 @@ CONTAINS
     ! Coal
     !-------------------
     DgnName = 'CH4_COAL'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -254,7 +256,7 @@ CONTAINS
     ! Livestock
     !-------------------
     DgnName = 'CH4_LIVESTOCK'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -273,7 +275,7 @@ CONTAINS
     ! Landfills
     !-------------------
     DgnName = 'CH4_LANDFILLS'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -292,7 +294,7 @@ CONTAINS
     ! Wastewater
     !-------------------
     DgnName = 'CH4_WASTEWATER'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -311,7 +313,7 @@ CONTAINS
     ! Rice
     !-------------------
     DgnName = 'CH4_RICE'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -330,7 +332,7 @@ CONTAINS
     ! Other anthropogenic
     !-------------------
     DgnName = 'CH4_ANTHROTHER'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -349,7 +351,7 @@ CONTAINS
     ! Biomass burning
     !-------------------
     DgnName = 'CH4_BIOMASS'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -368,7 +370,7 @@ CONTAINS
     ! Wetland
     !-------------------
     DgnName = 'CH4_WETLAND'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -387,7 +389,7 @@ CONTAINS
     ! Global seeps
     !-------------------
     DgnName = 'CH4_SEEPS'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -406,7 +408,7 @@ CONTAINS
     ! Lakes
     !-------------------
     DgnName = 'CH4_LAKES'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -425,7 +427,7 @@ CONTAINS
     ! Termites
     !-------------------
     DgnName = 'CH4_TERMITES'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN
@@ -444,7 +446,7 @@ CONTAINS
     ! Soil absorption (those are negative!)
     !-------------------
     DgnName = 'CH4_SOILABSORB'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
     ! Trap potential errors and assign HEMCO pointer to array
     IF ( RC /= GC_SUCCESS ) THEN

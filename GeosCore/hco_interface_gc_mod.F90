@@ -228,6 +228,7 @@ CONTAINS
     ! HEMCO Intermediate Grid specification
     USE HCO_State_GC_Mod,   ONLY : State_Grid_HCO
     USE GC_Grid_Mod,        ONLY : Compute_Scaled_Grid
+    USE HCO_Utilities_GC_Mod, ONLY : Init_IMGrid
 #endif
 
 !
@@ -308,7 +309,8 @@ CONTAINS
     Input_Opt%IMGRID_YSCALE = 1
 
     ! To test GC-Classic WITHOUT intermediate grid
-    ! Input_Opt%IMGRID_SCALE = 1
+    ! Input_Opt%IMGRID_XSCALE = 1
+    ! Input_Opt%IMGRID_YSCALE = 1
 
     ! Are we using HEMCO intermediate grid implementation?
     ! Note: The mere presence of State_Grid_HCO does not mean
@@ -336,6 +338,9 @@ CONTAINS
       ALLOCATE( REGR_3DO( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ+1 ), STAT=RC )
       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Init:REGR_3DO', 0, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! And within the utilities module
+      CALL Init_IMGrid( Input_Opt, State_Grid, State_Grid_HCO )
     ELSE
       ! Intermediate grid is same as model grid. Maintain current implementation
       ! all computations about State_Grid_HCO can be skipped to save memory.
@@ -1060,7 +1065,7 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( notDryRun ) THEN
           ! Set fields either as pointer targets or else.
-          ! TODO: Eventually need to regrid those for ImGrid.
+          ! Regrid those for ImGrid.
           CALL ExtState_SetFields( Input_Opt, State_Chm, State_Met, &
                                    HcoState,  ExtState,  HMRC )
 
@@ -1074,7 +1079,7 @@ CONTAINS
           ENDIF
 
           ! Update fields directly from State_Met.
-          ! TODO: Eventually need to regrid those for ImGrid.
+          ! Regrid those for ImGrid.
           CALL ExtState_UpdateFields( Input_Opt, State_Chm,            &
                                       State_Grid, State_Met, HcoState, &
                                       ExtState,   HMRC )
@@ -1690,7 +1695,7 @@ CONTAINS
     ! ----------------------------------------------------------------------
     IF ( ExtState%SZAFACT%DoUse ) THEN
        ALLOCATE( HCO_SZAFACT( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_SZAFACT = 0e0_hp
 
@@ -1705,14 +1710,14 @@ CONTAINS
     ! ----------------------------------------------------------------------
     IF ( ExtState%JNO2%DoUse ) THEN
        ALLOCATE( JNO2( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        JNO2 = 0.0e0_hp
     ENDIF
 
     IF ( ExtState%JOH%DoUse ) THEN
        ALLOCATE( JOH( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 0, RC )
        JOH = 0.0e0_hp
     ENDIF
 
@@ -2949,7 +2954,6 @@ CONTAINS
     ENDIF
 
     ! Compute SZAFACT, JNO2 and JOH on MODEL GRID
-
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
@@ -3143,7 +3147,7 @@ CONTAINS
 
     ! TK/T
     IF ( ExtState%TK%DoUse ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%SPHU(:,:,1:State_Grid%NZ)
+      REGR_3DI(:,:,1:State_Grid%NZ) = State_Met%T(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -4606,7 +4610,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOI_Compute_Sflx_for_Vdiff
+! !IROUTINE: Compute_Sflx_for_Vdiff
 !
 ! !DESCRIPTION: Computes the surface flux (\= emissions - drydep) for the
 !  non-local PBL mixing.  This code was removed from within the non-local
@@ -4626,9 +4630,8 @@ CONTAINS
     USE ErrCode_Mod
     USE Get_Ndep_Mod,         ONLY : Soil_Drydep
     USE Global_CH4_Mod,       ONLY : CH4_Emis
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
-    USE HCO_EmisList_Mod,     ONLY : HCO_GetPtr
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState   
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -4691,6 +4694,8 @@ CONTAINS
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
 
+    LOGICAL                 :: EmisSpec, DepSpec
+
     ! Strings
     CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
@@ -4705,8 +4710,11 @@ CONTAINS
 
     ! Pointers and Objects
     REAL(fp),       POINTER :: spc(:,:,:)
-    REAL(f4), SAVE, POINTER :: PNOxLoss_O3  (:,:) => NULL()
-    REAL(f4), SAVE, POINTER :: PNoxLoss_HNO3(:,:) => NULL()
+    REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
+
+    REAL(f4),       POINTER :: PNOxLoss_O3(:,:)
+    REAL(f4),       POINTER :: PNOxLoss_HNO3(:,:)
+
     TYPE(Species),  POINTER :: ThisSpc
 
     !=======================================================================
@@ -4722,6 +4730,9 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
     ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
+
+    PNOXLoss_HNO3 => NULL()
+    PNOxLoss_O3   => NULL()
 
     ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
     IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
@@ -4742,43 +4753,54 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! First-time setup: Get pointers to the PARANOX loss fluxes.
+    ! Get pointers to the PARANOX loss fluxes.
     ! These are stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
     ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
     ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
     ! respective diagnostics. The pointers will remain unassociated if
     ! the diagnostics do not exist.
+    !
+    ! The arrays are now allocated and copied to to accommodate for the
+    ! HEMCO intermediate grid feature, as we want the regridded data to
+    ! be kept for the rest of this subroutine call.
     !=======================================================================
     IF ( FIRST ) THEN
-
-       ! Get species IDs
-       id_O3   = Ind_('O3'  )
-       id_HNO3 = Ind_('HNO3')
+      ! Get species IDs
+      id_O3   = Ind_('O3'  )
+      id_HNO3 = Ind_('HNO3')
 
 #if !defined( MODEL_CESM )
        IF ( id_O3 > 0 ) THEN
-          CALL GetHcoDiagn(                                                  &
-               HcoState       = HcoState,                                    &
-               ExtState       = ExtState,                                    &
+          CALL HCO_GC_GetDiagn(                                              &
+               Input_Opt,  State_Grid,                                       &
                DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                &
                StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = PNOxLoss_O3,                                 &
+               Ptr2D          = Ptr2D,                                       &
                RC             = RC                                          )
        ENDIF
+
+       IF( ASSOCIATED( Ptr2D )) THEN
+          ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+          PNOxLoss_O3(:,:) = Ptr2D(:,:)
+       ENDIF
+       Ptr2D => NULL()
 
        IF ( id_HNO3 > 0 ) THEN
-          CALL GetHcoDiagn(                                                  &
-               HcoState       = HcoState,                                    &
-               ExtState       = ExtState,                                    &
+          CALL HCO_GC_GetDiagn(                                              &
+               Input_Opt,  State_Grid,                                       &
                DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',              &
                StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = PNOxLoss_HNO3,                               &
+               Ptr2D          = Ptr2D,                                       &
                RC             = RC                                          )
        ENDIF
-#endif
 
-       ! Reset first-time flag
-       FIRST = .FALSE.
+       IF( ASSOCIATED( Ptr2D )) THEN
+          ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+          PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
+       ENDIF
+
+       Ptr2D => NULL()
+#endif
     ENDIF
 
     !=======================================================================
@@ -4799,6 +4821,9 @@ CONTAINS
 
       ! Point to the corresponding entry in the species database
       ThisSpc => State_Chm%SpcData(N)%Info
+
+      ! Check if there is emissions or deposition for this species
+      CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
 
       !$OMP PARALLEL DO                                                        &
       !$OMP DEFAULT( SHARED )                                                  &
@@ -4839,7 +4864,7 @@ CONTAINS
            !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
            eflx(I,J,NA) = HG_EMIS(I,J,NA)
 
-        ELSE
+        ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp
@@ -4860,10 +4885,12 @@ CONTAINS
         ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
         ! (ckeller, 04/01/2014)
         !------------------------------------------------------------------
-        CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
-        IF ( found ) THEN
-           dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                        + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
+        IF ( DepSpec ) THEN
+          CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
+          IF ( found ) THEN
+             dflx(I,J,NA) = dflx(I,J,NA)                                     &
+                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
+          ENDIF
         ENDIF
       ENDDO ! I
       ENDDO ! J
@@ -5023,12 +5050,12 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
-    !WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
-    !DO NA = 1, State_Chm%nAdvect
+    ! WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
+    ! DO NA = 1, State_Chm%nAdvect
     !   WRITE(6,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
     !   WRITE(6,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
     !   WRITE(6,*) 'sflx TRACER ', NA, ': ', SUM(State_Chm%SurfaceFlux(:,:,NA))
-    !ENDDO
+    ! ENDDO
 
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
@@ -5135,6 +5162,10 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Cleanup
+    IF ( ASSOCIATED( PNOxLoss_O3 ) )   DEALLOCATE( PNOxLoss_O3 )
+    IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
 
   END SUBROUTINE Compute_Sflx_For_Vdiff
 !EOC
