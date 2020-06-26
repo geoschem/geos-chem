@@ -615,11 +615,12 @@ CONTAINS
     Call GetExtOpt ( HcoState%Config, Inst%ExtNrSS, 'Model sea salt Br-', &
     	 	     OptValBool=Inst%CalcBrSalt, RC=RC )
     IF ( Inst%CalcBrSalt ) THEN
-       minLen = minLen+2
+       minLen = 4
        CALL GetExtOpt( HcoState%Config, Inst%ExtNrSS, 'Br- mass ratio', &
        	    OptValDp=Inst%BrContent, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
+       minLen = 2
        Inst%IDTBrSALA = -1
        Inst%IDTBrSALC = -1
        Inst%BrContent = 0.0d0
