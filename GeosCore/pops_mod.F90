@@ -2106,18 +2106,78 @@ CONTAINS
     !=================================================================
     id_POPG      = Ind_('POPG'        )
     dd_POPG      = Ind_('POPG',    'D')
+    IF ( id_POPG < 0 ) THEN
+       id_POPG   = Ind_('POPG_BaP')
+       dd_POPG   = Ind_('POPG_BaP','D')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG   = Ind_('POPG_PHE')
+       dd_POPG   = Ind_('POPG_PHE','D')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG   = Ind_('POPG_PYR')
+       dd_POPG   = Ind_('POPG_PYR','D')
+    ENDIF
 
     id_POPPOCPO  = Ind_('POPPOCPO'    )
     dd_POPP_OCPO = Ind_('POPPOCPO','D')
+    IF ( id_POPPOCPO < 0 ) THEN
+       id_POPPOCPO   = Ind_('POPPOCPO_BaP')
+       dd_POPP_OCPO  = Ind_('POPPOCPO_BaP','D')
+    ENDIF
+    IF ( id_POPPOCPO < 0 ) THEN
+       id_POPPOCPO   = Ind_('POPPOCPO_PHE')
+       dd_POPP_OCPO  = Ind_('POPPOCPO_PHE','D')
+    ENDIF
+    IF ( id_POPPOCPO < 0 ) THEN
+       id_POPPOCPO   = Ind_('POPPOCPO_PYR')
+       dd_POPP_OCPO  = Ind_('POPPOCPO_PYR','D')
+    ENDIF
 
     id_POPPBCPO  = Ind_('POPPBCPO'    )
     dd_POPP_BCPO = Ind_('POPPBCPO','D')
+    IF ( id_POPPBCPO < 0 ) THEN
+       id_POPPBCPO   = Ind_('POPPBCPO_BaP')
+       dd_POPP_BCPO  = Ind_('POPPBCPO_BaP','D')
+    ENDIF
+    IF ( id_POPPBCPO < 0 ) THEN
+       id_POPPBCPO   = Ind_('POPPBCPO_PHE')
+       dd_POPP_BCPO  = Ind_('POPPBCPO_PHE','D')
+    ENDIF
+    IF ( id_POPPBCPO < 0 ) THEN
+       id_POPPBCPO   = Ind_('POPPBCPO_PYR')
+       dd_POPP_BCPO  = Ind_('POPPBCPO_PYR','D')
+    ENDIF
 
     id_POPPOCPI  = Ind_('POPPOCPI'    )
     dd_POPP_OCPI = Ind_('POPPOCPI','D')
+    IF ( id_POPPOCPI < 0 ) THEN
+       id_POPPOCPI   = Ind_('POPPOCPI_BaP')
+       dd_POPP_OCPI  = Ind_('POPPOCPI_BaP','D')
+    ENDIF
+    IF ( id_POPPOCPI < 0 ) THEN
+       id_POPPOCPI   = Ind_('POPPOCPI_PHE')
+       dd_POPP_OCPI  = Ind_('POPPOCPI_PHE','D')
+    ENDIF
+    IF ( id_POPPOCPI < 0 ) THEN
+       id_POPPOCPI   = Ind_('POPPOCPI_PYR')
+       dd_POPP_OCPI  = Ind_('POPPOCPI_PYR','D')
+    ENDIF
 
     id_POPPBCPI  = Ind_('POPPBCPI'    )
     dd_POPP_BCPI = Ind_('POPPBCPI','D')
+    IF ( id_POPPBCPI < 0 ) THEN
+       id_POPPBCPI   = Ind_('POPPBCPI_BaP')
+       dd_POPP_BCPI  = Ind_('POPPBCPI_BaP','D')
+    ENDIF
+    IF ( id_POPPBCPI < 0 ) THEN
+       id_POPPBCPI   = Ind_('POPPBCPI_PHE')
+       dd_POPP_BCPI  = Ind_('POPPBCPI_PHE','D')
+    ENDIF
+    IF ( id_POPPBCPI < 0 ) THEN
+       id_POPPBCPI   = Ind_('POPPBCPI_PYR')
+       dd_POPP_BCPI  = Ind_('POPPBCPI_PYR','D')
+    ENDIF
 
   END SUBROUTINE INIT_POPS
 !EOC

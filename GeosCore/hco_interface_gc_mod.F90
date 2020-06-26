@@ -213,6 +213,15 @@ CONTAINS
     id_NO2   = Ind_('NO2' )
     id_O3    = Ind_('O3'  )
     id_POPG  = Ind_('POPG')
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_BaP')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_PHE')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_PYR')
+    ENDIF
 
     ! Create a splash page
     IF ( Input_Opt%amIRoot ) THEN

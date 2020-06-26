@@ -108,21 +108,15 @@ MODULE Chem_GridCompMod
   END TYPE GEOSCHEM_Wrap
 
   ! For passing from internal state to Chm_State and vice versa
-#if defined( MODEL_GEOS )
   TYPE Int2SpcMap
      CHARACTER(LEN=255)            :: Name
      INTEGER                       :: ID
+#if defined( MODEL_GEOS )
      REAL, POINTER                 :: Internal(:,:,:) => NULL()
-  END TYPE Int2SpcMap
 #else
-  ! SDE 2016-03-28: Assume that Int2Spc is held as v/v dry
-  TYPE Int2SpcMap
-     CHARACTER(LEN=255)            :: TrcName
-     INTEGER                       :: TrcID
-     REAL                          :: TCVV
      REAL(ESMF_KIND_R8), POINTER   :: Internal(:,:,:) => NULL()
-  END TYPE Int2SpcMap
 #endif
+  END TYPE Int2SpcMap
 
   ! For mapping State_Chm%Tracers/Species arrays onto the internal state.
   TYPE(Int2SpcMap), POINTER        :: Int2Spc(:) => NULL()
@@ -780,14 +774,10 @@ CONTAINS
           IF ( SpcName(1:2) == 'RR' ) CYCLE
        
           DO J=1,Nadv !Size of AdvSpc
-#if defined( MODEL_GEOS )
              IF (trim(AdvSpc(J)) .eq. trim(SpcName)) THEN
                 FOUND = .true.
                 EXIT
              ENDIF
-#else
-             IF (trim(AdvSpc(J)) .eq. trim(SpcName)) FOUND = .true.
-#endif
           END DO
        
 #if defined( MODEL_GEOS )
@@ -1881,6 +1871,11 @@ CONTAINS
     TYPE(ESMF_STATE)             :: INTSTATE 
     TYPE(ESMF_Field)             :: GcFld
 
+    ! Species information
+    TYPE(Species), POINTER       :: SpcInfo
+
+    CHARACTER(LEN=ESMF_MAXSTR)   :: fieldName
+
 #if defined( MODEL_GEOS )
     ! Does GEOS-Chem restart file exist?
     ! Before broadcasting, we check if there is an import restart file for
@@ -1898,10 +1893,7 @@ CONTAINS
     TYPE(ESMF_STATE)             :: Aero
     TYPE(ESMF_FieldBundle)       :: AeroBdl 
     TYPE(ESMF_Field)             :: AeroFld
-    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName, fieldName
-
-    ! v11: species
-    TYPE(Species), POINTER       :: SpcInfo
+    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
 
     ! To read various options 
     INTEGER                      :: DoIt 
@@ -1913,7 +1905,7 @@ CONTAINS
     INTEGER                      :: N, trcID
     TYPE(ESMF_Time)              :: CurrTime    ! Current time of the ESMF clock
     TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
-    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_R8(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D(:,:,:) => NULL()
 #endif
 
     __Iam__('Initialize_')
@@ -2419,83 +2411,52 @@ CONTAINS
     ! (as specified in input.geos), the tracers must not be friendly to
     ! the GEOS-5 moist / turbulence components!
     !=======================================================================
-#if defined( MODEL_GEOS )
     nFlds = State_Chm%nSpecies
-#else
-    ! GCHP uses nAdvect (bug?):
-    nFlds = State_Chm%nAdvect
-#endif
     ALLOCATE( Int2Spc(nFlds), STAT=STATUS )
     _ASSERT(STATUS==0,'Int2Spc could not be allocated')
 
     ! Do for every tracer in State_Chm
     DO I = 1, nFlds
 
-#if defined( MODEL_GEOS )
        SpcInfo => State_Chm%SpcData(I)%Info
-#else
-       ! Get info about this species from the species database
-       N = State_Chm%Map_Advect(I)
-       ThisSpc => State_Chm%SpcData(N)%Info
-#endif
 
        ! Pass tracer name
-#if defined( MODEL_GEOS )
        Int2Spc(I)%Name = TRIM(SpcInfo%Name)
+#if defined( MODEL_GEOS )
        IF ( TRIM(Int2Spc(I)%Name) == 'POX' ) Int2Spc(I)%Name = 'POx'
        IF ( TRIM(Int2Spc(I)%Name) == 'LOX' ) Int2Spc(I)%Name = 'LOx'
-#else
-       Int2Spc(I)%TrcName = TRIM(ThisSpc%Name)
 #endif
 
        ! Get tracer ID
-#if defined( MODEL_GEOS )
-       ! Do not use Ind_() to get tracer ID. It may return the wrong tracer ID
-       ! for species with the same hash (ckeller, 10/6/17)
-       !!!Int2Spc(I)%ID = Ind_( TRIM(Int2Spc(I)%Name) )
-       Int2Spc(I)%ID = SpcInfo%ModelID
-#else
-       Int2Spc(I)%TrcID = IND_( TRIM(Int2Spc(I)%TrcName) )
-#endif
+       Int2Spc(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
 
        ! If tracer ID is not valid, make sure all vars are at least defined.
-#if defined( MODEL_GEOS )
        IF ( Int2Spc(I)%ID <= 0 ) THEN
           Int2Spc(I)%Internal => NULL()
           CYCLE
        ENDIF
-#else
-       IF ( Int2Spc(I)%TrcID <= 0 ) THEN
-          Int2Spc(I)%Internal => NULL()
-          CYCLE
-       ENDIF
-#endif
 
        ! Get internal state field
-#if defined( MODEL_GEOS )
        fieldName = TRIM(SPFX)//TRIM(Int2Spc(I)%Name)
        CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
+
+#if defined( MODEL_GEOS )
        IF ( STATUS /= ESMF_SUCCESS ) THEN
+          ! Check that it doesn't have old tracer prefix if not found
           fieldName = TRIM(TPFX)//TRIM(Int2Spc(I)%Name)
           CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
        ENDIF 
-#else
-       CALL ESMF_StateGet( INTSTATE, TRIM(SPFX) // TRIM(Int2Spc(I)%TrcName), &
-                           GcFld, RC=STATUS )
 #endif
 
        ! This is mostly for testing 
        IF ( STATUS /= ESMF_SUCCESS ) THEN
           IF( am_I_Root ) THEN
              WRITE(*,*) 'Cannot find in internal state: ', TRIM(SPFX) &
-#if defined( MODEL_GEOS )
                         //TRIM(Int2Spc(I)%Name),I
           ENDIF
           Int2Spc(I)%Internal => NULL()
+#if defined( MODEL_GEOS )
           CYCLE
-#else
-                        //TRIM(Int2Spc(I)%TrcName),I
-          ENDIF
           _ASSERT(.FALSE.,'Error finding internal state variable')
 #endif
        ENDIF
@@ -2541,29 +2502,13 @@ CONTAINS
              _ASSERT(.FALSE.,'Error in Friendly settings')
           ENDIF
        ENDIF
+#endif
 
        ! Get pointer to field
        CALL ESMF_FieldGet( GcFld, 0, Ptr3D, __RC__ )
        Int2Spc(I)%Internal => Ptr3D
-
-       ! Verbose
-       !IF ( am_I_Root ) THEN
-       !    WRITE(*,*) 'Connected ',TRIM(SpcInfo%Name), &
-       !    ' <--> ',TRIM(fieldName),'; MW: ',SpcInfo%EmMW_g
-       !ENDIF
-
-       ! Free pointers
-       Ptr3D   => NULL()
+       Ptr3D => NULL()
        SpcInfo => NULL()
-#else
-       ! Get pointer to field
-       CALL ESMF_FieldGet( GcFld, 0, Ptr3D_R8, __RC__ )
-       Int2Spc(I)%Internal => Ptr3D_R8
-
-       ! Free pointers
-       Ptr3D_R8 => NULL()
-       ThisSpc  => NULL()
-#endif
 
     ENDDO
 
@@ -3653,17 +3598,17 @@ CONTAINS
 #include "Includes_Before_Run.H"
        CALL MAPL_TimerOff(STATE, "CP_BFRE")
 
-#if !defined( MODEL_GEOS )
-      !=======================================================================
-      ! Pass advected tracers from internal state to GEOS-Chem tracers array
-      !=======================================================================
-      DO I = 1, SIZE(Int2Spc,1)
-         IF ( Int2Spc(I)%TrcID <= 0 ) CYCLE
-         State_Chm%Species(:,:,:,Int2Spc(I)%TrcID) = Int2Spc(I)%Internal
-      ENDDO
-      
-      ! Flip in the vertical
-      State_Chm%Species   = State_Chm%Species( :, :, State_Grid%NZ:1:-1, : )
+#if defined( MODEL_GCHP )
+       !=======================================================================
+       ! Pass species from internal state to GEOS-Chem tracers array
+       !=======================================================================
+       DO I = 1, SIZE(Int2Spc,1)
+          IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+          State_Chm%Species(:,:,:,Int2Spc(I)%ID) = Int2Spc(I)%Internal
+       ENDDO
+       
+       ! Flip in the vertical
+       State_Chm%Species   = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
 
        !=======================================================================
        ! On first call, also need to initialize the species from restart file.
@@ -4074,12 +4019,12 @@ CONTAINS
 #      include "Includes_After_Run.H"
 #endif
 
-#if !defined( MODEL_GEOS )
+#if defined( MODEL_GCHP )
        State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
        
        DO I = 1, SIZE(Int2Spc,1)
-          IF ( Int2Spc(I)%TrcID <= 0 ) CYCLE
-          Int2Spc(I)%Internal = State_Chm%Species(:,:,:,Int2Spc(I)%TrcID)
+          IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+          Int2Spc(I)%Internal = State_Chm%Species(:,:,:,Int2Spc(I)%ID)
        ENDDO
 #endif
 
