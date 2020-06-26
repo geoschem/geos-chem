@@ -1534,6 +1534,8 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
+          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+
           ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
           ! emission rates) to the tracer arrays and performs PBL

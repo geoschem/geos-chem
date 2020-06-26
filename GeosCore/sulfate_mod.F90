@@ -844,8 +844,9 @@ CONTAINS
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
     USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -992,7 +993,7 @@ CONTAINS
     ! READ IN HEMCO EMISSIONS
     !================================================================
     DgnName = 'SO4_ANTH'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
     IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
        CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
     ELSE
@@ -2286,9 +2287,8 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld, HCO_GC_GetDiagn
 #ifdef APM
     USE APM_DRIV_MOD,       ONLY : PSO4GAS
     USE APM_DRIV_MOD,       ONLY : XO3
@@ -2410,6 +2410,7 @@ CONTAINS
     REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
+    REAL(f4), POINTER     :: Ptr2D(:,:) => NULL()
 
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2469,30 +2470,46 @@ CONTAINS
     ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
     ! will stay nullified. Values of zero will be used in this
     ! case! (ckeller, 01/12/2015)
+
+    ! Now retrieve the pointer data on every call for the HEMCO on-demand
+    ! regridding in GC-Classic (hplin, 6/25/20)
+
+    ! Sea salt density, fine mode
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_FINE', &
+                      StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_FINE!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( Ptr2D ) ) THEN
+      ALLOCATE( NDENS_SALA( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      NDENS_SALA(:,:) = Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+
+    ! Sea salt density, coarse mode
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_COARSE', &
+                      StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( Ptr2D ) ) THEN
+      ALLOCATE( NDENS_SALC( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      NDENS_SALC(:,:) = Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+
+
     IF ( FIRST ) THEN
-
-       ! Sea salt density, fine mode
-       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_FINE', &
-                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
-
-       ! Trap potential errors
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_FINE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Sea salt density, coarse mode
-       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_COARSE', &
-                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
-
-       ! Trap potential errors
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
        ! Adjust first flag
        FIRST = .FALSE.
     ENDIF
@@ -3664,6 +3681,10 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Deallocate if allocated
+    IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE ( NDENS_SALA )
+    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE ( NDENS_SALC )
+
     ! Free pointers
     Spc     => NULL()
     pHCloud => NULL()
@@ -3671,6 +3692,8 @@ CONTAINS
     SSAlk   => NULL()
     H2O2s   => NULL()
     SO2s    => NULL()
+    NDENS_SALA => NULL()
+    NDENS_SALC => NULL()
 
   END SUBROUTINE CHEM_SO2
 !EOC
