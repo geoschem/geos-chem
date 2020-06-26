@@ -100,7 +100,6 @@ SUBROUTINE INTEGRATE( TIN, TOUT, &
      WHERE(RCNTRL_U(:) > 0) RCNTRL(:) = RCNTRL_U(:)
    END IF
 
-
    CALL Rosenbrock(NVAR,VAR,TIN,TOUT,   &
          ATOL,RTOL,                &
          RCNTRL,ICNTRL,RSTATUS,ISTATUS,IERR)
@@ -270,7 +269,7 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 !~~~>  Initialize statistics
    ISTATUS(1:8) = 0
    RSTATUS(1:3) = ZERO
-
+   
 !~~~>  Autonomous or time dependent ODE. Default is time dependent.
    Autonomous = .NOT.(ICNTRL(1) == 0)
 
@@ -397,7 +396,6 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
         RETURN
       END IF
     END DO
-
 
 !~~~>  CALL Rosenbrock method
    CALL ros_Integrator(Y, Tstart, Tend, Texit,   &

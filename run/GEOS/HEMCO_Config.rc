@@ -125,6 +125,8 @@ Warnings:                    1
 # corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
 #   OFFLINE_BIOGENICVOC - MEGAN
+#    - Note: MEGAN must always be on for certain
+#            species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
 #--------------------------------------------
@@ -177,14 +179,12 @@ Warnings:                    1
 #C720 --> Mass tuning factor     : 2.3e-4
     --> Mass tuning factor     :       5.0416e-4
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : on    SALA/SALC/Br2/BrSALA/BrSALC/MOPO/MOPI
-    --> SALA lower radius      :       0.01 
+107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
+    --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
-    --> Emit Br2               :       false
-    --> Br2 scaling            :       1.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -877,19 +877,19 @@ Warnings:                    1
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2015-10/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2016/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2019/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2015-10/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2016/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2019/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -1269,15 +1269,15 @@ Warnings:                    1
 # --- NOAA GMD monthly mean surface CH4 ---
 #==============================================================================
 (((GMD_SFC_CH4
-* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 C xy ppbv * - 1 1 
+* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 RY xy ppbv * - 1 1
 )))GMD_SFC_CH4
 
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 ---
-# NOTE: This is only used if NOAA data is unavailible (pre 1979)
+# NOTE: This is only used if NOAA data is unavailable (pre 1979)
 #==============================================================================
 (((CMIP6_SFC_CH4
-* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 C xy ppbv * - 1 1
+* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 EY xy ppbv * - 1 1
 )))CMIP6_SFC_CH4
 
 #==============================================================================
@@ -1448,6 +1448,52 @@ Warnings:                    1
 * XLAI72 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
 
+#==============================================================================
+# --- Inputs for the RRTMG radiative transfer model ---
+#
+# NOTE: The 2 x 2.5 albedo fields and emissivity fields will produce
+# differences at the level of numerical noise when comparing output to
+# simulations from prior versions (esp. when running at 4 x 5 resolution).
+# You might see larger differences w/r/t prior verisons for a few grid boxes
+# along the coastline of Antarctica, where the difference in resolution
+# and regridding will be more apparent in the sharp transition from ice to
+# ocean.  If this is a problem, you can use the data files at 4x5 resolution
+# for 4x5 RRTMG simulations.
+#
+# ALSO NOTE: The algorithm that HEMCO uses to select each time slice is
+# likely different than what was implemented when reading the old bpch
+# data from disk.  This can also cause differences when comparing to
+# prior versions.
+#==============================================================================
+(((RRTMG
+* MODIS_ALBDFNIR      $ROOT/RRTMG/v2018-11/modis_surf_albedo.2x25.nc     ALBDFNIR        2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_ALBDFVIS      $ROOT/RRTMG/v2018-11/modis_surf_albedo.2x25.nc     ALBDFVIS        2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_ALBDRNIR      $ROOT/RRTMG/v2018-11/modis_surf_albedo.2x25.nc     ALBDRNIR        2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_ALBDRVIS      $ROOT/RRTMG/v2018-11/modis_surf_albedo.2x25.nc     ALBDRVIS        2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_01 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band01  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_02 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band02  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_03 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band03  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_04 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band04  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_05 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band05  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_06 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band06  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_07 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band07  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_08 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band08  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_09 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band09  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_10 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band10  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_11 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band11  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_12 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band12  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_13 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band13  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_14 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band14  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_15 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band15  2002/1-12/1-31/0 C xy  1    * - 1 1
+* MODIS_EMISSIVITY_16 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band16  2002/1-12/1-31/0 C xy  1    * - 1 1
+* TES_CLIM_CCL4       $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CCl4            2000/1/1/0       C xyz ppbv * - 1 1
+* TES_CLIM_CFC11      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC11           2000/1/1/0       C xyz ppbv * - 1 1
+* TES_CLIM_CFC12      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC12           2000/1/1/0       C xyz ppbv * - 1 1
+* TES_CLIM_CFC22      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC22           2000/1/1/0       C xyz ppbv * - 1 1
+* TES_CLIM_CH4        $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CH4             2000/1/1/0       C xyz ppbv * - 1 1
+* TES_CLIM_N2O        $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc N2O             2000/1/1/0       C xyz ppbv * - 1 1
+)))RRTMG
+
 (((SfcVMR
 #==============================================================================
 # --- CMIP6 files ---
@@ -1457,56 +1503,37 @@ Warnings:                    1
 # NOTE for GEOS:
 # ==> Need to download these files to use.
 #==============================================================================
-* SfcVMR_CH3Cl  $ROOT/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_$YYYY.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_$YYYY.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CHCl3  $ROOT/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_$YYYY.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH3Br  $ROOT/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_$YYYY.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Cl  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CHCl3  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Br  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 
 #==============================================================================
-# --- GMI files ---
+# --- WMO-2018 files (GMI) ---
 #==============================================================================
-* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/GMI/surface_VMRs_GMI_$YYYY.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-
-#==============================================================================
-# --- UCX files ---
-#==============================================================================
-# * SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH3Br    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH3Cl    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH4      $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_H1211    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_H1301    $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_N2O      $ROOT/SfcFix/v2019-12/UCX/surface_VMRs_UCX_$YYYY.nc  N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H2402    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc C2BR2F4     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
 
 #==============================================================================
 # --- Dummy files with a single surface concentration (for OCS and H2) ---
 #==============================================================================
-* SfcVMR_OCS  $ROOT/SfcFix/v2019-12/surface_VMR_OCS.nc OCS 1985/1/1/0  C xy ppbv * - 1 1
-* SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
+* SfcVMR_OCS  $ROOT/SfcFix/v2019-12/surface_VMR_OCS.2x25.nc OCS 1985/1/1/0  C xy ppbv * - 1 1
+* SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.2x25.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
 )))SfcVMR
 
 #==============================================================================

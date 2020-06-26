@@ -208,7 +208,7 @@ CONTAINS
     !=======================================================================
     ! Read the species metadata from YAML files into a QFYAML object
     !=======================================================================
-    CALL Read_Species_Database( yml, RC )
+    CALL Read_Species_Database( Input_Opt, yml, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in routine "Read_Species_Database"!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -331,6 +331,11 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_Hstar = DBLE( v_real )       ! Don't round off
+
+          ELSE IF ( INDEX( key, "%DD_KOA" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%DD_KOA = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -734,12 +739,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Species_Database( yml, RC )
+  SUBROUTINE Read_Species_Database( Input_Opt, yml, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE QFYAML_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -756,7 +766,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=255) :: fileDir
     CHARACTER(LEN=255) :: fileName
     CHARACTER(LEN=255) :: thisLoc
     CHARACTER(LEN=512) :: errMsg
@@ -776,88 +785,10 @@ CONTAINS
     thisLoc = &
     " -> at Read Species Database (in module Headers/species_database_mod.F90)"
 
-    ! Set the directory for the species database file
-#if defined( MODEL_CLASSIC )
-    fileDir = "./CodeDir/src/GEOS-Chem/Headers/"
-#elif defined( MODEL_GCHP )
-    fileDir = "./CodeDir/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/Headers/"
-#endif
-
-#if defined(APM)
     !=======================================================================
-    ! APM microphysics: Read metadata for GEOS-Chem + APM species
-    !=======================================================================
-
-    ! Read GEOS-Chem species metadata
-    fileName = TRIM( fileDir ) // "species_database.yml"
-    CALL QFYAML_Init( fileName, yml_1, yml_anchored, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = "Error reading " // TRIM( fileName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_anchored )
-
-    ! Read APM species metadata
-    fileName = TRIM( fileDir ) // "species_database_apm.yml"
-    CALL QFYAML_Init( fileName, yml_2, yml_anchored, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = "Error reading " // TRIM( fileName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_anchored )
-
-    ! Merge into a single QFYAML object
-    CALL QFYAML_Merge( yml_1, yml_2, yml, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "QFYAML_Merge" (APM)!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_1 )
-    CALL QFYAML_CleanUp( yml_2 )
-
-#elif defined(TOMAS)
-    !=======================================================================
-    ! TOMAS microphysics: Read metadata for GEOS-Chem + TOMAS species
-    !=======================================================================
-
-    ! Read GEOS-Chem species metadata
-    fileName = TRIM( fileDir ) // "species_database.yml"
-    CALL QFYAML_Init( fileName, yml_1, yml_anchored, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = "Error reading " // TRIM( fileName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_anchored )
-
-    ! Read APM species metadata
-    fileName = TRIM( fileDir ) // "species_database_tomas.yml"
-    CALL QFYAML_Init( fileName, yml_2, yml_anchored, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = "Error reading " // TRIM( fileName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_anchored )
-
-    ! Merge into a single QFYAML object
-    CALL QFYAML_Merge( yml_1, yml_2, yml, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "QFYAML_Merge" (TOMAS)!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    CALL QFYAML_CleanUp( yml_1 )
-    CALL QFYAML_CleanUp( yml_2 )
-
-#else
-    !=======================================================================
-    ! Other GEOS-Chem simulations: Read metadata for GEOS-Chem species
+    ! Read metadata for GEOS-Chem species
     !========================================================================
-    fileName = TRIM( fileDir ) // "species_database.yml"
+    fileName = TRIM( Input_Opt%SpcDatabaseFile )
     CALL QFYAML_Init( fileName, yml, yml_anchored, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = "Error reading " // TRIM( fileName )
@@ -865,8 +796,6 @@ CONTAINS
        RETURN
     ENDIF
     CALL QFYAML_CleanUp( yml_anchored )
-
-#endif
 
   END SUBROUTINE Read_Species_Database
 !EOC

@@ -1069,7 +1069,7 @@ CONTAINS
     CALL NcDef_Variable( fId, 'q', NF_FLOAT, 1, dims_1d, vId                )
     attVal = 'mass_fraction_of_water_inair'
     CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    attVal = 'kg water (kg air)^-1'
+    attVal = 'g water (kg air)^-1'
     CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
 
     ! Pressure

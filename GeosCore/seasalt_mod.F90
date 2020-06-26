@@ -89,7 +89,7 @@ MODULE SEASALT_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER,  PARAMETER   :: NSALT    = 2
+  INTEGER,  PARAMETER   :: NSALT    = 6
   INTEGER,  PARAMETER   :: NR_MAX   = 200
   REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
 #ifdef APM
@@ -114,6 +114,11 @@ MODULE SEASALT_MOD
   INTEGER               :: id_SALA
   INTEGER               :: id_SALC
   INTEGER               :: id_SS1
+  INTEGER               :: id_SALACL
+  INTEGER               :: id_SALCCL
+  INTEGER               :: id_SALAAL
+  INTEGER               :: id_SALCAL
+
 
 CONTAINS
 !EOC
@@ -213,6 +218,33 @@ CONTAINS
     ENDIF
 
     !=================================================================
+    ! Accumulation mode Chloride wet settling
+    !=================================================================
+    IF ( id_SALACL > 0 ) THEN
+       
+       CALL WET_SETTLING( Input_Opt, State_Chm,              &
+                          State_Diag, State_Grid, State_Met, &
+                          Spc(:,:,:,id_SALACL), 3, RC )
+       
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
+       ENDIF
+    ENDIF
+
+    !=================================================================
+    ! Accumulation mode Alkalinity wet settling
+    !=================================================================
+    IF ( id_SALAAL > 0 ) THEN
+       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
+                          State_Diag, State_Grid, State_Met, &
+                          Spc(:,:,:,id_SALAAL), 5, RC )
+       
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
+       ENDIF
+    ENDIF
+
+    !=================================================================
     ! Coarse mode wet settling
     !=================================================================
     IF ( id_SALC > 0 ) THEN
@@ -221,6 +253,32 @@ CONTAINS
 
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+       ENDIF
+    ENDIF
+
+    !=================================================================
+    ! Coarse mode Choloride wet settling
+    !=================================================================
+    IF ( id_SALCCL > 0 ) THEN
+       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
+                          State_Diag, State_Grid, State_Met, &
+                          Spc(:,:,:,id_SALCCL), 4, RC )
+       
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
+       ENDIF
+    ENDIF
+    
+    !=================================================================
+    ! Coarse mode Alkalinity wet settling
+    !=================================================================
+    IF ( id_SALCAL > 0 ) THEN
+       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
+                          State_Diag, State_Grid, State_Met, &
+                          Spc(:,:,:,id_SALCAL), 6, RC )
+       
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
 
@@ -405,13 +463,13 @@ CONTAINS
 
     ! Accum mode
     ! add R0 and R1 = edges if the sea salt size bins (jaegle 5/11/11)
-    CASE( 1 )
+    CASE( 1,3,5 )
        REFF = 0.5e-6_fp * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
        R0 = SALA_REDGE_um(1)
        R1 = SALA_REDGE_um(2)
 
     ! Coarse mode
-    CASE( 2 )
+    CASE( 2,4,6 )
        REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
        R0 = SALC_REDGE_um(1)
        R1 = SALC_REDGE_um(2)
@@ -1008,6 +1066,10 @@ CONTAINS
     id_SALC = Ind_('SALC')
     id_NK1  = Ind_('NK1' )
     id_SS1  = Ind_('SS1' )
+    id_SALACL = Ind_('SALACL')
+    id_SALCCL = Ind_('SALCCL')
+    id_SALAAL = Ind_('SALAAL')
+    id_SALCAL = Ind_('SALCAL')
 
     ! Initialize pointer
     SpcInfo => NULL()
@@ -1049,6 +1111,18 @@ CONTAINS
           CASE ( 'SALC' )
              IDDEP(2)  = SpcInfo%DryDepID
              SS_DEN(2) = SpcInfo%Density
+          CASE ( 'SALACL' )
+             IDDEP(3)  = SpcInfo%DryDepID
+             SS_DEN(3) = SpcInfo%Density
+          CASE ( 'SALCCL' )
+             IDDEP(4)  = SpcInfo%DryDepID
+             SS_DEN(4) = SpcInfo%Density
+          CASE ( 'SALAAL' )
+             IDDEP(5)  = SpcInfo%DryDepID
+             SS_DEN(5) = SpcInfo%Density
+          CASE ( 'SALCAL' )
+             IDDEP(6)  = SpcInfo%DryDepID
+             SS_DEN(6) = SpcInfo%Density
           CASE DEFAULT
              ! Nothing
           END SELECT

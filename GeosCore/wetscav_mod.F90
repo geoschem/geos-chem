@@ -4404,7 +4404,6 @@ CONTAINS
        IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.                                 &
             Spc(I,J,L,N)   < 0e+0_fp    .or.                                 &
             DSpc(NW,L,I,J) < 0e+0_fp  ) THEN
-
           ! Print error message and stop simulaton
           IF ( errPrint ) THEN
              CALL SAFETY( I, J, L, N, ERRMSG,                                &
