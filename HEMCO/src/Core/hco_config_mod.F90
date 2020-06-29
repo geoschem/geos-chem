@@ -1014,7 +1014,6 @@ CONTAINS
                    Dta%MustFind  = .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "EFY" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_EXACT
-                   Dta%UpdtFlag  = HCO_UFLAG_ONCE
                    Dta%MustFind  = .TRUE.
                    Dta%UseSimYear= .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "EC" ) THEN
@@ -1318,7 +1317,6 @@ CONTAINS
                 Dta%MustFind  = .TRUE.
              ELSEIF ( TRIM(TmCycle) == "EFY" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_EXACT
-                Dta%UpdtFlag  = HCO_UFLAG_ONCE
                 Dta%MustFind  = .TRUE.
                 Dta%UseSimYear= .TRUE.
              ELSEIF ( TRIM(TmCycle) == "EC" ) THEN
