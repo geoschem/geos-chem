@@ -276,17 +276,17 @@ MODULE State_Diag_Mod
 
      !%%%%% Aerosol characteristics %%%%%
 
-     REAL(f4),     POINTER :: AerHygGrowth(:,:,:,:) 
+     REAL(f4),     POINTER :: AerHygGrowth(:,:,:,:)
      TYPE(DgnMap), POINTER :: Map_AerHygGrowth
      LOGICAL               :: Archive_AerHygGrowth
 
-     REAL(f4),     POINTER :: AerAqVol(:,:,:) 
+     REAL(f4),     POINTER :: AerAqVol(:,:,:)
      LOGICAL               :: Archive_AerAqVol
 
      REAL(f4),     POINTER :: AerSurfAreaHyg(:,:,:,:)
      TYPE(DgnMap), POINTER :: Map_AerSurfAreaHyg
      LOGICAL               :: Archive_AerSurfAreaHyg
-                                                    
+
      REAL(f4),     POINTER :: AerSurfAreaDust (:,:,:)
      LOGICAL               :: Archive_AerSurfAreaDust
 
@@ -340,7 +340,7 @@ MODULE State_Diag_Mod
 
      REAL(f4),     POINTER :: AODSOAfromAqIsopWL3(:,:,:)
      LOGICAL               :: Archive_AODSOAfromAqIsopWL3
-                   
+
      REAL(f4),     POINTER :: AODSLAWL1(:,:,:)
      LOGICAL               :: Archive_AODSLAWL1
      LOGICAL               :: Archive_AODStrat
@@ -430,7 +430,7 @@ MODULE State_Diag_Mod
      TYPE(DgnMap), POINTER :: Map_AdvFluxMerid
      LOGICAL               :: Archive_AdvFluxMerid
 
-     REAL(f4),     POINTER :: AdvFluxVert(:,:,:,:) 
+     REAL(f4),     POINTER :: AdvFluxVert(:,:,:,:)
      TYPE(DgnMap), POINTER :: Map_AdvFluxVert
      LOGICAL               :: Archive_AdvFluxVert
 
@@ -579,7 +579,7 @@ MODULE State_Diag_Mod
 
      !%%%%% TransportTracers simulation %%%%%
 
-     REAL(f4),     POINTER :: PbFromRnDecay(:,:,:) 
+     REAL(f4),     POINTER :: PbFromRnDecay(:,:,:)
      LOGICAL               :: Archive_PbFromRnDecay
 
      REAL(f4),     POINTER :: RadDecay(:,:,:,:)
@@ -741,26 +741,35 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ParticulateBoundHg
      LOGICAL :: Archive_ReactiveGaseousHg
 
-     ! Radiation simulation (RRTMG)
+     !%%%%% Simulation with RRTMG %%%%%
+
      INTEGER                   :: nRadFlux
      INTEGER,          POINTER :: RadFluxInd(:)
      CHARACTER(LEN=2), POINTER :: RadFluxName(:)
+
      REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
+     LOGICAL                   :: Archive_RadAllSkyLWSurf
+
      REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
+     LOGICAL                   :: Archive_RadAllSkyLWTOA
+
      REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
+     LOGICAL                   :: Archive_RadAllSkySWSurf
+
      REAL(f4),         POINTER :: RadAllSkySWTOA (:,:,:)
+     LOGICAL                   :: Archive_RadAllSkySWTOA
+
      REAL(f4),         POINTER :: RadClrSkyLWSurf(:,:,:)
+     LOGICAL                   :: Archive_RadClrSkyLWSurf
+
      REAL(f4),         POINTER :: RadClrSkyLWTOA (:,:,:)
+     LOGICAL                   :: Archive_RadClrSkyLWTOA
+
      REAL(f4),         POINTER :: RadClrSkySWSurf(:,:,:)
+     LOGICAL                      :: Archive_RadClrSkySWSurf
+
      REAL(f4),         POINTER :: RadClrSkySWTOA (:,:,:)
-     LOGICAL :: Archive_RadAllSkyLWSurf
-     LOGICAL :: Archive_RadAllSkyLWTOA
-     LOGICAL :: Archive_RadAllSkySWSurf
-     LOGICAL :: Archive_RadAllSkySWTOA
-     LOGICAL :: Archive_RadClrSkyLWSurf
-     LOGICAL :: Archive_RadClrSkyLWTOA
-     LOGICAL :: Archive_RadClrSkySWSurf
-     LOGICAL :: Archive_RadClrSkySWTOA
+     LOGICAL                   :: Archive_RadClrSkySWTOA
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -806,7 +815,7 @@ MODULE State_Diag_Mod
 
 #ifdef MODEL_GEOS
      !----------------------------------------------------------------------
-     ! The following diagnostics are only used when 
+     ! The following diagnostics are only used when
      ! GEOS-Chem is interfaced into the NASA-GEOS ESM
      !----------------------------------------------------------------------
 
@@ -830,7 +839,7 @@ MODULE State_Diag_Mod
      LOGICAL               :: Archive_KppError
 
      REAL(f4),     POINTER :: JValIndiv(:,:,:,:)        ! individual J-values
-     TYPE(DgnMap), POINTER :: Map_JValIndiv              
+     TYPE(DgnMap), POINTER :: Map_JValIndiv
      LOGICAL               :: Archive_JValIndiv
 
      REAL(f4),     POINTER :: RxnRconst(:,:,:,:)        ! KPP rxn rate const.
@@ -873,7 +882,7 @@ MODULE State_Diag_Mod
 
 #ifdef MODEL_WRF
      !----------------------------------------------------------------------
-     ! The following diagnostics are only used when 
+     ! The following diagnostics are only used when
      ! GEOS-Chem is interfaced into WRF (as WRF-GC)
      !----------------------------------------------------------------------
      REAL(f4),     POINTER :: KppError(:,:,:  ) ! Kpp integration error
@@ -1428,6 +1437,7 @@ CONTAINS
     State_Diag%Archive_PbFromRnDecay               = .FALSE.
 
     State_Diag%RadDecay                            => NULL()
+    State_Diag%Map_RadDecay                        => NULL()
     State_Diag%Archive_RadDecay                    = .FALSE.
 
     ! RRTMG simulation diagnostics
@@ -1837,6 +1847,7 @@ CONTAINS
          Ptr2Data       = State_Diag%SpeciesRst,                             &
          archiveData    = State_Diag%Archive_SpeciesRst,                     &
          diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
          RC             = RC                                                )
 
     IF( RC /= GC_SUCCESS ) THEN
@@ -2400,7 +2411,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDepRa2m,                     &
          diagId         = diagId,                                            &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2422,7 +2433,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_DryDepRa10m,                    &
          diagId         = diagId,                                            &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2444,7 +2455,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_MoninObukhov,                   &
          diagId         = diagId,                                            &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2466,7 +2477,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_Bry,                            &
          diagId         = diagId,                                            &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2491,7 +2502,7 @@ CONTAINS
          diagId         = diagId,                                            &
          diagFlag       = 'A',                                               &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2515,7 +2526,7 @@ CONTAINS
          diagId         = diagId,                                            &
          diagFlag       = 'A',                                               &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2539,7 +2550,7 @@ CONTAINS
          diagId         = diagId,                                            &
          diagFlag       = 'A',                                               &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2561,7 +2572,7 @@ CONTAINS
          archiveData    = State_Diag%Archive_PBLMixFrac,                     &
          diagId         = diagId,                                            &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2585,7 +2596,7 @@ CONTAINS
          diagId         = diagId,                                            &
          diagFlag       = 'A',                                               &
          RC             = RC                                                )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2765,7 +2776,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_PbFromRnDecay,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -2790,7 +2801,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3317,7 +3328,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_HO2concAfterChem,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3339,7 +3350,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_O1DconcAfterChem,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3361,7 +3372,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_O3PconcAfterChem,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3383,7 +3394,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromHOBrInCloud,      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3405,7 +3416,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromSRHOBr,           &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3427,7 +3438,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassASOA,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3450,7 +3461,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3472,7 +3483,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassISN1OA,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3494,7 +3505,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassLVOCOA,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3516,7 +3527,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassOPOA,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3538,7 +3549,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPOA,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3560,7 +3571,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassSOAGX,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3582,7 +3593,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassSOAIE,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3604,7 +3615,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassTSOA,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3626,7 +3637,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_BetaNO,                      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3648,7 +3659,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_TotalBiogenicOA,             &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3670,7 +3681,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppIntCounts,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3692,7 +3703,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppJacCounts,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3713,7 +3724,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppTotSteps,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3735,7 +3746,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppAccSteps,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3757,7 +3768,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppRejSteps,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3779,7 +3790,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppLuDecomps,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3801,7 +3812,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppSubsts,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3823,7 +3834,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppsmDecomps,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3846,7 +3857,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3870,7 +3881,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_KppError,                    &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -3998,7 +4009,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_DryDepRaALT1,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4021,7 +4032,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_DryDepVelForALT1,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4043,7 +4054,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_SpeciesConcALT1,             &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4120,7 +4131,7 @@ CONTAINS
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4142,7 +4153,7 @@ CONTAINS
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4163,7 +4174,7 @@ CONTAINS
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4221,7 +4232,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODDust,                     &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4244,7 +4255,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODDustWL1,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4267,7 +4278,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODDustWL2,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4290,7 +4301,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODDustWL3,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4315,7 +4326,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'H',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4340,7 +4351,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'H',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4365,7 +4376,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'H',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4388,7 +4399,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL1,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4411,7 +4422,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL2,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4434,7 +4445,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL3,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4457,7 +4468,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSLAWL1,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4480,7 +4491,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSLAWL2,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4503,7 +4514,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODSLAWL3,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4526,7 +4537,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODPSCWL1,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4549,7 +4560,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODPSCWL2,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4572,7 +4583,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AODPSCWL3,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4596,7 +4607,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'H',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4618,7 +4629,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerSurfAreaDust,             &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4642,7 +4653,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'H',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4664,7 +4675,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerNumDenSLA,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4686,7 +4697,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerNumDenPSC,                &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4708,7 +4719,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerAqVol,                    &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4730,7 +4741,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerSurfAreaSLA,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4752,7 +4763,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerSurfAreaPSC,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4775,7 +4786,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdBCPIfromBCPO,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4798,7 +4809,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdOCPIfromOCPO,            &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4820,7 +4831,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromH2O2inCloud,      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4842,7 +4853,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromO3inCloud,        &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4864,7 +4875,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromO2inCloudMetal,   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4886,7 +4897,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromO3inSeaSalt,      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4908,7 +4919,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromSRO3,             &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4930,7 +4941,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromO3s,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4952,7 +4963,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_LossHNO3onSeaSalt,           &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4974,7 +4985,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassBC,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -4996,7 +5007,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassNH4,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5018,7 +5029,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassNIT,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5040,7 +5051,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassSAL,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5062,7 +5073,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassSO4,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5084,7 +5095,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_PM25,                        &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5107,7 +5118,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25ni,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5129,7 +5140,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25su,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5151,7 +5162,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25oc,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5173,7 +5184,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25bc,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5195,7 +5206,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25du,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5217,7 +5228,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25ss,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5239,7 +5250,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_AerMassPM25soa,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5262,7 +5273,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_TotalOA,                     &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5284,7 +5295,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_TotalOC,                     &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5386,7 +5397,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromGasPhase,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5423,7 +5434,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromGasPhase,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5433,7 +5444,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Total production of SO2 from DMS
        !--------------------------------------------------------------------
-       diagID = 'ProdSO2fromDMS'     
+       diagID = 'ProdSO2fromDMS'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5445,7 +5456,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO2fromDMS,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5467,7 +5478,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO2fromDMSandNO3,        &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5489,7 +5500,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO2fromDMSandOH,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5566,7 +5577,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'L',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5590,7 +5601,7 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'P',                                            &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5653,7 +5664,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromOxidationOnDust,  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5675,7 +5686,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdNITfromHNO3uptakeOnDust, &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5697,7 +5708,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g,   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5762,7 +5773,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_LossPOPPOCPObyGasPhase,      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5784,7 +5795,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPOCPOfromGasPhase,    &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5806,7 +5817,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_LossPOPPBCPObyGasPhase,      &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5828,7 +5839,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPBCPOfromGasPhase,    &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5850,7 +5861,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPGfromOH,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5872,7 +5883,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPOCPOfromO3,          &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5894,7 +5905,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPOCPIfromO3,          &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5916,7 +5927,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPBCPOfromO3,          &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5938,7 +5949,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPBCPIfromO3,          &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5959,7 +5970,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPOCPOfromNO3,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -5981,7 +5992,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPOCPIfromNO3,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6003,7 +6014,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPBCPOfromNO3,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6025,7 +6036,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdPOPPBCPIfromNO3,         &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6107,7 +6118,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_ProdCO2fromCO,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
-       
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -7736,1056 +7747,760 @@ CONTAINS
 !       State_Diag%WashFracLS => NULL()
 !    ENDIF
 
-    IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
-       DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PbFromRnDecay', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PbFromRnDecay => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadDecay ) ) THEN
-       DEALLOCATE( State_Diag%RadDecay, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadDecay', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadDecay => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkyLWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkyLWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkySWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkySWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkySWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkySWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkyLWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkyLWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkySWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkySWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkySWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkySWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdBCPIfromBCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdBCPIfromBCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdOCPIfromOCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdOCPIfromOCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdOCPIfromOCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%OHconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%OHconcAfterChem  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%HO2concAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%HO2concAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%O1DconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%O1DconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%O1DconcAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%O3PconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%O3PconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%O3PconcAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDust ) ) THEN
-       DEALLOCATE( State_Diag%AODDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerHygGrowth ) ) THEN
-       DEALLOCATE( State_Diag%AerHygGrowth, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerHygGrowth', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerHygGrowth => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaDust ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaHyg ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaHyg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaHyg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaHyg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerNumDenSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenSLA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerNumDenSLA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerNumDenSLA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerNumDenPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenPSC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerNumDenPSC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerNumDenPSC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerAqVol ) ) THEN
-       DEALLOCATE( State_Diag%AerAqVol, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerAqVol', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerAqVol => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaSLA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaSLA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaSLA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaPSC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaPSC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaPSC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%Loss ) ) THEN
-       DEALLOCATE( State_Diag%Loss, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Loss', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Loss => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%Prod ) ) THEN
-       DEALLOCATE( State_Diag%Prod, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Prod', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Prod => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMSandOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMSandNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMS ) ) THEN
-       DEALLOCATE(  State_Diag%ProdSO2fromDMS, STAT=RC )
-       CALL GC_CheckVar( ' State_Diag%ProdSO2fromDMS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdMSAfromDMS ) ) THEN
-       DEALLOCATE( State_Diag%ProdMSAfromDMS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdMSAfromDMS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdMSAfromDMS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust ) ) THEN
-       DEALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdNITfromHNO3uptakeOnDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdNITfromHNO3uptakeOnDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromH2O2inCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromH2O2inCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromH2O2inCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3inCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromHOBrInCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromHOBrInCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromHOBrInCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO2inCloudMetal ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO2inCloudMetal', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO2inCloudMetal => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inSeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3inSeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromOxidationOnDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromOxidationOnDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromOxidationOnDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromUptakeOfH2SO4g', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromUptakeOfH2SO4g => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromSRO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRHOBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRHOBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRHOBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromSRHOBr => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3s ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3s, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3s', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3s => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossHNO3onSeaSalt  ) ) THEN
-       DEALLOCATE( State_Diag%LossHNO3onSeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossHNO3onSeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossHNO3onSeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassASOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassASOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassASOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassBC ) ) THEN
-       DEALLOCATE( State_Diag%AerMassBC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassBC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassBC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassINDIOL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassINDIOL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassINDIOL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassINDIOL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassISN1OA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassISN1OA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassISN1OAL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassISN1OA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassLVOCOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassLVOCOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassLVOCOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassLVOCOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassNH4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNH4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassNH4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassNH4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassNIT ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNIT, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassNIT', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassNIT => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassOPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassOPOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassOPOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassOPOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassPOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassPOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassPOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSAL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSAL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSAL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSAL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSO4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSO4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSO4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSO4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAGX ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAGX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAGX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAIE ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAIE, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAIE', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAIE => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassTSOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassTSOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassTSOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassTSOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BetaNO ) ) THEN
-       DEALLOCATE( State_Diag%BetaNO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BetaNO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BetaNO => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
-       DEALLOCATE( State_Diag%PM25, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TotalOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalBiogenicOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalBiogenicOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TotalOC ) ) THEN
-       DEALLOCATE( State_Diag%TotalOC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalOC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalOC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossPOPPOCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPOCPObyGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossPOPPOCPObyGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossPOPPOCPObyGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossPOPPBCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPBCPObyGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossPOPPBCPObyGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossPOPPBCPObyGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPGfromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPGfromOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPGfromOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPGfromOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPIfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPIfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPIfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPIfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCO2fromCO ) ) THEN
-       DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCO2fromCO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCO2fromCO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4byClinTrop ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4byClinTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4byClinTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4byClinTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4byOHinTrop ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4byOHinTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4byOHinTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4inStrat ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4inStrat, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4inStrat', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4inStrat => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCOfromCH4 ) ) THEN
-       DEALLOCATE( State_Diag%ProdCOfromCH4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCOfromCH4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCOfromCH4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCOfromNMVOC ) ) THEN
-       DEALLOCATE( State_Diag%ProdCOfromNMVOC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCOfromNMVOC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCOfromNMVOC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0anthro => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0biomass ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0biomass, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0biomass', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0biomass => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0geogenic ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0geogenic, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0geogenic', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0geogenic => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0land ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0land, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0land', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0land => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0ocean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0ocean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0ocean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0ocean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0soil => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0snow ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0snow, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0snow', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0snow => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0vegetation ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0vegetation, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0vegetation', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0vegetation => NULL()
-    ENDIF
-
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2HgPanthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2HgPanthro, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2HgPanthro', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2HgPanthro => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2snowToOcean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2snowToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2snowToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2snowToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2rivers ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2rivers, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2rivers', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2rivers => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToSnow ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToSnow', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2HgPfromAirToSnow => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg0fromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg0fromAirToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg0fromOceanToAir  ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromOceanToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg0fromOceanToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg0fromOceanToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2toDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2toDeepOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2toDeepOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2toDeepOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2HgPfromAirToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxOCtoDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxOCtoDeepOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxOCtoDeepOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxOCtoDeepOcean  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHg0inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg0inOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHg0inOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHg0inOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHg2inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg2inOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHg2inOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHg2inOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHgPinOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgPinOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHgPinOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHgPinOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHgTotalInOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgTotalInOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHgTotalInOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHgTotalInOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ConcBr ) ) THEN
-       DEALLOCATE( State_Diag%ConcBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ConcBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConcBr  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%ConcBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ConcBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConcBrO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossHg2bySeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossHg2bySeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossHg2bySeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossRateHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossRateHg2bySeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossRateHg2bySeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossRateHg2bySeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcBr ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcBr => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcBrO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcO3 ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromBr  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromBrY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBrY, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromBrY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromBrY => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromClY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromClY, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromClY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromClY => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHg0 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHg0, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHg0', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHg0 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBr2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBr2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBr2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrBrO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrBrO => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrClO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrClO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrClO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrHO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrHO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrHO2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrNO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrNO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrNO2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ParticulateBoundHg ) ) THEN
-       DEALLOCATE( State_Diag%ParticulateBoundHg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ParticulateBoundHg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ParticulateBoundHg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ReactiveGaseousHg ) ) THEN
-       DEALLOCATE( State_Diag%ReactiveGaseousHg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ReactiveGaseousHg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ReactiveGaseousHg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepRaALT1 ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRaALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepRaALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRaALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepVelForALT1 ) ) THEN
-       DEALLOCATE( State_Diag%DryDepVelForALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepVelForALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVelForALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%SpeciesConcALT1 ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesConcALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesConcALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConcALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppIntCounts ) ) THEN
-       DEALLOCATE( State_Diag%KppIntCounts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppIntCounts', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppIntCounts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppJacCounts ) ) THEN
-       DEALLOCATE( State_Diag%KppJacCounts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppJacobians', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppJacCounts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppTotSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppTotSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppTotSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppTotSteps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppAccSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppAccSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppAccSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppAccSteps => NULL()
-    ENDIF
-
-   IF ( ASSOCIATED( State_Diag%KppRejSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppRejSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppRejSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppRejSteps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppLuDecomps ) ) THEN
-       DEALLOCATE( State_Diag%KppLuDecomps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppLuDecomps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppLuDecomps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppSubsts ) ) THEN
-       DEALLOCATE( State_Diag%KppSubsts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppSubsts', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppSubsts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppSmDecomps ) ) THEN
-       DEALLOCATE( State_Diag%KppSmDecomps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppSmDecomps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppSmDecomps => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PbFromRnDecay',                               &
+                   Ptr2Data = State_Diag%PbFromRnDecay,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadDecay',                                    &
+                   Ptr2Data = State_Diag%RadDecay,                           &
+!                   mapData  = State_Diag%Map_RadDecay,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkyLWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkyLWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkyLWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkyLWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkySWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWSurf',                             &
+                   Ptr2Data = State_Diag%RadClrSkyLWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWTOA',                              &
+                   Ptr2Data = State_Diag%RadClrSkyLWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkySWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdBCPIfromBCPO',                            &
+                   Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdOCPIfromOCPO',                            &
+                   Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OHconcAfterChem',                             &
+                   Ptr2Data = State_Diag%OHconcAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O1DconcAfterChem',                            &
+                   Ptr2Data = State_Diag%O1DconcAfterChem,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O3PconcAfterChem',                            &
+                   Ptr2Data = State_Diag%O3PconcAfterChem,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODdust',                                     &
+                   Ptr2Data = State_Diag%AODdust,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL1',                                  &
+                   Ptr2Data = State_Diag%AODDustWL1,                         &
+                   mapData  = State_Diag%Map_AODDustWL1,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL2',                                  &
+                   Ptr2Data = State_Diag%AODDustWL2,                         &
+                   mapData  = State_Diag%Map_AODDustWL2,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL3',                                  &
+                   Ptr2Data = State_Diag%AODDustWL3,                         &
+                   mapData  = State_Diag%Map_AODDustWL3,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL1',                                   &
+                   Ptr2Data = State_Diag%AODHygWL1,                          &
+                   mapData  = State_Diag%Map_AODHygWL1,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL2',                                   &
+                   Ptr2Data = State_Diag%AODHygWL2,                          &
+                   mapData  = State_Diag%Map_AODHygWL2,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL3',                                   &
+                   Ptr2Data = State_Diag%AODHygWL3,                          &
+                   mapData  = State_Diag%Map_AODHygWL3,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL1',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL1,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL2',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL2,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL3',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerHygGrowth',                                &
+                   Ptr2Data = State_Diag%AerHygGrowth,                       &
+                   mapData  = State_Diag%Map_AerHygGrowth,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaDust',                             &
+                   Ptr2Data = State_Diag%AerSurfAreaDust,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaHyg',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaHyg,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerNumDenSLA',                                &
+                   Ptr2Data = State_Diag%AerNumDenSLA,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerNumDenPSC',                                &
+                   Ptr2Data = State_Diag%AerNumDenPSC,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerAqVol',                                    &
+                   Ptr2Data = State_Diag%AerAqVol,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaSLA',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaSLA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaPSC',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaPSC,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL1',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL2',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL3',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL1',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL2',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL3',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Loss',                                        &
+                   Ptr2Data = State_Diag%Loss,                               &
+                   mapData  = State_Diag%Map_Loss,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Prod',                                        &
+                   Ptr2Data = State_Diag%Prod,                               &
+                   mapData  = State_Diag%Map_Prod,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMSandOH',                         &
+                   Ptr2Data = State_Diag%ProdSO2fromDMSandOH,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMSandNO3',                        &
+                   Ptr2Data = State_Diag%ProdSO2fromDMSandNO3,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMS',                              &
+                   Ptr2Data = State_Diag%ProdSO2fromDMS,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdMSAfromDMS',                              &
+                   Ptr2Data = State_Diag%ProdMSAfromDMS,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdNITfromHNO3uptakeOnDust',                 &
+                   Ptr2Data = State_Diag%ProdNITfromHNO3uptakeOnDust,        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromGasPhase',                         &
+                   Ptr2Data = State_Diag%ProdSO4fromGasPhase,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromH2O2inCloud',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromH2O2inCloud,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3inCloud',                        &
+                   Ptr2Data = State_Diag%ProdSO4fromO3inCloud,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromHOBrInCloud',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromHOBrInCloud,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO2inCloudMetal',                   &
+                   Ptr2Data = State_Diag%ProdSO4fromO2inCloudMetal,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3inSeaSalt',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromO3inSeaSalt,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromOxidationOnDust',                  &
+                   Ptr2Data = State_Diag%ProdSO4fromOxidationOnDust,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromUptakeOfH2SO4g',                   &
+                   Ptr2Data = State_Diag%ProdSO4fromUptakeOfH2SO4g,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromSRO3',                             &
+                   Ptr2Data = State_Diag%ProdSO4fromSRO3,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromSRHOBr',                           &
+                   Ptr2Data = State_Diag%ProdSO4fromSRHOBr,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3s',                              &
+                   Ptr2Data = State_Diag%ProdSO4fromO3s,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossHNO3onSeaSalt',                           &
+                   Ptr2Data = State_Diag%LossHNO3onSeaSalt,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassASOA',                                 &
+                   Ptr2Data = State_Diag%AerMassASOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassBC',                                   &
+                   Ptr2Data = State_Diag%AerMassBC,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassINDIOL',                               &
+                   Ptr2Data = State_Diag%AerMassINDIOL,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassISN1OA',                               &
+                   Ptr2Data = State_Diag%AerMassISN1OA,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassLVOCOA',                               &
+                   Ptr2Data = State_Diag%AerMassLVOCOA,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassNH4',                                  &
+                   Ptr2Data = State_Diag%AerMassNH4,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassNIT',                                  &
+                   Ptr2Data = State_Diag%AerMassNIT,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassOPOA',                                 &
+                   Ptr2Data = State_Diag%AerMassOPOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassPOA',                                  &
+                   Ptr2Data = State_Diag%AerMassPOA,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSAL',                                  &
+                   Ptr2Data = State_Diag%AerMassSAL,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSO4',                                  &
+                   Ptr2Data = State_Diag%AerMassSO4,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSOAGX',                                &
+                   Ptr2Data = State_Diag%AerMassSOAGX,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSOAIE',                                &
+                   Ptr2Data = State_Diag%AerMassSOAIE,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassTSOA',                                 &
+                   Ptr2Data = State_Diag%AerMassTSOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BetaNO',                                      &
+                   Ptr2Data = State_Diag%BetaNO,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PM25',                                        &
+                   Ptr2Data = State_Diag%PM25,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalOA',                                     &
+                   Ptr2Data = State_Diag%TotalOA,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalBiogenicOA',                             &
+                   Ptr2Data = State_Diag%TotalBiogenicOA,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalOC',                                     &
+                   Ptr2Data = State_Diag%TotalOC,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossPOPPOCPObyGasPhase',                      &
+                   Ptr2Data = State_Diag%LossPOPPOCPObyGasPhase,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromGasPhase',                    &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromGasPhase,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossPOPPBCPObyGasPhase',                      &
+                   Ptr2Data = State_Diag%LossPOPPBCPObyGasPhase,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromGasPhase',                    &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromGasPhase,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPGfromOH',                              &
+                   Ptr2Data = State_Diag%ProdPOPGfromOH,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPIfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPOCPIfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPIfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPBCPIfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPIfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPOCPIfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPIfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPBCPIfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCO2fromCO',                               &
+                   Ptr2Data = State_Diag%ProdCO2fromCO,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4byClinTrop',                           &
+                   Ptr2Data = State_Diag%LossCH4byClinTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4byOHinTrop',                           &
+                   Ptr2Data = State_Diag%LossCH4byOHinTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4inStrat',                              &
+                   Ptr2Data = State_Diag%LossCH4inStrat,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCOfromCH4',                               &
+                   Ptr2Data = State_Diag%ProdCOfromCH4,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCOfromNMVOC',                             &
+                   Ptr2Data = State_Diag%ProdCOfromNMVOC,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0anthro',                               &
+                   Ptr2Data = State_Diag%EmisHg0anthro,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0biomass',                              &
+                   Ptr2Data = State_Diag%EmisHg0biomass,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0geogenic',                             &
+                   Ptr2Data = State_Diag%EmisHg0geogenic,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0land',                                 &
+                   Ptr2Data = State_Diag%EmisHg0land,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0ocean',                                &
+                   Ptr2Data = State_Diag%EmisHg0ocean,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0soil',                                 &
+                   Ptr2Data = State_Diag%EmisHg0soil,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0snow',                                 &
+                   Ptr2Data = State_Diag%EmisHg0snow,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0vegetation',                           &
+                   Ptr2Data = State_Diag%EmisHg0vegetation,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2HgPanthro',                            &
+                   Ptr2Data = State_Diag%EmisHg2HgPanthro,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2snowToOcean',                          &
+                   Ptr2Data = State_Diag%EmisHg2snowToOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2rivers',                               &
+                   Ptr2Data = State_Diag%EmisHg2rivers,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2HgPfromAirToSnow',                     &
+                   Ptr2Data = State_Diag%FluxHg2HgPfromAirToSnow,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg0fromAirToOcean',                       &
+                   Ptr2Data = State_Diag%FluxHg0fromAirToOcean,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg0fromOceanToAir',                       &
+                   Ptr2Data = State_Diag%FluxHg0fromOceanToAir,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2toDeepOcean',                          &
+                   Ptr2Data = State_Diag%FluxHg2toDeepOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2HgPfromAirToOcean',                    &
+                   Ptr2Data = State_Diag%FluxHg2HgPfromAirToOcean,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxOCtoDeepOcean',                           &
+                   Ptr2Data = State_Diag%FluxOCtoDeepOcean,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHg0inOcean',                              &
+                   Ptr2Data = State_Diag%MassHg0inOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHg2inOcean',                              &
+                   Ptr2Data = State_Diag%MassHg2inOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHgPinOcean',                              &
+                   Ptr2Data = State_Diag%MassHgPinOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHgTotalInOcean',                          &
+                   Ptr2Data = State_Diag%MassHgTotalInOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcBr',                                      &
+                   Ptr2Data = State_Diag%ConcBr,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcBrO',                                     &
+                   Ptr2Data = State_Diag%ConcBrO,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossHg2bySeaSalt',                            &
+                   Ptr2Data = State_Diag%LossHg2bySeaSalt,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossRateHg2bySeaSalt',                        &
+                   Ptr2Data = State_Diag%LossRateHg2bySeaSalt,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcBr',                                 &
+                   Ptr2Data = State_Diag%PolarConcBr,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcBrO',                                &
+                   Ptr2Data = State_Diag%PolarConcBrO,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcO3',                                 &
+                   Ptr2Data = State_Diag%PolarConcO3,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromBr',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromBr,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromBrY',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromBrY,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromClY',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromClY,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHg0',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromHg0,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBr2',                      &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBr2,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrBrO',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrBrO,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrClO',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrClO,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrplusBrHO2',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrHO2,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrplusBrNO2',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrNO2,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrOH',                     &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrOH,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromOH',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromOH,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromO3',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromO3,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ParticulateBoundHg',                          &
+                   Ptr2Data = State_Diag%ParticulateBoundHg,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ReactiveGaseousHg',                           &
+                   Ptr2Data = State_Diag%ReactiveGaseousHg,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepRaALT1',                                &
+                   Ptr2Data = State_Diag%DryDepRaALT1,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelForALT1',                            &
+                   Ptr2Data = State_Diag%DryDepVelForALT1,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesConcALT1',                             &
+                   Ptr2Data = State_Diag%SpeciesConcALT1,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppIntCounts',                                &
+                   Ptr2Data = State_Diag%KppIntCounts,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppJacCounts',                                &
+                   Ptr2Data = State_Diag%KppJacCounts,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppTotSteps',                                 &
+                   Ptr2Data = State_Diag%KppTotSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppAccSteps',                                 &
+                   Ptr2Data = State_Diag%KppAccSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppRejSteps',                                 &
+                   Ptr2Data = State_Diag%KppRejSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppLuDecomps',                                &
+                   Ptr2Data = State_Diag%KppLuDecomps,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppSubsts',                                   &
+                   Ptr2Data = State_Diag%KppSubsts,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppSmDecomps',                                &
+                   Ptr2Data = State_Diag%KppSmDecomps,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #ifdef MODEL_GEOS
     !=======================================================================
@@ -8866,7 +8581,7 @@ CONTAINS
 
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
     !=======================================================================
-    ! These fields are only used when GEOS-Chem 
+    ! These fields are only used when GEOS-Chem
     ! is interfaced to NASA/GEOS or to WRF (as WRF-GC)
     !=======================================================================
     CALL Finalize( diagId   = 'KppError',                                    &
@@ -13794,6 +13509,11 @@ CONTAINS
     !=======================================================================
     ! Finalize the mapping object
     !=======================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    ! Finalize MapData if it's has been allocated
     IF ( ASSOCIATED( mapData ) ) THEN
 
        ! Deallocate and nullify the allId
