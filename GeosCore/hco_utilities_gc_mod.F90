@@ -242,10 +242,14 @@ CONTAINS
     TMP_MDL_target => NULL()
 
     IF ( Input_Opt%LIMGRID ) THEN
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
       IF ( PRESENT(AltBuffer) ) THEN
-        IF ( AltBuffer ) THEN
-          TMP_AltBuffer = .true.
-        ENDIF
+        TMP_AltBuffer = AltBuffer
       ELSE
         ! This fallover else is not needed logically, but is necessary
         ! due to a compiler bug in ifort 19 (hplin, 6/25/20)
@@ -261,12 +265,6 @@ CONTAINS
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
 
-      ! Check if we have to load the data.
-      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
-
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
-      !$OMP CRITICAL
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_Trc_", TrcID
       IF( .not. ( (.not. TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2M) .or. &
                   (      TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
@@ -305,7 +303,7 @@ CONTAINS
               LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
             ENDIF
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName
+            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName, PRESENT( AltBuffer ), TMP_AltBuffer
           ENDIF ! Associated
         ENDIF ! TrcID > 0
       ELSE ! Already in buffer! Just read the pointer data
@@ -391,12 +389,12 @@ CONTAINS
     CHARACTER(LEN=32)  :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_TrcD_<id>
 
     IF ( Input_Opt%LIMGRID ) THEN
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val)) ) RETURN
+
       ! ... on-demand intermediate regridding. Check if we already have this field
       Found = .false.
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_TrcD_", TrcID
-
-      ! Check if we have to load the data.
-      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val)) ) RETURN
 
       ! The below section must be OMP CRITICAL because it is stateful.
       ! The first call to the critical section will update the container!
@@ -1140,9 +1138,7 @@ CONTAINS
       !$OMP CRITICAL
 
       IF ( PRESENT(AltBuffer) ) THEN
-        IF ( AltBuffer ) THEN
-          TMP_AltBuffer = .true.
-        ENDIF
+        TMP_AltBuffer = AltBuffer
       ELSE
         ! This fallover else is not needed logically, but is necessary
         ! due to a compiler bug in ifort 19 (hplin, 6/25/20)
@@ -1190,7 +1186,7 @@ CONTAINS
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete"
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete", PRESENT(AltBuffer), TMP_AltBuffer
 
           ! Free the pointer
           TMP_Ptr3D => NULL()

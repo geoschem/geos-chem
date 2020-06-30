@@ -437,20 +437,10 @@ CONTAINS
     ! By switching emis/dep or the species # LAST, as either of these changing
     ! WILL trigger a new regrid and thrashing of the old buffer.
     !
-    ! Therefore, the loop below has been adjusted to two grid loops to
-    ! balance memory and performance:
-    !  By NA = 1, nAdvect
-    !     By I, J ... for emissions ...
-    !     By I, J ... for dry dep and everything else ...
-    ! (hplin, 6/13/20)
+    ! Therefore, the loop below has been adjusted to run serially for each
+    ! species, and parallelizing the inner I, J loop instead (hplin, 6/27/20)
+    ! Also, moved some non-I,J specific variables outside of the loop for optimization
 
-!$OMP PARALLEL DO                                                           &
-!$OMP DEFAULT( SHARED                                                     ) &
-!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
-!$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
-!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
-!$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
-!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           )
     DO NA = 1, nAdvect
 
        ! Get the species ID from the advected species ID
@@ -458,6 +448,9 @@ CONTAINS
 
        ! Get info about this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Molecular weight in kg
+       MWkg = SpcInfo%emMW_g * 1.e-3_fp
 
        !--------------------------------------------------------------------
        ! Check if we need to do dry deposition for this species
@@ -488,6 +481,40 @@ CONTAINS
                DryDepSpec = .TRUE.
        ENDIF
 
+       ! Set emissions top level:
+       ! This is the top of atmosphere unless concentration build-up
+       ! in stratosphere wants to be avoided.
+       ChemGridOnly = .FALSE.
+
+       ! Set emissions to zero above chemistry grid for the following VOCs
+       IF ( N == id_MACR .OR. N == id_RCHO .OR. &
+            N == id_ACET .OR. N == id_ALD2 .OR. &
+            N == id_ALK4 .OR. N == id_C2H6 .OR. &
+            N == id_C3H8 .OR. N == id_CH2O .OR. &
+            N == id_PRPE                         ) THEN
+          ChemGridOnly = .TRUE.
+       ENDIF
+
+       ! Bry concentrations become prescribed in lin. strat. chemistry.
+       ! Therefore avoid any emissions of these compounds above the
+       ! chemistry grid (lin. strat. chem. applies above chemistry grid
+       ! only).
+       IF ( LSCHEM ) THEN
+          IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
+               N == id_Br   .OR. N == id_HOBr  .OR. &
+               N == id_HBr  .OR. N == id_BrNO3       ) THEN
+             ChemGridOnly = .TRUE.
+          ENDIF
+       ENDIF
+
+       ! For non-UCX runs, never emit above the chemistry grid.
+       ! (ckeller, 6/18/15)
+       ! Exclude all specialty simulations (ewl, 3/17/16)
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+            .NOT. Input_Opt%LUCX ) THEN
+          ChemGridOnly = .TRUE.
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
@@ -503,6 +530,12 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
+!$OMP PARALLEL DO                                                           &
+!$OMP DEFAULT( SHARED                                                     ) &
+!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
+!$OMP PRIVATE( PBL_TOP,  FND,          TMP                                ) &
+!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
+!$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM                  )
        ! Loop over all grid boxes
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -513,9 +546,6 @@ CONTAINS
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-
-          ! Molecular weight in kg
-          MWkg = SpcInfo%emMW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used:
           ! If specified so, apply emissions only above the PBL_TOP.
@@ -532,40 +562,6 @@ CONTAINS
              DRYD_TOP = PBL_TOP
           ELSE
              DRYD_TOP = 1
-          ENDIF
-
-          ! Set emissions top level:
-          ! This is the top of atmosphere unless concentration build-up
-          ! in stratosphere wants to be avoided.
-          ChemGridOnly = .FALSE.
-
-          ! Set emissions to zero above chemistry grid for the following VOCs
-          IF ( N == id_MACR .OR. N == id_RCHO .OR. &
-               N == id_ACET .OR. N == id_ALD2 .OR. &
-               N == id_ALK4 .OR. N == id_C2H6 .OR. &
-               N == id_C3H8 .OR. N == id_CH2O .OR. &
-               N == id_PRPE                         ) THEN
-             ChemGridOnly = .TRUE.
-          ENDIF
-
-          ! Bry concentrations become prescribed in lin. strat. chemistry.
-          ! Therefore avoid any emissions of these compounds above the
-          ! chemistry grid (lin. strat. chem. applies above chemistry grid
-          ! only).
-          IF ( LSCHEM ) THEN
-             IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
-                  N == id_Br   .OR. N == id_HOBr  .OR. &
-                  N == id_HBr  .OR. N == id_BrNO3       ) THEN
-                ChemGridOnly = .TRUE.
-             ENDIF
-          ENDIF
-
-          ! For non-UCX runs, never emit above the chemistry grid.
-          ! (ckeller, 6/18/15)
-          ! Exclude all specialty simulations (ewl, 3/17/16)
-          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
-               .NOT. Input_Opt%LUCX ) THEN
-             ChemGridOnly = .TRUE.
           ENDIF
 
           ! Restrict to chemistry grid
@@ -765,12 +761,12 @@ CONTAINS
           ENDDO !L
        ENDDO !J
        ENDDO !I
+!$OMP END PARALLEL DO
 
        ! Nullify pointer
        SpcInfo  => NULL()
 
     ENDDO !N
-!$OMP END PARALLEL DO
 
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
@@ -860,6 +856,9 @@ CONTAINS
 
   IF ( ASSOCIATED( PNOxLoss_O3 ) )   DEALLOCATE( PNOxLoss_O3 )
   IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
+
+  PNOxLoss_O3 => NULL()
+  PNOxLoss_HNO3 => NULL()
 
   END SUBROUTINE DO_TEND
 !EOC
