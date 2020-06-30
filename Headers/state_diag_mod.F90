@@ -97,371 +97,371 @@ MODULE State_Diag_Mod
 
      !%%%%% Restart file fields %%%%%
 
-     REAL(f8),     POINTER :: SpeciesRst(:,:,:,:)
-     LOGICAL               :: Archive_SpeciesRst
+     REAL(f8),           POINTER :: SpeciesRst(:,:,:,:)
+     LOGICAL                     :: Archive_SpeciesRst
 
      !%%%%%  Boundary condition fields %%%%%
 
-     REAL(f8),     POINTER :: SpeciesBC(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_SpeciesBC
-     LOGICAL               :: Archive_SpeciesBC
+     REAL(f8),           POINTER :: SpeciesBC(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesBC
+     LOGICAL                     :: Archive_SpeciesBC
 
      !%%%%%  Concentrations %%%%%
 
-     REAL(f8),     POINTER :: SpeciesConc(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_SpeciesConc
-     LOGICAL               :: Archive_SpeciesConc
+     REAL(f8),           POINTER :: SpeciesConc(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConc
+     LOGICAL                     :: Archive_SpeciesConc
 
      !%%%%% Budget diagnostics %%%%%
 
-     REAL(f8),     POINTER :: BudgetEmisDryDepFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetEmisDryDepFull
-     LOGICAL               :: Archive_BudgetEmisDryDepFull
+     REAL(f8),           POINTER :: BudgetEmisDryDepFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepFull
+     LOGICAL                     :: Archive_BudgetEmisDryDepFull
 
-     REAL(f8),     POINTER :: BudgetEmisDryDepTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetEmisDryDepTrop
-     LOGICAL               :: Archive_BudgetEmisDryDepTrop
+     REAL(f8),           POINTER :: BudgetEmisDryDepTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepTrop
+     LOGICAL                     :: Archive_BudgetEmisDryDepTrop
 
-     REAL(f8),     POINTER :: BudgetEmisDryDepPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetEmisDryDepPBL
-     LOGICAL               :: Archive_BudgetEmisDryDepPBL
+     REAL(f8),           POINTER :: BudgetEmisDryDepPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepPBL
+     LOGICAL                     :: Archive_BudgetEmisDryDepPBL
 
-     REAL(f8),     POINTER :: BudgetTransportFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetTransportFull
-     LOGICAL               :: Archive_BudgetTransportFull
+     REAL(f8),           POINTER :: BudgetTransportFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportFull
+     LOGICAL                     :: Archive_BudgetTransportFull
 
-     REAL(f8),     POINTER :: BudgetTransportTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetTransportTrop
-     LOGICAL               :: Archive_BudgetTransportTrop
+     REAL(f8),           POINTER :: BudgetTransportTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportTrop
+     LOGICAL                     :: Archive_BudgetTransportTrop
 
-     REAL(f8),     POINTER :: BudgetTransportPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetTransportPBL
-     LOGICAL               :: Archive_BudgetTransportPBL
+     REAL(f8),           POINTER :: BudgetTransportPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportPBL
+     LOGICAL                     :: Archive_BudgetTransportPBL
 
-     REAL(f8),     POINTER :: BudgetMixingFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetMixingFull
-     LOGICAL               :: Archive_BudgetMixingFull
+     REAL(f8),           POINTER :: BudgetMixingFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingFull
+     LOGICAL                     :: Archive_BudgetMixingFull
 
-     REAL(f8),     POINTER :: BudgetMixingTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetMixingTrop
-     LOGICAL               :: Archive_BudgetMixingTrop
+     REAL(f8),           POINTER :: BudgetMixingTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingTrop
+     LOGICAL                     :: Archive_BudgetMixingTrop
 
-     REAL(f8),     POINTER :: BudgetMixingPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetMixingPBL
-     LOGICAL               :: Archive_BudgetMixingPBL
+     REAL(f8),           POINTER :: BudgetMixingPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingPBL
+     LOGICAL                     :: Archive_BudgetMixingPBL
 
-     REAL(f8),     POINTER :: BudgetConvectionFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetConvectionFull
-     LOGICAL               :: Archive_BudgetConvectionFull
+     REAL(f8),           POINTER :: BudgetConvectionFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionFull
+     LOGICAL                     :: Archive_BudgetConvectionFull
 
-     REAL(f8),     POINTER :: BudgetConvectionTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetConvectionTrop
-     LOGICAL               :: Archive_BudgetConvectionTrop
+     REAL(f8),           POINTER :: BudgetConvectionTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionTrop
+     LOGICAL                     :: Archive_BudgetConvectionTrop
 
-     REAL(f8),     POINTER :: BudgetConvectionPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetConvectionPBL
-     LOGICAL               :: Archive_BudgetConvectionPBL
+     REAL(f8),           POINTER :: BudgetConvectionPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionPBL
+     LOGICAL                     :: Archive_BudgetConvectionPBL
 
-     REAL(f8),     POINTER :: BudgetChemistryFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_ChemistryFull
-     LOGICAL               :: Archive_BudgetChemistryFull
+     REAL(f8),           POINTER :: BudgetChemistryFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ChemistryFull
+     LOGICAL                     :: Archive_BudgetChemistryFull
 
-     REAL(f8),     POINTER :: BudgetChemistryTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetChemistryTrop
-     LOGICAL               :: Archive_BudgetChemistryTrop
+     REAL(f8),           POINTER :: BudgetChemistryTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryTrop
+     LOGICAL                     :: Archive_BudgetChemistryTrop
 
-     REAL(f8),     POINTER :: BudgetChemistryPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_BudgetChemistryPBL
-     LOGICAL               :: Archive_BudgetChemistryPBL
+     REAL(f8),           POINTER :: BudgetChemistryPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryPBL
+     LOGICAL                     :: Archive_BudgetChemistryPBL
 
-     REAL(f8),     POINTER :: BudgetWetDepFull(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetDepFull
-     LOGICAL               :: Archive_BudgetWetDepFull
+     REAL(f8),           POINTER :: BudgetWetDepFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetDepFull
+     LOGICAL                     :: Archive_BudgetWetDepFull
 
-     REAL(f8),     POINTER :: BudgetWetDepTrop(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetDepTrop
-     LOGICAL               :: Archive_BudgetWetDepTrop
+     REAL(f8),           POINTER :: BudgetWetDepTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetDepTrop
+     LOGICAL                     :: Archive_BudgetWetDepTrop
 
-     REAL(f8),     POINTER :: BudgetWetDepPBL(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetDepPBL
-     LOGICAL               :: Archive_BudgetWetDepPBL
+     REAL(f8),           POINTER :: BudgetWetDepPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetDepPBL
+     LOGICAL                     :: Archive_BudgetWetDepPBL
 
-     REAL(f8),     POINTER :: BudgetMass1(:,:,:,:)
-     REAL(f8),     POINTER :: BudgetMass2(:,:,:,:)
-     LOGICAL               :: Archive_BudgetEmisDryDep
-     LOGICAL               :: Archive_BudgetTransport
-     LOGICAL               :: Archive_BudgetMixing
-     LOGICAL               :: Archive_BudgetConvection
-     LOGICAL               :: Archive_BudgetChemistry
-     LOGICAL               :: Archive_BudgetWetDep
-     LOGICAL               :: Archive_Budget
+     REAL(f8),           POINTER :: BudgetMass1(:,:,:,:)
+     REAL(f8),           POINTER :: BudgetMass2(:,:,:,:)
+     LOGICAL                     :: Archive_BudgetEmisDryDep
+     LOGICAL                     :: Archive_BudgetTransport
+     LOGICAL                     :: Archive_BudgetMixing
+     LOGICAL                     :: Archive_BudgetConvection
+     LOGICAL                     :: Archive_BudgetChemistry
+     LOGICAL                     :: Archive_BudgetWetDep
+     LOGICAL                     :: Archive_Budget
 
      !%%%%% Dry deposition %%%%%
 
-     REAL(f4),     POINTER :: DryDepChm(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_DryDepChm
-     LOGICAL               :: Archive_DryDepChm
+     REAL(f4),           POINTER :: DryDepChm(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepChm
+     LOGICAL                     :: Archive_DryDepChm
 
-     REAL(f4),     POINTER :: DryDepMix(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_DryDepMix
-     LOGICAL               :: Archive_DryDepMix
+     REAL(f4),           POINTER :: DryDepMix(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepMix
+     LOGICAL                     :: Archive_DryDepMix
 
-     REAL(f4),     POINTER :: DryDep(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_DryDep
-     LOGICAL               :: Archive_DryDep
+     REAL(f4),           POINTER :: DryDep(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDep
+     LOGICAL                     :: Archive_DryDep
 
-     REAL(f4),     POINTER :: DryDepVel(:,:,:)
-     TYPE(DgnMap), POINTER :: Map_DryDepVel
-     LOGICAL               :: Archive_DryDepVel
+     REAL(f4),           POINTER :: DryDepVel(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVel
+     LOGICAL                     :: Archive_DryDepVel
 
      !%%%%% Photolysis %%%%%
 
-     REAL(f4),     POINTER :: JVal(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_JVal
-     LOGICAL               :: Archive_JVal
+     REAL(f4),           POINTER :: JVal(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JVal
+     LOGICAL                     :: Archive_JVal
 
-     REAL(f4),     POINTER :: JValO3O1D(:,:,:)
-     LOGICAL               :: Archive_JValO3O1D
+     REAL(f4),           POINTER :: JValO3O1D(:,:,:)
+     LOGICAL                     :: Archive_JValO3O1D
 
-     REAL(f4),     POINTER :: JValO3O3P(:,:,:)
-     LOGICAL               :: Archive_JValO3O3P
+     REAL(f4),           POINTER :: JValO3O3P(:,:,:)
+     LOGICAL                     :: Archive_JValO3O3P
 
-     REAL(f4),     POINTER :: JNoon(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_JNoon
-     LOGICAL               :: Archive_JNoon
+     REAL(f4),           POINTER :: JNoon(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JNoon
+     LOGICAL                     :: Archive_JNoon
 
-     REAL(f4),     POINTER :: JNoonFrac(:,:)
-     LOGICAL               :: Archive_JNoonFrac
+     REAL(f4),           POINTER :: JNoonFrac(:,:)
+     LOGICAL                     :: Archive_JNoonFrac
 
-     REAL(f4),     POINTER :: UVFluxDiffuse(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_UvFluxDiffuse
-     LOGICAL               :: Archive_UVFluxDiffuse
+     REAL(f4),           POINTER :: UVFluxDiffuse(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxDiffuse
+     LOGICAL                     :: Archive_UVFluxDiffuse
 
-     REAL(f4),     POINTER :: UVFluxDirect(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_UvFluxDirect
-     LOGICAL               :: Archive_UVFluxDirect
+     REAL(f4),           POINTER :: UVFluxDirect(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxDirect
+     LOGICAL                     :: Archive_UVFluxDirect
 
-     REAL(f4),     POINTER :: UVFluxNet(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_UvFluxNet
-     LOGICAL               :: Archive_UVFluxNet
+     REAL(f4),           POINTER :: UVFluxNet(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxNet
+     LOGICAL                     :: Archive_UVFluxNet
 
      !%%%%% Chemistry %%%%%
 
-     REAL(f4),     POINTER :: RxnRate(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_RxnRate
-     LOGICAL               :: Archive_RxnRate
+     REAL(f4),           POINTER :: RxnRate(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnRate
+     LOGICAL                     :: Archive_RxnRate
 
-     REAL(f4),     POINTER :: OHreactivity(:,:,:)
-     LOGICAL               :: Archive_OHreactivity
+     REAL(f4),           POINTER :: OHreactivity(:,:,:)
+     LOGICAL                     :: Archive_OHreactivity
 
-     REAL(f4),     POINTER :: OHconcAfterChem(:,:,:)
-     LOGICAL               :: Archive_OHconcAfterChem
+     REAL(f4),           POINTER :: OHconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_OHconcAfterChem
 
-     REAL(f4),     POINTER :: HO2concAfterChem(:,:,:)
-     LOGICAL               :: Archive_HO2concAfterChem
+     REAL(f4),           POINTER :: HO2concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_HO2concAfterChem
 
-     REAL(f4),     POINTER :: O1DconcAfterChem(:,:,:)
-     LOGICAL               :: Archive_O1DconcAfterChem
+     REAL(f4),           POINTER :: O1DconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O1DconcAfterChem
 
-     REAL(f4),     POINTER :: O3PconcAfterChem(:,:,:)
-     LOGICAL               :: Archive_O3PconcAfterChem
+     REAL(f4),           POINTER :: O3PconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O3PconcAfterChem
 
-     REAL(f4),     POINTER :: Loss(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_Loss
-     LOGICAL               :: Archive_Loss
+     REAL(f4),           POINTER :: Loss(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_Loss
+     LOGICAL                     :: Archive_Loss
 
-     REAL(f4),     POINTER :: Prod(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_Prod
-     LOGICAL               :: Archive_Prod
+     REAL(f4),           POINTER :: Prod(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_Prod
+     LOGICAL                     :: Archive_Prod
 
      !%%%%% Aerosol characteristics %%%%%
 
-     REAL(f4),     POINTER :: AerHygGrowth(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AerHygGrowth
-     LOGICAL               :: Archive_AerHygGrowth
+     REAL(f4),           POINTER :: AerHygGrowth(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AerHygGrowth
+     LOGICAL                     :: Archive_AerHygGrowth
 
-     REAL(f4),     POINTER :: AerAqVol(:,:,:)
-     LOGICAL               :: Archive_AerAqVol
+     REAL(f4),           POINTER :: AerAqVol(:,:,:)
+     LOGICAL                     :: Archive_AerAqVol
 
-     REAL(f4),     POINTER :: AerSurfAreaHyg(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AerSurfAreaHyg
-     LOGICAL               :: Archive_AerSurfAreaHyg
+     REAL(f4),           POINTER :: AerSurfAreaHyg(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AerSurfAreaHyg
+     LOGICAL                     :: Archive_AerSurfAreaHyg
 
-     REAL(f4),     POINTER :: AerSurfAreaDust (:,:,:)
-     LOGICAL               :: Archive_AerSurfAreaDust
+     REAL(f4),           POINTER :: AerSurfAreaDust (:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaDust
 
-     REAL(f4),     POINTER :: AerSurfAreaSLA(:,:,:)
-     LOGICAL               :: Archive_AerSurfAreaSLA
+     REAL(f4),           POINTER :: AerSurfAreaSLA(:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaSLA
 
-     REAL(f4),     POINTER :: AerSurfAreaPSC(:,:,:)
-     LOGICAL               :: Archive_AerSurfAreaPSC
+     REAL(f4),           POINTER :: AerSurfAreaPSC(:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaPSC
 
-     REAL(f4),     POINTER :: AerNumDenSLA(:,:,:)
-     LOGICAL               :: Archive_AerNumDenSLA
+     REAL(f4),           POINTER :: AerNumDenSLA(:,:,:)
+     LOGICAL                     :: Archive_AerNumDenSLA
 
-     REAL(f4),     POINTER :: AerNumDenPSC(:,:,:)
-     LOGICAL               :: Archive_AerNumDenPSC
+     REAL(f4),           POINTER :: AerNumDenPSC(:,:,:)
+     LOGICAL                     :: Archive_AerNumDenPSC
 
      !%%%%% Aerosol optical depths %%%%%
 
-     REAL(f4),     POINTER :: AODDust(:,:,:)
-     LOGICAL               :: Archive_AODDust
-     LOGICAL               :: Archive_AOD
+     REAL(f4),           POINTER :: AODDust(:,:,:)
+     LOGICAL                     :: Archive_AODDust
+     LOGICAL                     :: Archive_AOD
 
-     REAL(f4),     POINTER :: AODDustWL1(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODDustWL1
-     LOGICAL               :: Archive_AODDustWL1
+     REAL(f4),           POINTER :: AODDustWL1(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL1
+     LOGICAL                     :: Archive_AODDustWL1
 
-     REAL(f4),     POINTER :: AODDustWL2(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODDustWL2
-     LOGICAL               :: Archive_AODDustWL2
+     REAL(f4),           POINTER :: AODDustWL2(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL2
+     LOGICAL                     :: Archive_AODDustWL2
 
-     REAL(f4),     POINTER :: AODDustWL3(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODDustWL3
-     LOGICAL               :: Archive_AODDustWL3
+     REAL(f4),           POINTER :: AODDustWL3(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL3
+     LOGICAL                     :: Archive_AODDustWL3
 
-     REAL(f4),     POINTER :: AODHygWL1(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODHygWL1
-     LOGICAL               :: Archive_AODHygWL1
+     REAL(f4),           POINTER :: AODHygWL1(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL1
+     LOGICAL                     :: Archive_AODHygWL1
 
-     REAL(f4),     POINTER :: AODHygWL2(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODHygWL2
-     LOGICAL               :: Archive_AODHygWL2
+     REAL(f4),           POINTER :: AODHygWL2(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL2
+     LOGICAL                     :: Archive_AODHygWL2
 
-     REAL(f4),     POINTER :: AODHygWL3(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AODHygWL3
-     LOGICAL               :: Archive_AODHygWL3
+     REAL(f4),           POINTER :: AODHygWL3(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL3
+     LOGICAL                     :: Archive_AODHygWL3
 
-     REAL(f4),     POINTER :: AODSOAfromAqIsopWL1(:,:,:)
-     LOGICAL               :: Archive_AODSOAfromAqIsopWL1
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL1(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL1
 
-     REAL(f4),     POINTER :: AODSOAfromAqIsopWL2(:,:,:)
-     LOGICAL               :: Archive_AODSOAfromAqIsopWL2
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL2(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL2
 
-     REAL(f4),     POINTER :: AODSOAfromAqIsopWL3(:,:,:)
-     LOGICAL               :: Archive_AODSOAfromAqIsopWL3
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL3(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL3
 
-     REAL(f4),     POINTER :: AODSLAWL1(:,:,:)
-     LOGICAL               :: Archive_AODSLAWL1
-     LOGICAL               :: Archive_AODStrat
+     REAL(f4),           POINTER :: AODSLAWL1(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL1
+     LOGICAL                     :: Archive_AODStrat
 
-     REAL(f4),     POINTER :: AODSLAWL2(:,:,:)
-     LOGICAL               :: Archive_AODSLAWL2
+     REAL(f4),           POINTER :: AODSLAWL2(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL2
 
-     REAL(f4),     POINTER :: AODSLAWL3(:,:,:)
-     LOGICAL               :: Archive_AODSLAWL3
+     REAL(f4),           POINTER :: AODSLAWL3(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL3
 
-     REAL(f4),     POINTER :: AODPSCWL1(:,:,:)
-     LOGICAL               :: Archive_AODPSCWL1
+     REAL(f4),           POINTER :: AODPSCWL1(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL1
 
-     REAL(f4),     POINTER :: AODPSCWL2(:,:,:)
-     LOGICAL               :: Archive_AODPSCWL2
+     REAL(f4),           POINTER :: AODPSCWL2(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL2
 
-     REAL(f4),     POINTER :: AODPSCWL3(:,:,:)
-     LOGICAL               :: Archive_AODPSCWL3
+     REAL(f4),           POINTER :: AODPSCWL3(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL3
 
      !%%%%% Aerosol mass and PM2.5 %%%%%
 
-     REAL(f4),     POINTER :: AerMassASOA(:,:,:)
-     LOGICAL               :: Archive_AerMassASOA
-     LOGICAL               :: Archive_AerMass
+     REAL(f4),           POINTER :: AerMassASOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassASOA
+     LOGICAL                     :: Archive_AerMass
 
-     REAL(f4),     POINTER :: AerMassBC(:,:,:)
-     LOGICAL               :: Archive_AerMassBC
+     REAL(f4),           POINTER :: AerMassBC(:,:,:)
+     LOGICAL                     :: Archive_AerMassBC
 
-     REAL(f4),     POINTER :: AerMassINDIOL(:,:,:)
-     LOGICAL               :: Archive_AerMassINDIOL
+     REAL(f4),           POINTER :: AerMassINDIOL(:,:,:)
+     LOGICAL                     :: Archive_AerMassINDIOL
 
-     REAL(f4),     POINTER :: AerMassISN1OA(:,:,: )
-     LOGICAL               :: Archive_AerMassLVOCOA
+     REAL(f4),           POINTER :: AerMassISN1OA(:,:,: )
+     LOGICAL                     :: Archive_AerMassLVOCOA
 
-     REAL(f4),     POINTER :: AerMassLVOCOA(:,:,:)
-     LOGICAL               :: Archive_AerMassISN1OA
+     REAL(f4),           POINTER :: AerMassLVOCOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassISN1OA
 
-     REAL(f4),     POINTER :: AerMassNH4(:,:,:)
-     LOGICAL               :: Archive_AerMassNH4
+     REAL(f4),           POINTER :: AerMassNH4(:,:,:)
+     LOGICAL                     :: Archive_AerMassNH4
 
-     REAL(f4),     POINTER :: AerMassNIT(:,:,:)
-     LOGICAL               :: Archive_AerMassNIT
+     REAL(f4),           POINTER :: AerMassNIT(:,:,:)
+     LOGICAL                     :: Archive_AerMassNIT
 
-     REAL(f4),     POINTER :: AerMassOPOA(:,:,:)
-     LOGICAL               :: Archive_AerMassOPOA
+     REAL(f4),           POINTER :: AerMassOPOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassOPOA
 
-     REAL(f4),     POINTER :: AerMassPOA(:,:,:)
-     LOGICAL               :: Archive_AerMassPOA
+     REAL(f4),           POINTER :: AerMassPOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassPOA
 
-     REAL(f4),     POINTER :: AerMassSAL(:,:,:)
-     LOGICAL               :: Archive_AerMassSAL
+     REAL(f4),           POINTER :: AerMassSAL(:,:,:)
+     LOGICAL                     :: Archive_AerMassSAL
 
-     REAL(f4),     POINTER :: AerMassSO4(:,:,:)
-     LOGICAL               :: Archive_AerMassSO4
+     REAL(f4),           POINTER :: AerMassSO4(:,:,:)
+     LOGICAL                     :: Archive_AerMassSO4
 
-     REAL(f4),     POINTER :: AerMassSOAGX(:,:,:)
-     LOGICAL               :: Archive_AerMassSOAGX
+     REAL(f4),           POINTER :: AerMassSOAGX(:,:,:)
+     LOGICAL                     :: Archive_AerMassSOAGX
 
-     REAL(f4),     POINTER :: AerMassSOAIE(:,:,:)
-     LOGICAL               :: Archive_AerMassSOAIE
+     REAL(f4),           POINTER :: AerMassSOAIE(:,:,:)
+     LOGICAL                     :: Archive_AerMassSOAIE
 
-     REAL(f4),     POINTER :: AerMassTSOA(:,:,:)
-     LOGICAL               :: Archive_AerMassTSOA
+     REAL(f4),           POINTER :: AerMassTSOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassTSOA
 
-     REAL(f4),     POINTER :: BetaNO(:,:,:)
-     LOGICAL               :: Archive_BetaNO
+     REAL(f4),           POINTER :: BetaNO(:,:,:)
+     LOGICAL                     :: Archive_BetaNO
 
-     REAL(f4),     POINTER :: PM25(:,:,:)
-     LOGICAL               :: Archive_PM25
+     REAL(f4),           POINTER :: PM25(:,:,:)
+     LOGICAL                     :: Archive_PM25
 
-     REAL(f4),     POINTER :: TotalOA(:,:,:)
-     LOGICAL               :: Archive_TotalOA
+     REAL(f4),           POINTER :: TotalOA(:,:,:)
+     LOGICAL                     :: Archive_TotalOA
 
-     REAL(f4),     POINTER :: TotalOC(:,:,:)
-     LOGICAL               :: Archive_TotalOC
+     REAL(f4),           POINTER :: TotalOC(:,:,:)
+     LOGICAL                     :: Archive_TotalOC
 
-     REAL(f4),     POINTER :: TotalBiogenicOA(:,:,:)
-     LOGICAL               :: Archive_TotalBiogenicOA
+     REAL(f4),           POINTER :: TotalBiogenicOA(:,:,:)
+     LOGICAL                     :: Archive_TotalBiogenicOA
 
      !%%%%% Advection %%%%%
 
-     REAL(f4),     POINTER :: AdvFluxZonal(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AdvFluxZonal
-     LOGICAL               :: Archive_AdvFluxZonal
+     REAL(f4),           POINTER :: AdvFluxZonal(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxZonal
+     LOGICAL                     :: Archive_AdvFluxZonal
 
-     REAL(f4),     POINTER :: AdvFluxMerid(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AdvFluxMerid
-     LOGICAL               :: Archive_AdvFluxMerid
+     REAL(f4),           POINTER :: AdvFluxMerid(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxMerid
+     LOGICAL                     :: Archive_AdvFluxMerid
 
-     REAL(f4),     POINTER :: AdvFluxVert(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_AdvFluxVert
-     LOGICAL               :: Archive_AdvFluxVert
+     REAL(f4),           POINTER :: AdvFluxVert(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxVert
+     LOGICAL                     :: Archive_AdvFluxVert
 
      !%%%%% Mixing %%%%%
 
-     REAL(f4),     POINTER :: PBLMixFrac(:,:,:)
-     LOGICAL               :: Archive_PBLMixFrac
+     REAL(f4),           POINTER :: PBLMixFrac(:,:,:)
+     LOGICAL                     :: Archive_PBLMixFrac
 
-     REAL(f4),     POINTER :: PBLFlux(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_PblFlux
-     LOGICAL               :: Archive_PBLFlux
+     REAL(f4),           POINTER :: PBLFlux(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_PblFlux
+     LOGICAL                     :: Archive_PBLFlux
 
      !%%%%% Convection and WetDep %%%%%
 
-     REAL(f4),     POINTER :: CloudConvFlux(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_CloudConvFlux
-     LOGICAL               :: Archive_CloudConvFlux
+     REAL(f4),           POINTER :: CloudConvFlux(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_CloudConvFlux
+     LOGICAL                     :: Archive_CloudConvFlux
 
-     REAL(f4),     POINTER :: WetLossConvFrac(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetLossConvFrac
-     LOGICAL               :: Archive_WetLossConvFrac
+     REAL(f4),           POINTER :: WetLossConvFrac(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossConvFrac
+     LOGICAL                     :: Archive_WetLossConvFrac
 
-     REAL(f4),     POINTER :: WetLossConv(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetLossConv
-     LOGICAL               :: Archive_WetLossConv
+     REAL(f4),           POINTER :: WetLossConv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossConv
+     LOGICAL                     :: Archive_WetLossConv
 
-     ! Wet deposition
-     REAL(f4),     POINTER :: WetLossLS(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_WetLossLS
-     LOGICAL               :: Archive_WetLossLS
+     REAL(f4),           POINTER :: WetLossLS(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossLS
+     LOGICAL                     :: Archive_WetLossLS
 
+     ! These are obsolete diagnostics
      !REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  )
      !REAL(f4),  POINTER :: RainFracLS      (:,:,:,:)
      !REAL(f4),  POINTER :: WashFracLS      (:,:,:,:)
@@ -471,107 +471,107 @@ MODULE State_Diag_Mod
 
      !%%%%% Carbon aerosols %%%%%
 
-     REAL(f4),     POINTER :: ProdBCPIfromBCPO(:,:,:)
-     LOGICAL               :: Archive_ProdBCPIfromBCPO
+     REAL(f4),           POINTER :: ProdBCPIfromBCPO(:,:,:)
+     LOGICAL                     :: Archive_ProdBCPIfromBCPO
 
-     REAL(f4),     POINTER :: ProdOCPIfromOCPO(:,:,:)
-     LOGICAL               :: Archive_ProdOCPIfromOCPO
+     REAL(f4),           POINTER :: ProdOCPIfromOCPO(:,:,:)
+     LOGICAL                     :: Archive_ProdOCPIfromOCPO
 
      ! Sulfur aerosols prod & loss
-     REAL(f4),     POINTER :: ProdSO2fromDMSandOH(:,:,:)
-     LOGICAL               :: Archive_ProdSO2fromDMSandOH
+     REAL(f4),           POINTER :: ProdSO2fromDMSandOH(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMSandOH
 
-     REAL(f4),     POINTER :: ProdSO2fromDMSandNO3(:,:,:)
-     LOGICAL               :: Archive_ProdSO2fromDMSandNO3
+     REAL(f4),           POINTER :: ProdSO2fromDMSandNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMSandNO3
 
-     REAL(f4),     POINTER :: ProdSO2fromDMS(:,:,:)
-     LOGICAL               :: Archive_ProdSO2fromDMS
+     REAL(f4),           POINTER :: ProdSO2fromDMS(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMS
 
-     REAL(f4),     POINTER :: ProdMSAfromDMS(:,:,:)
-     LOGICAL               :: Archive_ProdMSAfromDMS
+     REAL(f4),           POINTER :: ProdMSAfromDMS(:,:,:)
+     LOGICAL                     :: Archive_ProdMSAfromDMS
 
-     REAL(f4),     POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
-     LOGICAL               :: Archive_ProdNITfromHNO3uptakeOnDust
+     REAL(f4),           POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
+     LOGICAL                     :: Archive_ProdNITfromHNO3uptakeOnDust
 
-     REAL(f4),     POINTER :: ProdSO4fromGasPhase(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromGasPhase
+     REAL(f4),           POINTER :: ProdSO4fromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromGasPhase
 
-     REAL(f4),     POINTER :: ProdSO4fromH2O2inCloud(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromH2O2inCloud
+     REAL(f4),           POINTER :: ProdSO4fromH2O2inCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromH2O2inCloud
 
-     REAL(f4),     POINTER :: ProdSO4fromO3inCloud(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromO3inCloud
+     REAL(f4),           POINTER :: ProdSO4fromO3inCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3inCloud
 
-     REAL(f4),     POINTER :: ProdSO4fromO2inCloudMetal(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromO2inCloudMetal
+     REAL(f4),           POINTER :: ProdSO4fromO2inCloudMetal(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO2inCloudMetal
 
-     REAL(f4),     POINTER :: ProdSO4fromO3inSeaSalt(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromO3inSeaSalt
+     REAL(f4),           POINTER :: ProdSO4fromO3inSeaSalt(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3inSeaSalt
 
-     REAL(f4),     POINTER :: ProdSO4fromOxidationOnDust(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromOxidationOnDust
+     REAL(f4),           POINTER :: ProdSO4fromOxidationOnDust(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromOxidationOnDust
 
-     REAL(f4),     POINTER :: ProdSO4fromUptakeOfH2SO4g(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromUptakeOfH2SO4g
+     REAL(f4),           POINTER :: ProdSO4fromUptakeOfH2SO4g(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromUptakeOfH2SO4g
 
-     REAL(f4),     POINTER :: ProdSO4fromHOBrInCloud(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromHOBrInCloud
+     REAL(f4),           POINTER :: ProdSO4fromHOBrInCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromHOBrInCloud
 
-     REAL(f4),     POINTER :: ProdSO4fromSRO3(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromSRO3
+     REAL(f4),           POINTER :: ProdSO4fromSRO3(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromSRO3
 
-     REAL(f4),     POINTER :: ProdSO4fromSRHOBr(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromSRHOBr
+     REAL(f4),           POINTER :: ProdSO4fromSRHOBr(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromSRHOBr
 
-     REAL(f4),     POINTER :: ProdSO4fromO3s(:,:,:)
-     LOGICAL               :: Archive_ProdSO4fromO3s
+     REAL(f4),           POINTER :: ProdSO4fromO3s(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3s
 
-     REAL(f4),     POINTER :: LossHNO3onSeaSalt(:,:,:)
-     LOGICAL               :: Archive_LossHNO3onSeaSalt
+     REAL(f4),           POINTER :: LossHNO3onSeaSalt(:,:,:)
+     LOGICAL                     :: Archive_LossHNO3onSeaSalt
 
      !%%%%% O3 and HNO3 at a given height above the surface %%%%%
 
-     REAL(f4),     POINTER :: DryDepRaALT1    (:,:  )
-     LOGICAL               :: Archive_DryDepRaALT1
+     REAL(f4),           POINTER :: DryDepRaALT1    (:,:  )
+     LOGICAL                     :: Archive_DryDepRaALT1
 
-     REAL(f4),     POINTER :: DryDepVelForALT1(:,:,:)
-     LOGICAL               :: Archive_DryDepVelForALT1
+     REAL(f4),           POINTER :: DryDepVelForALT1(:,:,:)
+     LOGICAL                     :: Archive_DryDepVelForALT1
 
-     REAL(f8),     POINTER :: SpeciesConcALT1 (:,:,:)
-     LOGICAL               :: Archive_SpeciesConcALT1
-     LOGICAL               :: Archive_ConcAboveSfc
+     REAL(f8),           POINTER :: SpeciesConcALT1 (:,:,:)
+     LOGICAL                     :: Archive_SpeciesConcALT1
+     LOGICAL                     :: Archive_ConcAboveSfc
 
      !%%%%% Time spent in the troposphere %%%%%
 
-     REAL(f4),     POINTER :: FracOfTimeInTrop(:,:,:)
-     LOGICAL               :: Archive_FracOfTimeInTrop
+     REAL(f4),           POINTER :: FracOfTimeInTrop(:,:,:)
+     LOGICAL                     :: Archive_FracOfTimeInTrop
 
      !%%%%% KPP solver diagnostics %%%%%
 
-     REAL(f4),     POINTER :: KppIntCounts(:,:,:)
-     LOGICAL               :: Archive_KppIntCounts
+     REAL(f4),           POINTER :: KppIntCounts(:,:,:)
+     LOGICAL                     :: Archive_KppIntCounts
 
-     REAL(f4),     POINTER :: KppJacCounts(:,:,:)
-     LOGICAL               :: Archive_KppJacCounts
+     REAL(f4),           POINTER :: KppJacCounts(:,:,:)
+     LOGICAL                     :: Archive_KppJacCounts
 
-     REAL(f4),     POINTER :: KppTotSteps (:,:,:)
-     LOGICAL               :: Archive_KppTotSteps
+     REAL(f4),           POINTER :: KppTotSteps (:,:,:)
+     LOGICAL                     :: Archive_KppTotSteps
 
-     REAL(f4),     POINTER :: KppAccSteps (:,:,:)
-     LOGICAL               :: Archive_KppAccSteps
+     REAL(f4),           POINTER :: KppAccSteps (:,:,:)
+     LOGICAL                     :: Archive_KppAccSteps
 
-     REAL(f4),     POINTER :: KppRejSteps (:,:,:)
-     LOGICAL               :: Archive_KppRejSteps
+     REAL(f4),           POINTER :: KppRejSteps (:,:,:)
+     LOGICAL                     :: Archive_KppRejSteps
 
-     REAL(f4),     POINTER :: KppLuDecomps(:,:,:)
-     LOGICAL               :: Archive_KppLuDecomps
+     REAL(f4),           POINTER :: KppLuDecomps(:,:,:)
+     LOGICAL                     :: Archive_KppLuDecomps
 
-     REAL(f4),     POINTER :: KppSubsts   (:,:,:)
-     LOGICAL               :: Archive_KppSubsts
+     REAL(f4),           POINTER :: KppSubsts   (:,:,:)
+     LOGICAL                     :: Archive_KppSubsts
 
-     REAL(f4),     POINTER :: KppSmDecomps(:,:,:)
-     LOGICAL               :: Archive_KppSmDecomps
-     LOGICAL               :: Archive_KppDiags
+     REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
+     LOGICAL                     :: Archive_KppSmDecomps
+     LOGICAL                     :: Archive_KppDiags
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -579,197 +579,236 @@ MODULE State_Diag_Mod
 
      !%%%%% TransportTracers simulation %%%%%
 
-     REAL(f4),     POINTER :: PbFromRnDecay(:,:,:)
-     LOGICAL               :: Archive_PbFromRnDecay
+     REAL(f4),           POINTER :: PbFromRnDecay(:,:,:)
+     LOGICAL                     :: Archive_PbFromRnDecay
 
-     REAL(f4),     POINTER :: RadDecay(:,:,:,:)
-     TYPE(DgnMap), POINTER :: Map_RadDecay
-     LOGICAL               :: Archive_RadDecay
+     REAL(f4),           POINTER :: RadDecay(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RadDecay
+     LOGICAL                     :: Archive_RadDecay
 
      !%%%%% CO2 specialty simulation %%%%%
 
-     REAL(f4),     POINTER :: ProdCO2fromCO(:,:,:)
-     LOGICAL               :: Archive_ProdCO2fromCO
+     REAL(f4),           POINTER :: ProdCO2fromCO(:,:,:)
+     LOGICAL                     :: Archive_ProdCO2fromCO
 
      !%%%%% CH4 specialty simulation %%%%%
 
-     REAL(f4),     POINTER :: LossCH4byClinTrop(:,:,:)
-     LOGICAL               :: Archive_LossCH4byClinTrop
+     REAL(f4),           POINTER :: LossCH4byClinTrop(:,:,:)
+     LOGICAL                     :: Archive_LossCH4byClinTrop
 
-     REAL(f4),     POINTER :: LossCH4byOHinTrop(:,:,:)
-     LOGICAL               :: Archive_LossCH4byOHinTrop
+     REAL(f4),           POINTER :: LossCH4byOHinTrop(:,:,:)
+     LOGICAL                     :: Archive_LossCH4byOHinTrop
 
-     REAL(f4),     POINTER :: LossCH4inStrat(:,:,:)
-     LOGICAL               :: Archive_LossCH4inStrat
+     REAL(f4),           POINTER :: LossCH4inStrat(:,:,:)
+     LOGICAL                     :: Archive_LossCH4inStrat
 
      ! %%%%% Tagged CO simulation %%%%%
-     REAL(f4),     POINTER :: ProdCOfromCH4(:,:,:)
-     LOGICAL               :: Archive_ProdCOfromCH4
+     REAL(f4),           POINTER :: ProdCOfromCH4(:,:,:)
+     LOGICAL                     :: Archive_ProdCOfromCH4
 
-     REAL(f4),     POINTER :: ProdCOfromNMVOC(:,:,:)
-     LOGICAL               :: Archive_ProdCOfromNMVOC
+     REAL(f4),           POINTER :: ProdCOfromNMVOC(:,:,:)
+     LOGICAL                     :: Archive_ProdCOfromNMVOC
 
      !%%%%% Persistent Organic Pollutants (POPS) simulation %%%%%
 
-     REAL(f4),     POINTER :: LossPOPPOCPObyGasPhase(:,:,:)
-     LOGICAL               :: Archive_LossPOPPOCPObyGasPhase
+     REAL(f4),           POINTER :: LossPOPPOCPObyGasPhase(:,:,:)
+     LOGICAL                     :: Archive_LossPOPPOCPObyGasPhase
 
-     REAL(f4),     POINTER :: ProdPOPPOCPOfromGasPhase(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPOCPOfromGasPhase
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromGasPhase
 
-     REAL(f4),     POINTER :: LossPOPPBCPObyGasPhase(:,:,:)
-     LOGICAL               :: Archive_LossPOPPBCPObyGasPhase
+     REAL(f4),           POINTER :: LossPOPPBCPObyGasPhase(:,:,:)
+     LOGICAL                     :: Archive_LossPOPPBCPObyGasPhase
 
-     REAL(f4),     POINTER :: ProdPOPPBCPOfromGasPhase(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPBCPOfromGasPhase
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromGasPhase
 
-     REAL(f4),     POINTER :: ProdPOPGfromOH(:,:,:)
-     LOGICAL               :: Archive_ProdPOPGfromOH
+     REAL(f4),           POINTER :: ProdPOPGfromOH(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPGfromOH
 
-     REAL(f4),     POINTER :: ProdPOPPOCPOfromO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPOCPOfromO3
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromO3
 
-     REAL(f4),     POINTER :: ProdPOPPOCPIfromO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPOCPIfromO3
+     REAL(f4),           POINTER :: ProdPOPPOCPIfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPIfromO3
 
-     REAL(f4),     POINTER :: ProdPOPPBCPIfromO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPBCPIfromO3
+     REAL(f4),           POINTER :: ProdPOPPBCPIfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPIfromO3
 
-     REAL(f4),     POINTER :: ProdPOPPBCPOfromO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPBCPOfromO3
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromO3
 
-     REAL(f4),     POINTER :: ProdPOPPOCPOfromNO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPOCPOfromNO3
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromNO3
 
-     REAL(f4),     POINTER :: ProdPOPPOCPIfromNO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPOCPIfromNO3
+     REAL(f4),           POINTER :: ProdPOPPOCPIfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPIfromNO3
 
-     REAL(f4),     POINTER :: ProdPOPPBCPIfromNO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPBCPIfromNO3
+     REAL(f4),           POINTER :: ProdPOPPBCPIfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPIfromNO3
 
-     REAL(f4),     POINTER :: ProdPOPPBCPOfromNO3(:,:,:)
-     LOGICAL               :: Archive_ProdPOPPBCPOfromNO3
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromNO3
 
      ! Hg specialty simulation
      !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
-     REAL(f4), POINTER :: EmisHg0anthro           (:,:  )
-     REAL(f4), POINTER :: EmisHg0biomass          (:,:  )
-     REAL(f4), POINTER :: EmisHg0geogenic         (:,:  )
-     REAL(f4), POINTER :: EmisHg0land             (:,:  )
-     REAL(f4), POINTER :: EmisHg0ocean            (:,:  )
-     REAL(f4), POINTER :: EmisHg0snow             (:,:  )
-     REAL(f4), POINTER :: EmisHg0soil             (:,:  )
-     REAL(f4), POINTER :: EmisHg2HgPanthro        (:,:  )
-     REAL(f4), POINTER :: EmisHg0vegetation       (:,:  )
-     REAL(f4), POINTER :: EmisHg2snowToOcean      (:,:  )
-     REAL(f4), POINTER :: EmisHg2rivers           (:,:  )
-     REAL(f4), POINTER :: FluxHg2HgPfromAirToSnow (:,:  )
-     LOGICAL :: Archive_EmisHg0anthro
-     LOGICAL :: Archive_EmisHg0biomass
-     LOGICAL :: Archive_EmisHg0geogenic
-     LOGICAL :: Archive_EmisHg0land
-     LOGICAL :: Archive_EmisHg0ocean
-     LOGICAL :: Archive_EmisHg0snow
-     LOGICAL :: Archive_EmisHg0soil
-     LOGICAL :: Archive_EmisHg0vegetation
-     LOGICAL :: Archive_EmisHg2HgPanthro
-     LOGICAL :: Archive_EmisHg2snowToOcean
-     LOGICAL :: Archive_EmisHg2rivers
-     LOGICAL :: Archive_FluxHg2HgPfromAirToSnow
+     REAL(f4),           POINTER :: EmisHg0anthro(:,:)
+     LOGICAL                     :: Archive_EmisHg0anthro
+
+     REAL(f4),           POINTER :: EmisHg0biomass(:,:)
+     LOGICAL                     :: Archive_EmisHg0biomass
+
+     REAL(f4),           POINTER :: EmisHg0geogenic(:,:)
+     LOGICAL                     :: Archive_EmisHg0geogenic
+
+     REAL(f4),           POINTER :: EmisHg0land(:,:)
+     LOGICAL                     :: Archive_EmisHg0land
+
+     REAL(f4),           POINTER :: EmisHg0ocean(:,:)
+     LOGICAL                     :: Archive_EmisHg0ocean
+
+     REAL(f4),           POINTER :: EmisHg0snow(:,:)
+     LOGICAL                     :: Archive_EmisHg0snow
+
+     REAL(f4),           POINTER :: EmisHg0soil(:,:)
+     LOGICAL                     :: Archive_EmisHg0soil
+
+     REAL(f4),           POINTER :: EmisHg2HgPanthro(:,:)
+     LOGICAL                     :: Archive_EmisHg0vegetation
+
+     REAL(f4),           POINTER :: EmisHg0vegetation(:,:)
+     LOGICAL                     :: Archive_EmisHg2HgPanthro
+
+     REAL(f4),           POINTER :: EmisHg2snowToOcean(:,:)
+     LOGICAL                     :: Archive_EmisHg2snowToOcean
+
+     REAL(f4),           POINTER :: EmisHg2rivers(:,:)
+     LOGICAL                     :: Archive_EmisHg2rivers
+
+     REAL(f4),           POINTER :: FluxHg2HgPfromAirToSnow(:,:)
+     LOGICAL                     :: Archive_FluxHg2HgPfromAirToSnow
      !
      !  -- oceanic quantities
-     REAL(f4), POINTER :: FluxHg0fromOceanToAir   (:,:  )
-     REAL(f4), POINTER :: FluxHg0fromAirToOcean   (:,:  )
-     REAL(f4), POINTER :: FluxHg2HgPfromAirToOcean(:,:  )
-     REAL(f4), POINTER :: FluxHg2toDeepOcean      (:,:  )
-     REAL(f4), POINTER :: FluxOCtoDeepOcean       (:,:  )
-     REAL(f4), POINTER :: MassHg0inOcean          (:,:  )
-     REAL(f4), POINTER :: MassHg2inOcean          (:,:  )
-     REAL(f4), POINTER :: MassHgPinOcean          (:,:  )
-     REAL(f4), POINTER :: MassHgTotalInOcean      (:,:  )
-     LOGICAL :: Archive_FluxHg0fromAirToOcean
-     LOGICAL :: Archive_FluxHg0fromOceanToAir
-     LOGICAL :: Archive_FluxHg2HgPfromAirToOcean
-     LOGICAL :: Archive_FluxHg2toDeepOcean
-     LOGICAL :: Archive_FluxOCtoDeepOcean
-     LOGICAL :: Archive_MassHg0inOcean
-     LOGICAL :: Archive_MassHg2inOcean
-     LOGICAL :: Archive_MassHgPinOcean
-     LOGICAL :: Archive_MassHgTotalInOcean
+     REAL(f4),           POINTER :: FluxHg0fromOceanToAir(:,:)
+     LOGICAL                     :: Archive_FluxHg0fromAirToOcean
+
+     REAL(f4),           POINTER :: FluxHg0fromAirToOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg0fromOceanToAir
+
+     REAL(f4),           POINTER :: FluxHg2HgPfromAirToOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg2HgPfromAirToOcean
+
+     REAL(f4),           POINTER :: FluxHg2toDeepOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg2toDeepOcean
+
+     REAL(f4),           POINTER :: FluxOCtoDeepOcean(:,:)
+     LOGICAL                     :: Archive_FluxOCtoDeepOcean
+
+     REAL(f4),           POINTER :: MassHg0inOcean(:,:)
+     LOGICAL                     :: Archive_MassHg0inOcean
+
+     REAL(f4),           POINTER :: MassHg2inOcean(:,:)
+     LOGICAL                     :: Archive_MassHg2inOcean
+
+     REAL(f4),           POINTER :: MassHgPinOcean(:,:)
+     LOGICAL                     :: Archive_MassHgPinOcean
+
+     REAL(f4),           POINTER :: MassHgTotalInOcean(:,:)
+     LOGICAL                     :: Archive_MassHgTotalInOcean
      !
      !  -- chemistry quantities
-     REAL(f4), POINTER :: ConcBr                  (:,:,:)
-     REAL(f4), POINTER :: ConcBrO                 (:,:,:)
-     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:,:)
-     REAL(f4), POINTER :: LossRateHg2bySeaSalt    (:,:  )
-     REAL(f4), POINTER :: PolarConcBr             (:,:,:)
-     REAL(f4), POINTER :: PolarConcBrO            (:,:,:)
-     REAL(f4), POINTER :: PolarConcO3             (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromBr           (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromBrY          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromClY          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHg0          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBr2  (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrOH (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromOH           (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromO3           (:,:,:)
-     REAL(f4), POINTER :: ParticulateBoundHg      (:,:,:)
-     REAL(f4), POINTER :: ReactiveGaseousHg       (:,:,:)
-     LOGICAL :: Archive_ConcBr
-     LOGICAL :: Archive_ConcBrO
-     LOGICAL :: Archive_LossHg2bySeaSalt
-     LOGICAL :: Archive_LossRateHg2bySeaSalt
-     LOGICAL :: Archive_PolarConcBr
-     LOGICAL :: Archive_PolarConcBrO
-     LOGICAL :: Archive_PolarConcO3
-     LOGICAL :: Archive_ProdHg2fromBr
-     LOGICAL :: Archive_ProdHg2fromBrY
-     LOGICAL :: Archive_ProdHg2fromClY
-     LOGICAL :: Archive_ProdHg2fromHg0
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBr2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrBrO
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrClO
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrHO2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrNO2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrOH
-     LOGICAL :: Archive_ProdHg2fromOH
-     LOGICAL :: Archive_ProdHg2fromO3
-     LOGICAL :: Archive_ParticulateBoundHg
-     LOGICAL :: Archive_ReactiveGaseousHg
+     REAL(f4),           POINTER :: ConcBr(:,:,:)
+     LOGICAL                     :: Archive_ConcBr
+
+     REAL(f4),           POINTER :: ConcBrO(:,:,:)
+     LOGICAL                     :: Archive_ConcBrO
+
+     REAL(f4),           POINTER :: LossHg2bySeaSalt(:,:,:)
+     LOGICAL                     :: Archive_LossHg2bySeaSalt
+
+     REAL(f4),           POINTER :: LossRateHg2bySeaSalt(:,:  )
+     LOGICAL                     :: Archive_LossRateHg2bySeaSalt
+
+     REAL(f4),           POINTER :: PolarConcBr(:,:,:)
+     LOGICAL                     :: Archive_PolarConcBr
+
+     REAL(f4),           POINTER :: PolarConcBrO(:,:,:)
+     LOGICAL                     :: Archive_PolarConcBrO
+
+     REAL(f4),           POINTER :: PolarConcO3(:,:,:)
+     LOGICAL                     :: Archive_PolarConcO3
+
+     REAL(f4),           POINTER :: ProdHg2fromBr(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromBr
+
+     REAL(f4),           POINTER :: ProdHg2fromBrY(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromBrY
+
+     REAL(f4),           POINTER :: ProdHg2fromClY(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromClY
+
+     REAL(f4),           POINTER :: ProdHg2fromHg0(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHg0
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBr2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBr2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrBrO
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrClO
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrHO2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrNO2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrOH(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrOH
+
+     REAL(f4),           POINTER :: ProdHg2fromOH(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromOH
+
+     REAL(f4),           POINTER :: ProdHg2fromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromO3
+
+     REAL(f4),           POINTER :: ParticulateBoundHg(:,:,:)
+     LOGICAL                     :: Archive_ParticulateBoundHg
+
+     REAL(f4),           POINTER :: ReactiveGaseousHg(:,:,:)
+     LOGICAL                     :: Archive_ReactiveGaseousHg
 
      !%%%%% Simulation with RRTMG %%%%%
 
-     INTEGER                   :: nRadFlux
-     INTEGER,          POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=2), POINTER :: RadFluxName(:)
+     INTEGER                     :: nRadFlux
+     INTEGER,            POINTER :: RadFluxInd(:)
+     CHARACTER(LEN=2),   POINTER :: RadFluxName(:)
 
-     REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
-     LOGICAL                   :: Archive_RadAllSkyLWSurf
+     REAL(f4),           POINTER :: RadAllSkyLWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWSurf
 
-     REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
-     LOGICAL                   :: Archive_RadAllSkyLWTOA
+     REAL(f4),           POINTER :: RadAllSkyLWTOA (:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWTOA
 
-     REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
-     LOGICAL                   :: Archive_RadAllSkySWSurf
+     REAL(f4),           POINTER :: RadAllSkySWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWSurf
 
-     REAL(f4),         POINTER :: RadAllSkySWTOA (:,:,:)
-     LOGICAL                   :: Archive_RadAllSkySWTOA
+     REAL(f4),           POINTER :: RadAllSkySWTOA (:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWTOA
 
-     REAL(f4),         POINTER :: RadClrSkyLWSurf(:,:,:)
-     LOGICAL                   :: Archive_RadClrSkyLWSurf
+     REAL(f4),           POINTER :: RadClrSkyLWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWSurf
 
-     REAL(f4),         POINTER :: RadClrSkyLWTOA (:,:,:)
-     LOGICAL                   :: Archive_RadClrSkyLWTOA
+     REAL(f4),           POINTER :: RadClrSkyLWTOA (:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWTOA
 
-     REAL(f4),         POINTER :: RadClrSkySWSurf(:,:,:)
-     LOGICAL                      :: Archive_RadClrSkySWSurf
+     REAL(f4),           POINTER :: RadClrSkySWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWSurf
 
-     REAL(f4),         POINTER :: RadClrSkySWTOA (:,:,:)
-     LOGICAL                   :: Archive_RadClrSkySWTOA
+     REAL(f4),           POINTER :: RadClrSkySWTOA (:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWTOA
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -778,40 +817,40 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! ObsPack File variables
-     LOGICAL                      :: Do_ObsPack
-     INTEGER                      :: ObsPack_fId
-     CHARACTER(LEN=1024)          :: ObsPack_InFile
-     CHARACTER(LEN=1024)          :: ObsPack_OutFile
+     LOGICAL                     :: Do_ObsPack
+     INTEGER                     :: ObsPack_fId
+     CHARACTER(LEN=1024)         :: ObsPack_InFile
+     CHARACTER(LEN=1024)         :: ObsPack_OutFile
 
      ! ObsPack Inputs
-     INTEGER                      :: ObsPack_nObs
-     CHARACTER(LEN=200 ), POINTER :: ObsPack_Id           (:  )
-     INTEGER,             POINTER :: ObsPack_nSamples     (:  )
-     INTEGER,             POINTER :: ObsPack_Strategy     (:  )
-     REAL(f4),            POINTER :: ObsPack_Latitude     (:  )
-     REAL(f4),            POINTER :: ObsPack_Longitude    (:  )
-     REAL(f4),            POINTER :: ObsPack_Altitude     (:  )
+     INTEGER                     :: ObsPack_nObs
+     CHARACTER(LEN=200), POINTER :: ObsPack_Id           (:  )
+     INTEGER,            POINTER :: ObsPack_nSamples     (:  )
+     INTEGER,            POINTER :: ObsPack_Strategy     (:  )
+     REAL(f4),           POINTER :: ObsPack_Latitude     (:  )
+     REAL(f4),           POINTER :: ObsPack_Longitude    (:  )
+     REAL(f4),           POINTER :: ObsPack_Altitude     (:  )
 
      ! ObsPack time and averaging interval variables
-     REAL(f8)                     :: ObsPack_Ival_Length
-     REAL(f8),            POINTER :: ObsPack_Ival_Start   (:  )
-     REAL(f8),            POINTER :: ObsPack_Ival_Center  (:  )
-     REAL(f8),            POINTER :: ObsPack_Ival_End     (:  )
+     REAL(f8)                    :: ObsPack_Ival_Length
+     REAL(f8),           POINTER :: ObsPack_Ival_Start   (:  )
+     REAL(f8),           POINTER :: ObsPack_Ival_Center  (:  )
+     REAL(f8),           POINTER :: ObsPack_Ival_End     (:  )
 
      ! ObsPack outputs (add more if necessary)
-     REAL(f4),            POINTER :: ObsPack_P            (:  )
-     REAL(f4),            POINTER :: ObsPack_U            (:  )
-     REAL(f4),            POINTER :: ObsPack_V            (:  )
-     REAL(f4),            POINTER :: ObsPack_BLH          (:  )
-     REAL(f4),            POINTER :: ObsPack_Q            (:  )
-     REAL(f4),            POINTER :: ObsPack_T            (:  )
+     REAL(f4),           POINTER :: ObsPack_P            (:  )
+     REAL(f4),           POINTER :: ObsPack_U            (:  )
+     REAL(f4),           POINTER :: ObsPack_V            (:  )
+     REAL(f4),           POINTER :: ObsPack_BLH          (:  )
+     REAL(f4),           POINTER :: ObsPack_Q            (:  )
+     REAL(f4),           POINTER :: ObsPack_T            (:  )
 
      ! ObsPack species and metadata variables
-     INTEGER                      :: ObsPack_nSpecies
-     REAL(f4),            POINTER :: ObsPack_Species      (:,:)
-     INTEGER,             POINTER :: ObsPack_Species_Ind  (:  )
-     CHARACTER(LEN=31 ),  POINTER :: ObsPack_Species_Name (:  )
-     CHARACTER(LEN=80 ),  POINTER :: ObsPack_Species_LName(:  )
+     INTEGER                     :: ObsPack_nSpecies
+     REAL(f4),           POINTER :: ObsPack_Species      (:,:)
+     INTEGER,            POINTER :: ObsPack_Species_Ind  (:  )
+     CHARACTER(LEN=31 ), POINTER :: ObsPack_Species_Name (:  )
+     CHARACTER(LEN=80 ), POINTER :: ObsPack_Species_LName(:  )
 
 #ifdef MODEL_GEOS
      !----------------------------------------------------------------------
@@ -821,62 +860,62 @@ MODULE State_Diag_Mod
 
      !%%%%% Drydep resistances and related quantities %%%%%
 
-     REAL(f4),     POINTER :: DryDepRa2m(:,:)
-     LOGICAL               :: Archive_DryDepRa2m
+     REAL(f4),           POINTER :: DryDepRa2m(:,:)
+     LOGICAL                     :: Archive_DryDepRa2m
 
-     REAL(f4),     POINTER :: DryDepRa10m(:,:)
-     LOGICAL               :: Archive_DryDepRa10m
+     REAL(f4),           POINTER :: DryDepRa10m(:,:)
+     LOGICAL                     :: Archive_DryDepRa10m
 
-     REAL(f4),     POINTER :: MoninObukhov(:,:)
-     LOGICAL               :: Archive_MoninObukhov
+     REAL(f4),           POINTER :: MoninObukhov(:,:)
+     LOGICAL                     :: Archive_MoninObukhov
 
-     REAL(f4),     POINTER :: Bry(:,:,:)
-     LOGICAL               :: Archive_Bry
+     REAL(f4),           POINTER :: Bry(:,:,:)
+     LOGICAL                     :: Archive_Bry
 
      !%%%%% Chemistry diagnostics %%%%%
 
-     REAL(f4),     POINTER :: KppError(:,:,:)           ! Kpp integration error
-     LOGICAL               :: Archive_KppError
+     REAL(f4),           POINTER :: KppError(:,:,:)
+     LOGICAL                     :: Archive_KppError
 
-     REAL(f4),     POINTER :: JValIndiv(:,:,:,:)        ! individual J-values
-     TYPE(DgnMap), POINTER :: Map_JValIndiv
-     LOGICAL               :: Archive_JValIndiv
+     REAL(f4),           POINTER :: JValIndiv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JValIndiv
+     LOGICAL                     :: Archive_JValIndiv
 
-     REAL(f4),     POINTER :: RxnRconst(:,:,:,:)        ! KPP rxn rate const.
-     TYPE(DgnMap), POINTER :: Map_RxnRconst
-     LOGICAL               :: Archive_RxnRconst
+     REAL(f4),           POINTER :: RxnRconst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnRconst
+     LOGICAL                     :: Archive_RxnRconst
 
-     REAL(f4),     POINTER :: O3concAfterChem(:,:,:)    ! O3
-     LOGICAL               :: Archive_O3concAfterChem
+     REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O3concAfterChem
 
-     REAL(f4),     POINTER :: RO2concAfterChem(:,:,:)   ! RO2
-     LOGICAL               :: Archive_RO2concAfterChem
+     REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_RO2concAfterChem
 
-     REAL(f4),     POINTER :: CH4pseudoFlux(:,:)        ! CH4 pseudo-flux
-     LOGICAL               :: Archive_CH4pseudoFlux
+     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
+     LOGICAL                     :: Archive_CH4pseudoFlux
 
      !%%%%% PM2.5 diagnostics %%%%%
 
-     REAL(f4),     POINTER :: PM25ni(:,:,:)             ! PM25 nitrates
-     LOGICAL               :: Archive_PM25ni
+     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
+     LOGICAL                     :: Archive_PM25ni
 
-     REAL(f4),     POINTER :: PM25su(:,:,:)             ! PM25 sulfates
-     LOGICAL               :: Archive_PM25su
+     REAL(f4),           POINTER :: PM25su(:,:,:)     ! PM25 sulfates
+     LOGICAL                     :: Archive_PM25su
 
-     REAL(f4),     POINTER :: PM25oc(:,:,:)             ! PM25 OC
-     LOGICAL               :: Archive_PM25oc
+     REAL(f4),           POINTER :: PM25oc(:,:,:)     ! PM25 OC
+     LOGICAL                     :: Archive_PM25oc
 
-     REAL(f4),     POINTER :: PM25bc(:,:,:)             ! PM25 BC
-     LOGICAL               :: Archive_PM25bc
+     REAL(f4),           POINTER :: PM25bc(:,:,:)     ! PM25 BC
+     LOGICAL                     :: Archive_PM25bc
 
-     REAL(f4),     POINTER :: PM25du(:,:,:)             ! PM25 dust
-     LOGICAL               :: Archive_PM25du
+     REAL(f4),           POINTER :: PM25du(:,:,:)     ! PM25 dust
+     LOGICAL                     :: Archive_PM25du
 
-     REAL(f4),     POINTER :: PM25ss(:,:,:)             ! PM25 sea salt
-     LOGICAL               :: Archive_PM25ss
+     REAL(f4),           POINTER :: PM25ss(:,:,:)     ! PM25 sea salt
+     LOGICAL                     :: Archive_PM25ss
 
-     REAL(f4),     POINTER :: PM25soa(:,:,:)     ! PM25 SOA
-     LOGICAL               :: Archive_PM25soa
+     REAL(f4),           POINTER :: PM25soa(:,:,:)    ! PM25 SOA
+     LOGICAL                     :: Archive_PM25soa
 
 #endif
 
@@ -885,17 +924,16 @@ MODULE State_Diag_Mod
      ! The following diagnostics are only used when
      ! GEOS-Chem is interfaced into WRF (as WRF-GC)
      !----------------------------------------------------------------------
-     REAL(f4),     POINTER :: KppError(:,:,:  ) ! Kpp integration error
-     LOGICAL               :: Archive_KppError
+     REAL(f4),           POINTER :: KppError(:,:,:)
+     LOGICAL                     :: Archive_KppError
 #endif
-
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
-     CHARACTER(LEN=4)           :: State     = 'DIAG'   ! Name of this state
-     TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
-     TYPE(dictionary_t)         :: RegDict              ! Lookup table
+     CHARACTER(LEN=4)            :: State     = 'DIAG'   ! Name of this state
+     TYPE(MetaRegItem),  POINTER :: Registry  => NULL()  ! Registry object
+     TYPE(dictionary_t)          :: RegDict              ! Lookup table
 
   END TYPE DgnState
 !
