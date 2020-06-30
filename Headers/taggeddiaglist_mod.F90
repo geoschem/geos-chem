@@ -132,13 +132,12 @@ CONTAINS
     ! Scalars
     LOGICAL                      :: isWildCard
     LOGICAL                      :: taggedDiagListExists
+    INTEGER                      :: listIndex
     INTEGER                      :: numTags
     INTEGER                      :: numWildCards
-    INTEGER                      :: reverseIndex
 
     ! Strings
     CHARACTER(LEN=63)            :: tagName
-    CHARACTER(LEN=63)            :: tagNameUpper
     CHARACTER(LEN=255)           :: errMsg
     CHARACTER(LEN=255)           :: thisLoc
 
@@ -204,15 +203,15 @@ CONTAINS
              !--------------------------------------------------------------
              ! If the TaggedDiagList (of wildcards or tags) already exists:
              ! (1) Add a new TaggedDiagItem into it
-             ! (2) Update the index (which is actually in reverse order)
+             ! (2) Set the index to a placeholder.
+             !     Indices will be updated in the following section.
              !--------------------------------------------------------------
-             reverseIndex = reverseIndex + 1
              CALL Update_TaggedDiagList(                                     &
                   Input_Opt         = Input_Opt,                             &
                   metadataID        = diagnostic%metadataID,                 &
                   isWildCard        = diagnostic%isWildCard,                 &
                   tagName           = tagName,                               &
-                  index             = reverseIndex,                          &
+                  index             = 0,                                     &
                   TaggedDiagList    = TaggedDiagList,                        &
                   RC                = RC                                    )
 
@@ -228,17 +227,16 @@ CONTAINS
              !--------------------------------------------------------------
              ! If the TaggedDiagList does not exist:
              ! (1) Create a new TaggedDiagItem
-             ! (2) Set the starting index of the TaggedDiagItem to 1.
-             !     (NOTE: This index is actually in reverse order)
+             ! (2) Set the index to a placeholder.
+             !     Indices will be updated in the following section.
              !--------------------------------------------------------------
-             reverseIndex = 1
              CALL Init_TaggedDiagItem(                                       &
                   Input_Opt         = Input_Opt,                             &
                   NewTaggedDiagItem = NewTaggedDiagItem,                     &
                   metadataID        = diagnostic%metadataID,                 &
                   isWildcard        = diagnostic%isWildCard,                 &
                   tagName           = tagName,                               &
-                  index             = reverseIndex,                          &
+                  index             = 0,                                     &
                   RC                = RC                                    )
 
              ! Trap potential errors
@@ -280,11 +278,15 @@ CONTAINS
     !=======================================================================
 
     ! Re-initialize pointers
-    TaggedDiagItem => NULL()
-    current        => NULL()
-    diagnostic     => DiagList%head
+    diagnostic => DiagList%head
 
     DO WHILE ( ASSOCIATED( diagnostic ) )
+
+       ! Initialize
+       TaggedDiagItem => NULL()
+       current        => NULL()
+       numTags        =  0
+       numWildCards   =  0
 
        ! Only proceed for State_Diag diagnostics
        IF ( diagnostic%state == 'DIAG' .AND.                                 &
@@ -317,57 +319,52 @@ CONTAINS
           IF ( .not. taggedDiagListExists ) CYCLE
 
           !-----------------------------------------------------------------
-          ! Get the name of each tag or wildcard
-          !-----------------------------------------------------------------
-          IF ( diagnostic%isTagged ) THEN
-             tagName = diagnostic%tag
-          ELSE
-             tagName = diagnostic%wildcard
-          ENDIF
-
-          ! Convert tag name to upper case
-          tagNameUpper = To_UpperCase( tagName )
-
-          !-----------------------------------------------------------------
           ! Loop over all tags of wildcards belonging to this diagnostic
           !-----------------------------------------------------------------
           TaggedDiagItem => TaggedDiagList%head
 
           DO WHILE ( ASSOCIATED( TaggedDiagItem ) )
 
-             !--------------------------------------------------------------
-             ! Reverse the indices of tags -- skip if there is only one
-             !--------------------------------------------------------------
-             IF ( numTags > 1 ) THEN
-                current => TaggedDiagItem%tagList%head
-                DO WHILE ( ASSOCIATED( current ) )
-                   IF ( To_UpperCase(current%name) == tagNameUpper ) THEN
-                      current%index = numtags - current%index + 1
-                      EXIT
-                   ENDIF
-                   current => current%next
-                ENDDO
-                current => NULL()
+             ! Make sure we the diagnostic field name (metadataId) in the
+             ! TaggedDiagItem matches that of the current diagnostic
+             IF ( TRIM( TaggedDiagItem%metaDataId ) ==                      &
+                  TRIM( diagnostic%metaDataId     )     ) THEN
 
-             !--------------------------------------------------------------
-             ! Reverse indices of wildcards -- skip if there is only one
-             !--------------------------------------------------------------
-             ELSE IF ( numWildCards > 1 ) THEN
-                current => TaggedDiagItem%wildCardList%head
-                DO WHILE ( ASSOCIATED( current ) )
-                   IF ( To_UpperCase(current%name) == tagNameUpper ) THEN
-                      current%index = numWildCards - current%index + 1
-                      EXIT
-                   ENDIF
-                   current => current%next
-                ENDDO
-                current => NULL()
+                !-----------------------------------------------------------
+                ! Reset the indices of entries in WildCardList
+                !-----------------------------------------------------------
+                IF ( isWildCard ) THEN
+                   current   => TaggedDiagItem%wildCardList%head
+                   listIndex =  0
+                   DO WHILE ( ASSOCIATED( current ) )
+                      listIndex     =  listIndex + 1
+                      current%index =  listIndex
+                      current       => current%next
+                   ENDDO
+                   current => NULL()
+
+                !-----------------------------------------------------------
+                ! Reset the indices of entries in TagList
+                !-----------------------------------------------------------
+                ELSE
+                    current   => TaggedDiagItem%tagList%head
+                    listIndex =  0
+                    DO WHILE ( ASSOCIATED( current ) )
+                       listIndex     =  listIndex + 1
+                       current%index =  listIndex
+                       current       => current%next
+                    ENDDO
+                    current => NULL()
+
+                ENDIF
              ENDIF
 
              ! Advance to the next item in TaggedDiagList
              TaggedDiagItem => TaggedDiagItem%next
 
           ENDDO
+
+          ! Free pointers
           TaggedDiagItem => NULL()
        ENDIF
 
