@@ -1554,6 +1554,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
+    INTEGER                 :: S
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: EmMW_kg, fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -1885,7 +1886,7 @@ CONTAINS
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, EmMw_kg, tmpFlx                       )
+       !$OMP PRIVATE( ND, N, ThisSpc, EmMw_kg, tmpFlx, S                    )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -1931,9 +1932,12 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( State_Diag%Archive_DryDepMix   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
-             State_Diag%DryDepMix(:,:,ND) = Dflx(:,:,N)                      &
+             S = State_Diag%Map_DryDepMix%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepMix(:,:,S) = Dflx(:,:,N)                    &
                                             * 1.0e-4_fp                      &
                                             * ( AVO / EmMW_kg  )
+             ENDIF
           ENDIF
 
           !-----------------------------------------------------------------
