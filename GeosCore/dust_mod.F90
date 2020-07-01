@@ -402,7 +402,7 @@ CONTAINS
 
     ! Dust settling timestep [s]
     DT_SETTL = GET_TS_CHEM()
-    
+
     ! Save initial dust mass
     DO BIN = 1, IBINS
 
@@ -462,7 +462,7 @@ CONTAINS
           ENDDO
 
 #ifdef BPCH_DIAG
-          !=========================================================== 
+          !===========================================================
           !  Dry deposition diagnostic [#/cm2/s] (bpch)
           !===========================================================
           IF ( ND44 > 0 ) THEN
@@ -1201,30 +1201,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: LINTERP
-    INTEGER            :: I, J, L, N, NOUT, W
-    INTEGER            :: IWV, IIWV, NWVS, IDST
-    REAL(fp)           :: MSDENS(NDUST), XTAU
+    ! Scalars
+    LOGICAL           :: LINTERP
+    INTEGER           :: I,       J,       L,       N
+    INTEGER           :: NOUT,    S,       W,       IWV
+    INTEGER           :: IIWV,    NWVS,    IDST,    IWV1
+    INTEGER           :: IWV2
+    REAL(fp)          :: XTAU,    XRH,     CRITRH,  ACOEF
+    REAL(fp)          :: BCOEF,   LOGTERM
 
-    ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
-    ! (tmf, 3/6/09)
-    REAL(fp)           :: XRH
-    REAL(fp)           :: CRITRH      ! Critical RH [%], above which
-                                      !  heteorogeneous chem takes place
-
-    INTEGER            :: IWV1,  IWV2
-    REAL(fp)           :: ACOEF, BCOEF, LOGTERM
+    ! Arrays
+    LOGICAL           :: LINTERPARR(Input_Opt%NWVSELECT)
+    REAL(fp)          :: MSDENS(NDUST)
+    REAL(fp)          :: tempOD(State_Grid%NX,State_Grid%NY,               &
+                                State_Grid%NZ,NDUST,         3)
 
     ! Pointers
-    REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: TAREA(:,:,:,:)
-    REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: WTAREA(:,:,:,:)
-
-    ! For diagnostics
-    REAL(fp)            :: tempOD(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ,NDUST,3)
-    LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
+    REAL(fp), POINTER :: ERADIUS(:,:,:,:)
+    REAL(fp), POINTER :: TAREA(:,:,:,:)
+    REAL(fp), POINTER :: WERADIUS(:,:,:,:)
+    REAL(fp), POINTER :: WTAREA(:,:,:,:)
 
     !=================================================================
     ! RDUST_ONLINE begins here!
@@ -1249,13 +1245,13 @@ CONTAINS
     ENDIF
 
     ! Dust density
-    MSDENS(1) = 2500.0e+0_fp
-    MSDENS(2) = 2500.0e+0_fp
-    MSDENS(3) = 2500.0e+0_fp
-    MSDENS(4) = 2500.0e+0_fp
-    MSDENS(5) = 2650.0e+0_fp
-    MSDENS(6) = 2650.0e+0_fp
-    MSDENS(7) = 2650.0e+0_fp
+    MSDENS(1) = 2500.0_fp
+    MSDENS(2) = 2500.0_fp
+    MSDENS(3) = 2500.0_fp
+    MSDENS(4) = 2500.0_fp
+    MSDENS(5) = 2650.0_fp
+    MSDENS(6) = 2650.0_fp
+    MSDENS(7) = 2650.0_fp
 
     ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
     CRITRH = 35.0e+0_fp   ! [%]
@@ -1421,7 +1417,7 @@ CONTAINS
        ! Loop over dust bins, # of wavelengths, and all grid cells
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP, S )
        DO W = 1, Input_Opt%NWVSELECT
        DO N = 1, NDUST
        DO L = 1, State_Grid%MaxChemLev
@@ -1451,15 +1447,25 @@ CONTAINS
           ! Set size-resolved dust optical depth diagnostic
           !---------------------------------------------------
           IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
-             State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
-          ENDIF
-          IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
-             State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
-          ENDIF
-          IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
-             State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
+             S = State_Diag%Map_AODDustWL1%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL1(I,J,L,S) = tempOD(I,J,L,N,1)
+             ENDIF
           ENDIF
 
+          IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
+             S = State_Diag%Map_AODDustWL2%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL2(I,J,L,S) = tempOD(I,J,L,N,2)
+             ENDIF
+          ENDIF
+
+          IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
+             S = State_Diag%Map_AODDustWL3%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL3(I,J,L,S) = tempOD(I,J,L,N,3)
+             ENDIF
+          ENDIF
 
        ENDDO ! longitude
        ENDDO ! latitude
@@ -1762,7 +1768,7 @@ CONTAINS
                     DF_AREA_d(1)         + &
                     DF_AREA_d(2)         + &
                     DF_AREA_d(3)         + &
-                    DF_AREA_d(4) 
+                    DF_AREA_d(4)
 
     ! tdf Total Dust Alkalinity
     ALK = ALK_d(1) + ALK_d(2) + ALK_d(3) + ALK_d(4)  ! [v/v]

@@ -4298,7 +4298,9 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%AODDustWL1,                          &
             archiveData    = State_Diag%Archive_AODDustWL1,                  &
+            mapData        = State_Diag%Map_AODDustWL1,                      &
             diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4321,7 +4323,9 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%AODDustWL2,                          &
             archiveData    = State_Diag%Archive_AODDustWL2,                  &
+            mapData        = State_Diag%Map_AODDustWL2,                      &
             diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4344,7 +4348,9 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%AODDustWL3,                          &
             archiveData    = State_Diag%Archive_AODDustWL3,                  &
+            mapData        = State_Diag%Map_AODDustWL3,                      &
             diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -10138,21 +10144,21 @@ CONTAINS
     SELECT CASE( TRIM( tagId ) )
        CASE( '' )
           numTags = 0
-       CASE( 'ALL', 'S' )
+       CASE( 'ALL',     'S' )
           numTags = State_Chm%nSpecies
-       CASE( 'ADV', 'A' )
+       CASE( 'ADV',     'A' )
           numTags = State_Chm%nAdvect
-       CASE( 'AER'      )
+       CASE( 'AER'          )
           numTags = State_Chm%nAeroSpc
-       CASE( 'DRY', 'D' )
+       CASE( 'DRY',     'D' )
           numTags = State_Chm%nDryDep
-       CASE( 'DRYALT'   )
+       CASE( 'DRYALT'       )
           numTags = State_Chm%nDryAlt
-       CASE( 'DUSTBIN'  )
+       CASE( 'DUSTBIN', 'B' )
           numTags = NDUST
-       CASE( 'FIX', 'F' )
+       CASE( 'FIX',     'F' )
           numTags = State_Chm%nKppFix
-       CASE( 'GAS', 'G' )
+       CASE( 'GAS',     'G' )
           numTags = State_Chm%nGasSpc
       !------------------------------------------------------
       ! Prior to 10/24/18:
@@ -10165,25 +10171,25 @@ CONTAINS
       !CASE( 'HGP'     )
       !   numTags = State_Chm%N_Hg_Cats
       !------------------------------------------------------
-       CASE( 'HYG', 'H' )
+       CASE( 'HYG',     'H' )
           numTags = State_Chm%nHygGrth
-       CASE( 'KPP', 'K' )
+       CASE( 'KPP',     'K' )
           numTags = State_Chm%nKppSpc
-       CASE( 'LOS'      )
+       CASE( 'LOS'          )
           numTags = State_Chm%nLoss
-       CASE( 'PHO', 'P' )
+       CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
-       CASE( 'UVFLX', 'U' )
+       CASE( 'UVFLX',   'U' )
           numTags = W_
-       CASE( 'PRD'      )
+       CASE( 'PRD'          )
           numTags = State_Chm%nProd
-       CASE( 'RRTMG'    )
+       CASE( 'RRTMG'        )
           numTags = nRadFlux
-       CASE( 'RXN', 'R' )
+       CASE( 'RXN',     'R' )
           numTags = NREACT
-       CASE( 'VAR', 'V' )
+       CASE( 'VAR',     'V' )
           numTags = State_Chm%nKppVar
-       CASE( 'WET', 'W' )
+       CASE( 'WET',     'W' )
           numTags = State_Chm%nWetDep
        CASE DEFAULT
           ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
@@ -10381,7 +10387,15 @@ CONTAINS
        ! UVFlux requested output fluxes
        ! These are at the FAST-JX wavelength bins
        CASE( 'UVFLX' )
-          tagName = UVFlux_Tag_Names(D)
+          IF ( D <= 1 .and. D >= 18 ) THEN
+             tagName = UVFlux_Tag_Names(D)
+          ELSE
+             WRITE( errMsg, '(i2.2)' ) D
+             errMsg = 'FAST-JX UV Flux bin ' // TRIM( errMsg ) //           &
+                      'is out of bounds!  It must be in the range 1..18!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
 
        ! Default tag name is the name in the species database
        CASE DEFAULT
@@ -10673,7 +10687,7 @@ CONTAINS
              tagName = State_Chm%SpcData(index)%info%name
           CASE DEFAULT
              ! We need to call Get_TagInfo for diagnostics that
-             ! aren't chemical species (e.g. UVFLX, RXN, etc.)
+             ! aren't chemical species (e.g. DUSTBIN, UVFLX, RXN, etc.)
              CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
                                State_Chm = State_Chm,                     &
                                tagID     = tagId,                         &
@@ -12079,6 +12093,7 @@ CONTAINS
 
     ! Scalars
     LOGICAL                   :: found
+    LOGICAL                   :: isDustBin
     LOGICAL                   :: isRxnRate
     LOGICAL                   :: isUvFlx
     LOGICAL                   :: isWildCard
@@ -12112,8 +12127,9 @@ CONTAINS
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
     mapName2   = TRIM( mapName ) // '%id'
+    isDustBin  = ( indFlag == 'B'         )
     isRxnRate  = ( indFlag == 'R'         )
-    isUvFlx    = ( indflag == 'U'         )
+    isUvFlx    = ( indFlag == 'U'         )
     skipInd    = ( isRxnRate .or. isUvFlx )
     spcName    = ''
     wcName     = ''
@@ -12239,7 +12255,15 @@ CONTAINS
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
 
-          IF ( isRxnRate ) THEN
+          IF ( isDustBin ) THEN
+
+             ! Dustbin: Tag names are "bin1" .. "bin7", so the
+             ! bin number is the last character of the tag name
+             S = LEN_TRIM( TagItem%Name )
+             READ( TagItem%Name(S:S), '(I1)' ) index
+             mapData%slot2id(TagItem%index) = index
+
+          ELSE IF ( isRxnRate ) THEN
 
              ! RxnRate: the last 3 characters is the index #
              S      = LEN_TRIM( TagItem%name )
