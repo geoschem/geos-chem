@@ -977,6 +977,13 @@ MODULE State_Diag_Mod
 !
   ! Shadow variables from Input_Opt
   LOGICAL :: Is_UCX
+!
+! !DEFINED PARAMETERS:
+!
+  CHARACTER(LEN=5), PARAMETER :: UVFlux_Tag_Names(18) =                    (/&
+       '187nm', '191nm', '193nm', '196nm', '202nm', '208nm',                 &
+       '211nm', '214nm', '261nm', '267nm', '277nm', '295nm',                 &
+       '303nm', '310nm', '316nm', '333nm', '380nm', '574nm'                /)
 
 CONTAINS
 !EOC
@@ -10374,46 +10381,7 @@ CONTAINS
        ! UVFlux requested output fluxes
        ! These are at the FAST-JX wavelength bins
        CASE( 'UVFLX' )
-          SELECT CASE( N )
-             CASE( 1  )
-                tagName = '187nm'
-             CASE( 2  )
-                tagName = '191nm'
-             CASE( 3  )
-                tagName = '193nm'
-             CASE( 4  )
-                tagName = '196nm'
-             CASE( 5  )
-                tagName = '202nm'
-             CASE( 6  )
-                tagName = '208nm'
-             CASE( 7  )
-                tagName = '211nm'
-             CASE( 8  )
-                tagName = '214nm'
-             CASE( 9  )
-                tagName = '261nm'
-             CASE( 10 )
-                tagName = '267nm'
-             CASE( 11 )
-                tagName = '277nm'
-             CASE( 12  )
-                tagName = '295nm'
-             CASE( 13  )
-                tagName = '303nm'
-             CASE( 14  )
-                tagName = '310nm'
-             CASE( 15  )
-                tagName = '316nm'
-             CASE( 16  )
-                tagName = '333nm'
-             CASE( 17  )
-                tagName = '380nm'
-             CASE( 18  )
-                tagName = '574nm'
-             CASE DEFAULT
-                tagName = 'NA'
-          END SELECT
+          tagName = UVFlux_Tag_Names(D)
 
        ! Default tag name is the name in the species database
        CASE DEFAULT
@@ -10422,6 +10390,78 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE Get_TagInfo
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_UVFlux_Bin
+!
+! !DESCRIPTION: Returns the FAST_JX wavelength bin corresponding to
+!  a UVFLUX tag name.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_UVFlux_Bin( tagName, bin, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: tagName   ! Tag Name
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: bin       ! Corresponding bin index
+    INTEGER,          INTENT(OUT) :: RC        ! Success or failure
+!
+! !REVISION HISTORY:
+!  01 Jul 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
+
+    !========================================================================
+    ! Get_UVFLux_Bin begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    bin     = -1
+    errMsg  = ''
+    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+
+    ! Get the index for the tagname
+    DO N = 1, 18
+       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+          bin = N
+          EXIT
+       ENDIF
+    ENDDO
+
+    ! Trap potential errros
+    IF ( bin < 0 ) THEN
+       errMsg = 'Could not find bin index for tag name: ' // TRIM( tagName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Get_UVFlux_Bin
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -12209,8 +12249,17 @@ CONTAINS
 
           ELSE IF ( isUvFlx ) THEN
 
-             ! UvFlx: The index i
-             mapData%slot2id(TagItem%index) = TagItem%index
+             ! Get the proper UVFLux bin index, which is pegged
+             ! to the corresponding FAST-JX wavelength bin
+             CALL Get_UVFlux_Bin( TagItem%name, index, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                errMsg = 'Error encountered in routine "Get_UVFlux_Bin"!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
+
+             ! Store wavelength bin index in the slot2Id field
+             mapData%slot2id(TagItem%index) = index
 
           ELSE
 

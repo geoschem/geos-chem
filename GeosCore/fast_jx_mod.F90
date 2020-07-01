@@ -3761,7 +3761,7 @@ CONTAINS
           DO L = 1, State_Grid%NZ
 
              IF ( State_Diag%Archive_UVFluxNet ) THEN
-                S = State_Diag%UvFluxNet%id2slot(K)
+                S = State_Diag%Map_UvFluxNet%id2slot(K)
                 IF ( S > 0 ) THEN
                    State_Diag%UVFluxNet(ILON,ILAT,L,S) =                     &
                    State_Diag%UVFluxNet(ILON,ILAT,L,S) +                     &
@@ -3770,7 +3770,7 @@ CONTAINS
              ENDIF
 
              IF ( State_Diag%Archive_UVFluxDirect ) THEN
-                S = State_Diag%UvFluxDirect%id2slot(K)
+                S = State_Diag%Map_UvFluxDirect%id2slot(K)
                 IF ( S > 0 ) THEN
                    State_Diag%UVFluxDirect(ILON,ILAT,L,S) =                  &
                    State_Diag%UVFluxDirect(ILON,ILAT,L,S) +                  &
@@ -3779,7 +3779,7 @@ CONTAINS
              ENDIF
 
              IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-                S = State_Diag%UvFluxDiffuse%id2slot(K)
+                S = State_Diag%Map_UvFluxDiffuse%id2slot(K)
                 IF ( S > 0 ) THEN
                    State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) =                 &
                    State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) +                 &
