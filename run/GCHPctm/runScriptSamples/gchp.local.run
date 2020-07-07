@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Use 6 cores for quick local runs
+# Set nCores here to specify number of cores to use in the run. 6 is the minimum
+# allowable number of cores. File runConfig.sh will need to be updated so that
+# variables NY and NUM_CORES_PER_NODE match nCores set below.
 nCores=6
 
 # Define log
