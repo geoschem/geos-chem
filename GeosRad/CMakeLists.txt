@@ -69,7 +69,6 @@ add_library(GeosRad STATIC EXCLUDE_FROM_ALL
 )
 target_compile_options(GeosRad 
 	PRIVATE 
-		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
-		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
-        -O1 -qoverride-limits
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8 -O1 -qoverride-limits>
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8 -O1 -override-limits>
 )
