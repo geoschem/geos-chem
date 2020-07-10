@@ -2713,13 +2713,7 @@ CONTAINS
     !=================================================================
 
     ! Use of RRTMG necessitates recompilation
-#ifdef RRTMG
-    IF ( .not. Input_Opt%LRAD ) THEN
-       ErrMsg = 'LRAD=F but RRTMG is defined at compile time!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#else
+#if !defined( RRTMG )
     IF ( Input_Opt%LRAD ) THEN
        ErrMsg = 'LRAD=T but RRTMG is not defined at compile time!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

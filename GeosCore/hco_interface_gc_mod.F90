@@ -3191,7 +3191,7 @@ CONTAINS
        ENDIF
        IF ( .not. LTMP ) THEN
           ErrMsg = 'RRTMG is set to false in HEMCO_Config.rc ' // &
-                   'but should be set to false for this simulation.'
+                   'but should be set to true for this simulation.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

@@ -563,7 +563,7 @@ MODULE State_Diag_Mod
      ! Radiation simulation (RRTMG)
      INTEGER                   :: nRadFlux
      INTEGER,          POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=2), POINTER :: RadFluxName(:)
+     CHARACTER(LEN=4), POINTER :: RadFluxName(:)
      REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
      REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
      REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
@@ -10864,34 +10864,34 @@ CONTAINS
        ! Determine the RRTMG-expected index
        ! corresponding to each flux output name
        SELECT CASE( State_Diag%RadFluxName(N) )
-          CASE( 'BA' )
+          CASE( 'BASE' )
              State_Diag%RadFluxInd(N) = 0
-          CASE( 'O3' )
+          CASE( 'NOO3' )
              State_Diag%RadFluxInd(N) = 1
-          CASE( 'ME' )
+          CASE( 'NOME' )
              State_Diag%RadFluxInd(N) = 2
-          CASE( 'SU' )
+          CASE( 'NOSU' )
              State_Diag%RadFluxInd(N) = 3
-          CASE( 'NI' )
+          CASE( 'NONI' )
              State_Diag%RadFluxInd(N) = 4
-          CASE( 'AM' )
+          CASE( 'NOAM' )
              State_Diag%RadFluxInd(N) = 5
-          CASE( 'BC' )
+          CASE( 'NOBC' )
              State_Diag%RadFluxInd(N) = 6
-          CASE( 'OA' )
+          CASE( 'NOOA' )
              State_Diag%RadFluxInd(N) = 7
-          CASE( 'SS' )
+          CASE( 'NOSS' )
              State_Diag%RadFluxInd(N) = 8
-          CASE( 'DU' )
+          CASE( 'NODU' )
              State_Diag%RadFluxInd(N) = 9
-          CASE( 'PM' )
+          CASE( 'NOPM' )
              State_Diag%RadFluxInd(N) = 10
-          CASE( 'ST' )
+          CASE( 'NOST' )
              IF ( Input_Opt%LUCX ) THEN
                 State_Diag%RadFluxInd(N) = 11
              ELSE
-                ErrMsg = 'RRTMG flux output "ST (strat aerosol is '       // &
-                         'selected, but the UCX mechanism is off!'
+                ErrMsg = 'RRTMG flux output "NOST" (no strat aerosol)'       // &
+                         ' is selected, but the UCX mechanism is off!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
