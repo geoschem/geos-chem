@@ -200,6 +200,12 @@ MODULE State_Chm_Mod
                                                         !  [kg/kg dry air]
 
      !----------------------------------------------------------------------
+     ! RRTMG state variables
+     !----------------------------------------------------------------------
+     INTEGER                    :: RRTMG_iSeed
+     INTEGER                    :: RRTMG_iCld
+
+     !----------------------------------------------------------------------
      ! Aerosol quantities
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
@@ -479,6 +485,12 @@ CONTAINS
     State_Chm%Species           => NULL()
     State_Chm%Spc_Units         =  ''
     State_Chm%BoundaryCond      => NULL()
+
+    ! RRTMG state
+    State_Chm%RRTMG_iSeed       = 0
+    State_Chm%RRTMG_iCld        = 0
+
+    ! Aerosol parameters
     State_Chm%AeroArea          => NULL()
     State_Chm%AeroRadi          => NULL()
     State_Chm%WetAeroArea       => NULL()
