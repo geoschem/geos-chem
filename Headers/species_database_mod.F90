@@ -118,6 +118,8 @@ CONTAINS
     ! Scalars
     LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
+    LOGICAL                     :: wd_kcscalefac_luo_found
+    LOGICAL                     :: wd_rainouteff_luo_found
     INTEGER                     :: v_int
     INTEGER                     :: nSpecies
     INTEGER                     :: N
@@ -135,6 +137,8 @@ CONTAINS
     ! Arrays
     REAL(f4)                    :: a_real_2(2)
     REAL(f4)                    :: a_real_3(3)
+    REAL(f4)                    :: wd_kcscalefac_luo(3)
+    REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
     CHARACTER(LEN=17)           :: tags(42)
@@ -271,6 +275,12 @@ CONTAINS
        ThisSpc%Is_ActiveChem = ( ThisSpc%KppVarId >  0 .and.                 &
                                  ThisSpc%KppFixId <= 0                      )
        ThisSpc%Is_FixedChem  = ( ThisSpc%KppFixId >  0                      )
+
+       !--------------------------------------------------------------------
+       ! Initialize found flags
+       !-------------------------------------------------------------------
+       wd_kcscalefac_luo_found = .FALSE.
+       wd_rainouteff_luo_found = .FALSE.
 
        !--------------------------------------------------------------------
        ! Loop over the remaining tags in the species database and
@@ -501,19 +511,20 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-#ifdef LUO_WETDEP
-             ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
-             ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
-             ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
-#endif
-          ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 ) THEN
+             wd_kcscalefac_luo(1) = Cast_and_RoundOff( a_real_3(1) )
+             wd_kcscalefac_luo(2) = Cast_and_RoundOff( a_real_3(2) )
+             wd_kcscalefac_luo(3) = Cast_and_RoundOff( a_real_3(3) )
+             IF ( wd_kcscalefac_luo(1) /= MISSING_R4 ) THEN
+                wd_kcscalefac_luo_found = .TRUE.
+             ENDIF
+
+          ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 .AND. &
+                    INDEX( key, "Luo" ) <= 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-#ifndef LUO_WETDEP
              ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
              ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
              ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
-#endif
 
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -538,20 +549,20 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-#ifdef LUO WETDEP
-             ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
-             ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
-             ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
-#endif
+             wd_rainouteff_luo(1) = Cast_and_RoundOff( a_real_3(1) )
+             wd_rainouteff_luo(2) = Cast_and_RoundOff( a_real_3(2) )
+             wd_rainouteff_luo(3) = Cast_and_RoundOff( a_real_3(3) )
+             IF ( wd_rainouteff_luo(1) /= MISSING_R4 ) THEN
+                wd_rainouteff_luo_found = .TRUE.
+             ENDIF
 
-          ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 .AND. &
+                    INDEX( key, "Luo" ) <= 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-#ifndef LUO_WETDEP
              ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
              ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
              ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
-#endif
 
           ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -564,6 +575,20 @@ CONTAINS
           ENDIF
 
        ENDDO
+
+#ifdef LUO_WETDEP
+       ! Overwrite with special values if present in file
+       IF ( wd_kcscalefac_luo_found ) THEN
+          ThisSpc%WD_KcScaleFac(1) = wd_kcscalefac_luo(1)
+          ThisSpc%WD_KcScaleFac(2) = wd_kcscalefac_luo(2)
+          ThisSpc%WD_KcScaleFac(3) = wd_kcscalefac_luo(3)
+       ENDIF
+       IF ( wd_rainouteff_luo_found ) THEN
+          ThisSpc%WD_RainoutEff(1) = wd_rainouteff_luo(1)
+          ThisSpc%WD_RainoutEff(2) = wd_rainouteff_luo(2)
+          ThisSpc%WD_RainoutEff(3) = wd_rainouteff_luo(3)
+       ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! SANITY CHECK #1
