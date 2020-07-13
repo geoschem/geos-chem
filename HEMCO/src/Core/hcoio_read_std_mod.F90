@@ -2864,7 +2864,9 @@ CONTAINS
     ! SrcFile_Parse
     !=================================================================
 
-    ! Initialize to input string
+    ! Initialize
+    RC      = HCO_SUCCESS
+    found   = .FALSE.
     srcFile = Lct%Dct%Dta%ncFile
 
     ! verbose mode
