@@ -10387,7 +10387,7 @@ CONTAINS
        ! UVFlux requested output fluxes
        ! These are at the FAST-JX wavelength bins
        CASE( 'UVFLX' )
-          IF ( D <= 1 .and. D >= 18 ) THEN
+          IF ( D >= 1 .and. D <= 18 ) THEN
              tagName = UVFlux_Tag_Names(D)
           ELSE
              WRITE( errMsg, '(i2.2)' ) D
