@@ -8,6 +8,7 @@ diaginfo.dat
 tracerinfo.dat
 geos
 core.*
+initial_GEOSChem_rst*
 GEOSChem.Restart.*
 HEMCO_restart.*
 OutputDir/GEOSChem.*nc4*
@@ -15,3 +16,4 @@ OutputDir/HEMCO_diagnostics*
 CodeDir
 build
 Plots
+rundir.version
