@@ -6,13 +6,14 @@
 #SBATCH -p jacob_dev
 #SBATCH --mem=15000
 #SBATCH --mail-type=END
+#SBATCH --exclusive
 
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: benchmark.run
+# !MODULE: geoschem.benchmark.run
 #
 # !DESCRIPTION: This bash script submits a 1-month benchmark simulation
 #\\
@@ -20,37 +21,26 @@
 # !REMARKS:
 #  Designed to be used with the geosfp_4x5_standard run directory created
 #  by the GEOS-Chem Unit Tester. To use this script, you must first compile
-#  the GEOS-Chem code using the command "make -j4 build" to create the
-#  geos executable.
+#  the GEOS-Chem code with CMake to create the geos executable.
 #
 #  NOTES:
-#  (1) This script is customized for the Harvard "Odyssey" cluster.  If you
+#  (1) This script is customized for the Harvard "Cannon" cluster.  If you
 #      are running a benchmark on a different machine, you can edit this
 #      script accordingly.
 #
-#  (2) SBATCH -w holyjacob01 is only needed for "official" 1-month benchmarks
-#      for which timing information is needed.  If you are running a private
-#      benchmark and don't need the timing info, you can delete this.
-#
-#  (3) SBATCH --exclusive will request an entire node, to prevent backfilling
+#  (2) SBATCH --exclusive will request an entire node, to prevent backfilling
 #      jobs from affecting timing results.  If you don't need the timing info,
 #      then you can delete this.
 #
-#  (4) We have increased the requested memory to 10 GB, since the benchmark
-#      simulation now carries many more SOA species.  
-# 
-#  (5) Remember to update the version variable below with the current 
+#  (3) Remember to update the version variable below with the current 
 #      GEOS-Chem version number (X.Y.Z).
-#
-#  (6) At present, the benchmarks are done with ifort 11.1.069 to maintain
-#      backwards compatibility.  This may change in the future.
 #
 # !CALLING SEQUENCE:
 #  To submit run to the SLURM queue system:
-#   sbatch benchmark.run
+#   sbatch geoschem.benchmark.run
 #
 #  To run interactively:
-#   benchmark.run
+#   ./geoschem.benchmark.run
 #
 # !REVISION HISTORY:
 #  Type 'gitk' at the prompt to browse the revision history.
@@ -73,7 +63,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 #-------------------------------------------------
 
 # Define GEOS-Chem version number (X.Y.Z)
-version=12.9.0
+version=13.0.0
 
 # Define version ID (prefix "GC_" to the version
 # so that file names won't begin with a number)
@@ -95,11 +85,6 @@ echo '===> Run ended at' `date` >> $log
 #-------------------------------------------------
 # Clean up
 #-------------------------------------------------
-
-# Rename output file.  NOTE: We now use 2016 as the benchmark year.
-if [ -f trac_avg.geosfp_4x5_benchmark.201607010000 ]; then
-   mv -fv trac_avg.geosfp_4x5_benchmark.201607010000 trac_avg.$id
-fi
 
 # Echo info from computational cores to log file for displaying results
 nodeName=`uname -n`
