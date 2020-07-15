@@ -34,8 +34,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 Mask fractions:              false
 
 ### END SECTION SETTINGS ###

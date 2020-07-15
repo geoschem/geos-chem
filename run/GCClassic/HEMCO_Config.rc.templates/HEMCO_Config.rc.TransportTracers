@@ -13,7 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the POPs simulation for BaP.
+#  This file has been customized for the Transport Tracers simulation.
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -30,35 +30,42 @@
 ROOT:                        {DATA_ROOT}/HEMCO
 METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}
 Logfile:                     HEMCO.log
+DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   End
 Wildcard:                    *
 Separator:                   /
-Unit tolerance:              2
+Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 
 ### END SECTION SETTINGS ###
 
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
+# ExtNr ExtName                on/off  Species
+0       Base                   : on    *
 # ----- MASTER SWITCHES ---------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       true
+# ----- GLOBAL INVENTORIES ------------------
+    --> EDGARv42_SF6           :       true
+    --> OCEAN_CH3I             :       true
+    --> CEDS                   :       true
+    --> EDGARv43               :       false
+    --> HTAP                   :       false
+    --> UNIFORM_CO             :       true
 # ----- NON-EMISSIONS DATA ------------------
-    --> OXIDANT_FIELDS         :       true
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
 #------------------------------------------------------------------------------
-1002    GC_POPs                : on    POPG_BaP/POPPOCPO_BaP/POPPBCPO_BaP
+100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -67,6 +74,91 @@ Warnings:                    {WARNINGS}
 ###############################################################################
 
 # ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
+(((EMISSIONS
+
+#==============================================================================
+# SF6 emissions from EDGAR v4.2
+#==============================================================================
+(((EDGARv42_SF6
+0 EDGAR_SF6  $ROOT/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc emi_sf6 1970-2008/1/1/0 C xy kg/m2/s SF6Tracer - 1 1
+)))EDGARv42_SF6
+
+#==============================================================================
+# CH3I emitted over the oceans at rate of 1 molec/cm2/s
+#==============================================================================
+(((OCEAN_CH3I
+0 SRC_2D_CH3I 1.0 - - - xy molec/cm2/s CH3ITracer 1000 1 1
+)))OCEAN_CH3I
+
+#==============================================================================
+# Anthropogenic CO 25-day and 50-day tracers
+#
+# Choose CEDS, EDGAR, or HTAP
+#==============================================================================
+(((CEDS
+0 CEDS_CO25d_ENE   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_ENE   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+0 CEDS_CO25d_IND   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_IND   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+0 CEDS_CO25d_TRA   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_TRA   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+0 CEDS_CO25d_RCO   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_RCO   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+0 CEDS_CO25d_SLV   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_SLV   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+0 CEDS_CO25d_WST   $ROOT/CEDS/v2018-08/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2014/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer  26 1/2/12 5
+0 CEDS_CO50d_WST   -                                                          -       -                  - -  -       COAnthroEmis50dayTracer  26 1/2/12 5
+)))CEDS
+
+(((EDGARv43
+0  EDGAR_CO25d_POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1201/26/52 1/2 2
+0  EDGAR_CO50d_POW -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1201/26/52 1/2 2
+0  EDGAR_CO25d_ENG $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1202/26/52 1/2 2
+0  EDGAR_CO50d_ENG -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1202/26/52 1/2 2
+0  EDGAR_CO25d_IND $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1203/26/52 1/2 2
+0  EDGAR_CO50d_IND -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1203/26/52 1/2 2
+0  EDGAR_CO25d_TRO $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1204/26/52 1/2 2
+0  EDGAR_CO50d_TRO -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1204/26/52 1/2 2
+0  EDGAR_CO25d_TNG $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1205/26/52 1/2 2
+0  EDGAR_CO50d_TNG -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1205/26/52 1/2 2
+0  EDGAR_CO25d_RCO $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1206/26/52 1/2 2
+0  EDGAR_CO50d_RCO -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1206/26/52 1/2 2
+0  EDGAR_CO25d_PPA $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1207/26/52 1/2 2
+0  EDGAR_CO50d_PPA -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1207/26/52 1/2 2
+#0 EDGAR_CO25d_AWB $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1209/26/52 1/2 2
+#0 EDGAR_CO50d_AWB -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1209/26/52 1/2 2
+0  EDGAR_CO25d_SWD $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1211/26/52 1/2 2
+0  EDGAR_CO50d_SWD -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1211/26/52 1/2 2
+0  EDGAR_CO25d_FFF $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1212/26/52 1/2 2
+0  EDGAR_CO50d_FFF -                                                    -       -               - -  -       COAnthroEmis50dayTracer 1211/26/52 1/2 2
+)))EDGARv43
+
+(((HTAP
+0 HTAP_CO25d_IND   $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_INDUSTRY.generic.01x01.nc      emi_co  2008-2010/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+0 HTAP_CO50d_IND   -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+0 HTAP_CO25d_POW   $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_ENERGY.generic.01x01.nc        emi_co  2008-2010/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+0 HTAP_CO50d_POW   -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+0 HTAP_CO25d_RES   $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_RESIDENTIAL.generic.01x01.nc   emi_co  2008-2010/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+0 HTAP_CO50d_RES   -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+0 HTAP_CO25d_TRA   $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_TRANSPORT.generic.01x01.nc     emi_co  2008-2010/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+0 HTAP_CO50d_TRA   -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+#0 HTAP_CO25d_AIR1 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc       emi_co  2008-2010/1/1/0    C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+#0 HTAP_CO50d_AIR1 -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+#0 HTAP_CO25d_AIR2 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc       emi_co  2008-2010/1/1/0    C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+#0 HTAP_CO50d_AIR2 -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+#0 HTAP_CO25d_AIR3 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc       emi_co  2008-2010/1/1/0    C xy kg/m2/s COAnthroEmis25dayTracer 6/28/26 1/2 4
+#0 HTAP_CO50d_AIR3 -                                                                   -       -                  - -  -       COAnthroEmis50dayTracer 6/28/26 1/2 4
+)))HTAP
+
+#==============================================================================
+# CO tracer with uniform surface emission of 2400 Tg/yr
+#==============================================================================
+(((UNIFORM_CO
+0 SRC_2D_COUniform25d 1.5e-7 - - - xy kg/m2/s COUniformEmis25dayTracer - 1 1
+)))UNIFORM_CO
+
+)))EMISSIONS
 
 ###############################################################################
 ### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
@@ -77,21 +169,6 @@ Warnings:                    {WARNINGS}
 ### extensions by field name.  The name given here must match the name used
 ### in the extension's source code.
 ###############################################################################
-
-(((EMISSIONS
-
-#==============================================================================
-# --- GEOS-Chem POPs emissions (Extension 1002) ---
-#==============================================================================
-(((GC_POPs
-1002 TOT_POP     $ROOT/POPs/v2015-08/BaP_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
-1002 SURF_POP    $ROOT/POPs/v2015-08/BaP_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
-1002 SOIL_CARBON $ROOT/POPs/v2015-08/GTMM_carbon.generic.1x1.nc     SOIL_CARBON    1985/1/1/0         C xy  1       * - 1 1
-1002 GLOBAL_OC   $ROOT/POPs/v2015-08/OCPO.$met.$RES.nc              OCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
-1002 GLOBAL_BC   $ROOT/POPs/v2015-08/BCPO.$met.$RES.nc              BCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
-)))GC_POPs
-
-)))EMISSIONS
 
 ###############################################################################
 ### NON-EMISSIONS DATA (subsection of BASE EMISSIONS SECTION)
@@ -111,7 +188,7 @@ Warnings:                    {WARNINGS}
 (((METEOROLOGY
 
 #==============================================================================
-# --- Meteorology fields for FlexGrid ---
+# --- Meteorology fields ---
 #==============================================================================
 # --- CN fields ---
 * FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
@@ -215,18 +292,6 @@ Warnings:                    {WARNINGS}
 * PS1WET         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1WET          $YYYY/$MM/$DD/$HH EY  xy  1 * - 1 1
 * DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 )))GC_RESTART
-
-(((CHEMISTRY_INPUT
-
-#==============================================================================
-# --- Oxidant fields --
-#==============================================================================
-(((OXIDANT_FIELDS
-* GLOBAL_O3  $ROOT/O3/v2014-09/MERGE.O3.geos5.72L.2x25.nc                 O3 1985/1-12/1/0 C xyz v/v   * - 1 1
-* GLOBAL_OH  $ROOT/OH/v2014-09/v7-02-03.GMI/OH_3Dglobal.geos5.72L.2x25.nc OH 1985/1-12/1/0 C xyz kg/m3 * - 1 1
-)))OXIDANT_FIELDS
-
-)))CHEMISTRY_INPUT
 
 #==============================================================================
 # --- Olson land map masks ---
@@ -404,6 +469,57 @@ Warnings:                    {WARNINGS}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
+(((EMISSIONS
+
+#==============================================================================
+# --- Annual scale factors ---
+#==============================================================================
+(((HTAP
+6  LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
+28 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
+)))HTAP
+
+#==============================================================================
+# --- Diurnal scale factors ---
+#==============================================================================
+(((CEDS.or.EDGARv43.or.HTAP
+26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
+)))CEDS.or.EDGARv43.or.HTAP
+
+#==============================================================================
+# --- VOC speciations ---
+#==============================================================================
+(((EDGARv43
+52 COPROD_FOSSIL    1.02  - - - xy unitless 1
+)))EDGARv43
+
+#==============================================================================
+# --- EDGAR 4.3.1 ---
+# Using data of 2010, the calculated seasonal ratio for different species in the
+# same sector are nearly identical, possibly due to consistent activity data used.
+# Therefore we use the seasonal scale factors of CO in 2010 for most sectors,
+# except for AGR, AWB and SOL.
+# For AGR, the NH3 AGR seasonal scale factors are used.
+# For AWB, the CO AGR seasonal scale factors are used.
+# For SOL, the NOx AGR seasonal scale factors are used.
+#==============================================================================
+(((EDGARv43
+1201 POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc POW 2010/1-12/1/0 C xy unitless 1
+1202 ENG $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc ENG 2010/1-12/1/0 C xy unitless 1
+1203 IND $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc IND 2010/1-12/1/0 C xy unitless 1
+1204 TRO $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc TRO 2010/1-12/1/0 C xy unitless 1
+1205 TNG $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc TNG 2010/1-12/1/0 C xy unitless 1
+1206 RCO $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc RCO 2010/1-12/1/0 C xy unitless 1
+1207 PPA $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc PPA 2010/1-12/1/0 C xy unitless 1
+1208 AGR $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc AGR 2010/1-12/1/0 C xy unitless 1
+1209 AWB $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc AWB 2010/1-12/1/0 C xy unitless 1
+1210 SOL $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc SOL 2010/1-12/1/0 C xy unitless 1
+1211 SWD $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc SWD 2010/1-12/1/0 C xy unitless 1
+1212 FFF $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc FFF 2010/1-12/1/0 C xy unitless 1
+)))EDGARv43
+
+)))EMISSIONS
+
 ### END SECTION SCALE FACTORS ###
 
 ###############################################################################
@@ -411,6 +527,14 @@ Warnings:                    {WARNINGS}
 ###############################################################################
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper Lon1/Lat1/Lon2/Lat2
+
+(((EMISSIONS
+
+(((OCEAN_CH3I
+1000 OCEAN_MASK $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC FROCEAN 2000/1/1/0 C xy 1 1 -180/-90/180/90
+)))OCEAN_CH3I
+
+)))EMISSIONS
 
 ### END SECTION MASKS ###
 

@@ -13,8 +13,6 @@
 #\\
 #\\
 # !REMARKS:
-#  Customized for the nested North America simulation
-#  (regional emissions over Asia and Africa are turned off)
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -39,8 +37,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 
 ### END SECTION SETTINGS ###
 
@@ -58,13 +56,13 @@ Warnings:                    {WARNINGS}
     --> STATE_PSC              :       false
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------
-    --> GC_BCs                 :       true
+    --> GC_BCs                 :       false
 # ----- REGIONAL INVENTORIES ----------------
     --> APEI                   :       true
-    --> NEI2011_HOURLY         :       true
-    --> NEI2011_MONMEAN        :       false
-    --> MIX                    :       false
-    --> DICE_Africa            :       false
+    --> NEI2011_HOURLY         :       false
+    --> NEI2011_MONMEAN        :       true
+    --> MIX                    :       true
+    --> DICE_Africa            :       true
 # ----- GLOBAL INVENTORIES ------------------
     --> CEDS                   :       true
     --> EDGARv43               :       false
@@ -122,7 +120,7 @@ Warnings:                    {WARNINGS}
     --> CMIP6_SFC_CH4          :       false
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
-    --> RRTMG                  :       false
+    --> RRTMG                  :       true
     --> SfcVMR                 :       false
     --> OCEAN_O3_DRYDEP        :       true
 # -----------------------------------------------------------------------------

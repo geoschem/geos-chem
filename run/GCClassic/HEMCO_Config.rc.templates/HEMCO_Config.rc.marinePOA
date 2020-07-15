@@ -13,8 +13,6 @@
 #\\
 #\\
 # !REMARKS:
-#  Customized for the nested China/SE Asia simulation
-#  (regional emissions over Canada, USA, and Africa are turned off)
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -39,8 +37,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 
 ### END SECTION SETTINGS ###
 
@@ -55,16 +53,16 @@ Warnings:                    {WARNINGS}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       true
-    --> STATE_PSC              :       false
+    --> STATE_PSC              :       true
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------
-    --> GC_BCs                 :       true
+    --> GC_BCs                 :       false
 # ----- REGIONAL INVENTORIES ----------------
-    --> APEI                   :       false
+    --> APEI                   :       true
     --> NEI2011_HOURLY         :       false
-    --> NEI2011_MONMEAN        :       false
+    --> NEI2011_MONMEAN        :       true
     --> MIX                    :       true
-    --> DICE_Africa            :       false
+    --> DICE_Africa            :       true
 # ----- GLOBAL INVENTORIES ------------------
     --> CEDS                   :       true
     --> EDGARv43               :       false
@@ -115,15 +113,15 @@ Warnings:                    {WARNINGS}
     --> UVALBEDO               :       true
     --> CCM_STRAT_Bry          :       true
     --> GMI_STRAT_OH           :       true
-    --> GMI_PROD_LOSS          :       false
-    --> UCX_PROD_LOSS          :       true
+    --> GMI_PROD_LOSS          :       true
+    --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
     --> GMD_SFC_CH4            :       true
     --> CMIP6_SFC_CH4          :       false
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
     --> RRTMG                  :       false
-    --> SfcVMR                 :       false
+    --> SfcVMR                 :       true
     --> OCEAN_O3_DRYDEP        :       true
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -

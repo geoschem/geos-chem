@@ -13,7 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the POPs simulation for PHE.
+#  This file has been customized for the tagO3 simulation.
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -34,19 +34,19 @@ DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   End
 Wildcard:                    *
 Separator:                   /
-Unit tolerance:              2
+Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 
 ### END SECTION SETTINGS ###
 
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
+# ExtNr ExtName                on/off  Species
+0       Base                   : on    *
 # ----- MASTER SWITCHES ---------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true
@@ -54,11 +54,10 @@ Warnings:                    {WARNINGS}
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       true
 # ----- NON-EMISSIONS DATA ------------------
-    --> OXIDANT_FIELDS         :       true
+    --> O3_PROD_LOSS           :       true
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
-#------------------------------------------------------------------------------
-1002    GC_POPs                : on    POPG_PHE/POPPOCPO_PHE/POPPBCPO_PHE
+    --> OCEAN_O3_DRYDEP        :       true
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -77,21 +76,6 @@ Warnings:                    {WARNINGS}
 ### extensions by field name.  The name given here must match the name used
 ### in the extension's source code.
 ###############################################################################
-
-(((EMISSIONS
-
-#==============================================================================
-# --- GEOS-Chem POPs emissions (Extension 1002) ---
-#==============================================================================
-(((GC_POPs
-1002 TOT_POP     $ROOT/POPs/v2015-08/PHE_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
-1002 SURF_POP    $ROOT/POPs/v2015-08/PHE_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
-1002 SOIL_CARBON $ROOT/POPs/v2015-08/GTMM_carbon.generic.1x1.nc     SOIL_CARBON    1985/1/1/0         C xy  1       * - 1 1
-1002 GLOBAL_OC   $ROOT/POPs/v2015-08/OCPO.$met.$RES.nc              OCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
-1002 GLOBAL_BC   $ROOT/POPs/v2015-08/BCPO.$met.$RES.nc              BCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
-)))GC_POPs
-
-)))EMISSIONS
 
 ###############################################################################
 ### NON-EMISSIONS DATA (subsection of BASE EMISSIONS SECTION)
@@ -216,16 +200,14 @@ Warnings:                    {WARNINGS}
 * DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 )))GC_RESTART
 
+#==============================================================================
+# --- O3 production and loss rates ---
+#==============================================================================
 (((CHEMISTRY_INPUT
-
-#==============================================================================
-# --- Oxidant fields --
-#==============================================================================
-(((OXIDANT_FIELDS
-* GLOBAL_O3  $ROOT/O3/v2014-09/MERGE.O3.geos5.72L.2x25.nc                 O3 1985/1-12/1/0 C xyz v/v   * - 1 1
-* GLOBAL_OH  $ROOT/OH/v2014-09/v7-02-03.GMI/OH_3Dglobal.geos5.72L.2x25.nc OH 1985/1-12/1/0 C xyz kg/m3 * - 1 1
-)))OXIDANT_FIELDS
-
+(((O3_PROD_LOSS
+* O3_PROD $ROOT/TAGGED_O3/v2014-09/O3_PRODLOSS.$met.4x5.nc POX 2004/1-12/1-31/0 C xyz kg/m3/s * - 1 1
+* O3_LOSS $ROOT/TAGGED_O3/v2014-09/O3_PRODLOSS.$met.4x5.nc LOX 2004/1-12/1-31/0 C xyz  1/m3/s * - 1 1
+)))O3_PROD_LOSS
 )))CHEMISTRY_INPUT
 
 #==============================================================================
@@ -395,6 +377,17 @@ Warnings:                    {WARNINGS}
 * XLAI71 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 * XLAI72 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
+
+#==============================================================================
+# --- Oceanic ozone deposition ---
+#
+# Sea surface iodide concentration and salinity to be read in for the
+# new calculations for ozone deposition to the ocean
+#==============================================================================
+(((OCEAN_O3_DRYDEP
+* surf_salinity   $ROOT/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc                                                s_mn                   1985/1/1/0    C xy 1 * - 1 1
+* surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
+)))OCEAN_O3_DRYDEP
 
 ### END SECTION BASE EMISSIONS ###
 

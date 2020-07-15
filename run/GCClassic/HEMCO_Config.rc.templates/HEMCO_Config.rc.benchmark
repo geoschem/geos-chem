@@ -37,8 +37,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     {VERBOSE}
-Warnings:                    {WARNINGS}
+Verbose:                     0
+Warnings:                    1
 
 ### END SECTION SETTINGS ###
 
@@ -53,7 +53,7 @@ Warnings:                    {WARNINGS}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       true
-    --> STATE_PSC              :       false
+    --> STATE_PSC              :       true
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------
     --> GC_BCs                 :       false
@@ -95,9 +95,9 @@ Warnings:                    {WARNINGS}
     --> QFED2                  :       false
     --> GFAS                   :       false
 # ----- OFFLINE EMISSIONS -------------------
-# To use online emissions instead set the
-# offline emissions to 'false' and the
-# corresponding HEMCO extension to 'on':
+# To use offline emissions instead set the
+# offline emissions to 'true' and the
+# corresponding HEMCO extension to 'off':
 #   OFFLINE_DUST        - DustDead or DustGinoux
 #   OFFLINE_BIOGENICVOC - MEGAN
 #    - Note: MEGAN must always be on for certain
@@ -105,23 +105,23 @@ Warnings:                    {WARNINGS}
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
 #--------------------------------------------
-    --> OFFLINE_DUST           :       true
-    --> OFFLINE_BIOGENICVOC    :       true
-    --> OFFLINE_SEASALT        :       true
-    --> OFFLINE_SOILNOX        :       true
+    --> OFFLINE_DUST           :       false
+    --> OFFLINE_BIOGENICVOC    :       false
+    --> OFFLINE_SEASALT        :       false
+    --> OFFLINE_SOILNOX        :       false
 # ----- NON-EMISSIONS DATA ------------------
     --> UVALBEDO               :       true
     --> CCM_STRAT_Bry          :       true
     --> GMI_STRAT_OH           :       true
-    --> GMI_PROD_LOSS          :       false
-    --> UCX_PROD_LOSS          :       true
+    --> GMI_PROD_LOSS          :       true
+    --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
     --> GMD_SFC_CH4            :       true
     --> CMIP6_SFC_CH4          :       false
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
-    --> RRTMG                  :       true
-    --> SfcVMR                 :       false
+    --> RRTMG                  :       false
+    --> SfcVMR                 :       true
     --> OCEAN_O3_DRYDEP        :       true
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
@@ -131,11 +131,11 @@ Warnings:                    {WARNINGS}
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : on    NO
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
-104     SoilNOx                : off   NO
+104     SoilNOx                : on    NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : off   DST1/DST2/DST3/DST4
+105     DustDead               : on    DST1/DST2/DST3/DST4
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
+107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
