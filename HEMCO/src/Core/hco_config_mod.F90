@@ -1273,6 +1273,7 @@ CONTAINS
              ! - "EY" : exact, always use simulation year
              ! - "A"  : average
              ! - "I"  : interpolate
+             ! - "ID" : interpolate, discontinuous dataset
              Dta%MustFind  = .FALSE.
              Dta%UseSimYear= .FALSE.
              IF ( TRIM(TmCycle) == "C" ) THEN
@@ -1332,6 +1333,9 @@ CONTAINS
                 Dta%CycleFlag = HCO_CFLAG_AVERG
              ELSEIF ( TRIM(TmCycle) == "I" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_INTER
+             ELSEIF ( TRIM(TmCycle) == "ID" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_INTER
+                   Dta%Discontinuous = .TRUE.
              ELSEIF ( TRIM(TmCycle) == "-" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_CYCLE
              ELSE
