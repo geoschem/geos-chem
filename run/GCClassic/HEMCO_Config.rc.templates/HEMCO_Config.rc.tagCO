@@ -622,7 +622,7 @@ Mask fractions:              false
 # --- RCP future emissions scenarios ---
 #==============================================================================
 (((RCP_3PD
-0 RCP3PD_CO     $ROOT/RCP/v2015-02/RCP_3PD/RCPs_anthro_CO_2005-2100_23474.nc ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
+0 RCP3PD_CO     $ROOT/RCP/v2020-07/RCP_3PD/RCPs_anthro_CO_2005-2100_23474.nc ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
 0 RCP3PD_COus   -                                                            -      -               -  -  -       COus   1100  1 1
 0 RCP3PD_COeur  -                                                            -      -               -  -  -       COeur  1101  1 1
 0 RCP3PD_COasia -                                                            -      -               -  -  -       COasia 1102  1 1
@@ -630,7 +630,7 @@ Mask fractions:              false
 )))RCP_3PD
 
 (((RCP_45
-0 RCP45_CO      $ROOT/RCP/v2015-02/RCP_45/RCPs_anthro_CO_2005-2100_27424.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
+0 RCP45_CO      $ROOT/RCP/v2020-07/RCP_45/RCPs_anthro_CO_2005-2100_27424.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
 0 RCP45_COus    -                                                            -      -               -  -  -       COus   1100  1 1
 0 RCP45_COeur   -                                                            -      -               -  -  -       COeur  1101  1 1
 0 RCP45_COasia  -                                                            -      -               -  -  -       COasia 1102  1 1
@@ -638,7 +638,7 @@ Mask fractions:              false
 )))RCP_45
 
 (((RCP_60
-0 RCP60_CO      $ROOT/RCP/v2015-02/RCP_60/RCPs_anthro_CO_2005-2100_43190.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
+0 RCP60_CO      $ROOT/RCP/v2020-07/RCP_60/RCPs_anthro_CO_2005-2100_43190.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
 0 RCP60_COus    -                                                            -      -               -  -  -       COus   1100  1 1
 0 RCP60_COeur   -                                                            -      -               -  -  -       COeur  1101  1 1
 0 RCP60_COasia  -                                                            -      -               -  -  -       COasia 1102  1 1
@@ -646,7 +646,7 @@ Mask fractions:              false
 )))RCP_60
 
 (((RCP_85
-0 RCP85_CO      $ROOT/RCP/v2015-02/RCP_85/RCPs_anthro_CO_2005-2100_43533.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
+0 RCP85_CO      $ROOT/RCP/v2020-07/RCP_85/RCPs_anthro_CO_2005-2100_43533.nc  ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s CO     -     1 1
 0 RCP85_COus    -                                                            -      -               -  -  -       COus   1100  1 1
 0 RCP85_COeur   -                                                            -      -               -  -  -       COeur  1101  1 1
 0 RCP85_COasia  -                                                            -      -               -  -  -       COasia 1102  1 1
