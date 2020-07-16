@@ -13,7 +13,7 @@ trigger:
     include:
       - master
     exclude:
-      - dev/13.0.0
+      - dev/13.0.0*
   tags:
     include:        # Semantic versioning 2.0.0 examples:
       - '*-alpha*'  # 12.7.1-alpha.3
