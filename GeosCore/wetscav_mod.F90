@@ -396,7 +396,7 @@ CONTAINS
                            * ( State_Met%MAIRDEN(I,J,L)     / 1000.0_fp )
 #ifdef LUO_WETDEP
        ! Luo et al scheme: save QQ to State_Chm for further use
-       State_Chm%QQ3D(I,J,L) = QQ(L,I,J)
+       State_Chm%QQ3D(I,J,L) = State_Met%QQ(L,I,J)
 #endif
 
        ! Rate of re-evaporation in grid box (I,J,L)
@@ -2869,7 +2869,7 @@ CONTAINS
                                   *( State_Met%AIRDEN(I,J,L) * 1e-3_fp ) )
              COND_WATER_CONTENT = MAX( 1e-30_fp, COND_WATER_CONTENT )
 
-             K_RAIN  = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
+             K_RAIN  = LS_K_RAIN( State_Met%QQ(L,I,J), COND_WATER_CONTENT )
              F_PRIME = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
              F_PRIME = F_PRIME*MIN(1.e+0_fp, &
                        State_Met%QQ(L,I,J) / ( K_RAIN * COND_WATER_CONTENT ) )
