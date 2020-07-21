@@ -202,7 +202,7 @@ CONTAINS
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at HCOI_GC_Init (in module GeosCore/hcoi_gc_main_mod.F90)'
+    ThisLoc  = ' -> at HCOI_GC_Init (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -213,6 +213,15 @@ CONTAINS
     id_NO2   = Ind_('NO2' )
     id_O3    = Ind_('O3'  )
     id_POPG  = Ind_('POPG')
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_BaP')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_PHE')
+    ENDIF
+    IF ( id_POPG < 0 ) THEN
+       id_POPG  = Ind_('POPG_PYR')
+    ENDIF
 
     ! Create a splash page
     IF ( Input_Opt%amIRoot ) THEN
@@ -714,7 +723,7 @@ CONTAINS
     HMRC      = HCO_SUCCESS
     ErrMsg    = ''
     ThisLoc   = &
-       ' -> at HCOI_GC_Run (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at HCOI_GC_Run (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr     = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '      // &
                 'HEMCO log file for additional error messages!'
     notDryRun = ( .not. Input_Opt%DryRun )
@@ -1062,7 +1071,7 @@ CONTAINS
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at HCOI_GC_Final (in module GeosCore/hcoi_gc_main_mod.F90)'
+    ThisLoc  = ' -> at HCOI_GC_Final (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -1110,37 +1119,37 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ASSOCIATED( ZSIGMA ) ) THEN
        DEALLOCATE( ZSIGMA, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:ZSIGMA', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:ZSIGMA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( HCO_FRAC_OF_PBL ) ) THEN
        DEALLOCATE( HCO_FRAC_OF_PBL, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_FRAC_OF_PBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( HCO_SZAFACT ) ) THEN
        DEALLOCATE( HCO_SZAFACT, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( JNO2 ) ) THEN
        DEALLOCATE( JNO2, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( JOH ) ) THEN
        DEALLOCATE( JOH, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( SUMCOSZA ) ) THEN
        DEALLOCATE( SUMCOSZA, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:SUMCOSZA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -1206,7 +1215,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at HCOI_GC_WriteDiagn (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at HCOI_GC_WriteDiagn (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -1314,7 +1323,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at ExtState_InitTargets (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at ExtState_InitTargets (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -1328,12 +1337,12 @@ CONTAINS
     IF ( ExtState%SZAFACT%DoUse ) THEN
 
        ALLOCATE( SUMCOSZA( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:SUMCOSZA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        SUMCOSZA = 0.0_fp
 
        ALLOCATE( HCO_SZAFACT( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_SZAFACT = 0e0_hp
 
@@ -1342,7 +1351,7 @@ CONTAINS
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
        ALLOCATE( HCO_FRAC_OF_PBL( State_Grid%NX, State_Grid%NY, &
                                   State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_FRAC_OF_PBL', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_FRAC_OF_PBL = 0.0_hp
     ENDIF
@@ -1356,14 +1365,14 @@ CONTAINS
     ! ----------------------------------------------------------------------
     IF ( ExtState%JNO2%DoUse ) THEN
        ALLOCATE( JNO2( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        JNO2 = 0.0e0_hp
     ENDIF
 
     IF ( ExtState%JOH%DoUse ) THEN
        ALLOCATE( JOH( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 0, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 0, RC )
        JOH = 0.0e0_hp
     ENDIF
 
@@ -1541,7 +1550,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at ExtState_SetFields (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at ExtState_SetFields (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2188,7 +2197,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at ExtState_UpdateFields (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at ExtState_UpdateFields (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2367,7 +2376,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at GridEdge_Set (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at GridEdge_Set (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2377,7 +2386,7 @@ CONTAINS
     ! make PEDGE be a pointer and allocate/deallocate it on each call.
     !-----------------------------------------------------------------------
     ALLOCATE( PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PEDGE', 0, RC )
+    CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PEDGE', 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Edge and surface pressures [Pa]
@@ -2406,7 +2415,7 @@ CONTAINS
     ! Set PBL heights
     !-----------------------------------------------------------------------
     ALLOCATE( PBLM( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PBLM', 0, RC )
+    CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 !$OMP PARALLEL DO                                                 &
@@ -2438,14 +2447,14 @@ CONTAINS
     ! Deallocate and PEDGE
     IF ( ASSOCIATED( PEDGE ) ) THEN
        DEALLOCATE( PEDGE, STAT=RC )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PEDGE', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PEDGE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! Deallocate PBLM
     IF ( ASSOCIATED( PBLM ) ) THEN
        DEALLOCATE( PBLM  )
-       CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PBLM', 2, RC )
+       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2540,7 +2549,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at SetHcoSpecies (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at SetHcoSpecies (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2778,7 +2787,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at SetHcoGrid (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at SetHcoGrid (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2798,12 +2807,12 @@ CONTAINS
 
     ! Allocate Ap array
     ALLOCATE( Ap( State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod:SetHcoGrid:Ap', 0, RC )
+    CALL GC_CheckVar( 'hco_interface_gc_mod:SetHcoGrid:Ap', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Allocate Bp array
     ALLOCATE( Bp( State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod:SetHcoGrid:Bp', 0, RC )
+    CALL GC_CheckVar( 'hco_interface_gc_mod:SetHcoGrid:Bp', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Get Ap and Bp values from GEOS-Chem
@@ -2918,7 +2927,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at CheckSettings (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at CheckSettings (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2930,7 +2939,7 @@ CONTAINS
        IF ( Input_Opt%amIRoot ) THEN
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
           Print*, '% Emissions are set to false in input.geos so emissions %'
-          Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+          Print*, '% data will not be read by HEMCO (hco_interface_gc_mod.F90) %'
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        END IF
 
@@ -2969,7 +2978,7 @@ CONTAINS
        IF ( Input_Opt%amIRoot ) THEN
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
           Print*, '% Chemistry is set to false in input.geos so chemistry  %'
-          Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+          Print*, '% data will not be read by HEMCO (hco_interface_gc_mod.F90)%'
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        ENDIF
 
@@ -2984,6 +2993,24 @@ CONTAINS
           RETURN
        ENDIF
 
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Lightning NOx extension
+    !
+    ! The lightning NOx extension is only used in fullchem simulations. We 
+    ! will create a shadow field (Input_Opt%DoLightningNOx) to determine if
+    ! the FLASH_DENS and CONV_DEPTH fields are needed in flexgrid_read_mod.F90
+    !-----------------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       ExtNr = GetExtNr( HcoConfig%ExtList, 'LightNOx' )
+       IF ( ExtNr <= 0 ) THEN
+          Input_Opt%DoLightNOx = .FALSE.
+       ELSE
+          Input_Opt%DoLightNOx = .TRUE.
+       ENDIF
+    ELSE
+       Input_Opt%DoLightNOx = .FALSE.
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3168,7 +3195,7 @@ CONTAINS
        ENDIF
        IF ( .not. LTMP ) THEN
           ErrMsg = 'RRTMG is set to false in HEMCO_Config.rc ' // &
-                   'but should be set to false for this simulation.'
+                   'but should be set to true for this simulation.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

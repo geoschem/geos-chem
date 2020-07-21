@@ -39,6 +39,7 @@ MODULE AEROSOL_MOD
   ! OCPO        : Hydrophobic organic carbon aerosol [kg/m3]
   ! OCPISOA     : Hydrophilic OC + SOA aerosol       [kg/m3]
   ! SALA        : Accumulation mode seasalt aerosol  [kg/m3]
+  ! ACL         : Accumulation mode Cl aerosol       [kg/m3]
   ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
   ! SO4_NH4_NIT : Lumped SO4-NH4-NIT aerosol         [kg/m3]
   ! SO4         : Sulfate aerosol                    [kg/m3]
@@ -64,6 +65,7 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: OCPO(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: OCPISOA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SALA(:,:,:)
+  REAL(fp), ALLOCATABLE, PUBLIC :: ACL(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SALC(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SO4_NH4_NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SO4(:,:,:)
@@ -124,11 +126,11 @@ MODULE AEROSOL_MOD
   INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
   INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT
   INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC
-  INTEGER :: id_SO4,   id_SO4s,  id_NITs
+  INTEGER :: id_SO4,   id_SO4s,  id_NITs,  id_NH4s
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
   INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
   INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-  INTEGER :: id_DUST1, id_SOAS
+  INTEGER :: id_DUST1, id_SOAS,  id_SALACL
   INTEGER :: id_SOAGX, id_SOAIE
   INTEGER :: id_INDIOL,id_LVOCOA
 
@@ -464,9 +466,9 @@ CONTAINS
                 ! 2013)
                 SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + &
                                        Spc(I,J,L,id_NH4)    + &
-                                       Spc(I,J,L,id_NIT)    + &
-                                       Spc(I,J,L,id_SO4s)   + &
-                                       Spc(I,J,L,id_NITs) ) / &
+                                       Spc(I,J,L,id_NIT))   / &
+                                       !Spc(I,J,L,id_SO4s)   + &
+                                       !Spc(I,J,L,id_NITs) ) / &
                                        AIRVOL(I,J,L)
                 SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
                 NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
@@ -498,11 +500,13 @@ CONTAINS
              ! distribution but are currently simply treated in the same
              ! way (size and optics) as all other sulfate aerosol (DAR
              ! 2013)
+             ! With coarse SSA thermodynamcis, including NITs would
+             ! bias nitrate largely, alternatively, SO4s and NITs
+             ! should be considered as a part of sea-salt (XNW Dec 7 2017)
+
              SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + &
                                     Spc(I,J,L,id_NH4)    + &
-                                    Spc(I,J,L,id_NIT)    + &
-                                    Spc(I,J,L,id_SO4s)   + &
-                                    Spc(I,J,L,id_NITs) ) / &
+                                    Spc(I,J,L,id_NIT))   / &
                                     AIRVOL(I,J,L)
              SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
              NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
@@ -515,11 +519,15 @@ CONTAINS
 
              ! Save these fractions for partitioning of optics
              ! until later when these may be treated independently
-             FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) + Spc(I,J,L,id_SO4s) ) &
-                                 / AIRVOL(I,J,L) ) / SO4_NH4_NIT(I,J,L)
+             FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) ) &
+!     &                           +     Spc(I,J,L,id_SO4s) )
+                                 /   AIRVOL(I,J,L)         ) &
+                                 / SO4_NH4_NIT(I,J,L)
 
-             FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT ) + Spc(I,J,L,id_NITs) ) &
-                                 / AIRVOL(I,J,L) ) / SO4_NH4_NIT(I,J,L)
+             FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT ) ) &
+!     &                           +     Spc(I,J,L,id_NITs) )
+                                 /   AIRVOL(I,J,L)         )&
+                                 / SO4_NH4_NIT(I,J,L)
 
              FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) &
                                  / AIRVOL(I,J,L) ) / SO4_NH4_NIT(I,J,L)
@@ -692,9 +700,14 @@ CONTAINS
           ! Coarse mode seasalt aerosol [kg/m3]
           SALC(I,J,L) = Spc(I,J,L,id_SALC) / AIRVOL(I,J,L)
 
+          ! Fine mode Cl-/sulfate interal mixed [kg/m3]
+          ACL(I,J,L) = ( Spc(I,J,L,id_SALACL) + &
+                         Spc(I,J,L,id_SALA)*0.45e0_fp)/AIRVOL(I,J,L)
+
           ! Avoid division by zero
           SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
           SALC(I,J,L) = MAX( SALC(I,J,L), 1e-35_fp )
+          ACL(I,J,L) = MAX( ACL(I,J,L), 1e-35_fp )
 
        ENDIF
 
@@ -1147,6 +1160,8 @@ CONTAINS
     REAL(fp), POINTER   :: TAREA(:,:,:,:)
     REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
     REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+    REAL(fp), POINTER   :: ACLRADIUS(:,:,:)
+    REAL(fp), POINTER   :: ACLAREA(:,:,:)
 
     ! For diagnostics
     LOGICAL                :: IsWL1
@@ -1191,6 +1206,8 @@ CONTAINS
     TAREA               => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
     WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
     WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
+    ACLRADIUS           => State_Chm%AClRadi     ! Fine Cl- Radius [cm]
+    ACLAREA             => State_Chm%AClArea     ! Fine Cl- Area [cm2/cm3]
 
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
@@ -1777,44 +1794,6 @@ CONTAINS
                 ! Wet dust WTAREA and WERADIUS are archived in dust_mod.F90.
                 !========================================================
 
-                ! For SO4-NIT-NH4 aerosol, re-calculate the wet effective
-                ! radius using the water content from ISORROPIA.
-                ! This new effective radius will be used for surface area
-                ! used in heterogeneous chemistry. We don't use this
-                ! effective radius in the optics above (OD, scattering,
-                ! absorption) because the index of refraction, phase
-                ! function, and Q must all be consistent with the radius and
-                ! composition.
-                ! Note: ISORROPIA water includes fine sea salt aerosol,
-                ! which we are assigning all to SNA here without decreasing
-                ! the sea salt volume. This double counts the fine SSA
-                ! volume. (cdholmes, 5/17/2019)
-                IF (N == 1) THEN
-
-                   ! Volume of water, m3(H2O)/m3(air)
-                   ! AeroH2O has units g/m3
-                   VH2O = State_Chm%AeroH2O(I,J,L,NDUST+1) / 1e6
-                   ! Volume of dry aerosol, m3(aerosol)/m3(air)
-                   VDry = WAERSL(I,J,L,N) / MSDENS(N)
-
-                   ! Notes on REFF derivation
-                   ! Volume of wet aerosol: VWet = VDry + VH2O [note:
-                   ! this is incorrect but has the correct limits for
-                   ! VH2O/VDry << 1 and VH2O/VDry >> 1. It would be
-                   ! better to use an empirical function for density.]
-                   ! Volume of one dry particle v1dry = 4/3*pi*RDry**3
-                   ! [note: RW(1) = RDry]
-                   ! Number of aerosol particles: n = VDry / v1dry
-                   ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
-                   ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
-                   ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
-
-                   ! Wet effective radius, um
-                   REFF = RW(1) * &
-                          ( 1d0 + safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0)
-
-                ENDIF
-
                 !get scaling for R and VOL
                 SCALER                 = REFF / RW(1)
                 SCALEVOL               = SCALER**3
@@ -1827,12 +1806,53 @@ CONTAINS
 
                 WTAREA(I,J,L,N+NDUST)   = TAREA(I,J,L,N+NDUST)
                 WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)
+                ! For SO4-NIT-NH4-fine sea salt aerosol, re-calculate the wet
+                ! effective
+                ! radius using the water content from ISORROPIA.
+                ! This new effective radius will be used for surface area
+                ! used in heterogeneous chemistry. We don't use this
+                ! effective radius in the optics above (OD, scattering,
+                ! absorption) because the index of refraction, phase
+                ! function, and Q must all be consistent with the radius and
+                ! composition.
+                ! (cdholmes, 5/17/2019, with update by XW, 5/28/2020)
+                IF (N == 1) THEN
+
+                   ! Volume of water, m3(H2O)/m3(air)
+                   ! AeroH2O has units g/m3
+                   VH2O = State_Chm%AeroH2O(I,J,L,NDUST+1) / 1e6
+                   ! Volume of dry aerosol, m3(aerosol)/m3(air)
+                   VDry = WAERSL(I,J,L,1)/MSDENS(1) + WAERSL(I,J,L,4)/MSDENS(4)
+
+                   ! Notes on REFF derivation
+                   ! Volume of wet aerosol: VWet = VDry + VH2O [note:
+                   ! this is incorrect but has the correct limits for
+                   ! VH2O/VDry << 1 and VH2O/VDry >> 1. It would be
+                   ! better to use an empirical function for density.]
+                   ! Volume of one dry particle v1dry = 4/3*pi*RDry**3
+                   ! [note: RW(1) = RDry]
+                   ! Number of aerosol particles: n = VDry / v1dry
+                   ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
+                   ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
+                   ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
+                  
+                   ! Wet effective radius, um
+                   ! Here assume the dry radius of the mixture = SNA
+                   REFF = RW(1) * min( 3d0, &
+                          ( 1d0 + safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0))
+
+                   ACLRADIUS(I,J,L) = 1.0D-4 * REFF
+                   ACLAREA(I,J,L) = 3.D0*(VH2O + VDry) / ACLRADIUS(I,J,L)
+                ENDIF
 
                 ! Save aerosol water content. Assume that the increase in volume
                 ! equals the volume of pure water added, m3(H2O)/m3(air),
                 ! then convert to g/m3
-                State_Chm%AeroH2O(I,J,L,N+NDUST) = 1e+6_fp * &
-                   WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)
+                ! Don't update SNA, keep ISORROPIA values
+                IF (N.ne.1) THEN
+                   State_Chm%AeroH2O(I,J,L,N+NDUST) = 1e+6_fp * &
+                       WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)
+                ENDIF
 
                 !include hydrophobic BC and OC
                 !stored separate to hydrophillic in RT variables
@@ -2179,7 +2199,7 @@ CONTAINS
     !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
 
     ! Free pointers
-    NULLIFY( BXHEIGHT, ERADIUS, TAREA, WERADIUS, WTAREA )
+    NULLIFY( BXHEIGHT, ERADIUS, TAREA, WERADIUS, WTAREA, ACLRADIUS, ACLAREA )
 
     ! Reset first-time flag
     FIRST = .FALSE.
@@ -2263,6 +2283,7 @@ CONTAINS
     id_SOAS   = Ind_( 'SOAS'   )
     id_SALA   = Ind_( 'SALA'   )
     id_SALC   = Ind_( 'SALC'   )
+    id_SALACL = Ind_( 'SALACL' )
     id_SO4    = Ind_( 'SO4'    )
     id_SO4s   = Ind_( 'SO4s'   )
     id_NITs   = Ind_( 'NITs'   )
@@ -2320,6 +2341,11 @@ CONTAINS
     CALL GC_CheckVar( 'aerosol_mod.F90:SALC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SALC = 0.0_fp
+
+    ALLOCATE( ACL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),  STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F:ACL', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    ACL = 0.0_fp
 
     ALLOCATE( SO4_NH4_NIT(State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F90:SO4_NH4_NIT', 0, RC )
@@ -2457,6 +2483,7 @@ CONTAINS
     IF ( ALLOCATED( OCPISOA     ) ) DEALLOCATE( OCPISOA     )
     IF ( ALLOCATED( SALA        ) ) DEALLOCATE( SALA        )
     IF ( ALLOCATED( SALC        ) ) DEALLOCATE( SALC        )
+    IF ( ALLOCATED( ACL         ) ) DEALLOCATE( ACL         )
     IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
     IF ( ALLOCATED( SO4         ) ) DEALLOCATE( SO4         )
     IF ( ALLOCATED( NH4         ) ) DEALLOCATE( NH4         )

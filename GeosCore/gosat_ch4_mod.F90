@@ -360,6 +360,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : IT_IS_NAN
     USE ERROR_MOD,          ONLY : IT_IS_FINITE
     USE GC_GRID_MOD,        ONLY : GET_IJ
@@ -370,13 +371,17 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on GOSAT CH4 observation
@@ -438,12 +443,21 @@ CONTAINS
     INTEGER            :: IOS
     INTEGER, SAVE      :: TotalObs = 0
     CHARACTER(LEN=255) :: FILENAME
+    CHARACTER(LEN=63)  :: OrigUnit
+    CHARACTER(LEN=255) :: ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
+    INTEGER            :: RC
 
     !=================================================================
     ! CALC_GOS_CH4_FORCE begins here!
     !=================================================================
 
     print*, '     - CALC_GOS_CH4_FORCE '
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at CALC_GOS_CH4_FORCE (in gosat_ch4_mod.F)'
 
     ! Initialize species ID flag
     id_CH4     = Ind_('CH4'       )
@@ -551,6 +565,14 @@ CONTAINS
     print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
     print*, ' found # GOSAT observations: ', NOBS
 
+    ! Convert species units to [v/v] (mps, 6/12/2020)
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC,        OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !! need to update this in order to do i/o with this loop parallel
     !!      ! Now do a parallel loop for analyzing data
@@ -701,10 +723,8 @@ CONTAINS
        ! Get CH4 values at native model resolution
        GC_CH4_NATIVE(:) = 0.0_fp
 
-       ! Get species concentrations
-       ! Convert from [kg/box] --> [v/v]
-       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / &
-                          State_Chm%SpcData(id_CH4)%Info%emMW_g )
+       ! Get species concentrations [v/v]
+       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4)
 
        ! Interpolate GC CH4 column to GOSAT grid
        ! Use L0 for lowest valid layer for GOSAT (zyz)
@@ -829,6 +849,15 @@ CONTAINS
 
     ! Update cost function
     COST_FUNC = COST_FUNC + SUM(NEW_COST(:))
+
+    ! Convert species units back to original unit (mps, 6/12/2020)
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
 282 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,I2,2x,I2,2x,I2, &
             2x,I2,2x,I2,2x,F12.3,2x,E12.6,2x,E12.6,2x,E12.6,2x,E12.6, &

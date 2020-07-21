@@ -108,21 +108,26 @@ MODULE Chem_GridCompMod
   END TYPE GEOSCHEM_Wrap
 
   ! For passing from internal state to Chm_State and vice versa
-#if defined( MODEL_GEOS )
   TYPE Int2SpcMap
      CHARACTER(LEN=255)            :: Name
      INTEGER                       :: ID
+#if defined( MODEL_GEOS )
      REAL, POINTER                 :: Internal(:,:,:) => NULL()
-  END TYPE Int2SpcMap
 #else
-  ! SDE 2016-03-28: Assume that Int2Spc is held as v/v dry
-  TYPE Int2SpcMap
-     CHARACTER(LEN=255)            :: TrcName
-     INTEGER                       :: TrcID
-     REAL                          :: TCVV
      REAL(ESMF_KIND_R8), POINTER   :: Internal(:,:,:) => NULL()
-  END TYPE Int2SpcMap
 #endif
+  END TYPE Int2SpcMap
+
+  ! Internal run alarms
+  TYPE GC_run_alarms
+     private
+     ! Add alarms here
+     type(ESMF_Alarm) :: RRTMG_Alarm
+  END TYPE GC_run_alarms
+
+  TYPE GCRA_wrap
+     type(GC_run_alarms), pointer  :: ptr
+  END TYPE
 
   ! For mapping State_Chm%Tracers/Species arrays onto the internal state.
   TYPE(Int2SpcMap), POINTER        :: Int2Spc(:) => NULL()
@@ -780,14 +785,10 @@ CONTAINS
           IF ( SpcName(1:2) == 'RR' ) CYCLE
        
           DO J=1,Nadv !Size of AdvSpc
-#if defined( MODEL_GEOS )
              IF (trim(AdvSpc(J)) .eq. trim(SpcName)) THEN
                 FOUND = .true.
                 EXIT
              ENDIF
-#else
-             IF (trim(AdvSpc(J)) .eq. trim(SpcName)) FOUND = .true.
-#endif
           END DO
        
 #if defined( MODEL_GEOS )
@@ -1758,6 +1759,7 @@ CONTAINS
     CALL MAPL_TimerAdd(GC, NAME="GC_CHEM"  , __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_WETDEP", __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_DIAGN" , __RC__)
+    CALL MAPL_TimerAdd(GC, NAME="GC_RAD"   , __RC__)
 
     ! Generic Set Services
     ! --------------------
@@ -1792,6 +1794,7 @@ CONTAINS
 !
     USE TIME_MOD,  ONLY : GET_TS_CHEM, GET_TS_EMIS
     USE TIME_MOD,  ONLY : GET_TS_DYN,  GET_TS_CONV
+    USE TIME_MOD,  ONLY : GET_TS_RAD
 !#if defined( MODEL_GEOS )
 !    USE TENDENCIES_MOD, ONLY : Tend_CreateClass
 !    USE TENDENCIES_MOD, ONLY : Tend_Add
@@ -1867,11 +1870,12 @@ CONTAINS
     INTEGER                     :: LM_WORLD    ! # of levels     in global grid
     REAL                        :: tsChem      ! Chemistry timestep [s]
     REAL                        :: tsDyn       ! Dynamic timestep [s]
+    REAL                        :: tsRad       ! RRTMG timestep [s]
     CHARACTER(LEN=5)            :: petStr      ! String for PET #
     CHARACTER(LEN=ESMF_MAXSTR)  :: compName    ! Name of gridded component
     
     ! time step error checks 
-    REAL                         :: ChemTS, EmisTS
+    REAL                         :: ChemTS, EmisTS, RadTS
 
     ! Pointer arrays
     REAL(ESMF_KIND_R4),  POINTER :: lonCtr(:,:) ! Lon centers on this PET [rad]
@@ -1880,6 +1884,11 @@ CONTAINS
     INTEGER                      :: I, nFlds, mpiComm
     TYPE(ESMF_STATE)             :: INTSTATE 
     TYPE(ESMF_Field)             :: GcFld
+
+    ! Species information
+    TYPE(Species), POINTER       :: SpcInfo
+
+    CHARACTER(LEN=ESMF_MAXSTR)   :: fieldName
 
 #if defined( MODEL_GEOS )
     ! Does GEOS-Chem restart file exist?
@@ -1898,10 +1907,7 @@ CONTAINS
     TYPE(ESMF_STATE)             :: Aero
     TYPE(ESMF_FieldBundle)       :: AeroBdl 
     TYPE(ESMF_Field)             :: AeroFld
-    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName, fieldName
-
-    ! v11: species
-    TYPE(Species), POINTER       :: SpcInfo
+    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
 
     ! To read various options 
     INTEGER                      :: DoIt 
@@ -1911,10 +1917,22 @@ CONTAINS
     INTEGER                      :: instance
 #else
     INTEGER                      :: N, trcID
-    TYPE(ESMF_Time)              :: CurrTime    ! Current time of the ESMF clock
     TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
-    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_R8(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D(:,:,:) => NULL()
 #endif
+
+    ! Internal run alarms
+    type(GC_run_alarms), pointer :: GC_alarms
+    type(GCRA_wrap)              :: GC_alarm_wrapper
+    TYPE(ESMF_Time)              :: startTime      ! Simulation start time
+    TYPE(ESMF_Time)              :: currTime
+    TYPE(ESMF_Time)              :: ringTime
+    type(ESMF_TimeInterval)      :: tsRad_TI
+    type(ESMF_TimeInterval)      :: tsChem_TI
+    type (ESMF_Calendar)         :: CAL
+    INTEGER                      :: yyyy, mm, dd   ! Year, month, day
+    INTEGER                      :: h,    m,  s    ! Hour, minute, seconds
+    INTEGER                      :: doy
 
     __Iam__('Initialize_')
 
@@ -1970,6 +1988,7 @@ CONTAINS
                    nymdE       = nymdE,       &  ! YYYMMDD  @ start of sim
                    nhmsE       = nhmsE,       &  ! hhmmss   @ end   of sim
                    tsChem      = tsChem,      &  ! Chemistry timestep [seconds]
+                   tsRad       = tsRad,       &  ! RRTMG timestep [seconds]
                    tsDyn       = tsDyn,       &  ! Dynamics timestep  [seconds]
                    localPet    = myPet,       &  ! PET # that we are on now
                    petCount    = NPES,        &  ! Number of PETs in MPI World
@@ -2419,83 +2438,52 @@ CONTAINS
     ! (as specified in input.geos), the tracers must not be friendly to
     ! the GEOS-5 moist / turbulence components!
     !=======================================================================
-#if defined( MODEL_GEOS )
     nFlds = State_Chm%nSpecies
-#else
-    ! GCHP uses nAdvect (bug?):
-    nFlds = State_Chm%nAdvect
-#endif
     ALLOCATE( Int2Spc(nFlds), STAT=STATUS )
     _ASSERT(STATUS==0,'Int2Spc could not be allocated')
 
     ! Do for every tracer in State_Chm
     DO I = 1, nFlds
 
-#if defined( MODEL_GEOS )
        SpcInfo => State_Chm%SpcData(I)%Info
-#else
-       ! Get info about this species from the species database
-       N = State_Chm%Map_Advect(I)
-       ThisSpc => State_Chm%SpcData(N)%Info
-#endif
 
        ! Pass tracer name
-#if defined( MODEL_GEOS )
        Int2Spc(I)%Name = TRIM(SpcInfo%Name)
+#if defined( MODEL_GEOS )
        IF ( TRIM(Int2Spc(I)%Name) == 'POX' ) Int2Spc(I)%Name = 'POx'
        IF ( TRIM(Int2Spc(I)%Name) == 'LOX' ) Int2Spc(I)%Name = 'LOx'
-#else
-       Int2Spc(I)%TrcName = TRIM(ThisSpc%Name)
 #endif
 
        ! Get tracer ID
-#if defined( MODEL_GEOS )
-       ! Do not use Ind_() to get tracer ID. It may return the wrong tracer ID
-       ! for species with the same hash (ckeller, 10/6/17)
-       !!!Int2Spc(I)%ID = Ind_( TRIM(Int2Spc(I)%Name) )
-       Int2Spc(I)%ID = SpcInfo%ModelID
-#else
-       Int2Spc(I)%TrcID = IND_( TRIM(Int2Spc(I)%TrcName) )
-#endif
+       Int2Spc(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
 
        ! If tracer ID is not valid, make sure all vars are at least defined.
-#if defined( MODEL_GEOS )
        IF ( Int2Spc(I)%ID <= 0 ) THEN
           Int2Spc(I)%Internal => NULL()
           CYCLE
        ENDIF
-#else
-       IF ( Int2Spc(I)%TrcID <= 0 ) THEN
-          Int2Spc(I)%Internal => NULL()
-          CYCLE
-       ENDIF
-#endif
 
        ! Get internal state field
-#if defined( MODEL_GEOS )
        fieldName = TRIM(SPFX)//TRIM(Int2Spc(I)%Name)
        CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
+
+#if defined( MODEL_GEOS )
        IF ( STATUS /= ESMF_SUCCESS ) THEN
+          ! Check that it doesn't have old tracer prefix if not found
           fieldName = TRIM(TPFX)//TRIM(Int2Spc(I)%Name)
           CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
        ENDIF 
-#else
-       CALL ESMF_StateGet( INTSTATE, TRIM(SPFX) // TRIM(Int2Spc(I)%TrcName), &
-                           GcFld, RC=STATUS )
 #endif
 
        ! This is mostly for testing 
        IF ( STATUS /= ESMF_SUCCESS ) THEN
           IF( am_I_Root ) THEN
              WRITE(*,*) 'Cannot find in internal state: ', TRIM(SPFX) &
-#if defined( MODEL_GEOS )
                         //TRIM(Int2Spc(I)%Name),I
           ENDIF
           Int2Spc(I)%Internal => NULL()
+#if defined( MODEL_GEOS )
           CYCLE
-#else
-                        //TRIM(Int2Spc(I)%TrcName),I
-          ENDIF
           _ASSERT(.FALSE.,'Error finding internal state variable')
 #endif
        ENDIF
@@ -2541,29 +2529,13 @@ CONTAINS
              _ASSERT(.FALSE.,'Error in Friendly settings')
           ENDIF
        ENDIF
+#endif
 
        ! Get pointer to field
        CALL ESMF_FieldGet( GcFld, 0, Ptr3D, __RC__ )
        Int2Spc(I)%Internal => Ptr3D
-
-       ! Verbose
-       !IF ( am_I_Root ) THEN
-       !    WRITE(*,*) 'Connected ',TRIM(SpcInfo%Name), &
-       !    ' <--> ',TRIM(fieldName),'; MW: ',SpcInfo%EmMW_g
-       !ENDIF
-
-       ! Free pointers
-       Ptr3D   => NULL()
+       Ptr3D => NULL()
        SpcInfo => NULL()
-#else
-       ! Get pointer to field
-       CALL ESMF_FieldGet( GcFld, 0, Ptr3D_R8, __RC__ )
-       Int2Spc(I)%Internal => Ptr3D_R8
-
-       ! Free pointers
-       Ptr3D_R8 => NULL()
-       ThisSpc  => NULL()
-#endif
 
     ENDDO
 
@@ -2619,6 +2591,78 @@ CONTAINS
        WRITE(*,*) 'RUN_DT in CAP.rc                              : ', tsDyn
        _ASSERT(.FALSE.,'Error in timesteps')
     ENDIF
+
+    If (Input_Opt%LRAD) Then
+       RadTS  = GET_TS_RAD()
+       IF ( RadTS /= tsRad ) THEN
+          WRITE(*,*) 'GEOS-Chem radiation time step (for RRTMG) does not'
+          WRITE(*,*) 'agree with time step set in GCHP.rc'
+          WRITE(*,*) 'GEOS-Chem RRTMG time step                     : ', RadTS
+          WRITE(*,*) 'RRTMG_DT in GCHP.rc                           : ', tsRad
+          _ASSERT(.FALSE.,'Error in timesteps')
+       ENDIF
+
+       ! Redundantly, check that tsRad is a multiple of tsChem
+       _ASSERT(MOD(tsRad,tsChem)==0,'Radiation time step must be a multiple of chemistry time step')
+    Else
+       ! Use chemistry step; this alarm will be ignored, but must be present
+       RadTS = ChemTS
+    End If
+
+    ! Establish the internal alarms for GEOS-Chem
+    allocate(GC_alarms,stat=status)
+    _ASSERT(rc==0,'Could not allocate GC alarms')
+    GC_alarm_wrapper%ptr => GC_alarms
+
+    call ESMF_UserCompSetInternalState(GC,'gcchem_internal_alarms',GC_alarm_wrapper,status)
+    _ASSERT(status==0,'Could not get GEOS-Chem internal alarms')
+
+    ! Get information about/from the clock
+    CALL ESMF_ClockGet( Clock,                    &
+                        startTime    = startTime, &
+                        currTime     = currTime,  &
+                        calendar     = cal,       &
+                        __RC__ )
+
+    ! Set up the radiation alarm
+    ! Must ring once per tsRad
+    call ESMF_TimeIntervalSet(tsRad_TI, S=nint(tsRad), calendar=cal, RC=STATUS)
+    _ASSERT(STATUS==0,'Could not set radiation alarm time interval')
+
+    ! Initially, just set the ring time to be midnight on the starting day
+    call ESMF_TimeGet( startTime, YY = yyyy, MM = mm, DD = dd, H=h, M=m, S=s, rc = STATUS )
+    _ASSERT(STATUS==0,'Could not extract start time information')
+    call ESMF_TimeSet( ringTime,  YY = yyyy, MM = mm, DD = dd, H=0, M=0, S=0, rc = STATUS )
+    _ASSERT(STATUS==0,'Could not set initial radiation alarm ring time')
+
+    ! NOTE: RRTMG is run AFTER chemistry has completed. So we actually want the
+    ! alarm to go off on the chemistry timestep immediately before the target
+    ! output time.
+    call ESMF_TimeIntervalSet(tsChem_TI, S=nint(tsChem), calendar=cal, RC=STATUS)
+    _ASSERT(STATUS==0,'Could not set chemistry alarm time interval')
+    ringTime = ringTime - tsChem_TI
+
+    ! Advance ring time until it is at or after current time
+    do while (ringTime < currTime)
+       ringTime = ringTime + tsRad_TI
+    end do
+
+    ! Make the alarm 'sticky'. This means it will ring until 
+    ! the ringer is turned off.
+    GC_alarms%RRTMG_alarm = ESMF_AlarmCreate(CLOCK = Clock, &
+                            name = "GC_RRTMG_alarm" ,       &
+                            RingInterval = tsRad_TI,        &
+                            RingTime     = ringTime,        & 
+!                            Enabled      = .true.   ,       &
+                            sticky       = .true.,          &
+                            RC           = STATUS      )
+    _VERIFY(STATUS)
+
+    ! Start alarm ringing if already reached first alarm time
+    if(ringTime == currTime) then
+       call ESMF_AlarmRingerOn(GC_alarms%RRTMG_alarm, rc=status)
+       _VERIFY(STATUS)
+    end if
 
 #if !defined( MODEL_GEOS )
     IF ( ArchivedConv .AND. am_I_Root ) THEN
@@ -3080,6 +3124,7 @@ CONTAINS
     ! Scalars                                     
     LOGICAL                      :: am_I_Root     ! Are we on the root PET?
     LOGICAL                      :: IsChemTime    ! Chemistry alarm proxy
+    LOGICAL                      :: IsRadTime     ! Radiation alarm proxy
     LOGICAL                      :: IsRunTime     ! Time to call GEOS-Chem
     LOGICAL                      :: IsTendTime    ! Time to calculate tendencies
     INTEGER                      :: IND           ! Species or tracer index
@@ -3102,6 +3147,7 @@ CONTAINS
     INTEGER                      :: second        ! Current second
     REAL                         :: UTC           ! Universal time
     REAL                         :: tsChem        ! Chem timestep [sec]
+    REAL                         :: tsRad         ! RRTMG timestep [sec]
     REAL                         :: tsDyn         ! Dynamic timestep [sec]
     REAL                         :: hElapsed      ! Elapsed time [hours]
     REAL*8                       :: lonDeg        ! Longitude [degrees]
@@ -3239,6 +3285,10 @@ CONTAINS
 
 #endif
 
+    ! Alarms
+    type(GC_run_alarms), pointer :: GC_alarms
+    type(GCRA_wrap)               :: GC_alarm_wrapper
+
     ! First call?
     LOGICAL, SAVE                :: FIRST = .TRUE.
 
@@ -3283,6 +3333,18 @@ CONTAINS
     IF ( IsChemTime .AND. PHASE /= 1 ) THEN
        CALL ESMF_AlarmRingerOff(ALARM, __RC__ )
     ENDIF
+
+    ! Retrieve GEOS-Chem's internal alarms
+    call ESMF_UserCompGetInternalState(GC,'gcchem_internal_alarms',GC_alarm_wrapper,status)
+    _ASSERT(rc==0,'Could not retrieve radiation alarm')
+    GC_alarms => GC_alarm_wrapper%ptr
+    ! Query the radiation alarm
+    IsRadTime = ESMF_AlarmIsRinging(GC_alarms%RRTMG_alarm,__RC__)
+    
+    ! Turn off alarm: only if it was on, chemistry will run, and this is phase 2
+    If ( IsRadTime .and. IsChemTime .and. PHASE /= 1 ) Then
+       CALL ESMF_AlarmRingerOff(GC_alarms%RRTMG_alarm, __RC__ )
+    End If
 
     ! Get Internal state
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
@@ -3448,8 +3510,9 @@ CONTAINS
                       Grid      = Grid,     &  ! ESMF Grid object
                       MaplCf    = MaplCF,   &  ! ESMF Config obj (MAPL*.rc) 
                       GeosCf    = GeosCF,   &  ! ESMF Config obj (GEOSCHEM*.rc)
-                      tsChem    = tsChem,   &  ! Chemistry timestep [min]
-                      tsDyn     = tsDyn,    &  ! Dynamic timestep [min]
+                      tsChem    = tsChem,   &  ! Chemistry timestep [sec]
+                      tsRad     = tsRad,    &  ! Radiation timestep [sec]
+                      tsDyn     = tsDyn,    &  ! Dynamic timestep [sec]
                       nymd      = nymd,     &  ! Current YYYY/MM/DD date
                       nhms      = nhms,     &  ! Current hh:mm:ss time
                       year      = year,     &  ! Current year
@@ -3653,17 +3716,17 @@ CONTAINS
 #include "Includes_Before_Run.H"
        CALL MAPL_TimerOff(STATE, "CP_BFRE")
 
-#if !defined( MODEL_GEOS )
-      !=======================================================================
-      ! Pass advected tracers from internal state to GEOS-Chem tracers array
-      !=======================================================================
-      DO I = 1, SIZE(Int2Spc,1)
-         IF ( Int2Spc(I)%TrcID <= 0 ) CYCLE
-         State_Chm%Species(:,:,:,Int2Spc(I)%TrcID) = Int2Spc(I)%Internal
-      ENDDO
-      
-      ! Flip in the vertical
-      State_Chm%Species   = State_Chm%Species( :, :, State_Grid%NZ:1:-1, : )
+#if defined( MODEL_GCHP )
+       !=======================================================================
+       ! Pass species from internal state to GEOS-Chem tracers array
+       !=======================================================================
+       DO I = 1, SIZE(Int2Spc,1)
+          IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+          State_Chm%Species(:,:,:,Int2Spc(I)%ID) = Int2Spc(I)%Internal
+       ENDDO
+       
+       ! Flip in the vertical
+       State_Chm%Species   = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
 
        !=======================================================================
        ! On first call, also need to initialize the species from restart file.
@@ -4027,6 +4090,7 @@ CONTAINS
                                   State_Met  = State_Met,  & ! Meteorology State
                                   Phase      = Phase,      & ! Run phase
                                   IsChemTime = IsChemTime, & ! Time for chem?
+                                  IsRadTime  = IsRadTime,  & ! Time for RRTMG?
 #if defined( MODEL_GEOS )
                                   FrstRewind = FirstRewind,& ! First rewind?
 #endif
@@ -4074,12 +4138,12 @@ CONTAINS
 #      include "Includes_After_Run.H"
 #endif
 
-#if !defined( MODEL_GEOS )
+#if defined( MODEL_GCHP )
        State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
        
        DO I = 1, SIZE(Int2Spc,1)
-          IF ( Int2Spc(I)%TrcID <= 0 ) CYCLE
-          Int2Spc(I)%Internal = State_Chm%Species(:,:,:,Int2Spc(I)%TrcID)
+          IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+          Int2Spc(I)%Internal = State_Chm%Species(:,:,:,Int2Spc(I)%ID)
        ENDDO
 #endif
 
@@ -4617,6 +4681,9 @@ CONTAINS
     TYPE(ESMF_Config)          :: MaplCF      ! Config (MAPL.rc)
     TYPE(ESMF_Config)          :: GeosCF      ! Config (GEOSCHEM*.rc)
  
+    type(GC_run_alarms), pointer :: GC_alarms
+    type(GCRA_wrap)              :: GC_alarm_wrapper
+
     ! Scalars
     LOGICAL                    :: am_I_Root   ! Are we on the root PET?
     CHARACTER(LEN=ESMF_MAXSTR) :: compName    ! Gridded component name
@@ -4786,6 +4853,16 @@ CONTAINS
     Ptr2d_R8 => NULL()
 #endif
 
+    ! Destroy the internal alarms
+    call ESMF_UserCompGetInternalState(GC,'gcchem_internal_alarms',GC_alarm_wrapper,status)
+    _ASSERT(status==0,'Could not find GC alarms for destruction')
+
+    GC_alarms => GC_alarm_wrapper%ptr
+    call ESMF_AlarmDestroy(GC_alarms%RRTMG_alarm,rc=status)
+    _ASSERT(status==0,'Could not destroy radiation alarm')
+    deallocate(GC_alarms,stat=status)
+    _ASSERT(status==0,'Could not deallocate GC alarms')
+
 #if defined( MODEL_GEOS )
     !=======================================================================
     ! Print end-of-simulation output
@@ -4954,6 +5031,7 @@ CONTAINS
                        nhms,       year,     month,   day,    dayOfYr,   &
                        hour,       minute,   second,  utc,    hElapsed,  &
                        tsChem,     tsDyn,    mpiComm, ZTH,   SLR,        &
+                       tsRad,                                            &
 #if defined( MODEL_GEOS )
                        haveImpRst,                                       &
 #endif
@@ -5020,6 +5098,7 @@ CONTAINS
     ! Timestep variables [seconds]          
     !-----------------------------------                     
     REAL,                INTENT(OUT), OPTIONAL :: tsChem      ! Chemistry
+    REAL,                INTENT(OUT), OPTIONAL :: tsRad       ! RRTMG
     REAL,                INTENT(OUT), OPTIONAL :: tsDyn       ! Dynamics
 
     !-----------------------------------                     
@@ -5157,6 +5236,12 @@ CONTAINS
                                      Label="RUN_DT:",             __RC__ )
     ENDIF
 
+    ! Radiation timestep (in seconds)
+    IF ( PRESENT( tsRad ) ) THEN
+       CALL ESMF_ConfigGetAttribute( MaplCF, tsRad, Default=10800.,        &
+                                     Label="RRTMG_DT:",             __RC__ )
+    ENDIF
+
     ! Chemistry timestep (in seconds)
     IF ( PRESENT( tsChem ) ) THEN
         CALL MAPL_Get( STATE, RUNALARM=ALARM, __RC__ ) 
@@ -5176,6 +5261,10 @@ CONTAINS
            _VERIFY(STATUS)
         ENDIF
     ENDIF
+
+    If ( PRESENT( tsRad ) .and. PRESENT( tsChem ) ) Then
+        _ASSERT(MOD(nint(tsRad),nint(tsChem)) == 0,'RRTMG_DT is not a multiple of GIGCCHEM_DT')
+    End If
 
 #if defined( MODEL_GEOS )
     ! Simulation dates. Legacy stuff, not used. 

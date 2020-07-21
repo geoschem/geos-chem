@@ -82,8 +82,8 @@
   DTRAIN             |     1	   | xyz | C |    |   |   |	|      | 
   OMEGA              |     1	   | xyz | C |    |   |   |	|      | 
   RH                 |     1	   | xyz | C |    |   |   |	|      | 
-  ULL                |     1	   | xyz | C |    |   |   |	|      | 
-  VLL                |     1	   | xyz | C |    |   |   |	|      | 
+  UA                 |     1	   | xyz | C |    |   |   |	|      | 
+  VA                 |     1	   | xyz | C |    |   |   |	|      | 
   DQRCU              |     1	   | xyz | C |    |   |   |	|      | 
   DQRLSAN            |     1	   | xyz | C |    |   |   |	|      | 
   REEVAPCN           |     1	   | xyz | C |    |   |   |	|      | 

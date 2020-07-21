@@ -6,6 +6,7 @@ Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
 Simulation name         : benchmark
+Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
 ------------------------+------------------------------------------------------
@@ -210,7 +211,11 @@ Species name            : RIPC
 Species name            : RIPD
 Species name            : RP
 Species name            : SALA
+Species name            : SALAAL
+Species name            : SALACL
 Species name            : SALC
+Species name            : SALCAL
+Species name            : SALCCL
 Species name            : SO2
 Species name            : SO4
 Species name            : SO4s

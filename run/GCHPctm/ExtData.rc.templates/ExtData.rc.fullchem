@@ -92,9 +92,7 @@ CLDF     '1'         N Y F0;013000 none none         CLOUD      ./MetDir/%y4/%m2
 DTRAIN   '1'         N Y F0;013000 none none         DTRAIN     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 OMEGA    'Pa s-1'    N Y F0;013000 none none         OMEGA      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 RH       '-'         N Y F0;013000 none none         RH         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-UC;VC    'm s-1'     N Y F0;013000 none none         U;V        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-ULL      'm s-1'     N Y F0;013000 none none         U          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
-VLL      'm s-1'     N Y F0;013000 none none         V          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+UA;VA    'm s-1'     N Y F0;013000 none none         U;V        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
 DQRCU    '1'         N Y F0;013000 none none         DQRCU      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
 DQRLSAN  '1'         N Y F0;013000 none none         DQRLSAN    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
 REEVAPCN '1'         N Y F0;013000 none none         REEVAPCN   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
@@ -1156,109 +1154,109 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./MainData
 # --- RCP 3PD future emissions scenarios (RCP_3PD) ---
 # RCP_3PD is off by default in HEMCO_Config.rc
 #==============================================================================
-RCP3PD_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_CH4_2005-2100_23474.nc
-RCP3PD_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_NOx_2005-2100_23474.nc
-RCP3PD_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_CO_2005-2100_23474.nc
-RCP3PD_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_BC_2005-2100_23474.nc
-RCP3PD_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_OC_2005-2100_23474.nc
-RCP3PD_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_SO2_2005-2100_23474.nc
-RCP3PD_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_NH3_2005-2100_23474.nc
-RCP3PD_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_acetylene_2005-2100_23474_kgC.nc
-RCP3PD_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_formaldehyde_2005-2100_23474.nc
-RCP3PD_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_benzene_2005-2100_23474_kgC.nc
-RCP3PD_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_toluene_2005-2100_23474_kgC.nc
-RCP3PD_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_xylene_2005-2100_23474_kgC.nc
-RCP3PD_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_other_aldehydes_2005-2100_23474_kgC.nc
-RCP3PD_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_butanes_2005-2100_23474_kgC.nc
-RCP3PD_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_pentanes_2005-2100_23474_kgC.nc
-RCP3PD_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_23474_kgC.nc
-RCP3PD_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_total_ketones_2005-2100_23474_kgC.nc
-RCP3PD_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_ethane_2005-2100_23474_kgC.nc
-RCP3PD_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_ethene_2005-2100_23474_kgC.nc
-RCP3PD_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_propane_2005-2100_23474_kgC.nc
-RCP3PD_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_propene_2005-2100_23474_kgC.nc
-RCP3PD_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_total_acids_2005-2100_23474.nc
+RCP3PD_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_CH4_2005-2100_23474.nc
+RCP3PD_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_NOx_2005-2100_23474.nc
+RCP3PD_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_CO_2005-2100_23474.nc
+RCP3PD_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_BC_2005-2100_23474.nc
+RCP3PD_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_OC_2005-2100_23474.nc
+RCP3PD_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_SO2_2005-2100_23474.nc
+RCP3PD_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_NH3_2005-2100_23474.nc
+RCP3PD_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_acetylene_2005-2100_23474_kgC.nc
+RCP3PD_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_formaldehyde_2005-2100_23474.nc
+RCP3PD_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_benzene_2005-2100_23474_kgC.nc
+RCP3PD_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_toluene_2005-2100_23474_kgC.nc
+RCP3PD_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_xylene_2005-2100_23474_kgC.nc
+RCP3PD_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_other_aldehydes_2005-2100_23474_kgC.nc
+RCP3PD_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_butanes_2005-2100_23474_kgC.nc
+RCP3PD_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_pentanes_2005-2100_23474_kgC.nc
+RCP3PD_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_23474_kgC.nc
+RCP3PD_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_total_ketones_2005-2100_23474_kgC.nc
+RCP3PD_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_ethane_2005-2100_23474_kgC.nc
+RCP3PD_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_ethene_2005-2100_23474_kgC.nc
+RCP3PD_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_propane_2005-2100_23474_kgC.nc
+RCP3PD_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_propene_2005-2100_23474_kgC.nc
+RCP3PD_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_total_acids_2005-2100_23474.nc
 
 #==============================================================================
 # --- RCP 45 future emissions scenarios (RCP_45) ---
 # RCP_45 is off by default in HEMCO_Config.rc
 #==============================================================================
-RCP45_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_CH4_2005-2100_27424.nc
-RCP45_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_NOx_2005-2100_27424.nc
-RCP45_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_CO_2005-2100_27424.nc
-RCP45_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_BC_2005-2100_27424.nc
-RCP45_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_OC_2005-2100_27424.nc
-RCP45_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_SO2_2005-2100_27424.nc
-RCP45_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_NH3_2005-2100_27424.nc
-RCP45_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_acetylene_2005-2100_27424_kgC.nc
-RCP45_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_formaldehyde_2005-2100_27424.nc
-RCP45_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_benzene_2005-2100_27424_kgC.nc
-RCP45_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_toluene_2005-2100_27424_kgC.nc
-RCP45_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_xylene_2005-2100_27424_kgC.nc
-RCP45_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_other_aldehydes_2005-2100_27424_kgC.nc
-RCP45_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_butanes_2005-2100_27424_kgC.nc
-RCP45_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_pentanes_2005-2100_27424_kgC.nc
-RCP45_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_27424_kgC.nc
-RCP45_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_total_ketones_2005-2100_27424_kgC.nc
-RCP45_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_ethane_2005-2100_27424_kgC.nc
-RCP45_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_ethene_2005-2100_27424_kgC.nc
-RCP45_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_propane_2005-2100_27424_kgC.nc
-RCP45_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_propene_2005-2100_27424_kgC.nc
-RCP45_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_total_acids_2005-2100_27424.nc
+RCP45_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_CH4_2005-2100_27424.nc
+RCP45_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_NOx_2005-2100_27424.nc
+RCP45_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_CO_2005-2100_27424.nc
+RCP45_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_BC_2005-2100_27424.nc
+RCP45_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_OC_2005-2100_27424.nc
+RCP45_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_SO2_2005-2100_27424.nc
+RCP45_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_NH3_2005-2100_27424.nc
+RCP45_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_acetylene_2005-2100_27424_kgC.nc
+RCP45_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_formaldehyde_2005-2100_27424.nc
+RCP45_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_benzene_2005-2100_27424_kgC.nc
+RCP45_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_toluene_2005-2100_27424_kgC.nc
+RCP45_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_xylene_2005-2100_27424_kgC.nc
+RCP45_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_other_aldehydes_2005-2100_27424_kgC.nc
+RCP45_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_butanes_2005-2100_27424_kgC.nc
+RCP45_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_pentanes_2005-2100_27424_kgC.nc
+RCP45_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_27424_kgC.nc
+RCP45_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_total_ketones_2005-2100_27424_kgC.nc
+RCP45_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_ethane_2005-2100_27424_kgC.nc
+RCP45_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_ethene_2005-2100_27424_kgC.nc
+RCP45_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_propane_2005-2100_27424_kgC.nc
+RCP45_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_propene_2005-2100_27424_kgC.nc
+RCP45_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_45/RCPs_anthro_total_acids_2005-2100_27424.nc
 
 #==============================================================================
 # --- RCP 60 future emissions scenarios (RCP_60) ---
 # RCP_60 is off by default in HEMCO_Config.rc
 #==============================================================================
-RCP60_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_CH4_2005-2100_43190.nc
-RCP60_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_NOx_2005-2100_43190.nc
-RCP60_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_CO_2005-2100_43190.nc
-RCP60_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_BC_2005-2100_43190.nc
-RCP60_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_OC_2005-2100_43190.nc
-RCP60_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_SO2_2005-2100_43190.nc
-RCP60_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_NH3_2005-2100_43190.nc
-RCP60_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_acetylene_2005-2100_43190_kgC.nc
-RCP60_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_formaldehyde_2005-2100_43190.nc
-RCP60_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_benzene_2005-2100_43190_kgC.nc
-RCP60_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_toluene_2005-2100_43190_kgC.nc
-RCP60_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_xylene_2005-2100_43190_kgC.nc
-RCP60_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_other_aldehydes_2005-2100_43190_kgC.nc
-RCP60_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_butanes_2005-2100_43190_kgC.nc
-RCP60_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_pentanes_2005-2100_43190_kgC.nc
-RCP60_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_43190_kgC.nc
-RCP60_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_total_ketones_2005-2100_43190_kgC.nc
-RCP60_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_ethane_2005-2100_43190_kgC.nc
-RCP60_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_ethene_2005-2100_43190_kgC.nc
-RCP60_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_propane_2005-2100_43190_kgC.nc
-RCP60_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_propene_2005-2100_43190_kgC.nc
-RCP60_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_total_acids_2005-2100_43190.nc
+RCP60_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_CH4_2005-2100_43190.nc
+RCP60_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_NOx_2005-2100_43190.nc
+RCP60_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_CO_2005-2100_43190.nc
+RCP60_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_BC_2005-2100_43190.nc
+RCP60_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_OC_2005-2100_43190.nc
+RCP60_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_SO2_2005-2100_43190.nc
+RCP60_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_NH3_2005-2100_43190.nc
+RCP60_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_acetylene_2005-2100_43190_kgC.nc
+RCP60_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_formaldehyde_2005-2100_43190.nc
+RCP60_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_benzene_2005-2100_43190_kgC.nc
+RCP60_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_toluene_2005-2100_43190_kgC.nc
+RCP60_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_xylene_2005-2100_43190_kgC.nc
+RCP60_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_other_aldehydes_2005-2100_43190_kgC.nc
+RCP60_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_butanes_2005-2100_43190_kgC.nc
+RCP60_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_pentanes_2005-2100_43190_kgC.nc
+RCP60_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_43190_kgC.nc
+RCP60_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_total_ketones_2005-2100_43190_kgC.nc
+RCP60_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_ethane_2005-2100_43190_kgC.nc
+RCP60_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_ethene_2005-2100_43190_kgC.nc
+RCP60_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_propane_2005-2100_43190_kgC.nc
+RCP60_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_propene_2005-2100_43190_kgC.nc
+RCP60_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_60/RCPs_anthro_total_acids_2005-2100_43190.nc
 
 #==============================================================================
 # --- RCP 85 future emissions scenarios (RCP_85) ---
 # RCP_85 is off by default in HEMCO_Config.rc
 #==============================================================================
-RCP85_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_CH4_2005-2100_43533.nc
-RCP85_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_NOx_2005-2100_43533.nc
-RCP85_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_CO_2005-2100_43533.nc
-RCP85_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_BC_2005-2100_43533.nc
-RCP85_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_OC_2005-2100_43533.nc
-RCP85_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_SO2_2005-2100_43533.nc
-RCP85_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_NH3_2005-2100_43533.nc
-RCP85_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_acetylene_2005-2100_43533_kgC.nc
-RCP85_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_formaldehyde_2005-2100_43533.nc
-RCP85_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_benzene_2005-2100_43533_kgC.nc
-RCP85_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_toluene_2005-2100_43533_kgC.nc
-RCP85_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_xylene_2005-2100_43533_kgC.nc
-RCP85_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_other_aldehydes_2005-2100_43533_kgC.nc
-RCP85_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_butanes_2005-2100_43533_kgC.nc
-RCP85_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_pentanes_2005-2100_43533_kgC.nc
-RCP85_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_43533_kgC.nc
-RCP85_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_total_ketones_2005-2100_43533_kgC.nc
-RCP85_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_ethane_2005-2100_43533_kgC.nc
-RCP85_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_ethene_2005-2100_43533_kgC.nc
-RCP85_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_propane_2005-2100_43533_kgC.nc
-RCP85_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_propene_2005-2100_43533_kgC.nc
-RCP85_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_total_acids_2005-2100_43533.nc
+RCP85_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_CH4_2005-2100_43533.nc
+RCP85_NOx     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_NOx_2005-2100_43533.nc
+RCP85_CO      kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_CO_2005-2100_43533.nc
+RCP85_BCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_BC_2005-2100_43533.nc
+RCP85_OCPO    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_OC_2005-2100_43533.nc
+RCP85_SO2     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_SO2_2005-2100_43533.nc
+RCP85_NH3     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_NH3_2005-2100_43533.nc
+RCP85_C2H2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_acetylene_2005-2100_43533_kgC.nc
+RCP85_CH2O    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_formaldehyde_2005-2100_43533.nc
+RCP85_BENZ    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_benzene_2005-2100_43533_kgC.nc
+RCP85_TOLU    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_toluene_2005-2100_43533_kgC.nc
+RCP85_XYLE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_xylene_2005-2100_43533_kgC.nc
+RCP85_ALD2    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_other_aldehydes_2005-2100_43533_kgC.nc
+RCP85_ALK4__A kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_butanes_2005-2100_43533_kgC.nc
+RCP85_ALK4__B kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_pentanes_2005-2100_43533_kgC.nc
+RCP85_ALK4__C kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_hexanes_and_higher_alkanes_2005-2100_43533_kgC.nc
+RCP85_ACET    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_total_ketones_2005-2100_43533_kgC.nc
+RCP85_C2H6    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_ethane_2005-2100_43533_kgC.nc
+RCP85_C2H4    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_ethene_2005-2100_43533_kgC.nc
+RCP85_C3H8    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_propane_2005-2100_43533_kgC.nc
+RCP85_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_propene_2005-2100_43533_kgC.nc
+RCP85_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2020-07/RCP_85/RCPs_anthro_total_acids_2005-2100_43533.nc
 
 #==============================================================================
 # --- QFED2 biomass burning (QFED2) ---
@@ -1742,6 +1740,36 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---
 #==============================================================================
 #CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+
+#==============================================================================
+# --- RRTMG (RRTMG) ---
+#==============================================================================
+MODIS_ALBDFNIR      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDFNIR       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDFVIS      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDFVIS       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDRNIR      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDRNIR       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_ALBDRVIS      1      N Y F2002-%m2-%d2T00:00:00 none none ALBDRVIS       ./MainDataDir/RRTMG/v2018-11/modis_surf_albedo.2x25.nc
+MODIS_EMISSIVITY_01 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band01 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_02 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band02 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_03 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band03 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_04 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band04 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_05 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band05 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_06 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band06 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_07 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band07 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_08 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band08 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_09 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band09 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_10 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band10 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_11 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band11 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_12 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band12 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_13 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band13 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_14 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band14 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_15 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band15 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+MODIS_EMISSIVITY_16 1      N Y F2002-%m2-%d2T00:00:00 none none RTEMISS_band16 ./MainDataDir/RRTMG/v2018-11/modis_emissivity.2x25.nc 
+TES_CLIM_CCL4       ppbv   N Y -                      none none CCl4           ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC11      ppbv   N Y -                      none none CFC11          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC12      ppbv   N Y -                      none none CFC12          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CFC22      ppbv   N Y -                      none none CFC22          ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_CH4        ppbv   N Y -                      none none CH4            ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+TES_CLIM_N2O        ppbv   N Y -                      none none N2O            ./MainDataDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---

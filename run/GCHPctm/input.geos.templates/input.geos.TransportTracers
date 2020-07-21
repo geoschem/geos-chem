@@ -6,6 +6,7 @@ Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
 Simulation name         : TransportTracers
+Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
 ------------------------+------------------------------------------------------
