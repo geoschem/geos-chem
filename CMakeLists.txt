@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.9.1 LANGUAGES Fortran)
+project(GEOS_Chem VERSION 12.9.2 LANGUAGES Fortran)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
