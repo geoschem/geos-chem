@@ -905,6 +905,13 @@ CONTAINS
                         TSOA(I,J,L)   * ORG_GROWTH + &
                         ASOA(I,J,L)   * ORG_GROWTH + &
                         ISOAAQ(I,J,L) * ORG_GROWTH    ! Includes SOAGX
+
+          ! Need to add OPOA to PM2.5 for complexSOA_SVPOA simulations
+          ! -- Maggie Marvin (15 Jul 2020)
+          IF ( Is_OPOA ) THEN
+             PM25(I,J,L) = PM25(I,J,L)             + &
+                           OPOA(I,J,L) * ORG_GROWTH
+          ENDIF
        ENDIF
 
        ! Apply STP correction factor based on ideal gas law
