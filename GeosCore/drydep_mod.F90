@@ -2429,7 +2429,8 @@ CONTAINS
     REAL(f8)           :: DRYCOEFF_R8(NPOLY)
 
 #if defined( MODEL_CESM )
-    ! Derived type objects
+    INTEGER            :: iret
+    INTEGER            :: vid
     TYPE(FILE_DESC_T)  :: ncid
 #endif
 
