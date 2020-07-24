@@ -5,3 +5,9 @@
 geos
 geostomas
 geosapm
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk
+core.*

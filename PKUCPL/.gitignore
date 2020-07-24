@@ -10,4 +10,4 @@ geosapm
 *.inst.*
 *.continue.*
 *.ppk
-run
+core.*

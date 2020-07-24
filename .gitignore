@@ -28,3 +28,4 @@ build/
 build_*/
 *___.h
 *___.rc
+core.*
