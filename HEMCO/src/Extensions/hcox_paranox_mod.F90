@@ -555,10 +555,14 @@ CONTAINS
        ! following the ambient ratio
        ! Now check for zero ambient air concentrations. In this
        ! case, arbitrarily emit everything as NO (ckeller, 04/10/15).
-       IF ( ExtState%NO%Arr%Val (I,J,1) > 0.0_hp .OR. &
+       !
+       ! Bug fix: Make sure NO and NO2 are both positive
+       ! See https://github.com/geoschem/geos-chem/issues/380
+       !  -- Bob Yantosca (24 Jul 2020)
+       IF ( ExtState%NO%Arr%Val (I,J,1) > 0.0_hp .and.                       &
             ExtState%NO2%Arr%Val(I,J,1) > 0.0_hp       ) THEN
-          FNO_NOx = (ExtState%NO%Arr%Val(I,J,1)/Inst%MW_NO) / &
-                  ( (ExtState%NO%Arr%Val(I,J,1)/Inst%MW_NO) + &
+          FNO_NOx = (ExtState%NO%Arr%Val(I,J,1)/Inst%MW_NO) /                &
+                  ( (ExtState%NO%Arr%Val(I,J,1)/Inst%MW_NO) +                &
                     (ExtState%NO2%Arr%Val(I,J,1)/Inst%MW_NO2) )
        ELSE
           FNO_NOx = 1.0_hp
