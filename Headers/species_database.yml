@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (13 May 2020)
+# GEOS-Chem Species Database (23 Jul 2020)
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them
 A3O2:
@@ -647,43 +647,43 @@ CO2:
   << : *CO2properties
   Background_VV: 3.55e-4
   FullName: Carbon dioxide
-CO2AV:
+CO2av:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from aviation emissions
-CO2BAL:
+CO2bal:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from balanced biosphere
-CO2BB:
+CO2bb:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from biomass burning emissions
-CO2BF:
+CO2bf:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from biofuel emissions
-CO2CH:
+CO2ch:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from chemical sources
-CO2CORR:
+CO2corr:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide chemical source surface correction
-CO2FF:
+CO2ff:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from fossil fuel emissions
-CO2NTE:
+CO2nte:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from net terrestrial exchange
-CO2OC:
+CO2oc:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ocean emissions
-CO2SE:
+CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
