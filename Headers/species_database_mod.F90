@@ -137,7 +137,7 @@ CONTAINS
     REAL(f4)                    :: a_real_3(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(42)
+    CHARACTER(LEN=17)           :: tags(43)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -165,6 +165,7 @@ CONTAINS
     SpcCount%nKppFix  = 0
     SpcCount%nKppSpc  = 0
     SpcCount%nPhotol  = 0
+    SpcCount%nRadNucl = 0
     SpcCount%nWetDep  = 0
     SpcCount%nHg0     = 0
     SpcCount%nHg2     = 0
@@ -178,13 +179,14 @@ CONTAINS
              "Is_Aerosol       ", "Is_DryAlt        ", "Is_DryDep        ",  &
              "Is_HygroGrowth   ", "Is_Gas           ", "Is_Hg0           ",  &
              "Is_Hg2           ", "Is_HgP           ", "Is_Photolysis    ",  &
-             "Is_WetDep        ", "Henry_CR         ", "Henry_K0         ",  &
-             "Henry_pKa        ", "MP_SizeResAer    ", "MP_SizeResNum    ",  &
-             "MolecRatio       ", "MW_g             ", "Radius           ",  &
-             "WD_AerScavEff    ", "WD_CoarseAer     ", "WD_ConvFacI2G    ",  &
-             "WD_KcScaleFac_Luo", "WD_KcScaleFac    ", "WD_Is_H2SO4      ",  &
-             "WD_Is_HNO3       ", "WD_Is_SO2        ", "WD_LiqAndGas     ",  &
-             "WD_RainoutEff_Luo", "WD_RainoutEff    ", "WD_RetFactor     " /)
+             "Is_RadioNuclide  ", "Is_WetDep        ", "Henry_CR         ",  &
+             "Henry_K0         ", "Henry_pKa        ", "MP_SizeResAer    ",  &
+             "MP_SizeResNum    ", "MolecRatio       ", "MW_g             ",  &
+             "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",  &
+             "WD_ConvFacI2G    ", "WD_KcScaleFac_Luo", "WD_KcScaleFac    ",  &
+             "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",  &
+             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    ",  &
+             "WD_RetFactor     "                                           /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -441,6 +443,15 @@ CONTAINS
                 SpcCount%nPhotol      = SpcCount%nPhotol + 1
                 ThisSpc%PhotolId      = SpcCount%nPhotol
                 ThisSpc%Is_Photolysis = v_bool
+             ENDIF
+
+          ELSE IF ( INDEX( key, "%Is_RadioNuclide" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             IF ( v_bool ) THEN
+                SpcCount%nRadNucl       = SpcCount%nRadNucl + 1
+                ThisSpc%RadNuclId       = SpcCount%nRadNucl
+                ThisSpc%Is_RadioNuclide = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN

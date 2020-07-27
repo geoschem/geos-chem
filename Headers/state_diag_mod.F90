@@ -163,7 +163,7 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetConvectionPBL
 
      REAL(f8),           POINTER :: BudgetChemistryFull(:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_ChemistryFull
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryFull
      LOGICAL                     :: Archive_BudgetChemistryFull
 
      REAL(f8),           POINTER :: BudgetChemistryTrop(:,:,:)
@@ -175,15 +175,15 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetChemistryPBL
 
      REAL(f8),           POINTER :: BudgetWetDepFull(:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_WetDepFull
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepFull
      LOGICAL                     :: Archive_BudgetWetDepFull
 
      REAL(f8),           POINTER :: BudgetWetDepTrop(:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_WetDepTrop
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepTrop
      LOGICAL                     :: Archive_BudgetWetDepTrop
 
      REAL(f8),           POINTER :: BudgetWetDepPBL(:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_WetDepPBL
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepPBL
      LOGICAL                     :: Archive_BudgetWetDepPBL
 
      REAL(f8),           POINTER :: BudgetMass1(:,:,:,:)
@@ -1040,63 +1040,81 @@ CONTAINS
     !%%%%% Budget diagnostics %%%%%
 
     State_Diag%BudgetEmisDryDepFull                => NULL()
+    State_Diag%Map_BudgetEmisDryDepFull            => NULL()
     State_Diag%Archive_BudgetEmisDryDepFull        = .FALSE.
     State_Diag%Archive_BudgetEmisDryDep            = .FALSE.
 
     State_Diag%BudgetEmisDryDepTrop                => NULL()
+    State_Diag%Map_BudgetEmisDryDepTrop            => NULL()
     State_Diag%Archive_BudgetEmisDryDepTrop        = .FALSE.
 
     State_Diag%BudgetEmisDryDepPBL                 => NULL()
+    State_Diag%Map_BudgetEmisDryDepPBL             => NULL()
     State_Diag%Archive_BudgetEmisDryDepPBL         = .FALSE.
 
     State_Diag%BudgetTransportFull                 => NULL()
+    State_Diag%Map_BudgetTransportFull             => NULL()
     State_Diag%Archive_BudgetTransportFull         = .FALSE.
     State_Diag%Archive_BudgetTransport             = .FALSE.
 
     State_Diag%BudgetTransportTrop                 => NULL()
+    State_Diag%Map_BudgetTransportTrop             => NULL()
     State_Diag%Archive_BudgetTransportTrop         = .FALSE.
 
     State_Diag%BudgetTransportPBL                  => NULL()
+    State_Diag%Map_BudgetTransportPBL              => NULL()
     State_Diag%Archive_BudgetTransportPBL          = .FALSE.
 
     State_Diag%BudgetMixingFull                    => NULL()
+    State_Diag%Map_BudgetMixingFull                => NULL()
     State_Diag%Archive_BudgetMixingFull            = .FALSE.
     State_Diag%Archive_BudgetMixing                = .FALSE.
 
     State_Diag%BudgetMixingTrop                    => NULL()
+    State_Diag%Map_BudgetMixingTrop                => NULL()
     State_Diag%Archive_BudgetMixingTrop            = .FALSE.
 
     State_Diag%BudgetMixingPBL                     => NULL()
+    State_Diag%Map_BudgetMixingPBL                 => NULL()
     State_Diag%Archive_BudgetMixingPBL             = .FALSE.
 
     State_Diag%BudgetConvectionFull                => NULL()
+    State_Diag%Map_BudgetConvectionFull            => NULL()
     State_Diag%Archive_BudgetConvectionFull        = .FALSE.
     State_Diag%Archive_BudgetConvection            = .FALSE.
 
     State_Diag%BudgetConvectionTrop                => NULL()
+    State_Diag%Map_BudgetConvectionTrop            => NULL()
     State_Diag%Archive_BudgetConvectionTrop        = .FALSE.
 
     State_Diag%BudgetConvectionPBL                 => NULL()
+    State_Diag%Map_BudgetConvectionPBL             => NULL()
     State_Diag%Archive_BudgetConvectionPBL         = .FALSE.
 
     State_Diag%BudgetChemistryFull                 => NULL()
+    State_Diag%Map_BudgetChemistryFull             => NULL()
     State_Diag%Archive_BudgetChemistryFull         = .FALSE.
     State_Diag%Archive_BudgetChemistry             = .FALSE.
 
     State_Diag%BudgetChemistryTrop                 => NULL()
+    State_Diag%Map_BudgetChemistryTrop             => NULL()
     State_Diag%Archive_BudgetChemistryTrop         = .FALSE.
 
     State_Diag%BudgetChemistryPBL                  => NULL()
+    State_Diag%Map_BudgetChemistryPBL              => NULL()
     State_Diag%Archive_BudgetChemistryPBL          = .FALSE.
 
     State_Diag%BudgetWetDepFull                    => NULL()
+    State_Diag%Map_BudgetWetDepFull                => NULL()
     State_Diag%Archive_BudgetWetDepFull            = .FALSE.
     State_Diag%Archive_BudgetWetDep                = .FALSE.
 
     State_Diag%BudgetWetDepTrop                    => NULL()
+    State_Diag%Map_BudgetWetDepTrop                => NULL()
     State_Diag%Archive_BudgetWetDepTrop            = .FALSE.
 
     State_Diag%BudgetWetDepPBL                     => NULL()
+    State_Diag%Map_BudgetWetDepPBL                 => NULL()
     State_Diag%Archive_BudgetWetDepPBL             = .FALSE.
 
     State_Diag%BudgetMass1                         => NULL()
@@ -1976,53 +1994,68 @@ CONTAINS
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
     diagID  = 'BudgetEmisDryDepFull'
-    arrayID = 'State_Diag%' // TRIM( diagID )
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepFull = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepFull,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepFull,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepFull,           &
+         mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only emissions
     diagID  = 'BudgetEmisDryDepTrop'
-    arrayID = 'State_Diag%' // TRIM( diagID )
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepTrop = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepTrop,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepTrop,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+         mapData        = State_Diag%Map_BudgetEmisDryDepTrop,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only emissions
     diagID  = 'BudgetEmisDryDepPBL'
-    arrayID = 'State_Diag%' // TRIM( diagID )
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepPBL = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepPBL,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepPBL,                    &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+         mapData        = State_Diag%Map_BudgetEmisDryDepPBL,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for emissions budget
@@ -2036,53 +2069,68 @@ CONTAINS
     ! Budget for transport  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetTransportFull'
-    diagID  = 'BudgetTransportFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportFull = 0.0_f8
-       State_Diag%Archive_BudgetTransportFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportFull,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportFull,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportFull,            &
+         mapData        = State_Diag%Map_BudgetTransportFull,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only transport
-    arrayID = 'State_Diag%BudgetTransportTrop'
     diagID  = 'BudgetTransportTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportTrop = 0.0_f8
-       State_Diag%Archive_BudgetTransportTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportTrop,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportTrop,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportTrop,            &
+         mapData        = State_Diag%Map_BudgetTransportTrop,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only transport
-    arrayID = 'State_Diag%BudgetTransportPBL'
     diagID  = 'BudgetTransportPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportPBL = 0.0_f8
-       State_Diag%Archive_BudgetTransportPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportPBL,               &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportPBL,                     &
+         archiveData    = State_Diag%Archive_BudgetTransportPBL,             &
+         mapData        = State_Diag%Map_BudgetTransportPBL,                 &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for transport budget
@@ -2095,54 +2143,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for mixing (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetMixingFull'
     diagID  = 'BudgetMixingFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingFull = 0.0_f8
-       State_Diag%Archive_BudgetMixingFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                          &
-                                State_Diag%BudgetMixingFull,                &
-                                State_Chm, State_Diag, RC                  )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingFull,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingFull,               &
+         mapData        = State_Diag%Map_BudgetMixingFull,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only mixing
-    arrayID = 'State_Diag%BudgetMixingTrop'
     diagID  = 'BudgetMixingTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingTrop = 0.0_f8
-       State_Diag%Archive_BudgetMixingTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetMixingTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingTrop,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingTrop,               &
+         mapData        = State_Diag%Map_BudgetMixingTrop,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only mixing
-    arrayID = 'State_Diag%BudgetMixingPBL'
     diagID  = 'BudgetMixingPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingPBL = 0.0_f8
-       State_Diag%Archive_BudgetMixingPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetMixingPBL,                  &
-                                State_Chm, State_Diag, RC                    )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingPBL,                        &
+         archiveData    = State_Diag%Archive_BudgetMixingPBL,                &
+         mapData        = State_Diag%Map_BudgetMixingPBL,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for mixing budget
@@ -2155,54 +2218,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for convection (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetConvectionFull'
     diagID  = 'BudgetConvectionFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionFull = 0.0_f8
-       State_Diag%Archive_BudgetConvectionFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionFull,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionFull,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionFull,           &
+         mapData        = State_Diag%Map_BudgetConvectionFull,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only convection
-    arrayID = 'State_Diag%BudgetConvectionTrop'
     diagID  = 'BudgetConvectionTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionTrop = 0.0_f8
-       State_Diag%Archive_BudgetConvectionTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionTrop,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionTrop,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionTrop,           &
+         mapData        = State_Diag%Map_BudgetConvectionTrop,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only convection
-    arrayID = 'State_Diag%BudgetConvectionPBL'
     diagID  = 'BudgetConvectionPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionPBL = 0.0_f8
-       State_Diag%Archive_BudgetConvectionPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionPBL,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionPBL,                    &
+         archiveData    = State_Diag%Archive_BudgetConvectionPBL,            &
+         mapData        = State_Diag%Map_BudgetConvectionPBL,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for convection budget
@@ -2215,54 +2293,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for chemistry (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetChemistryFull'
     diagID  = 'BudgetChemistryFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryFull = 0.0_f8
-       State_Diag%Archive_BudgetChemistryFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryFull,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryFull,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryFull,            &
+         mapData        = State_Diag%Map_BudgetChemistryFull,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only chemistry
-    arrayID = 'State_Diag%BudgetChemistryTrop'
     diagID  = 'BudgetChemistryTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryTrop = 0.0_f8
-       State_Diag%Archive_BudgetChemistryTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryTrop,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryTrop,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryTrop,            &
+         mapData        = State_Diag%Map_BudgetChemistryTrop,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only chemistry
-    arrayID = 'State_Diag%BudgetChemistryPBL'
     diagID  = 'BudgetChemistryPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryPBL = 0.0_f8
-       State_Diag%Archive_BudgetChemistryPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryPBL,               &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryPBL,                     &
+         archiveData    = State_Diag%Archive_BudgetChemistryPBL,             &
+         mapData        = State_Diag%Map_BudgetChemistryPBL,                 &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Set high-level logical for archiving chemistry budget
@@ -2275,37 +2368,47 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for wet deposition (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetWetDepFull'
     diagID  = 'BudgetWetDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepFull = 0.0_f8
-       State_Diag%Archive_BudgetWetDepFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepFull,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepFull,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepFull,               &
+         mapData        = State_Diag%Map_BudgetWetDepFull,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only wet deposition
-    arrayID = 'State_Diag%BudgetWetDepTrop'
     diagID  = 'BudgetWetDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepTrop = 0.0_f8
-       State_Diag%Archive_BudgetWetDepTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepTrop,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepTrop,               &
+         mapData        = State_Diag%Map_BudgetWetDepTrop,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only wet deposition
@@ -2323,6 +2426,29 @@ CONTAINS
                                 State_Diag%BudgetWetDepPBL,                  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    !------------------------------------------------------------------------
+    ! Species concentration diagnostic
+    !------------------------------------------------------------------------
+    diagId  = 'SpeciesConc'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConc,                            &
+         archiveData    = State_Diag%Archive_SpeciesConc,                    &
+         mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for wet deposition budget
@@ -2829,8 +2955,7 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Radioactive decay of Rn, Pb, and Be7
-       ! (separate into 3 different arrays??)
+       ! Radioactive decay of Rn, Pb, Be7, and Be10
        !--------------------------------------------------------------------
        diagID  = 'RadDecay'
        CALL Init_and_Register(                                               &
@@ -2844,7 +2969,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_RadDecay,                    &
             mapData        = State_Diag%Map_RadDecay,                        &
             diagId         = diagId,                                         &
-            diagFlag       = 'S',                                            &
+            diagFlag       = 'N',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -7505,145 +7630,123 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMass1 => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetMass1',                                 &
+                   Ptr2Data = State_Diag%BudgetMass1,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMass2 ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMass2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMass2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMass2 => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetMass2',                                 &
+                   Ptr2Data = State_Diag%BudgetMass2,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetEmisDryDepFull',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepFull,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepFull,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetEmisDryDepTrop',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepTrop,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepTrop,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetEmisDryDepPBL',                         &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepPBL,                &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetTransportFull',                         &
+                   Ptr2Data = State_Diag%BudgetTransportFull,                &
+                   mapData  = State_Diag%Map_BudgetTransportFull,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetTransportTrop',                         &
+                   Ptr2Data = State_Diag%BudgetTransportTrop,                &
+                   mapData  = State_Diag%Map_BudgetTransportTrop,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetTransportPBL',                          &
+                   Ptr2Data = State_Diag%BudgetTransportPBL,                 &
+                   mapData  = State_Diag%Map_BudgetTransportPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetMixingFull',                            &
+                   Ptr2Data = State_Diag%BudgetMixingFull,                   &
+                   mapData  = State_Diag%Map_BudgetMixingFull,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetMixingTrop',                            &
+                   Ptr2Data = State_Diag%BudgetMixingTrop,                   &
+                   mapData  = State_Diag%Map_BudgetMixingTrop,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetMixingPBL',                             &
+                   Ptr2Data = State_Diag%BudgetMixingPBL,                    &
+                   mapData  = State_Diag%Map_BudgetMixingPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetConvectionFull',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionFull,               &
+                   mapData  = State_Diag%Map_BudgetConvectionFull,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetConvectionTrop',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionTrop,               &
+                   mapData  = State_Diag%Map_BudgetConvectionTrop,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetConvectionPBL',                         &
+                   Ptr2Data = State_Diag%BudgetConvectionPBL,                &
+                   mapData  = State_Diag%Map_BudgetConvectionPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetChemistryFull',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryFull,                &
+                   mapData  = State_Diag%Map_BudgetChemistryFull,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetChemistryTrop',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryTrop,                &
+                   mapData  = State_Diag%Map_BudgetChemistryTrop,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetChemistryPBL',                          &
+                   Ptr2Data = State_Diag%BudgetChemistryPBL,                 &
+                   mapData  = State_Diag%Map_BudgetChemistryPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetWetDepFull',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepFull,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepFull,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetWetDepTrop',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepTrop,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepTrop,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'BudgetWetDepPBL',                             &
+                   Ptr2Data = State_Diag%BudgetWetDepPBL,                    &
+                   mapData  = State_Diag%Map_BudgetWetDepPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'DryDepChm',                                   &
                    Ptr2Data = State_Diag%DryDepChm,                          &
@@ -7805,7 +7908,7 @@ CONTAINS
 
     CALL Finalize( diagId   = 'RadDecay',                                    &
                    Ptr2Data = State_Diag%RadDecay,                           &
-!                   mapData  = State_Diag%Map_RadDecay,                       &
+                   mapData  = State_Diag%Map_RadDecay,                       &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10177,6 +10280,8 @@ CONTAINS
           numTags = State_Chm%nKppSpc
        CASE( 'LOS'          )
           numTags = State_Chm%nLoss
+       CASE( 'NUC',     'N' )
+          numTags = State_Chm%nRadNucl 
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
@@ -10307,7 +10412,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL','ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -10340,6 +10445,8 @@ CONTAINS
           D = State_Chm%Map_Photol(N)
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
+       CASE( 'NUC'  )
+          D = State_Chm%Map_RadNucl(N)
        CASE DEFAULT
           found= .FALSE.
           errMsg = 'Handling of tagId ' // TRIM( tagId ) // &
