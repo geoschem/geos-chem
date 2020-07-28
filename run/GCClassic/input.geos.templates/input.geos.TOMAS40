@@ -1,0 +1,737 @@
+------------------------+------------------------------------------------------
+%%% SIMULATION MENU %%% :
+Start YYYYMMDD, hhmmss  : {DATE1} {TIME1}
+End   YYYYMMDD, hhmmss  : {DATE2} {TIME2}
+Run directory           : ./
+Root data directory     : {DATA_ROOT}
+Met field               : {MET}
+Simulation name         : {SIM}
+Species database file   : ./species_database.yml
+Turn on debug printout? : F
+Use GC classic timers?  : F
+------------------------+------------------------------------------------------
+%%% GRID MENU %%%       :
+Grid resolution         : {RES}
+Longitude min/max       : {LON_RANGE}
+Latitude  min/max       : {LAT_RANGE}
+ Half-sized polar boxes?: {HALF_POLAR}
+Number of levels        : {NLEV}
+Nested grid simulation? : {NESTED_SIM}
+ Buffer zone (N S E W ) :  {BUFFER_ZONE}
+------------------------+------------------------------------------------------
+%%% TIMESTEP MENU %%%   :
+Tran/conv timestep [sec]: 1800
+Chem/emis timestep [sec]: 3600
+------------------------+------------------------------------------------------
+%%% ADVECTED SPECIES MENU %%%:
+Species name            : ACET
+Species name            : ACTA
+Species name            : AERI
+Species name            : ALD2
+Species name            : ALK4
+Species name            : ATOOH
+Species name            : BCPI
+Species name            : BCPO
+Species name            : BENZ
+Species name            : Br
+Species name            : Br2
+Species name            : BrCl
+Species name            : BrNO2
+Species name            : BrNO3
+Species name            : BrO
+Species name            : BrSALA
+Species name            : BrSALC
+Species name            : C2H6
+Species name            : C3H8
+Species name            : CH2Br2
+Species name            : CH2Cl2
+Species name            : CH2I2
+Species name            : CH2IBr
+Species name            : CH2ICl
+Species name            : CH2O
+Species name            : CH3Br
+Species name            : CH3Cl
+Species name            : CH3I
+Species name            : CH4
+Species name            : CHBr3
+Species name            : CHCl3
+Species name            : Cl
+Species name            : Cl2
+Species name            : Cl2O2
+Species name            : ClNO2
+Species name            : ClNO3
+Species name            : ClO
+Species name            : ClOO
+Species name            : CO
+Species name            : DMS
+Species name            : DST1
+Species name            : DST2
+Species name            : DST3
+Species name            : DST4
+Species name            : EOH
+Species name            : ETHLN
+Species name            : ETNO3
+Species name            : ETP
+Species name            : GLYC
+Species name            : GLYX
+Species name            : H2O2
+Species name            : HAC
+Species name            : HBr
+Species name            : HC5A
+Species name            : HCl
+Species name            : HCOOH
+Species name            : HI
+Species name            : HMHP
+Species name            : HMML
+Species name            : HNO2
+Species name            : HNO3
+Species name            : HNO4
+Species name            : HOBr
+Species name            : HOCl
+Species name            : HOI
+Species name            : HONIT
+Species name            : HPALD1
+Species name            : HPALD2
+Species name            : HPALD3
+Species name            : HPALD4
+Species name            : HPETHNL
+Species name            : I
+Species name            : I2
+Species name            : I2O2
+Species name            : I2O3
+Species name            : I2O4
+Species name            : IBr
+Species name            : ICHE
+Species name            : ICl
+Species name            : ICN
+Species name            : ICPDH
+Species name            : IDC
+Species name            : IDCHP
+Species name            : IDHDP
+Species name            : IDHPE
+Species name            : IDN
+Species name            : IEPOXA
+Species name            : IEPOXB
+Species name            : IEPOXD
+Species name            : IHN1
+Species name            : IHN2
+Species name            : IHN3
+Species name            : IHN4
+Species name            : INDIOL
+Species name            : INO
+Species name            : INPB
+Species name            : INPD
+Species name            : IO
+Species name            : IONITA
+Species name            : IONO
+Species name            : IONO2
+Species name            : IPRNO3
+Species name            : ISALA
+Species name            : ISALC
+Species name            : ISOP
+Species name            : ITCN
+Species name            : ITHN
+Species name            : LIMO
+Species name            : LVOC
+Species name            : LVOCOA
+Species name            : MACR
+Species name            : MACR1OOH
+Species name            : MAP
+Species name            : MCRDH
+Species name            : MCRENOL
+Species name            : MCRHN
+Species name            : MCRHNB
+Species name            : MCRHP
+Species name            : MEK
+Species name            : MENO3
+Species name            : MGLY
+Species name            : MOH
+Species name            : MONITA
+Species name            : MONITS
+Species name            : MONITU
+Species name            : MP
+Species name            : MPAN
+Species name            : MPN
+Species name            : MSA
+Species name            : MTPA
+Species name            : MTPO
+Species name            : MVK
+Species name            : MVKDH
+Species name            : MVKHC
+Species name            : MVKHCB
+Species name            : MVKHP
+Species name            : MVKN
+Species name            : MVKPC
+Species name            : N2O5
+Species name            : NH3
+Species name            : NH4
+Species name            : NIT
+Species name            : NITs
+Species name            : NO
+Species name            : NO2
+Species name            : NO3
+Species name            : NPRNO3
+Species name            : O3
+Species name            : OClO
+Species name            : OCPI
+Species name            : OCPO
+Species name            : OIO
+Species name            : PAN
+Species name            : pFe
+Species name            : PIP
+Species name            : PP
+Species name            : PPN
+Species name            : PROPNN
+Species name            : PRPE
+Species name            : PRPN
+Species name            : PYAC
+Species name            : R4N2
+Species name            : R4P
+Species name            : RA3P
+Species name            : RB3P
+Species name            : RCHO
+Species name            : RIPA
+Species name            : RIPB
+Species name            : RIPC
+Species name            : RIPD
+Species name            : RP
+Species name            : SALA
+Species name            : SALAAL
+Species name            : SALACL
+Species name            : SALC
+Species name            : SALCAL
+Species name            : SALCCL
+Species name            : SO2
+Species name            : SO4
+Species name            : SO4s
+Species name            : SOAGX
+Species name            : SOAIE
+Species name            : SOAP
+Species name            : SOAS
+Species name            : TOLU
+Species name            : XYLE
+Species name            : H2SO4
+Species name            : NK1
+Species name            : NK2
+Species name            : NK3
+Species name            : NK4
+Species name            : NK5
+Species name            : NK6
+Species name            : NK7
+Species name            : NK8
+Species name            : NK9
+Species name            : NK10
+Species name            : NK11
+Species name            : NK12
+Species name            : NK13
+Species name            : NK14
+Species name            : NK15
+Species name            : NK16
+Species name            : NK17
+Species name            : NK18
+Species name            : NK19
+Species name            : NK20
+Species name            : NK21
+Species name            : NK22
+Species name            : NK23
+Species name            : NK24
+Species name            : NK25
+Species name            : NK26
+Species name            : NK27
+Species name            : NK28
+Species name            : NK29
+Species name            : NK30
+Species name            : NK31
+Species name            : NK32
+Species name            : NK33
+Species name            : NK34
+Species name            : NK35
+Species name            : NK36
+Species name            : NK37
+Species name            : NK38
+Species name            : NK39
+Species name            : NK40
+Species name            : SF1
+Species name            : SF2
+Species name            : SF3
+Species name            : SF4
+Species name            : SF5
+Species name            : SF6
+Species name            : SF7
+Species name            : SF8
+Species name            : SF9
+Species name            : SF10
+Species name            : SF11
+Species name            : SF12
+Species name            : SF13
+Species name            : SF14
+Species name            : SF15
+Species name            : SF16
+Species name            : SF17
+Species name            : SF18
+Species name            : SF19
+Species name            : SF20
+Species name            : SF21
+Species name            : SF22
+Species name            : SF23
+Species name            : SF24
+Species name            : SF25
+Species name            : SF26
+Species name            : SF27
+Species name            : SF28
+Species name            : SF29
+Species name            : SF30
+Species name            : SF31
+Species name            : SF32
+Species name            : SF33
+Species name            : SF34
+Species name            : SF35
+Species name            : SF36
+Species name            : SF37
+Species name            : SF38
+Species name            : SF39
+Species name            : SF40
+Species name            : SS1
+Species name            : SS2
+Species name            : SS3
+Species name            : SS4
+Species name            : SS5
+Species name            : SS6
+Species name            : SS7
+Species name            : SS8
+Species name            : SS9
+Species name            : SS10
+Species name            : SS11
+Species name            : SS12
+Species name            : SS13
+Species name            : SS14
+Species name            : SS15
+Species name            : SS16
+Species name            : SS17
+Species name            : SS18
+Species name            : SS19
+Species name            : SS20
+Species name            : SS21
+Species name            : SS22
+Species name            : SS23
+Species name            : SS24
+Species name            : SS25
+Species name            : SS26
+Species name            : SS27
+Species name            : SS28
+Species name            : SS29
+Species name            : SS30
+Species name            : SS31
+Species name            : SS32
+Species name            : SS33
+Species name            : SS34
+Species name            : SS35
+Species name            : SS36
+Species name            : SS37
+Species name            : SS38
+Species name            : SS39
+Species name            : SS40
+Species name            : ECOB1
+Species name            : ECOB2
+Species name            : ECOB3
+Species name            : ECOB4
+Species name            : ECOB5
+Species name            : ECOB6
+Species name            : ECOB7
+Species name            : ECOB8
+Species name            : ECOB9
+Species name            : ECOB10
+Species name            : ECOB11
+Species name            : ECOB12
+Species name            : ECOB13
+Species name            : ECOB14
+Species name            : ECOB15
+Species name            : ECOB16
+Species name            : ECOB17
+Species name            : ECOB18
+Species name            : ECOB19
+Species name            : ECOB20
+Species name            : ECOB21
+Species name            : ECOB22
+Species name            : ECOB23
+Species name            : ECOB24
+Species name            : ECOB25
+Species name            : ECOB26
+Species name            : ECOB27
+Species name            : ECOB28
+Species name            : ECOB29
+Species name            : ECOB30
+Species name            : ECOB31
+Species name            : ECOB32
+Species name            : ECOB33
+Species name            : ECOB34
+Species name            : ECOB35
+Species name            : ECOB36
+Species name            : ECOB37
+Species name            : ECOB38
+Species name            : ECOB39
+Species name            : ECOB40
+Species name            : ECIL1
+Species name            : ECIL2
+Species name            : ECIL3
+Species name            : ECIL4
+Species name            : ECIL5
+Species name            : ECIL6
+Species name            : ECIL7
+Species name            : ECIL8
+Species name            : ECIL9
+Species name            : ECIL10
+Species name            : ECIL11
+Species name            : ECIL12
+Species name            : ECIL13
+Species name            : ECIL14
+Species name            : ECIL15
+Species name            : ECIL16
+Species name            : ECIL17
+Species name            : ECIL18
+Species name            : ECIL19
+Species name            : ECIL20
+Species name            : ECIL21
+Species name            : ECIL22
+Species name            : ECIL23
+Species name            : ECIL24
+Species name            : ECIL25
+Species name            : ECIL26
+Species name            : ECIL27
+Species name            : ECIL28
+Species name            : ECIL29
+Species name            : ECIL30
+Species name            : ECIL31
+Species name            : ECIL32
+Species name            : ECIL33
+Species name            : ECIL34
+Species name            : ECIL35
+Species name            : ECIL36
+Species name            : ECIL37
+Species name            : ECIL38
+Species name            : ECIL39
+Species name            : ECIL40
+Species name            : OCOB1
+Species name            : OCOB2
+Species name            : OCOB3
+Species name            : OCOB4
+Species name            : OCOB5
+Species name            : OCOB6
+Species name            : OCOB7
+Species name            : OCOB8
+Species name            : OCOB9
+Species name            : OCOB10
+Species name            : OCOB11
+Species name            : OCOB12
+Species name            : OCOB13
+Species name            : OCOB14
+Species name            : OCOB15
+Species name            : OCOB16
+Species name            : OCOB17
+Species name            : OCOB18
+Species name            : OCOB19
+Species name            : OCOB20
+Species name            : OCOB21
+Species name            : OCOB22
+Species name            : OCOB23
+Species name            : OCOB24
+Species name            : OCOB25
+Species name            : OCOB26
+Species name            : OCOB27
+Species name            : OCOB28
+Species name            : OCOB29
+Species name            : OCOB30
+Species name            : OCOB31
+Species name            : OCOB32
+Species name            : OCOB33
+Species name            : OCOB34
+Species name            : OCOB35
+Species name            : OCOB36
+Species name            : OCOB37
+Species name            : OCOB38
+Species name            : OCOB39
+Species name            : OCOB40
+Species name            : OCIL1
+Species name            : OCIL2
+Species name            : OCIL3
+Species name            : OCIL4
+Species name            : OCIL5
+Species name            : OCIL6
+Species name            : OCIL7
+Species name            : OCIL8
+Species name            : OCIL9
+Species name            : OCIL10
+Species name            : OCIL11
+Species name            : OCIL12
+Species name            : OCIL13
+Species name            : OCIL14
+Species name            : OCIL15
+Species name            : OCIL16
+Species name            : OCIL17
+Species name            : OCIL18
+Species name            : OCIL19
+Species name            : OCIL20
+Species name            : OCIL21
+Species name            : OCIL22
+Species name            : OCIL23
+Species name            : OCIL24
+Species name            : OCIL25
+Species name            : OCIL26
+Species name            : OCIL27
+Species name            : OCIL28
+Species name            : OCIL29
+Species name            : OCIL30
+Species name            : OCIL31
+Species name            : OCIL32
+Species name            : OCIL33
+Species name            : OCIL34
+Species name            : OCIL35
+Species name            : OCIL36
+Species name            : OCIL37
+Species name            : OCIL38
+Species name            : OCIL39
+Species name            : OCIL40
+Species name            : DUST1
+Species name            : DUST2
+Species name            : DUST3
+Species name            : DUST4
+Species name            : DUST5
+Species name            : DUST6
+Species name            : DUST7
+Species name            : DUST8
+Species name            : DUST9
+Species name            : DUST10
+Species name            : DUST11
+Species name            : DUST12
+Species name            : DUST13
+Species name            : DUST14
+Species name            : DUST15
+Species name            : DUST16
+Species name            : DUST17
+Species name            : DUST18
+Species name            : DUST19
+Species name            : DUST20
+Species name            : DUST21
+Species name            : DUST22
+Species name            : DUST23
+Species name            : DUST24
+Species name            : DUST25
+Species name            : DUST26
+Species name            : DUST27
+Species name            : DUST28
+Species name            : DUST29
+Species name            : DUST30
+Species name            : DUST31
+Species name            : DUST32
+Species name            : DUST33
+Species name            : DUST34
+Species name            : DUST35
+Species name            : DUST36
+Species name            : DUST37
+Species name            : DUST38
+Species name            : DUST39
+Species name            : DUST40
+Species name            : AW1
+Species name            : AW2
+Species name            : AW3
+Species name            : AW4
+Species name            : AW5
+Species name            : AW6
+Species name            : AW7
+Species name            : AW8
+Species name            : AW9
+Species name            : AW10
+Species name            : AW11
+Species name            : AW12
+Species name            : AW13
+Species name            : AW14
+Species name            : AW15
+Species name            : AW16
+Species name            : AW17
+Species name            : AW18
+Species name            : AW19
+Species name            : AW20
+Species name            : AW21
+Species name            : AW22
+Species name            : AW23
+Species name            : AW24
+Species name            : AW25
+Species name            : AW26
+Species name            : AW27
+Species name            : AW28
+Species name            : AW29
+Species name            : AW30
+Species name            : AW31
+Species name            : AW32
+Species name            : AW33
+Species name            : AW34
+Species name            : AW35
+Species name            : AW36
+Species name            : AW37
+Species name            : AW38
+Species name            : AW39
+Species name            : AW40
+------------------------+------------------------------------------------------
+%%% TRANSPORT MENU %%%  :
+Turn on Transport       : T
+ => Fill Negative Values: T
+ => IORD, JORD, KORD    : 3  3  7
+------------------------+------------------------------------------------------
+%%% CONVECTION MENU %%% :
+Turn on Cloud Conv?     : T
+Turn on PBL Mixing?     : T
+ => Use non-local PBL?  : F
+------------------------+------------------------------------------------------
+%%% EMISSIONS MENU %%%  :
+Turn on emissions?      : T
+HEMCO Input file        : HEMCO_Config.rc
+Switches for UCX        :---
+ => Use CH4 emissions?  : F
+ => Set init. strat. H2O: F
+------------------------+------------------------------------------------------
+%%% AEROSOL MENU %%%    :
+Online SULFATE AEROSOLS : T
+ => Metal cat. SO2 ox.? : T
+Online CARBON  AEROSOLS : T
+ => Use Brown Carbon?   : F
+Online COMPLEX SOA      : F
+ => Semivolatile POA?   : F
+Online DUST    AEROSOLS : T
+ => Acidic uptake ?     : F
+Online SEASALT AEROSOLS : T
+ => SALA radius bin [um]: 0.01 0.5
+ => SALC radius bin [um]: 0.5  8.0
+ => MARINE ORG AEROSOLS : F
+Settle strat. aerosols  : F
+Online PSC AEROSOLS     : F
+Allow homogeneous NAT?  : F
+NAT supercooling req.(K): 3.0
+Ice supersaturation req.: 1.2
+Perform PSC het. chem.? : F
+Calc. strat. aero. OD?  : F
+Enhance BC Absorption?  : T
+ => hydrophilic BC      : 1.5
+ => hydrophobic BC      : 1.0
+Photolyse nitrate aer.? : F
+ => NITs Jscale (JHNO3) : 0.0
+ => NIT  Jscale (JHNO3) : 0.0
+ => % channel A (HONO)  : 66.667
+ => % channel B (NO2)   : 33.333
+------------------------+------------------------------------------------------
+%%% DEPOSITION MENU %%% :
+Turn on Dry Deposition? : T
+Turn on Wet Deposition? : T
+Turn on CO2 Effect?     : F
+CO2 level               : 600.0
+Reference CO2 level     : 380.0
+Diag alt above sfc [m]  : 10
+------------------------+------------------------------------------------------
+%%% CHEMISTRY MENU %%%  :
+Turn on Chemistry?      : T
+Use linear. strat. chem?: F
+ => Use Linoz for O3?   : T
+Use UCX strat. chem?    : F
+Active strat. H2O?      : F
+Overhead O3 for FAST-JX :---
+ => Online O3 from model: F
+ => O3 from met fields  : T
+ => TOMS/SBUV O3        : F
+Gamma HO2               : 0.2
+------------------------+------------------------------------------------------
+%%% PHOTOLYSIS MENU %%% :
+FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2020-02/
+------------------------+------------------------------------------------------
+%%% RADIATION MENU %%%  :
+AOD Wavelength (nm)     : 550
+Turn on RRTMG?          : F
+Calculate LW fluxes?    : F
+Calculate SW fluxes?    : F
+Clear-sky flux?         : F
+All-sky flux?           : F
+Radiation Timestep [sec]: 10800
+------------------------+------------------------------------------------------
+%%% OBSPACK MENU %%%    :
+Turn on ObsPack diag?   : F
+Quiet logfile output    : F
+ObsPack input file      : ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+ObsPack output file     : GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+ObsPack output species  : NO CO O3
+------------------------+------------------------------------------------------
+###############################################################################
+#####  THE FOLLOWING MENUS ARE ONLY READ WHEN YOU COMPILE GEOS-Chem       #####
+#####  WITH THE BPCH_DIAG=y OPTION.                                       #####
+#####                                                                     #####
+#####  BPCH_DIAG=y IS ALREADY TURNED ON BY DEFAULT FOR:                   #####
+#####  (1) TOMAS simulations                                              #####
+#####  (2) RRTMG simulations                                              #####
+#####  (3) Hg simulations                                                 #####
+#####  (4) POPs simulatons                                                #####
+#####                                                                     #####
+#####  FOR ALL OTHER SIMULATIONS, BPCH DIAGNOSTICS ARE TURNED OFF BY      #####
+#####  DEFAULT (i.e. BPCH_DIAG=n IS USED UNLESS YOU SPECIFY OTHERWISE).   #####
+###############################################################################
+------------------------+------------------------------------------------------
+%%% OUTPUT MENU %%%     : 123456789.123456789.123456789.1--1=ZERO+2=BPCH
+Schedule output for JAN : 3000000000000000000000000000000
+Schedule output for FEB : 30000000000000000000000000000
+Schedule output for MAR : 3000000000000000000000000000000
+Schedule output for APR : 300000000000000000000000000000
+Schedule output for MAY : 3000000000000000000000000000000
+Schedule output for JUN : 300000000000000000000000000000
+Schedule output for JUL : 3000000000000000000000000000000
+Schedule output for AUG : 3000000000000000000000000000000
+Schedule output for SEP : 300000000000000000000000000000
+Schedule output for OCT : 3000000000000000000000000000000
+Schedule output for NOV : 300000000000000000000000000000
+Schedule output for DEC : 3000000000000000000000000000000
+------------------------+------------------------------------------------------
+%%% GAMAP MENU %%%      :
+diaginfo.dat path       : diaginfo.dat
+tracerinfo.dat path     : tracerinfo.dat
+------------------------+------------------------------------------------------
+%%% DIAGNOSTIC MENU %%% :
+Binary punch file name  : trac_avg.geosfp_4x5_benchmark.YYYYMMDDhhmm
+Diagnostic Entries ---> :  L   Tracers to print out for each diagnostic
+ND03: Hg emissions, P/L :  0   all
+ND06: Dust aer source   :  1   all
+ND44: Drydep flx/vel    :  1   all
+ND53: POPs Emissions    :  0   all
+ND59: TOMAS aerosol emis:  0   all
+ND60: TOMAS rate        :  0   all
+ND61: TOMAS 3D rate     :  0   all
+ND72: Radiative output  :  0   all
+------------------------+------------------------------------------------------
+%%% PLANEFLIGHT MENU %%%:
+Turn on plane flt diag? : F
+Flight track info file  : Planeflight.dat.YYYYMMDD
+Output file name        : plane.log.YYYYMMDD
+-------------------------------------------------------------------------------
+%%% ND51 MENU %%%       :
+Turn on ND51 diagnostic : F
+LT avg timeseries file  : ts_satellite.YYYYMMDD.bpch
+Output as HDF5?         : F
+Tracers to include      : 46 504 506
+GMT Hour for disk write :   0
+Avg Period [LT hours]   :   9  11
+IMIN, IMAX of region    :   1  72
+JMIN, JMAX of region    :   1  46
+LMIN, LMAX of region    :   1  40
+-------------------------------------------------------------------------------
+%%% ND51b MENU %%%      :
+Turn on ND51b diagnstic : F
+LT avg timeseries file  : ts_13_15.NA.YYYYMMDD.h5
+Output as HDF5?         : F
+Tracers to include      : 1 4 20 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 60 61 62 63 64 65 66 72 73 75 82 83 84 85 86 87 93 94 98 99
+GMT Hour for disk write :  1
+Avg Period [LT hours]   :  13  15
+IMIN, IMAX of region    :   1  72
+JMIN, JMAX of region    :   1  46
+LMIN, LMAX of region    :   1   1
+-------------------------------------------------------------------------------
+%%% PROD & LOSS MENU %%%: ### ONLY NEEDED FOR TOMAS ###
+Turn on P/L (ND65) diag?: T
+# of levels for ND65    : 72
+------------------------+------------------------------------------------------
+END OF FILE             :
+------------------------+------------------------------------------------------
+

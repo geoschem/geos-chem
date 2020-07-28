@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# createRunDir.sh: Create GCHP run directory
+# createRunDir.sh: Create GEOS-Chem Classic run directory
 #
 # Optional argument: run directory name
 #
@@ -10,12 +10,10 @@
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
-# Initial version: E. Lundgren,10/5/2018
+# Initial version: M. Sulprizio, 6/24/2020
 
 curdir=$(pwd)
-cd ../../GCHP
-gchpdir=$(pwd)
-cd ..
+cd ../..
 gcdir=$(pwd)
 cd ${curdir}
 
@@ -28,13 +26,9 @@ if [[ -f ${HOME}/.geoschem/config ]]; then
 	printf "\nWarning: Default root data directory does not exist!"
         printf "\nSet new path below or manually edit ${HOME}/.geoschem/config.\n"
     fi
-    if [[ ! -d ${GFTL} ]]; then
-	printf "\nWarning: Default Goddard Fortran Template Library (gFTL) does not exist!"
-        printf "\nSet new path below or manually edit ${HOME}/.geoschem/config.\n"
-    fi
 else
-    printf "\nDefine paths to ExtData and the Goddard Fortran Template Library (gFTL)."
-    printf "\nThese will be stored in ${HOME}/.geoschem/config for future automatic use.\n"
+    printf "\nDefine path to ExtData."
+    printf "\nThis will be stored in ${HOME}/.geoschem/config for future automatic use.\n"
     mkdir -p ${HOME}/.geoschem
 fi
 
@@ -61,64 +55,122 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 #-----------------------------------------------------------------
-# One-time configuration of Goddard Fortran template library (gFTL)
-#  path in ~/.geoschem/config
-#-----------------------------------------------------------------
-if [[ -z "${GFTL}" ]]; then
-    printf "\nIf you have not downloaded gFTL then enter q to exit."
-    printf "\nFollow these instructions at the command prompt to install:\n"
-    printf "\n      1. Navigate to directory where you want to download gFTL"
-    printf "\n      2. Type the following at the command prompt:"
-    printf "\n         $ git clone https://github.com/Goddard-Fortran-Ecosystem/gFTL"
-    printf "\n         $ cd gFTL"
-    printf "\n         $ git checkout v1.0.0"
-    printf "\n         $ mkdir build"
-    printf "\n         $ cd build"
-    printf "\n         $ cmake .. -DCMAKE_INSTALL_PREFIX=../install"
-    printf "\n         $ make install"
-    printf "\n      3. Verify success by checking that gFTL/install/include/templates and gFTL/install/include/types exist\n"
-    printf "\nEnter path for gFTL/install:\n"
-    valid_path=0
-    while [ "$valid_path" -eq 0 ]
-    do
-	read gftl
-	if [[ ${gftl} = "q" ]]; then
-	    printf "\nExiting.\n"
-	    exit 1
-	elif [[ ! -d ${gftl} ]]; then
-            printf "\nError: ${gftl} does not exist. Enter a new path or hit q to quit.\n"
-	else
-	    valid_path=1
-	    echo "export GFTL=${gftl}" >> ${HOME}/.geoschem/config
-            source ${HOME}/.geoschem/config
-	fi
-    done
-fi
-
-#-----------------------------------------------------------------
 # Ask user to select simulation type
 #-----------------------------------------------------------------
 printf "\nChoose simulation type:\n"
-printf "  1. Standard\n"
-printf "  2. Benchmark\n"
-printf "  3. TransportTracers\n"
+printf "   1. Standard\n"
+printf "   2. Tropchem\n"
+printf "   3. Complex SOA\n"
+printf "   4. Complex SOA + SVPOA\n"
+printf "   5. TOMAS15\n"
+printf "   6. TOMAS40\n"
+printf "   7. APM\n"
+printf "   8. RRTMG\n"
+printf "   9. Acid uptake\n"
+printf "  10. Marine POA\n"
+printf "  11. Benchmark\n"
+printf "  12. Aerosol only\n"
+printf "  13. CH4\n"
+printf "  14. CO2\n"
+printf "  15. Hg\n"
+printf "  16. POPs: BaP\n"
+printf "  17. POPs: PHE\n"
+printf "  18. POPS: PYR\n"
+printf "  19. tagCH4\n"
+printf "  20. tagCO\n"
+printf "  21. tagO3\n"
+printf "  22. TransportTracers\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]
 do
     read sim_num
-    elif [[ ${sim_num} = "1" ]]; then
+    if [[ ${sim_num} = "1" ]]; then
 	sim_name=standard
-	sim_name_long=${sim_name}
-	sim_type=fullchem
+	sim_type=${sim_name}
 	valid_sim=1
     elif [[ ${sim_num} = "2" ]]; then
-	sim_name=benchmark
-	sim_name_long=${sim_name}
-	sim_type=fullchem
+	sim_name=tropchem
+	sim_type=${sim_name}
 	valid_sim=1
     elif [[ ${sim_num} = "3" ]]; then
+	sim_name=complexSOA
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=complexSOA_SVPOA
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=TOMAS15
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "6" ]]; then
+	sim_name=TOMAS40
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "7" ]]; then
+	sim_name=APM
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "8" ]]; then
+	sim_name=RRTMG
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "9" ]]; then
+	sim_name=aciduptake
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "10" ]]; then
+	sim_name=marinePOA
+	sim_type=tropchem
+	valid_sim=1
+    elif [[ ${sim_num} = "11" ]]; then
+	sim_name=benchmark
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "12" ]]; then
+	sim_name=aerosol
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "13" ]]; then
+	sim_name=CH4
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "14" ]]; then
+	sim_name=CO2
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "15" ]]; then
+	sim_name=Hg
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "16" ]]; then
+	sim_name=POPs_BaP
+	sim_type=POPs
+	valid_sim=1
+    elif [[ ${sim_num} = "17" ]]; then
+	sim_name=POPs_PHE
+	sim_type=POPs
+	valid_sim=1
+    elif [[ ${sim_num} = "18" ]]; then
+	sim_name=POPs_PYR
+	sim_type=POPs
+	valid_sim=1
+    elif [[ ${sim_num} = "19" ]]; then
+	sim_name=tagCH4
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "20" ]]; then
+	sim_name=tagCO
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "21" ]]; then
+	sim_name=tagO3
+	sim_type=${sim_name}
+	valid_sim=1
+    elif [[ ${sim_num} = "22" ]]; then
 	sim_name=TransportTracers
-	sim_name_long=${sim_name}
 	sim_type=${sim_name}
 	valid_sim=1
     else
@@ -130,14 +182,15 @@ done
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
 printf "\nChoose meteorology source:\n"
-printf "  1. MERRA-2 (0.5x0.625) - Recommended\n"
-printf "  2. GEOS-FP (0.25x0.3125)\n"
+printf "  1. MERRA2 (Recommended)\n"
+printf "  2. GEOS-FP \n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]
 do
     read met_num
     if [[ ${met_num} = "1" ]]; then
 	met_name='MERRA2'
+	met_dir='MERRA2'
 	met_resolution='05x0625'
 	met_native='0.5x0.625'
 	met_latres='05'
@@ -150,6 +203,7 @@ do
 	dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
+	met_dir='GEOS_FP'
 	met_resolution='025x03125'
 	met_native='0.25x0.3125'
 	met_latres='025'
@@ -162,6 +216,64 @@ do
 	dust_sf='6.42e-5'
     else
 	printf "Invalid meteorology option. Try again.\n"
+    fi
+done
+
+#-----------------------------------------------------------------
+# Ask user to select horizontal resolution
+#-----------------------------------------------------------------
+printf "\nChoose horizontal resolution:\n"
+printf "  1. 4.0  x 5.0\n"
+printf "  2. 2.0  x 2.5\n"
+printf "  3. 0.5  x 0.625\n"
+if [[ ${met_name} = "GEOSFP" ]]; then
+    printf "  4. 0.25 x 0.3125\n"
+fi
+
+valid_res=0
+while [ "${valid_res}" -eq 0 ]
+do
+    read res_num
+    if [[ ${res_num} = "1" ]]; then
+	grid_res='4x5'
+        grid_res_long='4.0x5.0'
+	valid_res=1
+    elif [[ ${res_num} = "2" ]]; then
+	grid_res='2x25'
+	grid_res_long='2.0x2.5'
+	valid_res=1
+    elif [[ ${res_num} = "3" ]]; then
+	grid_res='05x0625'
+	grid_res_long='0.5x0.625'
+	valid_res=1
+    elif [[ ${res_num} = "4" ]]; then
+	grid_res='025x03125'
+	grid_res_long='0.25x0.3125'
+	valid_res=1
+    else
+	printf "Invalid horizontal resolution option. Try again.\n"
+    fi
+done
+
+#-----------------------------------------------------------------
+# Ask user to select vertical resolution
+#-----------------------------------------------------------------
+printf "\nChoose number of levels:\n"
+printf "  1. 72 (native)\n"
+printf "  2. 47 (reduced)\n"
+
+valid_lev=0
+while [ "${valid_lev}" -eq 0 ]
+do
+    read lev_num
+    if [[ ${lev_num} = "1" ]]; then
+	grid_lev='72'
+	valid_lev=1
+    elif [[ ${res_num} = "2" ]]; then
+	grid_lev='47'
+	valid_lev=1
+    else
+	printf "Invalid vertical resolution option. Try again.\n"
     fi
 done
 
@@ -190,7 +302,7 @@ if [ -z "$1" ]; then
     printf "\nEnter run directory name, or press return to use default:\n"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=gchp_${sim_name}
+	rundir_name=GC_${grid_res}_${met_name}_${sim_name}
 	printf "Using default directory name ${rundir_name}\n"
     fi
 else
@@ -227,159 +339,103 @@ mkdir -p ${rundir}
 #-----------------------------------------------------------------
 # Copy run directory files and subdirectories
 #-----------------------------------------------------------------
-cp -r ./environmentFileSamples ${rundir}
-cp -r ./OutputDir              ${rundir}
-cp -r ./runScriptSamples       ${rundir}
-cp ./archiveRun.sh             ${rundir}
-cp ./cleanRundir.sh            ${rundir}
-cp ./build.sh                  ${rundir}
-cp ./fvcore_layout.rc          ${rundir}
-cp ./input.nml                 ${rundir}
-cp ./README                    ${rundir}
-cp ./setCodeDir.sh             ${rundir}
-cp ./setEnvironment.sh         ${rundir}
-cp ./gitignore                 ${rundir}/.gitignore
-cp ./GCHP.rc.template          ${rundir}/GCHP.rc
-cp ./CAP.rc.template           ${rundir}/CAP.rc
-cp ./runConfig.sh.template     ${rundir}/runConfig.sh
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
+cp -r ./getRunInfo               ${rundir}
+cp -r ../shared/download_data.py ${rundir}
+cp -r ./runScriptSamples         ${rundir}
+cp ./archiveRun.sh               ${rundir}
+cp ./cleanRundir.sh              ${rundir}
+cp ./setCodeDir.sh               ${rundir}
+cp ./README                      ${rundir}
+cp ./gitignore                   ${rundir}/.gitignore
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
-cp ./ExtData.rc.templates/ExtData.rc.${sim_type}            ${rundir}/ExtData.rc
+cp ./HISTORY.rc.templates/HISTORY.rc.${sim_type}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-
-# Copy the species database yaml file from the source code
-if [[ -d ../../Headers ]]; then
-    spcdb_dir=../../Headers
+if [[ ${sim_type} =~ "chem" ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.standard   ${rundir}/HEMCO_Diagn.rc
 else
-    spcdb_dir=../src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/Headers
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 fi
-cp $spcdb_dir/species_database.yml ${rundir}
+mkdir ${rundir}/OutputDir
 
-# If benchmark simulation, put gchp.run script in directory; else do not.
+# Copy species database; append APM or TOMAS species if needed
+cp -r ../shared/species_database.yml   ${rundir}
+if [[ ${sim_name} =~ "TOMAS" ]]; then
+    cat ../shared/species_database_tomas.yml >> ${rundir}/species_database.yml
+elif [[ ${sim_name} =~ "APM" ]]; then
+    cat ../shared/species_database_apm.yml >> ${rundir}/species_database.yml
+fi
+
+# If benchmark simulation, put run script in directory
 if [ "${sim_name}" == "benchmark" ]; then
-    cp ./runScriptSamples/gchp.benchmark.run           ${rundir}/gchp.benchmark.run
-    chmod 744 ${rundir}/gchp.benchmark.run
+    cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
+    chmod 744 ${rundir}/geoschem.benchmark.run
 fi
 
 #--------------------------------------------------------------------
-# Create symbolic links to data directories, restart files, and code
+# Copy sample restart file
+#--------------------------------------------------------------------
+restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
+cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}
+
+#--------------------------------------------------------------------
+# Create symbolic link to code directory
 #--------------------------------------------------------------------
 ln -s ${gcdir}                                  ${rundir}/CodeDir
-# NOTE: CodeDir is set to point to GCHP/..; reset using setCodeDir.sh in rundir.
-ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDataDir
-ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/MainDataDir
-ln -s ${GFTL}                                   ${rundir}/gFTL
-if [ "${met_name}" == "GEOSFP" ]; then
-   ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
-else
-   ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
-fi
-restarts=${GC_DATA_ROOT}/SPC_RESTARTS
-for N in 24 48 90 180 360
-do
-    ln -s ${restarts}/initial_GEOSChem_rst.c${N}_${sim_name_long}.nc  ${rundir}
-done
 
 #-----------------------------------------------------------------
 # Replace token strings in certain files
 #-----------------------------------------------------------------
-sed -i -e "s|{SIMULATION}|${sim_name_long}|" ${rundir}/GCHP.rc
-sed -i -e "s|{SIMULATION}|${sim_name_long}|" ${rundir}/runConfig.sh
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/input.geos
 sed -i -e "s|{MET}|${met_name}|"             ${rundir}/input.geos
+sed -i -e "s|{SIM}|${sim_name}|"             ${rundir}/input.geos
+sed -i -e "s|{RES}|${grid_res_long}|"        ${rundir}/input.geos
+sed -i -e "s|{NLEV}|${grid_lev}|"            ${rundir}/input.geos
+## TO DO: Add if nested... else here; for now default to global
+sed -i -e "s|{LON_RANGE}|-180.0 180.0|"      ${rundir}/input.geos
+sed -i -e "s|{LAT_RANGE}| -90.0  90.0|"      ${rundir}/input.geos
+sed -i -e "s|{HALF_POLAR}|T|"                ${rundir}/input.geos
+sed -i -e "s|{NESTED_SUM}|F|"                ${rundir}/input.geos
+sed -i -e "s|{BUFFER_ZONE}|0  0  0  0|"      ${rundir}/input.geos
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/HEMCO_Config.rc
+sed -i -e "s|{GRID_DIR}|${grid_res_long}|"   ${rundir}/HEMCO_Config.rc
+sed -i -e "s|{MET_DIR}|${met_dir}|"          ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{DUST_SF}|${dust_sf}|"          ${rundir}/HEMCO_Config.rc
-sed -i -e "s|{MET_SOURCE}|${met_name}|"      ${rundir}/ExtData.rc # 1st in line
-sed -i -e "s|{MET_SOURCE}|${met_name}|"      ${rundir}/ExtData.rc # 2nd in line
-sed -i -e "s|{MET_RES}|${met_resolution}|"   ${rundir}/ExtData.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/ExtData.rc
-sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/ExtData.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"        ${rundir}/ExtData.rc
-sed -i -e "s|{MET_EXT}|${met_extension}|"    ${rundir}/ExtData.rc
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"    ${rundir}/ExtData.rc # 1st in line
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"    ${rundir}/ExtData.rc # 2nd in line
-sed -i -e "s|{PRES_UNIT}|${pressure_unit}|"  ${rundir}/ExtData.rc
-sed -i -e "s|{PRES_SCALE}|${pressure_scale}|" ${rundir}/ExtData.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [ "${sim_type}" == "TransportTracers" ]; then
-    startdate="20160101"
-    enddate="20160101"
-elif [ "${sim_name}" == "benchmark" ]; then
-    startdate="20160701"
-    enddate="20160801"
-elif [ "${sim_type}" == "fullchem" ]; then
-    startdate="20160701"
-    enddate="20160701"
+if [[ ${sim_type} =~ "chem" ]]; then
+    startdate="20190701"
+    enddate="20190801"
+elif [[ ${sim_name} = "benchmark" ]]; then
+    startdate="20190701"
+    enddate="20190801"
 else
-    printf "\nError: Start date is not defined for simulation ${sim_type}."
+    startdate="20190101"
+    enddate="20190201"
 fi
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
-
-# Special handling for benchmark simulation
-if [ "${sim_name}" == "benchmark" ]; then
-    total_cores=48
-    num_nodes=2
-    num_cores_per_node=24
-    grid_res=48
-    diag_freq="7440000"
-    start_time="000000"
-    end_time="000000"
-    dYYYYMMDD="00000100"
-    dHHmmSS="000000"
-else
-    total_cores=30
-    num_nodes=1
-    num_cores_per_node=30
-    grid_res=24
-    diag_freq="010000"
-    start_time="000000"
-    end_time="010000"
-    dYYYYMMDD="00000000"
-    dHHmmSS="010000"
-fi
-diag_dur=${diag_freq}
-sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
-sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
-sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{DiagFreq}|${diag_dur}|"                  ${rundir}/runConfig.sh
-sed -i -e "s|{DiagDur}|${diag_freq}|"                  ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"     ${rundir}/runConfig.sh
-sed -i -e "s|{TIME2}|${end_time}|"       ${rundir}/runConfig.sh
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/runConfig.sh
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"     ${rundir}/CAP.rc
-sed -i -e "s|{TIME2}|${end_time}|"       ${rundir}/CAP.rc
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/CAP.rc
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/CAP.rc
+starttime="000000"
+endtime="000000"
+sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/input.geos
+sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/input.geos
+sed -i -e "s|{TIME1}|${starttime}|"     ${rundir}/input.geos
+sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
 
 #-----------------------------------------------------------------
 # Set permissions
 #-----------------------------------------------------------------
-chmod 744 ${rundir}/setCodeDir.sh
-chmod 744 ${rundir}/setEnvironment.sh
-chmod 744 ${rundir}/cleanRundir.sh
-chmod 744 ${rundir}/build.sh
-chmod 744 ${rundir}/runConfig.sh
-chmod 744 ${rundir}/archiveRun.sh
-chmod 744 ${rundir}/runScriptSamples/*
-chmod 744 ${rundir}/environmentFileSamples/*
-chmod 644 ${rundir}/runScriptSamples/README
+chmod 755 ${rundir}/setCodeDir.sh
+chmod 755 ${rundir}/cleanRundir.sh
+chmod 755 ${rundir}/archiveRun.sh
+chmod 755 ${rundir}/runScriptSamples/*
 
 #----------------------------------------------------------------------
 # Archive GCHP repository version in run directory file rundir.version
 #----------------------------------------------------------------------
 version_log=${rundir}/rundir.version
-echo "This run directory was created with GEOS-Chem/run/GCHPctm/createRunDir.sh." > ${version_log}
+echo "This run directory was created with GEOS-Chem/run/GCClassic/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
 cd ${gcdir}
@@ -409,9 +465,9 @@ do
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	git init
-	git add *.rc *.sh environmentFileSamples/* runScriptSamples/* README .gitignore
-	git add setCodeDir.sh setEnvironment.sh input.geos input.nml cleanRundir.sh
-        git add build.sh
+	git add *.rc *.sh *.yml *.run input.geos getRunInfo
+	git add runScriptSamples/* README .gitignore
+	git add 
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${curdir}
