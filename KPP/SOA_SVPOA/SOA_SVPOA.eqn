@@ -825,14 +825,14 @@ NPRNO3 + OH = RCHO + NO2 :                   GCARR(7.10E-13, 0.0E+00, 0.0);     
 ISOP + O3 = 0.416MACR + 0.177MVK + 0.28OH +
  0.407CO2 + 0.407CO + 0.407MO2 + 0.16HO2 +
  0.58CH2OO + 0.827CH2O + 0.013H2O2 :         GCARR(1.3E-17, 0.0E+00, 0.0);        {2019/11/06; Bates2019; KHB}
-ISOP + OH = LISOPOH + IHOO1 :                ISO1(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
-ISOP + OH = LISOPOH + IHOO4 :                ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO1 :                GC_ISO1(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO4 :                GC_ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O +
  0.15HPALD3 + 0.25HPALD1 + 0.4HO2 + 0.6CO +
- 1.5OH + 0.3HPETHNL + LISOPOH :              ISO2(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
+ 1.5OH + 0.3HPETHNL + LISOPOH :              GC_ISO2(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3CH2O + 0.15HPALD4 +
  0.25HPALD2 + 1.5OH + 0.9CO +
- 0.7HO2 + 0.3MGLY + 0.3ATOOH + LISOPOH :     ISO2(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ 0.7HO2 + 0.3MGLY + 0.3ATOOH + LISOPOH :     GC_ISO2(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = 0.063MVK + 0.063OH +
  0.063HO2 + 0.063CH2O + 0.937RIPA :          ARRPLUS(2.12E-13,-1300.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = RIPC :                         ARRPLUS(2.12E-13,-1300.0,0.0,-0.1644,7.0485E-4); {2019/11/06; Bates2019; KHB}
@@ -862,16 +862,16 @@ IHOO1 + MO2 = CH2O + 0.5HC5A + 1.5HO2 +
 IHOO4 + MO2 = MACR + 2HO2 + 2CH2O :          ARRPLUS(2.0E-12,0.0,0.0,1.2038,-9.0435E-4); {2019/11/06; Bates2019; KHB}
 IHOO4 + MO2 = CH2O + 0.5HC5A + 1.5HO2 +
  0.5MCRHP + 0.5CO + 0.5OH :                  ARRPLUS(2.0E-12,0.0,0.0,-0.2038,9.0435E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + NO = IHN2 :                          NIT(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + NO = NO2 + MVK + HO2 + CH2O :        ALK(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + NO = IHN4 :                          NIT(2.7E-12,350.0,1.421,6.0,-0.1644,-7.05E-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + NO = IHN2 :                          GC_NIT(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + NO = NO2 + MVK + HO2 + CH2O :        GC_ALK(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + NO = IHN4 :                          GC_NIT(2.7E-12,350.0,1.421,6.0,-0.1644,-7.05E-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + NO = NO2 + 0.45HC5A + 0.45HO2 +
- 0.55MVKHP + 0.55CO + 0.55OH :               ALK(2.7E-12,350.0,1.421,6.0,-0.1644,-7.05E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + NO = IHN3 :                          NIT(2.7E-12,350.0,1.297,6.0,1.2038,9.04E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + NO = NO2 + MACR + HO2 + CH2O :       ALK(2.7E-12,350.0,1.297,6.0,1.2038,9.04E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + NO = IHN1 :                          NIT(2.7E-12,350.0,1.421,6.0,-0.2038,-9.04E-4); {2019/11/06; Bates2019; KHB}
+ 0.55MVKHP + 0.55CO + 0.55OH :               GC_ALK(2.7E-12,350.0,1.421,6.0,-0.1644,-7.05E-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + NO = IHN3 :                          GC_NIT(2.7E-12,350.0,1.297,6.0,1.2038,9.04E-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + NO = NO2 + MACR + HO2 + CH2O :       GC_ALK(2.7E-12,350.0,1.297,6.0,1.2038,9.04E-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + NO = IHN1 :                          GC_NIT(2.7E-12,350.0,1.421,6.0,-0.2038,-9.04E-4); {2019/11/06; Bates2019; KHB}
 IHOO4 + NO = NO2 + 0.45HO2 + 0.45HC5A +
- 0.55MCRHP + 0.55CO + 0.55OH :               ALK(2.7E-12,350.0,1.421,6.0,-0.2038,-9.04E-4); {2019/11/06; Bates2019; KHB}
+ 0.55MCRHP + 0.55CO + 0.55OH :               GC_ALK(2.7E-12,350.0,1.421,6.0,-0.2038,-9.04E-4); {2019/11/06; Bates2019; KHB}
 HPALD1 + OH = 0.035MVK + 0.315HPALD1OO +
  0.15IDC + 0.33MVKHP + 0.085HO2 +
  0.085CH2O + 0.085MGLY + 0.085ICHE +
@@ -893,11 +893,11 @@ IDC + OH = CO + HO2 + MVKPC :                GCARR(3.00E-12, 0.0E+00, 650.0);   
 RIPA + OH = 0.655IHPOO3 + 0.345IHPOO1 +
  0.005LVOC :                                 GCARR(2.47E-12, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
 RIPA + OH = 0.67IEPOXA + 0.33IEPOXB +
- OH + 0.005LVOC :                            EPO(1.62E-11,390.0,4.77E-21);        {2019/11/06; Bates2019; KHB}
+ OH + 0.005LVOC :                            GC_EPO(1.62E-11,390.0,4.77E-21);        {2019/11/06; Bates2019; KHB}
 RIPB + OH = 0.655IHPOO3 + 0.345IHPOO2 +
  0.005LVOC :                                 GCARR(4.35E-12, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
 RIPB + OH = 0.68IEPOXA + 0.32IEPOXB +
- OH + 0.005LVOC :                            EPO(2.85E-11,390.0,4.77E-21);        {2019/11/06; Bates2019; KHB}
+ OH + 0.005LVOC :                            GC_EPO(2.85E-11,390.0,4.77E-21);        {2019/11/06; Bates2019; KHB}
 RIPA + OH = 0.75IHOO1 + 0.125MVK + 0.25CO +
  0.125MVKHP + 0.25HO2 + 0.005LVOC :          GCARR(6.10E-12, 0.0E+00, 200.0);     {2019/11/06; Bates2019; KHB}
 RIPB + OH = 0.51IHOO4 + 0.16ICHOO +
@@ -915,62 +915,62 @@ RIPD + OH = 0.255IHPOO2 + 0.03IHOO4 +
  0.595IEPOXD + 0.005LVOC :                   GCARR(3.53E-11, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
 IHPOO1 = 0.176ICPDH + 0.824IDHPE + OH :      GCARR(1.59E+13, 0.0E+00, -10000.0);  {2019/11/06; Bates2019; KHB}
 IHPOO1 + NO = 0.716MCRHP + 0.716CH2O +
- 0.284HPETHNL + 0.284HAC + NO2 + HO2 :       ALK(2.7E-12,350.0,2.1,9.0,1.0,0.0);  {2019/11/06; Bates2019; KHB}
-IHPOO1 + NO = ITHN :                         NIT(2.7E-12,350.0,2.1,9.0,1.0,0.0);  {2019/11/06; Bates2019; KHB}
+ 0.284HPETHNL + 0.284HAC + NO2 + HO2 :       GC_ALK(2.7E-12,350.0,2.1,9.0,1.0,0.0);  {2019/11/06; Bates2019; KHB}
+IHPOO1 + NO = ITHN :                         GC_NIT(2.7E-12,350.0,2.1,9.0,1.0,0.0);  {2019/11/06; Bates2019; KHB}
 IHPOO1 + HO2 = 0.725IDHDP + 0.14MCRHP +
  0.14CH2O + 0.135HPETHNL + 0.135HAC +
  0.275OH + 0.275HO2 :                        GCARR(2.47E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IHPOO2 = 0.548ICPDH + 0.452IDHPE + OH :      GCARR(2.91E+13, 0.0E+00, -10000.0);  {2019/11/06; Bates2019; KHB}
 IHPOO2 + NO = 0.706MVKHP + 0.706CH2O +
- 0.294GLYC + 0.294ATOOH + NO2 + HO2 :        ALK(2.7E-12,350.0,2.315,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IHPOO2 + NO = ITHN :                         NIT(2.7E-12,350.0,2.315,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.294GLYC + 0.294ATOOH + NO2 + HO2 :        GC_ALK(2.7E-12,350.0,2.315,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IHPOO2 + NO = ITHN :                         GC_NIT(2.7E-12,350.0,2.315,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IHPOO2 + HO2 = 0.725IDHDP + 0.14MVKHP +
  0.14CH2O + 0.135GLYC + 0.135ATOOH +
  0.275OH + 0.275HO2 :                        GCARR(2.47E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IHPOO3 = IDHPE :                             GCARR(1.875E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
-IHPOO3 + NO = GLYC + HAC + NO2 + OH :        ALK(2.7E-12,350.0,3.079,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IHPOO3 + NO = ITHN :                         NIT(2.7E-12,350.0,3.079,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IHPOO3 + NO = GLYC + HAC + NO2 + OH :        GC_ALK(2.7E-12,350.0,3.079,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IHPOO3 + NO = ITHN :                         GC_NIT(2.7E-12,350.0,3.079,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IHPOO3 + HO2 = 0.35IDHDP + 0.65GLYC + 
  0.65HAC + 1.3OH :                           GCARR(2.47E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IEPOXD + OH = 0.75ICHE + 0.75HO2 +
  0.25ICHOO :                                 GCARR(3.22E-11, 0.0E+00, -400.0);    {2019/11/06; Bates2019; KHB}
 IEPOXA + OH = ICHE + HO2 :                   GCARR(1.05E-11, 0.0E+00, -400.0);    {2019/11/06; Bates2019; KHB}
-IEPOXA + OH = 0.67IEPOXAOO + 0.33IEPOXBOO :  EPO(5.82E-11,-400.0,1.14E-20);       {2019/11/06; Bates2019; KHB}
+IEPOXA + OH = 0.67IEPOXAOO + 0.33IEPOXBOO :  GC_EPO(5.82E-11,-400.0,1.14E-20);       {2019/11/06; Bates2019; KHB}
 IEPOXB + OH = ICHE + HO2 :                   GCARR(8.25E-12, 0.0E+00, -400.0);    {2019/11/06; Bates2019; KHB}
-IEPOXB + OH = 0.81IEPOXAOO + 0.19IEPOXBOO :  EPO(3.75E-11,-400.0,8.91E-21); {2019/11/06; Bates2019; KHB}
+IEPOXB + OH = 0.81IEPOXAOO + 0.19IEPOXBOO :  GC_EPO(3.75E-11,-400.0,8.91E-21); {2019/11/06; Bates2019; KHB}
 IEPOXAOO = IDCHP + HO2 :                     GCARR(1.875E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 IEPOXAOO = OH + CO + MVKDH :                 GCARR(1.0E+7, 0.0E+00, -5000.0);     {2019/11/06; Bates2019; KHB}
 IEPOXAOO + HO2 = 0.13CO + 0.65OH +
  0.65HO2 + 0.13MVKDH + 0.52GLYC +
  0.52MGLY + 0.35ICPDH :                      GCARR(2.38E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IEPOXAOO + NO = 0.2MVKDH + HO2 + NO2 +
- 0.2CO + 0.8GLYC + 0.8MGLY :                 ALK(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IEPOXAOO + NO = ITCN :                       NIT(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.2CO + 0.8GLYC + 0.8MGLY :                 GC_ALK(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IEPOXAOO + NO = ITCN :                       GC_NIT(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IEPOXBOO = IDCHP + HO2 :                     GCARR(1.875E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 IEPOXBOO = CO + OH + MCRDH :                 GCARR(1.0E+7, 0.0E+00, -5000.0);     {2019/11/06; Bates2019; KHB}
 IEPOXBOO + NO = NO2 + HO2 + 0.8GLYX +
- 0.8HAC + 0.2CO + 0.2MCRDH :                 ALK(2.7E-12,350.0,16.463,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IEPOXBOO + NO = ITCN :                       NIT(2.7E-12,350.0,16.463,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.8HAC + 0.2CO + 0.2MCRDH :                 GC_ALK(2.7E-12,350.0,16.463,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IEPOXBOO + NO = ITCN :                       GC_NIT(2.7E-12,350.0,16.463,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IEPOXBOO + HO2 = 0.13CO + 0.65OH +
  0.65HO2 + 0.13MCRDH + 0.52HAC +
  0.52GLYX + 0.35ICPDH:                       GCARR(2.38E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 ICHOO + HO2 = 0.35ICPDH + 0.65OH + 0.52CO +
  0.13MVKHC + 0.65CH2O + 0.65HO2 + 0.52HAC :  GCARR(2.38E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
-ICHOO + NO = ITCN :                          NIT(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ICHOO + NO = ITCN :                          GC_NIT(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 ICHOO + NO = NO2 + 0.8HAC + 0.8CO +
- CH2O + HO2 + 0.2MVKHC :                     ALK(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ CH2O + HO2 + 0.2MVKHC :                     GC_ALK(2.7E-12,350.0,13.098,8.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 ICHOO = HO2 + 2.000CO + HAC + OH :           GCARR(1.875E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 HPALD1OO + NO = NO2 + OH + CO2 + MVK :       GCARR(2.70E-12, 0.0E+00, 350.0);     {2019/11/06; Bates2019; KHB}
 HPALD1OO + HO2 = OH + OH + CO2 + MVK :       GCARR(2.38E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 HPALD2OO + NO = NO2 + OH + CO2 + MACR :      GCARR(2.70E-12, 0.0E+00, 350.0);     {2019/11/06; Bates2019; KHB}
 HPALD2OO + HO2 = OH + OH + CO2 + MACR :      GCARR(2.38E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IHN2 + OH = ISOPNOO1 :                       GCARR(7.14E-12, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
-IHN2 + OH = 0.67IEPOXA + 0.33IEPOXB + NO2 :  EPO(6.30E-12,390.0,1.62E-19);        {2019/11/06; Bates2019; KHB}
+IHN2 + OH = 0.67IEPOXA + 0.33IEPOXB + NO2 :  GC_EPO(6.30E-12,390.0,1.62E-19);        {2019/11/06; Bates2019; KHB}
 IHN3 + OH = ISOPNOO2 :                       GCARR(1.02E-11, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
-IHN3 + OH = 0.67IEPOXA + 0.33IEPOXB + NO2 :  EPO(1.05E-11,390.0,2.49E-19);        {2019/11/06; Bates2019; KHB}
-IHN1 + OH = IEPOXD + NO2 :                   EPO(1.55E-11,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
+IHN3 + OH = 0.67IEPOXA + 0.33IEPOXB + NO2 :  GC_EPO(1.05E-11,390.0,2.49E-19);        {2019/11/06; Bates2019; KHB}
+IHN1 + OH = IEPOXD + NO2 :                   GC_EPO(1.55E-11,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
 IHN1 + OH = IDHNDOO1 :                       GCARR(2.04E-11, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
-IHN4 + OH = IEPOXD + NO2 :                   EPO(9.52E-12,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
+IHN4 + OH = IEPOXD + NO2 :                   GC_EPO(9.52E-12,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
 IHN4 + OH = IDHNDOO2 :                       GCARR(2.95E-11, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
 IHN1 + OH = 0.6OH + 0.6CO + 0.6MCRHNB +
  0.4HO2 + 0.4ICN :                           GCARR(7.5E-12, 0.0E+00, 20.0);       {2019/11/06; Bates2019; KHB}
@@ -982,35 +982,35 @@ ISOPNOO1 + HO2 = 0.482ITHN + 0.059MCRHN +
  0.059HO2 + 0.459NO2 + 0.518OH :             GCARR(2.60E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 ISOPNOO1 + NO = 0.272MCRHN + 0.272CH2O +
  0.728GLYC + 0.728HAC + 0.272HO2 +
- 1.728NO2 :                                  ALK(2.7E-12,350.0,6.32,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-ISOPNOO1 + NO = IDN :                        NIT(2.7E-12,350.0,6.32,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 1.728NO2 :                                  GC_ALK(2.7E-12,350.0,6.32,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ISOPNOO1 + NO = IDN :                        GC_NIT(2.7E-12,350.0,6.32,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 ISOPNOO2 = ITCN + HO2 :                      GCARR(1.875E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 ISOPNOO2 + HO2 = 0.401ITHN + 0.599MVKN +
  0.599CH2O + 0.599HO2 + 0.599OH :            GCARR(2.60E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
-ISOPNOO2 + NO = MVKN + CH2O + HO2 + NO2 :    ALK(2.7E-12,350.0,7.941,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-ISOPNOO2 + NO = IDN :                        NIT(2.7E-12,350.0,7.941,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ISOPNOO2 + NO = MVKN + CH2O + HO2 + NO2 :    GC_ALK(2.7E-12,350.0,7.941,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ISOPNOO2 + NO = IDN :                        GC_NIT(2.7E-12,350.0,7.941,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IDHNDOO1 = ITCN + HO2 :                      GCARR(1.256E+13, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 IDHNDOO2 = ITCN + HO2 :                      GCARR(5.092E+12, 0.0E+00, -10000.0); {2019/11/06; Bates2019; KHB}
 IDHNDOO1 + HO2 = 0.418ITHN + 0.551PROPNN +
  0.551GLYC + 0.031MCRHNB + 0.031CH2O +
  0.582HO2 + 0.582OH :                        GCARR(2.60E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IDHNDOO1 + NO = 0.935PROPNN + 0.935GLYC +
- 0.065MCRHNB + 0.065CH2O + HO2 + NO2 :       ALK(2.7E-12,350.0,4.712,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IDHNDOO1 + NO = IDN :                        NIT(2.7E-12,350.0,4.712,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.065MCRHNB + 0.065CH2O + HO2 + NO2 :       GC_ALK(2.7E-12,350.0,4.712,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IDHNDOO1 + NO = IDN :                        GC_NIT(2.7E-12,350.0,4.712,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IDHNDOO2 + HO2 = 0.494ITHN + 0.441HAC +
  0.441ETHLN + 0.065MVKN + 0.065CH2O +
  0.506OH + 0.506HO2 :                        GCARR(2.60E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IDHNDOO2 + NO = 0.858HAC + 0.858ETHLN +
- 0.142MVKN + 0.142CH2O + HO2 + NO2 :         ALK(2.7E-12,350.0,2.258,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IDHNDOO2 + NO = IDN :                        NIT(2.7E-12,350.0,2.258,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.142MVKN + 0.142CH2O + HO2 + NO2 :         GC_ALK(2.7E-12,350.0,2.258,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IDHNDOO2 + NO = IDN :                        GC_NIT(2.7E-12,350.0,2.258,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IDHNBOO + HO2 = 0.379HO2 + 0.379OH +
  0.621ITHN + 0.094MCRHNB + 0.242GLYC +
  0.242PROPNN + 0.010MVKN + 0.033HAC +
  0.033ETHLN + 0.104CH2O :                    GCARR(2.60E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 IDHNBOO + NO = 0.355MCRHNB + 0.546PROPNN +
  0.546GLYC + 0.028MVKN + 0.071ETHLN +
- 0.071HAC + HO2 + NO2 + 0.383CH2O :          ALK(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IDHNBOO + NO = IDN :                         NIT(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.071HAC + HO2 + NO2 + 0.383CH2O :          GC_ALK(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IDHNBOO + NO = IDN :                         GC_NIT(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 ISOP + NO3 = 0.465INO2B + 0.535INO2D +
  LISOPNO3 :                                  GCARR(2.95E-12, 0.0E+00, 450.0);     {2019/11/06; Bates2019; KHB}
 INO2B + HO2 = 0.473INPB + 0.048MACR +
@@ -1039,18 +1039,18 @@ INO2B + NO3 = CH2O + 2NO2 + 0.903MVK +
 INO2D + NO3 = NO2 + 0.841INA + 0.159HO2 +
  0.159ICN :                                  GCARR(2.3E-12, 0.0E+00, 0.0);        {2019/11/06; Bates2019; KHB}
 INO2B + NO = 2NO2 + CH2O + 0.096MACR +
- 0.904MVK :                                  ALK(2.7E-12,350.0,12.915,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-INO2B + NO = IDN :                           NIT(2.7E-12,350.0,12.915,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.904MVK :                                  GC_ALK(2.7E-12,350.0,12.915,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+INO2B + NO = IDN :                           GC_NIT(2.7E-12,350.0,12.915,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 INO2D + NO = NO2 + 0.159HO2 + 0.159ICN +
- 0.841INA :                                  ALK(2.7E-12,350.0,1.412,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-INO2D + NO = IDN :                           NIT(2.7E-12,350.0,1.412,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.841INA :                                  GC_ALK(2.7E-12,350.0,1.412,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+INO2D + NO = IDN :                           GC_NIT(2.7E-12,350.0,1.412,9.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 INA + O2 = ICN + HO2 :                       GCARR(2.50E-14, 0.0E+00, -300.0);    {2019/11/06; Bates2019; KHB}
 INA = IDHNBOO :                              GCARR(1.00E+20, 0.0E+00, -10000.0);  {2019/11/06; Bates2019; KHB}
 INPB + OH = 0.670IHPNBOO + 0.33IDHNBOO :     GCARR(5.88E-12, 0.0E+00, 390.0) ;    {2019/11/06; Bates2019; KHB}
 INPD + OH = IHPNDOO :                        GCARR(1.61E-11, 0.0E+00, 390.0) ;    {2019/11/06; Bates2019; KHB}
-INPB + OH = OH + ITHN :                      EPO(4.471E-12,390.0,2.28E-20);       {2019/11/06; Bates2019; KHB}
-INPD + OH = OH + ITHN :                      EPO(8.77E-12,390.0,2.185E-20);       {2019/11/06; Bates2019; KHB}
-INPD + OH = NO2 + ICHE :                     EPO(1.493E-11,390.0,2.715E-19);      {2019/11/06; Bates2019; KHB}
+INPB + OH = OH + ITHN :                      GC_EPO(4.471E-12,390.0,2.28E-20);       {2019/11/06; Bates2019; KHB}
+INPD + OH = OH + ITHN :                      GC_EPO(8.77E-12,390.0,2.185E-20);       {2019/11/06; Bates2019; KHB}
+INPD + OH = NO2 + ICHE :                     GC_EPO(1.493E-11,390.0,2.715E-19);      {2019/11/06; Bates2019; KHB}
 INPB + OH = INO2B :                          GCARR(2.278E-12, 0.0E+00, 200.0);    {2019/11/06; Bates2019; KHB}
 INPD + OH = INO2D :                          GCARR(3.40E-12, 0.0E+00, 200.0);     {2019/11/06; Bates2019; KHB}
 INPD + OH = ICN + OH :                       GCARR(7.50E-12, 0.0E+00, 20.0);      {2019/11/06; Bates2019; KHB}
@@ -1069,14 +1069,14 @@ IHPNBOO + NO = 0.384GLYC + 0.170MCRHNB +
  0.303HPETHNL + 0.014MVKN + 0.051HAC +
  0.013ATOOH + 0.059MVKHP + 0.006MCRHP +
  0.687PROPNN + 0.064ETHLN + 0.249CH2O +
- 1.065NO2 + 0.500HO2 + 0.435OH :             ALK(2.7E-12,350.0,6.092,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IHPNBOO + NO = IDN :                         NIT(2.7E-12,350.0,6.092,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 1.065NO2 + 0.500HO2 + 0.435OH :             GC_ALK(2.7E-12,350.0,6.092,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IHPNBOO + NO = IDN :                         GC_NIT(2.7E-12,350.0,6.092,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IHPNDOO + NO = 0.291MCRHNB + 0.590HPETHNL +
  0.070ATOOH + 0.049MVKN + 0.590PROPNN +
  0.070ETHLN + 0.340CH2O + 1.000NO2 +
- 0.904HO2 + 0.096OH :                        ALK(2.7E-12,350.0,4.383,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-IHPNDOO + NO = IDN :                         NIT(2.7E-12,350.0,4.383,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-ICN + OH = NO2 + ICHE :                      EPO(2.97E-12,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
+ 0.904HO2 + 0.096OH :                        GC_ALK(2.7E-12,350.0,4.383,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+IHPNDOO + NO = IDN :                         GC_NIT(2.7E-12,350.0,4.383,12.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ICN + OH = NO2 + ICHE :                      GC_EPO(2.97E-12,390.0,2.715E-19);       {2019/11/06; Bates2019; KHB}
 ICN + OH = 0.244OH + 0.539CO + 0.295HO2 +
  0.378MCRHNB + 0.461ICNOO + 0.161MVKN :      GCARR(9.35E-12, 0.0E+00, 390.0);     {2019/11/06; Bates2019; KHB}
 ICNOO + NO = 0.67ICNOO + 0.33CO2 + 0.33CO +
@@ -1128,8 +1128,8 @@ MVKOHOO + HO2 = 0.360MCO3 + 0.360GLYC +
  0.665OH + 0.305HO2 + 0.255MVKHC +
  0.335MVKHP + 0.050MGLY + 0.050CH2O :        GCARR(2.12E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 MVKOHOO + NO = 0.758MCO3 + 0.758GLYC +
- 0.242MGLY + 0.242CH2O + 0.242HO2 + NO2 :    ALK(2.7E-12,350.0,4.573,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-MVKOHOO + NO = 0.438MVKN :                   NIT(2.7E-12,350.0,4.573,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ 0.242MGLY + 0.242CH2O + 0.242HO2 + NO2 :    GC_ALK(2.7E-12,350.0,4.573,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+MVKOHOO + NO = 0.438MVKN :                   GC_NIT(2.7E-12,350.0,4.573,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 MCROHOO + HO2 = 0.41MCRHP + 0.507HAC +
  0.507CO + 0.507HO2 + 0.59OH + 0.59O2 +
  0.083MGLY + 0.083CH2O :                     GCARR(2.12E-13, 0.0E+00, 1300.0) ;   {2019/11/06; Bates2019; KHB}
@@ -1141,15 +1141,15 @@ MACR1OOH + OH = 0.165MACR1OO + 0.585OH +
  0.25CH2O + 0.087MCO3 + 0.162MO2 :           GCARR(1.66E-11, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
 MCROHOO = HAC + CO + OH :                    GCARR(2.90E+7, 0.0E+00, -5297.0);    {2019/11/06; Bates2019; KHB}
 MCROHOO + NO = 0.86HAC + 0.86CO + 0.86HO2 +
- NO2 + 0.14MGLY + 0.14CH2O :                 ALK(2.7E-12,350.0,2.985,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-MCROHOO + NO = MCRHN :                       NIT(2.7E-12,350.0,2.985,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+ NO2 + 0.14MGLY + 0.14CH2O :                 GC_ALK(2.7E-12,350.0,2.985,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
+MCROHOO + NO = MCRHN :                       GC_NIT(2.7E-12,350.0,2.985,6.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 MACR1OO + NO = 0.35MCO3 + 0.65MO2 +
  0.65CO + CH2O + CO2 + NO2 :                 GCARR(8.7E-12, 0.0E+00, 290.0);      {2019/11/06; Bates2019; KHB}
-MACR1OO + NO2 = MPAN :                       PAN(2.591E-28,0.0,-6.87,1.125E-11,0.0,-1.105,0.3); {2019/11/06; Bates2019; KHB}
+MACR1OO + NO2 = MPAN :                       GC_PAN(2.591E-28,0.0,-6.87,1.125E-11,0.0,-1.105,0.3); {2019/11/06; Bates2019; KHB}
 MACRNO2 + HO2 = 0.5HAC + 0.5OH + 0.5CO2 +
  0.5NO2 + 0.13O3 + 0.37MCRHN + 0.13MCRHNB :  GCARR(3.14E-12, 0.0E+00, 580.0);     {2019/11/06; Bates2019; KHB}
 MACRNO2 + NO = HAC + 2NO2 + CO2 :            GCARR(7.50E-12, 0.0E+00, 290.0);     {2019/11/06; Bates2019; KHB}
-MACRNO2 + NO2 = MPAN + NO2 :                 PAN(2.591E-28,0.0,-6.87,1.125E-11,0.0,-1.105,0.3); {2019/11/06; Bates2019; KHB}
+MACRNO2 + NO2 = MPAN + NO2 :                 GC_PAN(2.591E-28,0.0,-6.87,1.125E-11,0.0,-1.105,0.3); {2019/11/06; Bates2019; KHB}
 MACRNO2 + NO3 = HAC + 2NO2 + CO2 :           GCARR(4.00E-12, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
 MACRNO2 + MO2 = 0.7HAC + 0.7CO2 + 0.7NO2 +
  0.7HO2 + CH2O + 0.3MCRHNB :                 GCARR(2.9E-12, 0.0E+00, 500.0);      {2019/11/06; Bates2019; KHB}
