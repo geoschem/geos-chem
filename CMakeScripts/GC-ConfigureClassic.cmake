@@ -11,6 +11,21 @@ function(configureGCClassic)
     if("${OMP}")
        set(NO_OMP "OFF" CACHE STRING "Boolean opposite of the OMP switch, needed for backwards compatibility")
        find_package(OpenMP REQUIRED)
+       #######################################################################
+       # NOTE: Newer versions of CMake (maybe > 3.8) prefer OpenMP::OpenMP
+       # rather than ${OpenMP_Fortran_FLAGS} to specify compilation options
+       # for OpenMP.  However, this is not supported in older versions.
+       # For backwards compatibility, especially with Azure DevOps, we will
+       # leave the new  syntax commented out.  It can be restored later.
+       #
+       #  -- Bob Yantosca (28 Jul 2020)
+       #    target_compile_options(HEMCOBuildProperties
+       #      INTERFACE OpenMP::OpenMP_Fortran
+       #    )
+       #    target_link_libraries(HEMCOBuildProperties
+       #      INTERFACE OpenMP::OpenMP_Fortran
+       #    )
+       #######################################################################
        target_compile_options(GEOSChemBuildProperties
            INTERFACE ${OpenMP_Fortran_FLAGS}
        )
