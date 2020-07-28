@@ -13,7 +13,7 @@
 # Initial version: M. Sulprizio, 6/24/2020
 
 curdir=$(pwd)
-cd ../..
+cd ../../../../
 gcdir=$(pwd)
 cd ${curdir}
 
@@ -380,7 +380,13 @@ cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}
 #--------------------------------------------------------------------
 # Create symbolic link to code directory
 #--------------------------------------------------------------------
-ln -s ${gcdir}                                  ${rundir}/CodeDir
+ln -s ${gcdir} ${rundir}/CodeDir
+
+#--------------------------------------------------------------------
+# Create build directory
+#--------------------------------------------------------------------
+mkdir ${rundir}/build
+printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   make -j\n   make install\n" >> ${rundir}/build/README
 
 #-----------------------------------------------------------------
 # Replace token strings in certain files
@@ -465,9 +471,8 @@ do
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	git init
-	git add *.rc *.sh *.yml *.run input.geos getRunInfo
+	git add *.rc *.sh *.yml *.run *.py input.geos getRunInfo
 	git add runScriptSamples/* README .gitignore
-	git add 
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${curdir}
