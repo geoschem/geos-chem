@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (13 May 2020)
+# GEOS-Chem Species Database (27 Jul 2020)
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them
 A3O2:

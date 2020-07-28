@@ -730,7 +730,6 @@ CONTAINS
        State_Chm%Map_Prod = 0
     ENDIF
 
-    print*, "### nRadNucl", State_Chm%nRadNucl
     IF ( State_Chm%nRadNucl > 0 ) THEN
        ALLOCATE( State_Chm%Map_RadNucl( State_Chm%nRadNucl ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_RadNucl', 0, RC )

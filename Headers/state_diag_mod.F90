@@ -187,7 +187,9 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetWetDepPBL
 
      REAL(f8),           POINTER :: BudgetMass1(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMass1
      REAL(f8),           POINTER :: BudgetMass2(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMass2
      LOGICAL                     :: Archive_BudgetEmisDryDep
      LOGICAL                     :: Archive_BudgetTransport
      LOGICAL                     :: Archive_BudgetMixing
@@ -287,7 +289,7 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_AerSurfAreaHyg
      LOGICAL                     :: Archive_AerSurfAreaHyg
 
-     REAL(f4),           POINTER :: AerSurfAreaDust (:,:,:)
+     REAL(f4),           POINTER :: AerSurfAreaDust(:,:,:)
      LOGICAL                     :: Archive_AerSurfAreaDust
 
      REAL(f4),           POINTER :: AerSurfAreaSLA(:,:,:)
@@ -531,13 +533,13 @@ MODULE State_Diag_Mod
 
      !%%%%% O3 and HNO3 at a given height above the surface %%%%%
 
-     REAL(f4),           POINTER :: DryDepRaALT1    (:,:  )
+     REAL(f4),           POINTER :: DryDepRaALT1(:,:)
      LOGICAL                     :: Archive_DryDepRaALT1
 
      REAL(f4),           POINTER :: DryDepVelForALT1(:,:,:)
      LOGICAL                     :: Archive_DryDepVelForALT1
 
-     REAL(f8),           POINTER :: SpeciesConcALT1 (:,:,:)
+     REAL(f8),           POINTER :: SpeciesConcALT1(:,:,:)
      LOGICAL                     :: Archive_SpeciesConcALT1
      LOGICAL                     :: Archive_ConcAboveSfc
 
@@ -566,7 +568,7 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppLuDecomps(:,:,:)
      LOGICAL                     :: Archive_KppLuDecomps
 
-     REAL(f4),           POINTER :: KppSubsts   (:,:,:)
+     REAL(f4),           POINTER :: KppSubsts(:,:,:)
      LOGICAL                     :: Archive_KppSubsts
 
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
@@ -789,25 +791,25 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RadAllSkyLWSurf(:,:,:)
      LOGICAL                     :: Archive_RadAllSkyLWSurf
 
-     REAL(f4),           POINTER :: RadAllSkyLWTOA (:,:,:)
+     REAL(f4),           POINTER :: RadAllSkyLWTOA(:,:,:)
      LOGICAL                     :: Archive_RadAllSkyLWTOA
 
      REAL(f4),           POINTER :: RadAllSkySWSurf(:,:,:)
      LOGICAL                     :: Archive_RadAllSkySWSurf
 
-     REAL(f4),           POINTER :: RadAllSkySWTOA (:,:,:)
+     REAL(f4),           POINTER :: RadAllSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadAllSkySWTOA
 
      REAL(f4),           POINTER :: RadClrSkyLWSurf(:,:,:)
      LOGICAL                     :: Archive_RadClrSkyLWSurf
 
-     REAL(f4),           POINTER :: RadClrSkyLWTOA (:,:,:)
+     REAL(f4),           POINTER :: RadClrSkyLWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkyLWTOA
 
      REAL(f4),           POINTER :: RadClrSkySWSurf(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWSurf
 
-     REAL(f4),           POINTER :: RadClrSkySWTOA (:,:,:)
+     REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWTOA
 
      !----------------------------------------------------------------------
@@ -2068,7 +2070,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for transport  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetTransportFull'
+    diagId = 'BudgetTransportFull'
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -2412,21 +2414,27 @@ CONTAINS
     ENDIF
 
     ! PBL-only wet deposition
-    arrayID = 'State_Diag%BudgetWetDepPBL'
     diagID  = 'BudgetWetDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepPBL = 0.0_f8
-       State_Diag%Archive_BudgetWetDepPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepPBL,                  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepPBL,                        &
+         archiveData    = State_Diag%Archive_BudgetWetDepPBL,                &
+         mapData        = State_Diag%Map_BudgetWetDepPBL,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
+
     !------------------------------------------------------------------------
     ! Species concentration diagnostic
     !------------------------------------------------------------------------
@@ -3048,153 +3056,185 @@ CONTAINS
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkyLWSurf'
        diagID  = 'RadAllSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkyLWSurf = 0.0_f4
-          State_Diag%Archive_RadAllSkyLWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkyLWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWSurf,                     &
+            archiveData    = State_Diag%Archive_RadAllSkyLWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkyLWTOA'
        diagID  = 'RadAllSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkyLWTOA = 0.0_f4
-          State_Diag%Archive_RadAllSkyLWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkyLWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWTOA,                      &
+            archiveData    = State_Diag%Archive_RadAllSkyLWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkySWSurf'
        diagID  = 'RadAllSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkySWSurf = 0.0_f4
-          State_Diag%Archive_RadAllSkySWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkySWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWSurf,                     &
+            archiveData    = State_Diag%Archive_RadAllSkySWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkySWTOA'
        diagID  = 'RadAllSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkySWTOA = 0.0_f4
-          State_Diag%Archive_RadAllSkySWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkySWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWTOA,                      &
+            archiveData    = State_Diag%Archive_RadAllSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkyLWSurf'
        diagID  = 'RadClrSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkyLWSurf = 0.0_f4
-          State_Diag%Archive_RadClrSkyLWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkyLWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWSurf,                     &
+            archiveData    = State_Diag%Archive_RadClrSkyLWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky LW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkyLWTOA'
        diagID  = 'RadClrSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkyLWTOA = 0.0_f4
-          State_Diag%Archive_RadClrSkyLWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkyLWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWTOA,                      &
+            archiveData    = State_Diag%Archive_RadClrSkyLWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkySWSurf'
        diagID  = 'RadClrSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkySWSurf = 0.0_f4
-          State_Diag%Archive_RadClrSkySWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkySWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWSurf,                     &
+            archiveData    = State_Diag%Archive_RadClrSkySWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkySWTOA'
        diagID  = 'RadClrSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkySWTOA = 0.0_f4
-          State_Diag%Archive_RadClrSkySWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkySWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWTOA,                      &
+            archiveData    = State_Diag%Archive_RadClrSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -10281,14 +10321,14 @@ CONTAINS
        CASE( 'LOS'          )
           numTags = State_Chm%nLoss
        CASE( 'NUC',     'N' )
-          numTags = State_Chm%nRadNucl 
+          numTags = State_Chm%nRadNucl
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
           numTags = W_
        CASE( 'PRD'          )
           numTags = State_Chm%nProd
-       CASE( 'RRTMG'        )
+       CASE( 'RRTMG',   'Z' )
           numTags = nRadFlux
        CASE( 'RXN',     'R' )
           numTags = NREACT
@@ -10781,6 +10821,9 @@ CONTAINS
           CASE( 'K' )
              index   = State_Chm%Map_KppSpc(index)
              tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'N' )
+             index   = State_Chm%Map_RadNucl(index)
+             tagName = State_Chm%SpcData(index)%info%name
           CASE( 'P' )
              index   = State_Chm%Map_Photol(index)
              tagName = State_Chm%SpcData(index)%info%name
@@ -10794,7 +10837,7 @@ CONTAINS
              tagName = State_Chm%SpcData(index)%info%name
           CASE DEFAULT
              ! We need to call Get_TagInfo for diagnostics that
-             ! aren't chemical species (e.g. DUSTBIN, UVFLX, RXN, etc.)
+             ! aren't chemical species (e.g. DUSTBIN, UVFLX, RRTMG, RXN, etc.)
              CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
                                State_Chm = State_Chm,                     &
                                tagID     = tagId,                         &

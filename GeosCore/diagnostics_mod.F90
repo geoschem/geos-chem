@@ -842,9 +842,9 @@ CONTAINS
     ! PBL
     IF ( isPBL ) THEN
        region = 3
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, N, S )
+       !$OMP PARALLEL DO                    &
+       !$OMP DEFAULT( SHARED              ) &
+       !$OMP PRIVATE( I, J, N, PBL_TOP, S )
        DO S = 1, numSpc
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
