@@ -1922,9 +1922,9 @@ CONTAINS
     ! Arrays
     CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
-    !=================================================================
+    !=======================================================================
     ! READ_EMISSIONS_MENU begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
@@ -1939,13 +1939,22 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Turn on emissions?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLEMIS', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LEMIS
+    !-----------------------------------------------------------------------
+    ! NOTE: Prior to FlexGrid, the Input_Opt%LEMIS switch was used to
+    ! turn emissions on or off.  But since FlexGrid, we also use HEMCO
+    ! to read met fields and chemistry inputs as well as emissions.
+    ! Setting Input_Opt%LEMIS = .FALSE. will turn off HEMCO completely,
+    ! which will cause met fields and chemistry inputs not to be read.
+    !
+    ! The quick fix is to just hardwire Input_Opt%LEMIS = .TRUE. and
+    ! then use the MAIN SWITCHES in HEMCO_Config.rc to toggle the
+    ! emissions, met fields, and chemistry inputs on or off.
+    ! We have also removed the corresponding line from input.geos.
+    !
+    !    -- Bob Yantosca (29 Jul 2020)
+    !
+    Input_Opt%LEMIS = .TRUE.
+    !-----------------------------------------------------------------------
 
     ! HEMCO Input file
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HcoConfigFile', RC )

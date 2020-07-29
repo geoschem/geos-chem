@@ -583,7 +583,6 @@ Turn on PBL Mixing?     : T
  => Use non-local PBL?  : F
 ------------------------+------------------------------------------------------
 %%% EMISSIONS MENU %%%  :
-Turn on emissions?      : T
 HEMCO Input file        : HEMCO_Config.rc
 Switches for UCX        :---
  => Use CH4 emissions?  : F
