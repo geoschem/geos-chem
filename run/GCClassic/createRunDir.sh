@@ -236,19 +236,23 @@ do
     read res_num
     if [[ ${res_num} = "1" ]]; then
 	grid_res='4x5'
-        grid_res_long='4.0x5.0'
+	grid_res_long='4.0x5.0'
+	grid_dir=$grid_res
 	valid_res=1
     elif [[ ${res_num} = "2" ]]; then
 	grid_res='2x25'
 	grid_res_long='2.0x2.5'
+	grid_dir='2x2.5'
 	valid_res=1
     elif [[ ${res_num} = "3" ]]; then
 	grid_res='05x0625'
 	grid_res_long='0.5x0.625'
+	grid_dir=$grid_res_long
 	valid_res=1
     elif [[ ${res_num} = "4" ]]; then
 	grid_res='025x03125'
 	grid_res_long='0.25x0.3125'
+	grid_dir=$grid_res_long
 	valid_res=1
     else
 	printf "Invalid horizontal resolution option. Try again.\n"
@@ -389,6 +393,7 @@ sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/input.geos
 sed -i -e "s|{MET}|${met_name}|"             ${rundir}/input.geos
 sed -i -e "s|{SIM}|${sim_name}|"             ${rundir}/input.geos
 sed -i -e "s|{RES}|${grid_res_long}|"        ${rundir}/input.geos
+sed -i -e "s|{NESTED_SIM}|F|"                ${rundir}/input.geos
 sed -i -e "s|{NLEV}|${grid_lev}|"            ${rundir}/input.geos
 ## TO DO: Add if nested... else here; for now default to global
 sed -i -e "s|{LON_RANGE}|-180.0 180.0|"      ${rundir}/input.geos
@@ -397,7 +402,7 @@ sed -i -e "s|{HALF_POLAR}|T|"                ${rundir}/input.geos
 sed -i -e "s|{NESTED_SUM}|F|"                ${rundir}/input.geos
 sed -i -e "s|{BUFFER_ZONE}|0  0  0  0|"      ${rundir}/input.geos
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/HEMCO_Config.rc
-sed -i -e "s|{GRID_DIR}|${grid_res_long}|"   ${rundir}/HEMCO_Config.rc
+sed -i -e "s|{GRID_DIR}|${grid_dir}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{MET_DIR}|${met_dir}|"          ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/HEMCO_Config.rc
