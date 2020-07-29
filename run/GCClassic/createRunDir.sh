@@ -6,7 +6,7 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{simulation}/
+# default name GC_{res}_{met}_{simulation}
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
@@ -372,12 +372,6 @@ if [ "${sim_name}" == "benchmark" ]; then
 fi
 
 #--------------------------------------------------------------------
-# Copy sample restart file
-#--------------------------------------------------------------------
-restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
-cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}
-
-#--------------------------------------------------------------------
 # Create symbolic link to code directory
 #--------------------------------------------------------------------
 ln -s ${gcdir} ${rundir}/CodeDir
@@ -429,6 +423,12 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/input.geos
 sed -i -e "s|{TIME1}|${starttime}|"     ${rundir}/input.geos
 sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
 
+#--------------------------------------------------------------------
+# Copy sample restart file
+#--------------------------------------------------------------------
+restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
+cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+
 #-----------------------------------------------------------------
 # Set permissions
 #-----------------------------------------------------------------
@@ -438,7 +438,7 @@ chmod 755 ${rundir}/archiveRun.sh
 chmod 755 ${rundir}/runScriptSamples/*
 
 #----------------------------------------------------------------------
-# Archive GCHP repository version in run directory file rundir.version
+# Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
 version_log=${rundir}/rundir.version
 echo "This run directory was created with GEOS-Chem/run/GCClassic/createRunDir.sh." > ${version_log}
