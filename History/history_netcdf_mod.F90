@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Contains routines to create a netCDF file for each GEOS-Chem
 !  diagnostic collection (as specified by each HISTORY CONTAINER in the
-!  master collection list located within in history_mod.F90).
+!  main collection list located within in history_mod.F90).
 !\\
 !\\
 ! !INTERFACE:

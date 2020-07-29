@@ -69,13 +69,13 @@
 !	bins, and all size bins have the same number of 
 !	both regular and tracer components.]
 !
-!   ntot_mastercomp_aer = number of aerosol chemical components defined
-!	in the "master component list".
+!   ntot_maincomp_aer = number of aerosol chemical components defined
+!	in the "main component list".
 !   [Note:  each aerosol type will use some but not necessarily all
-!	of the components in the "master component list".]
+!	of the components in the "main component list".]
 !
-!   mastercompptr_aer(c,t) = the position/index/i.d. in the 
-!       "master component list" for chemical component c of aerosol type t.
+!   maincompptr_aer(c,t) = the position/index/i.d. in the 
+!       "main component list" for chemical component c of aerosol type t.
 !	(1=sulfate, others to be defined by user.)
 !
 !   massptr_aer(c,s,t,p) = the position/index in the chem array for mixing- 
@@ -112,42 +112,42 @@
 !       associated with aerosol size bin s and type t
 !
 !
-!   mastercompindx_so4_aer = the position/index in the 
-!       "master component list" for sulfate.  
+!   maincompindx_so4_aer = the position/index in the 
+!       "main component list" for sulfate.  
 !   (similar lptr's are defined for no3, cl, msa, co3, 
 !	nh4, na, ca, oin, oc, bc, ...)
-!   [Note:  the mastercompindx_xxx_aer are used primarily in 
+!   [Note:  the maincompindx_xxx_aer are used primarily in 
 !	initialization routines, and generally aren't needed elsewhere.]
 !
 !-----------------------------------------------------------------------
 !
-!   dens_mastercomp_aer(mc) = dry density (g/cm^3) of component mc 
-!	of the master component list.
+!   dens_maincomp_aer(mc) = dry density (g/cm^3) of component mc 
+!	of the main component list.
 !   dens_aer(c,t) = dry density (g/cm^3) of aerosol chemical component 
 !	c of type t
-!   [Note:  dens_aer(c,t) == dens_mastercomp_aer(mastercompptr_aer(c,t))
-!	The dens_mastercomp_aer is used in some initialization routines.
+!   [Note:  dens_aer(c,t) == dens_maincomp_aer(maincompptr_aer(c,t))
+!	The dens_maincomp_aer is used in some initialization routines.
 !	The dens_aer is used in most other places because of convenience.]
 !
-!   mw_mastercomp_aer(mc) = molecular weight (g/mole) of component mc 
-!	of the master component list.
+!   mw_maincomp_aer(mc) = molecular weight (g/mole) of component mc 
+!	of the main component list.
 !   mw_aer(c,t) = molecular weight (g/mole) of aerosol chemical component 
 !	c of type t
-!   [Note:  mw_aer(c,t) == mw_mastercomp_aer(mastercompptr_aer(c,t)) ]
+!   [Note:  mw_aer(c,t) == mw_maincomp_aer(maincompptr_aer(c,t)) ]
 !
-!   name_mastercomp_aer(mc) = name of component mc of the 
-!	master component list (e.g., "sulfate", "nitrate", ...).
+!   name_maincomp_aer(mc) = name of component mc of the 
+!	main component list (e.g., "sulfate", "nitrate", ...).
 !   name_aer(c,t) = molecular weight (g/mole) of aerosol chemical component 
 !	c of type t
-!   [Note:  name_aer(c,t) == name_mastercomp_aer(mastercompptr_aer(c,t)) ]
+!   [Note:  name_aer(c,t) == name_maincomp_aer(maincompptr_aer(c,t)) ]
 !
-!   hygro_mastercomp_aer(mc) = bulk hygroscopicity (--) at dilute conditions
-!	(RH near 100%) of component mc of the master component list.
+!   hygro_maincomp_aer(mc) = bulk hygroscopicity (--) at dilute conditions
+!	(RH near 100%) of component mc of the main component list.
 !   hygro_aer(c,t) = bulk hygroscopicity (--) at dilute conditions 
 !	(RH near 100%) of aerosol chemical component c of type t
 !   [For definition of bulk hygroscopicity, 
 !	see Abdul-Razzak and Ghan, 2004, J Geophys Res, V105, p. 6837-6844.]
-!   [Note:  hygro_aer(c,t) == hygro_mastercomp_aer(mastercompptr_aer(c,t)) ]
+!   [Note:  hygro_aer(c,t) == hygro_maincomp_aer(maincompptr_aer(c,t)) ]
 !
 !-----------------------------------------------------------------------
 !
@@ -206,14 +206,14 @@
 	integer, save :: gr_phase = -999888777
 
 	integer, save :: ntype_aer = 0 ! number of types
-	integer, save :: ntot_mastercomp_aer = 0 ! number of master components
+	integer, save :: ntot_maincomp_aer = 0 ! number of main components
 	integer, save :: nphase_aer = 0 ! number of phases
 
 	integer, save ::   &
       	  nsize_aer( maxd_atype ),   & ! number of size bins
       	  ncomp_aer( maxd_atype ),   & ! number of chemical components
       	  ncomp_plustracer_aer( maxd_atype ),   &
-          mastercompptr_aer(maxd_acomp, maxd_atype), &   !  mastercomp index
+          maincompptr_aer(maxd_acomp, maxd_atype), &   !  maincomp index
       	  massptr_aer( maxd_acomp, maxd_asize, maxd_atype, maxd_aphase ), & 
 		! index for mixing ratio
       	  waterptr_aer( maxd_asize, maxd_atype ), & ! index for aerosol water
@@ -223,130 +223,130 @@
           mprognum_aer(maxd_asize,maxd_atype,maxd_aphase)
 
 
-!   these indices give the location in the "mastercomp list" of
+!   these indices give the location in the "maincomp list" of
 !   the different aerosol chemical (or tracer) components
-	integer, save :: mastercompindx_so4_aer = -999888777
-	integer, save :: mastercompindx_no3_aer = -999888777
-	integer, save :: mastercompindx_cl_aer  = -999888777
-	integer, save :: mastercompindx_msa_aer = -999888777
-	integer, save :: mastercompindx_co3_aer = -999888777
-	integer, save :: mastercompindx_nh4_aer = -999888777
-	integer, save :: mastercompindx_na_aer  = -999888777
-	integer, save :: mastercompindx_ca_aer  = -999888777
-	integer, save :: mastercompindx_oin_aer = -999888777
-	integer, save :: mastercompindx_oc_aer  = -999888777
-	integer, save :: mastercompindx_bc_aer  = -999888777
-        integer, save :: mastercompindx_pcg1_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg2_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg3_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg4_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg5_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg6_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg7_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg8_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg9_b_c_aer = -999888777
-        integer, save :: mastercompindx_pcg1_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg2_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg3_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg4_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg5_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg6_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg7_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg8_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg9_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg1_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg2_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg3_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg4_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg5_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg6_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg7_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg8_b_c_aer = -999888777
-        integer, save :: mastercompindx_opcg1_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg2_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg3_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg4_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg5_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg6_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg7_b_o_aer = -999888777
-        integer, save :: mastercompindx_opcg8_b_o_aer = -999888777
-        integer, save :: mastercompindx_pcg1_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg2_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg3_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg4_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg5_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg6_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg7_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg8_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg9_f_c_aer = -999888777
-        integer, save :: mastercompindx_pcg1_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg2_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg3_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg4_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg5_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg6_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg7_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg8_f_o_aer = -999888777
-        integer, save :: mastercompindx_pcg9_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg1_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg2_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg3_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg4_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg5_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg6_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg7_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg8_f_c_aer = -999888777
-        integer, save :: mastercompindx_opcg1_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg2_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg3_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg4_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg5_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg6_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg7_f_o_aer = -999888777
-        integer, save :: mastercompindx_opcg8_f_o_aer = -999888777
-        integer, save :: mastercompindx_smpa_aer = -999888777
-        integer, save :: mastercompindx_smpbb_aer = -999888777
+	integer, save :: maincompindx_so4_aer = -999888777
+	integer, save :: maincompindx_no3_aer = -999888777
+	integer, save :: maincompindx_cl_aer  = -999888777
+	integer, save :: maincompindx_msa_aer = -999888777
+	integer, save :: maincompindx_co3_aer = -999888777
+	integer, save :: maincompindx_nh4_aer = -999888777
+	integer, save :: maincompindx_na_aer  = -999888777
+	integer, save :: maincompindx_ca_aer  = -999888777
+	integer, save :: maincompindx_oin_aer = -999888777
+	integer, save :: maincompindx_oc_aer  = -999888777
+	integer, save :: maincompindx_bc_aer  = -999888777
+        integer, save :: maincompindx_pcg1_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg2_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg3_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg4_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg5_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg6_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg7_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg8_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg9_b_c_aer = -999888777
+        integer, save :: maincompindx_pcg1_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg2_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg3_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg4_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg5_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg6_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg7_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg8_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg9_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg1_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg2_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg3_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg4_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg5_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg6_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg7_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg8_b_c_aer = -999888777
+        integer, save :: maincompindx_opcg1_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg2_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg3_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg4_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg5_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg6_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg7_b_o_aer = -999888777
+        integer, save :: maincompindx_opcg8_b_o_aer = -999888777
+        integer, save :: maincompindx_pcg1_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg2_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg3_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg4_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg5_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg6_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg7_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg8_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg9_f_c_aer = -999888777
+        integer, save :: maincompindx_pcg1_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg2_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg3_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg4_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg5_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg6_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg7_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg8_f_o_aer = -999888777
+        integer, save :: maincompindx_pcg9_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg1_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg2_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg3_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg4_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg5_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg6_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg7_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg8_f_c_aer = -999888777
+        integer, save :: maincompindx_opcg1_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg2_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg3_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg4_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg5_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg6_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg7_f_o_aer = -999888777
+        integer, save :: maincompindx_opcg8_f_o_aer = -999888777
+        integer, save :: maincompindx_smpa_aer = -999888777
+        integer, save :: maincompindx_smpbb_aer = -999888777
 
-        integer, save :: mastercompindx_glysoa_r1_aer = -999888777
-        integer, save :: mastercompindx_glysoa_r2_aer = -999888777
-        integer, save :: mastercompindx_glysoa_oh_aer = -999888777
-        integer, save :: mastercompindx_glysoa_nh4_aer = -999888777
-        integer, save :: mastercompindx_glysoa_sfc_aer = -999888777
+        integer, save :: maincompindx_glysoa_r1_aer = -999888777
+        integer, save :: maincompindx_glysoa_r2_aer = -999888777
+        integer, save :: maincompindx_glysoa_oh_aer = -999888777
+        integer, save :: maincompindx_glysoa_nh4_aer = -999888777
+        integer, save :: maincompindx_glysoa_sfc_aer = -999888777
 
-        integer, save :: mastercompindx_ant1_c_aer = -999888777
-        integer, save :: mastercompindx_ant2_c_aer = -999888777
-        integer, save :: mastercompindx_ant3_c_aer = -999888777
-        integer, save :: mastercompindx_ant4_c_aer = -999888777
-        integer, save :: mastercompindx_ant1_o_aer = -999888777
-        integer, save :: mastercompindx_ant2_o_aer = -999888777
-        integer, save :: mastercompindx_ant3_o_aer = -999888777
-        integer, save :: mastercompindx_ant4_o_aer = -999888777
-        integer, save :: mastercompindx_biog1_c_aer = -999888777
-        integer, save :: mastercompindx_biog2_c_aer = -999888777
-        integer, save :: mastercompindx_biog3_c_aer = -999888777
-        integer, save :: mastercompindx_biog4_c_aer = -999888777
-        integer, save :: mastercompindx_biog1_o_aer = -999888777
-        integer, save :: mastercompindx_biog2_o_aer = -999888777
-        integer, save :: mastercompindx_biog3_o_aer = -999888777
-        integer, save :: mastercompindx_biog4_o_aer = -999888777
+        integer, save :: maincompindx_ant1_c_aer = -999888777
+        integer, save :: maincompindx_ant2_c_aer = -999888777
+        integer, save :: maincompindx_ant3_c_aer = -999888777
+        integer, save :: maincompindx_ant4_c_aer = -999888777
+        integer, save :: maincompindx_ant1_o_aer = -999888777
+        integer, save :: maincompindx_ant2_o_aer = -999888777
+        integer, save :: maincompindx_ant3_o_aer = -999888777
+        integer, save :: maincompindx_ant4_o_aer = -999888777
+        integer, save :: maincompindx_biog1_c_aer = -999888777
+        integer, save :: maincompindx_biog2_c_aer = -999888777
+        integer, save :: maincompindx_biog3_c_aer = -999888777
+        integer, save :: maincompindx_biog4_c_aer = -999888777
+        integer, save :: maincompindx_biog1_o_aer = -999888777
+        integer, save :: maincompindx_biog2_o_aer = -999888777
+        integer, save :: maincompindx_biog3_o_aer = -999888777
+        integer, save :: maincompindx_biog4_o_aer = -999888777
 
-        integer, save :: mastercompindx_asoaX_aer = -999888777
-        integer, save :: mastercompindx_asoa1_aer = -999888777
-        integer, save :: mastercompindx_asoa2_aer = -999888777
-        integer, save :: mastercompindx_asoa3_aer = -999888777
-        integer, save :: mastercompindx_asoa4_aer = -999888777
-        integer, save :: mastercompindx_bsoaX_aer = -999888777
-        integer, save :: mastercompindx_bsoa1_aer = -999888777
-        integer, save :: mastercompindx_bsoa2_aer = -999888777
-        integer, save :: mastercompindx_bsoa3_aer = -999888777
-        integer, save :: mastercompindx_bsoa4_aer = -999888777
+        integer, save :: maincompindx_asoaX_aer = -999888777
+        integer, save :: maincompindx_asoa1_aer = -999888777
+        integer, save :: maincompindx_asoa2_aer = -999888777
+        integer, save :: maincompindx_asoa3_aer = -999888777
+        integer, save :: maincompindx_asoa4_aer = -999888777
+        integer, save :: maincompindx_bsoaX_aer = -999888777
+        integer, save :: maincompindx_bsoa1_aer = -999888777
+        integer, save :: maincompindx_bsoa2_aer = -999888777
+        integer, save :: maincompindx_bsoa3_aer = -999888777
+        integer, save :: maincompindx_bsoa4_aer = -999888777
 
 	real, save ::   &
           dens_aer( maxd_acomp, maxd_atype ),  &
-          dens_mastercomp_aer( maxd_acomp ),   &
-      	  mw_mastercomp_aer( maxd_acomp ),     &
+          dens_maincomp_aer( maxd_acomp ),   &
+      	  mw_maincomp_aer( maxd_acomp ),     &
       	  mw_aer( maxd_acomp, maxd_atype ),    &
-      	  hygro_mastercomp_aer( maxd_acomp ),  &
+      	  hygro_maincomp_aer( maxd_acomp ),  &
       	  hygro_aer( maxd_acomp, maxd_atype )
 
 	real, save ::   &
@@ -361,7 +361,7 @@
         real, save :: aersize
 
 	character*20, save ::   &
-      	  name_mastercomp_aer( maxd_acomp ),  &
+      	  name_maincomp_aer( maxd_acomp ),  &
       	  name_aer( maxd_acomp, maxd_atype )
 
 	integer, save ::                     &

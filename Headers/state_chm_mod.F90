@@ -4094,9 +4094,9 @@ CONTAINS
 !   'F' : Returns KPP fixed species index
 !   'G' : Returns gas-phase species index
 !   'H' : Returns hygroscopic-growth species index
-!   'K' : Returns KPP master species index
+!   'K' : Returns KPP main species index
 !   'P' : Returns photolysis species index
-!   'S' : Returns master species index (aka "ModelId")
+!   'S' : Returns main species index (aka "ModelId")
 !   'V' : Returns KPP variable species index
 !   'W' : Returns wet-deposition species index
 !
@@ -4369,7 +4369,7 @@ CONTAINS
           ! Get the KPP prod/loss species from the FAM_NAMES
           ! array in the gckpp_Parameters.F90 module.
           ! NOTE: This is the KPP ID number (index of "VAR" array)
-          ! and not the GEOS-Chem "master" species index!!!
+          ! and not the GEOS-Chem "main" species index!!!
           Id = Ind_( TRIM( Fam_Names(N) ), 'K' )
 
           ! Add the species

@@ -46,7 +46,7 @@ Mask fractions:              false
 #
 # ExtNr ExtName                on/off  Species
 0       Base                   : on    *
-# ----- MASTER SWITCHES ---------------------
+# ----- MAIN SWITCHES -----------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true
     --> CHEMISTRY_INPUT        :       true

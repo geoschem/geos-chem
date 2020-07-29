@@ -123,7 +123,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Reads the HISTORY.rc and input.geos input files to get
 !  determine which GEOS-Chem diagnostics have been requested.  Then it
-!  uses this information to initialize the master list of diagnostics,
+!  uses this information to initialize the main list of diagnostics,
 !  aka, the DiagList object.
 !\\
 !\\
@@ -825,7 +825,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Initializes a DiagItem object, which contains information
 !  about a single GEOS-Chem diagnostic.  Several DiagItem objects will be
-!  linked together in the master diagnostics list (DiagList).
+!  linked together in the main diagnostics list (DiagList).
 !\\
 !\\
 ! !INTERFACE:
@@ -888,7 +888,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Initializes a ColItem object, which contains information
 !  about a single GEOS-Chem collection.  Several ColItem objects will be
-!  linked together in the master collections list (ColList).
+!  linked together in the main collections list (ColList).
 !\\
 !\\
 ! !INTERFACE:
@@ -995,7 +995,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Sets a ColItem object, which contains information
 !  about a single GEOS-Chem collection.  Several ColItem objects will be
-!  linked together in the master collections list (ColList).
+!  linked together in the main collections list (ColList).
 !\\
 !\\
 ! !INTERFACE:

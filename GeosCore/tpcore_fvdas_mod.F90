@@ -2368,7 +2368,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
-    ! Set to F if called on Master or T if called by Slaves
+    ! Set to F if called on root core or T if called by secondary cores
     ! (NOTE: This is only for MPI parallelization, for OPENMP it should be F)
     LOGICAL, INTENT(IN)  :: do_reduction
 
@@ -2498,7 +2498,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
-    ! Set to T if called on Master or F if called by slaves
+    ! Set to T if called on root core or F if called by secondary cores
     ! NOTE: This seems not to be used here....)
     LOGICAL, INTENT(IN)   :: do_reduction
 
