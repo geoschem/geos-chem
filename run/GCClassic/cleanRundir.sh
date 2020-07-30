@@ -18,4 +18,4 @@ rm -f EGRESS
 
 # Clean data too. Prompt user to confirm they want to do this.
 # perhaps asking if they want to archive before deletion.
-rm -f ./OutputDir/*.nc4
+rm -f ./OutputDir/*.nc*
