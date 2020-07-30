@@ -6,11 +6,11 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{simulation}/
+# default name GC_{res}_{met}_{simulation}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
-# Initial version: M. Sulprizio, 6/24/2020
+# Initial version: M. Sulprizio, 6/24/2020 (based off GCHPctm/createRunDir.sh)
 
 curdir=$(pwd)
 cd ../../../../
@@ -349,7 +349,6 @@ cp -r ./runScriptSamples         ${rundir}
 cp ./archiveRun.sh               ${rundir}
 cp ./cleanRundir.sh              ${rundir}
 cp ./setCodeDir.sh               ${rundir}
-cp ./download_data.py            ${rundir}
 cp ./README                      ${rundir}
 cp ./gitignore                   ${rundir}/.gitignore
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
@@ -377,12 +376,6 @@ if [ "${sim_name}" == "benchmark" ]; then
 fi
 
 #--------------------------------------------------------------------
-# Copy sample restart file
-#--------------------------------------------------------------------
-restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
-cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}
-
-#--------------------------------------------------------------------
 # Create symbolic link to code directory
 #--------------------------------------------------------------------
 ln -s ${gcdir} ${rundir}/CodeDir
@@ -400,9 +393,9 @@ sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/input.geos
 sed -i -e "s|{MET}|${met_name}|"             ${rundir}/input.geos
 sed -i -e "s|{SIM}|${sim_name}|"             ${rundir}/input.geos
 sed -i -e "s|{RES}|${grid_res_long}|"        ${rundir}/input.geos
-sed -i -e "s|{NESTED_SIM}|F|"                ${rundir}/input.geos
 sed -i -e "s|{NLEV}|${grid_lev}|"            ${rundir}/input.geos
 ## TO DO: Add if nested... else here; for now default to global
+sed -i -e "s|{NESTED_SIM}|F|"                ${rundir}/input.geos
 sed -i -e "s|{LON_RANGE}|-180.0 180.0|"      ${rundir}/input.geos
 sed -i -e "s|{LAT_RANGE}| -90.0  90.0|"      ${rundir}/input.geos
 sed -i -e "s|{HALF_POLAR}|T|"                ${rundir}/input.geos
@@ -415,6 +408,8 @@ sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{DUST_SF}|${dust_sf}|"          ${rundir}/HEMCO_Config.rc
+sed -i -e "s|{FREQUENCY}|00000100 000000|"   ${rundir}/HISTORY.rc
+sed -i -e "s|{DURATION}|00000100 000000|"    ${rundir}/HISTORY.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
@@ -435,6 +430,12 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/input.geos
 sed -i -e "s|{TIME1}|${starttime}|"     ${rundir}/input.geos
 sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
 
+#--------------------------------------------------------------------
+# Copy sample restart file
+#--------------------------------------------------------------------
+restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
+cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+
 #-----------------------------------------------------------------
 # Set permissions
 #-----------------------------------------------------------------
@@ -444,7 +445,7 @@ chmod 755 ${rundir}/archiveRun.sh
 chmod 755 ${rundir}/runScriptSamples/*
 
 #----------------------------------------------------------------------
-# Archive GCHP repository version in run directory file rundir.version
+# Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
 version_log=${rundir}/rundir.version
 echo "This run directory was created with GEOS-Chem/run/GCClassic/createRunDir.sh." > ${version_log}

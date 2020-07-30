@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Description:
@@ -37,6 +37,10 @@ Remarks:
 import os
 import sys
 import subprocess
+
+# Exit with error if we are not using Python3
+assert sys.version_info.major >= 3, \
+"ERROR: Python 3 is required to run download_data.py!"
 
 # Define global variables
 INPUT_GEOS_FILE = "./input.geos"
@@ -308,7 +312,7 @@ def create_download_script(paths, from_aws=False):
         remote_root = "s3://gcgrid"
         quote = ""
     else:
-        cmd_prefix = 'umask 002; wget -r -np -nH -R "*.html" -N -P ' + \
+        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' + \
                      paths["local_prefix"] + " "
         remote_root = "http://geoschemdata.computecanada.ca/ExtData"
         quote = '"'
@@ -499,7 +503,7 @@ def download_the_data(args):
     Args:
     -----
         args : dict
-            Output of function parse_args.
+            Output of runction parse_args.
     """
 
     # Get information about the run
