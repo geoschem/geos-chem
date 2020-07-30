@@ -259,6 +259,72 @@ do
     fi
 done
 
+if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
+    printf "\nChoose grid domain:\n"
+    printf "  1. Global\n"
+    printf "  2. Asia\n"
+    printf "  3. Europe\n"
+    printf "  4. North America\n"
+    printf "  5. Custom\n"
+
+    valid_domain=0
+    while [ "${valid_domain}" -eq 0 ]
+    do
+	read domain_num
+	if [[ ${domain_num} = "1" ]]; then
+	    lon_range="-180.0 180.0"
+	    lat_range=" -90.0  90.0"
+	    half_polar="T"
+	    nested_sim="F"
+	    buffer_zone="0  0  0  0"
+	    valid_domain=1
+	else
+	    half_polar="F"
+	    nested_sim="T"
+	    buffer_zone="3  3  3  3"
+	    if [[ ${domain_num} = "2" ]]; then
+	        if [[ ${grid_res} = "05x0625" ]]; then 
+	            lon_range=" 60.0 150.0"
+		    lat_range="-11.0  55.0"
+		elif [[ ${grid_res} = "025x03125" ]]; then 
+	            lon_range=" 70.0 140.0"
+		    lat_range=" 15.0  55.0"
+		fi
+  		valid_domain=1
+	    elif [[ ${domain_num} = "3" ]]; then
+	        if [[ ${grid_res} = "05x0625" ]]; then 
+	            lon_range="-30.0 50.0"
+		    lat_range=" 30.0 70.0"
+		elif [[ ${grid_res} = "025x03125" ]]; then 
+	            lon_range="-15.0  40.0"
+		    lat_range=" 32.75 61.25"
+		fi
+  		valid_domain=1
+	    elif [[ ${domain_num} = "4" ]]; then
+	        if [[ ${grid_res} = "05x0625" ]]; then 
+	            lon_range="-140.0 -40.0"
+		    lat_range="  10.0  70.0"
+		elif [[ ${grid_res} = "025x03125" ]]; then 
+	            lon_range="-130.0  -60.0"
+		    lat_range="   9.75  60.0"
+		fi
+  		valid_domain=1
+	    elif [[ ${domain_num} = "5" ]]; then
+	        lon_range="MinLon MaxLon"
+	        lat_range="MinLat MaxLat"
+  		valid_domain=1
+	       printf "\n NOTE: You will need to manually set longitude and latitude bounds in input.geos.\n"
+	    fi
+        fi
+    done
+else
+    lon_range="-180.0 180.0"
+    lat_range=" -90.0  90.0"
+    half_polar="T"
+    nested_sim="F"
+    buffer_zone="0  0  0  0"
+fi
+
 #-----------------------------------------------------------------
 # Ask user to select vertical resolution
 #-----------------------------------------------------------------
@@ -307,7 +373,7 @@ if [ -z "$1" ]; then
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	rundir_name=GC_${grid_res}_${met_name}_${sim_name}
-	printf "Using default directory name ${rundir_name}\n"
+	printf " Using default directory name ${rundir_name}\n"
     fi
 else
     rundir_name=$1
@@ -394,13 +460,11 @@ sed -i -e "s|{MET}|${met_name}|"             ${rundir}/input.geos
 sed -i -e "s|{SIM}|${sim_name}|"             ${rundir}/input.geos
 sed -i -e "s|{RES}|${grid_res_long}|"        ${rundir}/input.geos
 sed -i -e "s|{NLEV}|${grid_lev}|"            ${rundir}/input.geos
-## TO DO: Add if nested... else here; for now default to global
-sed -i -e "s|{NESTED_SIM}|F|"                ${rundir}/input.geos
-sed -i -e "s|{LON_RANGE}|-180.0 180.0|"      ${rundir}/input.geos
-sed -i -e "s|{LAT_RANGE}| -90.0  90.0|"      ${rundir}/input.geos
-sed -i -e "s|{HALF_POLAR}|T|"                ${rundir}/input.geos
-sed -i -e "s|{NESTED_SUM}|F|"                ${rundir}/input.geos
-sed -i -e "s|{BUFFER_ZONE}|0  0  0  0|"      ${rundir}/input.geos
+sed -i -e "s|{LON_RANGE}|${lon_range}|"      ${rundir}/input.geos
+sed -i -e "s|{LAT_RANGE}|${lat_range}|"      ${rundir}/input.geos
+sed -i -e "s|{HALF_POLAR}|${half_polar}|"    ${rundir}/input.geos
+sed -i -e "s|{NESTED_SIM}|${nested_sim}|"    ${rundir}/input.geos
+sed -i -e "s|{BUFFER_ZONE}|${buffer_zone}|"  ${rundir}/input.geos
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{GRID_DIR}|${grid_dir}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{MET_DIR}|${met_dir}|"          ${rundir}/HEMCO_Config.rc
@@ -433,8 +497,12 @@ sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
 #--------------------------------------------------------------------
 # Copy sample restart file
 #--------------------------------------------------------------------
-restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11
-cp ${restarts}/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+if [[ -f ${sample_rst} ]]; then
+    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+else
+    printf "\n NOTE: No sample restart provided for this simulation. You will need to provide an initial restart file or disable GC_RESTARTS in HEMCO_Config.rc to initialize your simulation with default background species concentrations.\n"
+fi
 
 #-----------------------------------------------------------------
 # Set permissions
@@ -477,6 +545,7 @@ do
     if [[ ${enable_git} = "y" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
+	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.run *.py input.geos getRunInfo
 	git add runScriptSamples/* README .gitignore
