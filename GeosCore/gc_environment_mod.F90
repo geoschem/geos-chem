@@ -34,8 +34,8 @@ MODULE GC_Environment_Mod
   PUBLIC  :: GC_Allocate_All
   PUBLIC  :: GC_Init_StateObj
   PUBLIC  :: GC_Init_Grid
-#if !defined( MODEL_CESM )
   PUBLIC  :: GC_Init_Extra
+#if !defined( MODEL_CESM )
   PUBLIC  :: GC_Init_Regridding
 #endif
 !
@@ -399,7 +399,6 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Grid
 !EOC
-#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -811,7 +810,7 @@ CONTAINS
        CALL Init_Diag53( State_Grid )
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF ) && !defined( MODEL_CESM )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
@@ -829,7 +828,6 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Extra
 !EOC
-#endif
 #if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
