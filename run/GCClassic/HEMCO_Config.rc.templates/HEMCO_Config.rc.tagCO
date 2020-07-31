@@ -683,7 +683,7 @@ Mask fractions:              false
 # --- GFAS biomass burning ---
 #==============================================================================
 (((GFAS
-0 GFAS_CO      $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2018/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO      75      5 3
+0 GFAS_CO      $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO      75      5 3
 0 GFAS_CObbAm  -                                          -             -                     - -             -       CObbam  75/1104 5 3
 0 GFAS_CObbAf  -                                          -             -                     - -             -       CObbaf  75/1105 5 3
 0 GFAS_CObbAs  -                                          -             -                     - -             -       CObbas  75/1106 5 3
@@ -1167,7 +1167,7 @@ Mask fractions:              false
 # --- GFAS scale factors ---
 #==============================================================================
 (((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2018/1-12/1-31/0 C xy m 1
+300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2020/1-12/1-31/0 C xy m 1
 )))GFAS
 
 #==============================================================================
