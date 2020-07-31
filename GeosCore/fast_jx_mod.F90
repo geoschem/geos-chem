@@ -2265,7 +2265,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-#if defined( MPI )
+#if defined( SPMD )
     CALL MPIBCAST( NJX,       1,             MPIR8,   0, MPICOM )
     CALL MPIBCAST( NW1,       1,             MPIR8,   0, MPICOM )
     CALL MPIBCAST( NW2,       1,             MPIR8,   0, MPICOM )
@@ -2444,7 +2444,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-#if defined( MPI )
+#if defined( SPMD )
     CALL MPIBCAST( QAA,       Size(QAA),     MPIR8,   0, MPICOM )
     CALL MPIBCAST( WAA,       Size(WAA),     MPIR8,   0, MPICOM )
     CALL MPIBCAST( PAA,       Size(PAA),     MPIR8,   0, MPICOM )
@@ -2670,7 +2670,7 @@ CONTAINS
 
     ENDDO
 
-#if defined( MODEL_CESM ) && defined( MPI )
+#if defined( MODEL_CESM ) && defined( SPMD )
     CALL MPIBCAST( WVAA,      Size(WVAA),     MPIR8,   0, MPICOM )
     CALL MPIBCAST( RHAA,      Size(RHAA),     MPIR8,   0, MPICOM )
     CALL MPIBCAST( NRLAA,     Size(NRLAA),    MPIR8,   0, MPICOM )
@@ -3111,7 +3111,7 @@ CONTAINS
 
 #if defined( MODEL_CESM )
     ENDIF
-#if defined( MPI )
+#if defined( SPMD )
 
     CALL MPIBCAST( JLABEL,    JVN_*50,       MPICHAR, 0, MPICOM )
     CALL MPIBCAST( JFACTA,    JVN_,          MPIR8,   0, MPICOM )
@@ -5183,8 +5183,8 @@ CONTAINS
     st3d   = (/  1,  1,  1 /)
     ct3d   = (/ 51, 18, 12 /)
 #if defined( MODEL_CESM )
-      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-      iret = PIO_GET_VAR(   ncid, vid, TREF          )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, TREF          )
 #else
     CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
 
@@ -5209,8 +5209,8 @@ CONTAINS
     st3d   = (/  1,  1,  1 /)
     ct3d   = (/ 51, 18, 12 /)
 #if defined( MODEL_CESM )
-      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-      iret = PIO_GET_VAR(   ncid, vid, OREF          )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, OREF          )
 #else
     CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
 
