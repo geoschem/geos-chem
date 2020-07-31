@@ -2180,8 +2180,12 @@ CONTAINS
              PRINT*, 'LRGERA   = ', LRGERA(I,J)
              PRINT*, 'ZO       = ', ZO(I,J)
              PRINT*, 'STOP in depvel.f!'
+#if defined( MODEL_CESM )
+             CALL ERROR_STOP('Negative drydep velocity!', 'DRYDEP_MOD')
+#else
              CALL CLEANUP
              STOP
+#endif
              !$OMP END CRITICAL
           ENDIF
 
@@ -2204,8 +2208,12 @@ CONTAINS
              PRINT*, 'ZH       = ', ZH(I,J)
              PRINT*, 'LRGERA   = ', LRGERA(I,J)
              PRINT*, 'ZO       = ', ZO(I,J)
+#if defined( MODEL_CESM )
+             CALL ERROR_STOP('Drydep velocity is NaN!', 'DRYDEP_MOD')
+#else
              CALL CLEANUP
              STOP
+#endif
              !$OMP END CRITICAL
           ENDIF
 550    CONTINUE
