@@ -2506,6 +2506,7 @@ CONTAINS
     !IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
+#if !defined( MODEL_CESM )
        CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_FINE', &
                          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
 
@@ -2526,6 +2527,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+#endif
 
        ! Adjust first flag
     !   FIRST = .FALSE.
