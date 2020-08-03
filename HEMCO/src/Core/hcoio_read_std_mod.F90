@@ -119,7 +119,8 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Read_Arr
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
-    USE Ncdf_Mod,           ONLY : NC_ISMODELLEVEL
+    USE Ncdf_Mod,           ONLY : NC_IsModelLevel
+    USE Ncdf_Mod,           ONLY : NC_IsSigmaLevel
     USE CHARPAK_MOD,        ONLY : TRANLC
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
@@ -646,8 +647,10 @@ CONTAINS
        ! number of levels to be read is explicitly set in the configuration
        ! file (ckeller, 5/20/15).
        IF ( Lct%Dct%Dta%Levels == 0 ) THEN
-          IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
 
+          ! Check if vertical coordinate is GEOS-Chem levels
+          IsModelLevel = NC_IsModelLevel( ncLun, LevName )
+      
           ! Further check if the given number of vertical levels should be
           ! treated as model levels. This is the case if e.g. the nuber of
           ! levels found on the file exactly matches the number of vertical
@@ -657,13 +660,20 @@ CONTAINS
           CALL ModelLev_Check( HcoState, nlev, IsModelLevel, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
+          ! Override IsModelLevel if the long_name contains
+          ! "atmospheric_hybrid_sigma_pressure_coordinate"
+          IsModelLevel = ( .not. NC_IsSigmaLevel( ncLun, LevName ) )
+
           ! Set level indeces to be read
           lev1 = 1
           lev2 = nlev
 
        ! If levels are explicitly given:
        ELSE
-          IsModelLevel = .TRUE.
+          
+          ! If long_name is "atmospheric_hybrid_sigma_pressure_coordinate",
+          ! then treat it as sigma levels; otherwise assume model levels.
+          IsModelLevel = ( .not. NC_IsSigmaLevel( ncLun, LevName ) )
 
           ! Number of levels to be read must be smaller or equal to total
           ! number of available levels

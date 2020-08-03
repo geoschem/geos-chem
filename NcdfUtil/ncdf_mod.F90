@@ -50,6 +50,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
   PUBLIC  :: NC_ISMODELLEVEL
+  PUBLIC  :: NC_ISSIGMALEVEL
   PUBLIC  :: GET_TAU0
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -4949,16 +4950,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Nc_IsModelLevels
+! !IROUTINE: Nc_IsModelLevel
 !
-! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the
+! !DESCRIPTION: Function NC\_IsModelLevel returns true if (and only if) the
 !  long name of the level variable name of the given file ID contains the
 !  character "GEOS-Chem level".
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION NC_ISMODELLEVEL( fID, lev_name ) RESULT ( IsModelLevel )
+  FUNCTION NC_IsModelLevel( fID, lev_name ) RESULT ( IsModelLevel )
 !
 ! !USES:
 !
@@ -4986,7 +4987,7 @@ CONTAINS
     INTEGER                :: a_type
 
     !=======================================================================
-    ! NC_ISMODELLEVEL begins here!
+    ! NC_IsModelLevel begins here!
     !=======================================================================
 
     ! Init
@@ -5002,11 +5003,81 @@ CONTAINS
        CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), LngName )
 
        ! See if this is a GEOS-Chem model level
-       IF ( INDEX(TRIM(LngName),"GEOS-Chem level") > 0 ) THEN
+       IF ( INDEX( TRIM(LngName), "GEOS-Chem level" ) > 0 ) THEN
           IsModelLevel = .TRUE.
        ENDIF
     ENDIF
 
-  END FUNCTION NC_ISMODELLEVEL
+  END FUNCTION NC_IsModelLevel
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_IsSigmaLevel
+!
+! !DESCRIPTION: Function NC\_IsSigmaLevels returns true if (and only if) the
+!  long name of the level variable name of the given file ID contains the
+!  character "atmospheric_hybrid_sigma_pressure_coordinate".
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION NC_IsSigmaLevel( fID, lev_name ) RESULT ( IsSigmaLevel )
+!
+! !USES:
+!
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN) :: fID        ! file ID
+    CHARACTER(LEN=*), INTENT(IN) :: lev_name   ! level variable name
+!
+! !RETURN VALUE:
+!
+    LOGICAL                      :: IsSigmaLevel
+!
+! !REVISION HISTORY:
+!  12 Dec 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                :: HasLngN
+    INTEGER                :: a_type
+
+    ! Strings
+    CHARACTER(LEN=255)     :: a_name, LngName
+
+    !=======================================================================
+    ! NC_IsSigmaLevel begins here!
+    !=======================================================================
+
+    ! Initialize
+    IsSigmaLevel = .FALSE.
+
+    ! Check if there is a long_name attribute
+    a_name = "long_name"
+
+    HasLngN = Ncdoes_Attr_Exist ( fId, TRIM(lev_name), TRIM(a_name), a_type )
+
+    ! Only if attribute exists...
+    IF ( HasLngN ) THEN
+       ! Read attribute
+       CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), LngName )
+
+       ! See if this is a GEOS-Chem model level
+       IF ( INDEX( TRIM( LngName ),                                          &
+            "atmospheric_hybrid_sigma_pressure_coordinate" ) > 0 ) THEN
+          IsSigmaLevel = .TRUE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION NC_IsSigmaLevel
 !EOC
 END MODULE NCDF_MOD
