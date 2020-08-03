@@ -663,14 +663,14 @@ Mask fractions:              false
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #==============================================================================
 (((QFED2
-0 QFED_CO_PBL      $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s CO      54/75/311       5 2
+0 QFED_CO_PBL      $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s CO      54/75/311       5 2
 0 QFED_CObbAm_PBL  -                                                               -       -                     - -             -       CObbam  54/75/311/1104  5 2
 0 QFED_CObbAf_PBL  -                                                               -       -                     - -             -       CObbaf  54/75/311/1105  5 2
 0 QFED_CObbAs_PBL  -                                                               -       -                     - -             -       CObbas  54/75/311/1106  5 2
 0 QFED_CObbOc_PBL  -                                                               -       -                     - -             -       CObboc  54/75/311/1107  5 2
 0 QFED_CObbEu_PBL  -                                                               -       -                     - -             -       CObbeu  54/75/311/1108  5 2
 0 QFED_CObbOth_PBL -                                                               -       -                     - -             -       CObboth 54/75/311/1109  5 2
-0 QFED_CO_FT       $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s CO      54/75/312       5 2
+0 QFED_CO_FT       $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s CO      54/75/312       5 2
 0 QFED_CObbAm_FT   -                                                               -       -                     - -             -       CObbam  54/75/312/1104  5 2
 0 QFED_CObbAf_FT   -                                                               -       -                     - -             -       CObbaf  54/75/312/1105  5 2
 0 QFED_CObbAs_FT   -                                                               -       -                     - -             -       CObbas  54/75/312/1106  5 2

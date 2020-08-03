@@ -264,8 +264,8 @@ Warnings:                    1
 # --- QFED2 biomass burning ---
 #==============================================================================
 (((QFED2
-0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
-0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
+0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
+0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
 )))QFED2
 
 ###############################################################################

@@ -969,20 +969,20 @@ Warnings:                    1
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
+0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
 0 QFED_BCPO_PBL  -                                                                 -       -                     - -             -       BCPO 71/75/311     5 2
-0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
+0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
 0 QFED_BCPO_FT   -                                                                 -       -                     - -             -       BCPO 71/75/312     5 2
-0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
+0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
 0 QFED_OCPO_PBL  -                                                                 -       -                     - -             -       OCPO 73/75/311     5 2
-0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
+0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
 0 QFED_OCPO_FT   -                                                                 -       -                     - -             -       OCPO 73/75/312     5 2
-0 QFED_SOAP_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s SOAP 54/75/281/311 5 2
-0 QFED_SOAP_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s SOAP 54/75/281/312 5 2
-0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s NH3  75/311        5 2
-0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
-0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2017/1-12/1-31/0 C xyL=1:PBL     kg/m2/s SO2  75/311        5 2
-0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2017/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
+0 QFED_SOAP_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s SOAP 54/75/281/311 5 2
+0 QFED_SOAP_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s SOAP 54/75/281/312 5 2
+0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s NH3  75/311        5 2
+0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
+0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL     kg/m2/s SO2  75/311        5 2
+0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
 )))QFED2
 
 #==============================================================================
