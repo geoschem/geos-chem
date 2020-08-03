@@ -174,8 +174,10 @@ CONTAINS
     USE CMN_FJX_MOD,       ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
+#if !defined( MODEL_CESM )
     USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+#endif
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState
     USE State_Diag_Mod,    ONLY : DgnState
@@ -337,10 +339,15 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
+
     ALLOCATE( OMOC(State_Grid%NX, State_Grid%NY), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F: OMOC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+#if !defined( MODEL_CESM )
     CALL HCO_EvalFld( HcoState, Trim(FieldName), OMOC, RC, FOUND=FND )
+#else
+    FND = .False.
+#endif
 
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
