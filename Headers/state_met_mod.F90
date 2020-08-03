@@ -67,6 +67,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
+     REAL(fp), POINTER :: IODIDE        (:,:  ) ! Surface iodide concentration
      LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
      LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
      LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
@@ -104,6 +105,7 @@ MODULE State_Met_Mod
                                                 !  end of timestep [hPa]
      REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
                                                 !  pressure [hPa]
+     REAL(fp), POINTER :: SALINITY      (:,:  ) ! Salinity
      REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
@@ -392,6 +394,7 @@ CONTAINS
     State_Met%GWETROOT       => NULL()
     State_Met%GWETTOP        => NULL()
     State_Met%HFLUX          => NULL()
+    State_Met%IODIDE         => NULL()
     State_Met%IsWater        => NULL()
     State_Met%IsLand         => NULL()
     State_Met%IsIce          => NULL()
@@ -415,6 +418,7 @@ CONTAINS
     State_Met%PS2_DRY        => NULL()
     State_Met%PSC2_WET       => NULL()
     State_Met%PSC2_DRY       => NULL()
+    State_Met%SALINITY       => NULL()
     State_Met%SEAICE00       => NULL()
     State_Met%SEAICE10       => NULL()
     State_Met%SEAICE20       => NULL()
@@ -739,6 +743,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
+    ! IODIDE [nM]
+    !-------------------------
+    ALLOCATE( State_Met%IODIDE( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%IODIDE', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IODIDE = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'IODIDE', State_Met%IODIDE, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
     ! IsWater
     !-------------------------
     ALLOCATE( State_Met%IsWater( IM, JM ), STAT=RC )
@@ -989,6 +1004,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PSC2_DRY = 0.0_fp
     CALL Register_MetField( Input_Opt, 'PSC2DRY', State_Met%PSC2_DRY, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SALINITY [PSU]
+    !-------------------------
+    ALLOCATE( State_Met%SALINITY( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SALINITY', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SALINITY = 0.0_fp
+    CALL Register_MetField( Input_Opt, 'SALINITY', State_Met%SALINITY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -2301,6 +2327,13 @@ CONTAINS
        State_Met%HFLUX => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%IODIDE ) ) THEN
+       DEALLOCATE( State_Met%IODIDE, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IODIDE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IODIDE => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%IsWater ) ) THEN
        DEALLOCATE( State_Met%IsWater, STAT=RC )
        CALL GC_CheckVar( 'State_Met%IsWater', 2, RC )
@@ -2460,6 +2493,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%PSC2_DRY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PSC2_DRY => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SALINITY ) ) THEN
+       DEALLOCATE( State_Met%SALINITY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SALINITY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SALINITY => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SEAICE00 ) ) THEN
@@ -3558,6 +3598,11 @@ CONTAINS
           IF ( isUnits ) Units = 'W m-2'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'IODIDE' )
+          IF ( isDesc  ) Desc  = 'Surface iodide concentration'
+          IF ( isUnits ) Units = 'nM'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'LAI' )
           IF ( isDesc  ) Desc  = 'Leaf area index from GMAO'
           IF ( isUnits ) Units = 'm2 m-2'
@@ -3657,6 +3702,11 @@ CONTAINS
        CASE ( 'PSC2DRY' )
           IF ( isDesc  ) Desc  = 'Dry interpolated surface pressure'
           IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SALINITY' )
+          IF ( isDesc  ) Desc  = 'Salinity'
+          IF ( isUnits ) Units = 'PSU'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'SEAICE00' )

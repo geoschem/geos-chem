@@ -305,7 +305,7 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F90)'
 
-    ! Call METERO to obtain meterological fields (all 1-D arrays)
+    ! Call METERO to obtain meteorological fields (all 1-D arrays)
     ! Added sfc pressure as PRESSU and 10m windspeed as W10
     !  (jaegle 5/11/11, mpayer 1/10/12)
     CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC, &
@@ -611,7 +611,7 @@ CONTAINS
 !
 ! !IROUTINE: OceanO3
 !
-! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velcoity of O3
+! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velocity of O3
 !     to the ocean using method described in Pound et.al (2019)
 !     currently under discussion in ACPD. 
 !     Accounts for the turbulence of the ocean surface,Iodide concentration
@@ -621,7 +621,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE OCEANO3( TEMPK, USTAR, HCO_IODIDE, I, J, DEPV )
+  SUBROUTINE OCEANO3( TEMPK, USTAR, IODIDE_IN, I, J, DEPV )
 !
 ! !USES:
 !
@@ -632,7 +632,7 @@ CONTAINS
 !
     REAL(f8), INTENT(IN)         :: TEMPK ! Temperature [K]
     REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
-    REAL(fp), INTENT(IN)         :: HCO_IODIDE ! Surface iodide from HEMCO
+    REAL(fp), INTENT(IN)         :: IODIDE_IN ! Surface iodide concentration [nM]
     INTEGER,  INTENT(IN)         :: I,J
     REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
 ! 
@@ -653,7 +653,7 @@ CONTAINS
       
     USTARWater = 0.0345_f8*USTAR !waterside friction velocity
     
-    Iodide = HCO_Iodide*1.0E-9_f8 !retrieve iodide from HEMCO
+    Iodide = IODIDE_IN*1.0E-9_f8 ! Convert from nM to M
      
     a = Iodide*EXP((-8772.2/TEMPK)+51.5) !chemical reactivity
 
@@ -956,8 +956,10 @@ CONTAINS
     USE Drydep_Toolbox_Mod, ONLY : BioFit
     USE ErrCode_Mod
     USE ERROR_MOD
+#if !defined( MODEL_CESM )
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+#endif
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1135,10 +1137,6 @@ CONTAINS
     ! Logical for snow and sea ice
     LOGICAL  ::LSNOW(State_Grid%NX,State_Grid%NY)
 
-    ! Iodide and salinity retrieved from HEMCO for O3 ocean dry dep
-    REAL(fp) :: HCO_Iodide(State_Grid%NX,State_Grid%NY)
-    REAL(fp) :: HCO_Salinity(State_Grid%NX,State_Grid%NY)
-
     ! Loop indices (bmy, 3/29/12)
     INTEGER  :: I, J
 
@@ -1220,21 +1218,23 @@ CONTAINS
     ! Size of drycoeff (ckeller, 05/19/14)
     NN = SIZE(DRYCOEFF)
 
+#if !defined( MODEL_CESM )
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
-       CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC )
+       CALL HCO_EvalFld( HcoState, 'surf_iodide', State_Met%Iodide, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
-       CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC )
+       CALL HCO_EvalFld( HcoState, 'surf_salinity', State_Met%Salinity, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
     ENDIF
+#endif
 
 #ifdef MODEL_GEOS
     ! Logical flag for Ra (ckeller, 12/29/17)
@@ -1516,13 +1516,13 @@ CONTAINS
              N_SPC = State_Chm%Map_DryDep(K)
              IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
 
-                IF (HCO_Salinity(I,J) .GT. 20.0_f8) THEN
+                IF (State_Met%SALINITY(I,J) .GT. 20.0_f8) THEN
 
                    ! Now apply the Luhar et al. [2018] equations for the
                    ! special treatment of O3 dry deposition to the ocean
                    ! surface 
                    CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),&
-                                HCO_Iodide(I,J),I,J,DEPVw)
+                                State_Met%IODIDE(I,J),I,J,DEPVw)
 
                    ! Now convert to the new rc value(s) can probably tidy
                    ! this up a bit
