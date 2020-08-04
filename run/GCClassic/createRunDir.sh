@@ -12,10 +12,11 @@
 #
 # Initial version: M. Sulprizio, 6/24/2020 (based off GCHPctm/createRunDir.sh)
 
-curdir=$(pwd)
-cd ../../../../
+srcrundir=$(pwd -P)
+cd ${srcrundir}
+cd ../..
 gcdir=$(pwd)
-cd ${curdir}
+cd ${srcrundir}
 
 #-----------------------------------------------------------------
 # Export data root path in ~/.geoschem/config if file exists
@@ -390,7 +391,7 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 #-----------------------------------------------------------------
 cp -r ./getRunInfo               ${rundir}
-cp -r ../shared/download_data.py ${rundir}
+cp -r ${gcdir}/run/shared/download_data.py ${rundir}
 cp -r ./runScriptSamples         ${rundir}
 cp ./archiveRun.sh               ${rundir}
 cp ./cleanRundir.sh              ${rundir}
@@ -408,11 +409,11 @@ fi
 mkdir ${rundir}/OutputDir
 
 # Copy species database; append APM or TOMAS species if needed
-cp -r ../shared/species_database.yml   ${rundir}
+cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_name} =~ "TOMAS" ]]; then
-    cat ../shared/species_database_tomas.yml >> ${rundir}/species_database.yml
+    cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_name} =~ "APM" ]]; then
-    cat ../shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
 fi
 
 # If benchmark simulation, put run script in directory
@@ -506,7 +507,7 @@ last_commit=$(git log -n 1 --pretty=format:"%s")
 commit_date=$(git log -n 1 --pretty=format:"%cd")
 commit_user=$(git log -n 1 --pretty=format:"%cn")
 commit_hash=$(git log -n 1 --pretty=format:"%h")
-cd ${curdir}
+cd ${srcrundir}
 printf "\n  Remote URL: ${remote_url}" >> ${version_log}
 printf "\n  Branch: ${code_branch}"    >> ${version_log}
 printf "\n  Commit: ${last_commit}"    >> ${version_log}
@@ -531,7 +532,7 @@ do
 	git add runScriptSamples/* README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
-	cd ${curdir}
+	cd ${srcrundir}
 	valid_response=1
     elif [[ ${enable_git} = "n" ]]; then
 	valid_response=1
