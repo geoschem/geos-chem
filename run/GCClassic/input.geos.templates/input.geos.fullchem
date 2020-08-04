@@ -75,10 +75,6 @@ Species name            : DST1
 Species name            : DST2
 Species name            : DST3
 Species name            : DST4
-Species name            : DSTAL1
-Species name            : DSTAL2
-Species name            : DSTAL3
-Species name            : DSTAL4
 Species name            : EOH
 Species name            : ETHLN
 Species name            : ETNO3
@@ -186,10 +182,6 @@ Species name            : N2O5
 Species name            : NH3
 Species name            : NH4
 Species name            : NIT
-Species name            : NITD1
-Species name            : NITD2
-Species name            : NITD3
-Species name            : NITD4
 Species name            : NITs
 Species name            : NO
 Species name            : NO2
@@ -228,10 +220,6 @@ Species name            : SALCAL
 Species name            : SALCCL
 Species name            : SO2
 Species name            : SO4
-Species name            : SO4D1
-Species name            : SO4D2
-Species name            : SO4D3
-Species name            : SO4D4
 Species name            : SO4s
 Species name            : SOAGX
 Species name            : SOAIE
@@ -264,7 +252,7 @@ Online CARBON  AEROSOLS : T
 Online COMPLEX SOA      : F
  => Semivolatile POA?   : F
 Online DUST    AEROSOLS : T
- => Acidic uptake ?     : T
+ => Acidic uptake ?     : F
 Online SEASALT AEROSOLS : T
  => SALA radius bin [um]: 0.01 0.5
  => SALC radius bin [um]: 0.5  8.0

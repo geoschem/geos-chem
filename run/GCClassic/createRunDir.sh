@@ -38,8 +38,7 @@ fi
 if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "\nEnter path for ExtData:\n"
     valid_path=0
-    while [ "$valid_path" -eq 0 ]
-    do
+    while [ "$valid_path" -eq 0 ]; do
 	read extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
@@ -58,125 +57,173 @@ fi
 # Ask user to select simulation type
 #-----------------------------------------------------------------
 printf "\nChoose simulation type:\n"
-printf "   1. Standard\n"
-printf "   2. Tropchem\n"
-printf "   3. Complex SOA\n"
-printf "   4. Complex SOA + SVPOA\n"
-printf "   5. TOMAS15\n"
-printf "   6. TOMAS40\n"
-printf "   7. APM\n"
-printf "   8. RRTMG\n"
-printf "   9. Acid uptake\n"
-printf "  10. Marine POA\n"
-printf "  11. Benchmark\n"
-printf "  12. Aerosol only\n"
-printf "  13. CH4\n"
-printf "  14. CO2\n"
-printf "  15. Hg\n"
-printf "  16. POPs: BaP\n"
-printf "  17. POPs: PHE\n"
-printf "  18. POPS: PYR\n"
-printf "  19. tagCH4\n"
-printf "  20. tagCO\n"
-printf "  21. tagO3\n"
-printf "  22. TransportTracers\n"
+printf "   1. Full chemistry\n"
+printf "   2. Aerosols only\n"
+printf "   3. CH4\n"
+printf "   4. CO2\n"
+printf "   5. Hg\n"
+printf "   6. POPs\n"
+printf "   7. Tagged CH4\n"
+printf "   8. Tagged CO\n"
+printf "   9. Tagged O3\n"
+printf "  10. TransportTracers\n"
 
 valid_sim=0
-while [ "${valid_sim}" -eq 0 ]
-do
+while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
     if [[ ${sim_num} = "1" ]]; then
-	sim_name=standard
-	sim_type=${sim_name}
+	sim_type=fullchem
 	valid_sim=1
     elif [[ ${sim_num} = "2" ]]; then
-	sim_name=tropchem
-	sim_type=${sim_name}
+	sim_type=aerosol
 	valid_sim=1
     elif [[ ${sim_num} = "3" ]]; then
-	sim_name=complexSOA
-	sim_type=tropchem
+	sim_type=CH4
 	valid_sim=1
     elif [[ ${sim_num} = "4" ]]; then
-	sim_name=complexSOA_SVPOA
-	sim_type=tropchem
+	sim_type=CO2
 	valid_sim=1
     elif [[ ${sim_num} = "5" ]]; then
-	sim_name=TOMAS15
-	sim_type=tropchem
+	sim_type=Hg
 	valid_sim=1
     elif [[ ${sim_num} = "6" ]]; then
-	sim_name=TOMAS40
-	sim_type=tropchem
+	sim_type=POPs
 	valid_sim=1
     elif [[ ${sim_num} = "7" ]]; then
-	sim_name=APM
-	sim_type=tropchem
+	sim_type=tagCH4
 	valid_sim=1
     elif [[ ${sim_num} = "8" ]]; then
-	sim_name=RRTMG
-	sim_type=tropchem
+	sim_type=tagCO
 	valid_sim=1
     elif [[ ${sim_num} = "9" ]]; then
-	sim_name=aciduptake
-	sim_type=tropchem
+	sim_type=tagO3
 	valid_sim=1
     elif [[ ${sim_num} = "10" ]]; then
-	sim_name=marinePOA
-	sim_type=tropchem
-	valid_sim=1
-    elif [[ ${sim_num} = "11" ]]; then
-	sim_name=benchmark
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "12" ]]; then
-	sim_name=aerosol
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "13" ]]; then
-	sim_name=CH4
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "14" ]]; then
-	sim_name=CO2
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "15" ]]; then
-	sim_name=Hg
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "16" ]]; then
-	sim_name=POPs_BaP
-	sim_type=POPs
-	valid_sim=1
-    elif [[ ${sim_num} = "17" ]]; then
-	sim_name=POPs_PHE
-	sim_type=POPs
-	valid_sim=1
-    elif [[ ${sim_num} = "18" ]]; then
-	sim_name=POPs_PYR
-	sim_type=POPs
-	valid_sim=1
-    elif [[ ${sim_num} = "19" ]]; then
-	sim_name=tagCH4
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "20" ]]; then
-	sim_name=tagCO
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "21" ]]; then
-	sim_name=tagO3
-	sim_type=${sim_name}
-	valid_sim=1
-    elif [[ ${sim_num} = "22" ]]; then
-	sim_name=TransportTracers
-	sim_type=${sim_name}
+	sim_type=TransportTracers
 	valid_sim=1
     else
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
+
+#-----------------------------------------------------------------
+# Ask user to specify full-chemistry simulation options
+#-----------------------------------------------------------------
+if [[ ${sim_type} = "fullchem" ]]; then
+    
+    printf "\nChoose chemistry domain:\n"
+    printf "  1. Troposphere + stratosphere (recommended)\n"
+    printf "  2. Troposphere only\n"
+    valid_chemgrid=0
+    while [ "${valid_chemgrid}" -eq 0 ]; do
+	read chemgrid_num
+	if [[ ${chemgrid_num} = "1" ]]; then
+	    chemgrid="troposphere"
+	    valid_chemgrid=1
+	elif [[ ${chemgrid_num} = "2" ]]; then
+	    chemgrid="tropstrat"
+	    valid_chemgrid=1
+	else
+	  printf "Invalid chemistry domain option. Try again.\n"
+	fi
+    done
+    
+    printf "\nChoose additional simulation option:\n"
+    printf "  1. Standard\n"
+    printf "  2. Benchmark\n"
+    printf "  3. Complex SOA\n"
+    printf "  4. Marine POA\n"
+    printf "  5. Acid uptake on dust\n"
+    printf "  6. TOMAS\n"
+    printf "  7. APM\n"
+    printf "  8. RRTMG\n"
+    valid_sim_option=0
+    while [ "${valid_sim_option}" -eq 0 ]; do
+	read sim_option
+	if [[ ${sim_option} = "1" ]]; then
+	    sim_name="standard"
+	    valid_sim_option=1
+	elif [[ ${sim_option} = "2" ]]; then
+	    sim_name="benchmark"
+	    valid_sim_option=1
+	elif [[ ${sim_option} = "3" ]]; then
+	    printf "\nChoose complex SOA option:\n"
+	    printf "  1. Complex SOA\n"
+	    printf "  2. Complex SOA with semivolatile POA\n"
+	    valid_soa=0
+	    while [ "${valid_soa}" -eq 0 ]; do
+		read soa_option
+		if [[ ${soa_option} = "1" ]]; then
+		    sim_name="complexSOA"
+		    valid_soa=1
+		elif [[ ${soa_option} = "2" ]]; then
+		    sim_name="complexSOA_SVPOA"
+		    valid_soa=1
+		fi
+	    done
+	    valid_sim_option=1
+	elif [[ ${sim_option} = "4" ]]; then
+	   sim_name="marinePOA"
+	   valid_sim_option=1
+	elif [[ ${sim_option} = "5" ]]; then
+	   sim_name="aciduptake"
+	   valid_sim_option=1
+	elif [[ ${sim_option} = "6" ]]; then
+	    printf "\nChoose TOMAS option:\n"
+	    printf "  1. TOMAS15\n"
+	    printf "  1. TOMAS40\n"
+	    valid_tomas=0
+	    while [ "${valid_tomas}" -eq 0 ]; do
+		read tomas_option
+		if [[ ${tomas_option} = "1" ]]; then
+		    sim_name="TOMAS15"
+		    valid_tomas=1
+		elif [[ ${tomas_option} = "2" ]]; then
+		    sim_name="TOMAS40"
+		    valid_tomas=1
+		fi
+	    done
+	    valid_sim_option=1
+	    valid_sim_option=1
+	elif [[ ${sim_option} = "7" ]]; then
+	    sim_name="APM"
+	    valid_sim_option=1
+	elif [[ ${sim_option} = "8" ]]; then
+	    sim_name="RRTMG"
+	    valid_sim_option=1
+	else
+	    printf "Invalid simulation option. Try again.\n"
+	fi
+    done
+    
+#-----------------------------------------------------------------
+# Ask user to specify POPs simulation options
+#-----------------------------------------------------------------
+elif [[ ${sim_type} = "POPs" ]]; then
+    printf "\nChoose POPs type:\n"
+    printf "  1. BaP\n"
+    printf "  2. PHE\n"
+    printf "  3. PYR\n"
+    valid_pops=0
+    while [ "${valid_pops}" -eq 0 ]; do
+	read pops_num
+	if [[ ${pops_num} = "1" ]]; then
+	    sim_name="POPs_BaP"
+	    valid_pops=1
+	elif [[ ${pops_num} = "2" ]]; then
+	    sim_name="POPs_PHE"
+	    valid_pops=1
+	elif [[ ${pops_num} = "3" ]]; then
+	    sim_name="POPs_PYR"
+	    valid_pops=1
+	else
+	    printf "Invalid POPs type. Try again.\n"
+	fi
+    done
+
+else
+    sim_name=${sim_type}
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
@@ -185,8 +232,7 @@ printf "\nChoose meteorology source:\n"
 printf "  1. MERRA2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
 valid_met=0
-while [ "${valid_met}" -eq 0 ]
-do
+while [ "${valid_met}" -eq 0 ]; do
     read met_num
     if [[ ${met_num} = "1" ]]; then
 	met_name='MERRA2'
@@ -231,8 +277,7 @@ if [[ ${met_name} = "GEOSFP" ]]; then
 fi
 
 valid_res=0
-while [ "${valid_res}" -eq 0 ]
-do
+while [ "${valid_res}" -eq 0 ]; do
     read res_num
     if [[ ${res_num} = "1" ]]; then
 	grid_res='4x5'
@@ -260,7 +305,7 @@ do
 done
 
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
-    printf "\nChoose grid domain:\n"
+    printf "\nChoose horizontal grid domain:\n"
     printf "  1. Global\n"
     printf "  2. Asia\n"
     printf "  3. Europe\n"
@@ -268,8 +313,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
     printf "  5. Custom\n"
 
     valid_domain=0
-    while [ "${valid_domain}" -eq 0 ]
-    do
+    while [ "${valid_domain}" -eq 0 ]; do
 	read domain_num
 	if [[ ${domain_num} = "1" ]]; then
 	    lon_range="-180.0 180.0"
@@ -313,7 +357,9 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        lon_range="MinLon MaxLon"
 	        lat_range="MinLat MaxLat"
   		valid_domain=1
-	       printf "\n NOTE: You will need to manually set longitude and latitude bounds in input.geos.\n"
+	        printf "\n NOTE: You will need to manually set longitude and latitude bounds in input.geos.\n"
+	    else
+		printf "Invalid horizontal grid domain option. Try again.\n"
 	    fi
         fi
     done
@@ -333,13 +379,12 @@ printf "  1. 72 (native)\n"
 printf "  2. 47 (reduced)\n"
 
 valid_lev=0
-while [ "${valid_lev}" -eq 0 ]
-do
+while [ "${valid_lev}" -eq 0 ]; do
     read lev_num
     if [[ ${lev_num} = "1" ]]; then
 	grid_lev='72'
 	valid_lev=1
-    elif [[ ${res_num} = "2" ]]; then
+    elif [[ ${lev_num} = "2" ]]; then
 	grid_lev='47'
 	valid_lev=1
     else
@@ -352,8 +397,7 @@ done
 #-----------------------------------------------------------------
 printf "\nEnter path where the run directory will be created:\n"
 valid_path=0
-while [ "$valid_path" -eq 0 ]
-do
+while [ "$valid_path" -eq 0 ]; do
     read rundir_path
     if [[ ${rundir_path} = "q" ]]; then
 	printf "\nExiting.\n"
@@ -384,8 +428,7 @@ fi
 #-----------------------------------------------------------------
 rundir=${rundir_path}/${rundir_name}
 valid_rundir=0
-while [ "${valid_rundir}" -eq 0 ]
-do
+while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "Warning! ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
@@ -417,9 +460,9 @@ cp ./cleanRundir.sh              ${rundir}
 cp ./setCodeDir.sh               ${rundir}
 cp ./README                      ${rundir}
 cp ./gitignore                   ${rundir}/.gitignore
-cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
+cp ./input.geos.templates/input.geos.${sim_type}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_type}            ${rundir}/HISTORY.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
+cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_type}  ${rundir}/HEMCO_Config.rc
 if [[ ${sim_type} =~ "chem" ]]; then
     cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.standard   ${rundir}/HEMCO_Diagn.rc
 else
@@ -475,12 +518,162 @@ sed -i -e "s|{DUST_SF}|${dust_sf}|"          ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{FREQUENCY}|00000100 000000|"   ${rundir}/HISTORY.rc
 sed -i -e "s|{DURATION}|00000100 000000|"    ${rundir}/HISTORY.rc
 
+# Make changes for specific simulations
+if [[ ${sim_name} = "benchmark" ]]; then
+    line1="--> OFFLINE_DUST           :       true"
+    line2="--> OFFLINE_DUST           :       false"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+    
+    line1="--> OFFLINE_BIOGENICVOC    :       true"
+    line2="--> OFFLINE_BIOGENICVOC    :       false"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="--> OFFLINE_SEASALT        :       true"
+    line2="--> OFFLINE_SEASALT        :       false"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="--> OFFLINE_SOILNOX        :       true"
+    line2="--> OFFLINE_SOILNOX        :       false"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="SoilNOx                : off"
+    line2="SoilNOx                : on "
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="DustDead               : off"
+    line2="DustDead               : on "
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="SeaSalt                : off"
+    line2="SeaSalt                : on "
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+
+    line1="Use GC classic timers?  : F"
+    line2="Use GC classic timers?  : T"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+elif [[ ${sim_name} = "aciduptake" ]]; then
+    line1="DustAlk                : off"
+    line2="DustAlk                : on "
+elif [[ ${sim_name} = "marinePOA" ]]; then
+    line1="SeaSalt                : off"
+    line2="SeaSalt                : on "
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+fi
+
+# Add species for special simulation options
+if [[ ${sim_name} = "benchmark" ]] || [[ ${sim_name} =~ "complexSOA" ]]; then
+    line1="Online COMPLEX SOA      : F"
+    line2="Online COMPLEX SOA      : T"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+    
+    line1="Species name            : ALK4"
+    line2="\Species name            : ASOA1\n\
+Species name            : ASOA2\n\
+Species name            : ASOA3\n\
+Species name            : ASOAN\n\
+Species name            : ASOG1\n\
+Species name            : ASOG2\n\
+Species name            : ASOG3"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+    line1="Species name            : TOLU"
+    line2="\Species name            : TSOA0\n\
+Species name            : TSOA1\n\
+Species name            : TSOA2\n\
+Species name            : TSOA3\n\
+Species name            : TSOG0\n\
+Species name            : TSOG1\n\
+Species name            : TSOG2\n\
+Species name            : TSOG3"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+    if [[ ${sim_name} = "complexSOA_SVPOA" ]]; then
+	line1="=> Semivolatile POA?   : F"
+	line2="=> Semivolatile POA?   : T"
+	sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+
+	line1="Species name            : N2O5"
+	line2="Species name            : NAP"
+	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+	line1="Species name            : OCPI"
+	line2="Species name            : OCPO"
+	sed -i -e "/{$line1}/d"  ${rundir}/input.geos
+	sed -i -e "/{$line2}/d"  ${rundir}/input.geos
+
+	line1="Species name            : OIO"
+	line2="\Species name            : OPOA1\n\
+Species name            : OPOA2\n\
+Species name            : OPOG1\n\
+Species name            : OPOG2"
+	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+	line1="Species name            : PIP"
+	line2="\Species name            : POA1\n\
+Species name            : POA2\n\
+Species name            : POG1\n\
+Species name            : POG2"
+	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+    fi
+
+elif [[ ${sim_name} = "aciduptake" ]]; then
+
+    line1="=> Acidic uptake ?     : F"
+    line2="=> Acidic uptake ?     : T"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+    
+    line1="Species name            : DST4"
+    line2="\Species name            : DSTAL1\n\
+Species name            : DSTAL2\n\
+Species name            : DSTAL3\n\
+Species name            : DSTAL4"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+    line1="Species name            : NIT"
+    line2="\Species name            : NITD1\n\
+Species name            : NITD2\n\
+Species name            : NITD3\n\
+Species name            : NITD4"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+        line1="Species name            : SO4"
+    line2="\Species name            : SO4D1\n\
+Species name            : SO4D2\n\
+Species name            : SO4D3\n\
+Species name            : SO4D4"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+elif [[ ${sim_name} = "marinePOA" ]]; then
+
+    line1=" => MARINE ORG AEROSOLS : F"
+    line2=" => MARINE ORG AEROSOLS : T"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+    
+    line1="Species name            : MONITU"
+    line2="\Species name            : MOPI\n\
+Species name            : MOPO"
+    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+
+fi
+
+# Save additional diagnostics for benchmark simulations
+if [[ ${sim_name} = "benchmark" ]]; then
+    line1="#Inv"
+    line2="Inv"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Diagn.rc
+
+    line1="#'"
+    line2="'"
+    sed -i -e "s|${line1}|${line2}|" ${rundir}/HISTORY.rc
+fi
+
+
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_type} =~ "chem" ]]; then
+if [[ ${sim_name} = "benchmark" ]]; then
     startdate="20190701"
     enddate="20190801"
-elif [[ ${sim_name} = "benchmark" ]]; then
+elif [[ ${sim_type} =~ "chem" ]]; then
     startdate="20190701"
     enddate="20190801"
 else
@@ -539,8 +732,7 @@ printf "\n  Hash: ${commit_hash}"      >> ${version_log}
 #-----------------------------------------------------------------
 printf "\nDo you want to track run directory changes with git? (y/n)\n"
 valid_response=0
-while [ "$valid_response" -eq 0 ]
-do
+while [ "$valid_response" -eq 0 ]; do
     read enable_git
     if [[ ${enable_git} = "y" ]]; then
 	cd ${rundir}
