@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (23 Jul 2020)
+# GEOS-Chem Species Database (04 Aug 2020)
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them
 A3O2:
@@ -170,10 +170,11 @@ BCPO:
 Be_PROP: &Beproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   Is_Advected: true
-  Is_DryDep: true
   Is_Aerosol: true
+  Is_DryDep: true
+  Is_RadioNuclide: true
   Is_WetDep: true
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
@@ -2232,7 +2233,7 @@ LVOC:
 LVOCOA:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   Formula: C5H14O5
   FullName: Aer-phase low-volatility non-IEPOX product of RIP ox
   Is_Advected: true
@@ -2743,7 +2744,7 @@ NH4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
-  DD_Hstar_old : 0.0
+  DD_Hstar: 0.0
   Formula: NH4
   FullName: Ammonium
   Is_Advected: true
@@ -3019,7 +3020,7 @@ OPOG1:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW:g: 12.01
+  MW_g: 12.01
   WD_RetFactor: 2.0e-2
 OPOG2:
   DD_F0: 0.0
@@ -3030,7 +3031,7 @@ OPOG2:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW:g: 12.01
+  MW_g: 12.01
   WD_RetFactor: 2.0e-2
 OTHRO2:
   Formula: CH3CH2OO
@@ -3059,11 +3060,12 @@ PassiveTracer:
 Pb210_PROP: &Pbproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   Formula: Pb210
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
+  Is_RadioNuclide: True
   Is_WetDep: true
   MW_g: 210.0
   WD_AerScavEff: 1.0
@@ -3211,7 +3213,7 @@ POPG_PYR:
 POPPBCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C20H12
   FullName: Benzo(a)pyrene particles on hydrophilic black carbon
   Is_Aerosol: true
@@ -3224,7 +3226,7 @@ POPPBCPI_BaP:
 POPPBCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C14H10
   FullName: Phenanthrene particles on hydrophilic black carbon
   Is_Aerosol: true
@@ -3237,7 +3239,7 @@ POPPBCPI_PHE:
 POPPBCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C16H10
   FullName: Pyrene particles on hydrophilic black carbon
   Is_Aerosol: true
@@ -3250,7 +3252,7 @@ POPPBCPI_PYR:
 POPPBCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C20H12
   FullName: Benzo(a)pyrene particles on hydrophobic black carbon
   Is_Aerosol: true
@@ -3263,7 +3265,7 @@ POPPBCPO_BaP:
 POPPBCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C14H10
   FullName: Phenanthrene particles on hydrophobic black carbon
   Is_Aerosol: true
@@ -3276,7 +3278,7 @@ POPPBCPO_PHE:
 POPPBCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C16H10
   FullName: Pyrene particles on hydrophobic black carbon
   Is_Aerosol: true
@@ -3289,7 +3291,7 @@ POPPBCPO_PYR:
 POPPOCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C20H12
   FullName: Benzo(a)pyrene particles on hydrophilic organic carbon
   Is_Aerosol: true
@@ -3302,7 +3304,7 @@ POPPOCPI_BaP:
 POPPOCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C14H10
   FullName: Phenanthrene particles on hydrophilic organic carbon
   Is_Aerosol: true
@@ -3315,7 +3317,7 @@ POPPOCPI_PHE:
 POPPOCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C16H10
   FullName: Pyrene particles on hydrophilic organic carbon
   Is_Aerosol: true
@@ -3328,7 +3330,7 @@ POPPOCPI_PYR:
 POPPOCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C20H12
   FullName: Benzo(a)pyrene particles on hydrophobic organic carbon
   Is_Aerosol: true
@@ -3341,7 +3343,7 @@ POPPOCPO_BaP:
 POPPOCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C14H10
   FullName: Phenanthrene particles on hydrophobic organic carbon
   Is_Aerosol: true
@@ -3354,7 +3356,7 @@ POPPOCPO_PHE:
 POPPOCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_Hstar_old: 0.0
+  DD_Hstar: 0.0
   Formula: C16H10
   FullName: Pyrene particles on hydrophobic organic carbon
   Is_Aerosol: true
@@ -3603,6 +3605,7 @@ Rn222:
   FullName: Radon-222 isotope
   Is_Advected: true
   Is_Aerosol: true
+  Is_RadioNuclide: true
   MW_g: 222.0
 ROH:
   Formula: C3H7OH
@@ -3691,7 +3694,7 @@ SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
-  DD_Hstar_Old: 0.0
+  DD_Hstar: 0.0
   Density: 1700.0
   Formula: SO4
   FullName: Sulfate
@@ -3744,7 +3747,7 @@ SO4s:
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   Formula: C2H2O2
   FullName: Aerosol-phase glyoxal
   Is_Advected: true
@@ -3758,7 +3761,7 @@ SOAGX:
 SOAIE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   Formula: C5H10O3
   FullName: Aerosol-phase IEPOX
   Is_Advected: true
@@ -3777,7 +3780,7 @@ SOAP:
 SOAS:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0
+  DD_Hstar: 0.0
   FullName: SOA Simple - simplified non-volatile SOA parameterization
   Is_Advected: true
   Is_Aerosol: true
