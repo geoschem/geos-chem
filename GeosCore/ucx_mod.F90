@@ -22,6 +22,14 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
+#if defined( MODEL_CESM )
+    USE CAM_PIO_UTILS, ONLY : CAM_PIO_OPENFILE
+    USE IOFILEMOD,     ONLY : GETFIL
+    USE PIO,           ONLY : PIO_CLOSEFILE, PIO_INQ_DIMID, PIO_INQ_DIMLEN
+    USE PIO,           ONLY : PIO_INQ_VARID, PIO_GET_VAR, PIO_NOERR
+    USE PIO,           ONLY : PIO_NOWRITE, FILE_DESC_T
+#endif
+
 #if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
@@ -672,6 +680,12 @@ CONTAINS
     REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
     INTEGER                               :: LSTART
 
+#if defined( MODEL_CESM )
+    INTEGER            :: iret
+    INTEGER            :: vid
+    TYPE(FILE_DESC_T)  :: ncid
+#endif
+
     ! Local variables for quantities from Input_Opt
     LOGICAL                               :: prtDebug
 
@@ -705,7 +719,11 @@ CONTAINS
           CALL DEBUG_MSG( TRIM(DBGMSG) )
        ENDIF
 
+#if defined( MODEL_CESM )
+       CALL CAM_PIO_OPENFILE( ncid, TRIM(NOX_FILE), PIO_NOWRITE )
+#else
        CALL NcOp_Rd (fId,TRIM(NOX_FILE))
+#endif
 
        ! Start and count indices
        st3d = (/ 1,        1,          TARG_MONTH /)
@@ -726,7 +744,12 @@ CONTAINS
           CASE ( 6 )
              TARG_TRAC = 'JN2O'
           END SELECT
+#if defined( MODEL_CESM )
+          iret = PIO_INQ_VARID( ncid, TRIM(TARG_TRAC), vid )
+          iret = PIO_GET_VAR( ncid, vid, st3d, ct3d, NOXD2D_IN )
+#else
           CALL NcRd( NOXD2D_IN, fId, TRIM(TARG_TRAC), st3d, ct3d )
+#endif
 
           !! Debug
           !IF ( prtDebug ) THEN
@@ -760,7 +783,11 @@ CONTAINS
        ENDDO
 
        DEALLOCATE( NOXD2D_IN )
+#if defined( MODEL_CESM )
+       CALL PIO_CLOSEFILE( ncid )
+#else
        CALL NcCl( fId )
+#endif
     ELSE
 
        ! All the coefficients are now stored in NOXCOEFF.
