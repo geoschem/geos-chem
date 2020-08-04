@@ -12,12 +12,13 @@
 #
 # Initial version: E. Lundgren,10/5/2018
 
-curdir=$(pwd)
-cd ../../GCHP
-gchpdir=$(pwd)
-cd ..
+srcrundir=$(pwd -P)
+cd ${srcrundir}
+cd ../..
 gcdir=$(pwd)
-cd ${curdir}
+cd ../../../..
+gchpdir=$(pwd)
+cd ${srcrundir}
 
 #-----------------------------------------------------------------
 # Export data root path in ~/.geoschem/config if file exists
@@ -28,13 +29,8 @@ if [[ -f ${HOME}/.geoschem/config ]]; then
 	printf "\nWarning: Default root data directory does not exist!"
         printf "\nSet new path below or manually edit ${HOME}/.geoschem/config.\n"
     fi
-    if [[ ! -d ${GFTL} ]]; then
-	printf "\nWarning: Default Goddard Fortran Template Library (gFTL) does not exist!"
-        printf "\nSet new path below or manually edit ${HOME}/.geoschem/config.\n"
-    fi
 else
-    printf "\nDefine paths to ExtData and the Goddard Fortran Template Library (gFTL)."
-    printf "\nThese will be stored in ${HOME}/.geoschem/config for future automatic use.\n"
+    printf "\nDefine paths to ExtData. This will be stored in ${HOME}/.geoschem/config for future automatic use.\n"
     mkdir -p ${HOME}/.geoschem
 fi
 
@@ -61,67 +57,38 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 #-----------------------------------------------------------------
-# One-time configuration of Goddard Fortran template library (gFTL)
-#  path in ~/.geoschem/config
-#-----------------------------------------------------------------
-if [[ -z "${GFTL}" ]]; then
-    printf "\nIf you have not downloaded gFTL then enter q to exit."
-    printf "\nFollow these instructions at the command prompt to install:\n"
-    printf "\n      1. Navigate to directory where you want to download gFTL"
-    printf "\n      2. Type the following at the command prompt:"
-    printf "\n         $ git clone https://github.com/Goddard-Fortran-Ecosystem/gFTL"
-    printf "\n         $ cd gFTL"
-    printf "\n         $ git checkout v1.0.0"
-    printf "\n         $ mkdir build"
-    printf "\n         $ cd build"
-    printf "\n         $ cmake .. -DCMAKE_INSTALL_PREFIX=../install"
-    printf "\n         $ make install"
-    printf "\n      3. Verify success by checking that gFTL/install/include/templates and gFTL/install/include/types exist\n"
-    printf "\nEnter path for gFTL/install:\n"
-    valid_path=0
-    while [ "$valid_path" -eq 0 ]
-    do
-	read gftl
-	if [[ ${gftl} = "q" ]]; then
-	    printf "\nExiting.\n"
-	    exit 1
-	elif [[ ! -d ${gftl} ]]; then
-            printf "\nError: ${gftl} does not exist. Enter a new path or hit q to quit.\n"
-	else
-	    valid_path=1
-	    echo "export GFTL=${gftl}" >> ${HOME}/.geoschem/config
-            source ${HOME}/.geoschem/config
-	fi
-    done
-fi
-
-#-----------------------------------------------------------------
 # Ask user to select simulation type
 #-----------------------------------------------------------------
 printf "\nChoose simulation type:\n"
 printf "  1. Standard\n"
 printf "  2. Benchmark\n"
 printf "  3. TransportTracers\n"
+printf "  4. Standard w/ RRTMG enabled\n"
 valid_sim=0
+sim_extra_option=none
 while [ "${valid_sim}" -eq 0 ]
 do
     read sim_num
-    elif [[ ${sim_num} = "1" ]]; then
+    valid_sim=1
+    if [[ ${sim_num} = "1" ]]; then
 	sim_name=standard
 	sim_name_long=${sim_name}
 	sim_type=fullchem
-	valid_sim=1
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=benchmark
 	sim_name_long=${sim_name}
 	sim_type=fullchem
-	valid_sim=1
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=TransportTracers
 	sim_name_long=${sim_name}
 	sim_type=${sim_name}
-	valid_sim=1
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=standard
+	sim_name_long=${sim_name}
+	sim_type=fullchem
+        sim_extra_option=RRTMG
     else
+        valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
@@ -176,7 +143,7 @@ do
     if [[ ${rundir_path} = "q" ]]; then
 	printf "\nExiting.\n"
 	exit 1
-    elif [[ ! -d ${rundir_path} ]]; then
+    elif [[ ! -d "${rundir_path}" ]]; then
         printf "\nError: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
 	valid_path=1
@@ -190,7 +157,11 @@ if [ -z "$1" ]; then
     printf "\nEnter run directory name, or press return to use default:\n"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=gchp_${sim_name}
+	if [[ "${sim_extra_option}" == "none" ]]; then
+	    rundir_name=gchp_${sim_name}
+	else
+	    rundir_name=gchp_${sim_name}_${sim_extra_option}
+	fi
 	printf "Using default directory name ${rundir_name}\n"
     fi
 else
@@ -205,7 +176,7 @@ valid_rundir=0
 while [ "${valid_rundir}" -eq 0 ]
 do
     if [[ -d ${rundir} ]]; then
-	printf "Warning! ${rundir} already exists.\n"
+	printf "\nWarning! ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
 	read new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
@@ -249,14 +220,9 @@ cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Conf
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 
 # Copy the species database yaml file from the source code
-if [[ -d ../../Headers ]]; then
-    spcdb_dir=../../Headers
-else
-    spcdb_dir=../src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/Headers
-fi
-cp $spcdb_dir/species_database.yml ${rundir}
+cp ${gcdir}/run/shared/species_database.yml ${rundir}
 
-# If benchmark simulation, put gchp.run script in directory; else do not.
+# If benchmark simulation, put run script in directory; else do not.
 if [ "${sim_name}" == "benchmark" ]; then
     cp ./runScriptSamples/gchp.benchmark.run           ${rundir}/gchp.benchmark.run
     chmod 744 ${rundir}/gchp.benchmark.run
@@ -280,6 +246,8 @@ for N in 24 48 90 180 360
 do
     ln -s ${restarts}/initial_GEOSChem_rst.c${N}_${sim_name_long}.nc  ${rundir}
 done
+
+
 
 #-----------------------------------------------------------------
 # Replace token strings in certain files
@@ -363,6 +331,36 @@ sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/CAP.rc
 sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/CAP.rc
 
 #-----------------------------------------------------------------
+# Update config file default settings based on simulation selected
+#-----------------------------------------------------------------
+
+#### Define function to replace values in config files
+replace_colon_sep_val() {
+    KEY=$1
+    VALUE=$2
+    FILE=$3
+    #printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VALUE}" "${FILE}"
+
+    # replace value in line starting with 'whitespace + key + whitespace + : +
+    # whitespace + value' where whitespace is variable length including none
+    sed "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE} > tmp
+    mv tmp ${FILE}
+}
+
+# Settings for RRTMG
+if [ "${sim_extra_option}" == "RRTMG" ]; then
+    replace_colon_sep_val "Turn on RRTMG?"       T ${rundir}/input.geos
+    replace_colon_sep_val "Calculate LW fluxes?" T ${rundir}/input.geos
+    replace_colon_sep_val "Calculate SW fluxes?" T ${rundir}/input.geos
+    replace_colon_sep_val "Clear-sky flux?"      T ${rundir}/input.geos
+    replace_colon_sep_val "All-sky flux?"        T ${rundir}/input.geos
+    replace_colon_sep_val "--> RRTMG"         true ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|#'RRTMG'|'RRTMG'|"                ${rundir}/HISTORY.rc
+    printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
+    printf "           Edit input.geos and HISTORY.rc to customize options to only what you need.\n"
+fi
+
+#-----------------------------------------------------------------
 # Set permissions
 #-----------------------------------------------------------------
 chmod 744 ${rundir}/setCodeDir.sh
@@ -389,7 +387,7 @@ last_commit=$(git log -n 1 --pretty=format:"%s")
 commit_date=$(git log -n 1 --pretty=format:"%cd")
 commit_user=$(git log -n 1 --pretty=format:"%cn")
 commit_hash=$(git log -n 1 --pretty=format:"%h")
-cd ${curdir}
+cd ${srcrundir}
 printf "\n  Remote URL: ${remote_url}" >> ${version_log}
 printf "\n  Branch: ${code_branch}"    >> ${version_log}
 printf "\n  Commit: ${last_commit}"    >> ${version_log}
@@ -414,7 +412,7 @@ do
         git add build.sh
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
-	cd ${curdir}
+	cd ${srcrundir}
 	valid_response=1
     elif [[ ${enable_git} = "n" ]]; then
 	valid_response=1
