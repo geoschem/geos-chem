@@ -96,8 +96,8 @@ MODULE PLANEFLIGHT_MOD
   INTEGER,           PARAMETER   :: MAXPOINTS = 100000
   INTEGER,           PARAMETER   :: MAXREAC   = 50
   INTEGER,           PARAMETER   :: MAXRO2    = 45
-  INTEGER,           PARAMETER   :: MAXAN     = 15
-  INTEGER,           PARAMETER   :: MAXNOY    = 15
+  INTEGER,           PARAMETER   :: MAXAN     = 20
+  INTEGER,           PARAMETER   :: MAXNOY    = 20
 
   ! For specifying flight track points
   INTEGER                        :: NPOINTS
