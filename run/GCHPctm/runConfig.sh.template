@@ -160,6 +160,9 @@ ProdLoss_mode=${common_mode}
 RadioNuclide_freq=${common_freq}
 RadioNuclide_dur=${common_dur}
 RadioNuclide_mode=${common_mode}
+RRTMG_freq=${common_freq}
+RRTMG_dur=${common_dur}
+RRTMG_mode=${common_mode}
 StateChm_freq=${common_freq}
 StateChm_dur=${common_dur}
 StateChm_mode=${common_mode}
@@ -539,6 +542,9 @@ replace_val ProdLoss.mode              ${ProdLoss_mode}         HISTORY.rc
 replace_val RadioNuclide.frequency     ${RadioNuclide_freq}     HISTORY.rc
 replace_val RadioNuclide.duration      ${RadioNuclide_dur}      HISTORY.rc
 replace_val RadioNuclide.mode          ${RadioNuclide_mode}     HISTORY.rc
+replace_val RRTMG.frequency            ${RRTMG_freq}            HISTORY.rc
+replace_val RRTMG.duration             ${RRTMG_dur}             HISTORY.rc
+replace_val RRTMG.mode                 ${RRTMG_mode}            HISTORY.rc
 replace_val StateChm.frequency         ${StateChm_freq}	        HISTORY.rc
 replace_val StateChm.duration          ${StateChm_dur}	        HISTORY.rc
 replace_val StateChm.mode              ${StateChm_mode}	        HISTORY.rc
