@@ -702,10 +702,6 @@ CONTAINS
     !### Debug: Show the values in the lookup table
     !###CALL State_Chm%SpcDict%Show()
 
-    ! Populate the HetInfo object, which is used to cleanly pass
-    ! modelId's and molecular weights to the het chem routine
-    CALL Init_HetInfo( State_Chm, RC )
-
     !=======================================================================
     ! Exit if this is a dry-run simulation
     !=======================================================================
@@ -715,9 +711,22 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! Populate the HetInfo object, which is used to cleanly pass
+    ! modelId's and molecular weights to the het chem routine
+    !=======================================================================
+    State_Chm%HetInfo => NULL()
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       CALL Init_HetInfo( State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Init_HetInfo" routine!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
     ! Allocate and initialize mapping vectors to subset species
     !=======================================================================
-
     IF ( State_Chm%nAdvect > 0 ) THEN
        ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 0, RC )
