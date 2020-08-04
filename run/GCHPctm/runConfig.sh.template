@@ -50,7 +50,20 @@ NY=6 # Ignore if NXNY_AUTO=ON
 #------------------------------------------------
 #   Internal Cubed Sphere Resolution
 #------------------------------------------------
-CS_RES={GridRes} # 24 ~ 4x5, 48 ~ 2x2.5, 90 ~ 1x1.25, 180 ~ 1/2 deg, 360 ~ 1/4 deg
+
+# Primary resolution is an integer value. Set stretched grid to ON or OFF.
+#   24 ~ 4x5, 48 ~ 2x2.25, 90 ~ 1x1.25, 180 ~ 1/2 deg, 360 ~ 1/4 deg
+CS_RES={GridRes}
+STRETCH_GRID=OFF
+
+# Stretched grid parameters
+# Rules and notes:
+#    (1) Minimum STRETCH_FACTOR is 1.0001
+#    (2) Target lat and lon must be floats (contain decimal)
+#    (3) Target lon must be in range [0,360)
+STRETCH_FACTOR=2.0
+TARGET_LAT=-45.0
+TARGET_LON=170.0
 
 #------------------------------------------------
 #    Debug Options
@@ -398,14 +411,55 @@ fi
 #### Define function to replace values in .rc files
 replace_val() {
     KEY=$1
-    VALUE=$2
+    VAL=$2
     FILE=$3
-    printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VALUE}" "${FILE}"
+    printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VAL}" "${FILE}"
+
+    # Use : for delimiter by default, unless argument passed
+    if [[ -z $4 ]]; then
+	DELIMITER=:
+    else
+	DELIMITER=$4
+    fi
 
     # replace value in line starting with 'whitespace + key + whitespace + : +
     # whitespace + value' where whitespace is variable length including none
-    sed "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE} > tmp
+    sed "s|^\([\t ]*${KEY}[\t ]*${DELIMITER}[\t ]*\).*|\1${VAL}|" ${FILE} > tmp
     mv tmp ${FILE}
+}
+
+#### Define function to uncomment line in config file
+uncomment_line() {
+    if [[ $(grep -c "^[\t ]*$1" $2) == "1" ]]; then
+	return
+    fi
+    num_lines=$(grep -c "^[\t ]*#*[\t ]*$1" $2)
+    if [[ $num_lines == "1" ]]; then
+        sed -i -e "s|[\t ]*#*[\t ]*$1|$1|" $2
+    elif [[ $num_lines == "0" ]]; then
+	echo "ERROR: Entry for $1 missing in $2!"
+        exit 1
+    else
+	echo "ERROR: Multiple entries for $1 found in $2!"
+        exit 1
+    fi
+}
+
+#### Define function to comment line in config file
+comment_line() {
+    if [[ $(grep -c "#.*$1" $2) == "1" ]]; then
+	return
+    fi
+    num_lines=$(grep -c "^[\t ]*$1" $2)
+    if [[ $num_lines == "1" ]]; then
+        sed -i -e "s|[\t ]*$1|#$1|" $2
+    elif [[ $num_lines == "0" ]]; then
+	echo "ERROR: Entry for $1 missing in $2!"
+        exit 1
+    else
+	echo "ERROR: Multiple entries for $1 found in $2!"
+        exit 1
+    fi
 }
 
 #### Define function to replace met-field read frequency in ExtData.rc given var name
@@ -464,6 +518,33 @@ replace_val JM             ${CS_RES_x_6}                 GCHP.rc
 replace_val npx            ${CS_RES}                     fvcore_layout.rc
 replace_val npy            ${CS_RES}                     fvcore_layout.rc
 replace_val GCHP.GRIDNAME  PE${CS_RES}x${CS_RES_x_6}-CF  GCHP.rc
+if [[ ${STRETCH_GRID} == "ON" ]]; then
+    uncomment_line GCHP.STRETCH_FACTOR GCHP.rc
+    uncomment_line GCHP.TARGET_LAT     GCHP.rc
+    uncomment_line GCHP.TARGET_LON     GCHP.rc
+    uncomment_line do_schmidt          input.nml
+    uncomment_line stretch_fac         input.nml
+    uncomment_line target_lat          input.nml
+    uncomment_line target_lon          input.nml
+    replace_val GCHP.STRETCH_FACTOR ${STRETCH_FACTOR}  GCHP.rc
+    replace_val stretch_fac,        ${STRETCH_FACTOR}, input.nml =
+    replace_val GCHP.TARGET_LAT     ${TARGET_LAT}      GCHP.rc
+    replace_val target_lat,         ${TARGET_LAT},     input.nml =
+    replace_val GCHP.TARGET_LON     ${TARGET_LON}      GCHP.rc
+    replace_val target_lon,         ${TARGET_LON},     input.nml =
+elif [[ ${STRETCH_GRID} == "OFF" ]]; then
+    echo "*** Stretched grid is turned off ***"
+    comment_line GCHP.STRETCH_FACTOR GCHP.rc
+    comment_line GCHP.TARGET_LAT     GCHP.rc
+    comment_line GCHP.TARGET_LON     GCHP.rc
+    comment_line do_schmidt          input.nml
+    comment_line stretch_fac         input.nml
+    comment_line target_lat          input.nml
+    comment_line target_lon          input.nml
+else
+    echo "WARNING: unknown setting for GCHP.STRETCH_GRID."
+    exit 1
+fi
 
 ####  set input restart filename
 echo " "

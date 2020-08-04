@@ -11,6 +11,11 @@ GCHP.IM: 24
 GCHP.JM: 144
 GCHP.LM: 72
 
+# For stretched grid
+#GCHP.STRETCH_FACTOR: 2.0
+#GCHP.TARGET_LON: 242.0
+#GCHP.TARGET_LAT: 37.0
+
 # For FV advection do not use grid comp name prefix
 IM: 24
 JM: 144
