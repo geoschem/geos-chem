@@ -282,7 +282,6 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-
        ! Land: LWI=1 and ALBEDO less than 69.5%
        State_Met%IsLand(I,J) = ( NINT( State_Met%LWI(I,J) ) == 1 .and. &
                                State_Met%ALBD(I,J)  <  0.695e+0_fp )
@@ -294,6 +293,9 @@ CONTAINS
        ! Ice: LWI=2 or ALBEDO > 69.5%
        State_Met%IsIce(I,J) = ( NINT( State_Met%LWI(I,J) ) == 2 .or. &
                               State_Met%ALBD(I,J)  >= 0.695e+0_fp )
+
+       ! Snow covered: ALBEDO > 40%
+       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  >= 0.40e+0_fp )
 
     ENDDO
     ENDDO

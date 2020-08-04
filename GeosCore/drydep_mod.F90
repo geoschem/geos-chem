@@ -279,7 +279,6 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     ! Arrays
-    LOGICAL  :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for sfc snow/ice
     REAL(f8) :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st level [m]
     REAL(f8) :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temp [K]
     REAL(f8) :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
@@ -309,16 +308,16 @@ CONTAINS
     ! Added sfc pressure as PRESSU and 10m windspeed as W10
     !  (jaegle 5/11/11, mpayer 1/10/12)
     CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC, &
-                 RADIAT,     AZO,       USTAR,   ZH,        LSNOW, &
-                 RHB,        PRESSU,    W10,     SUNCOS_MID        )
+                 RADIAT,     AZO,       USTAR,   ZH,        RHB,   &
+                 PRESSU,    W10,     SUNCOS_MID                   )
 
     ! Call DEPVEL to compute dry deposition velocities [m/s]
     CALL DEPVEL( Input_Opt, State_Chm,  State_Diag, State_Grid, &
                  State_Met, RADIAT,     TC0,        SUNCOS_MID, &
                  F0,        HSTAR,      XMW,        AIROSOL,    &
                  USTAR,     CZ1,        OBK,        CFRAC,      &
-                 ZH,        LSNOW,      AZO,        RHB,        &
-                 PRESSU,    W10,        RC          )
+                 ZH,        AZO,        RHB,        PRESSU,     &
+                 W10,        RC                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -404,7 +403,6 @@ CONTAINS
     ! Scalars
     INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
     REAL(f8)           :: DVZ, THIK
-    LOGICAL            :: LSNOW             ! Flag for snow/ice on the surface
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     ! Pointers
@@ -431,9 +429,6 @@ CONTAINS
     !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-
-       ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-       LSNOW  = ( State_Met%ALBD(I,J) > 0.4 )
 
        ! THIK = thickness of surface layer [m]
        THIK   = State_Met%BXHEIGHT(I,J,1)
@@ -490,7 +485,7 @@ CONTAINS
           !-----------------------------------------------------------
           ! Special treatment for snow vs. ice
           !-----------------------------------------------------------
-          IF ( LSNOW ) THEN
+          IF ( State_Met%isSnow(I,J) ) THEN
 
              !-------------------------------------
              ! %%% SURFACE IS SNOW OR ICE %%%
@@ -806,8 +801,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE METERO( State_Grid, State_Met, CZ1,  TC0, OBK, CFRAC, &
-                     RADIAT,     AZO,       USTR, ZH,  LSNOW,      &
-                     RHB,        PRESSU,    W10,  SUNCOS_MID        )
+                     RADIAT,     AZO,       USTR, ZH,  RHB,        &
+                     PRESSU,    W10,  SUNCOS_MID                  )
 !
 ! !USES:
 !
@@ -822,7 +817,6 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,  INTENT(OUT) :: LSNOW (State_Grid%NX,State_Grid%NY)  ! Flag for denoting snow/ice
     REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
     REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
     REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
@@ -891,9 +885,6 @@ CONTAINS
        ! Column cloud fraction [unitless]
        CFRAC(I,J)  = State_Met%CLDFRC(I,J)
 
-       ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-       LSNOW(I,J)  = ( State_Met%ALBD(I,J) > 0.4 )
-
        ! Monin-Obhukov length [m]
        OBK(I,J)    = GET_OBK( I, J, State_Met )
 
@@ -947,8 +938,8 @@ CONTAINS
                      State_Met, RADIAT,    TEMP,       SUNCOS,     &
                      F0,        HSTAR,     XMW,        AIROSOL,    &
                      USTAR,     CZ1,       OBK,        CFRAC,      &
-                     ZH,        LSNOW,     ZO,         RHB,        &
-                     PRESSU,    W10,       RC          )
+                     ZH,        ZO,        RHB,        PRESSU,     &
+                     W10,       RC                                )
 !
 ! !USES:
 !
@@ -1133,9 +1124,6 @@ CONTAINS
     REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
     REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
 #endif
-
-    ! Logical for snow and sea ice
-    LOGICAL  ::LSNOW(State_Grid%NX,State_Grid%NY)
 
     ! Loop indices (bmy, 3/29/12)
     INTEGER  :: I, J
@@ -1397,7 +1385,7 @@ CONTAINS
           !** If the surface to be snow or ice;
           !** set II to 1 instead.
           !
-          IF(LSNOW(I,J)) II=1
+          IF(State_Met%isSnow(I,J)) II=1
 
           !* Read the internal resistance RI (minimum stomatal resistance for
           !* water vapor,per unit area of leaf) from the IRI array; a '9999'

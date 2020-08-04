@@ -71,6 +71,7 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
      LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
      LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow covered grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
@@ -398,6 +399,7 @@ CONTAINS
     State_Met%IsWater        => NULL()
     State_Met%IsLand         => NULL()
     State_Met%IsIce          => NULL()
+    State_Met%IsSnow         => NULL()
     State_Met%LAI            => NULL()
     State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
@@ -786,6 +788,16 @@ CONTAINS
 !                            State_Met, RC )
 !    IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-------------------------
+    ! IsSnow
+    !-------------------------
+    ALLOCATE( State_Met%IsSnow( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%IsSnow', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IsSnow = .FALSE.
+!    CALL Register_MetField( Input_Opt, 'IsSnow', State_Met%IsSnow, &
+!                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! LAI [1]
@@ -2353,6 +2365,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IsIce', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IsIce => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsSnow ) ) THEN
+       DEALLOCATE( State_Met%IsSnow, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsSnow', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsSnow => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%LAI ) ) THEN
