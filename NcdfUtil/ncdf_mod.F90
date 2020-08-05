@@ -2406,7 +2406,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-.    LOGICAL            :: found
+    LOGICAL            :: found
     INTEGER            :: a_type    ! netCDF attribute type
 
     ! Straings
