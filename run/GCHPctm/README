@@ -128,7 +128,7 @@ Instructions to set up, compile, and run GCHP:
 8. Inspect output data
 
    Output data are stored in the 'OutputDir' directory. The output restart 
-   filename is set in GCHP.rc next to GIGCchem_INTERNAL_CHECKPOINT_TYPE. It is
+   filename is set in GCHP.rc next to GCHPchem_INTERNAL_CHECKPOINT_TYPE. It is
    set up by default to start with string 'gcchem'. 
 
 9. Optionally archive your run with './archiveRun.sh dirname'

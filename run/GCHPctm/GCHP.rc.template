@@ -30,13 +30,13 @@ AdvCore_Advection: 1
 SOLAR_DT: 600
 IRRAD_DT: 600
 RUN_DT:   600
-GIGCchem_DT: 1200
+GCHPchem_DT: 1200
 DYNAMICS_DT: 600
 
 SOLARAvrg: 0
 IRRADAvrg: 0
 
-GIGCchem_REFERENCE_TIME: 121000
+GCHPchem_REFERENCE_TIME: 121000
 
 # Print Resource Parameters (0: Non-Default values, 1: ALL values)
 #-----------------------------------------------------------------
@@ -64,12 +64,12 @@ RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
 # Chemistry/AEROSOL Model Restart Files
-# Enter +none for GIGCchem_INTERNAL_RESTART_FILE not use an initial restart file
+# Enter +none for GCHPchem_INTERNAL_RESTART_FILE not use an initial restart file
 # -------------------------------------
-GIGCchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_{SIMULATION}.nc
-GIGCchem_INTERNAL_RESTART_TYPE:     pnc4
-GIGCchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
-GIGCchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
+GCHPchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_{SIMULATION}.nc
+GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
+GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
+GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
 
 DYN_INTERNAL_RESTART_FILE:    -fvcore_internal_rst
 DYN_INTERNAL_RESTART_TYPE:    pbinary

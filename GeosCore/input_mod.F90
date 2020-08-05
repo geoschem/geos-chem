@@ -57,8 +57,7 @@ CONTAINS
 !\\
 !\\
 ! In an ESMF environment, all time steps (chemistry, convection, emissions,
-! dynamics) must be specified externally before calling this routine. This is
-! done in routine GIGC\_Init\_Simulation (gigc\_initialization\_mod.F90).
+! dynamics) must be specified externally before calling this routine.
 ! The time steps specified in input.geos are ignored.
 !\\
 !\\

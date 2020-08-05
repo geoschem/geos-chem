@@ -106,7 +106,7 @@
   ! Convert Pa -> hPa
   State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
 
-  ! These will be set based on PS1_WET and PS2_WET in gigc_chunk_mod.F90
+  ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
   State_Met%PS1_DRY(:,:) = 0.0d0 
   State_Met%PS2_DRY(:,:) = 0.0d0
 

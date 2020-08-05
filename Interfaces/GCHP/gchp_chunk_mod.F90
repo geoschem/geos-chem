@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_chunk_mod
+! !MODULE: gchp_chunk_mod
 !
 ! !DESCRIPTION: Module GC\_CHUNK\_MOD is the module that contains the init,
 !  and run methods for the ESMF interface to GEOS-Chem.
@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE GIGC_Chunk_Mod
+MODULE GCHP_Chunk_Mod
 !
 ! !USES:
 !
@@ -26,8 +26,8 @@ MODULE GIGC_Chunk_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: GIGC_Chunk_Init
-  PUBLIC :: GIGC_Chunk_Run
+  PUBLIC :: GCHP_Chunk_Init
+  PUBLIC :: GCHP_Chunk_Run
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -35,7 +35,7 @@ MODULE GIGC_Chunk_Mod
 !
 ! !REVISION HISTORY:
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Chunkized & cleaned up.
-!  See https://github.com/geoschem/geos-chem for complete history
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -47,16 +47,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_chunk_init
+! !IROUTINE: gchp_chunk_init
 !
-! !DESCRIPTION: Subroutine GIGC\_CHUNK\_INIT is the ESMF init method for
+! !DESCRIPTION: Subroutine GCHP\_CHUNK\_INIT is the ESMF init method for
 !  GEOS-Chem.  This routine calls routines within core GEOS-Chem to allocate
 !  arrays and read input files.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Init( nymdB,         nhmsB,      nymdE,           &
+  SUBROUTINE GCHP_Chunk_Init( nymdB,         nhmsB,      nymdE,           &
                               nhmsE,         tsChem,     tsDyn,           &
                               lonCtr,        latCtr,                      &
 #if !defined( MODEL_GEOS )
@@ -72,7 +72,7 @@ CONTAINS
     USE Emissions_Mod,           ONLY : Emissions_Init
     USE GC_Environment_Mod
     USE GC_Grid_Mod,             ONLY : SetGridFromCtr
-    USE GIGC_HistoryExports_Mod, ONLY : HistoryConfigObj
+    USE GCHP_HistoryExports_Mod, ONLY : HistoryConfigObj
     USE HCO_Types_Mod,           ONLY : ConfigObj
     USE Input_Mod,               ONLY : Read_Input_File
     USE Input_Opt_Mod,           ONLY : OptInput, Set_Input_Opt
@@ -91,7 +91,7 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
-#if defined( MODEL_GCHP )
+#if defined( MODEL_GCHPCTM )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
     USE RRTMG_LW_Init,           ONLY : RRTMG_LW_Ini
     USE RRTMG_SW_Init,           ONLY : RRTMG_SW_Ini
@@ -131,7 +131,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initial Version
-!  See https://github.com/geoschem/geos-chem for complete history
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -143,11 +143,11 @@ CONTAINS
     TYPE(ESMF_Config)              :: CF            ! Grid comp config object
 
     !=======================================================================
-    ! GIGC_CHUNK_INIT begins here
+    ! GCHP_CHUNK_INIT begins here
     !=======================================================================
 
     ! Error trap
-    Iam = 'GIGC_CHUNK_INIT (gigc_chunk_mod.F90)'
+    Iam = 'GCHP_CHUNK_INIT (gchp_chunk_mod.F90)'
 
     ! Assume success
     RC = GC_SUCCESS
@@ -177,7 +177,7 @@ CONTAINS
     ENDIF
 
     ! In the ESMF/MPI environment, we can get the total overhead ozone
-    ! either from the met fields (GIGCsa) or from the Import State (GEOS-5)
+    ! either from the met fields (GCHPsa) or from the Import State (GEOS-5)
     Input_Opt%USE_O3_FROM_MET = .TRUE.
 
     ! Read LINOZ climatology
@@ -239,7 +239,7 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
     ENDIF
 
-#if defined( MODEL_GCHP )
+#if defined( MODEL_GCHPCTM )
        ! RRTMG initialization
     IF ( Input_Opt%LRAD ) THEN
        CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
@@ -279,7 +279,7 @@ CONTAINS
 
 !#if defined( MODEL_GEOS )
 !    ! The GEOS-Chem diagnostics list, stored in HistoryConfig, is initialized
-!    ! during GIGC_INIT_SIMULATION, and corresponding arrays in State_Diag are
+!    ! during GCHP_INIT_SIMULATION, and corresponding arrays in State_Diag are
 !    ! allocated accordingly when initializing State_Diag. Here, we thus
 !    ! only need to initialize the tendencies, which have not been initialized
 !    ! yet (ckeller, 11/29/17).
@@ -297,7 +297,7 @@ CONTAINS
     ! Return success
     RC = GC_Success
 
-  END SUBROUTINE GIGC_Chunk_Init
+  END SUBROUTINE GCHP_Chunk_Init
 !EOC
 
 !------------------------------------------------------------------------------
@@ -305,14 +305,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_chunk_run
+! !IROUTINE: gchp_chunk_run
 !
-! !DESCRIPTION: Subroutine GIGC\_CHUNK\_RUN is the ESMF run method for
+! !DESCRIPTION: Subroutine GCHP\_CHUNK\_RUN is the ESMF run method for
 !  GEOS-Chem.
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Run( GC,                                             &
+  SUBROUTINE GCHP_Chunk_Run( GC,                                             &
                              nymd,       nhms,       year,       month,      &
                              day,        dayOfYr,    hour,       minute,     &
                              second,     utc,        hElapsed,   Input_Opt,  &
@@ -347,7 +347,7 @@ CONTAINS
 
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
-    USE Calc_Met_Mod,       ONLY : GIGC_Cap_Tropopause_Prs
+    USE Calc_Met_Mod,       ONLY : GCHP_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
     USE PBL_Mix_Mod,        ONLY : Compute_PBL_Height
@@ -369,7 +369,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
-#if defined( MODEL_GCHP)
+#if defined( MODEL_GCHPCTM )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
 #endif
@@ -416,7 +416,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initial Version
-!  See https://github.com/geoschem/geos-chem for complete history
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -465,11 +465,11 @@ CONTAINS
     LOGICAL, SAVE                  :: scaleMR = .FALSE.
 
     !=======================================================================
-    ! GIGC_CHUNK_RUN begins here
+    ! GCHP_CHUNK_RUN begins here
     !=======================================================================
 
     ! Error trap
-    Iam = 'GIGC_CHUNK_RUN (gigc_chunk_mod.F90)'
+    Iam = 'GCHP_CHUNK_RUN (gchp_chunk_mod.F90)'
 
     ! Assume success
     RC = GC_SUCCESS
@@ -524,7 +524,7 @@ CONTAINS
     ! GEOS-Chem (ckeller, 10/14/14).
     !
     ! The standard number of phases in GCHP is 1, set in GCHP.rc, which
-    ! results in Phase -1 in gigc_chunk_run. This results in executing
+    ! results in Phase -1 in gchp_chunk_run. This results in executing
     ! all GEOS-Chem components in a single run rather than splitting up
     ! across two runs as is done in GEOS-5. (ewl, 10/26/18)
     !=======================================================================
@@ -647,7 +647,7 @@ CONTAINS
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)
-    CALL GIGC_Cap_Tropopause_Prs( Input_Opt      = Input_Opt,  &
+    CALL GCHP_Cap_Tropopause_Prs( Input_Opt      = Input_Opt,  &
                                   State_Grid     = State_Grid, &
                                   State_Met      = State_Met,  &
                                   RC             = RC         )
@@ -773,7 +773,7 @@ CONTAINS
           call ESMF_VMBarrier(VM, RC=STATUS)
           _VERIFY(STATUS)
           call MAPL_MemUtilsWrite(VM, &
-                  'gigc_chunk_run, before Emissions_Run', RC=STATUS )
+                  'gchp_chunk_run, before Emissions_Run', RC=STATUS )
           _VERIFY(STATUS)
        endif
 #endif
@@ -796,7 +796,7 @@ CONTAINS
           call ESMF_VMBarrier(VM, RC=STATUS)
           _VERIFY(STATUS)
           call MAPL_MemUtilsWrite(VM,&
-                  'gigc_chunk_run, after  Emissions_Run', RC=STATUS )
+                  'gchp_chunk_run, after  Emissions_Run', RC=STATUS )
           _VERIFY(STATUS)
        endif
 
@@ -915,7 +915,7 @@ CONTAINS
           call ESMF_VMBarrier(VM, RC=STATUS)
           _VERIFY(STATUS)
           call MAPL_MemUtilsWrite(VM, &
-                  'gigc_chunk_run:, before Do_Chemistry', RC=STATUS )
+                  'gchp_chunk_run:, before Do_Chemistry', RC=STATUS )
           _VERIFY(STATUS)
        endif
 
@@ -932,7 +932,7 @@ CONTAINS
           call ESMF_VMBarrier(VM, RC=STATUS)
           _VERIFY(STATUS)
           call MAPL_MemUtilsWrite(VM, &
-                  'gigc_chunk_run, after  Do_Chemistry', RC=STATUS )
+                  'gchp_chunk_run, after  Do_Chemistry', RC=STATUS )
           _VERIFY(STATUS)
        endif
 
@@ -971,7 +971,7 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling RECOMPUTE_OD')
     ENDIF
 
-#if defined( MODEL_GCHP )
+#if defined( MODEL_GCHPCTM )
     ! RRTMG diagnostics
     If ( DoRad ) Then
        CALL MAPL_TimerOn( STATE, 'GC_RAD' )
@@ -1070,6 +1070,6 @@ CONTAINS
     ! Return success
     RC = GC_SUCCESS
 
-  END SUBROUTINE GIGC_Chunk_Run
+  END SUBROUTINE GCHP_Chunk_Run
 !EOC
-END MODULE GIGC_Chunk_Mod
+END MODULE GCHP_Chunk_Mod

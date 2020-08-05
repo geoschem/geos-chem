@@ -16,7 +16,6 @@ diffs
 bak
 misc
 test
-GIGC
 *.pp.*
 *.pdb
 *.inst.*

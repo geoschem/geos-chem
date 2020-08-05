@@ -549,7 +549,7 @@ fi
 ####  set input restart filename
 echo " "
 echo "Initial reestart file:"
-replace_val GIGCchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
+replace_val GCHPchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
 
 #### Set simulation start and end datetimes based on input.geos
 echo " "
@@ -647,11 +647,11 @@ replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
 replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val RUN_DT        ${TransConv_Timestep_sec}  GCHP.rc
-replace_val GIGCchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
+replace_val GCHPchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
 replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
 replace_val dt            ${TransConv_Timestep_sec}  fvcore_layout.rc
-replace_val GIGCchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
+replace_val GCHPchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
 update_dyn_freq PS2   ExtData.rc
 update_dyn_freq SPHU2 ExtData.rc
 update_dyn_freq TMPU2 ExtData.rc

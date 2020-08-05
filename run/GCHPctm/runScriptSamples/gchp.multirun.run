@@ -136,7 +136,7 @@ source ./runConfig.sh
 # is set here rather than from runConfig.sh.
 if [ -e cap_restart ]; then
    restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
-   sed -i "s|GIGCchem_INTERNAL_RESTART_FILE\:.*|GIGCchem_INTERNAL_RESTART_FILE\:     +gcchem_internal_checkpoint.restart.${restart_datetime}.nc4|" ./GCHP.rc
+   sed -i "s|GCHPchem_INTERNAL_RESTART_FILE\:.*|GCHPchem_INTERNAL_RESTART_FILE\:     +gcchem_internal_checkpoint.restart.${restart_datetime}.nc4|" ./GCHP.rc
 fi
 
 # Only run GCHP if runConfig.sh had no errors

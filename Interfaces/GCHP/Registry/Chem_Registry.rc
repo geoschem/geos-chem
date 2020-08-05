@@ -8,7 +8,7 @@
 #  See https://github.com/geoschem/geos-chem for complete history
 # -----------------------------------------------------------------
 
-  COMP_NAME: GIGCchem
+  COMP_NAME: GCHPchem
 
 # Only change the Registry version when major structural changes
 # occurs, not changes in content

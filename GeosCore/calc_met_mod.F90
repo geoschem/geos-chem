@@ -31,7 +31,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
   PUBLIC  :: Set_Met_AgeOfAir
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
-  PUBLIC  :: GIGC_Cap_Tropopause_Prs
+  PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
 !
 ! !REVISION HISTORY:
@@ -877,9 +877,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_cap_tropopause_prs
+! !IROUTINE: gchp_cap_tropopause_prs
 !
-! !DESCRIPTION: Subroutine GIGC\_CAP\_TROPOPAUSE\_PRS caps the tropopause
+! !DESCRIPTION: Subroutine GCHP\_CAP\_TROPOPAUSE\_PRS caps the tropopause
 !  pressure in polar latitudes to 200 hPa, so that we don't end up doing
 !  troposheric chemistry too high over the poles.  This is done in the
 !  standalone GEOS-Chem, and we also need to apply this when running
@@ -888,7 +888,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Cap_Tropopause_Prs( Input_Opt, State_Grid, State_Met, RC )
+  SUBROUTINE GCHP_Cap_Tropopause_Prs( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -962,7 +962,7 @@ CONTAINS
     ENDDO
     ENDDO
 
-  END SUBROUTINE GIGC_Cap_Tropopause_Prs
+  END SUBROUTINE GCHP_Cap_Tropopause_Prs
 !EOC
 #endif
 !------------------------------------------------------------------------------

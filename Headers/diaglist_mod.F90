@@ -528,11 +528,11 @@ CONTAINS
           ENDIF
 
           ! Throw an error if we cannot find the gridcomp name
-          ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
-          G = INDEX( Line, "'GIGCchem'," )
+          ! (e.g. "'GCHPchem',").  GCHP will choke if this isn't found.
+          G = INDEX( Line, "'GCHPchem'," )
           IF ( G == 0 ) THEN
              ErrMsg = 'The name of the GCHP gridded component '           // &
-                      "(e.g. 'GIGCchem') for attribute "  // '" '         // &
+                      "(e.g. 'GCHPchem') for attribute "  // '" '         // &
                       TRIM( AttName ) // '" must be enclosed in '         // &
                       'single quotes and be followed by a comma. '        // &
                       'Please check the HISTORY.rc file.'
@@ -584,13 +584,13 @@ CONTAINS
        ! Add unique diagnostic names to diag list
        !====================================================================
 
-       ! Skip line if GIGCchem not present
+       ! Skip line if GCHPchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
 #ifdef MODEL_GEOS
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
-       IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
+       IF ( INDEX( Line, 'GCHPchem' ) .le. 0 ) CYCLE
 #endif
 
        ! Get diagnostic name
