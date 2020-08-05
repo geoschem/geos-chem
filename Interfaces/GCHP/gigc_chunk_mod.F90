@@ -91,7 +91,7 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
-#if defined( RRTMG )
+#if defined( MODEL_GCHP )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
     USE RRTMG_LW_Init,           ONLY : RRTMG_LW_Ini
     USE RRTMG_SW_Init,           ONLY : RRTMG_SW_Ini
@@ -239,20 +239,16 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
     ENDIF
 
-#if defined( RRTMG )
-    ! Initialize module variables
-    CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
-
-    ! Trap potential errors
-    _ASSERT(RC==GC_SUCCESS, 'Error calling "Init_RRTMG_Rad_Transfer"!')
-
-    ! Initialize RRTMG code in the GeosRad folder
-    CALL Rrtmg_Lw_Ini()
-    CALL Rrtmg_Sw_Ini()
-
-    ! Settings
-    State_Chm%RRTMG_iCld  = 0
-    State_Chm%RRTMG_iSeed = 10
+#if defined( MODEL_GCHP )
+       ! RRTMG initialization
+    IF ( Input_Opt%LRAD ) THEN
+       CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling "Init_RRTMG_Rad_Transfer"!')
+       CALL Rrtmg_Lw_Ini()
+       CALL Rrtmg_Sw_Ini()
+       State_Chm%RRTMG_iCld  = 0
+       State_Chm%RRTMG_iSeed = 10
+    ENDIF
 #endif
 
     ! Initialize HEMCO
@@ -373,7 +369,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
-#if defined( RRTMG )
+#if defined( MODEL_GCHP)
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
 #endif
@@ -975,7 +971,8 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling RECOMPUTE_OD')
     ENDIF
 
-#if defined( RRTMG )
+#if defined( MODEL_GCHP )
+    ! RRTMG diagnostics
     If ( DoRad ) Then
        CALL MAPL_TimerOn( STATE, 'GC_RAD' )
        State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
