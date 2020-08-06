@@ -116,28 +116,36 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     REAL(fp)           :: DT_Dyn
 
-    !=================================================================
+    !========================================================================
     ! DO_TRANSPORT begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at Do_Transport  (in module GeosCore/transport_mod.F90)'
 
-    !----------------------------------------------------------
-    ! Transport (advection) budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Transport budget diagnostics - Part 1 of 2
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetTransport ) THEN
+
        ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt, &
-                                 State_Chm, State_Grid, State_Met, &
-                                 State_Chm%Map_Advect, &
-                                 State_Diag%Archive_BudgetTransportFull, &
-                                 State_Diag%Archive_BudgetTransportTrop, &
-                                 State_Diag%Archive_BudgetTransportPBL,  &
-                                 State_Diag%BudgetMass1, &
-                                 RC )
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetTransportFull,            &
+            mapDataFull = State_Diag%Map_BudgetTransportFull,                &
+            isTrop      = State_Diag%Archive_BudgetTransportTrop,            &
+            mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
+            isPBL       = State_Diag%Archive_BudgetTransportPBL,             &
+            mapDataPBL  = State_Diag%Map_BudgetTransportPBL,                 &
+            colMass     = State_Diag%BudgetMass1,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Transport budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -178,10 +186,10 @@ CONTAINS
 
     ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Choose the proper version of TPCORE for the nested-grid window
     ! region (usually 1x1 grids) or for the entire globe
-    !=================================================================
+    !========================================================================
     IF ( State_Grid%NestedGrid ) THEN
 
        ! Nested-grid simulation with GEOS-FP/MERRA2 met
@@ -195,9 +203,9 @@ CONTAINS
           RETURN
        ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Choose the proper version of TPCORE for global simulations
-    !=================================================================
+    !========================================================================
     ELSE
 
        ! Call TPCORE w/ proper settings for the GEOS-FP/MERRA2 met fields
@@ -216,33 +224,54 @@ CONTAINS
     ! Dynamic timestep [s]
     DT_Dyn = GET_TS_DYN()
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Transport (advection) budget diagnostics - Part 2 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetTransport ) THEN
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt, &
-                                 State_Chm, State_Grid, State_Met, &
-                                 State_Chm%Map_Advect, &
-                                 State_Diag%Archive_BudgetTransportFull, &
-                                 State_Diag%Archive_BudgetTransportTrop, &
-                                 State_Diag%Archive_BudgetTransportPBL, &
-                                 State_Diag%BudgetMass2, &
-                                 RC )
-       CALL Compute_Budget_Diagnostics( State_Grid, &
-                                 State_Chm%Map_Advect, &
-                                 DT_Dyn, &
-                                 State_Diag%Archive_BudgetTransportFull, &
-                                 State_Diag%Archive_BudgetTransportTrop, &
-                                 State_Diag%Archive_BudgetTransportPBL, &
-                                 State_Diag%BudgetTransportFull, &
-                                 State_Diag%BudgetTransportTrop, &
-                                 State_Diag%BudgetTransportPBL, &
-                                 State_Diag%BudgetMass1, &
-                                 State_Diag%BudgetMass2, &
-                                 RC )
+
+       ! Get final column masses
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetTransportFull,            &
+            mapDataFull = State_Diag%Map_BudgetTransportFull,                &
+            isTrop      = State_Diag%Archive_BudgetTransportTrop,            &
+            mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
+            isPBL       = State_Diag%Archive_BudgetTransportPBL,             &
+            mapDataPBL  = State_Diag%Map_BudgetTransportPBL,                 &
+            colMass     = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Transport budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Compute budget diagnostics
+       CALL Compute_Budget_Diagnostics(                                      &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            timeStep    = DT_Dyn,                                            &
+            isFull      = State_Diag%Archive_BudgetTransportFull,            &
+            diagFull    = State_Diag%BudgetTransportFull,                    &
+            mapDataFull = State_Diag%Map_BudgetTransportFull,                &
+            isTrop      = State_Diag%Archive_BudgetTransportTrop,            &
+            diagTrop    = State_Diag%BudgetTransportTrop,                    &
+            mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
+            isPBL       = State_Diag%Archive_BudgetTransportPBL,             &
+            diagPBL     = State_Diag%BudgetTransportPBL,                     &
+            mapDataPBL  = State_Diag%Map_BudgetTransportPBL,                 &
+            mass_i      = State_Diag%BudgetMass1,                            &
+            mass_f      = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Transport budget diagnostics error 3'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

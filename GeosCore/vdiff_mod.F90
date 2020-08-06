@@ -2169,17 +2169,23 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
        ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                                  &
-                                 State_Chm, State_Grid, State_Met,           &
-                                 State_Chm%Map_Advect,                       &
-                                 State_Diag%Archive_BudgetMixingFull,        &
-                                 State_Diag%Archive_BudgetMixingTrop,        &
-                                 State_Diag%Archive_BudgetMixingPBL,         &
-                                 State_Diag%BudgetMass1,                     &
-                                 RC )
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetMixingFull,               &
+            mapDataFull = State_Diag%Map_BudgetMixingFull,                   &
+            isTrop      = State_Diag%Archive_BudgetMixingTrop,               &
+            mapDataTrop = State_Diag%Map_BudgetMixingTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetMass1,                            &
+            RC          = RC                                                )
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
+          ErrMsg = 'Non-local mixing budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2269,35 +2275,49 @@ CONTAINS
        ! Get dynamics timestep [s]
        DT_Dyn = Get_Ts_Dyn()
 
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                                  &
-                                 State_Chm,                                  &
-                                 State_Grid,                                 &
-                                 State_Met,                                  &
-                                 State_Chm%Map_Advect,                       &
-                                 State_Diag%Archive_BudgetMixingFull,        &
-                                 State_Diag%Archive_BudgetMixingTrop,        &
-                                 State_Diag%Archive_BudgetMixingPBL,         &
-                                 State_Diag%BudgetMass2,                     &
-                                 RC                                         )
-
-       ! Archive diagnostics
-       CALL Compute_Budget_Diagnostics( State_Grid,                          &
-                                        State_Chm%Map_Advect,                &
-                                        DT_Dyn,                              &
-                                        State_Diag%Archive_BudgetMixingFull, &
-                                        State_Diag%Archive_BudgetMixingTrop, &
-                                        State_Diag%Archive_BudgetMixingPBL,  &
-                                        State_Diag%BudgetMixingFull,         &
-                                        State_Diag%BudgetMixingTrop,         &
-                                        State_Diag%BudgetMixingPBL,          &
-                                        State_Diag%BudgetMass1,              &
-                                        State_Diag%BudgetMass2,              &
-                                        RC                                  )
+       ! Get final column masses
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetMixingFull,               &
+            mapDataFull = State_Diag%Map_BudgetMixingFull,                   &
+            isTrop      = State_Diag%Archive_BudgetMixingTrop,               &
+            mapDataTrop = State_Diag%Map_BudgetMixingTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+          ErrMsg = 'Non-local mixing budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Compute budget diagnostics
+       CALL Compute_Budget_Diagnostics(                                      &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            timeStep    = DT_Dyn,                                            &
+            isFull      = State_Diag%Archive_BudgetMixingFull,               &
+            diagFull    = State_Diag%BudgetMixingFull,                       &
+            mapDataFull = State_Diag%Map_BudgetMixingFull,                   &
+            isTrop      = State_Diag%Archive_BudgetMixingTrop,               &
+            diagTrop    = State_Diag%BudgetMixingTrop,                       &
+            mapDataTrop = State_Diag%Map_BudgetMixingTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
+            diagPBL     = State_Diag%BudgetMixingPBL,                        &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            mass_i      = State_Diag%BudgetMass1,                            &
+            mass_f      = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Non-local mixing budget diagnostics error 3'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

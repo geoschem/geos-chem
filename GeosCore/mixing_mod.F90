@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -34,7 +34,7 @@ MODULE Mixing_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -194,7 +194,7 @@ CONTAINS
   END SUBROUTINE DO_MIXING
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -317,19 +317,26 @@ CONTAINS
     SpcInfo           => NULL()
     DEPSAV            => State_Chm%DryDepSav
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+
        ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                               &
-                                 State_Chm, State_Grid, State_Met,        &
-                                 State_Chm%Map_Advect,                    &
-                                 State_Diag%Archive_BudgetEmisDryDepFull, &
-                                 State_Diag%Archive_BudgetEmisDryDepTrop, &
-                                 State_Diag%Archive_BudgetEmisDryDepPBL,  &
-                                 State_Diag%BudgetMass1,                  &
-                                 RC )
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
+            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
+            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
+            colMass     = State_Diag%BudgetMass1,                            &
+            RC          = RC                                                )
+
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -792,40 +799,61 @@ CONTAINS
        RETURN
     ENDIF
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                                   &
-                                 State_Chm, State_Grid, State_Met,            &
-                                 State_Chm%Map_Advect,                        &
-                                 State_Diag%Archive_BudgetEmisDryDepFull,     &
-                                 State_Diag%Archive_BudgetEmisDryDepTrop,     &
-                                 State_Diag%Archive_BudgetEmisDryDepPBL,      &
-                                 State_Diag%BudgetMass2,                      &
-                                 RC )
-       CALL Compute_Budget_Diagnostics( State_Grid,                           &
-                                     State_Chm%Map_Advect,                    &
-                                     TS,                                      &
-                                     State_Diag%Archive_BudgetEmisDryDepFull, &
-                                     State_Diag%Archive_BudgetEmisDryDepTrop, &
-                                     State_Diag%Archive_BudgetEmisDryDepPBL,  &
-                                     State_Diag%BudgetEmisDryDepFull,         &
-                                     State_Diag%BudgetEmisDryDepTrop,         &
-                                     State_Diag%BudgetEmisDryDepPBL,          &
-                                     State_Diag%BudgetMass1,                  &
-                                     State_Diag%BudgetMass2,                  &
-                                     RC )
+
+       ! Get final column masses
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
+            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
+            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
+            colMass     = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Compute budget diagnostics
+       CALL Compute_Budget_Diagnostics(                                      &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            timeStep    = TS,                                                &
+            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            diagFull    = State_Diag%BudgetEmisDryDepFull,                   &
+            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
+            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            diagTrop    = State_Diag%BudgetEmisDryDepTrop,                   &
+            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
+            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            diagPBL     = State_Diag%BudgetEmisDryDepPBL,                    &
+            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
+            mass_i      = State_Diag%BudgetMass1,                            &
+            mass_f      = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 3'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
-  ! Nullify pointers
-  NULLIFY( DEPSAV )
+    ! Free pointers
+    DepSav => NULL()
 
   END SUBROUTINE DO_TEND
 !EOC

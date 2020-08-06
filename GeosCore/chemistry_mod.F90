@@ -203,19 +203,27 @@ CONTAINS
        id_NK1  = Ind_('NK1' )
     ENDIF
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Chemistry budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
+
        ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                              &
-                                 State_Chm, State_Grid, State_Met,       &
-                                 State_Chm%Map_Advect,                   &
-                                 State_Diag%Archive_BudgetChemistryFull, &
-                                 State_Diag%Archive_BudgetChemistryTrop, &
-                                 State_Diag%Archive_BudgetChemistryPBL,  &
-                                 State_Diag%BudgetMass1,                 &
-                                 RC )
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetChemistryFull,            &
+            mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
+            isTrop      = State_Diag%Archive_BudgetChemistryTrop,            &
+            mapDataTrop = State_Diag%Map_BudgetChemistryTrop,                &
+            isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
+            mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            colMass     = State_Diag%BudgetMass1,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Chemistry budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -885,29 +893,50 @@ CONTAINS
     ! Chemistry budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                              &
-                                 State_Chm, State_Grid, State_Met,       &
-                                 State_Chm%Map_Advect,                   &
-                                 State_Diag%Archive_BudgetChemistryFull, &
-                                 State_Diag%Archive_BudgetChemistryTrop, &
-                                 State_Diag%Archive_BudgetChemistryPBL,  &
-                                 State_Diag%BudgetMass2,                 &
-                                 RC )
-       CALL Compute_Budget_Diagnostics( State_Grid,                          &
-                                     State_Chm%Map_Advect,                   &
-                                     DT_Chem,                                &
-                                     State_Diag%Archive_BudgetChemistryFull, &
-                                     State_Diag%Archive_BudgetChemistryTrop, &
-                                     State_Diag%Archive_BudgetChemistryPBL,  &
-                                     State_Diag%BudgetChemistryFull,         &
-                                     State_Diag%BudgetChemistryTrop,         &
-                                     State_Diag%BudgetChemistryPBL,          &
-                                     State_Diag%BudgetMass1,                 &
-                                     State_Diag%BudgetMass2,                 &
-                                     RC )
+
+       ! Get final column masses
+       CALL Compute_Column_Mass(                                             &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetChemistryFull,            &
+            mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
+            isTrop      = State_Diag%Archive_BudgetChemistryTrop,            &
+            mapDataTrop = State_Diag%Map_BudgetChemistryTrop,                &
+            isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
+            mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            colMass     = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Chemistry budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Compute budget diagnostics
+       CALL Compute_Budget_Diagnostics(                                      &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            timeStep    = DT_Chem,                                           &
+            isFull      = State_Diag%Archive_BudgetChemistryFull,            &
+            diagFull    = State_Diag%BudgetChemistryFull,                    &
+            mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
+            isTrop      = State_Diag%Archive_BudgetChemistryTrop,            &
+            diagTrop    = State_Diag%BudgetChemistryTrop,                    &
+            mapDataTrop = State_Diag%Map_BudgetChemistryTrop,                &
+            isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
+            diagPBL     = State_Diag%BudgetChemistryPBL,                     &
+            mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            mass_i      = State_Diag%BudgetMass1,                            &
+            mass_f      = State_Diag%BudgetMass2,                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Chemistry budget diagnostics error 3'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

@@ -20,6 +20,7 @@
 MODULE State_Diag_Mod
 !
 ! USES:
+!
   USE CMN_FJX_MOD,        ONLY : W_
   USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
@@ -2005,7 +2006,7 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%BudgetEmisDryDepFull,                   &
          archiveData    = State_Diag%Archive_BudgetEmisDryDepFull,           &
-         mapData        = State_Diag%Map_SpeciesConc,                        &
+         mapData        = State_Diag%Map_BudgetEmisDryDepFull,               &
          diagId         = diagId,                                            &
          diagFlag       = 'A',                                               &
          RC             = RC                                                )

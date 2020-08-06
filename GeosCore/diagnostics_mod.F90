@@ -722,28 +722,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Column_Mass( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                  SpcMap,    isFull,    isTrop,     isPBL,     &
-                                  ColMass,    RC      )
+  SUBROUTINE Compute_Column_Mass( Input_Opt,  State_Chm,   State_Grid,       &
+                                  State_Met,  isFull,      mapDataFull,      &
+                                  isTrop,     mapDataTrop, isPBL,            &
+                                  mapDataPBL, ColMass,     RC,               &
+                                  isWetDep                                  )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,  Only : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-!ewl    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
-    TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state object
-    INTEGER,        POINTER       :: SpcMap(:)        ! Map to species indexes
-    LOGICAL,        INTENT(IN)    :: isFull           ! True if full col diag on
-    LOGICAL,        INTENT(IN)    :: isTrop           ! True if trop col diag on
-    LOGICAL,        INTENT(IN)    :: isPBL            ! True if PBL col diag on
+    TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state obj
+    LOGICAL,        INTENT(IN)    :: isFull           ! T if full col diag on
+    TYPE(DgnMap),   POINTER       :: mapDataFull      ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: isTrop           ! T if trop col diag on
+    TYPE(DgnMap),   POINTER       :: mapDataTrop      ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: isPBL            ! T if PBL col diag on
+    TYPE(DgnMap),   POINTER       :: mapDataPBL       ! Map to species indexes
+    LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -754,9 +759,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC                 ! Success or failure?
-!
-! !REMARKS:
+    INTEGER,        INTENT(OUT)   :: RC               ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  28 Aug 2018 - E. Lundgren - Initial version
@@ -767,9 +770,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
-    INTEGER             :: I, J, L, N, numSpc, region, PBL_TOP, S
-    REAL*8, ALLOCATABLE :: SpcMass(:,:,:,:)
+    ! Scalars
+    LOGICAL             :: wetDep
+    INTEGER             :: I,      J,      L,       N
+    INTEGER             :: numSpc, region, PBL_TOP, S
+
+    ! Arrays
+    REAL(f8)            :: spcMass(State_Grid%NZ)
+
+    ! Strings
+    CHARACTER(LEN=255)  :: errMsg, thisLoc
 
     !====================================================================
     ! Compute_Column_Mass begins here!
@@ -777,88 +787,135 @@ CONTAINS
 
     ! Initialize
     RC      =  GC_SUCCESS
-    ThisLoc = ' -> Compute_Column_Mass ' // ModLoc
-    numSpc = SIZE(SpcMap)
+    errMsg  = ''
+    ThisLoc = ' -> at Compute_Column_Mass ' // ModLoc
     colMass = 0.0_f8
+    spcMass = 0.0_f8
 
-    ! Get concentrations in units of kg. Incoming units should be kg/kg dry.
-    IF (State_Chm%Spc_Units == 'kg/kg dry' ) THEN
-       ALLOCATE(SpcMass(State_Grid%NX, State_Grid%NY, State_Grid%NZ, numSpc))
+    ! Test if the budgets are for wetdep species
+    IF ( PRESENT( isWetDep ) ) THEN
+       wetDep = isWetDep
     ELSE
-       CALL GC_Error( 'State_Chm%Species units must be kg/kg dry. '// &
-                      'Incorrect units: '//TRIM(State_Chm%Spc_Units),  &
-                      RC, ThisLoc )
-      RETURN
+       wetDep = .FALSE.
     ENDIF
-    !$OMP PARALLEL DO              &
-    !$OMP DEFAULT( SHARED        ) &
-    !$OMP PRIVATE( I, J, L, N, S )
-    DO S = 1, numSpc
-    DO L = 1, State_Grid%NZ
+
+    ! Make sure mapDataFull is not undefined
+    IF ( isFull .and. ( .not. ASSOCIATED( mapDataFull )  ) ) THEN
+       errMsg = 'The mapDataFull object is undefined!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure mapDataTrop is not undefined
+    IF ( isTrop .and. ( .not. ASSOCIATED( mapDataTrop )  ) ) THEN
+       errMsg = 'The mapDataTrop object is undefined!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure mapDataPbl is not undefined
+    IF ( isPbl .and. ( .not. ASSOCIATED( mapDataPBL )  ) ) THEN
+       errMsg = 'The mapDataPBL object is undefined!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !====================================================================
+    ! Compute column mass
+    !====================================================================
+    !$OMP PARALLEL DO                                &
+    !$OMP DEFAULT( SHARED                          ) &
+    !$OMP PRIVATE( I, J, L, N, S, PBL_TOP, spcMass )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       N = SpcMap(S)
-       SpcMass(I,J,L,S) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
-    ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
 
-    ! Full column
-    IF ( isFull ) THEN
-       region = 1
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, N, S )
-       DO S = 1, numSpc
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          N = SpcMap(S)
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,:,S))
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+       !--------------------------------------------------------------------
+       ! Full-column budget for requested species
+       !--------------------------------------------------------------------
+       IF ( isFull ) THEN
 
-    ! Troposphere
-    IF ( isTrop ) THEN
-       region = 2
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, N, S )
-       DO S = 1, numSpc
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          N = SpcMap(S)
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:State_Met%TropLev(I,J),S))
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+          ! Loop over # of diagnostic slots
+          DO S = 1, mapDataFull%nSlots
 
-    ! PBL
-    IF ( isPBL ) THEN
-       region = 3
-       !$OMP PARALLEL DO                    &
-       !$OMP DEFAULT( SHARED              ) &
-       !$OMP PRIVATE( I, J, N, PBL_TOP, S )
-       DO S = 1, numSpc
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          N = SpcMap(S)
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataFull%slot2Id(S))
+             ELSE
+                N = mapDataFull%slot2Id(S)
+             ENDIF
+
+             ! Compute mass at each grid box in the column
+             spcMass = 0.0_f8
+             DO L = 1, State_Grid%NZ
+                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+             ENDDO
+
+             ! Compute column mass in full region
+             colMass(I,J,N,1) = SUM( spcMass( 1:State_Grid%NZ )  )
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Troposphere-only budget for each requested species
+       !---------------------------------------------------------------------
+       IF ( isTrop ) THEN
+
+          ! Loop over # of diagnostic slots
+          DO S = 1, mapDataTrop%nSlots
+
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataTrop%slot2Id(S))
+             ELSE
+                N = mapDataTrop%slot2Id(S)
+             ENDIF
+
+             ! Compute mass at each grid box in the column
+             spcMass = 0.0_f8
+             DO L = 1, State_Grid%NZ
+                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+             ENDDO
+
+             ! Compute column mass in PBL region
+             colMass(I,J,N,2) = SUM( spcMass( 1:State_Met%TropLev(I,J) ) )
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! PBL-only budget for each requested species
+       !---------------------------------------------------------------------
+       IF ( isPBL ) THEN
+
+          ! Get the PBL top level
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:PBL_TOP,S))
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+                
+          ! Loop over # of diagnostic slots
+          DO S = 1, mapDataPBL%nSlots
 
-    ! Clean up
-    DEALLOCATE(SpcMass)
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataPBL%slot2Id(S))
+             ELSE
+                N = mapDataPBL%slot2Id(S)
+             ENDIF
+
+             ! Compute mass at each grid box in the column
+             spcMass = 0.0_f8
+             DO L = 1, State_Grid%NZ
+                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+             ENDDO
+
+             ! Compute column mass in PBL region
+             colMass(I,J,N,3) = SUM( spcMass( 1:PBL_TOP ) )
+          ENDDO
+       ENDIF
+
+    ENDDO
+    ENDDO
+    !%OMP END PARALLEL DO
 
   END SUBROUTINE Compute_Column_Mass
 !EOC
@@ -877,40 +934,44 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( State_Grid,               &
-                                         SpcMap,       TS,         &
-                                         isFull,       isTrop,     &
-                                         isPBL,        diagFull,   &
-                                         diagTrop,     diagPBL,    &
-                                         mass_initial, mass_final, &
-                                         RC )
+  SUBROUTINE Compute_Budget_Diagnostics( State_Chm, State_Grid,  timeStep,   &
+                                         isFull,    mapDataFull, diagFull,   &
+                                         isTrop,    mapDataTrop, diagTrop,   &
+                                         isPBL,     mapDataPBL,  diagPBL,    &
+                                         mass_i,    mass_f,      RC,         &
+                                         isWetDep                           )
 !
 ! !USES:
 !
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
-    INTEGER,        POINTER     :: SpcMap(:)       ! Map to species indexes
-    REAL(fp),       INTENT(IN)  :: TS              ! timestep [s]
-    LOGICAL,        INTENT(IN)  :: isFull          ! True if full col diag on
-    LOGICAL,        INTENT(IN)  :: isTrop          ! True if trop col diag on
-    LOGICAL,        INTENT(IN)  :: isPBL           ! True if PBL col diag on
+    TYPE(ChmState), INTENT(IN)  :: State_Chm        ! Chemistry state object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid       ! Grid State object
+    INTEGER,        POINTER     :: SpcMap(:)        ! Map to species indexes
+    REAL(fp),       INTENT(IN)  :: timeStep         ! timestep [s]
+    LOGICAL,        INTENT(IN)  :: isFull           ! True if full col diag on
+    TYPE(DgnMap),   POINTER     :: mapDataFull      ! Map obj for diagFull
+    LOGICAL,        INTENT(IN)  :: isTrop           ! True if trop col diag on
+    TYPE(DgnMap),   POINTER     :: mapDataTrop      ! Map obj for diagTrop
+    LOGICAL,        INTENT(IN)  :: isPBL            ! True if PBL col diag on
+    TYPE(DgnMap),   POINTER     :: mapDataPBL       ! Map obj for diagPBL
+    LOGICAL,        OPTIONAL    :: isWetDep         ! T = wetdep budgets
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(f8),       TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
-    REAL(f8),       TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag
-    REAL(f8),       TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
-    REAL(f8),       POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
-    REAL(f8),       POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
+    REAL(f8),       POINTER     :: diagFull(:,:,:)  ! ptr to full col diag
+    REAL(f8),       POINTER     :: diagTrop(:,:,:)  ! ptr to trop col diag
+    REAL(f8),       POINTER     :: diagPBL(:,:,:)   ! ptr to pbl col diag
+    REAL(f8),       POINTER     :: mass_i(:,:,:,:)  ! ptr to initial mass
+    REAL(f8),       POINTER     :: mass_f(:,:,:,:)  ! ptr to final mass
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC              ! Success or failure?
-!
-! !REMARKS:
+    INTEGER,        INTENT(OUT) :: RC               ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  28 Aug 2018 - E. Lundgren - Initial version
@@ -921,74 +982,151 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, M, N, R, numSpc, numRegions
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    LOGICAL            :: setDiag
-    REAL(f8), POINTER  :: ptr3d(:,:,:)
+    ! Scalars
+    LOGICAL            :: wetDep
+    INTEGER            :: I, J, N, S
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
     !====================================================================
 
     ! Initialize
-    RC         =  GC_SUCCESS
-    ThisLoc    = ' -> Compute_Budget_Diagnostics ' // ModLoc
-    numSpc     = SIZE(SpcMap)
-    numRegions = 3
-    ptr3d      => NULL()
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    ThisLoc = ' -> at Compute_Budget_Diagnostics ' // ModLoc
 
-    ! Loop over regions and only set diagnostic for those that are on
-    DO R = 1, numRegions
-       setDiag = .FALSE.
-       SELECT CASE ( R )
-          CASE ( 1 )
-             ptr3d => diagFull
-             setDiag = isFull
-          CASE ( 2 )
-             ptr3d => diagTrop
-             setDiag = isTrop
-          CASE ( 3 )
-             ptr3d => diagPBL
-             setDiag = isPBL
-          CASE DEFAULT
-             ErrMsg = 'Region not defined for budget diagnostics'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-       END SELECT
+    ! Test if the budgets are for wetdep species
+    IF ( PRESENT( isWetDep ) ) THEN
+       wetDep = isWetDep
+    ELSE
+       wetDep  = .FALSE.
+    ENDIF
 
-       ! Compute diagnostics as [kg/s] by taking dividing the mass
-       ! difference by component dt in seconds
-       !
-       ! NOTE: if changing the definition of budget diagnostics below be sure
-       ! to also update the budget diagnostic metadata in state_diag_mod.F90
-       ! within subroutine Get_Metadata_State_Diag. If you wish to output
-       ! different units, e.g. kg/m2/s instead of kg/s, update the metadata
-       ! and also the unit string in the unit conversion call above in subroutine
-       ! Compute_Column_Mass. (ewl, 9/26/18)
-       IF ( setDiag ) THEN
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED )  &
-          !$OMP PRIVATE( I, J, M, N )
-          DO M = 1, numSpc
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             N  = SpcMap(M)
-             ptr3d(I,J,M) =   &
-                   ( mass_final(I,J,N,R) - mass_initial(I,J,N,R) ) / TS
+    ! Make sure mapDataFull and diagFull are not undefined
+    IF ( isFull ) THEN
+       IF ( .not. ASSOCIATED( mapDataFull ) ) THEN
+          errMsg = 'The mapDataFull object is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. ASSOCIATED( diagFull ) ) THEN
+          errMsg = 'The diagFull array is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Make sure mapDataTrop and diagTrop are not undefined
+    IF ( isTrop ) THEN
+       IF ( .not. ASSOCIATED( mapDataTrop ) ) THEN
+          errMsg = 'The mapDataTrop object is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. ASSOCIATED( diagTrop ) ) THEN
+          errMsg = 'The diagTrop array is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Make sure mapDataPBL and diagPBL are not undefined
+    IF ( isPBL ) THEN
+       IF ( .not. ASSOCIATED( mapDataPBL ) ) THEN
+          errMsg = 'The mapDataPBL object is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. ASSOCIATED( diagPBL ) ) THEN
+          errMsg = 'The diagPBL array is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Compute diagnostics as [kg/s] by taking dividing the mass
+    ! difference by component dt in seconds
+    !
+    ! NOTE: if changing the definition of budget diagnostics below be sure
+    ! to also update the budget diagnostic metadata in state_diag_mod.F90
+    ! within subroutine Get_Metadata_State_Diag. If you wish to output
+    ! different units, e.g. kg/m2/s instead of kg/s, update the metadata
+    ! and also the unit string in the unit conversion call above in 
+    ! subroutine Compute_Column_Mass. (ewl, 9/26/18)
+    !========================================================================
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( I, J, N, S )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Region 1: full atmospheric column
+       IF ( isFull ) THEN
+          DO S = 1, mapDataFull%nSlots
+
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataFull%slot2Id(S))
+                IF ( I==1 .and. J==1) print*, '@@@ S, N: ',S, N
+             ELSE
+                N = mapDataFull%slot2Id(S)
+             ENDIF
+
+             ! Compute full atmospheric column budget [kg/s]
+             diagFull(I,J,S) = ( mass_f(I,J,N,1) - mass_i(I,J,N,1) ) / timeStep 
           ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
        ENDIF
 
-       ! Free pointer
-       ptr3d => NULL()
+       ! Region 2: Tropospheric column
+       IF ( isTrop ) THEN
+          DO S = 1, mapDataTrop%nSlots
+ 
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataTrop%slot2Id(S))
+                IF ( I==1 .and. J==1) print*, '%%% S, N: ',S, N
+             ELSE
+                N = mapDataTrop%slot2Id(S)
+             ENDIF
+
+             ! Compute tropospheric-column budget [kg/s]
+             diagTrop(I,J,S) = ( mass_f(I,J,N,2) - mass_i(I,J,N,2) ) / timeStep
+          ENDDO
+       ENDIF
+
+       ! Region 3: PBL column
+       IF ( isPBL ) THEN
+          DO S = 1, mapDataPBL%nSlots
+
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataPBL%slot2Id(S))
+                IF ( I==1 .and. J==1) print*, '$$$ S, N: ',S, N
+             ELSE
+                N = mapDataPBL%slot2Id(S)
+             ENDIF
+
+             ! Compute PBL-column budget
+             diagPBL(I,J,S) = ( mass_f(I,J,N,3) - mass_i(I,J,N,3) ) / timeStep
+          ENDDO
+       ENDIF
 
     ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
 
+    !========================================================================
     ! Zero the mass arrays now that diagnostics are set
-    mass_initial = 0.0_f8
-    mass_final   = 0.0_f8
+    !========================================================================
+    mass_i = 0.0_f8
+    mass_f = 0.0_f8
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
