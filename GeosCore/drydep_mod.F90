@@ -574,8 +574,11 @@ CONTAINS
           ! Compute drydep frequency and update diagnostics
           !-----------------------------------------------------------
 
+          ! Store dry dep velocity [m/s], after accounting for special treatments
+          State_Chm%DryDepVel(I,J,NDVZ) = DVZ / 100.e+0_f8
+
           ! Set dry deposition frequency [1/s]
-          State_Chm%DryDepSav(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
+          State_Chm%DryDepSav(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
           ! Archive dry dep velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
