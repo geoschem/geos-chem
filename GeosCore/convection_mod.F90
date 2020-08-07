@@ -54,7 +54,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
@@ -133,19 +132,23 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetConvection ) THEN
 
-       ! Get initial column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetConvectionFull,           &
+            diagFull    = NULL(),                                            &
             mapDataFull = State_Diag%Map_BudgetConvectionFull,               &
             isTrop      = State_Diag%Archive_BudgetConvectionTrop,           &
+            diagTrop    = NULL(),                                            &
             mapDataTrop = State_Diag%Map_BudgetConvectionTrop,               &
             isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
+            diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
-            colMass     = State_Diag%BudgetMass1,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
             RC          = RC                                                )
 
        ! Trap potential errors
@@ -316,41 +319,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Convection timestep [s]
-    DT_Conv = GET_TS_CONV()
-
     !----------------------------------------------------------
     ! Convection budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetConvection ) THEN
 
-       ! Get final column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Convection timestep [s]
+       DT_Conv = GET_TS_CONV()
+
+       ! Compute change in column masses (after conv - before conv)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
-            isFull      = State_Diag%Archive_BudgetConvectionFull,           &
-            mapDataFull = State_Diag%Map_BudgetConvectionFull,               &
-            isTrop      = State_Diag%Archive_BudgetConvectionTrop,           &
-            mapDataTrop = State_Diag%Map_BudgetConvectionTrop,               &
-            isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
-            mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
-            colMass     = State_Diag%BudgetMass2,                            &
-            RC          = RC                                                )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Convection budget diagnostics error 2'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Compute budget diagnostics
-       CALL Compute_Budget_Diagnostics(                                      &
-            State_Chm   = State_Chm,                                         &
-            State_Grid  = State_Grid,                                        &
-            timeStep    = TS_Dyn * 1.0_fp,                                   &
             isFull      = State_Diag%Archive_BudgetConvectionFull,           &
             diagFull    = State_Diag%BudgetConvectionFull,                   &
             mapDataFull = State_Diag%Map_BudgetConvectionFull,               &
@@ -360,13 +343,13 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
             diagPBL     = State_Diag%BudgetConvectionPBL,                    &
             mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
-            mass_i      = State_Diag%BudgetMass1,                            &
-            mass_f      = State_Diag%BudgetMass2,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Conv,                                           &
             RC          = RC                                                )
 
-       ! Trap potential errors 
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Convection budget diagnostics error 3'
+          ErrMsg = 'Convection budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

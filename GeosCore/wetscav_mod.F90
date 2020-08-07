@@ -115,7 +115,6 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE ErrCode_Mod
     USE Error_Mod,       ONLY : Debug_MSG
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -184,19 +183,23 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetWetDep ) THEN
 
-       ! Get initial column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetWetDepFull,               &
+            diagFull    = NULL(),                                            &
             mapDataFull = State_Diag%Map_BudgetWetDepFull,                   &
             isTrop      = State_Diag%Archive_BudgetWetDepTrop,               &
+            diagTrop    = NULL(),                                            &
             mapDataTrop = State_Diag%Map_BudgetWetDepTrop,                   &
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
+            diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
-            colMass     = State_Diag%BudgetMass1,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
             isWetDep    = .TRUE.,                                            &
             RC          = RC                                                )
 
@@ -271,52 +274,33 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetWetDep ) THEN
 
-       ! Get final column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Timestep  for diagnostics
+       DT_Dyn = Get_Ts_Dyn()
+
+       ! Compute change in column masses (after wetdep - before wetdep)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetWetDepFull,               &
+            diagFull    = State_Diag%BudgetWetDepFull,                       &
             mapDataFull = State_Diag%Map_BudgetWetDepFull,                   &
             isTrop      = State_Diag%Archive_BudgetWetDepTrop,               &
+            diagTrop    = State_Diag%BudgetWetDepTrop,                       &
             mapDataTrop = State_Diag%Map_BudgetWetDepTrop,                   &
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
+            diagPBL     = State_Diag%BudgetWetDepPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
-            colMass     = State_Diag%BudgetMass2,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Dyn,                                            &
             isWetDep    = .TRUE.,                                            &
             RC          = RC                                                )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'WetDep budget diagnostics error 2'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Compute budget diagnostics
-       DT_Dyn = Get_Ts_Dyn()
-       CALL Compute_Budget_Diagnostics(                                      &
-            State_Chm    = State_Chm,                                        &
-            State_Grid   = State_Grid,                                       &
-            timeStep     = DT_Dyn,                                           &
-            isFull       = State_Diag%Archive_BudgetWetDepFull,              &
-            diagFull     = State_Diag%BudgetWetDepFull,                      &
-            mapDataFull  = State_Diag%Map_BudgetWetDepFull,                  &
-            isTrop       = State_Diag%Archive_BudgetWetDepTrop,              &
-            diagTrop     = State_Diag%BudgetWetDepTrop,                      &
-            mapDataTrop  = State_Diag%Map_BudgetWetDepTrop,                  &
-            isPBL        = State_Diag%Archive_BudgetWetDepPBL,               &
-            diagPBL      = State_Diag%BudgetWetDepPBL,                       &
-            mapDataPBL   = State_Diag%Map_BudgetWetDepPBL,                   &
-            mass_i       = State_Diag%BudgetMass1,                           &
-            mass_f       = State_Diag%BudgetMass2,                           &
-            isWetDep     = .TRUE.,                                           &
-            RC           = RC                                               )
-
-       ! Trap potential errors 
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'WetDep budget diagnostics error 3'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

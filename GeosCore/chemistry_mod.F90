@@ -66,7 +66,6 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
-    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
@@ -208,19 +207,23 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
 
-       ! Get initial column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
+            diagFull    = NULL(),                                            &
             mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
             isTrop      = State_Diag%Archive_BudgetChemistryTrop,            &
+            diagTrop    = NULL(),                                            &
             mapDataTrop = State_Diag%Map_BudgetChemistryTrop,                &
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
+            diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
-            colMass     = State_Diag%BudgetMass1,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
             RC          = RC                                                )
 
        ! Trap potential errors
@@ -886,41 +889,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Chemistry timestep [s]
-    DT_Chem = Get_Ts_Chem()
-
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
 
-       ! Get final column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Chemistry timestep [s]
+       DT_Chem = Get_Ts_Chem()
+
+       ! Compute change in column masses (after chemistry - before chemistry)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
-            isFull      = State_Diag%Archive_BudgetChemistryFull,            &
-            mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
-            isTrop      = State_Diag%Archive_BudgetChemistryTrop,            &
-            mapDataTrop = State_Diag%Map_BudgetChemistryTrop,                &
-            isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
-            mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
-            colMass     = State_Diag%BudgetMass2,                            &
-            RC          = RC                                                )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Chemistry budget diagnostics error 2'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Compute budget diagnostics
-       CALL Compute_Budget_Diagnostics(                                      &
-            State_Chm   = State_Chm,                                         &
-            State_Grid  = State_Grid,                                        &
-            timeStep    = DT_Chem,                                           &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
             diagFull    = State_Diag%BudgetChemistryFull,                    &
             mapDataFull = State_Diag%Map_BudgetChemistryFull,                &
@@ -930,13 +913,13 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = State_Diag%BudgetChemistryPBL,                     &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
-            mass_i      = State_Diag%BudgetMass1,                            &
-            mass_f      = State_Diag%BudgetMass2,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Chem,                                           &
             RC          = RC                                                )
 
-       ! Trap potential errors 
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Chemistry budget diagnostics error 3'
+          ErrMsg = 'Chemistry budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

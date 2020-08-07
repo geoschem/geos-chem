@@ -211,7 +211,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Diagnostics_Mod,      ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : SAFE_DIV
@@ -322,19 +321,23 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
 
-       ! Get initial column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            diagFull    = NULL(),                                            &
             mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
             isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            diagTrop    = NULL(),                                            &
             mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
             isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
-            colMass     = State_Diag%BudgetMass1,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
             RC          = RC                                                )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -804,33 +807,13 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
 
-       ! Get final column masses
-       CALL Compute_Column_Mass(                                             &
+       ! Compute change in column masses (after emis/dryd - before emis/dryd)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
-            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
-            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
-            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
-            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
-            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
-            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
-            colMass     = State_Diag%BudgetMass2,                            &
-            RC          = RC                                                )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Compute budget diagnostics
-       CALL Compute_Budget_Diagnostics(                                      &
-            State_Chm   = State_Chm,                                         &
-            State_Grid  = State_Grid,                                        &
-            timeStep    = TS,                                                &
             isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
             diagFull    = State_Diag%BudgetEmisDryDepFull,                   &
             mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
@@ -840,13 +823,13 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
             diagPBL     = State_Diag%BudgetEmisDryDepPBL,                    &
             mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
-            mass_i      = State_Diag%BudgetMass1,                            &
-            mass_f      = State_Diag%BudgetMass2,                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = TS,                                                &
             RC          = RC                                                )
 
-       ! Trap potential errors 
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emissions/dry deposition budget diagnostics error 3'
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
