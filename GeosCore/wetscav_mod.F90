@@ -152,12 +152,12 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                 :: prtDebug
-    INTEGER                 :: I, J, L
+    INTEGER                 :: TS_Dyn
+    REAL(f8)                :: DT_Dyn
 
     ! Strings
-    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
-
-    REAL(fp)                :: DT_Dyn
+    CHARACTER(LEN=255)      :: errMsg
+    CHARACTER(LEN=255)      :: thisLoc
 
     !========================================================================
     ! Initialize
@@ -274,8 +274,9 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetWetDep ) THEN
 
-       ! Timestep  for diagnostics
-       DT_Dyn = Get_Ts_Dyn()
+       ! Timestep  for diagnostics [s]
+       TS_Dyn = Get_Ts_Dyn()
+       DT_Dyn = DBLE( TS_Dyn )
 
        ! Compute change in column masses (after wetdep - before wetdep)
        ! and store in diagnostic arrays.  Units are [kg/s].

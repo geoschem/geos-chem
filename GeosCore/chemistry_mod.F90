@@ -152,7 +152,8 @@ CONTAINS
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
     LOGICAL            :: prtDebug
-    REAL(fp)           :: DT_Chem
+    INTEGER            :: TS_Chem
+    REAL(f8)           :: DT_Chem
 #ifdef APM
     INTEGER            :: I,J,L
     REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
@@ -895,7 +896,8 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
 
        ! Chemistry timestep [s]
-       DT_Chem = Get_Ts_Chem()
+       TS_Chem = Get_Ts_Chem()
+       DT_Chem = DBLE( Ts_Chem )
 
        ! Compute change in column masses (after chemistry - before chemistry)
        ! and store in diagnostic arrays.  Units are [kg/s].

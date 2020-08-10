@@ -262,6 +262,7 @@ CONTAINS
     LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
+    REAL(f8)                :: DT_Tend
     CHARACTER(LEN=63)       :: OrigUnit
     CHARACTER(LEN=255)      :: MSG
 
@@ -289,6 +290,7 @@ CONTAINS
                                                          State_Grid%NY, &
                                                          State_Grid%NZ)
 
+    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
@@ -807,6 +809,9 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
 
+       ! Timestep for diagnostics [s]
+       DT_Tend = DBLE( TS )
+
        ! Compute change in column masses (after emis/dryd - before emis/dryd)
        ! and store in diagnostic arrays.  Units are [kg/s].
        CALL Compute_Budget_Diagnostics(                                      &
@@ -824,7 +829,7 @@ CONTAINS
             diagPBL     = State_Diag%BudgetEmisDryDepPBL,                    &
             mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
-            timeStep    = TS,                                                &
+            timeStep    = DT_Tend,                                           &
             RC          = RC                                                )
 
        ! Trap potential errors

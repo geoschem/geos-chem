@@ -1863,7 +1863,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: I, J, L, N, NA, nAdvect
+    INTEGER             :: I, J, L, N, NA, nAdvect, EC
     REAL(fp)            :: dtime
 
     ! Arrays
@@ -2017,7 +2017,7 @@ CONTAINS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J      )
+    !$OMP PRIVATE( J, EC  )
     DO J = 1, State_Grid%NY
        CALL Vdiff( J,                 1,         p_um1,     p_vm1,           &
                    p_tadv,            p_pmid,    p_pint,    p_rpdel,         &
@@ -2026,7 +2026,7 @@ CONTAINS
                    p_kvh,             p_kvm,     tpert,     qpert,           &
                    p_cgs,             p_shp,     shflx,     State_Grid%NX,   &
                    Input_Opt,         State_Met, State_Chm, State_Diag,      &
-                   ustar_arg=p_ustar, RC=RC                                 )
+                   ustar_arg=p_ustar, RC=EC                                 )
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -2132,17 +2132,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-
     ! Scalars
     LOGICAL            :: prtDebug
+    INTEGER            :: TS_Dyn
+    REAL(fp)           :: DT_Dyn
 
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    REAL(fp)           :: DT_Dyn
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
 
     !=======================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2276,7 +2274,8 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
        ! Get dynamics timestep [s]
-       DT_Dyn = Get_Ts_Dyn()
+       TS_Dyn = Get_Ts_Dyn()
+       DT_Dyn = DBLE( Ts_Dyn )
 
        ! Compute change in column masses (after mixing - before mixing)
        ! and store in diagnostic arrays.  Units are [kg/s].

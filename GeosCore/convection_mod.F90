@@ -99,7 +99,8 @@ CONTAINS
     REAL(fp)           :: AREA_M2, DT
     LOGICAL            :: DO_ND14, DoConvFlux
     LOGICAL            :: DO_ND38, DoWetLoss
-    REAL(fp)           :: DT_Conv
+    INTEGER            :: TS_Conv
+    REAL(f8)           :: DT_Conv
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -325,7 +326,8 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetConvection ) THEN
 
        ! Convection timestep [s]
-       DT_Conv = GET_TS_CONV()
+       TS_Conv = Get_Ts_Conv()
+       DT_Conv = DBLE( TS_Conv )
 
        ! Compute change in column masses (after conv - before conv)
        ! and store in diagnostic arrays.  Units are [kg/s].

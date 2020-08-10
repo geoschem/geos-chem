@@ -93,13 +93,13 @@ CONTAINS
     ! Scalars
     INTEGER            :: N
     INTEGER            :: NA
+    INTEGER            :: TS_Dyn
+    REAL(fp)           :: DT_Dyn
 
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
-
-    REAL(fp)           :: DT_Dyn
 
     !=======================================================================
     ! Do_Full_Pbl_Mixing begins here!
@@ -142,50 +142,54 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !========================================================================
-    ! Unit conversion #1
-    !========================================================================
+    ! Proceed to do full PBL mixing only if it has been selected in input.geos
+    IF ( Input_Opt%LTURB .and. ( .not. Input_Opt%LNLPBL ) ) THEN
 
-    ! Convert species to v/v dry
-    CALL Convert_Spc_Units( Input_Opt,         State_Chm, State_Grid,        &
-                            State_Met,        'v/v dry',  RC,                &
-                            OrigUnit=OrigUnit                               )
+       !=====================================================================
+       ! Unit conversion #1
+       !=====================================================================
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+       ! Convert species to v/v dry
+       CALL Convert_Spc_Units( Input_Opt,         State_Chm, State_Grid,     &
+                               State_Met,        'v/v dry',  RC,             &
+                               OrigUnit=OrigUnit                               )
 
-    !========================================================================
-    ! Do full PBL mixing
-    !========================================================================
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-    ! Do complete mixing of tracers in the PBL
-    CALL TurbDay( Input_Opt,  State_Chm, State_Diag,                         &
-                  State_Grid, State_Met, RC                                 )
+       !=====================================================================
+       ! Do full PBL mixing
+       !=====================================================================
 
-    ! Trap potential error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "TURBDAY"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+       ! Do complete mixing of tracers in the PBL
+       CALL TurbDay( Input_Opt,  State_Chm, State_Diag,                      &
+                     State_Grid, State_Met, RC                              )
 
-    !========================================================================
-    ! Unit conversion #2
-    !========================================================================
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "TURBDAY"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-    ! Convert species back to original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+       !========================================================================
+       ! Unit conversion #2
+       !========================================================================
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Convert species back to original units
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,             &
+                               State_Met, OrigUnit,  RC                        )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -194,9 +198,10 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
        ! Get dynamics timestep [s]
-       DT_Dyn = Get_Ts_Dyn()
+       TS_Dyn = Get_Ts_Dyn()
+       DT_Dyn = DBLE( TS_Dyn )
 
-       ! Compute change in column masses (after chemistry - before chemistry)
+       ! Compute change in column masses (after mixing - before mixing)
        ! and store in diagnostic arrays.  Units are [kg/s].
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
@@ -426,8 +431,8 @@ CONTAINS
           !   PRINT*, '### F_OF_PBL    : ', State_Met%F_OF_PBL(I,J,L)
           !   PRINT*, '### F_UNDER_TOP : ', &
           !            State_Met%F_UNDER_PBLTOP(I,J,L)
-          !   PRINT*, '### IMIX        : ', IMIX(I,J)
-          !   PRINT*, '### FPBL        : ', FPBL(I,J)
+          !   PRINT*, '### IMIX        : ', State_Met%IMIX(I,J)
+          !   PRINT*, '### FPBL        : ', State_Met%FPBL(I,J)
           !   PRINT*, '### PBL_TOP_hPa : ', State_Met%PBL_TOP_hPa(I,J)
           !   PRINT*, '### PBL_TOP_L   : ', State_Met%PBL_TOP_L(I,J)
           !   PRINT*, '### DELP        : ', DELP

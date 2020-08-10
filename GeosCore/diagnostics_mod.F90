@@ -751,7 +751,7 @@ CONTAINS
     TYPE(DgnMap),   POINTER       :: mapDataPBL       ! Map to species indexes
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation
-    REAL(fp),       OPTIONAL      :: timestep         ! F = after operation
+    REAL(f8),       OPTIONAL      :: timestep         ! F = after operation
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -779,7 +779,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: after,  before, wetDep
     INTEGER            :: I,      J,      L,       N
-    INTEGER            :: numSpc, region, PBL_TOP, S
+    INTEGER            :: numSpc, region, topLev,  S
     REAL(f8)           :: colSum, dt
 
     ! Arrays
@@ -796,7 +796,16 @@ CONTAINS
     RC      =  GC_SUCCESS
     errMsg  = ''
     ThisLoc = ' -> at Compute_Column_Mass ' // ModLoc
+    colSum  = 0.0_f8
     spcMass = 0.0_f8
+
+    ! Exit if concentrations are not in [kg/kg dry]
+    IF ( State_Chm%Spc_Units /= 'kg/kg dry' ) THEN
+       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
+                'Incorrect units: '// TRIM( State_Chm%Spc_Units )
+       CALL GC_Error( errMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Set logicals to denote if we are calling this routine
     ! before the operation or after the operation
@@ -886,9 +895,14 @@ CONTAINS
     ! Loop over NX and NY dimensions
     !$OMP PARALLEL DO                                        &
     !$OMP DEFAULT( SHARED                                  ) &
-    !$OMP PRIVATE( I, J, L, N, S, PBL_TOP, spcMass, colSum )
+    !$OMP PRIVATE( I, J, colSum, spcMass, topLev, S, N, L  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Zero column-specific variables
+       colSum  = 0.0_f8
+       spcMass = 0.0_f8
+       topLev  = 0
 
        !--------------------------------------------------------------------
        ! Full-column budget for requested species
@@ -910,17 +924,17 @@ CONTAINS
                 N = mapDataFull%slot2Id(S)
              ENDIF
 
-             ! Compute mass at each grid box in the column
+             ! Compute mass at each grid box in the column [kg]
              DO L = 1, State_Grid%NZ
                 spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
              ENDDO
 
-             ! Compute the full-atmosphere column sum
-             colSum = SUM( spcMass( 1:State_Grid%NZ )  )
+             ! Compute the full-atmosphere column mass [kg]
+             colSum = SUM( spcMass(1:State_Grid%NZ)  )
 
              ! Before operation: Compute initial full-atm column mass
              ! After operation: Compute change in column mass (final-initial),
-             ! convert to kg/s, and store in the diagFull array.
+             ! convert to [kg/s], and store in the diagFull array.
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
@@ -933,6 +947,9 @@ CONTAINS
        ! Troposphere-only budget for each requested species
        !---------------------------------------------------------------------
        IF ( isTrop ) THEN
+
+          ! Top level in the column
+          topLev = State_Met%TropLev(I,J)
 
           ! Loop over # of diagnostic slots
           DO S = 1, mapDataTrop%nSlots
@@ -949,21 +966,21 @@ CONTAINS
                 N = mapDataTrop%slot2Id(S)
              ENDIF
 
-             ! Compute mass at each grid box in the column
-             DO L = 1, State_Grid%NZ
+             ! Compute mass at each grid box in the troposphere [kg]
+             DO L = 1, topLev
                 spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
              ENDDO
 
-             ! Compute column mass in PBL region
-             colSum = SUM( spcMass( 1:State_Met%TropLev(I,J) ) )
+             ! Compute the trop-column mass [kg]
+             colSum = SUM( spcMass(1:topLev) )
 
              ! Before operation: Compute initial trop-column mass
              ! After operation: Compute change in column mass (final-initial),
-             ! convert to kg/s, and store in the diagTrop array.
+             ! convert to [kg/s], and store in the diagTrop array.
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
-                diagTrop(I,J,S)  = ( colSum - colMass(I,J,N,2) ) / timeStep
+                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
              ENDIF
           ENDDO
        ENDIF
@@ -973,8 +990,8 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( isPBL ) THEN
 
-          ! Get the PBL top level at this (I,J) location
-          PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
+          ! Top level of column is where PBL top occurs
+          topLev = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
           ! Loop over # of diagnostic slots
           DO S = 1, mapDataPBL%nSlots
@@ -991,29 +1008,28 @@ CONTAINS
                 N = mapDataPBL%slot2Id(S)
              ENDIF
 
-             ! Compute mass at each grid box in the column
-             DO L = 1, State_Grid%NZ
+             ! Compute mass at each grid box in the column [kg]
+             DO L = 1, topLev
                 spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
              ENDDO
 
-             ! Compute column mass in PBL region
-             colSum = SUM( spcMass( 1:PBL_TOP ) )
+             ! Compute column mass in PBL region [kg]
+             colSum = SUM( spcMass(1:topLev) )
 
-             ! If this call is before the operation, then the initial mass
-             ! is just the tropospheric column sum of the spcMass array.
-             ! If this call is after the operation, then we can compute the
-             ! difference by subtracting colMass(I,J,N,1) from colSum.
+             ! Before operation: Compute initial PBL-column mass
+             ! After operation: Compute change in column mass (final-initial),
+             ! convert to [kg/s], and store in the diagPBL array.
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
              ELSE
-                diagPBL(I,J,S)   = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
              ENDIF
           ENDDO
        ENDIF
 
     ENDDO
     ENDDO
-    !%OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC

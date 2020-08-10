@@ -112,8 +112,11 @@ CONTAINS
 !
     ! Scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER            :: TS_Dyn
+    REAL(f8)           :: DT_Dyn
+
+    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    REAL(fp)           :: DT_Dyn
 
     !========================================================================
     ! DO_TRANSPORT begins here!
@@ -122,7 +125,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at Do_Transport  (in module GeosCore/transport_mod.F90)'
+    ThisLoc = ' -> at Do_Transport (in module GeosCore/transport_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Transport budget diagnostics - Part 1 of 2
@@ -230,7 +233,8 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetTransport ) THEN
 
        ! Dynamic timestep [s]
-       DT_Dyn = GET_TS_DYN()
+       TS_Dyn = GET_TS_DYN()
+       DT_Dyn = DBLE( TS_Dyn )
 
        ! Compute change in column masses (after transport - before transport)
        ! and store in diagnostic arrays.  Units are [kg/s].
