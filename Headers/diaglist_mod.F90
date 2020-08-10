@@ -529,6 +529,7 @@ CONTAINS
              RETURN
           ENDIF
 
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
           ! Throw an error if we cannot find the gridcomp name
           ! (e.g. "'GCHPchem',").  GCHP will choke if this isn't found.
           IF ( INDEX( Line, "'GCHPchem'," ) == 0 ) THEN
@@ -541,6 +542,7 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
+#endif
 
           ! Save into LineSq the text of the line, skipping over
           ! the attribute name (if we are on the first line),
@@ -588,10 +590,10 @@ CONTAINS
        ! Skip line if GCHPchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#ifdef MODEL_GEOS
-       IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
-#else
+#if defined( MODEL_GCHP )
        IF ( INDEX( Line, 'GCHPchem' ) .le. 0 ) CYCLE
+#elif defined( MODEL_GEOS )
+       IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #endif
 
        ! Get diagnostic name
@@ -651,6 +653,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 #endif
+
           isWildcard = .TRUE.
           CALL StrSplit( name, '?', SubStrs, N )
           wildcard = SubStrs(N-1)
