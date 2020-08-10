@@ -63,7 +63,6 @@ COLLECTIONS: 'Emissions',
              'StateMet_inst',      
              'WetLossConv',
              'WetLossLS',
-             'Transport',
 ::
 #==============================================================================
 # Define collections
@@ -575,18 +574,4 @@ COLLECTIONS: 'Emissions',
                               'WetLossLS_Be7Strat   ', 'GCHPchem',
                               'WetLossLS_Be10       ', 'GCHPchem',
                               'WetLossLS_Be10Strat  ', 'GCHPchem',
-::
-#==============================================================================
-# %%%%% THE Transport COLLECTION %%%%%
-#
-# Diagnostics for evaluating age of air [s]
-#
-# Available for all simulations
-#==============================================================================
-  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  Transport.format:           'CFIO',
-  Transport.frequency:        010000
-  Transport.duration:         010000
-  Transport.mode:             'instantaneous'
-  Transport.fields:           'Met_AgeOfAir                  ', 'GCHPchem',
 ::

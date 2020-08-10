@@ -124,8 +124,8 @@ Duration="{dYYYYMMDD} {dHHmmss}"
 #     automatically updated from this file, add to the list below.
 #  5. To turn off collections completely, comment them out in HISTORY.rc.
 #
-common_freq="{DiagFreq}"          # Ignore if using multi-run monthly diag option
-common_dur="{DiagDur}"           # Ignore if using multi-run monthly diag option
+common_freq="{DiagFreq}"      # Ignore if using multi-run monthly diag option
+common_dur="{DiagDur}"        # Ignore if using multi-run monthly diag option
 common_mode="'time-averaged'" # "'time-averaged'" and "'instantaneous'"
 
 SpeciesConc_freq=${common_freq}
@@ -522,6 +522,7 @@ if [[ ${STRETCH_GRID} == "ON" ]]; then
     uncomment_line GCHP.STRETCH_FACTOR GCHP.rc
     uncomment_line GCHP.TARGET_LAT     GCHP.rc
     uncomment_line GCHP.TARGET_LON     GCHP.rc
+    uncomment_line "\&fv_core_nml"     input.nml
     uncomment_line do_schmidt          input.nml
     uncomment_line stretch_fac         input.nml
     uncomment_line target_lat          input.nml
@@ -531,12 +532,13 @@ if [[ ${STRETCH_GRID} == "ON" ]]; then
     replace_val GCHP.TARGET_LAT     ${TARGET_LAT}      GCHP.rc
     replace_val target_lat,         ${TARGET_LAT},     input.nml =
     replace_val GCHP.TARGET_LON     ${TARGET_LON}      GCHP.rc
-    replace_val target_lon,         ${TARGET_LON},     input.nml =
+    replace_val target_lon,         ${TARGET_LON}/     input.nml =
 elif [[ ${STRETCH_GRID} == "OFF" ]]; then
     echo "*** Stretched grid is turned off ***"
     comment_line GCHP.STRETCH_FACTOR GCHP.rc
     comment_line GCHP.TARGET_LAT     GCHP.rc
     comment_line GCHP.TARGET_LON     GCHP.rc
+    comment_line "\&fv_core_nml"     input.nml
     comment_line do_schmidt          input.nml
     comment_line stretch_fac         input.nml
     comment_line target_lat          input.nml

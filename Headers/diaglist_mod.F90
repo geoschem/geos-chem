@@ -529,21 +529,6 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
-          ! Throw an error if we cannot find the gridcomp name
-          ! (e.g. "'GCHPchem',").  GCHP will choke if this isn't found.
-          IF ( INDEX( Line, "'GCHPchem'," ) == 0 ) THEN
-             ErrMsg = 'The name of the GCHP gridded component '           // &
-                      "(e.g. 'GCHPchem') for attribute "  // '" '         // &
-                      TRIM( AttName ) // '" must be enclosed in '         // &
-                      'single quotes and be followed by a comma. '        // &
-                      'Please check the HISTORY.rc file.'
-             WRITE( ErrorLine, 250 ) LineNum
-             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
-             RETURN
-          ENDIF
-#endif
-
           ! Save into LineSq the text of the line, skipping over
           ! the attribute name (if we are on the first line),
           ! as well as the gridcomp name
@@ -587,10 +572,8 @@ CONTAINS
        ! Add unique diagnostic names to diag list
        !====================================================================
 
-       ! Skip line if GCHPchem not present
-       ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
-       ! scan accordingly (ckeller, 12/29/17)
-#if defined( MODEL_GCHP )
+       ! Skip line if gridded component name not present and using GCHP or GEOS
+#if defined( MODEL_GCHPCTM )
        IF ( INDEX( Line, 'GCHPchem' ) .le. 0 ) CYCLE
 #elif defined( MODEL_GEOS )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
@@ -645,7 +628,7 @@ CONTAINS
        isWildcard = .FALSE.
        wildcard   = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
-#ifdef ESMF_
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
           ! Exit with an error if using GCHP and wildcard is present
           ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                    'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
