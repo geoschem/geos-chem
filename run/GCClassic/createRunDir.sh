@@ -14,8 +14,10 @@
 
 srcrundir=$(pwd -P)
 cd ${srcrundir}
-cd ../../../..
-gcdir=$(pwd)
+cd ../..
+gcdir=$(pwd -P)
+cd ../../
+wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
 #-----------------------------------------------------------------
@@ -425,7 +427,7 @@ fi
 #--------------------------------------------------------------------
 # Create symbolic link to code directory
 #--------------------------------------------------------------------
-ln -s ${gcdir} ${rundir}/CodeDir
+ln -s ${wrapperdir} ${rundir}/CodeDir
 
 #--------------------------------------------------------------------
 # Create build directory
