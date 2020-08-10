@@ -1294,17 +1294,15 @@ CONTAINS
     ! Local vars for PBL mix
     ! Do not register these
     !-------------------------
-    IF ( Input_Opt%LTURB ) THEN
-       ALLOCATE( State_Met%IMIX( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%IMIX = 0
+    ALLOCATE( State_Met%IMIX( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IMIX = 0
 
-       ALLOCATE( State_Met%FPBL( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FPBL = 0.0_fp
-    ENDIF
+    ALLOCATE( State_Met%FPBL( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FPBL = 0.0_fp
 
     !=======================================================================
     ! Allocate 3-D Arrays
