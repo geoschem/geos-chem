@@ -14,7 +14,7 @@
 
 srcrundir=$(pwd -P)
 cd ${srcrundir}
-cd ../..
+cd ../../../..
 gcdir=$(pwd)
 cd ${srcrundir}
 
