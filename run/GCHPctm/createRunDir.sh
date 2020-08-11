@@ -355,7 +355,8 @@ if [ "${sim_extra_option}" == "RRTMG" ]; then
     replace_colon_sep_val "--> RRTMG"         true ${rundir}/HEMCO_Config.rc
     sed -i -e "s|#'RRTMG'|'RRTMG'|"                ${rundir}/HISTORY.rc
     printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
-    printf "           Edit input.geos and HISTORY.rc in your new run directory to customize options to only what you need.\n"
+    printf "\nEdit input.geos and HISTORY.rc in your new run directory to customize options to only"
+    printf "\nwhat you need.\n"
 fi
 
 #-----------------------------------------------------------------
