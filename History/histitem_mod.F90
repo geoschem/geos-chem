@@ -291,6 +291,10 @@ CONTAINS
     Z1 = UNDEFINED_INT
     Z1 = UNDEFINED_INT
 
+    ! Zero the number of updates (won't get set until History_Update)
+    ! in order to prevent uninitialized values from causing side-effects.
+    Item%nUpdates = 0.0_f8
+
     !========================================================================
     ! Required inputs, handle these first
     !========================================================================
@@ -360,7 +364,7 @@ CONTAINS
     Item%NcXDimId = UNDEFINED_INT
     Item%NcYDimId = UNDEFINED_INT
     Item%NcZDimId = UNDEFINED_INT
-    ITem%NcIDimId = UNDEFINED_INT
+    Item%NcIDimId = UNDEFINED_INT
     Item%NcTdimId = UNDEFINED_INT
     Item%NcVarId  = UNDEFINED_INT
 

@@ -3065,7 +3065,7 @@ Pb210_PROP: &Pbproperties
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_RadioNuclide: True
+  Is_RadioNuclide: true
   Is_WetDep: true
   MW_g: 210.0
   WD_AerScavEff: 1.0

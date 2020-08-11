@@ -164,9 +164,9 @@ CONTAINS
     LOGICAL                :: prtDebug,  IsLocNoon
     INTEGER                :: I,         J,        L,         N
     INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      Day   
+    INTEGER                :: P,         MONTH,    YEAR,      Day
     INTEGER                :: WAVELENGTH
-    INTEGER                :: IERR
+    INTEGER                :: IERR,      S
     INTEGER                :: Thread
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
     REAL(fp)               :: TOUT
@@ -282,9 +282,6 @@ CONTAINS
 #ifdef MODEL_GEOS
     GLOB_RCONST = 0.0_f4
     GLOB_JVAL   = 0.0_f4
-
-    ! testing only
-    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
     IF ( Input_Opt%useTimers ) THEN
@@ -590,7 +587,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  ISTATUS                   )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC                        )&
+    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC,    S                  )&
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP SCHEDULE ( DYNAMIC,  1                                            )
@@ -736,23 +733,50 @@ CONTAINS
 
              ! If this FAST_JX photolysis species maps to a valid
              ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 ) THEN
+             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Diag%Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
-                                            + PHOTOL(N)
+                   S = State_Diag%Map_JVal%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%JVal(I,J,L,S) =                             &
+                      State_Diag%JVal(I,J,L,S) + PHOTOL(N)
+                   ENDIF
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Met%IsLocalNoon(I,J) ) THEN
                    IF ( State_Diag%Archive_JNoon ) THEN
-                      State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
-                                                + PHOTOL(N)
+                      S = State_Diag%Map_JNoon%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%JNoon(I,J,L,S) =                         &
+                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                      ENDIF
                    ENDIF
                 ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O1D ) THEN
+                   State_Diag%JValO3O1D(I,J,L) =                             &
+                   State_Diag%JValO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O3P ) THEN
+                   State_Diag%JValO3O3P(I,J,L) =                             &
+                   State_Diag%JValO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
              ENDIF
           ENDDO
 
@@ -794,7 +818,7 @@ CONTAINS
        !====================================================================
        IF ( DO_HETCHEM ) THEN
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Het chem rates", RC, & 
+             CALL Timer_Start( "  -> Het chem rates", RC, &
                                InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
 
@@ -845,12 +869,14 @@ CONTAINS
        ! Update KPP rates
        !==================================================================
 
+       !--------------------------------------------------------------------
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
        !
        ! NOTE: Because VAR and FIX are !$OMP THREADPRIVATE, they
        ! cannot appear in an EQUIVALENCE statement.  Therfore, we
        ! will just copy the relevant elements of C to VAR and FIX
        ! here. (bmy, 3/28/16)
+       !--------------------------------------------------------------------
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
@@ -865,16 +891,17 @@ CONTAINS
           CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
-       ! Archive KPP reaction rates
+       !--------------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive KPP reaction rates [s-1]
+       ! See gckpp_Monitor.F90 for a list of chemical reactions
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-#if !defined( MODEL_GEOS )
-          DO N = 1, NREACT
-             State_Diag%RxnRate(I,J,L,N) = Aout(N)
-#else
-          DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
-#endif
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
 

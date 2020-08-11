@@ -54,7 +54,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
@@ -80,6 +79,7 @@ CONTAINS
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
@@ -94,12 +94,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, NA, nAdvect, NW, EC, ISOL
+    INTEGER            :: N, NA, nAdvect, NW, EC, ISOL, S
     INTEGER            :: I, J, L, NN, TS_DYN
     REAL(fp)           :: AREA_M2, DT
     LOGICAL            :: DO_ND14, DoConvFlux
     LOGICAL            :: DO_ND38, DoWetLoss
-    REAL(fp)           :: DT_Conv
+    INTEGER            :: TS_Conv
+    REAL(f8)           :: DT_Conv
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -115,33 +116,43 @@ CONTAINS
     ! Pointers
     REAL(fp), POINTER  :: p_FSOL (:,:,:)
 
-    !=================================================================
+    !========================================================================
     ! DO_CONVECT begins here!
-    !=================================================================
+    !========================================================================
 
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Initialize
-    !----------------------------------------------------------------
+    !------------------------------------------------------------------------
     RC      = GC_SUCCESS
     p_FSOL  => NULL()
     ErrMsg  = ''
     ThisLoc = ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Convection budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetConvection ) THEN
-       ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                               &
-                                 State_Chm,                               &
-                                 State_Grid,                              &
-                                 State_Met,                               &
-                                 State_Chm%Map_Advect,                    &
-                                 State_Diag%Archive_BudgetConvectionFull, &
-                                 State_Diag%Archive_BudgetConvectionTrop, &
-                                 State_Diag%Archive_BudgetConvectionPBL,  &
-                                 State_Diag%BudgetMass1,                  &
-                                 RC )
+
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetConvectionFull,           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = State_Diag%Map_BudgetConvectionFull,               &
+            isTrop      = State_Diag%Archive_BudgetConvectionTrop,           &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = State_Diag%Map_BudgetConvectionTrop,               &
+            isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Convection budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -149,9 +160,9 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! More initializations
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [sec]
     DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
     FSOL       = 0e+0_fp                                ! Zero the FSOL array
@@ -161,14 +172,14 @@ CONTAINS
     ! Number of advected species
     nAdvect = State_Chm%nAdvect
 
-    !=================================================================
+    !========================================================================
     ! Compute fraction of soluble species lost in conv. updrafts
-    !=================================================================
+    !========================================================================
 
     ! Loop over advected species
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL )
+    !$OMP PARALLEL DO                           &
+    !$OMP DEFAULT( SHARED                     ) &
+    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL, S )
     DO NA = 1, nAdvect
 
        ! Species ID
@@ -186,13 +197,16 @@ CONTAINS
           RC = EC
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Fraction of soluble species lost in convective updrafts
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_WetLossConvFrac .and. ISOL > 0 ) THEN
-          State_Diag%WetLossConvFrac(:,:,:,ISOL) = p_FSOL
+          S = State_Diag%Map_WetLossConvFrac%id2Slot(ISOL)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossConvFrac(:,:,:,S) = p_FSOL
+          ENDIF
        ENDIF
 
        ! Free pointer memory
@@ -208,17 +222,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=================================================================
+    !=======================================================================
     ! Do convection column by column
     !
     ! NOTE: Later on, consider moving the I,J loops within the call
     ! to DO_CLOUD_CONVECTION, to gain computational efficiency
-    !=================================================================
+    !=======================================================================
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC ) &
-    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW ) &
+    !$OMP PARALLEL DO                                      &
+    !$OMP DEFAULT( SHARED                                ) &
+    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
+    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -265,31 +279,33 @@ CONTAINS
           RC = EC
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Convective mass flux [kg/s]
        ! NOTE: May be replaced soon with better flux diagnostics
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_CloudConvFlux ) THEN
-          DO N = 1, State_Chm%nAdvect
-          DO L = 1, State_Grid%NZ
-             State_Diag%CloudConvFlux(I,J,L,N) = Diag14(L,N)
-          ENDDO
+          DO S = 1, State_Diag%Map_CloudConvFlux%nSlots
+             N = State_Diag%Map_CloudConvFlux%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%CloudConvFlux(I,J,L,S) = Diag14(L,N)
+             ENDDO
           ENDDO
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Loss of soluble species in convective mass flux [kg/s]
        ! NOTE: May be replaced soon with better flux diagnostics
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_WetLossConv ) THEN
-          DO NW = 1, State_Chm%nWetDep
-          DO L  = 1, State_Grid%NZ
-             State_Diag%WetLossConv(I,J,L,NW) = Diag38(L,NW)
-          ENDDO
+          DO S = 1, State_Diag%Map_WetLossConv%nSlots
+             NW = State_Diag%Map_WetLossConv%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
+             ENDDO
           ENDDO
        ENDIF
 
@@ -304,43 +320,43 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Convection timestep [s]
-    DT_Conv = GET_TS_CONV()
-
     !----------------------------------------------------------
     ! Convection budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetConvection ) THEN
-       ! Get final masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                               &
-                                 State_Chm,                               &
-                                 State_Grid,                              &
-                                 State_Met,                               &
-                                 State_Chm%Map_Advect,                    &
-                                 State_Diag%Archive_BudgetConvectionFull, &
-                                 State_Diag%Archive_BudgetConvectionTrop, &
-                                 State_Diag%Archive_BudgetConvectionPBL,  &
-                                 State_Diag%BudgetMass2,                  &
-                                 RC )
-       CALL Compute_Budget_Diagnostics( State_Grid,                       &
-                                 State_Chm%Map_Advect,                    &
-                                 DT_Conv,                                 &
-                                 State_Diag%Archive_BudgetConvectionFull, &
-                                 State_Diag%Archive_BudgetConvectionTrop, &
-                                 State_Diag%Archive_BudgetConvectionPBL,  &
-                                 State_Diag%BudgetConvectionFull,         &
-                                 State_Diag%BudgetConvectionTrop,         &
-                                 State_Diag%BudgetConvectionPBL,          &
-                                 State_Diag%BudgetMass1,                  &
-                                 State_Diag%BudgetMass2,                  &
-                                 RC )
+
+       ! Convection timestep [s]
+       TS_Conv = Get_Ts_Conv()
+       DT_Conv = DBLE( TS_Conv )
+
+       ! Compute change in column masses (after conv - before conv)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetConvectionFull,           &
+            diagFull    = State_Diag%BudgetConvectionFull,                   &
+            mapDataFull = State_Diag%Map_BudgetConvectionFull,               &
+            isTrop      = State_Diag%Archive_BudgetConvectionTrop,           &
+            diagTrop    = State_Diag%BudgetConvectionTrop,                   &
+            mapDataTrop = State_Diag%Map_BudgetConvectionTrop,               &
+            isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
+            diagPBL     = State_Diag%BudgetConvectionPBL,                    &
+            mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Conv,                                           &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Convection budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
-
+       
   END SUBROUTINE DO_CONVECTION
 !EOC
 !------------------------------------------------------------------------------
