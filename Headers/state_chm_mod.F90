@@ -722,10 +722,6 @@ CONTAINS
     !### Debug: Show the values in the lookup table
     !###CALL State_Chm%SpcDict%Show()
 
-    ! Populate the HetInfo object, which is used to cleanly pass
-    ! modelId's and molecular weights to the het chem routine
-    CALL Init_HetInfo( State_Chm, RC )
-
     !=======================================================================
     ! Exit if this is a dry-run simulation
     !=======================================================================
@@ -735,9 +731,22 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! Populate the HetInfo object, which is used to cleanly pass
+    ! modelId's and molecular weights to the het chem routine
+    !=======================================================================
+    State_Chm%HetInfo => NULL()
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       CALL Init_HetInfo( State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Init_HetInfo" routine!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
     ! Allocate and initialize mapping vectors to subset species
     !=======================================================================
-
     IF ( State_Chm%nAdvect > 0 ) THEN
        ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 0, RC )
@@ -4126,9 +4135,9 @@ CONTAINS
 !   'F' : Returns KPP fixed species index
 !   'G' : Returns gas-phase species index
 !   'H' : Returns hygroscopic-growth species index
-!   'K' : Returns KPP master species index
+!   'K' : Returns KPP main species index
 !   'P' : Returns photolysis species index
-!   'S' : Returns master species index (aka "ModelId")
+!   'S' : Returns main species index (aka "ModelId")
 !   'V' : Returns KPP variable species index
 !   'W' : Returns wet-deposition species index
 !
@@ -4401,7 +4410,7 @@ CONTAINS
           ! Get the KPP prod/loss species from the FAM_NAMES
           ! array in the gckpp_Parameters.F90 module.
           ! NOTE: This is the KPP ID number (index of "VAR" array)
-          ! and not the GEOS-Chem "master" species index!!!
+          ! and not the GEOS-Chem "main" species index!!!
           Id = Ind_( TRIM( Fam_Names(N) ), 'K' )
 
           ! Add the species

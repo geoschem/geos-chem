@@ -100,7 +100,7 @@ copyfiles "gcchem_*"      ${archivedir}/checkpoints
 copyfiles cap_restart     ${archivedir}/checkpoints
 
 # Special handling for copying initial restart (retrieve filename from config)
-x=$(grep "GIGCchem_INTERNAL_RESTART_FILE:" GCHP.rc)
+x=$(grep "GCHPchem_INTERNAL_RESTART_FILE:" GCHP.rc)
 rst=${x:37}
 copyfiles $rst          ${archivedir}/restart
 

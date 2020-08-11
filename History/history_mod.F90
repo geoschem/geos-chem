@@ -1674,7 +1674,7 @@ CONTAINS
 
           !=================================================================
           ! Add this HISTORY CONTAINER object (i.e. this collection) into
-          ! the METAHISTORY OBJECT (i.e. the master list of collections).
+          ! the METAHISTORY OBJECT (i.e. the main list of collections).
           !=================================================================
           CALL MetaHistContainer_AddNew( Input_Opt   = Input_Opt,            &
                                          Node        = CollectionList,       &
@@ -2404,10 +2404,10 @@ CONTAINS
     ThisLoc    =  ' -> at History_SetTime (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -2514,12 +2514,12 @@ CONTAINS
     ThisLoc    =  ' -> at History_Update (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list, and
     ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
     ! Update each HISTORY ITEM if it is the proper time.
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -2867,11 +2867,11 @@ CONTAINS
     ThisLoc    =  ' -> at History_Write (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list, and
     ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -3117,7 +3117,7 @@ CONTAINS
 ! !IROUTINE: History_Close_AllFiles
 !
 ! !DESCRIPTION: Closes the netCDF file described by each HISTORY CONTAINER
-!  object in the master list of diagnostic collections.
+!  object in the main list of diagnostic collections.
 !\\
 !\\
 ! !INTERFACE:

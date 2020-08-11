@@ -289,9 +289,9 @@
 #else
       Integer, Parameter   :: IonicKind=fp
 #endif
-      Real(Kind=IonicKind) ::  IONIC_MASTER
+      Real(Kind=IonicKind) ::  IONIC_MAIN
       !----------------------------------------------------------------------
-!$OMP THREADPRIVATE( IONIC_MASTER )
+!$OMP THREADPRIVATE( IONIC_MAIN )
 
 !  INPUT:
 !  1. [WFTYPI] 
@@ -10126,7 +10126,7 @@
 !
 ! *** ISORROPIA CODE II
 ! *** SUBROUTINE ISORROPIA
-! *** THIS SUBROUTINE IS THE MASTER ROUTINE FOR THE ISORROPIA
+! *** THIS SUBROUTINE IS THE MAIN ROUTINE FOR THE ISORROPIA
 !     THERMODYNAMIC EQUILIBRIUM AEROSOL MODEL (VERSION 1.1 and above)
 !
 ! ======================== ARGUMENTS / USAGE ===========================
@@ -10410,7 +10410,7 @@
       OTHER(2) = SULRAT            ! Other stuff
       OTHER(3) = SULRATW
       OTHER(4) = SODRAT
-      OTHER(5) = IONIC_MASTER
+      OTHER(5) = IONIC_MAIN
       OTHER(6) = ICLACT
       OTHER(7) = SO4RAT
       OTHER(8) = CRNARAT
@@ -14383,7 +14383,7 @@
 !
 ! *** CALCULATE IONIC ACTIVITY OF SOLUTION *****************************
 !
-      IONIC_MASTER = 0.0
+      IONIC_MAIN = 0.0
       IONIC=0.0
       DO 30 I=1,NIONS
          IONIC=IONIC + MOLAL(I)*Z(I)*Z(I)
@@ -14511,7 +14511,7 @@
       ICLACT = ICLACT + 1                ! Increment ACTIVITY call counter
 
       ! Store the result of IONIC
-      IONIC_MASTER = IONIC
+      IONIC_MAIN = IONIC
 !
 ! *** END OF SUBROUTINE ACTIVITY ****************************************
 !
@@ -14573,7 +14573,7 @@
 !
 ! *** CALCULATE IONIC ACTIVITY OF SOLUTION *****************************
 !
-      Ionic_Master = 0.0
+      Ionic_Main = 0.0
       IONIC=0.0
       DO 30 I=1,7
          IONIC=IONIC + MOLAL(I)*Z(I)*Z(I)
@@ -14672,7 +14672,7 @@
       ICLACT = ICLACT + 1                ! Increment ACTIVITY call counter
 
       ! Store IONIC
-      IONIC_MASTER = IONIC
+      IONIC_MAIN = IONIC
 !
 ! *** END OF SUBROUTINE ACTIVITY ****************************************
 !
@@ -14740,7 +14740,7 @@
 !
 ! *** CALCULATE IONIC ACTIVITY OF SOLUTION *****************************
 !
-      Ionic_Master = 0.0
+      Ionic_Main = 0.0
       IONIC=0.0
       MOLAL(2) = ZERO
       MOLAL(4) = ZERO
@@ -14865,7 +14865,7 @@
       ICLACT = ICLACT + 1                ! Increment ACTIVITY call counter
 
       ! Store IONIC
-      IONIC_MASTER = IONIC
+      IONIC_MAIN = IONIC
 !
 ! *** END OF SUBROUTINE ACTIVITY ****************************************
 !
@@ -14933,7 +14933,7 @@
 !
 ! *** CALCULATE IONIC ACTIVITY OF SOLUTION *****************************
 !
-      Ionic_Master = 0.0
+      Ionic_Main = 0.0
       IONIC=0.0
       MOLAL(2) = ZERO
       MOLAL(4) = ZERO
@@ -15063,7 +15063,7 @@
       ICLACT = ICLACT + 1                ! Increment ACTIVITY call counter
 
       ! Store IONIC
-      IONIC_MASTER = IONIC
+      IONIC_MAIN = IONIC
 !
 ! *** END OF SUBROUTINE ACTIVITY ****************************************
 !

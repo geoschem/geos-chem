@@ -766,7 +766,7 @@ CONTAINS
     DO NA = Ind0, Ind1
 
        ! Look up this species in the species database
-       ! NOTE: The advected species are listed first in the master
+       ! NOTE: The advected species are listed first in the main
        ! species list, so it's OK to use the advected species ID
        ! to query the Species Database (bmy, 3/16/17)
        ThisSpc => State_Chm%SpcData(NA)%Info

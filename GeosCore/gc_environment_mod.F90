@@ -516,6 +516,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! Initialize the hybrid pressure module.  Define Ap and Bp.
+    !=======================================================================
+    CALL Init_Pressure( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_Pressure"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
     ! Call setup routines for drydep
     !=======================================================================
     IF ( Input_Opt%LDRYD ) THEN
@@ -528,15 +538,15 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Exit for dry-run simulations
-       IF ( Input_Opt%DryRun ) RETURN
-
        ! Print extra info message for Hg simulation
        IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT ) THEN
           WRITE ( 6, 120 )
           WRITE ( 6, 121 )
        ENDIF
     ENDIF
+
+    ! Exit for dry-run simulations
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! FORMAT strings
 120 FORMAT( /, 'All tagged Hg2 species have the same dep velocity '          &
@@ -569,16 +579,6 @@ CONTAINS
     !=================================================================
     ! Call setup routines from other F90 modules
     !=================================================================
-
-    !-----------------------------------------------------------------
-    ! Initialize the hybrid pressure module.  Define Ap and Bp.
-    !-----------------------------------------------------------------
-    CALL Init_Pressure( Input_Opt, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Pressure"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !-----------------------------------------------------------------
     ! Call Init_VDIFF so that we can pass several values from

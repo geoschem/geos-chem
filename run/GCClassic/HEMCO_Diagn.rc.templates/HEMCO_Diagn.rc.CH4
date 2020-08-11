@@ -1,0 +1,36 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the CH4 simulation.
+#
+# !REVISION HISTORY:
+#  18 Oct 2018 - R. Yantosca - Added comment header and longname metadata.
+#                              Also changed output unit to kg/m2/s.                    
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name               Spec ExtNr Cat Hier Dim  OutUnit  LongName
+EmisCH4_Total        CH4   -1   -1   -1   2   kg/m2/s  CH4_emissions_from_all_sectors
+EmisCH4_Oil          CH4    0    1   -1   2   kg/m2/s  CH4_emissions_from_oil
+EmisCH4_Gas          CH4    0    2   -1   2   kg/m2/s  CH4_emissions_from_gas
+EmisCH4_Coal         CH4    0    3   -1   2   kg/m2/s  CH4_emissions_from_coal
+EmisCH4_Livestock    CH4    0    4   -1   2   kg/m2/s  CH4_emissions_from_livestock
+EmisCH4_Landfills    CH4    0    5   -1   2   kg/m2/s  CH4_emissions_from_landfills
+EmisCH4_Wastewater   CH4    0    6   -1   2   kg/m2/s  CH4_emissions_from_wastewater
+EmisCH4_Rice         CH4    0    7   -1   2   kg/m2/s  CH4_emissions_from_rice
+EmisCH4_OtherAnth    CH4    0    8   -1   2   kg/m2/s  CH4_emissions_from_other_anthropogenic_sources
+EmisCH4_BiomassBurn  CH4    0    9   -1   2   kg/m2/s  CH4_emissions_from_biomass_burning
+EmisCH4_Wetlands     CH4    0   10   -1   2   kg/m2/s  CH4_emissions_from_wetlands
+EmisCH4_Seeps        CH4    0   11   -1   2   kg/m2/s  CH4_emissions_from_geological_seeps
+EmisCH4_Lakes        CH4    0   12   -1   2   kg/m2/s  CH4_emissions_from_lakes
+EmisCH4_Termites     CH4    0   13   -1   2   kg/m2/s  CH4_emissions_from_termites
+EmisCH4_SoilAbsorb   CH4    0   14   -1   2   kg/m2/s  CH4_emissions_from_soil_absorption
+#EOC

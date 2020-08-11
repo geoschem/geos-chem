@@ -6,7 +6,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_providerservices_mod
+! !MODULE: gchp_providerservices_mod
 !
 ! !DESCRIPTION: GEOS-Chem includes species CH4, N2O, CFC-11, CFC-12, and 
 ! HCFC-22 and thus can serve as the provider of the radiatively active tracers 
@@ -35,7 +35,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE gigc_providerservices_mod
+MODULE gchp_providerservices_mod
 !
 ! !USES:
 !
@@ -143,7 +143,7 @@ MODULE gigc_providerservices_mod
   REAL, POINTER     :: H2O_HIST(:,:,:) => NULL() ! make allocatable? (ewl)
 
   ! -Corresponding pointers to internal state. We now use these variables 
-  !  instead of the auto-generated pointers (GIGCchem_DeclarePointer___.h) 
+  !  instead of the auto-generated pointers (*_DeclarePointer___.h) 
   !  to avoid compilation errors if these species are not defined in 
   !  GEOS-Chem (e.g. for specialty sims). 
   REAL(ESMF_KIND_R8), POINTER :: PTR_O3      (:,:,:) => NULL()
@@ -164,6 +164,7 @@ MODULE gigc_providerservices_mod
 !                                                                             .
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,6 +205,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -234,7 +236,7 @@ CONTAINS
                                   Label="AERO_PROVIDER:", &
                                   Default="PCHEM",        &
                                   __RC__                   )
-    IF ( ProviderName == "GIGCchem" ) DoAERO = .TRUE.
+    IF ( ProviderName == "GCHPchem" ) DoAERO = .TRUE.
  
     !================================
     ! Is GC the RATS provider?
@@ -243,7 +245,7 @@ CONTAINS
                                   Label="RATS_PROVIDER:", &
                                   Default="PCHEM",        &
                                   __RC__                   )
-    IF ( ProviderName == "GIGCchem" ) DoRATS = .TRUE.
+    IF ( ProviderName == "GCHPchem" ) DoRATS = .TRUE.
 
     !================================
     ! Is GC the Analysis OX provider?
@@ -252,7 +254,7 @@ CONTAINS
                                   Label="ANALYSIS_OX_PROVIDER:", &
                                   Default="PCHEM",               &
                                   __RC__                          )
-    IF ( ProviderName == "GIGCchem" ) DoANOX = .TRUE.
+    IF ( ProviderName == "GCHPchem" ) DoANOX = .TRUE.
 
     !================================
     ! If AERO provider
@@ -695,6 +697,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -925,6 +928,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1024,6 +1028,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 
 !EOP
 !------------------------------------------------------------------------------
@@ -1187,6 +1192,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - initial version (refactored Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1243,7 +1249,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Oct 2014 - C. Keller   - Initial version
-!  02 Nov 2017 - E. Lundgren - Move to this module with structural edits
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1335,7 +1341,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Oct 2014 - C. Keller   - Initial version
-!  02 Nov 2017 - E. Lundgren - Move to this module with structural edits
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1388,6 +1394,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2017 - E. Lundgren - Move to this module with structural edits
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1469,7 +1476,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Mar 2015 - C. Keller   - Initial version
-!  02 Nov 2017 - E. Lundgren - Move to this module with structural edits
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1635,4 +1642,4 @@ CONTAINS
 
   END SUBROUTINE FillAeroDP 
 !EOC
-END MODULE gigc_providerservices_mod
+END MODULE gchp_providerservices_mod

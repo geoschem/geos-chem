@@ -11,12 +11,12 @@ add_custom_command(OUTPUT
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}	
 )
 add_custom_command(OUTPUT 
-		${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_ExportSpec___.h  
-		${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_History___.rc    
-		${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_InternalSpec___.h
-	    ${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_DeclarePointer___.h  
-		${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_GetPointer___.h  
-		${CMAKE_CURRENT_BINARY_DIR}/GIGCchem_ImportSpec___.h
+		${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_ExportSpec___.h  
+		${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_History___.rc    
+		${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_InternalSpec___.h
+	    ${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_DeclarePointer___.h  
+		${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_GetPointer___.h  
+		${CMAKE_CURRENT_BINARY_DIR}/GCHPchem_ImportSpec___.h
 		chem_registry.stamp
     COMMAND ${MAPL_ACG} -v ${CMAKE_CURRENT_SOURCE_DIR}/Chem_Registry.rc
 	COMMAND cmake -E touch chem_registry.stamp

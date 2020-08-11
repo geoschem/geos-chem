@@ -1,0 +1,299 @@
+###############################################################################
+###  HISTORY.rc file for GEOS-Chem CH4 specialty simulations                ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)     ###
+###############################################################################
+
+#============================================================================
+# EXPID allows you to specify the beginning of the file path corresponding
+# to each diagnostic collection.  For example:
+#
+#   EXPID: ./GEOSChem 
+#      Will create netCDF files whose names begin "GEOSChem",
+#      in this run directory.
+#
+#   EXPID: ./OutputDir/GEOSChem
+#      Will create netCDF files whose names begin with "GEOSChem"
+#      in the OutputDir sub-folder of this run directory.
+#
+#============================================================================
+EXPID:  ./OutputDir/GEOSChem
+
+#==============================================================================
+# %%%%% COLLECTION NAME DECLARATIONS %%%%%
+#
+# To enable a collection, remove the "#" character in front of its name. The
+# Restart collection should always be turned on.
+#
+# NOTE: These are the "default" collections for GEOS-Chem, but you can create
+# your own customized diagnostic collections as well.
+#==============================================================================
+COLLECTIONS: 'Restart',
+	     'CH4',
+             'SpeciesConc',
+             #'Budget',
+             #'CloudConvFlux',
+             #'ConcAfterChem',
+             #'LevelEdgeDiags',      
+             #'StateMet',      
+             #'Transport',
+             #'BoundaryConditions',
+::
+###############################################################################
+### The rest of this file consists of collection definitions.               ###
+### Above collections whose declarations are commented out will be ignored. ###
+### Make sure that each collection definition, as well as the list of       ###
+### collections above, ends with a double-colon ("::").                     ###
+###############################################################################
+
+#==============================================================================
+# %%%%% THE Restart COLLECTION %%%%%
+#
+# GEOS-Chem restart file fields
+#
+# Available for all simulations
+#==============================================================================
+  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.format:             'CFIO',
+  Restart.frequency:          'End',
+  Restart.duration:           'End',
+  Restart.mode:               'instantaneous'
+  Restart.fields:             'SpeciesRst_?ALL?               ', 'GIGCchem',
+                              'Met_DELPDRY                    ', 'GIGCchem',
+                              'Met_PS1WET                     ', 'GIGCchem',
+                              'Met_PS1DRY                     ', 'GIGCchem',
+                              'Met_SPHU1                      ', 'GIGCchem',
+                              'Met_TMPU1                      ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE SpeciesConc COLLECTION %%%%%
+#
+# GEOS-Chem species concentrations (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.frequency:      {FREQUENCY}
+  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConc_?ADV?             ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE Budget COLLECTION %%%%%
+#
+# GEOS-Chem budget diagnostics defined as species kg/s in the column
+# (full, troposphere, or PBL) due to a single component (e.g. chemistry)
+# (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.format:       'CFIO',
+  Budget.frequency:    {FREQUENCY}
+  Budget.duration:     {DURATION}
+  Budget.mode:         'time-averaged'
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ', 'GIGCchem',  
+                       'BudgetEmisDryDepTrop_?ADV?           ', 'GIGCchem',  
+                       'BudgetEmisDryDepPBL_?ADV?            ', 'GIGCchem',  
+                       'BudgetChemistryFull_?ADV?            ', 'GIGCchem',
+                       'BudgetChemistryTrop_?ADV?            ', 'GIGCchem',
+                       'BudgetChemistryPBL_?ADV?             ', 'GIGCchem',  
+                       'BudgetTransportFull_?ADV?            ', 'GIGCchem',
+                       'BudgetTransportTrop_?ADV?            ', 'GIGCchem',
+                       'BudgetTransportPBL_?ADV?             ', 'GIGCchem',  
+                       'BudgetMixingFull_?ADV?               ', 'GIGCchem',
+                       'BudgetMixingTrop_?ADV?               ', 'GIGCchem',
+                       'BudgetMixingPBL_?ADV?                ', 'GIGCchem',    
+                       'BudgetConvectionFull_?ADV?           ', 'GIGCchem',
+                       'BudgetConvectionTrop_?ADV?           ', 'GIGCchem',
+                       'BudgetConvectionPBL_?ADV?            ', 'GIGCchem',  
+                       'BudgetWetDepFull_?WET?               ', 'GIGCchem',
+                       'BudgetWetDepTrop_?WET?               ', 'GIGCchem',
+                       'BudgetWetDepPBL_?WET?                ', 'GIGCchem',  
+::
+#==============================================================================
+# %%%%% THE CH4 COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CH4.template:               '%y4%m2%d2_%h2%n2z.nc4',
+  CH4.format:                 'CFIO',
+  CH4.frequency:              {FREQUENCY}
+  CH4.duration:               {DURATION}
+  CH4.mode:                   'time-averaged'
+  CH4.fields:                 'OHconcAfterChem               ', 'GIGCchem',
+                              'LossCH4byClinTrop             ', 'GIGCchem',
+                              'LossCH4byOHinTrop             ', 'GIGCchem',
+                              'LossCH4inStrat                ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE CloudConvFlux COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.format:       'CFIO',
+  CloudConvFlux.frequency:    {FREQUENCY}
+  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.mode:         'time-averaged'
+  CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE ConcAfterChem COLLECTION %%%%%
+#
+# Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
+# or OH after the CH4 specialty-simulation chemistry routine.
+#
+# OH:       Available for all full-chemistry simulations and CH4 specialty sim
+#==============================================================================
+  ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  ConcAfterChem.format:       'CFIO',
+  ConcAfterChem.frequency:    {FREQUENCY}
+  ConcAfterChem.duration:     {DURATION}
+  ConcAfterChem.mode:         'time-averaged'
+  ConcAfterChem.fields:       'OHconcAfterChem               ', 'GIGCchem',  
+::
+#==============================================================================
+# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
+#
+# Diagnostics that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.format:      'CFIO',
+  LevelEdgeDiags.frequency:   {FREQUENCY}
+  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.mode:        'time-averaged'
+  LevelEdgeDiags.fields:      'Met_CMFMC                     ', 'GIGCchem',
+                              'Met_PEDGE                     ', 'GIGCchem',
+                              'Met_PEDGEDRY                  ', 'GIGCchem',
+                              'Met_PFICU                     ', 'GIGCchem',
+                              'Met_PFILSAN                   ', 'GIGCchem',
+                              'Met_PFLCU                     ', 'GIGCchem',
+                              'Met_PFLLSAN                   ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% The StateMet COLLECTION %%%%%
+#
+# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+#
+# Available for all simulations
+#==============================================================================
+  StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  StateMet.format:            'CFIO',
+  StateMet.frequency:         {FREQUENCY}
+  StateMet.duration:          {DURATION}
+  StateMet.mode:              'time-averaged'
+  StateMet.fields:            'Met_AD                        ', 'GIGCchem',
+                              'Met_AIRDEN                    ', 'GIGCchem',
+                              'Met_AIRVOL                    ', 'GIGCchem',
+                              'Met_ALBD                      ', 'GIGCchem',
+                              'Met_AVGW                      ', 'GIGCchem',
+                              'Met_BXHEIGHT                  ', 'GIGCchem',
+                              'Met_ChemGridLev               ', 'GIGCchem',
+                              'Met_CLDF                      ', 'GIGCchem',
+                              'Met_CLDFRC                    ', 'GIGCchem',
+                              'Met_CLDTOPS                   ', 'GIGCchem',
+                              'Met_DELP                      ', 'GIGCchem',
+                              'Met_DQRCU                     ', 'GIGCchem',
+                              'Met_DQRLSAN                   ', 'GIGCchem',
+                              'Met_DTRAIN                    ', 'GIGCchem',
+                              'Met_EFLUX                     ', 'GIGCchem',
+                              'Met_FRCLND                    ', 'GIGCchem',
+                              'Met_FRLAKE                    ', 'GIGCchem',
+                              'Met_FRLAND                    ', 'GIGCchem',
+                              'Met_FRLANDIC                  ', 'GIGCchem',
+                              'Met_FROCEAN                   ', 'GIGCchem',
+                              'Met_FRSEAICE                  ', 'GIGCchem',
+                              'Met_FRSNO                     ', 'GIGCchem',
+                              'Met_GWETROOT                  ', 'GIGCchem',
+                              'Met_GWETTOP                   ', 'GIGCchem',
+                              'Met_HFLUX                     ', 'GIGCchem',
+                              'Met_LAI                       ', 'GIGCchem',
+                              'Met_LWI                       ', 'GIGCchem',
+                              'Met_PARDR                     ', 'GIGCchem',
+                              'Met_PARDF                     ', 'GIGCchem',
+                              'Met_PBLTOPL                   ', 'GIGCchem',
+                              'Met_PBLH                      ', 'GIGCchem',
+                              'Met_PHIS                      ', 'GIGCchem',
+                              'Met_PMID                      ', 'GIGCchem',
+                              'Met_PMIDDRY                   ', 'GIGCchem',
+                              'Met_PRECANV                   ', 'GIGCchem',
+                              'Met_PRECCON                   ', 'GIGCchem',
+                              'Met_PRECLSC                   ', 'GIGCchem',
+                              'Met_PRECTOT                   ', 'GIGCchem',
+                              'Met_PS1DRY                    ', 'GIGCchem',
+                              'Met_PS1WET                    ', 'GIGCchem',
+                              'Met_PS2DRY                    ', 'GIGCchem',
+                              'Met_PS2WET                    ', 'GIGCchem',
+                              'Met_PSC2WET                   ', 'GIGCchem',
+                              'Met_PSC2DRY                   ', 'GIGCchem',
+                              'Met_QI                        ', 'GIGCchem',
+                              'Met_QL                        ', 'GIGCchem',
+                              'Met_OMEGA                     ', 'GIGCchem',
+                              'Met_OPTD                      ', 'GIGCchem',
+                              'Met_REEVAPCN                  ', 'GIGCchem',
+                              'Met_REEVAPLS                  ', 'GIGCchem',
+                              'Met_SLP                       ', 'GIGCchem',
+                              'Met_SNODP                     ', 'GIGCchem',
+                              'Met_SNOMAS                    ', 'GIGCchem',
+                              'Met_SPHU                      ', 'GIGCchem',
+                              'Met_SPHU1                     ', 'GIGCchem',
+                              'Met_SPHU2                     ', 'GIGCchem',
+                              'Met_SUNCOS                    ', 'GIGCchem',
+                              'Met_SUNCOSmid                 ', 'GIGCchem',
+                              'Met_SWGDN                     ', 'GIGCchem',
+                              'Met_T                         ', 'GIGCchem',
+                              'Met_TAUCLI                    ', 'GIGCchem',
+                              'Met_TAUCLW                    ', 'GIGCchem',
+                              'Met_THETA                     ', 'GIGCchem',
+                              'Met_TMPU1                     ', 'GIGCchem',
+                              'Met_TMPU2                     ', 'GIGCchem',
+                              'Met_TO3                       ', 'GIGCchem',
+                              'Met_TropHt                    ', 'GIGCchem',
+                              'Met_TropLev                   ', 'GIGCchem',
+                              'Met_TropP                     ', 'GIGCchem',
+                              'Met_TS                        ', 'GIGCchem',
+                              'Met_TSKIN                     ', 'GIGCchem',
+                              'Met_TV                        ', 'GIGCchem',
+                              'Met_U                         ', 'GIGCchem',
+                              'Met_U10M                      ', 'GIGCchem',
+                              'Met_USTAR                     ', 'GIGCchem',
+                              'Met_UVALBEDO                  ', 'GIGCchem',
+                              'Met_V                         ', 'GIGCchem',
+                              'Met_V10M                      ', 'GIGCchem',
+                              'Met_Z0                        ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE Transport COLLECTION %%%%%
+#
+# Diagnostics for evaluating transport, including age of air [s]
+#
+# Available for all simulations
+#==============================================================================
+  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  Transport.format:           'CFIO',
+  Transport.frequency:        'End',
+  Transport.duration:         'End',
+  Transport.mode:             'instantaneous'
+  Transport.fields:           'Met_AgeOfAir                  ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE BoundaryConditions COLLECTION %%%%%
+#
+# GEOS-Chem boundary conditions for use in nested grid simulations
+#
+# Available for all simulations
+#==============================================================================
+  BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  BoundaryConditions.format:     'CFIO',
+  BoundaryConditions.frequency:  00000000 030000
+  BoundaryConditions.duration:   00000001 000000
+  BoundaryConditions.mode:       'instantaneous'
+  BoundaryConditions.fields:     'SpeciesBC_?ADV?             ', 'GIGCchem',
+::

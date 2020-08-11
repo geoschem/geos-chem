@@ -50,6 +50,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
   PUBLIC  :: NC_ISMODELLEVEL
+  PUBLIC  :: NC_ISSIGMALEVEL
   PUBLIC  :: GET_TAU0
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -227,7 +228,7 @@ CONTAINS
     ! append to an existing file w/o clobbering any data
     IF ( PRESENT( nTime ) ) THEN
        nTime = -1
-       RC = Nf_Inq_DimId( fId, 'time', vId ) 
+       RC = Nf_Inq_DimId( fId, 'time', vId )
        IF ( RC == NF_NOERR ) THEN
           RC = Nf_Inq_DimLen( fId, vId, nTime )
        ENDIF
@@ -2404,60 +2405,92 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)   :: stdname
-    CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
-    INTEGER              :: a_type    ! netCDF attribute type
-    LOGICAL              :: ok
+    ! Scalars
+    LOGICAL            :: found
+    INTEGER            :: a_type    ! netCDF attribute type
 
-    !======================================================================
+    ! Straings
+    CHARACTER(LEN=255) :: stdname
+    CHARACTER(LEN=255) :: a_name    ! netCDF attribute name
+    CHARACTER(LEN=255) :: a_val     ! netCDF attribute value
+
+    !========================================================================
     ! NC_GET_SIGMA_LEVELS begins here
-    !======================================================================
+    !========================================================================
+
+    ! Initialize
+    RC = 0
 
     !------------------------------------------------------------------------
-    ! Get level standard name. This attribute will be used to identify
-    ! the coordinate system
+    ! Test that the level index variable exists
     !------------------------------------------------------------------------
-    ok = Ncdoes_Var_Exist( fID, TRIM(levName) )
-    IF ( .NOT. ok ) THEN
-       WRITE(*,*) 'Cannot find level variable ', TRIM(levName), ' in ', TRIM(ncFile), '!'
+    found = Ncdoes_Var_Exist( fID, TRIM(levName) )
+    IF ( .not. found ) THEN
+       WRITE(*,*) 'Cannot find level variable ',                             &
+                  TRIM(levName), ' in ', TRIM(ncFile), '!'
        RC = -999
        RETURN
     ENDIF
 
-    ! Get standard name
+    !------------------------------------------------------------------------
+    ! Look for the "standard_name" or "long_name" attribute,
+    ! which will be used to identify the vertical coordinate
+    !------------------------------------------------------------------------
+
+    ! First look for "standard_name"
     a_name = "standard_name"
-    IF ( .NOT. NcDoes_Attr_Exist ( fID,          TRIM(levName),     &
-                                   TRIM(a_Name), a_type         ) ) THEN
-       WRITE(*,*) 'Cannot find level attribute ', TRIM(a_name), ' in variable ', &
-                  TRIM(levName), ' - File: ', TRIM(ncFile), '!'
-       RC = -999
-       RETURN
+    found  = NcDoes_Attr_Exist( fId, TRIM(levName), TRIM(a_name), a_type )
+
+    ! If not found, then look for "long_name"
+    IF ( .not. found ) THEN
+       a_name = "long_name"
+       found  = NcDoes_Attr_Exist( fId, TRIM(levName), TRIM(a_name), a_type )
+
+       ! If neither attribute is found, then exit with error
+       IF ( .not. found ) THEN
+          WRITE(*,*) 'Cannot find level attribute ', TRIM(a_name),           &
+               ' in variable ', TRIM(levName), ' - File: ', TRIM(ncFile), '!'
+          RC = -999
+          RETURN
+       ENDIF
     ENDIF
-    CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), stdname )
+
+    ! Read the "standard_name" or "long_name" attribute (whichever is found)
+    CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), a_val )
 
     !------------------------------------------------------------------------
     ! Call functions to calculate sigma levels depending on the coordinate
     ! system.
     !------------------------------------------------------------------------
+    IF ( TRIM(a_val) == 'atmosphere_hybrid_sigma_pressure_coordinate' ) THEN
 
-    IF ( TRIM(stdname) == 'atmosphere_hybrid_sigma_pressure_coordinate' ) THEN
+       IF ( PRESENT( SigLev4 ) ) THEN
 
-       IF ( PRESENT(SigLev4) ) THEN
-          CALL NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
-                                        lev1, lev2,    time, dir, RC, SigLev4=SigLev4 )
-       ELSEIF ( PRESENT(SigLev8) ) THEN
-          CALL NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
-                                        lev1, lev2,    time, dir, RC, SigLev8=SigLev8 )
+          ! Return 4-byte real array
+          CALL NC_GET_SIG_FROM_HYBRID( fID,  levName, lon1, lon2,            &
+                                       lat1, lat2,    lev1, lev2,            &
+                                       time, dir,     RC,   SigLev4=SigLev4 )
+       ELSE IF ( PRESENT( SigLev8 ) ) THEN
+
+          ! Return 8-byte real array
+          CALL NC_GET_SIG_FROM_HYBRID( fID,  levName, lon1, lon2,            &
+                                       lat1, lat2,    lev1, lev2,            &
+                                       time,  dir,    RC,   SigLev8=SigLev8 )
        ELSE
+
+          ! Othrwise exit with error
           WRITE(*,*) 'SigLev array is missing!'
           RC = -999
           RETURN
        ENDIF
        IF ( RC /= 0 ) RETURN
 
-    ! NOTE: for now, only hybrid sigma coordinates are supported!
     ELSE
-       WRITE(*,*) 'Invalid level standard name: ', TRIM(stdname), ' in ', TRIM(ncFile)
+
+       ! NOTE: for now, only hybrid sigma coordinates are supported!
+       ! So exit with error if we get this far
+       WRITE(*,*) 'Invalid level standard name: ', TRIM(stdname),            &
+            ' in ', TRIM(ncFile)
        RC = -999
        RETURN
     ENDIF
@@ -2522,8 +2555,9 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
-                                      lev1, lev2,    time, dir,  RC,   sigLev4, sigLev8 )
+  SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1,   lon2, lat1,     &
+                                      lat2, lev1,    lev2,   time, dir,      &
+                                      RC,   sigLev4, sigLev8                )
 !
 ! !INPUT PARAMETERS:
 !
@@ -4949,16 +4983,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Nc_IsModelLevels
+! !IROUTINE: Nc_IsModelLevel
 !
-! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the
+! !DESCRIPTION: Function NC\_IsModelLevel returns true if (and only if) the
 !  long name of the level variable name of the given file ID contains the
 !  character "GEOS-Chem level".
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION NC_ISMODELLEVEL( fID, lev_name ) RESULT ( IsModelLevel )
+  FUNCTION NC_IsModelLevel( fID, lev_name ) RESULT ( IsModelLevel )
 !
 ! !USES:
 !
@@ -4986,7 +5020,7 @@ CONTAINS
     INTEGER                :: a_type
 
     !=======================================================================
-    ! NC_ISMODELLEVEL begins here!
+    ! NC_IsModelLevel begins here!
     !=======================================================================
 
     ! Init
@@ -5002,11 +5036,93 @@ CONTAINS
        CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), LngName )
 
        ! See if this is a GEOS-Chem model level
-       IF ( INDEX(TRIM(LngName),"GEOS-Chem level") > 0 ) THEN
+       IF ( INDEX( TRIM(LngName), "GEOS-Chem level" ) > 0 ) THEN
           IsModelLevel = .TRUE.
        ENDIF
     ENDIF
 
-  END FUNCTION NC_ISMODELLEVEL
+  END FUNCTION NC_IsModelLevel
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_IsSigmaLevel
+!
+! !DESCRIPTION: Function NC\_IsSigmaLevels returns true if (and only if) the
+!  long name of the level variable name of the given file ID contains the
+!  character "atmospheric_hybrid_sigma_pressure_coordinate".
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION NC_IsSigmaLevel( fID, lev_name ) RESULT ( IsSigmaLevel )
+!
+! !USES:
+!
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN) :: fID        ! file ID
+    CHARACTER(LEN=*), INTENT(IN) :: lev_name   ! level variable name
+!
+! !RETURN VALUE:
+!
+    LOGICAL                      :: IsSigmaLevel
+!
+! !REVISION HISTORY:
+!  12 Dec 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                :: found
+    INTEGER                :: a_type
+
+    ! Strings
+    CHARACTER(LEN=255)     :: a_name
+    CHARACTER(LEN=255)     :: a_val
+
+    !=======================================================================
+    ! NC_IsSigmaLevel begins here!
+    !=======================================================================
+
+    ! Initialize
+    IsSigmaLevel = .FALSE.
+
+    ! Check if there is a long_name attribute
+    a_name = "standard_name"
+    found  = Ncdoes_Attr_Exist( fId, TRIM(lev_name), TRIM(a_name), a_type )
+
+    ! First check if the "standard_name" attribute exists
+    IF ( found ) THEN
+
+       ! Read "standard_name" attribute
+       CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), a_val )
+
+    ELSE
+
+       ! If the "standard_name" attribute isn't found, try "long_name"
+       a_name = "long_name"
+       found = Ncdoes_Attr_Exist( fId, TRIM(lev_name), TRIM(a_name), a_type )
+
+       ! Read "long_name" attribute
+       IF ( found ) THEN
+          CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), a_val )
+       ENDIF
+    ENDIF
+
+    ! Test if the attribute value indicates a hybrid sigma-pressure grid
+    IF ( INDEX( TRIM( a_val ),                                               &
+         "atmospheric_hybrid_sigma_pressure_coordinate" ) > 0 ) THEN
+       IsSigmaLevel = .TRUE.
+    ENDIF
+
+  END FUNCTION NC_IsSigmaLevel
 !EOC
 END MODULE NCDF_MOD

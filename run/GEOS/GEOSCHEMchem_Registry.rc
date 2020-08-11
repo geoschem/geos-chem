@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------
 
 # GCHP only:
-#  COMP_NAME: GIGCchem
+#  COMP_NAME: GCHPchem
 # GEOS-5 has different grid comp name:
   COMP_NAME: GEOSCHEMCHEM
 #---

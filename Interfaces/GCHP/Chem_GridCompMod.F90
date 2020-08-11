@@ -55,10 +55,10 @@ MODULE Chem_GridCompMod
   USE Charpak_Mod                                    ! String functions
   USE Hco_Types_Mod, ONLY : ConfigObj
   USE Input_Opt_Mod                                  ! Input Options obj
-  USE GIGC_Chunk_Mod                                 ! GIGC IRF methods
-  USE GIGC_HistoryExports_Mod
+  USE GCHP_Chunk_Mod                                 ! GCHP IRF methods
+  USE GCHP_HistoryExports_Mod
 #if !defined( MODEL_GEOS )
-  USE GIGC_ProviderServices_Mod
+  USE GCHP_ProviderServices_Mod
 #endif
   USE ErrCode_Mod                                    ! Error numbers
   USE State_Chm_Mod                                  ! Chemistry State obj
@@ -183,7 +183,7 @@ MODULE Chem_GridCompMod
 #endif
 
 #if defined( MODEL_GEOS )
-  ! GEOS-5 only (also in gigc_providerservices_mod but don't use that yet):
+  ! GEOS-5 only (also in gchp_providerservices_mod but don't use that yet):
   ! List here GEOS-Chem tracer names and corresponding names to be assigned
   ! to the AERO bundle (if GC is the AERO provider). The names in the AERO
   ! bundle must be the names that are expected by the irradiation component:
@@ -252,14 +252,14 @@ MODULE Chem_GridCompMod
   ! module variables so that we have to assign them only on first call.
 #if !defined( MODEL_GEOS )
   ! NOTE: Any provider-related exports (e.g. H2O_TEND) are now handled within
-  ! gigc_providerservices_mod.F90. Pointers are manually declared there and
+  ! gchp_providerservices_mod.F90. Pointers are manually declared there and
   ! those declared in the .h file included below are not used. (ewl, 11/3/2017)
 #endif
 
 #if defined( MODEL_GEOS )
 # include "GEOSCHEMCHEM_DeclarePointer___.h"
 #else
-# include "GIGCchem_DeclarePointer___.h"
+# include "GCHPchem_DeclarePointer___.h"
 #endif
 
 #if !defined( MODEL_GEOS )
@@ -284,7 +284,7 @@ MODULE Chem_GridCompMod
 #endif
 
 #if defined( MODEL_GEOS )
-  !! GEOS-5 only (also in gigc_providerservices but don't use yet):
+  !! GEOS-5 only (also in gchp_providerservices but don't use yet):
   !! -RATS:
   !REAL, POINTER     :: CH4     (:,:,:) => NULL()
   !REAL, POINTER     :: N2O     (:,:,:) => NULL()
@@ -351,47 +351,7 @@ MODULE Chem_GridCompMod
 !
 ! !REVISION HISTORY:
 !  06 Dec 2009 - A. da Silva - Initial version
-!  10 Oct 2012 - R. Yantosca - Now references GC_Utils.F90
-!  10 Oct 2012 - R. Yantosca - Updated for GEOS-Chem v9-01-03
-!  16 Oct 2012 - R. Yantosca - Rename GC_MET object to State_Met
-!  16 Oct 2012 - R. Yantosca - Rename GC_STATE object to State_Chm
-!  17 Oct 2012 - R. Yantosca - Removed some old "column code" stuff
-!  22 Oct 2012 - R. Yantosca - Now references renamed gigc_* modules
-!  01 Nov 2012 - R. Yantosca - Now references gigc_input_opt_mod.F90
-!  07 Nov 2012 - R. Yantosca - Removed Setup_GeoLoc_ routine
-!  07 Nov 2012 - R. Yantosca - Now read placeholder values for input.geos
-!  08 Nov 2012 - R. Yantosca - Now initialize Input_Opt%MAX_DIAG field
-!  15 Mar 2013 - R. Yantosca - Remove IDENT object and Error_Trap routine
-!  25 Mar 2014 - E. Nielsen  - ESMF-5
-!  22 Sep 2014 - C. Keller   - Added two run phases
-!  17 Oct 2014 - C. Keller   - Various updates to fill provider fields.
-!  26 Nov 2014 - C. Keller   - Added H2O_HIST and O3_HIST. 
-!  22 Feb 2015 - C. Keller   - Now check if geoschemchem_import_rst exist
-#if defined( MODEL_GEOS )
-!  08 May 2015 - C. Keller   - Update on Int2Trc. Also added Int2Spc to make
-!                              sure that the internal state always contains the
-!                              most current species values. This is critical 
-!                              for the checkpoint files.
-!  16 Sep 2015 - C. Keller   - Added H2O2s, SO2s, DRY_TOTN and WET_TOTN to 
-!                              internal state. Values are passed from/to internal
-!                              state to GEOS-Chem arrays in Include_Before_Run.H
-!                              and Include_After_Run.H.
-!  27 Feb 2017 - C. Keller   - Update to GEOS-Chem v11. GEOS-Chem does not
-!                              distinguish between tracers and species any more.
-!  07 Mar 2017 - C. Keller   - Species unit in internal state is now kg/kg total.
-!  21 Apr 2017 - C. Keller   - Update to v11-02.
-#else
-!  06 Jun 2016 - M. Yannetti - Added Get_Transport.
-!  19 Dec 2016 - M. Long     - Update for v11-01k
-!  01 Sep 2017 - E. Lundgren - Enable automation of GCHP diagnostics
-!  19 Sep 2017 - E. Lundgren - Remove Get_Transport
-!  02 Nov 2017 - E. Lundgren - Remove unused private functions roundoff, 
-!                              globalsum, and print_mean_oh
-!  06 Nov 2017 - E. Lundgren - Abstract provider services to new module
-!                              gigc_providerservices_mod.F90
-#endif
-!  22 May 2019 - M. Sulprizio- Added State_Grid object; Remove unused variables
-!                              I_LO, J_LO, I_HI, and J_HI  
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,17 +415,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2009 - A. da Silva - Initial version
-!  07 Apr 2010 - R. Yantosca - Updated comments, cosmetic changes 
-!  22 Sep 2014 - C. Keller   - Added two run phases
-!  07 Aug 2017 - E. Lundgren - Add Olson and CHRL imports
-!  14 Jul 2017 - E. Lundgren - Read simulation type to determine whether to
-!                              add KPP species to the internal state
-!  01 Sep 2017 - E. Lundgren - Call new subroutine HistoryExports_SetServices
-!                              for GEOS-Chem state object diagnostics
-!  12 Sep 2017 - E. Lundgren - Use species prefix "SPFX" from gigc_types_mod.F90
-!  06 Nov 2017 - E. Lundgren - Abstract provider services to new module
-!                              gigc_providerservices_mod.F90
-!  08 Mar 2018 - E. Lundgren - "SPFX" now retrieved from gigc_historyexports_mod
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -572,9 +522,9 @@ CONTAINS
     _VERIFY(STATUS)
   
 #if defined(MODEL_GEOS)
-    ! new after abstracting to gigc_providerservices_mod, but do not use yet:
+    ! new after abstracting to gchp_providerservices_mod, but do not use yet:
     !    CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
-    ! GEOS-5 (also in gigc_providerservices but do not use yet):
+    ! GEOS-5 (also in gchp_providerservices but do not use yet):
 
     ! Check if GEOS-Chem is set as the AERO and/or RATS provider
     ! ----------------------------------------------------------
@@ -618,7 +568,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
 #   include "GEOSCHEMCHEM_ImportSpec___.h"
 #else
-#   include "GIGCchem_ImportSpec___.h"
+#   include "GCHPchem_ImportSpec___.h"
 #endif
 
 #if !defined( MODEL_GEOS )
@@ -654,16 +604,16 @@ CONTAINS
 #if defined( MODEL_GEOS )
 #   include "GEOSCHEMCHEM_InternalSpec___.h"
 #else
-#   include "GIGCchem_InternalSpec___.h"
+#   include "GCHPchem_InternalSpec___.h"
 #endif
 
 #if !defined( MODEL_GEOS )
     ! Determine if using a restart file for the internal state. Setting
-    ! the GIGCchem_INTERNAL_RESTART_FILE to +none in GCHP.rc indicates
+    ! the GCHPchem_INTERNAL_RESTART_FILE to +none in GCHP.rc indicates
     ! skipping the restart file. Species concentrations will be retrieved
     ! from the species database, overwriting MAPL-assigned default values.
     CALL ESMF_ConfigGetAttribute( myState%myCF, rstFile, &
-                                  Label = "GIGCchem_INTERNAL_RESTART_FILE:",&
+                                  Label = "GCHPchem_INTERNAL_RESTART_FILE:",&
                                   __RC__ ) 
     IF ( TRIM(rstFile) == '+none' ) THEN
        restartAttr = MAPL_RestartSkipInitial ! file does not exist;
@@ -1038,7 +988,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
 #   include "GEOSCHEMCHEM_ExportSpec___.h"
 #else
-#   include "GIGCchem_ExportSpec___.h"
+#   include "GCHPchem_ExportSpec___.h"
 #endif
 
     ! Read HISTORY config file and add exports for unique items
@@ -1750,7 +1700,7 @@ CONTAINS
     CALL MAPL_TimerAdd(GC, NAME="CP_AFTR", RC=status)
     _VERIFY(status)
 
-    ! More timers to be called in gigc_chunk_run 
+    ! More timers to be called in gchp_chunk_run 
     CALL MAPL_TimerAdd(GC, NAME="GC_CONV"  , __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_EMIS"  , __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_DRYDEP", __RC__)
@@ -1814,32 +1764,12 @@ CONTAINS
 ! !REMARKS:
 !  We call routine Extract_ to return various values (i.e. grid parameters,
 !  start & end dates, PET information, etc.) from the ESMF/MAPL environment.  
-!  We then pass those to GEOS-Chem via routine GIGC_CHUNK_INIT, which is
-!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gigc_chunk_mod.F90.
+!  We then pass those to GEOS-Chem via routine GCHP_CHUNK_INIT, which is
+!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gchp_chunk_mod.F90.
 !
 ! !REVISION HISTORY:
 !  06 Dec 2009 - A. da Silva - Initial version
-!  08 Apr 2010 - R. Yantosca - Now uses the updated Extract_ method.
-!  14 Apr 2010 - R. Yantosca - Activated call to GC_CHUNK_INIT
-!  15 Apr 2010 - R. Yantosca - Add extra error checks for dimensions
-!  23 Apr 2010 - R. Yantosca - Now pass IDENT obj to GC_CHUNK_INIT routine
-!  30 Apr 2010 - R. Yantosca - Now use 5 digits for PET
-!  02 Jun 2010 - R. Yantosca - Now set Ident%VERBOSE to FALSE
-!  09 Oct 2012 - R. Yantosca - Now call MAPL_Am_I_Root to test for root PET
-!  08 Nov 2012 - R. Yantosca - Now pass options to G-C via Input_Opt object
-!  04 Dec 2012 - R. Yantosca - Now get local PET grid indices as well as the
-!                              global grid indices from the Extract_ function
-!  26 Feb 2013 - R. Yantosca - Now read Input_Opt%MAX_DEP from the rc file
-!  08 Mar 2013 - R. Yantosca - Now save the PET # (aka PET #) in Input_Opt
-!  15 Mar 2013 - R. Yantosca - Remove IDENT object, which was a holdover from
-!                              the GEOS-Chem column code
-!  13 Oct 2014 - C. Keller   - Updated for HEMCO
-!  24 Oct 2014 - C. Keller   - Updated for RATS/AERO/Analysis OX provider
-!  23 Feb 2015 - C. Keller   - Now use local variable haveImpRst
-!  06 Nov 2017 - E. Lundgren - Abstract provider services to new module
-!                              gigc_providerservices_mod.F90
-!  06 Mar 2018 - E. Lundgren - Remove obsolete variables; update usage of GC
-!                              timesteps since now in seconds not minutes
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2127,8 +2057,8 @@ CONTAINS
     State_Grid%MaxStratLev = 59            ! # strat. levels
 #endif
 
-    ! Call the GIGC initialize routine
-    CALL GIGC_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run
+    ! Call the GCHP initialize routine
+    CALL GCHP_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run
                           nhmsB     = nhmsB,      & ! hhmmss   @ start of run
                           nymdE     = nymdE,      & ! YYYYMMDD @ end of run
                           nhmsE     = nhmsE,      & ! hhmmss   @ end of run
@@ -2911,6 +2841,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2014 - C. Keller   - Initial version.
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2977,6 +2908,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2014 - C. Keller   - Initial version.
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3072,41 +3004,12 @@ CONTAINS
 ! !REMARKS:
 !  We call routine Extract_ to return various values (i.e. grid parameters,
 !  start & end dates, PET information, etc.) from the ESMF/MAPL environment.  
-!  We then pass those to GEOS-Chem via routine GIGC_CHUNK_RUN, which is
-!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gigc_chunk_mod.F90.
+!  We then pass those to GEOS-Chem via routine GCHP_CHUNK_RUN, which is
+!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gchp_chunk_mod.F90.
 
 ! !REVISION HISTORY:
 !  06 Dec 2009 - A. da Silva - Initial version
-!  08 Apr 2010 - R. Yantosca - Now uses the updated Extract_ method
-!  09 Apr 2010 - R. Yantosca - Initialize Timing, GeoLoc objects
-!  16 Apr 2010 - R. Yantosca - Now move the array assignments before & after
-!                              the call to GC_CHUNK_RUN into separate
-!                              include files, for clarity
-!  30 Apr 2010 - R. Yantosca - Now use 5 digits for PET
-!  02 Jun 2010 - R. Yantosca - Now use IDENT%VERBOSE to trigger debug output
-!  09 Oct 2012 - R. Yantosca - Now call MAPL_Am_I_Root to test for root PET
-!  16 Oct 2012 - R. Yantosca - Now Include freeform files Includes_Before_Run.H
-!                              and Includes_After_Run.H
-!  13 Feb 2013 - R. Yantosca - Now call MAPL_Get_SunInsolation to return
-!                              solar zenith angle and related properties
-!  08 Mar 2013 - R. Yantosca - Now save the PET # (aka PET #) in Input_Opt 
-!  15 Mar 2013 - R. Yantosca - Remove IDENT object, which was a holdover from
-!                              the GEOS-Chem column code
-!  22 Sep 2014 - C. Keller   - Added Phase argument
-!  24 Oct 2014 - C. Keller   - Now derive all O3 export quantities from Tracers
-!                              instead of Species (Species are zero in the 
-!                              stratosphere!). Removed species from internal
-!                              state as no physics was applied to them anyways.
-#if !defined( MODEL_GEOS )
-!  29 Nov 2016 - E. Lundgren - Initialize Olson fractional land type, MODIS 
-!                              LAI, and MODIS CHLR from ExtData imports
-!  01 Sep 2017 - E. Lundgren - Enable automation of GCHP diagnostics by 
-!                              setting data pointers and copying GC state values
-!                              using the new HistoryConfig object
-!  26 Jul 2017 - S. Eastham  - Read LAI from a single variable in file
-!  06 Nov 2017 - E. Lundgren - Abstract provider services to new module
-!                              gigc_providerservices_mod.F90
-#endif
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3249,7 +3152,7 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:)
     REAL, PARAMETER              :: OMW = 16.0
 
-    ! GEOS-5 only (also in gigc_providerservices but don't use yet):
+    ! GEOS-5 only (also in gchp_providerservices but don't use yet):
     ! -RATS:
     REAL, POINTER     :: CH4     (:,:,:) => NULL()
     REAL, POINTER     :: N2O     (:,:,:) => NULL()
@@ -3403,7 +3306,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
 #      include "GEOSCHEMCHEM_GetPointer___.h"
 #else
-#      include "GIGCchem_GetPointer___.h"
+#      include "GCHPchem_GetPointer___.h"
 
        !IF ( IsCTM ) THEN
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
@@ -3716,7 +3619,7 @@ CONTAINS
 #include "Includes_Before_Run.H"
        CALL MAPL_TimerOff(STATE, "CP_BFRE")
 
-#if defined( MODEL_GCHP )
+#if defined( MODEL_GCHPCTM )
        !=======================================================================
        ! Pass species from internal state to GEOS-Chem tracers array
        !=======================================================================
@@ -4071,7 +3974,7 @@ CONTAINS
 #endif
 
              ! Run the GEOS-Chem column chemistry code for the given phase
-             CALL GIGC_Chunk_Run( GC         = GC,         & ! Grid comp ref. 
+             CALL GCHP_Chunk_Run( GC         = GC,         & ! Grid comp ref. 
                                   nymd       = nymd,       & ! Current YYYYMMDD
                                   nhms       = nhms,       & ! Current hhmmss
                                   year       = year,       & ! Current year
@@ -4138,7 +4041,7 @@ CONTAINS
 #      include "Includes_After_Run.H"
 #endif
 
-#if defined( MODEL_GCHP )
+#if defined( MODEL_GCHPCTM )
        State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
        
        DO I = 1, SIZE(Int2Spc,1)
@@ -4299,7 +4202,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-! GEOS-5 (also in gigc_providerservices_mod routine Provider_FillBundles, but 
+! GEOS-5 (also in gchp_providerservices_mod routine Provider_FillBundles, but 
 ! might not be in the right place anymore):
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
@@ -4650,26 +4553,12 @@ CONTAINS
 ! !REMARKS:
 !  We call routine Extract_ to return various values (i.e. grid parameters,
 !  start & end dates, PET information, etc.) from the ESMF/MAPL environment.  
-!  We then pass those to GEOS-Chem via routine GIGC_CHUNK_FINAL, which is
-!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gigc_chunk_mod.F90.
+!  We then pass those to GEOS-Chem via routine GCHP_CHUNK_FINAL, which is
+!  located in GEOS-Chem module ./GEOS-Chem/ESMF/gchp_chunk_mod.F90.
 !
 ! !REVISION HISTORY:
 !  01 Dec 2009 - A. Da Silva - Initial version
-!  08 Apr 2010 - R. Yantosca - Now finalize myState%CF and myState
-!  15 Apr 2010 - R. Yantosca - Activate call to GC_CHUNK_FINAL
-!  30 Apr 2010 - R. Yantosca - Now use 5 digits for PET
-!  02 Jun 2010 - R. Yantosca - Now set Ident%VERBOSE to FALSE
-!  09 Oct 2012 - R. Yantosca - Now call MAPL_Am_I_Root to test for root PET
-!  08 Mar 2013 - R. Yantosca - Now save the PET # (aka PET #) in Input_Opt
-!  15 Mar 2013 - R. Yantosca - Remove IDENT object, which was a holdover from
-!                              the GEOS-Chem column code
-!  27 Oct 2014 - C. Keller   - Now save species that are not advected into
-!                              internal state to ensure they are written into
-!                              the restart file.
-!  08 May 2015 - C. Keller   - Removed species --> internal copying because
-!                              this is now done on every run-time step (GEOS-5)
-!  07 Aug 2017 - E. Lundgren - Use species database instead of State_Chm vars 
-!                              Spec_Name and Spec_ID
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5125,19 +5014,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Dec 2009 - A. Da Silva - Initial version
-!  07 Apr 2010 - R. Yantosca - Added ProTeX headers
-!  08 Apr 2010 - R. Yantosca - Make all outputs optional
-!  08 Apr 2010 - R. Yantosca - Added outputs for localPet, petCount
-!  08 Apr 2010 - R. Yantosca - Added outputs for individual time values
-!                              as well as elapsed time (hours)
-!  13 Apr 2010 - R. Yantosca - Now take tsDyn from the MAPL "RUN_DT:" setting
-!  30 Nov 2012 - R. Yantosca - Now return IM_WORLD, JM_WORLD, LM_WORLD
-!  30 Nov 2012 - R. Yantosca - Now return local indices I_LO, J_LO, I_HI, J_HI
-!  05 Dec 2012 - R. Yantosca - Removed latEdg argument; cosmetic changes
-!  13 Feb 2013 - E. Nielsen  - Restart file inquiry for GEOS-5
-!  05 Jan 2016 - S. D. Eastham - Fixed order of time calls
-!  02 Nov 2017 - E. Lundgren - Replace use of local GridGetInterior with 
-!                              call to MAPL_GridGetInterior (now public)
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5263,7 +5140,7 @@ CONTAINS
     ENDIF
 
     If ( PRESENT( tsRad ) .and. PRESENT( tsChem ) ) Then
-        _ASSERT(MOD(nint(tsRad),nint(tsChem)) == 0,'RRTMG_DT is not a multiple of GIGCCHEM_DT')
+        _ASSERT(MOD(nint(tsRad),nint(tsChem)) == 0,'RRTMG_DT is not a multiple of GCHPCHEM_DT')
     End If
 
 #if defined( MODEL_GEOS )
@@ -5506,6 +5383,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Oct 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5635,6 +5513,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jul 2016 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5799,6 +5678,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Oct 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5938,6 +5818,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  05 Dec 2017 - C. Keller   - Initial version
+!!  See https://github.com/geoschem/geos-chem for history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -6144,6 +6025,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Dec 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6305,6 +6187,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Dec 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6851,6 +6734,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Feb 2019 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6975,6 +6859,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Mar 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7301,6 +7186,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Mar 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7526,6 +7412,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jan 2020 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7653,6 +7540,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jan 2020 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7819,6 +7707,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2018 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7837,7 +7726,7 @@ CONTAINS
 
   END SUBROUTINE ReplaceChar
 !EOC
-! GEOS-5 routine moved to gigc_providerservices_mod but needs updating so
+! GEOS-5 routine moved to gchp_providerservices_mod but needs updating so
 ! use this for now:
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
@@ -7876,6 +7765,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Mar 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8073,6 +7963,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2010 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8122,6 +8013,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  01 Jul 2010 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8300,7 +8192,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  01 Jul 2010 - R. Yantosca - Initial version
-!  30 Nov 2015 - C. Keller   - Added 3D/2D option
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8399,6 +8291,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  30 Nov 2012 - R. Yantosca - Initial version, based on MAPL_Base
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8719,9 +8612,8 @@ CONTAINS
 !               and Pandis)
 !
 ! !REVISION HISTORY:
-!
 !  15Dec2011  A. Darmenov
-!
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !-------------------------------------------------------------------------
 
@@ -8799,9 +8691,8 @@ CONTAINS
 ! !DESCRIPTION: calculates the calculates the Monin-Obukhov length
 !
 ! !REVISION HISTORY:
-!
 !  15Dec2011  A. Darmenov
-!
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !-------------------------------------------------------------------------
 

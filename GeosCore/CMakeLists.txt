@@ -85,11 +85,9 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	wetscav_mod.F90
 	YuIMN_Code.F90
 
-	# These files are empty for GCHP. Compile them if NOT GCHP.
-	$<$<NOT:$<BOOL:${GCHP}>>:flexgrid_read_mod.F90 get_met_mod.F90>
-
+	# Files only included for special cases
+	$<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90>
 	# exchange_mod.F90 TODO: add for debug
-
 	$<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F90>
 	$<$<BOOL:${TOMAS}>:tomas_mod.F90>
 	$<$<BOOL:${APM}>:apm_driv_mod.F90>

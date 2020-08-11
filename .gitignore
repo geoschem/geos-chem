@@ -16,7 +16,6 @@ diffs
 bak
 misc
 test
-GIGC
 *.pp.*
 *.pdb
 *.inst.*
@@ -28,3 +27,4 @@ build/
 build_*/
 *___.h
 *___.rc
+core.*

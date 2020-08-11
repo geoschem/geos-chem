@@ -3,7 +3,7 @@ Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](http
 
 # README for the GEOS-Chem source code repository
 
-This repository (https://github.com/geoschem/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition. 
+This repository (https://github.com/geoschem/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition.
 
 ## GEOS-Chem Development
 
@@ -11,6 +11,8 @@ This repository (https://github.com/geoschem/geos-chem) contains the source code
 This repository contains several branches.  Each branch contains code updates belonging to a particular line of development.
 
  * The __master__ branch always contains the __current stable version__.  You should never add new code directly into this branch.  Instead, open a new branch off of master and add your code there.
+
+   * NOTE: In GEOS-Chem 13.0.0 and later, the __master__ branch will renamed to __main__.
 
  * The __dev/X.Y.Z__ branches always contains in-development code for upcoming version X.Y.Z.  Code in dev/X.Y.Z is very much "work in progress" and should not be relied upon until it has been fully debugged, validated, and merged back into the master branch.
 
@@ -58,7 +60,7 @@ The most up-to-date information about GEOS-Chem is posted on the __GEOS-Chem wik
 ## GEOS-Chem run directories
 To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on the [Creating GEOS-Chem run directories wiki page](http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories).
 
-## Support 
+## Support
 We encourage GEOS-Chem users to use the Github issue tracker attached to this repository to report  bugs or technical issues with the GEOS-Chem code.
 
 You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@g.harvard.edu.
