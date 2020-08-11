@@ -816,12 +816,12 @@ CONTAINS
              IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                 NcData_3d     = Item%Data_3d
                 Item%Data_3d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ELSE
                 Item%Data_3d  = Item%Data_3d / Item%nUpdates
                 NcData_3d     = Item%Data_3d
                 Item%Data_3d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ENDIF
 
              ! Compute start and count fields
@@ -850,12 +850,12 @@ CONTAINS
              IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                 NcData_2d     = Item%Data_2d
                 Item%Data_2d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ELSE
                 Item%Data_2d  = Item%Data_2d / Item%nUpdates
                 NcData_2d     = Item%Data_2d
                 Item%Data_2d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ENDIF
 
              ! Compute start and count fields
@@ -883,12 +883,12 @@ CONTAINS
              IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                 NcData_1d     = Item%Data_1d
                 Item%Data_1d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ELSE
                 Item%Data_1d  = Item%Data_1d / Item%nUpdates
                 NcData_1d     = Item%Data_1d
                 Item%Data_1d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
              ENDIF
 
 
