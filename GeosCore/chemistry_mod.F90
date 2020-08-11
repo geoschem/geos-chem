@@ -808,10 +808,6 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
 
-#if defined( USE_TIMERS )
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
-
           ! Do Hg chemistry
           CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
@@ -838,11 +834,6 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-#if defined( USE_TIMERS )
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
-
 #endif
 
        ENDIF
