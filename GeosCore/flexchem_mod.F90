@@ -1187,17 +1187,17 @@ CONTAINS
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
-          DO F = 1, State_Chm%nLoss
-             KppID                    = State_Chm%Map_Loss(F)
-             State_Diag%Loss(I,J,L,F) = VAR(KppID) / DT
+          DO S = 1, State_Diag%Map_Loss%nSlots
+             KppId = State_Diag%Map_Loss%slot2Id(S)
+             State_Diag%Loss(I,J,L,S) = VAR(KppID) / DT
           ENDDO
        ENDIF
 
        ! Chemical production of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Prod ) THEN
-          DO F = 1, State_Chm%nProd
-             KppID                    = State_Chm%Map_Prod(F)
-             State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
+          DO S = 1, State_Diag%Map_Prod%nSlots
+             KppID = State_Diag%Map_Prod%slot2Id(S)
+             State_Diag%Prod(I,J,L,S) = VAR(KppID) / DT
           ENDDO
        ENDIF
 

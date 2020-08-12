@@ -5752,7 +5752,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_Loss,                        &
             mapData        = State_Diag%Map_Loss,                            &
             diagId         = diagId,                                         &
-            diagFlag       = 'L',                                            &
+            diagFlag       = 'X',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -5776,7 +5776,7 @@ CONTAINS
             archiveData    = State_Diag%Archive_Prod,                        &
             mapData        = State_Diag%Map_Prod,                            &
             diagId         = diagId,                                         &
-            diagFlag       = 'P',                                            &
+            diagFlag       = 'Y',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -10433,7 +10433,7 @@ CONTAINS
           numTags = State_Chm%nHygGrth
        CASE( 'KPP',     'K' )
           numTags = State_Chm%nKppSpc
-       CASE( 'LOS'          )
+       CASE( 'LOS',     'X' )
           numTags = State_Chm%nLoss
        CASE( 'NUC',     'N' )
           numTags = State_Chm%nRadNucl
@@ -10441,7 +10441,7 @@ CONTAINS
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
           numTags = W_
-       CASE( 'PRD'          )
+       CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )
           numTags = nRadFlux
@@ -10951,6 +10951,15 @@ CONTAINS
              index   = State_Chm%Map_WetDep(index)
              tagName = State_Chm%SpcData(index)%info%name
           CASE DEFAULT
+
+             ! Special handling for Loss & Prod
+             SELECT CASE( mapData%indFlag )
+                CASE( 'X', 'Y' )
+                   index = N
+                CASE DEFAULT
+                   ! Pass
+             END SELECT
+
              ! We need to call Get_TagInfo for diagnostics that
              ! aren't chemical species (e.g. DUSTBIN, UVFLX, RRTMG, RXN, etc.)
              CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
@@ -12359,6 +12368,8 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: found
     LOGICAL                   :: isDustBin
+    LOGICAL                   :: isLoss
+    LOGICAL                   :: isProd
     LOGICAL                   :: isRxnRate
     LOGICAL                   :: isUvFlx
     LOGICAL                   :: isWildCard
@@ -12395,6 +12406,8 @@ CONTAINS
     isDustBin  = ( indFlag == 'B'         )
     isRxnRate  = ( indFlag == 'R'         )
     isUvFlx    = ( indFlag == 'U'         )
+    isLoss     = ( indFlag == 'X'         )
+    isProd     = ( indFlag == 'Y'         )
     skipInd    = ( isRxnRate .or. isUvFlx )
     spcName    = ''
     wcName     = ''
@@ -12483,16 +12496,21 @@ CONTAINS
                             found     = found,                               &
                             RC        = RC                                  )
 
-           ! Trap potential errors
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              errMsg = 'Error encountered in "Get_Mapping!'
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
 
+
           ! Save the in the mapping object
           IF ( skipInd ) THEN
              mapData%slot2id(index) = index
+          ELSE IF ( isLoss ) THEN
+             mapData%slot2id(index) = State_Chm%Map_Loss(index)
+          ELSE IF ( isProd ) THEN
+             mapData%slot2id(index) = State_Chm%Map_Prod(index)
           ELSE
              mapData%slot2id(index) = Ind_( spcName, indFlag )
           ENDIF
@@ -12527,6 +12545,16 @@ CONTAINS
              S = LEN_TRIM( TagItem%Name )
              READ( TagItem%Name(S:S), '(I1)' ) index
              mapData%slot2id(TagItem%index) = index
+
+          ELSE IF ( isLoss ) THEN
+
+             ! Loss: get the index from State_Chm%Map_Loss
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(index)
+
+          ELSE IF ( isProd ) THEN
+
+             ! Loss: get the index from State_Chm%Map_Loss
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(index)
 
           ELSE IF ( isRxnRate ) THEN
 
@@ -12579,26 +12607,30 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get max number of species for this indFlag
-    CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
+    ! Skip computing id2slot for Prod and Loss diagnostics
+    IF ( .not. isLoss .and. .not. isProd ) THEN
+
+       ! Get max number of species for this indFlag
+       CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Allocate the mapData%id2slot field
+       IF ( ASSOCIATED( mapData%id2slot ) ) DEALLOCATE( mapData%id2slot )
+       ALLOCATE( mapData%id2slot( mapData%nIds ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%id2slot = -1
+
+       ! Populate the mapData%id2slot field
+       DO S = 1, mapData%nSlots
+          index = mapData%slot2Id(S)
+          mapData%id2slot(index) = S
+       ENDDO
     ENDIF
-
-    ! Allocate the mapData%id2slot field
-    IF ( ASSOCIATED( mapData%id2slot ) ) DEALLOCATE( mapData%id2slot )
-    ALLOCATE( mapData%id2slot( mapData%nIds ), STAT=RC )
-    CALL GC_CheckVar( mapName2, 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    mapData%id2slot = -1
-
-    ! Populate the mapData%id2slot field
-    DO S = 1, mapData%nSlots
-       index = mapData%slot2Id(S)
-       mapData%id2slot(index) = S
-    ENDDO
 
   END SUBROUTINE Get_Mapping
 !EOC
