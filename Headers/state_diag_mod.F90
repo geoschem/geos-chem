@@ -21,34 +21,72 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
-  USE CMN_Size_Mod,     ONLY : NDUST
+  USE CMN_FJX_MOD,        ONLY : W_
+  USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
-  USE Dictionary_M,     ONLY : dictionary_t
+  USE Dictionary_M,       ONLY : dictionary_t
   USE ErrCode_Mod
+  USE gckpp_Parameters,   ONLY : NREACT
   USE Precision_Mod
   USE Registry_Mod
-  USE Species_Mod,      ONLY : Species
-  USE State_Chm_Mod,    ONLY : ChmState
-  USE CMN_FJX_MOD,      ONLY : W_
-  USE gckpp_Parameters, ONLY : NREACT
+  USE Species_Mod,        ONLY : Species
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE TaggedDiagList_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Init_State_Diag
   PUBLIC :: Cleanup_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
   PUBLIC :: Get_NameInfo
+  PUBLIC :: Get_NumTags
   PUBLIC :: Get_TagInfo
+  PUBLIC :: Init_State_Diag
 !
-! !PRIVATE MEMBER FUNCTIONS
+! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Finalize
+  PRIVATE :: Finalize_MapData
+  PRIVATE :: Finalize_R4_2D
+  PRIVATE :: Finalize_R4_3D
+  PRIVATE :: Finalize_R4_4D
+  PRIVATE :: Finalize_R8_2D
+  PRIVATE :: Finalize_R8_3D
+  PRIVATE :: Finalize_R8_4D
+  PRIVATE :: Get_DiagNameDesc
+  PRIVATE :: Get_MapData_and_NumSlots
+  PRIVATE :: Get_Mapping
+  PRIVATE :: Init_and_Register
+  PRIVATE :: Init_and_Register_R4_2D
+  PRIVATE :: Init_and_Register_R4_3D
+  PRIVATE :: Init_and_Register_R4_4D
+  PRIVATE :: Init_and_Register_R8_2D
+  PRIVATE :: Init_and_Register_R8_3D
+  PRIVATE :: Init_and_Register_R8_4D
+  PRIVATE :: Init_RRTMG_Indices
   PRIVATE :: Register_DiagField
+  PRIVATE :: Register_DiagField_R4_2D
+  PRIVATE :: Register_DiagField_R4_3D
+  PRIVATE :: Register_DiagField_R4_4D
+  PRIVATE :: Register_DiagField_R8_2D
+  PRIVATE :: Register_DiagField_R8_3D
+  PRIVATE :: Register_DiagField_R8_4D
 !
 ! !PUBLIC DATA MEMBERS:
 !
+  !=========================================================================
+  ! Type for mapping objects
+  !=========================================================================
+  TYPE, PUBLIC :: DgnMap
+     INTEGER          :: nSlots
+     INTEGER, POINTER :: slot2id(:)
+     INTEGER          :: nIds
+     INTEGER, POINTER :: id2slot(:)
+     CHARACTER(LEN=1) :: indFlag
+  END TYPE DgnMap
+
   !=========================================================================
   ! Derived type for Diagnostics State
   !=========================================================================
@@ -58,528 +96,719 @@ MODULE State_Diag_Mod
      ! Standard Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
 
-     ! Restart file fields
-     REAL(f8),  POINTER :: SpeciesRst(:,:,:,:) ! Spc Conc for GC restart
-     LOGICAL :: Archive_SpeciesRst
+     !%%%%% Restart file fields %%%%%
 
-     ! Boundary condition fields
-     REAL(f8),  POINTER :: SpeciesBC(:,:,:,:) ! Spc Conc for BCs
-     LOGICAL :: Archive_SpeciesBC
+     REAL(f8),           POINTER :: SpeciesRst(:,:,:,:)
+     LOGICAL                     :: Archive_SpeciesRst
 
-     ! Concentrations
-     REAL(f8),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
-     LOGICAL :: Archive_SpeciesConc
+     !%%%%%  Boundary condition fields %%%%%
 
-     ! Time spent in the troposphere
-     REAL(f4), POINTER :: FracOfTimeInTrop(:,:,:)
-     LOGICAL :: Archive_FracOfTimeInTrop
+     REAL(f8),           POINTER :: SpeciesBC(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesBC
+     LOGICAL                     :: Archive_SpeciesBC
 
-     ! Budget diagnostics
-     REAL(f8),  POINTER :: BudgetEmisDryDepFull     (:,:,:)
-     REAL(f8),  POINTER :: BudgetEmisDryDepTrop     (:,:,:)
-     REAL(f8),  POINTER :: BudgetEmisDryDepPBL      (:,:,:)
-     REAL(f8),  POINTER :: BudgetTransportFull      (:,:,:)
-     REAL(f8),  POINTER :: BudgetTransportTrop      (:,:,:)
-     REAL(f8),  POINTER :: BudgetTransportPBL       (:,:,:)
-     REAL(f8),  POINTER :: BudgetMixingFull         (:,:,:)
-     REAL(f8),  POINTER :: BudgetMixingTrop         (:,:,:)
-     REAL(f8),  POINTER :: BudgetMixingPBL          (:,:,:)
-     REAL(f8),  POINTER :: BudgetConvectionFull     (:,:,:)
-     REAL(f8),  POINTER :: BudgetConvectionTrop     (:,:,:)
-     REAL(f8),  POINTER :: BudgetConvectionPBL      (:,:,:)
-     REAL(f8),  POINTER :: BudgetChemistryFull      (:,:,:)
-     REAL(f8),  POINTER :: BudgetChemistryTrop      (:,:,:)
-     REAL(f8),  POINTER :: BudgetChemistryPBL       (:,:,:)
-     REAL(f8),  POINTER :: BudgetWetDepFull         (:,:,:)
-     REAL(f8),  POINTER :: BudgetWetDepTrop         (:,:,:)
-     REAL(f8),  POINTER :: BudgetWetDepPBL          (:,:,:)
-     REAL(f8),  POINTER :: BudgetMass1              (:,:,:,:)
-     REAL(f8),  POINTER :: BudgetMass2              (:,:,:,:)
-     LOGICAL :: Archive_BudgetEmisDryDep
-     LOGICAL :: Archive_BudgetEmisDryDepFull
-     LOGICAL :: Archive_BudgetEmisDryDepTrop
-     LOGICAL :: Archive_BudgetEmisDryDepPBL
-     LOGICAL :: Archive_BudgetTransport
-     LOGICAL :: Archive_BudgetTransportFull
-     LOGICAL :: Archive_BudgetTransportTrop
-     LOGICAL :: Archive_BudgetTransportPBL
-     LOGICAL :: Archive_BudgetMixing
-     LOGICAL :: Archive_BudgetMixingFull
-     LOGICAL :: Archive_BudgetMixingTrop
-     LOGICAL :: Archive_BudgetMixingPBL
-     LOGICAL :: Archive_BudgetConvection
-     LOGICAL :: Archive_BudgetConvectionFull
-     LOGICAL :: Archive_BudgetConvectionTrop
-     LOGICAL :: Archive_BudgetConvectionPBL
-     LOGICAL :: Archive_BudgetChemistry
-     LOGICAL :: Archive_BudgetChemistryFull
-     LOGICAL :: Archive_BudgetChemistryTrop
-     LOGICAL :: Archive_BudgetChemistryPBL
-     LOGICAL :: Archive_BudgetWetDep
-     LOGICAL :: Archive_BudgetWetDepFull
-     LOGICAL :: Archive_BudgetWetDepTrop
-     LOGICAL :: Archive_BudgetWetDepPBL
-     LOGICAL :: Archive_Budget
+     !%%%%%  Concentrations %%%%%
 
-     ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
-     REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
-     REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
-     REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
-     LOGICAL :: Archive_DryDepChm
-     LOGICAL :: Archive_DryDepMix
-     LOGICAL :: Archive_DryDep
-     LOGICAL :: Archive_DryDepVel
+     REAL(f8),           POINTER :: SpeciesConc(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConc
+     LOGICAL                     :: Archive_SpeciesConc
 
-     ! Drydep resistances and related quantities
-#ifdef MODEL_GEOS
-     ! GEOS-5 only
-     REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m
-     REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
-     REAL(f4),  POINTER :: MoninObukhov    (:,:    ) ! MoninObukhov length
-     REAL(f4),  POINTER :: Bry             (:,:,:  ) ! MoninObukhov length
-     LOGICAL :: Archive_DryDepRa2m
-     LOGICAL :: Archive_DryDepRa10m
-     LOGICAL :: Archive_MoninObukhov
-     LOGICAL :: Archive_Bry
-#endif
+     !%%%%% Budget diagnostics %%%%%
 
-     ! Chemistry
-     REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
-     REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
-     REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
-     REAL(f4),  POINTER :: RxnRate         (:,:,:,:) ! KPP eqn eaction rates
-     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
-     REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
-     REAL(f4),  POINTER :: UVFluxDirect    (:,:,:,:) ! Direct UV flux per bin
-     REAL(f4),  POINTER :: UVFluxNet       (:,:,:,:) ! Net UV flux per bin
-     REAL(f4),  POINTER :: OHconcAfterChem (:,:,:  ) ! OH, HO2, O1D, and O3P
-     REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations
-     REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
-     REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver
-     REAL(f4),  POINTER :: Loss            (:,:,:,:) ! Chemical loss of species
-     REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
-     LOGICAL :: Archive_JVal
-     LOGICAL :: Archive_JNoon
-     LOGICAL :: Archive_JNoonFrac
-     LOGICAL :: Archive_RxnRate
-     LOGICAL :: Archive_OHreactivity
-     LOGICAL :: Archive_UVFluxDiffuse
-     LOGICAL :: Archive_UVFluxDirect
-     LOGICAL :: Archive_UVFluxNet
-     LOGICAL :: Archive_OHconcAfterChem
-     LOGICAL :: Archive_HO2concAfterChem
-     LOGICAL :: Archive_O1DconcAfterChem
-     LOGICAL :: Archive_O3PconcAfterChem
-     LOGICAL :: Archive_Loss
-     LOGICAL :: Archive_Prod
+     REAL(f8),           POINTER :: BudgetEmisDryDepFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepFull
+     LOGICAL                     :: Archive_BudgetEmisDryDepFull
 
-#ifdef MODEL_GEOS
-     ! GEOS-5 only
-     REAL(f4),  POINTER :: JValIndiv       (:,:,:,:) ! individual J-values
-     REAL(f4),  POINTER :: RxnRconst       (:,:,:,:) ! Rxn rate const from KPP
-     REAL(f4),  POINTER :: O3concAfterChem (:,:,:  ) ! O3
-     REAL(f4),  POINTER :: RO2concAfterChem(:,:,:  ) ! RO2
-     REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
-     LOGICAL :: Archive_JValIndiv
-     LOGICAL :: Archive_RxnRconst
-     LOGICAL :: Archive_O3concAfterChem
-     LOGICAL :: Archive_RO2concAfterChem
-     LOGICAL :: Archive_CH4pseudoFlux
-#endif
+     REAL(f8),           POINTER :: BudgetEmisDryDepTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepTrop
+     LOGICAL                     :: Archive_BudgetEmisDryDepTrop
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
-     LOGICAL :: Archive_KppError
-#endif
+     REAL(f8),           POINTER :: BudgetEmisDryDepPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepPBL
+     LOGICAL                     :: Archive_BudgetEmisDryDepPBL
 
-     ! Aerosol characteristics
-     REAL(f4),  POINTER :: AerHygGrowth    (:,:,:,:) ! Hydroscopic growth of spc
-     REAL(f4),  POINTER :: AerAqVol        (:,:,:  ) ! Aerosol aqueous volume
-     REAL(f4),  POINTER :: AerSurfAreaHyg  (:,:,:,:) ! Surface area of
-                                                     ! hygroscopic grth species
-     REAL(f4),  POINTER :: AerSurfAreaDust (:,:,:  ) ! Mineral dust surface area
-     REAL(f4),  POINTER :: AerSurfAreaSLA  (:,:,:  ) ! Strat liquid surf area
-     REAL(f4),  POINTER :: AerSurfAreaPSC  (:,:,:  ) ! Polar strat cld surf area
-     REAL(f4),  POINTER :: AerNumDenSLA    (:,:,:  ) ! Strat liquid # density
-     REAL(f4),  POINTER :: AerNumDenPSC    (:,:,:  ) ! Polar strat cloud  # den
-     LOGICAL :: Archive_AerHygGrowth
-     LOGICAL :: Archive_AerAqVol
-     LOGICAL :: Archive_AerSurfAreaHyg
-     LOGICAL :: Archive_AerSurfAreaDust
-     LOGICAL :: Archive_AerSurfAreaSLA
-     LOGICAL :: Archive_AerSurfAreaPSC
-     LOGICAL :: Archive_AerNumDenSLA
-     LOGICAL :: Archive_AerNumDenPSC
+     REAL(f8),           POINTER :: BudgetTransportFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportFull
+     LOGICAL                     :: Archive_BudgetTransportFull
 
-     ! Aerosol optical depths
-     REAL(f4),  POINTER :: AODDust         (:,:,:  ) ! Dust optical depth
-     REAL(f4),  POINTER :: AODDustWL1      (:,:,:,:) ! All bins 1st WL dust OD
-     REAL(f4),  POINTER :: AODDustWL2      (:,:,:,:) ! All bins 2nd WL dust OD
-     REAL(f4),  POINTER :: AODDustWL3      (:,:,:,:) ! All bins 3rd WL dust OD
-     REAL(f4),  POINTER :: AODHygWL1       (:,:,:,:) ! AOD for hygroscopic grth
-     REAL(f4),  POINTER :: AODHygWL2       (:,:,:,:) ! species @ input.geos rad
-     REAL(f4),  POINTER :: AODHygWL3       (:,:,:,:) ! wavelengths 1, 2, and 3
-     REAL(f4),  POINTER :: AODSOAfromAqIsopWL1(:,:,:)! AOD for SOA from aqueous
-     REAL(f4),  POINTER :: AODSOAfromAqIsopWL2(:,:,:)! isoprene, wavelengths
-     REAL(f4),  POINTER :: AODSOAfromAqIsopWL3(:,:,:)! 1, 2, and 3
-     REAL(f4),  POINTER :: AODSLAWL1       (:,:,:  ) ! Strat liquid aerosol
-     REAL(f4),  POINTER :: AODSLAWL2       (:,:,:  ) ! optical depths for
-     REAL(f4),  POINTER :: AODSLAWL3       (:,:,:  ) ! wavelengths 1, 2, and 3
-     REAL(f4),  POINTER :: AODPSCWL1       (:,:,:  ) ! Polar strat cloud
-     REAL(f4),  POINTER :: AODPSCWL2       (:,:,:  ) ! optical depths for
-     REAL(f4),  POINTER :: AODPSCWL3       (:,:,:  ) ! wavelengths 1, 2, and 3
-     LOGICAL :: Archive_AOD
-     LOGICAL :: Archive_AODStrat
-     LOGICAL :: Archive_AODDust
-     LOGICAL :: Archive_AODDustWL1
-     LOGICAL :: Archive_AODDustWL2
-     LOGICAL :: Archive_AODDustWL3
-     LOGICAL :: Archive_AODHygWL1
-     LOGICAL :: Archive_AODHygWL2
-     LOGICAL :: Archive_AODHygWL3
-     LOGICAL :: Archive_AODSOAfromAqIsopWL1
-     LOGICAL :: Archive_AODSOAfromAqIsopWL2
-     LOGICAL :: Archive_AODSOAfromAqIsopWL3
-     LOGICAL :: Archive_AODSLAWL1
-     LOGICAL :: Archive_AODSLAWL2
-     LOGICAL :: Archive_AODSLAWL3
-     LOGICAL :: Archive_AODPSCWL1
-     LOGICAL :: Archive_AODPSCWL2
-     LOGICAL :: Archive_AODPSCWL3
+     REAL(f8),           POINTER :: BudgetTransportTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportTrop
+     LOGICAL                     :: Archive_BudgetTransportTrop
 
-     ! Aerosol mass and PM2.5
-     REAL(f4),  POINTER :: AerMassASOA     (:,:,:  ) ! Aromatic SOA [ug/m3]
-     REAL(f4),  POINTER :: AerMassBC       (:,:,:  ) ! Black carbon [ug/m3]
-     REAL(f4),  POINTER :: AerMassINDIOL   (:,:,:  ) ! INDIOL [ug/m3]
-     REAL(f4),  POINTER :: AerMassISN1OA   (:,:,:  ) ! ISN1OA [ug/m3]
-     REAL(f4),  POINTER :: AerMassLVOCOA   (:,:,:  ) ! LVOCOA [ug/m3]
-     REAL(f4),  POINTER :: AerMassNH4      (:,:,:  ) ! Nitrate [ug/m3]
-     REAL(f4),  POINTER :: AerMassNIT      (:,:,:  ) ! NIT [ug/m3]
-     REAL(f4),  POINTER :: AerMassOPOA     (:,:,:  ) ! OPOA [ug/m3]
-     REAL(f4),  POINTER :: AerMassPOA      (:,:,:  ) ! POA [ug/m3]
-     REAL(f4),  POINTER :: AerMassSAL      (:,:,:  ) ! Total seasalt [ug/m3]
-     REAL(f4),  POINTER :: AerMassSO4      (:,:,:  ) ! Sulfate [ug/m3]
-     REAL(f4),  POINTER :: AerMassSOAGX    (:,:,:  ) ! SOAGX [ug/m3]
-     REAL(f4),  POINTER :: AerMassSOAIE    (:,:,:  ) ! SOAIE [ug/m3]
-     REAL(f4),  POINTER :: AerMassTSOA     (:,:,:  ) ! Terpene SOA [ug/m3]
-     REAL(f4),  POINTER :: BetaNO          (:,:,:  ) ! Beta NO [ug C/m3]
-     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
-     REAL(f4),  POINTER :: TotalOA         (:,:,:  ) ! Sum of all OA [ug/m3]
-     REAL(f4),  POINTER :: TotalOC         (:,:,:  ) ! Sum of all OC [ug/m3]
-     REAL(f4),  POINTER :: TotalBiogenicOA (:,:,:  ) ! Sum of biog OC [ug/m3]
-     LOGICAL :: Archive_AerMass
-     LOGICAL :: Archive_AerMassASOA
-     LOGICAL :: Archive_AerMassBC
-     LOGICAL :: Archive_AerMassINDIOL
-     LOGICAL :: Archive_AerMassISN1OA
-     LOGICAL :: Archive_AerMassLVOCOA
-     LOGICAL :: Archive_AerMassNH4
-     LOGICAL :: Archive_AerMassNIT
-     LOGICAL :: Archive_AerMassOPOA
-     LOGICAL :: Archive_AerMassPOA
-     LOGICAL :: Archive_AerMassSAL
-     LOGICAL :: Archive_AerMassSO4
-     LOGICAL :: Archive_AerMassSOAGX
-     LOGICAL :: Archive_AerMassSOAIE
-     LOGICAL :: Archive_AerMassTSOA
-     LOGICAL :: Archive_BetaNO
-     LOGICAL :: Archive_PM25
-     LOGICAL :: Archive_TotalOA
-     LOGICAL :: Archive_TotalOC
-     LOGICAL :: Archive_TotalBiogenicOA
+     REAL(f8),           POINTER :: BudgetTransportPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportPBL
+     LOGICAL                     :: Archive_BudgetTransportPBL
 
-#ifdef MODEL_GEOS
-     REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates
-     REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates
-     REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
-     REAL(f4),  POINTER :: PM25bc          (:,:,:  ) ! PM25 BC
-     REAL(f4),  POINTER :: PM25du          (:,:,:  ) ! PM25 dust
-     REAL(f4),  POINTER :: PM25ss          (:,:,:  ) ! PM25 sea salt
-     REAL(f4),  POINTER :: PM25soa         (:,:,:  ) ! PM25 SOA
-     LOGICAL :: Archive_PM25ni
-     LOGICAL :: Archive_PM25su
-     LOGICAL :: Archive_PM25oc
-     LOGICAL :: Archive_PM25bc
-     LOGICAL :: Archive_PM25du
-     LOGICAL :: Archive_PM25ss
-     LOGICAL :: Archive_PM25soa
-#endif
+     REAL(f8),           POINTER :: BudgetMixingFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingFull
+     LOGICAL                     :: Archive_BudgetMixingFull
 
-     ! Advection
-     REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
-     REAL(f4),  POINTER :: AdvFluxMerid    (:,:,:,:) ! NW Advective Flux
-     REAL(f4),  POINTER :: AdvFluxVert     (:,:,:,:) ! Vertical Advective Flux
-     LOGICAL :: Archive_AdvFluxZonal
-     LOGICAL :: Archive_AdvFluxMerid
-     LOGICAL :: Archive_AdvFluxVert
+     REAL(f8),           POINTER :: BudgetMixingTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingTrop
+     LOGICAL                     :: Archive_BudgetMixingTrop
 
-     ! Mixing
-     REAL(f4),  POINTER :: PBLMixFrac      (:,:,:  ) ! Frac of BL occupied by lev
-     REAL(f4),  POINTER :: PBLFlux         (:,:,:,:) ! BL mixing mass flux
-     LOGICAL :: Archive_PBLMixFrac
-     LOGICAL :: Archive_PBLFlux
+     REAL(f8),           POINTER :: BudgetMixingPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingPBL
+     LOGICAL                     :: Archive_BudgetMixingPBL
 
-     ! Convection
-     REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
-     REAL(f4),  POINTER :: WetLossConvFrac (:,:,:,:) ! Fraction of soluble
-                                                     !  species lost in
-                                                     !  convective updraft
-     REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
-     LOGICAL :: Archive_CloudConvFlux
-     LOGICAL :: Archive_WetLossConvFrac
-     LOGICAL :: Archive_WetLossConv
+     REAL(f8),           POINTER :: BudgetConvectionFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionFull
+     LOGICAL                     :: Archive_BudgetConvectionFull
 
-     ! Wet deposition
-     REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS
-                                                     ! rainout/washout
-     REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
-     REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
-     REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
-     LOGICAL :: Archive_WetLossLS
-     LOGICAL :: Archive_PrecipFracLS
-     LOGICAL :: Archive_RainFracLS
-     LOGICAL :: Archive_WashFracLS
+     REAL(f8),           POINTER :: BudgetConvectionTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionTrop
+     LOGICAL                     :: Archive_BudgetConvectionTrop
 
-     ! Carbon aerosols
-     REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
-     REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
-     LOGICAL :: Archive_ProdBCPIfromBCPO
-     LOGICAL :: Archive_ProdOCPIfromOCPO
+     REAL(f8),           POINTER :: BudgetConvectionPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionPBL
+     LOGICAL                     :: Archive_BudgetConvectionPBL
+
+     REAL(f8),           POINTER :: BudgetChemistryFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryFull
+     LOGICAL                     :: Archive_BudgetChemistryFull
+
+     REAL(f8),           POINTER :: BudgetChemistryTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryTrop
+     LOGICAL                     :: Archive_BudgetChemistryTrop
+
+     REAL(f8),           POINTER :: BudgetChemistryPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryPBL
+     LOGICAL                     :: Archive_BudgetChemistryPBL
+
+     REAL(f8),           POINTER :: BudgetWetDepFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepFull
+     LOGICAL                     :: Archive_BudgetWetDepFull
+
+     REAL(f8),           POINTER :: BudgetWetDepTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepTrop
+     LOGICAL                     :: Archive_BudgetWetDepTrop
+
+     REAL(f8),           POINTER :: BudgetWetDepPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepPBL
+     LOGICAL                     :: Archive_BudgetWetDepPBL
+
+     REAL(f8),           POINTER :: BudgetColumnMass(:,:,:,:)
+     LOGICAL                     :: Archive_BudgetEmisDryDep
+     LOGICAL                     :: Archive_BudgetTransport
+     LOGICAL                     :: Archive_BudgetMixing
+     LOGICAL                     :: Archive_BudgetConvection
+     LOGICAL                     :: Archive_BudgetChemistry
+     LOGICAL                     :: Archive_BudgetWetDep
+     LOGICAL                     :: Archive_Budget
+
+     !%%%%% Dry deposition %%%%%
+
+     REAL(f4),           POINTER :: DryDepChm(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepChm
+     LOGICAL                     :: Archive_DryDepChm
+
+     REAL(f4),           POINTER :: DryDepMix(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepMix
+     LOGICAL                     :: Archive_DryDepMix
+
+     REAL(f4),           POINTER :: DryDep(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDep
+     LOGICAL                     :: Archive_DryDep
+
+     REAL(f4),           POINTER :: DryDepVel(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVel
+     LOGICAL                     :: Archive_DryDepVel
+
+     !%%%%% Photolysis %%%%%
+
+     REAL(f4),           POINTER :: JVal(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JVal
+     LOGICAL                     :: Archive_JVal
+
+     REAL(f4),           POINTER :: JValO3O1D(:,:,:)
+     LOGICAL                     :: Archive_JValO3O1D
+
+     REAL(f4),           POINTER :: JValO3O3P(:,:,:)
+     LOGICAL                     :: Archive_JValO3O3P
+
+     REAL(f4),           POINTER :: JNoon(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JNoon
+     LOGICAL                     :: Archive_JNoon
+
+     REAL(f4),           POINTER :: JNoonFrac(:,:)
+     LOGICAL                     :: Archive_JNoonFrac
+
+     REAL(f4),           POINTER :: UVFluxDiffuse(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxDiffuse
+     LOGICAL                     :: Archive_UVFluxDiffuse
+
+     REAL(f4),           POINTER :: UVFluxDirect(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxDirect
+     LOGICAL                     :: Archive_UVFluxDirect
+
+     REAL(f4),           POINTER :: UVFluxNet(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_UvFluxNet
+     LOGICAL                     :: Archive_UVFluxNet
+
+     !%%%%% Chemistry %%%%%
+
+     REAL(f4),           POINTER :: RxnRate(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnRate
+     LOGICAL                     :: Archive_RxnRate
+
+     REAL(f4),           POINTER :: OHreactivity(:,:,:)
+     LOGICAL                     :: Archive_OHreactivity
+
+     REAL(f4),           POINTER :: OHconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_OHconcAfterChem
+
+     REAL(f4),           POINTER :: HO2concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_HO2concAfterChem
+
+     REAL(f4),           POINTER :: O1DconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O1DconcAfterChem
+
+     REAL(f4),           POINTER :: O3PconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O3PconcAfterChem
+
+     REAL(f4),           POINTER :: Loss(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_Loss
+     LOGICAL                     :: Archive_Loss
+
+     REAL(f4),           POINTER :: Prod(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_Prod
+     LOGICAL                     :: Archive_Prod
+
+     !%%%%% Aerosol characteristics %%%%%
+
+     REAL(f4),           POINTER :: AerHygGrowth(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AerHygGrowth
+     LOGICAL                     :: Archive_AerHygGrowth
+
+     REAL(f4),           POINTER :: AerAqVol(:,:,:)
+     LOGICAL                     :: Archive_AerAqVol
+
+     REAL(f4),           POINTER :: AerSurfAreaHyg(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AerSurfAreaHyg
+     LOGICAL                     :: Archive_AerSurfAreaHyg
+
+     REAL(f4),           POINTER :: AerSurfAreaDust(:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaDust
+
+     REAL(f4),           POINTER :: AerSurfAreaSLA(:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaSLA
+
+     REAL(f4),           POINTER :: AerSurfAreaPSC(:,:,:)
+     LOGICAL                     :: Archive_AerSurfAreaPSC
+
+     REAL(f4),           POINTER :: AerNumDenSLA(:,:,:)
+     LOGICAL                     :: Archive_AerNumDenSLA
+
+     REAL(f4),           POINTER :: AerNumDenPSC(:,:,:)
+     LOGICAL                     :: Archive_AerNumDenPSC
+
+     !%%%%% Aerosol optical depths %%%%%
+
+     REAL(f4),           POINTER :: AODDust(:,:,:)
+     LOGICAL                     :: Archive_AODDust
+     LOGICAL                     :: Archive_AOD
+
+     REAL(f4),           POINTER :: AODDustWL1(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL1
+     LOGICAL                     :: Archive_AODDustWL1
+
+     REAL(f4),           POINTER :: AODDustWL2(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL2
+     LOGICAL                     :: Archive_AODDustWL2
+
+     REAL(f4),           POINTER :: AODDustWL3(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODDustWL3
+     LOGICAL                     :: Archive_AODDustWL3
+
+     REAL(f4),           POINTER :: AODHygWL1(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL1
+     LOGICAL                     :: Archive_AODHygWL1
+
+     REAL(f4),           POINTER :: AODHygWL2(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL2
+     LOGICAL                     :: Archive_AODHygWL2
+
+     REAL(f4),           POINTER :: AODHygWL3(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AODHygWL3
+     LOGICAL                     :: Archive_AODHygWL3
+
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL1(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL1
+
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL2(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL2
+
+     REAL(f4),           POINTER :: AODSOAfromAqIsopWL3(:,:,:)
+     LOGICAL                     :: Archive_AODSOAfromAqIsopWL3
+
+     REAL(f4),           POINTER :: AODSLAWL1(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL1
+     LOGICAL                     :: Archive_AODStrat
+
+     REAL(f4),           POINTER :: AODSLAWL2(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL2
+
+     REAL(f4),           POINTER :: AODSLAWL3(:,:,:)
+     LOGICAL                     :: Archive_AODSLAWL3
+
+     REAL(f4),           POINTER :: AODPSCWL1(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL1
+
+     REAL(f4),           POINTER :: AODPSCWL2(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL2
+
+     REAL(f4),           POINTER :: AODPSCWL3(:,:,:)
+     LOGICAL                     :: Archive_AODPSCWL3
+
+     !%%%%% Aerosol mass and PM2.5 %%%%%
+
+     REAL(f4),           POINTER :: AerMassASOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassASOA
+     LOGICAL                     :: Archive_AerMass
+
+     REAL(f4),           POINTER :: AerMassBC(:,:,:)
+     LOGICAL                     :: Archive_AerMassBC
+
+     REAL(f4),           POINTER :: AerMassINDIOL(:,:,:)
+     LOGICAL                     :: Archive_AerMassINDIOL
+
+     REAL(f4),           POINTER :: AerMassISN1OA(:,:,: )
+     LOGICAL                     :: Archive_AerMassLVOCOA
+
+     REAL(f4),           POINTER :: AerMassLVOCOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassISN1OA
+
+     REAL(f4),           POINTER :: AerMassNH4(:,:,:)
+     LOGICAL                     :: Archive_AerMassNH4
+
+     REAL(f4),           POINTER :: AerMassNIT(:,:,:)
+     LOGICAL                     :: Archive_AerMassNIT
+
+     REAL(f4),           POINTER :: AerMassOPOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassOPOA
+
+     REAL(f4),           POINTER :: AerMassPOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassPOA
+
+     REAL(f4),           POINTER :: AerMassSAL(:,:,:)
+     LOGICAL                     :: Archive_AerMassSAL
+
+     REAL(f4),           POINTER :: AerMassSO4(:,:,:)
+     LOGICAL                     :: Archive_AerMassSO4
+
+     REAL(f4),           POINTER :: AerMassSOAGX(:,:,:)
+     LOGICAL                     :: Archive_AerMassSOAGX
+
+     REAL(f4),           POINTER :: AerMassSOAIE(:,:,:)
+     LOGICAL                     :: Archive_AerMassSOAIE
+
+     REAL(f4),           POINTER :: AerMassTSOA(:,:,:)
+     LOGICAL                     :: Archive_AerMassTSOA
+
+     REAL(f4),           POINTER :: BetaNO(:,:,:)
+     LOGICAL                     :: Archive_BetaNO
+
+     REAL(f4),           POINTER :: PM25(:,:,:)
+     LOGICAL                     :: Archive_PM25
+
+     REAL(f4),           POINTER :: TotalOA(:,:,:)
+     LOGICAL                     :: Archive_TotalOA
+
+     REAL(f4),           POINTER :: TotalOC(:,:,:)
+     LOGICAL                     :: Archive_TotalOC
+
+     REAL(f4),           POINTER :: TotalBiogenicOA(:,:,:)
+     LOGICAL                     :: Archive_TotalBiogenicOA
+
+     !%%%%% Advection %%%%%
+
+     REAL(f4),           POINTER :: AdvFluxZonal(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxZonal
+     LOGICAL                     :: Archive_AdvFluxZonal
+
+     REAL(f4),           POINTER :: AdvFluxMerid(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxMerid
+     LOGICAL                     :: Archive_AdvFluxMerid
+
+     REAL(f4),           POINTER :: AdvFluxVert(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AdvFluxVert
+     LOGICAL                     :: Archive_AdvFluxVert
+
+     !%%%%% Mixing %%%%%
+
+     REAL(f4),           POINTER :: PBLMixFrac(:,:,:)
+     LOGICAL                     :: Archive_PBLMixFrac
+
+     REAL(f4),           POINTER :: PBLFlux(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_PblFlux
+     LOGICAL                     :: Archive_PBLFlux
+
+     !%%%%% Convection and WetDep %%%%%
+
+     REAL(f4),           POINTER :: CloudConvFlux(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_CloudConvFlux
+     LOGICAL                     :: Archive_CloudConvFlux
+
+     REAL(f4),           POINTER :: WetLossConvFrac(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossConvFrac
+     LOGICAL                     :: Archive_WetLossConvFrac
+
+     REAL(f4),           POINTER :: WetLossConv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossConv
+     LOGICAL                     :: Archive_WetLossConv
+
+     REAL(f4),           POINTER :: WetLossLS(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_WetLossLS
+     LOGICAL                     :: Archive_WetLossLS
+
+     ! These are obsolete diagnostics
+     !REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  )
+     !REAL(f4),  POINTER :: RainFracLS      (:,:,:,:)
+     !REAL(f4),  POINTER :: WashFracLS      (:,:,:,:)
+     !LOGICAL :: Archive_PrecipFracLS
+     !LOGICAL :: Archive_RainFracLS
+     !LOGICAL :: Archive_WashFracLS
+
+     !%%%%% Carbon aerosols %%%%%
+
+     REAL(f4),           POINTER :: ProdBCPIfromBCPO(:,:,:)
+     LOGICAL                     :: Archive_ProdBCPIfromBCPO
+
+     REAL(f4),           POINTER :: ProdOCPIfromOCPO(:,:,:)
+     LOGICAL                     :: Archive_ProdOCPIfromOCPO
 
      ! Sulfur aerosols prod & loss
-     REAL(f4),  POINTER :: ProdSO2fromDMSandOH        (:,:,:)
-     REAL(f4),  POINTER :: ProdSO2fromDMSandNO3       (:,:,:)
-     REAL(f4),  POINTER :: ProdSO2fromDMS             (:,:,:)
-     REAL(f4),  POINTER :: ProdMSAfromDMS             (:,:,:)
-     REAL(f4),  POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromGasPhase        (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromH2O2inCloud     (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromO3inCloud       (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromO2inCloudMetal  (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromO3inSeaSalt     (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromOxidationOnDust (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromUptakeOfH2SO4g  (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromHOBrInCloud     (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromSRO3            (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
-     REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
-     REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:)
-     LOGICAL :: Archive_ProdSO2fromDMSandOH
-     LOGICAL :: Archive_ProdSO2fromDMSandNO3
-     LOGICAL :: Archive_ProdSO2fromDMS
-     LOGICAL :: Archive_ProdMSAfromDMS
-     LOGICAL :: Archive_ProdNITfromHNO3uptakeOnDust
-     LOGICAL :: Archive_ProdSO4fromGasPhase
-     LOGICAL :: Archive_ProdSO4fromH2O2inCloud
-     LOGICAL :: Archive_ProdSO4fromO3inCloud
-     LOGICAL :: Archive_ProdSO4fromO2inCloudMetal
-     LOGICAL :: Archive_ProdSO4fromO3inSeaSalt
-     LOGICAL :: Archive_ProdSO4fromOxidationOnDust
-     LOGICAL :: Archive_ProdSO4fromUptakeOfH2SO4g
-     LOGICAL :: Archive_ProdSO4fromHOBrInCloud
-     LOGICAL :: Archive_ProdSO4fromSRO3
-     LOGICAL :: Archive_ProdSO4fromSRHOBr
-     LOGICAL :: Archive_ProdSO4fromO3s
-     LOGICAL :: Archive_LossHNO3onSeaSalt
+     REAL(f4),           POINTER :: ProdSO2fromDMSandOH(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMSandOH
 
-     ! O3 and HNO3 at a given height above the surface
-     REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
-     REAL(f4),  POINTER :: DryDepVelForALT1(:,:,:)
-     REAL(f8),  POINTER :: SpeciesConcALT1 (:,:,:)
-     LOGICAL :: Archive_DryDepRaALT1
-     LOGICAL :: Archive_DryDepVelForALT1
-     LOGICAL :: Archive_SpeciesConcALT1
-     LOGICAL :: Archive_ConcAboveSfc
+     REAL(f4),           POINTER :: ProdSO2fromDMSandNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMSandNO3
 
-     ! KPP solver diagnostics
-     REAL(f4), POINTER :: KppIntCounts(:,:,:)
-     REAL(f4), POINTER :: KppJacCounts(:,:,:)
-     REAL(f4), POINTER :: KppTotSteps (:,:,:)
-     REAL(f4), POINTER :: KppAccSteps (:,:,:)
-     REAL(f4), POINTER :: KppRejSteps (:,:,:)
-     REAL(f4), POINTER :: KppLuDecomps(:,:,:)
-     REAL(f4), POINTER :: KppSubsts   (:,:,:)
-     REAL(f4), POINTER :: KppSmDecomps(:,:,:)
-     LOGICAL :: Archive_KppIntCounts
-     LOGICAL :: Archive_KppJacCounts
-     LOGICAL :: Archive_KppTotSteps
-     LOGICAL :: Archive_KppAccSteps
-     LOGICAL :: Archive_KppRejSteps
-     LOGICAL :: Archive_KppLuDecomps
-     LOGICAL :: Archive_KppSubsts
-     LOGICAL :: Archive_KppSmDecomps
-     LOGICAL :: Archive_KppDiags
+     REAL(f4),           POINTER :: ProdSO2fromDMS(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2fromDMS
+
+     REAL(f4),           POINTER :: ProdMSAfromDMS(:,:,:)
+     LOGICAL                     :: Archive_ProdMSAfromDMS
+
+     REAL(f4),           POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
+     LOGICAL                     :: Archive_ProdNITfromHNO3uptakeOnDust
+
+     REAL(f4),           POINTER :: ProdSO4fromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromGasPhase
+
+     REAL(f4),           POINTER :: ProdSO4fromH2O2inCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromH2O2inCloud
+
+     REAL(f4),           POINTER :: ProdSO4fromO3inCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3inCloud
+
+     REAL(f4),           POINTER :: ProdSO4fromO2inCloudMetal(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO2inCloudMetal
+
+     REAL(f4),           POINTER :: ProdSO4fromO3inSeaSalt(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3inSeaSalt
+
+     REAL(f4),           POINTER :: ProdSO4fromOxidationOnDust(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromOxidationOnDust
+
+     REAL(f4),           POINTER :: ProdSO4fromUptakeOfH2SO4g(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromUptakeOfH2SO4g
+
+     REAL(f4),           POINTER :: ProdSO4fromHOBrInCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromHOBrInCloud
+
+     REAL(f4),           POINTER :: ProdSO4fromSRO3(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromSRO3
+
+     REAL(f4),           POINTER :: ProdSO4fromSRHOBr(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromSRHOBr
+
+     REAL(f4),           POINTER :: ProdSO4fromO3s(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromO3s
+
+     REAL(f4),           POINTER :: LossHNO3onSeaSalt(:,:,:)
+     LOGICAL                     :: Archive_LossHNO3onSeaSalt
+
+     !%%%%% O3 and HNO3 at a given height above the surface %%%%%
+
+     REAL(f4),           POINTER :: DryDepRaALT1(:,:)
+     LOGICAL                     :: Archive_DryDepRaALT1
+
+     REAL(f4),           POINTER :: DryDepVelForALT1(:,:,:)
+     LOGICAL                     :: Archive_DryDepVelForALT1
+
+     REAL(f8),           POINTER :: SpeciesConcALT1(:,:,:)
+     LOGICAL                     :: Archive_SpeciesConcALT1
+     LOGICAL                     :: Archive_ConcAboveSfc
+
+     !%%%%% Time spent in the troposphere %%%%%
+
+     REAL(f4),           POINTER :: FracOfTimeInTrop(:,:,:)
+     LOGICAL                     :: Archive_FracOfTimeInTrop
+
+     !%%%%% KPP solver diagnostics %%%%%
+
+     REAL(f4),           POINTER :: KppIntCounts(:,:,:)
+     LOGICAL                     :: Archive_KppIntCounts
+
+     REAL(f4),           POINTER :: KppJacCounts(:,:,:)
+     LOGICAL                     :: Archive_KppJacCounts
+
+     REAL(f4),           POINTER :: KppTotSteps (:,:,:)
+     LOGICAL                     :: Archive_KppTotSteps
+
+     REAL(f4),           POINTER :: KppAccSteps (:,:,:)
+     LOGICAL                     :: Archive_KppAccSteps
+
+     REAL(f4),           POINTER :: KppRejSteps (:,:,:)
+     LOGICAL                     :: Archive_KppRejSteps
+
+     REAL(f4),           POINTER :: KppLuDecomps(:,:,:)
+     LOGICAL                     :: Archive_KppLuDecomps
+
+     REAL(f4),           POINTER :: KppSubsts(:,:,:)
+     LOGICAL                     :: Archive_KppSubsts
+
+     REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
+     LOGICAL                     :: Archive_KppSmDecomps
+     LOGICAL                     :: Archive_KppDiags
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
 
-     ! Radon / Lead / Beryllium specialty simulation
-     REAL(f4),  POINTER :: PbFromRnDecay(:,:,:  ) ! Pb emitted from Rn decay
-     REAL(f4),  POINTER :: RadDecay     (:,:,:,:) ! Radioactive decay
-     LOGICAL :: Archive_PbFromRnDecay
-     LOGICAL :: Archive_RadDecay
+     !%%%%% TransportTracers simulation %%%%%
 
-     ! TOMAS aerosol microphysics specialty simulation
+     REAL(f4),           POINTER :: PbFromRnDecay(:,:,:)
+     LOGICAL                     :: Archive_PbFromRnDecay
 
-     ! CO2 specialty simulation
-     REAL(f4), POINTER :: ProdCO2fromCO(:,:,:)
-     LOGICAL :: Archive_ProdCO2fromCO
+     REAL(f4),           POINTER :: RadDecay(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RadDecay
+     LOGICAL                     :: Archive_RadDecay
 
-     ! CH4 specialty simulation
-     REAL(f4), POINTER :: LossCH4byClinTrop(:,:,:)
-     REAL(f4), POINTER :: LossCH4byOHinTrop(:,:,:)
-     REAL(f4), POINTER :: LossCH4inStrat   (:,:,:)
-     LOGICAL :: Archive_LossCH4byClinTrop
-     LOGICAL :: Archive_LossCH4byOHinTrop
-     LOGICAL :: Archive_LossCH4inStrat
+     !%%%%% CO2 specialty simulation %%%%%
 
-     ! CO specialty simulation
-     REAL(f4), POINTER :: ProdCOfromCH4 (:,:,:)
-     REAL(f4), POINTER :: ProdCOfromNMVOC (:,:,:)
-     LOGICAL :: Archive_ProdCOfromCH4
-     LOGICAL :: Archive_ProdCOfromNMVOC
+     REAL(f4),           POINTER :: ProdCO2fromCO(:,:,:)
+     LOGICAL                     :: Archive_ProdCO2fromCO
 
-     ! Persistent Organic Pollutants (POPS) specialty simulation
-     REAL(f4), POINTER :: LossPOPPOCPObyGasPhase  (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPOCPOfromGasPhase(:,:,:)
-     REAL(f4), POINTER :: LossPOPPBCPObyGasPhase  (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPBCPOfromGasPhase(:,:,:)
-     REAL(f4), POINTER :: ProdPOPGfromOH          (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPOCPOfromO3      (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPOCPIfromO3      (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPBCPIfromO3      (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPBCPOfromO3      (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPOCPOfromNO3     (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPOCPIfromNO3     (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPBCPIfromNO3     (:,:,:)
-     REAL(f4), POINTER :: ProdPOPPBCPOfromNO3     (:,:,:)
-     LOGICAL :: Archive_LossPOPPOCPObyGasPhase
-     LOGICAL :: Archive_ProdPOPPOCPOfromGasPhase
-     LOGICAL :: Archive_LossPOPPBCPObyGasPhase
-     LOGICAL :: Archive_ProdPOPPBCPOfromGasPhase
-     LOGICAL :: Archive_ProdPOPGfromOH
-     LOGICAL :: Archive_ProdPOPPOCPOfromO3
-     LOGICAL :: Archive_ProdPOPPOCPIfromO3
-     LOGICAL :: Archive_ProdPOPPBCPIfromO3
-     LOGICAL :: Archive_ProdPOPPBCPOfromO3
-     LOGICAL :: Archive_ProdPOPPOCPOfromNO3
-     LOGICAL :: Archive_ProdPOPPOCPIfromNO3
-     LOGICAL :: Archive_ProdPOPPBCPIfromNO3
-     LOGICAL :: Archive_ProdPOPPBCPOfromNO3
+     !%%%%% CH4 specialty simulation %%%%%
+
+     REAL(f4),           POINTER :: LossCH4byClinTrop(:,:,:)
+     LOGICAL                     :: Archive_LossCH4byClinTrop
+
+     REAL(f4),           POINTER :: LossCH4byOHinTrop(:,:,:)
+     LOGICAL                     :: Archive_LossCH4byOHinTrop
+
+     REAL(f4),           POINTER :: LossCH4inStrat(:,:,:)
+     LOGICAL                     :: Archive_LossCH4inStrat
+
+     ! %%%%% Tagged CO simulation %%%%%
+     REAL(f4),           POINTER :: ProdCOfromCH4(:,:,:)
+     LOGICAL                     :: Archive_ProdCOfromCH4
+
+     REAL(f4),           POINTER :: ProdCOfromNMVOC(:,:,:)
+     LOGICAL                     :: Archive_ProdCOfromNMVOC
+
+     !%%%%% Persistent Organic Pollutants (POPS) simulation %%%%%
+
+     REAL(f4),           POINTER :: LossPOPPOCPObyGasPhase(:,:,:)
+     LOGICAL                     :: Archive_LossPOPPOCPObyGasPhase
+
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromGasPhase
+
+     REAL(f4),           POINTER :: LossPOPPBCPObyGasPhase(:,:,:)
+     LOGICAL                     :: Archive_LossPOPPBCPObyGasPhase
+
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromGasPhase(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromGasPhase
+
+     REAL(f4),           POINTER :: ProdPOPGfromOH(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPGfromOH
+
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromO3
+
+     REAL(f4),           POINTER :: ProdPOPPOCPIfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPIfromO3
+
+     REAL(f4),           POINTER :: ProdPOPPBCPIfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPIfromO3
+
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromO3
+
+     REAL(f4),           POINTER :: ProdPOPPOCPOfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPOfromNO3
+
+     REAL(f4),           POINTER :: ProdPOPPOCPIfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPOCPIfromNO3
+
+     REAL(f4),           POINTER :: ProdPOPPBCPIfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPIfromNO3
+
+     REAL(f4),           POINTER :: ProdPOPPBCPOfromNO3(:,:,:)
+     LOGICAL                     :: Archive_ProdPOPPBCPOfromNO3
 
      ! Hg specialty simulation
      !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
-     REAL(f4), POINTER :: EmisHg0anthro           (:,:  )
-     REAL(f4), POINTER :: EmisHg0biomass          (:,:  )
-     REAL(f4), POINTER :: EmisHg0geogenic         (:,:  )
-     REAL(f4), POINTER :: EmisHg0land             (:,:  )
-     REAL(f4), POINTER :: EmisHg0ocean            (:,:  )
-     REAL(f4), POINTER :: EmisHg0snow             (:,:  )
-     REAL(f4), POINTER :: EmisHg0soil             (:,:  )
-     REAL(f4), POINTER :: EmisHg2HgPanthro        (:,:  )
-     REAL(f4), POINTER :: EmisHg0vegetation       (:,:  )
-     REAL(f4), POINTER :: EmisHg2snowToOcean      (:,:  )
-     REAL(f4), POINTER :: EmisHg2rivers           (:,:  )
-     REAL(f4), POINTER :: FluxHg2HgPfromAirToSnow (:,:  )
-     LOGICAL :: Archive_EmisHg0anthro
-     LOGICAL :: Archive_EmisHg0biomass
-     LOGICAL :: Archive_EmisHg0geogenic
-     LOGICAL :: Archive_EmisHg0land
-     LOGICAL :: Archive_EmisHg0ocean
-     LOGICAL :: Archive_EmisHg0snow
-     LOGICAL :: Archive_EmisHg0soil
-     LOGICAL :: Archive_EmisHg0vegetation
-     LOGICAL :: Archive_EmisHg2HgPanthro
-     LOGICAL :: Archive_EmisHg2snowToOcean
-     LOGICAL :: Archive_EmisHg2rivers
-     LOGICAL :: Archive_FluxHg2HgPfromAirToSnow
+     REAL(f4),           POINTER :: EmisHg0anthro(:,:)
+     LOGICAL                     :: Archive_EmisHg0anthro
+
+     REAL(f4),           POINTER :: EmisHg0biomass(:,:)
+     LOGICAL                     :: Archive_EmisHg0biomass
+
+     REAL(f4),           POINTER :: EmisHg0geogenic(:,:)
+     LOGICAL                     :: Archive_EmisHg0geogenic
+
+     REAL(f4),           POINTER :: EmisHg0land(:,:)
+     LOGICAL                     :: Archive_EmisHg0land
+
+     REAL(f4),           POINTER :: EmisHg0ocean(:,:)
+     LOGICAL                     :: Archive_EmisHg0ocean
+
+     REAL(f4),           POINTER :: EmisHg0snow(:,:)
+     LOGICAL                     :: Archive_EmisHg0snow
+
+     REAL(f4),           POINTER :: EmisHg0soil(:,:)
+     LOGICAL                     :: Archive_EmisHg0soil
+
+     REAL(f4),           POINTER :: EmisHg2HgPanthro(:,:)
+     LOGICAL                     :: Archive_EmisHg0vegetation
+
+     REAL(f4),           POINTER :: EmisHg0vegetation(:,:)
+     LOGICAL                     :: Archive_EmisHg2HgPanthro
+
+     REAL(f4),           POINTER :: EmisHg2snowToOcean(:,:)
+     LOGICAL                     :: Archive_EmisHg2snowToOcean
+
+     REAL(f4),           POINTER :: EmisHg2rivers(:,:)
+     LOGICAL                     :: Archive_EmisHg2rivers
+
+     REAL(f4),           POINTER :: FluxHg2HgPfromAirToSnow(:,:)
+     LOGICAL                     :: Archive_FluxHg2HgPfromAirToSnow
      !
      !  -- oceanic quantities
-     REAL(f4), POINTER :: FluxHg0fromOceanToAir   (:,:  )
-     REAL(f4), POINTER :: FluxHg0fromAirToOcean   (:,:  )
-     REAL(f4), POINTER :: FluxHg2HgPfromAirToOcean(:,:  )
-     REAL(f4), POINTER :: FluxHg2toDeepOcean      (:,:  )
-     REAL(f4), POINTER :: FluxOCtoDeepOcean       (:,:  )
-     REAL(f4), POINTER :: MassHg0inOcean          (:,:  )
-     REAL(f4), POINTER :: MassHg2inOcean          (:,:  )
-     REAL(f4), POINTER :: MassHgPinOcean          (:,:  )
-     REAL(f4), POINTER :: MassHgTotalInOcean      (:,:  )
-     LOGICAL :: Archive_FluxHg0fromAirToOcean
-     LOGICAL :: Archive_FluxHg0fromOceanToAir
-     LOGICAL :: Archive_FluxHg2HgPfromAirToOcean
-     LOGICAL :: Archive_FluxHg2toDeepOcean
-     LOGICAL :: Archive_FluxOCtoDeepOcean
-     LOGICAL :: Archive_MassHg0inOcean
-     LOGICAL :: Archive_MassHg2inOcean
-     LOGICAL :: Archive_MassHgPinOcean
-     LOGICAL :: Archive_MassHgTotalInOcean
+     REAL(f4),           POINTER :: FluxHg0fromOceanToAir(:,:)
+     LOGICAL                     :: Archive_FluxHg0fromAirToOcean
+
+     REAL(f4),           POINTER :: FluxHg0fromAirToOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg0fromOceanToAir
+
+     REAL(f4),           POINTER :: FluxHg2HgPfromAirToOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg2HgPfromAirToOcean
+
+     REAL(f4),           POINTER :: FluxHg2toDeepOcean(:,:)
+     LOGICAL                     :: Archive_FluxHg2toDeepOcean
+
+     REAL(f4),           POINTER :: FluxOCtoDeepOcean(:,:)
+     LOGICAL                     :: Archive_FluxOCtoDeepOcean
+
+     REAL(f4),           POINTER :: MassHg0inOcean(:,:)
+     LOGICAL                     :: Archive_MassHg0inOcean
+
+     REAL(f4),           POINTER :: MassHg2inOcean(:,:)
+     LOGICAL                     :: Archive_MassHg2inOcean
+
+     REAL(f4),           POINTER :: MassHgPinOcean(:,:)
+     LOGICAL                     :: Archive_MassHgPinOcean
+
+     REAL(f4),           POINTER :: MassHgTotalInOcean(:,:)
+     LOGICAL                     :: Archive_MassHgTotalInOcean
      !
      !  -- chemistry quantities
-     REAL(f4), POINTER :: ConcBr                  (:,:,:)
-     REAL(f4), POINTER :: ConcBrO                 (:,:,:)
-     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:,:)
-     REAL(f4), POINTER :: LossRateHg2bySeaSalt    (:,:  )
-     REAL(f4), POINTER :: PolarConcBr             (:,:,:)
-     REAL(f4), POINTER :: PolarConcBrO            (:,:,:)
-     REAL(f4), POINTER :: PolarConcO3             (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromBr           (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromBrY          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromClY          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHg0          (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBr2  (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrOH (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromOH           (:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromO3           (:,:,:)
-     REAL(f4), POINTER :: ParticulateBoundHg      (:,:,:)
-     REAL(f4), POINTER :: ReactiveGaseousHg       (:,:,:)
-     LOGICAL :: Archive_ConcBr
-     LOGICAL :: Archive_ConcBrO
-     LOGICAL :: Archive_LossHg2bySeaSalt
-     LOGICAL :: Archive_LossRateHg2bySeaSalt
-     LOGICAL :: Archive_PolarConcBr
-     LOGICAL :: Archive_PolarConcBrO
-     LOGICAL :: Archive_PolarConcO3
-     LOGICAL :: Archive_ProdHg2fromBr
-     LOGICAL :: Archive_ProdHg2fromBrY
-     LOGICAL :: Archive_ProdHg2fromClY
-     LOGICAL :: Archive_ProdHg2fromHg0
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBr2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrBrO
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrClO
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrHO2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrNO2
-     LOGICAL :: Archive_ProdHg2fromHgBrPlusBrOH
-     LOGICAL :: Archive_ProdHg2fromOH
-     LOGICAL :: Archive_ProdHg2fromO3
-     LOGICAL :: Archive_ParticulateBoundHg
-     LOGICAL :: Archive_ReactiveGaseousHg
+     REAL(f4),           POINTER :: ConcBr(:,:,:)
+     LOGICAL                     :: Archive_ConcBr
 
-     ! Radiation simulation (RRTMG)
-     INTEGER                   :: nRadFlux
-     INTEGER,          POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=4), POINTER :: RadFluxName(:)
-     REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
-     REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
-     REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
-     REAL(f4),         POINTER :: RadAllSkySWTOA (:,:,:)
-     REAL(f4),         POINTER :: RadClrSkyLWSurf(:,:,:)
-     REAL(f4),         POINTER :: RadClrSkyLWTOA (:,:,:)
-     REAL(f4),         POINTER :: RadClrSkySWSurf(:,:,:)
-     REAL(f4),         POINTER :: RadClrSkySWTOA (:,:,:)
-     LOGICAL :: Archive_RadAllSkyLWSurf
-     LOGICAL :: Archive_RadAllSkyLWTOA
-     LOGICAL :: Archive_RadAllSkySWSurf
-     LOGICAL :: Archive_RadAllSkySWTOA
-     LOGICAL :: Archive_RadClrSkyLWSurf
-     LOGICAL :: Archive_RadClrSkyLWTOA
-     LOGICAL :: Archive_RadClrSkySWSurf
-     LOGICAL :: Archive_RadClrSkySWTOA
+     REAL(f4),           POINTER :: ConcBrO(:,:,:)
+     LOGICAL                     :: Archive_ConcBrO
+
+     REAL(f4),           POINTER :: LossHg2bySeaSalt(:,:,:)
+     LOGICAL                     :: Archive_LossHg2bySeaSalt
+
+     REAL(f4),           POINTER :: LossRateHg2bySeaSalt(:,:  )
+     LOGICAL                     :: Archive_LossRateHg2bySeaSalt
+
+     REAL(f4),           POINTER :: PolarConcBr(:,:,:)
+     LOGICAL                     :: Archive_PolarConcBr
+
+     REAL(f4),           POINTER :: PolarConcBrO(:,:,:)
+     LOGICAL                     :: Archive_PolarConcBrO
+
+     REAL(f4),           POINTER :: PolarConcO3(:,:,:)
+     LOGICAL                     :: Archive_PolarConcO3
+
+     REAL(f4),           POINTER :: ProdHg2fromBr(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromBr
+
+     REAL(f4),           POINTER :: ProdHg2fromBrY(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromBrY
+
+     REAL(f4),           POINTER :: ProdHg2fromClY(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromClY
+
+     REAL(f4),           POINTER :: ProdHg2fromHg0(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHg0
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBr2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBr2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrBrO
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrClO
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrHO2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrNO2
+
+     REAL(f4),           POINTER :: ProdHg2fromHgBrPlusBrOH(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromHgBrPlusBrOH
+
+     REAL(f4),           POINTER :: ProdHg2fromOH(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromOH
+
+     REAL(f4),           POINTER :: ProdHg2fromO3(:,:,:)
+     LOGICAL                     :: Archive_ProdHg2fromO3
+
+     REAL(f4),           POINTER :: ParticulateBoundHg(:,:,:)
+     LOGICAL                     :: Archive_ParticulateBoundHg
+
+     REAL(f4),           POINTER :: ReactiveGaseousHg(:,:,:)
+     LOGICAL                     :: Archive_ReactiveGaseousHg
+
+     !%%%%% Simulation with RRTMG %%%%%
+
+     INTEGER                     :: nRadFlux
+     INTEGER,            POINTER :: RadFluxInd(:)
+     CHARACTER(LEN=2),   POINTER :: RadFluxName(:)
+
+     REAL(f4),           POINTER :: RadAllSkyLWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWSurf
+
+     REAL(f4),           POINTER :: RadAllSkyLWTOA(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWTOA
+
+     REAL(f4),           POINTER :: RadAllSkySWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWSurf
+
+     REAL(f4),           POINTER :: RadAllSkySWTOA(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWTOA
+
+     REAL(f4),           POINTER :: RadClrSkyLWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWSurf
+
+     REAL(f4),           POINTER :: RadClrSkyLWTOA(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWTOA
+
+     REAL(f4),           POINTER :: RadClrSkySWSurf(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWSurf
+
+     REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWTOA
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -588,52 +817,125 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! ObsPack File variables
-     LOGICAL                      :: Do_ObsPack
-     INTEGER                      :: ObsPack_fId
-     CHARACTER(LEN=1024)          :: ObsPack_InFile
-     CHARACTER(LEN=1024)          :: ObsPack_OutFile
+     LOGICAL                     :: Do_ObsPack
+     INTEGER                     :: ObsPack_fId
+     CHARACTER(LEN=1024)         :: ObsPack_InFile
+     CHARACTER(LEN=1024)         :: ObsPack_OutFile
 
      ! ObsPack Inputs
-     INTEGER                      :: ObsPack_nObs
-     CHARACTER(LEN=200 ), POINTER :: ObsPack_Id           (:  )
-     INTEGER,             POINTER :: ObsPack_nSamples     (:  )
-     INTEGER,             POINTER :: ObsPack_Strategy     (:  )
-     REAL(f4),            POINTER :: ObsPack_Latitude     (:  )
-     REAL(f4),            POINTER :: ObsPack_Longitude    (:  )
-     REAL(f4),            POINTER :: ObsPack_Altitude     (:  )
+     INTEGER                     :: ObsPack_nObs
+     CHARACTER(LEN=200), POINTER :: ObsPack_Id           (:  )
+     INTEGER,            POINTER :: ObsPack_nSamples     (:  )
+     INTEGER,            POINTER :: ObsPack_Strategy     (:  )
+     REAL(f4),           POINTER :: ObsPack_Latitude     (:  )
+     REAL(f4),           POINTER :: ObsPack_Longitude    (:  )
+     REAL(f4),           POINTER :: ObsPack_Altitude     (:  )
 
      ! ObsPack time and averaging interval variables
-     REAL(f8)                     :: ObsPack_Ival_Length
-     REAL(f8),            POINTER :: ObsPack_Ival_Start   (:  )
-     REAL(f8),            POINTER :: ObsPack_Ival_Center  (:  )
-     REAL(f8),            POINTER :: ObsPack_Ival_End     (:  )
+     REAL(f8)                    :: ObsPack_Ival_Length
+     REAL(f8),           POINTER :: ObsPack_Ival_Start   (:  )
+     REAL(f8),           POINTER :: ObsPack_Ival_Center  (:  )
+     REAL(f8),           POINTER :: ObsPack_Ival_End     (:  )
 
      ! ObsPack outputs (add more if necessary)
-     REAL(f4),            POINTER :: ObsPack_P            (:  )
-     REAL(f4),            POINTER :: ObsPack_U            (:  )
-     REAL(f4),            POINTER :: ObsPack_V            (:  )
-     REAL(f4),            POINTER :: ObsPack_BLH          (:  )
-     REAL(f4),            POINTER :: ObsPack_Q            (:  )
-     REAL(f4),            POINTER :: ObsPack_T            (:  )
+     REAL(f4),           POINTER :: ObsPack_P            (:  )
+     REAL(f4),           POINTER :: ObsPack_U            (:  )
+     REAL(f4),           POINTER :: ObsPack_V            (:  )
+     REAL(f4),           POINTER :: ObsPack_BLH          (:  )
+     REAL(f4),           POINTER :: ObsPack_Q            (:  )
+     REAL(f4),           POINTER :: ObsPack_T            (:  )
 
      ! ObsPack species and metadata variables
-     INTEGER                      :: ObsPack_nSpecies
-     REAL(f4),            POINTER :: ObsPack_Species      (:,:)
-     INTEGER,             POINTER :: ObsPack_Species_Ind  (:  )
-     CHARACTER(LEN=31 ),  POINTER :: ObsPack_Species_Name (:  )
-     CHARACTER(LEN=80 ),  POINTER :: ObsPack_Species_LName(:  )
+     INTEGER                     :: ObsPack_nSpecies
+     REAL(f4),           POINTER :: ObsPack_Species      (:,:)
+     INTEGER,            POINTER :: ObsPack_Species_Ind  (:  )
+     CHARACTER(LEN=31 ), POINTER :: ObsPack_Species_Name (:  )
+     CHARACTER(LEN=80 ), POINTER :: ObsPack_Species_LName(:  )
+
+#ifdef MODEL_GEOS
+     !----------------------------------------------------------------------
+     ! The following diagnostics are only used when
+     ! GEOS-Chem is interfaced into the NASA-GEOS ESM
+     !----------------------------------------------------------------------
+
+     !%%%%% Drydep resistances and related quantities %%%%%
+
+     REAL(f4),           POINTER :: DryDepRa2m(:,:)
+     LOGICAL                     :: Archive_DryDepRa2m
+
+     REAL(f4),           POINTER :: DryDepRa10m(:,:)
+     LOGICAL                     :: Archive_DryDepRa10m
+
+     REAL(f4),           POINTER :: MoninObukhov(:,:)
+     LOGICAL                     :: Archive_MoninObukhov
+
+     REAL(f4),           POINTER :: Bry(:,:,:)
+     LOGICAL                     :: Archive_Bry
+
+     !%%%%% Chemistry diagnostics %%%%%
+
+     REAL(f4),           POINTER :: KppError(:,:,:)
+     LOGICAL                     :: Archive_KppError
+
+     REAL(f4),           POINTER :: JValIndiv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JValIndiv
+     LOGICAL                     :: Archive_JValIndiv
+
+     REAL(f4),           POINTER :: RxnRconst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnRconst
+     LOGICAL                     :: Archive_RxnRconst
+
+     REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O3concAfterChem
+
+     REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_RO2concAfterChem
+
+     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
+     LOGICAL                     :: Archive_CH4pseudoFlux
+
+     !%%%%% PM2.5 diagnostics %%%%%
+
+     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
+     LOGICAL                     :: Archive_PM25ni
+
+     REAL(f4),           POINTER :: PM25su(:,:,:)     ! PM25 sulfates
+     LOGICAL                     :: Archive_PM25su
+
+     REAL(f4),           POINTER :: PM25oc(:,:,:)     ! PM25 OC
+     LOGICAL                     :: Archive_PM25oc
+
+     REAL(f4),           POINTER :: PM25bc(:,:,:)     ! PM25 BC
+     LOGICAL                     :: Archive_PM25bc
+
+     REAL(f4),           POINTER :: PM25du(:,:,:)     ! PM25 dust
+     LOGICAL                     :: Archive_PM25du
+
+     REAL(f4),           POINTER :: PM25ss(:,:,:)     ! PM25 sea salt
+     LOGICAL                     :: Archive_PM25ss
+
+     REAL(f4),           POINTER :: PM25soa(:,:,:)    ! PM25 SOA
+     LOGICAL                     :: Archive_PM25soa
+
+#endif
+
+#ifdef MODEL_WRF
+     !----------------------------------------------------------------------
+     ! The following diagnostics are only used when
+     ! GEOS-Chem is interfaced into WRF (as WRF-GC)
+     !----------------------------------------------------------------------
+     REAL(f4),           POINTER :: KppError(:,:,:)
+     LOGICAL                     :: Archive_KppError
+#endif
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
-     CHARACTER(LEN=4)           :: State     = 'DIAG'   ! Name of this state
-     TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
-     TYPE(dictionary_t)         :: RegDict              ! Lookup table
+     CHARACTER(LEN=4)            :: State     = 'DIAG'   ! Name of this state
+     TYPE(MetaRegItem),  POINTER :: Registry  => NULL()  ! Registry object
+     TYPE(dictionary_t)          :: RegDict              ! Lookup table
 
   END TYPE DgnState
-!
-! !REMARKS:
-!  TBD
 !
 ! !REVISION HISTORY:
 !  05 Jul 2017 - R. Yantosca - Initial version
@@ -644,6 +946,24 @@ MODULE State_Diag_Mod
 !
 ! !MODULE INTERFACES:
 !
+  INTERFACE Finalize
+     MODULE PROCEDURE Finalize_R4_2D
+     MODULE PROCEDURE Finalize_R4_3D
+     MODULE PROCEDURE Finalize_R4_4D
+     MODULE PROCEDURE Finalize_R8_2D
+     MODULE PROCEDURE Finalize_R8_3D
+     MODULE PROCEDURE Finalize_R8_4D
+  END INTERFACE Finalize
+
+  INTERFACE Init_and_Register
+     MODULE PROCEDURE Init_and_Register_R4_2D
+     MODULE PROCEDURE Init_and_Register_R4_3D
+     MODULE PROCEDURE Init_and_Register_R4_4D
+     MODULE PROCEDURE Init_and_Register_R8_2D
+     MODULE PROCEDURE Init_and_Register_R8_3D
+     MODULE PROCEDURE Init_and_Register_R8_4D
+  END INTERFACE Init_and_Register
+
   INTERFACE Register_DiagField
      MODULE PROCEDURE Register_DiagField_R4_2D
      MODULE PROCEDURE Register_DiagField_R4_3D
@@ -657,6 +977,13 @@ MODULE State_Diag_Mod
 !
   ! Shadow variables from Input_Opt
   LOGICAL :: Is_UCX
+!
+! !DEFINED PARAMETERS:
+!
+  CHARACTER(LEN=5), PARAMETER :: UVFlux_Tag_Names(18) =                    (/&
+       '187nm', '191nm', '193nm', '196nm', '202nm', '208nm',                 &
+       '211nm', '214nm', '261nm', '267nm', '277nm', '295nm',                 &
+       '303nm', '310nm', '316nm', '333nm', '380nm', '574nm'                /)
 
 CONTAINS
 !EOC
@@ -665,512 +992,608 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_State_Diag
+! !IROUTINE: Zero_State_Diag
 !
-! !DESCRIPTION: Subroutine INIT\_STATE\_DIAG allocates all fields of
-!  the diagnostics state object.
+! !DESCRIPTION: Nullifies all fields of State_Diag.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm, &
-                              State_Grid, Diag_List, State_Diag, RC )
+  SUBROUTINE Zero_State_Diag( State_Diag, RC )
 !
-! !USES:
+! !USES
 !
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Grid_Mod, ONLY : GrdState
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
-    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostic State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Return code
-!
-! !REMARKS:
-!  For consistency, maybe this should be moved to a different module.
+    INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  05 Jul 2017 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-    ! Strings
-    CHARACTER(LEN=5  )     :: TmpWL
-    CHARACTER(LEN=10 )     :: TmpHt
-    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
-    CHARACTER(LEN=255)     :: arrayID,  diagID
-
-    ! Scalars
-    INTEGER                :: N,        IM,      JM,      LM
-    INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
-    INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nRad,    nDryAlt
-    LOGICAL                :: EOF,      Found,   Found2,  am_I_Root
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC        =  GC_SUCCESS
-    arrayID   = ''
-    diagID    = ''
-    ErrMsg    = ''
-    ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
-    Found     = .FALSE.
-    TmpWL     = ''
-    TmpHt     = AltAboveSfc
-
-    ! Save shadow variables from Input_Opt
-    Is_UCX    = Input_Opt%LUCX
-    am_I_Root = Input_Opt%amIRoot
-
-    ! Shorten grid parameters for readability
-    IM        = State_Grid%NX ! # latitudes
-    JM        = State_Grid%NY ! # longitudes
-    LM        = State_Grid%NZ ! # levels
-
-    ! Number of species per category
-    nSpecies  = State_Chm%nSpecies
-    nAdvect   = State_Chm%nAdvect
-    nDryAlt   = State_Chm%nDryAlt
-    nDryDep   = State_Chm%nDryDep
-    nHygGrth  = State_Chm%nHygGrth
-    nKppSpc   = State_Chm%nKppSpc
-    nLoss     = State_Chm%nLoss
-    nPhotol   = State_Chm%nPhotol
-    nProd     = State_Chm%nProd
-    nWetDep   = State_Chm%nWetDep
+    ! Assume success
+    RC = GC_SUCCESS
 
     ! %%% Free pointers and set logicals %%%
-
-    ! Restart file fields
     State_Diag%SpeciesRst                          => NULL()
     State_Diag%Archive_SpeciesRst                  = .FALSE.
 
-    ! Boundary condition fields
     State_Diag%SpeciesBC                           => NULL()
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
-    ! Species concentration diagnostics
     State_Diag%SpeciesConc                         => NULL()
+    State_Diag%Map_SpeciesConc                     => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
 
-    ! Budget diagnostics
-    State_Diag%BudgetEmisDryDepFull                => NULL()
-    State_Diag%BudgetEmisDryDepTrop                => NULL()
-    State_Diag%BudgetEmisDryDepPBL                 => NULL()
-    State_Diag%BudgetTransportFull                 => NULL()
-    State_Diag%BudgetTransportTrop                 => NULL()
-    State_Diag%BudgetTransportPBL                  => NULL()
-    State_Diag%BudgetMixingFull                    => NULL()
-    State_Diag%BudgetMixingTrop                    => NULL()
-    State_Diag%BudgetMixingPBL                     => NULL()
-    State_Diag%BudgetConvectionFull                => NULL()
-    State_Diag%BudgetConvectionTrop                => NULL()
-    State_Diag%BudgetConvectionPBL                 => NULL()
-    State_Diag%BudgetChemistryFull                 => NULL()
-    State_Diag%BudgetChemistryTrop                 => NULL()
-    State_Diag%BudgetChemistryPBL                  => NULL()
-    State_Diag%BudgetWetDepFull                    => NULL()
-    State_Diag%BudgetWetDepTrop                    => NULL()
-    State_Diag%BudgetWetDepPBL                     => NULL()
-    State_Diag%BudgetMass1                         => NULL()
-    State_Diag%BudgetMass2                         => NULL()
-    State_Diag%Archive_BudgetEmisDryDep            = .FALSE.
-    State_Diag%Archive_BudgetEmisDryDepFull        = .FALSE.
-    State_Diag%Archive_BudgetEmisDryDepTrop        = .FALSE.
-    State_Diag%Archive_BudgetEmisDryDepPBL         = .FALSE.
-    State_Diag%Archive_BudgetTransport             = .FALSE.
-    State_Diag%Archive_BudgetTransportFull         = .FALSE.
-    State_Diag%Archive_BudgetTransportTrop         = .FALSE.
-    State_Diag%Archive_BudgetTransportPBL          = .FALSE.
-    State_Diag%Archive_BudgetMixing                = .FALSE.
-    State_Diag%Archive_BudgetMixingFull            = .FALSE.
-    State_Diag%Archive_BudgetMixingTrop            = .FALSE.
-    State_Diag%Archive_BudgetMixingPBL             = .FALSE.
-    State_Diag%Archive_BudgetConvection            = .FALSE.
-    State_Diag%Archive_BudgetConvectionFull        = .FALSE.
-    State_Diag%Archive_BudgetConvectionTrop        = .FALSE.
-    State_Diag%Archive_BudgetConvectionPBL         = .FALSE.
-    State_Diag%Archive_BudgetChemistry             = .FALSE.
-    State_Diag%Archive_BudgetChemistryFull         = .FALSE.
-    State_Diag%Archive_BudgetChemistryTrop         = .FALSE.
-    State_Diag%Archive_BudgetChemistryPBL          = .FALSE.
-    State_Diag%Archive_BudgetWetDep                = .FALSE.
-    State_Diag%Archive_BudgetWetDepFull            = .FALSE.
-    State_Diag%Archive_BudgetWetDepTrop            = .FALSE.
-    State_Diag%Archive_BudgetWetDepPBL             = .FALSE.
-    State_Diag%Archive_Budget                      = .FALSE.
-
-    ! Drydep diagnostics
-    State_Diag%DryDep                              => NULL()
-    State_Diag%DryDepChm                           => NULL()
-    State_Diag%DryDepMix                           => NULL()
-    State_Diag%DryDepVel                           => NULL()
-    State_Diag%Archive_DryDep                      = .FALSE.
-    State_Diag%Archive_DryDepChm                   = .FALSE.
-    State_Diag%Archive_DryDepMix                   = .FALSE.
-    State_Diag%Archive_DryDepVel                   = .FALSE.
-#ifdef MODEL_GEOS
-    State_Diag%DryDepRa2m                          => NULL()
-    State_Diag%DryDepRa10m                         => NULL()
-    State_Diag%MoninObukhov                        => NULL()
-    State_Diag%Bry                                 => NULL()
-    State_Diag%Archive_DryDepRa2m                  = .FALSE.
-    State_Diag%Archive_DryDepRa10m                 = .FALSE.
-    State_Diag%Archive_MoninObukhov                = .FALSE.
-    State_Diag%Archive_Bry                         = .FALSE.
-#endif
-
-    ! Chemistry, J-value, Prod/Loss diagnostics
-    State_Diag%JVal                                => NULL()
-    State_Diag%JNoon                               => NULL()
-    State_Diag%JNoonFrac                           => NULL()
-    State_Diag%RxnRate                             => NULL()
-    State_Diag%OHreactivity                        => NULL()
-    State_Diag%UVFluxDiffuse                       => NULL()
-    State_Diag%UVFluxDirect                        => NULL()
-    State_Diag%UVFluxNet                           => NULL()
-    State_Diag%OHconcAfterChem                     => NULL()
-    State_Diag%HO2concAfterChem                    => NULL()
-    State_Diag%O1DconcAfterChem                    => NULL()
-    State_Diag%O3PconcAfterChem                    => NULL()
-    State_Diag%Loss                                => NULL()
-    State_Diag%Prod                                => NULL()
-    State_Diag%Archive_JVal                        = .FALSE.
-    State_Diag%Archive_JNoon                       = .FALSE.
-    State_Diag%Archive_JNoonFrac                   = .FALSE.
-    State_Diag%Archive_RxnRate                     = .FALSE.
-    State_Diag%Archive_OHreactivity                = .FALSE.
-    State_Diag%Archive_UVFluxDiffuse               = .FALSE.
-    State_Diag%Archive_UVFluxDirect                = .FALSE.
-    State_Diag%Archive_UVFluxNet                   = .FALSE.
-    State_Diag%Archive_OHconcAfterChem             = .FALSE.
-    State_Diag%Archive_HO2concAfterChem            = .FALSE.
-    State_Diag%Archive_O1DconcAfterChem            = .FALSE.
-    State_Diag%Archive_O3PconcAfterChem            = .FALSE.
-    State_Diag%Archive_Loss                        = .FALSE.
-    State_Diag%Archive_Prod                        = .FALSE.
-
-#ifdef MODEL_GEOS
-    State_Diag%JValIndiv                           => NULL()
-    State_Diag%RxnRconst                           => NULL()
-    State_Diag%O3concAfterChem                     => NULL()
-    State_Diag%RO2concAfterChem                    => NULL()
-    State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%Archive_JValIndiv                   = .FALSE.
-    State_Diag%Archive_RxnRconst                   = .FALSE.
-    State_Diag%Archive_O3concAfterChem             = .FALSE.
-    State_Diag%Archive_RO2concAfterChem            = .FALSE.
-    State_Diag%Archive_CH4pseudoflux               = .FALSE.
-#endif
-
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-    State_Diag%KppError                            => NULL()
-    State_Diag%Archive_KppError                    = .FALSE.
-#endif
-
-    ! Aerosol hygroscopic growth diagnostics
-    State_Diag%AerHygGrowth                        => NULL()
-    State_Diag%AerAqVol                            => NULL()
-    State_Diag%AerSurfAreaHyg                      => NULL()
-    State_Diag%AerSurfAreaDust                     => NULL()
-    State_Diag%AerSurfAreaSLA                      => NULL()
-    State_Diag%AerSurfAreaPSC                      => NULL()
-    State_Diag%AerNumDenSLA                        => NULL()
-    State_Diag%AerNumDenPSC                        => NULL()
-    State_Diag%Archive_AerHygGrowth                = .FALSE.
-    State_Diag%Archive_AerAqVol                    = .FALSE.
-    State_Diag%Archive_AerSurfAreaHyg              = .FALSE.
-    State_Diag%Archive_AerSurfAreaDust             = .FALSE.
-    State_Diag%Archive_AerSurfAreaSLA              = .FALSE.
-    State_Diag%Archive_AerSurfAreaPSC              = .FALSE.
-    State_Diag%Archive_AerNumDenSLA                = .FALSE.
-    State_Diag%Archive_AerNumDenPSC                = .FALSE.
-
-    ! Aerosol optical depth diagnostics
-    State_Diag%AODDust                             => NULL()
-    State_Diag%AODDustWL1                          => NULL()
-    State_Diag%AODDustWL2                          => NULL()
-    State_Diag%AODDustWL3                          => NULL()
-    State_Diag%AODHygWL1                           => NULL()
-    State_Diag%AODHygWL2                           => NULL()
-    State_Diag%AODHygWL3                           => NULL()
-    State_Diag%AODSOAfromAqIsopWL1                 => NULL()
-    State_Diag%AODSOAfromAqIsopWL2                 => NULL()
-    State_Diag%AODSOAfromAqIsopWL3                 => NULL()
-    State_Diag%AODSLAWL1                           => NULL()
-    State_Diag%AODSLAWL2                           => NULL()
-    State_Diag%AODSLAWL3                           => NULL()
-    State_Diag%AODPSCWL1                           => NULL()
-    State_Diag%AODPSCWL2                           => NULL()
-    State_Diag%AODPSCWL3                           => NULL()
-    State_Diag%Archive_AOD                         = .FALSE.
-    State_Diag%Archive_AODStrat                    = .FALSE.
-    State_Diag%Archive_AODDust                     = .FALSE.
-    State_Diag%Archive_AODDustWL1                  = .FALSE.
-    State_Diag%Archive_AODDustWL2                  = .FALSE.
-    State_Diag%Archive_AODDustWL3                  = .FALSE.
-    State_Diag%Archive_AODHygWL1                   = .FALSE.
-    State_Diag%Archive_AODHygWL2                   = .FALSE.
-    State_Diag%Archive_AODHygWL3                   = .FALSE.
-    State_Diag%Archive_AODSOAfromAqIsopWL1         = .FALSE.
-    State_Diag%Archive_AODSOAfromAqIsopWL2         = .FALSE.
-    State_Diag%Archive_AODSOAfromAqIsopWL3         = .FALSE.
-    State_Diag%Archive_AODSLAWL1                   = .FALSE.
-    State_Diag%Archive_AODSLAWL2                   = .FALSE.
-    State_Diag%Archive_AODSLAWL3                   = .FALSE.
-    State_Diag%Archive_AODPSCWL1                   = .FALSE.
-    State_Diag%Archive_AODPSCWL2                   = .FALSE.
-    State_Diag%Archive_AODPSCWL3                   = .FALSE.
-
-    ! Aerosol mass diagnostics
-    State_Diag%AerMassASOA                         => NULL()
-    State_Diag%AerMassBC                           => NULL()
-    State_Diag%AerMassINDIOL                       => NULL()
-    State_Diag%AerMassISN1OA                       => NULL()
-    State_Diag%AerMassLVOCOA                       => NULL()
-    State_Diag%AerMassNH4                          => NULL()
-    State_Diag%AerMassNIT                          => NULL()
-    State_Diag%AerMassOPOA                         => NULL()
-    State_Diag%AerMassPOA                          => NULL()
-    State_Diag%AerMassSAL                          => NULL()
-    State_Diag%AerMassSO4                          => NULL()
-    State_Diag%AerMassSOAGX                        => NULL()
-    State_Diag%AerMassSOAIE                        => NULL()
-    State_Diag%AerMassTSOA                         => NULL()
-    State_Diag%BetaNO                              => NULL()
-    State_Diag%PM25                                => NULL()
-    State_Diag%TotalOA                             => NULL()
-    State_Diag%TotalOC                             => NULL()
-    State_Diag%TotalBiogenicOA                     => NULL()
-    State_Diag%Archive_AerMass                     = .FALSE.
-    State_Diag%Archive_AerMassASOA                 = .FALSE.
-    State_Diag%Archive_AerMassBC                   = .FALSE.
-    State_Diag%Archive_AerMassINDIOL               = .FALSE.
-    State_Diag%Archive_AerMassISN1OA               = .FALSE.
-    State_Diag%Archive_AerMassLVOCOA               = .FALSE.
-    State_Diag%Archive_AerMassNH4                  = .FALSE.
-    State_Diag%Archive_AerMassNIT                  = .FALSE.
-    State_Diag%Archive_AerMassOPOA                 = .FALSE.
-    State_Diag%Archive_AerMassPOA                  = .FALSE.
-    State_Diag%Archive_AerMassSAL                  = .FALSE.
-    State_Diag%Archive_AerMassSO4                  = .FALSE.
-    State_Diag%Archive_AerMassSOAGX                = .FALSE.
-    State_Diag%Archive_AerMassSOAIE                = .FALSE.
-    State_Diag%Archive_AerMassTSOA                 = .FALSE.
-    State_Diag%Archive_BetaNO                      = .FALSE.
-    State_Diag%Archive_PM25                        = .FALSE.
-    State_Diag%Archive_TotalOA                     = .FALSE.
-    State_Diag%Archive_TotalOC                     = .FALSE.
-    State_Diag%Archive_TotalBiogenicOA             = .FALSE.
-
-#ifdef MODEL_GEOS
-    State_Diag%PM25ni                              => NULL()
-    State_Diag%PM25su                              => NULL()
-    State_Diag%PM25oc                              => NULL()
-    State_Diag%PM25bc                              => NULL()
-    State_Diag%PM25du                              => NULL()
-    State_Diag%PM25ss                              => NULL()
-    State_Diag%PM25soa                             => NULL()
-    State_Diag%Archive_PM25ni                      = .FALSE.
-    State_Diag%Archive_PM25su                      = .FALSE.
-    State_Diag%Archive_PM25oc                      = .FALSE.
-    State_Diag%Archive_PM25bc                      = .FALSE.
-    State_Diag%Archive_PM25du                      = .FALSE.
-    State_Diag%Archive_PM25ss                      = .FALSE.
-    State_Diag%Archive_PM25soa                     = .FALSE.
-#endif
-
-    ! Transport diagnostics
-    State_Diag%AdvFluxZonal                        => NULL()
-    State_Diag%AdvFluxMerid                        => NULL()
-    State_Diag%AdvFluxVert                         => NULL()
-    State_Diag%Archive_AdvFluxZonal                = .FALSE.
-    State_Diag%Archive_AdvFluxMerid                = .FALSE.
-    State_Diag%Archive_AdvFluxVert                 = .FALSE.
-
-    ! PBL mixing diagnostics
-    State_Diag%PBLMixFrac                          => NULL()
-    State_Diag%PBLFlux                             => NULL()
-    State_Diag%Archive_PBLMixFrac                  = .FALSE.
-    State_Diag%Archive_PBLFlux                     = .FALSE.
-
-    ! Convection diagnostics
-    State_Diag%CloudConvFlux                       => NULL()
-    State_Diag%WetLossConvFrac                     => NULL()
-    State_Diag%WetLossConv                         => NULL()
-    State_Diag%Archive_CloudConvFlux               = .FALSE.
-    State_Diag%Archive_WetLossConvFrac             = .FALSE.
-    State_Diag%Archive_WetLossConv                 = .FALSE.
-
-    ! Wetdep diagnostics
-    State_Diag%WetLossLS                           => NULL()
-    State_Diag%PrecipFracLS                        => NULL()
-    State_Diag%RainFracLS                          => NULL()
-    State_Diag%WashFracLS                          => NULL()
-    State_Diag%Archive_WetLossLS                   = .FALSE.
-    State_Diag%Archive_PrecipFracLS                = .FALSE.
-    State_Diag%Archive_RainFracLS                  = .FALSE.
-    State_Diag%Archive_WashFracLS                  = .FALSE.
-
-    ! Carbon aerosol diagnostics
-    State_Diag%ProdBCPIfromBCPO                    => NULL()
-    State_Diag%ProdOCPIfromOCPO                    => NULL()
-    State_Diag%Archive_ProdBCPIfromBCPO            = .FALSE.
-    State_Diag%Archive_ProdOCPIfromOCPO            = .FALSE.
-
-    ! Aerosol prod and loss diagnostics
-    State_Diag%ProdSO2fromDMSandOH                 => NULL()
-    State_Diag%ProdSO2fromDMSandNO3                => NULL()
-    State_Diag%ProdSO2fromDMS                      => NULL()
-    State_Diag%ProdMSAfromDMS                      => NULL()
-    State_Diag%ProdNITfromHNO3uptakeOnDust         => NULL()
-    State_Diag%ProdSO4fromGasPhase                 => NULL()
-    State_Diag%ProdSO4fromH2O2inCloud              => NULL()
-    State_Diag%ProdSO4fromO3inCloud                => NULL()
-    State_Diag%ProdSO4fromO2inCloudMetal           => NULL()
-    State_Diag%ProdSO4fromO3inSeaSalt              => NULL()
-    State_Diag%ProdSO4fromOxidationOnDust          => NULL()
-    State_Diag%ProdSO4fromUptakeOfH2SO4g           => NULL()
-    State_Diag%ProdSO4fromHOBrInCloud              => NULL()
-    State_Diag%ProdSO4fromSRO3                     => NULL()
-    State_Diag%ProdSO4fromSRHOBr                   => NULL()
-    State_Diag%ProdSO4fromO3s                      => NULL()
-    State_Diag%LossHNO3onSeaSalt                   => NULL()
-    State_Diag%Archive_ProdSO2fromDMSandOH         = .FALSE.
-    State_Diag%Archive_ProdSO2fromDMSandNO3        = .FALSE.
-    State_Diag%Archive_ProdSO2fromDMS              = .FALSE.
-    State_Diag%Archive_ProdMSAfromDMS              = .FALSE.
-    State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .FALSE.
-    State_Diag%Archive_ProdSO4fromGasPhase         = .FALSE.
-    State_Diag%Archive_ProdSO4fromH2O2inCloud      = .FALSE.
-    State_Diag%Archive_ProdSO4fromO3inCloud        = .FALSE.
-    State_Diag%Archive_ProdSO4fromO2inCloudMetal   = .FALSE.
-    State_Diag%Archive_ProdSO4fromO3inSeaSalt      = .FALSE.
-    State_Diag%Archive_ProdSO4fromOxidationOnDust  = .FALSE.
-    State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g   = .FALSE.
-    State_Diag%Archive_ProdSO4fromHOBrInCloud      = .FALSE.
-    State_Diag%Archive_ProdSO4fromSRO3             = .FALSE.
-    State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
-    State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
-    State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE.
-
-    ! O3 and HNO3 at a given height above the surface
-    State_Diag%DryDepRaALT1                        => NULL()
-    State_Diag%DryDepVelForALT1                    => NULL()
-    State_Diag%SpeciesConcALT1                     => NULL()
-    State_Diag%Archive_DryDepRaALT1                = .FALSE.
-    State_Diag%Archive_DryDepVelForALT1            = .FALSE.
-    State_Diag%Archive_SpeciesConcALT1             = .FALSE.
-
-    ! KPP solver diagnostics
-    State_Diag%KppIntCounts                        => NULL()
-    State_Diag%KppJacCounts                        => NULL()
-    State_Diag%KppTotSteps                         => NULL()
-    State_Diag%KppAccSteps                         => NULL()
-    State_Diag%KppRejSteps                         => NULL()
-    State_Diag%KppLuDecomps                        => NULL()
-    State_Diag%KppSubsts                           => NULL()
-    State_Diag%KppSmDecomps                        => NULL()
-    State_Diag%Archive_KppIntCounts                = .FALSE.
-    State_Diag%Archive_KppJacCounts                = .FALSE.
-    State_Diag%Archive_KppTotSteps                 = .FALSE.
-    State_Diag%Archive_KppAccSteps                 = .FALSE.
-    State_Diag%Archive_KppRejSteps                 = .FALSE.
-    State_Diag%Archive_KppLuDecomps                = .FALSE.
-    State_Diag%Archive_KppSubsts                   = .FALSE.
-    State_Diag%Archive_KppSmDecomps                = .FALSE.
-    State_Diag%Archive_KppDiags                    = .FALSE.
-
-    ! Time in troposphere diagnostic
     State_Diag%FracOfTimeInTrop                    => NULL()
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
-    ! Rn-Pb-Be simulation diagnostics
+    !%%%%% Budget diagnostics %%%%%
+
+    State_Diag%BudgetEmisDryDepFull                => NULL()
+    State_Diag%Map_BudgetEmisDryDepFull            => NULL()
+    State_Diag%Archive_BudgetEmisDryDepFull        = .FALSE.
+    State_Diag%Archive_BudgetEmisDryDep            = .FALSE.
+
+    State_Diag%BudgetEmisDryDepTrop                => NULL()
+    State_Diag%Map_BudgetEmisDryDepTrop            => NULL()
+    State_Diag%Archive_BudgetEmisDryDepTrop        = .FALSE.
+
+    State_Diag%BudgetEmisDryDepPBL                 => NULL()
+    State_Diag%Map_BudgetEmisDryDepPBL             => NULL()
+    State_Diag%Archive_BudgetEmisDryDepPBL         = .FALSE.
+
+    State_Diag%BudgetTransportFull                 => NULL()
+    State_Diag%Map_BudgetTransportFull             => NULL()
+    State_Diag%Archive_BudgetTransportFull         = .FALSE.
+    State_Diag%Archive_BudgetTransport             = .FALSE.
+
+    State_Diag%BudgetTransportTrop                 => NULL()
+    State_Diag%Map_BudgetTransportTrop             => NULL()
+    State_Diag%Archive_BudgetTransportTrop         = .FALSE.
+
+    State_Diag%BudgetTransportPBL                  => NULL()
+    State_Diag%Map_BudgetTransportPBL              => NULL()
+    State_Diag%Archive_BudgetTransportPBL          = .FALSE.
+
+    State_Diag%BudgetMixingFull                    => NULL()
+    State_Diag%Map_BudgetMixingFull                => NULL()
+    State_Diag%Archive_BudgetMixingFull            = .FALSE.
+    State_Diag%Archive_BudgetMixing                = .FALSE.
+
+    State_Diag%BudgetMixingTrop                    => NULL()
+    State_Diag%Map_BudgetMixingTrop                => NULL()
+    State_Diag%Archive_BudgetMixingTrop            = .FALSE.
+
+    State_Diag%BudgetMixingPBL                     => NULL()
+    State_Diag%Map_BudgetMixingPBL                 => NULL()
+    State_Diag%Archive_BudgetMixingPBL             = .FALSE.
+
+    State_Diag%BudgetConvectionFull                => NULL()
+    State_Diag%Map_BudgetConvectionFull            => NULL()
+    State_Diag%Archive_BudgetConvectionFull        = .FALSE.
+    State_Diag%Archive_BudgetConvection            = .FALSE.
+
+    State_Diag%BudgetConvectionTrop                => NULL()
+    State_Diag%Map_BudgetConvectionTrop            => NULL()
+    State_Diag%Archive_BudgetConvectionTrop        = .FALSE.
+
+    State_Diag%BudgetConvectionPBL                 => NULL()
+    State_Diag%Map_BudgetConvectionPBL             => NULL()
+    State_Diag%Archive_BudgetConvectionPBL         = .FALSE.
+
+    State_Diag%BudgetChemistryFull                 => NULL()
+    State_Diag%Map_BudgetChemistryFull             => NULL()
+    State_Diag%Archive_BudgetChemistryFull         = .FALSE.
+    State_Diag%Archive_BudgetChemistry             = .FALSE.
+
+    State_Diag%BudgetChemistryTrop                 => NULL()
+    State_Diag%Map_BudgetChemistryTrop             => NULL()
+    State_Diag%Archive_BudgetChemistryTrop         = .FALSE.
+
+    State_Diag%BudgetChemistryPBL                  => NULL()
+    State_Diag%Map_BudgetChemistryPBL              => NULL()
+    State_Diag%Archive_BudgetChemistryPBL          = .FALSE.
+
+    State_Diag%BudgetWetDepFull                    => NULL()
+    State_Diag%Map_BudgetWetDepFull                => NULL()
+    State_Diag%Archive_BudgetWetDepFull            = .FALSE.
+    State_Diag%Archive_BudgetWetDep                = .FALSE.
+
+    State_Diag%BudgetWetDepTrop                    => NULL()
+    State_Diag%Map_BudgetWetDepTrop                => NULL()
+    State_Diag%Archive_BudgetWetDepTrop            = .FALSE.
+
+    State_Diag%BudgetWetDepPBL                     => NULL()
+    State_Diag%Map_BudgetWetDepPBL                 => NULL()
+    State_Diag%Archive_BudgetWetDepPBL             = .FALSE.
+
+    State_Diag%BudgetColumnMass                    => NULL()
+    State_Diag%Archive_Budget                      = .FALSE.
+
+    !%%%%% Drydep diagnostics %%%%%
+
+    State_Diag%DryDepChm                           => NULL()
+    State_Diag%Map_DryDepChm                       => NULL()
+    State_Diag%Archive_DryDepChm                   = .FALSE.
+
+    State_Diag%DryDepMix                           => NULL()
+    State_Diag%Map_DryDepMix                       => NULL()
+    State_Diag%Archive_DryDepMix                   = .FALSE.
+
+    State_Diag%DryDep                              => NULL()
+    State_Diag%Map_DryDep                          => NULL()
+    State_Diag%Archive_DryDep                      = .FALSE.
+
+    State_Diag%DryDepVel                           => NULL()
+    State_Diag%Map_DryDepVel                       => NULL()
+    State_Diag%Archive_DryDepVel                   = .FALSE.
+
+    !%%%%% Chemistry, J-value, Prod/Loss diagnostics %%%%%
+
+    State_Diag%JVal                                => NULL()
+    State_Diag%Map_JVal                            => NULL()
+    State_Diag%Archive_JVal                        = .FALSE.
+
+    State_Diag%JValO3O1D                           => NULL()
+    State_Diag%Archive_JValO3O1D                   = .FALSE.
+
+    State_Diag%JValO3O3P                           => NULL()
+    State_Diag%Archive_JValO3O3P                   = .FALSE.
+
+    State_Diag%JNoon                               => NULL()
+    State_Diag%Map_JNoon                           => NULL()
+    State_Diag%Archive_JNoon                       = .FALSE.
+
+    State_Diag%JNoonFrac                           => NULL()
+    State_Diag%Archive_JNoonFrac                   = .FALSE.
+
+    State_Diag%RxnRate                             => NULL()
+    State_Diag%Map_RxnRate                         => NULL()
+    State_Diag%Archive_RxnRate                     = .FALSE.
+
+    State_Diag%OHreactivity                        => NULL()
+    State_Diag%Archive_OHreactivity                = .FALSE.
+
+    State_Diag%UVFluxDiffuse                       => NULL()
+    State_Diag%Map_UvFluxDiffuse                   => NULL()
+    State_Diag%Archive_UVFluxDiffuse               = .FALSE.
+
+    State_Diag%UVFluxDirect                        => NULL()
+    State_Diag%Map_UvFluxDirect                    => NULL()
+    State_Diag%Archive_UVFluxDirect                = .FALSE.
+
+    State_Diag%UVFluxNet                           => NULL()
+    State_Diag%Map_UvFluxNet                       => NULL()
+    State_Diag%Archive_UVFluxNet                   = .FALSE.
+
+    State_Diag%OHconcAfterChem                     => NULL()
+    State_Diag%Archive_OHconcAfterChem             = .FALSE.
+
+    State_Diag%HO2concAfterChem                    => NULL()
+    State_Diag%Archive_HO2concAfterChem            = .FALSE.
+
+    State_Diag%O1DconcAfterChem                    => NULL()
+    State_Diag%Archive_O1DconcAfterChem            = .FALSE.
+
+    State_Diag%O3PconcAfterChem                    => NULL()
+    State_Diag%Archive_O3PconcAfterChem            = .FALSE.
+
+    State_Diag%Loss                                => NULL()
+    State_Diag%Map_Loss                            => NULL()
+    State_Diag%Archive_Loss                        = .FALSE.
+
+    State_Diag%Prod                                => NULL()
+    State_Diag%Map_Prod                            => NULL()
+    State_Diag%Archive_Prod                        = .FALSE.
+
+    !%%%%% Aerosol hygroscopic growth diagnostics %%%%%
+
+    State_Diag%AerHygGrowth                        => NULL()
+    State_Diag%Map_AerHygGrowth                    => NULL()
+    State_Diag%Archive_AerHygGrowth                = .FALSE.
+
+    State_Diag%AerAqVol                            => NULL()
+    State_Diag%Archive_AerAqVol                    = .FALSE.
+
+    State_Diag%AerSurfAreaHyg                      => NULL()
+    State_Diag%Map_AerSurfAreaHyg                  => NULL()
+    State_Diag%Archive_AerSurfAreaHyg              = .FALSE.
+
+    State_Diag%AerSurfAreaDust                     => NULL()
+    State_Diag%Archive_AerSurfAreaDust             = .FALSE.
+
+    State_Diag%AerSurfAreaSLA                      => NULL()
+    State_Diag%Archive_AerSurfAreaSLA              = .FALSE.
+
+    State_Diag%AerSurfAreaPSC                      => NULL()
+    State_Diag%Archive_AerSurfAreaPSC              = .FALSE.
+
+    State_Diag%AerNumDenSLA                        => NULL()
+    State_Diag%Archive_AerNumDenSLA                = .FALSE.
+
+    State_Diag%AerNumDenPSC                        => NULL()
+    State_Diag%Archive_AerNumDenPSC                = .FALSE.
+
+    !%%%%% Aerosol optical depth diagnostics %%%%%
+    State_Diag%AODDust                             => NULL()
+    State_Diag%Archive_AODDust                     = .FALSE.
+    State_Diag%Archive_AOD                         = .FALSE.
+    State_Diag%Archive_AODStrat                    = .FALSE.
+
+    State_Diag%AODDustWL1                          => NULL()
+    State_Diag%Map_AODDustWL1                      => NULL()
+    State_Diag%Archive_AODDustWL1                  = .FALSE.
+
+    State_Diag%AODDustWL2                          => NULL()
+    State_Diag%Map_AODDustWL2                      => NULL()
+    State_Diag%Archive_AODDustWL2                  = .FALSE.
+
+    State_Diag%AODDustWL3                          => NULL()
+    State_Diag%Map_AODDustWL3                      => NULL()
+    State_Diag%Archive_AODDustWL3                  = .FALSE.
+
+    State_Diag%AODHygWL1                           => NULL()
+    State_Diag%Map_AODHygWL1                       => NULL()
+    State_Diag%Archive_AODHygWL1                   = .FALSE.
+
+    State_Diag%AODHygWL2                           => NULL()
+    State_Diag%Map_AODHygWL2                       => NULL()
+    State_Diag%Archive_AODHygWL2                   = .FALSE.
+
+    State_Diag%AODHygWL3                           => NULL()
+    State_Diag%Map_AODHygWL3                       => NULL()
+    State_Diag%Archive_AODHygWL3                   = .FALSE.
+
+    State_Diag%AODSOAfromAqIsopWL1                 => NULL()
+    State_Diag%Archive_AODSOAfromAqIsopWL1         = .FALSE.
+
+    State_Diag%AODSOAfromAqIsopWL2                 => NULL()
+    State_Diag%Archive_AODSOAfromAqIsopWL2         = .FALSE.
+
+    State_Diag%AODSOAfromAqIsopWL3                 => NULL()
+    State_Diag%Archive_AODSOAfromAqIsopWL3         = .FALSE.
+
+    State_Diag%AODSLAWL1                           => NULL()
+    State_Diag%Archive_AODSLAWL1                   = .FALSE.
+
+    State_Diag%AODSLAWL2                           => NULL()
+    State_Diag%Archive_AODSLAWL2                   = .FALSE.
+
+    State_Diag%AODSLAWL3                           => NULL()
+    State_Diag%Archive_AODSLAWL3                   = .FALSE.
+
+    State_Diag%AODPSCWL1                           => NULL()
+    State_Diag%Archive_AODPSCWL1                   = .FALSE.
+
+    State_Diag%AODPSCWL2                           => NULL()
+    State_Diag%Archive_AODPSCWL2                   = .FALSE.
+
+    State_Diag%AODPSCWL3                           => NULL()
+    State_Diag%Archive_AODPSCWL3                   = .FALSE.
+
+    !%%%%% Aerosol mass diagnostics %%%%%
+
+    State_Diag%AerMassASOA                         => NULL()
+    State_Diag%Archive_AerMassASOA                 = .FALSE.
+    State_Diag%Archive_AerMass                     = .FALSE.
+
+    State_Diag%AerMassBC                           => NULL()
+    State_Diag%Archive_AerMassBC                   = .FALSE.
+
+    State_Diag%AerMassINDIOL                       => NULL()
+    State_Diag%Archive_AerMassINDIOL               = .FALSE.
+
+    State_Diag%AerMassISN1OA                       => NULL()
+    State_Diag%Archive_AerMassISN1OA               = .FALSE.
+
+    State_Diag%AerMassLVOCOA                       => NULL()
+    State_Diag%Archive_AerMassLVOCOA               = .FALSE.
+
+    State_Diag%AerMassNH4                          => NULL()
+    State_Diag%Archive_AerMassNH4                  = .FALSE.
+
+    State_Diag%AerMassNIT                          => NULL()
+    State_Diag%Archive_AerMassNIT                  = .FALSE.
+
+    State_Diag%AerMassOPOA                         => NULL()
+    State_Diag%Archive_AerMassOPOA                 = .FALSE.
+
+    State_Diag%AerMassPOA                          => NULL()
+    State_Diag%Archive_AerMassPOA                  = .FALSE.
+
+    State_Diag%AerMassSAL                          => NULL()
+    State_Diag%Archive_AerMassSAL                  = .FALSE.
+
+    State_Diag%AerMassSO4                          => NULL()
+    State_Diag%Archive_AerMassSO4                  = .FALSE.
+
+    State_Diag%AerMassSOAGX                        => NULL()
+    State_Diag%Archive_AerMassSOAGX                = .FALSE.
+
+    State_Diag%AerMassSOAIE                        => NULL()
+    State_Diag%Archive_AerMassSOAIE                = .FALSE.
+
+    State_Diag%AerMassTSOA                         => NULL()
+    State_Diag%Archive_AerMassTSOA                 = .FALSE.
+
+    State_Diag%BetaNO                              => NULL()
+    State_Diag%Archive_BetaNO                      = .FALSE.
+
+    State_Diag%PM25                                => NULL()
+    State_Diag%Archive_PM25                        = .FALSE.
+
+    State_Diag%TotalOA                             => NULL()
+    State_Diag%Archive_TotalOA                     = .FALSE.
+
+    State_Diag%TotalOC                             => NULL()
+    State_Diag%Archive_TotalOC                     = .FALSE.
+
+    State_Diag%TotalBiogenicOA                     => NULL()
+    State_Diag%Archive_TotalBiogenicOA             = .FALSE.
+
+    !%%%%% Transport diagnostics %%%%%
+    State_Diag%AdvFluxZonal                        => NULL()
+    State_Diag%Map_AdvFluxZonal                    => NULL()
+    State_Diag%Archive_AdvFluxZonal                = .FALSE.
+
+    State_Diag%AdvFluxMerid                        => NULL()
+    State_Diag%Map_AdvFluxMerid                    => NULL()
+    State_Diag%Archive_AdvFluxMerid                = .FALSE.
+
+    State_Diag%AdvFluxVert                         => NULL()
+    State_Diag%Map_AdvFluxVert                     => NULL()
+    State_Diag%Archive_AdvFluxVert                 = .FALSE.
+
+    !%%%%% PBL mixing diagnostics %%%%%
+
+    State_Diag%PBLMixFrac                          => NULL()
+    State_Diag%Archive_PBLMixFrac                  = .FALSE.
+
+    State_Diag%PBLFlux                             => NULL()
+    State_Diag%Map_PBLFlux                         => NULL()
+    State_Diag%Archive_PBLFlux                     = .FALSE.
+
+    !%%%%% Convection and WetDep diagnostics %%%%%
+
+    State_Diag%CloudConvFlux                       => NULL()
+    State_Diag%Map_CloudConvFlux                   => NULL()
+    State_Diag%Archive_CloudConvFlux               = .FALSE.
+
+    State_Diag%WetLossConv                         => NULL()
+    State_Diag%Map_WetLossConv                     => NULL()
+    State_Diag%Archive_WetLossConv                 = .FALSE.
+
+    State_Diag%WetLossConvFrac                     => NULL()
+    State_Diag%Map_WetLossConvFrac                 => NULL()
+    State_Diag%Archive_WetLossConvFrac             = .FALSE.
+
+    State_Diag%WetLossLS                           => NULL()
+    State_Diag%Map_WetLossLS                       => NULL()
+    State_Diag%Archive_WetLossLS                   = .FALSE.
+
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    State_Diag%PrecipFracLS                        => NULL()
+!###    State_Diag%RainFracLS                          => NULL()
+!###    State_Diag%WashFracLS                          => NULL()
+!###    State_Diag%Archive_PrecipFracLS                = .FALSE.
+!###    State_Diag%Archive_RainFracLS                  = .FALSE.
+!###    State_Diag%Archive_WashFracLS                  = .FALSE.
+
+    !%%%%% Carbon aerosol diagnostics %%%%%
+
+    State_Diag%ProdBCPIfromBCPO                    => NULL()
+    State_Diag%Archive_ProdBCPIfromBCPO            = .FALSE.
+
+    State_Diag%ProdOCPIfromOCPO                    => NULL()
+    State_Diag%Archive_ProdOCPIfromOCPO            = .FALSE.
+
+    !%%%%% Aerosol prod and loss diagnostics %%%%%
+
+    State_Diag%ProdSO2fromDMSandOH                 => NULL()
+    State_Diag%Archive_ProdSO2fromDMSandOH         = .FALSE.
+
+    State_Diag%ProdSO2fromDMSandNO3                => NULL()
+    State_Diag%Archive_ProdSO2fromDMSandNO3        = .FALSE.
+
+    State_Diag%ProdSO2fromDMS                      => NULL()
+    State_Diag%Archive_ProdSO2fromDMS              = .FALSE.
+
+    State_Diag%ProdMSAfromDMS                      => NULL()
+    State_Diag%Archive_ProdMSAfromDMS              = .FALSE.
+
+    State_Diag%ProdNITfromHNO3uptakeOnDust         => NULL()
+    State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .FALSE.
+
+    State_Diag%ProdSO4fromGasPhase                 => NULL()
+    State_Diag%Archive_ProdSO4fromGasPhase         = .FALSE.
+
+    State_Diag%ProdSO4fromH2O2inCloud              => NULL()
+    State_Diag%Archive_ProdSO4fromH2O2inCloud      = .FALSE.
+
+    State_Diag%ProdSO4fromO3inCloud                => NULL()
+    State_Diag%Archive_ProdSO4fromO3inCloud        = .FALSE.
+
+    State_Diag%ProdSO4fromO2inCloudMetal           => NULL()
+    State_Diag%Archive_ProdSO4fromO2inCloudMetal   = .FALSE.
+
+    State_Diag%ProdSO4fromO3inSeaSalt              => NULL()
+    State_Diag%Archive_ProdSO4fromO3inSeaSalt      = .FALSE.
+
+    State_Diag%ProdSO4fromOxidationOnDust          => NULL()
+    State_Diag%Archive_ProdSO4fromOxidationOnDust  = .FALSE.
+
+    State_Diag%ProdSO4fromUptakeOfH2SO4g           => NULL()
+    State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g   = .FALSE.
+
+    State_Diag%ProdSO4fromHOBrInCloud              => NULL()
+    State_Diag%Archive_ProdSO4fromHOBrInCloud      = .FALSE.
+
+    State_Diag%ProdSO4fromSRO3                     => NULL()
+    State_Diag%Archive_ProdSO4fromSRO3             = .FALSE.
+
+    State_Diag%ProdSO4fromSRHOBr                   => NULL()
+    State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
+
+    State_Diag%ProdSO4fromO3s                      => NULL()
+    State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
+
+    State_Diag%LossHNO3onSeaSalt                   => NULL()
+    State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE.
+
+    !%%%%% O3 and HNO3 at a given height above the surface %%%%%
+
+    State_Diag%DryDepRaALT1                        => NULL()
+    State_Diag%Archive_DryDepRaALT1                = .FALSE.
+
+    State_Diag%DryDepVelForALT1                    => NULL()
+    State_Diag%Archive_DryDepVelForALT1            = .FALSE.
+
+    State_Diag%SpeciesConcALT1                     => NULL()
+    State_Diag%Archive_SpeciesConcALT1             = .FALSE.
+
+    !%%%%% KPP solver diagnostics %%%%%
+
+    State_Diag%KppIntCounts                        => NULL()
+    State_Diag%Archive_KppIntCounts                = .FALSE.
+
+    State_Diag%KppJacCounts                        => NULL()
+    State_Diag%Archive_KppJacCounts                = .FALSE.
+
+    State_Diag%KppTotSteps                         => NULL()
+    State_Diag%Archive_KppTotSteps                 = .FALSE.
+
+    State_Diag%KppAccSteps                         => NULL()
+    State_Diag%Archive_KppAccSteps                 = .FALSE.
+
+    State_Diag%KppRejSteps                         => NULL()
+    State_Diag%Archive_KppRejSteps                 = .FALSE.
+
+    State_Diag%KppLuDecomps                        => NULL()
+    State_Diag%Archive_KppLuDecomps                = .FALSE.
+
+    State_Diag%KppSubsts                           => NULL()
+    State_Diag%Archive_KppSubsts                   = .FALSE.
+
+    State_Diag%KppSmDecomps                        => NULL()
+    State_Diag%Archive_KppSmDecomps                = .FALSE.
+    State_Diag%Archive_KppDiags                    = .FALSE.
+
+    !%%%%% Time in troposphere diagnostic %%%%%
+
+    State_Diag%FracOfTimeInTrop                    => NULL()
+    State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
+
+    !%%%%% TransportTracers diagnostics %%%%%
+
     State_Diag%PbFromRnDecay                       => NULL()
-    State_Diag%RadDecay                            => NULL()
     State_Diag%Archive_PbFromRnDecay               = .FALSE.
+
+    State_Diag%RadDecay                            => NULL()
+    State_Diag%Map_RadDecay                        => NULL()
     State_Diag%Archive_RadDecay                    = .FALSE.
 
     ! RRTMG simulation diagnostics
     State_Diag%nRadFlux                            =  0
     State_Diag%RadFluxInd                          => NULL()
     State_Diag%RadFluxName                         => NULL()
+
     State_Diag%RadAllSkyLWSurf                     => NULL()
-    State_Diag%RadAllSkyLWTOA                      => NULL()
-    State_Diag%RadAllSkySWSurf                     => NULL()
-    State_Diag%RadAllSkySWTOA                      => NULL()
-    State_Diag%RadClrSkyLWSurf                     => NULL()
-    State_Diag%RadClrSkyLWTOA                      => NULL()
-    State_Diag%RadClrSkySWSurf                     => NULL()
-    State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadAllSkyLWSurf             = .FALSE.
+
+    State_Diag%RadAllSkyLWTOA                      => NULL()
     State_Diag%Archive_RadAllSkyLWTOA              = .FALSE.
+
+    State_Diag%RadAllSkySWSurf                     => NULL()
     State_Diag%Archive_RadAllSkySWSurf             = .FALSE.
+
+    State_Diag%RadAllSkySWTOA                      => NULL()
     State_Diag%Archive_RadAllSkySWTOA              = .FALSE.
+
+    State_Diag%RadClrSkyLWSurf                     => NULL()
     State_Diag%Archive_RadClrSkyLWSurf             = .FALSE.
+
+    State_Diag%RadClrSkyLWTOA                      => NULL()
     State_Diag%Archive_RadClrSkyLWTOA              = .FALSE.
+
+    State_Diag%RadClrSkySWSurf                     => NULL()
     State_Diag%Archive_RadClrSkySWSurf             = .FALSE.
+
+    State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
 
-    ! POPs simulation diagnostics
+    !%%%%% POPs simulation diagnostics %%%%%
+
     State_Diag%LossPOPPOCPObyGasPhase              => NULL()
-    State_Diag%ProdPOPPOCPOfromGasPhase            => NULL()
-    State_Diag%LossPOPPBCPObyGasPhase              => NULL()
-    State_Diag%ProdPOPPBCPOfromGasPhase            => NULL()
-    State_Diag%ProdPOPGfromOH                      => NULL()
-    State_Diag%ProdPOPPOCPOfromO3                  => NULL()
-    State_Diag%ProdPOPPOCPIfromO3                  => NULL()
-    State_Diag%ProdPOPPBCPIfromO3                  => NULL()
-    State_Diag%ProdPOPPBCPOfromO3                  => NULL()
-    State_Diag%ProdPOPPOCPOfromNO3                 => NULL()
-    State_Diag%ProdPOPPOCPIfromNO3                 => NULL()
-    State_Diag%ProdPOPPBCPIfromNO3                 => NULL()
-    State_Diag%ProdPOPPBCPOfromNO3                 => NULL()
     State_Diag%Archive_LossPOPPOCPObyGasPhase      = .FALSE.
+
+    State_Diag%ProdPOPPOCPOfromGasPhase            => NULL()
     State_Diag%Archive_ProdPOPPOCPOfromGasPhase    = .FALSE.
+
+    State_Diag%LossPOPPBCPObyGasPhase              => NULL()
     State_Diag%Archive_LossPOPPBCPObyGasPhase      = .FALSE.
+
+    State_Diag%ProdPOPPBCPOfromGasPhase            => NULL()
     State_Diag%Archive_ProdPOPPBCPOfromGasPhase    = .FALSE.
+
+    State_Diag%ProdPOPGfromOH                      => NULL()
     State_Diag%Archive_ProdPOPGfromOH              = .FALSE.
+
+    State_Diag%ProdPOPPOCPOfromO3                  => NULL()
     State_Diag%Archive_ProdPOPPOCPOfromO3          = .FALSE.
+
+    State_Diag%ProdPOPPOCPIfromO3                  => NULL()
     State_Diag%Archive_ProdPOPPOCPIfromO3          = .FALSE.
+
+    State_Diag%ProdPOPPBCPIfromO3                  => NULL()
     State_Diag%Archive_ProdPOPPBCPIfromO3          = .FALSE.
+
+    State_Diag%ProdPOPPBCPOfromO3                  => NULL()
     State_Diag%Archive_ProdPOPPBCPOfromO3          = .FALSE.
+
+    State_Diag%ProdPOPPOCPOfromNO3                 => NULL()
     State_Diag%Archive_ProdPOPPOCPOfromNO3         = .FALSE.
+
+    State_Diag%ProdPOPPOCPIfromNO3                 => NULL()
     State_Diag%Archive_ProdPOPPOCPIfromNO3         = .FALSE.
+
+    State_Diag%ProdPOPPBCPIfromNO3                 => NULL()
     State_Diag%Archive_ProdPOPPBCPIfromNO3         = .FALSE.
+
+    State_Diag%ProdPOPPBCPOfromNO3                 => NULL()
     State_Diag%Archive_ProdPOPPBCPOfromNO3         = .FALSE.
 
-    ! CO2 specialtiy simulation diagnostics
+    !%%%%% CO2 simulation diagnostics %%%%%
+
     State_Diag%ProdCO2fromCO                       => NULL()
     State_Diag%Archive_ProdCO2fromCO               = .FALSE.
 
-    ! CH4 specialtiy simulation diagnostics
+    !%%%%% CH4 simulation diagnostics %%%%%
+
     State_Diag%LossCH4byClinTrop                   => NULL()
-    State_Diag%LossCH4byOHinTrop                   => NULL()
-    State_Diag%LossCH4inStrat                      => NULL()
     State_Diag%Archive_LossCH4byClinTrop           = .FALSE.
+
+    State_Diag%LossCH4byOHinTrop                   => NULL()
     State_Diag%Archive_LossCH4byOHinTrop           = .FALSE.
+
+    State_Diag%LossCH4inStrat                      => NULL()
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
 
-    ! CO specialtiy simulation diagnostics
+    !%%%%% Tagged CO simulation diagnostics %%%%%
+
     State_Diag%ProdCOfromCH4                          => NULL()
-    State_Diag%ProdCOfromNMVOC                        => NULL()
     State_Diag%Archive_ProdCOfromCH4                  = .FALSE.
+
+    State_Diag%ProdCOfromNMVOC                        => NULL()
     State_Diag%Archive_ProdCOfromNMVOC                = .FALSE.
 
     ! Hg specialty simulation diagnostics
@@ -1291,6 +1714,149 @@ CONTAINS
     State_Diag%ObsPack_Species_Name                => NULL()
     State_Diag%ObsPack_Species_LName               => NULL()
 
+#ifdef MODEL_GEOS
+    !=======================================================================
+    ! These diagnostics are only activated when running GC in NASA/GEOS
+    !=======================================================================
+    State_Diag%DryDepRa2m                          => NULL()
+    State_Diag%Archive_DryDepRa2m                  = .FALSE.
+
+    State_Diag%DryDepRa10m                         => NULL()
+    State_Diag%Archive_DryDepRa10m                 = .FALSE.
+
+    State_Diag%MoninObukhov                        => NULL()
+    State_Diag%Archive_MoninObukhov                = .FALSE.
+
+    State_Diag%Bry                                 => NULL()
+    State_Diag%Archive_Bry                         = .FALSE.
+
+    State_Diag%JValIndiv                           => NULL()
+    State_Diag%Archive_JValIndiv                   = .FALSE.
+
+    State_Diag%RxnRconst                           => NULL()
+    State_Diag%Archive_RxnRconst                   = .FALSE.
+
+    State_Diag%O3concAfterChem                     => NULL()
+    State_Diag%Archive_O3concAfterChem             = .FALSE.
+
+    State_Diag%RO2concAfterChem                    => NULL()
+    State_Diag%Archive_RO2concAfterChem            = .FALSE.
+
+    State_Diag%CH4pseudoflux                       => NULL()
+    State_Diag%Archive_CH4pseudoflux               = .FALSE.
+
+    State_Diag%PM25ni                              => NULL()
+    State_Diag%Archive_PM25ni                      = .FALSE.
+
+    State_Diag%PM25su                              => NULL()
+    State_Diag%Archive_PM25su                      = .FALSE.
+
+    State_Diag%PM25oc                              => NULL()
+    State_Diag%Archive_PM25oc                      = .FALSE.
+
+    State_Diag%PM25bc                              => NULL()
+    State_Diag%Archive_PM25bc                      = .FALSE.
+
+    State_Diag%PM25du                              => NULL()
+    State_Diag%Archive_PM25du                      = .FALSE.
+
+    State_Diag%PM25ss                              => NULL()
+    State_Diag%Archive_PM25ss                      = .FALSE.
+
+    State_Diag%PM25soa                             => NULL()
+    State_Diag%Archive_PM25soa                     = .FALSE.
+#endif
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+    !=======================================================================
+    ! These diagnostics are only activated when running GC
+    ! either in NASA/GEOS or in WRF
+    !=======================================================================
+    State_Diag%KppError                            => NULL()
+    State_Diag%Archive_KppError                    = .FALSE.
+#endif
+
+  END SUBROUTINE Zero_State_Diag
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_State_Diag
+!
+! !DESCRIPTION: Subroutine INIT\_STATE\_DIAG allocates all fields of
+!  the diagnostics state object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm,       State_Grid,        &
+                              Diag_List, TaggedDiag_List, State_Diag, RC    )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt        ! Input otions object
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm        ! Chemistry state
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid       ! Grid state object
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List        ! Diagnostics list
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag       ! Diagnostic State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)   :: RC               ! Return code
+!
+! !REMARKS:
+!  For consistency, maybe this should be moved to a different module.
+!
+! !REVISION HISTORY:
+!  05 Jul 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=10 ) :: TmpHt
+    CHARACTER(LEN=255) :: errMsg,    thisLoc, errMsg_ir
+    CHARACTER(LEN=255) :: arrayID,   diagID
+
+    ! Scalars
+    INTEGER            :: C,         N
+    LOGICAL            :: am_I_Root, EOF
+    LOGICAL            :: Found,     found2
+    LOGICAL            :: forceDefine
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC        =  GC_SUCCESS
+    arrayID   = ''
+    diagID    = ''
+    errMsg    = ''
+    errMsg_ir = 'Error encountered in "Init_and_Register", diagID = '
+    thisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
+    Found     = .FALSE.
+    TmpWL     = ''
+    TmpHt     = AltAboveSfc
+    am_I_Root = Input_Opt%amIRoot
+    Is_UCX    = Input_Opt%LUCX
+
+    ! Nullify pointer fields and set logical fields to false
+    CALL Zero_State_Diag( State_Diag, RC )
+
     !------------------------------------------------------------------------
     ! Exit if this is a dry-run simulation
     !------------------------------------------------------------------------
@@ -1309,129 +1875,165 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration for restart file
+    ! Restart file -- species concentrations
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesRst'
     diagID  = 'SpeciesRst'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( Input_Opt%amIRoot ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesRst = 0.0_f8
-       State_Diag%Archive_SpeciesRst = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesRst, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesRst,                             &
+         archiveData    = State_Diag%Archive_SpeciesRst,                     &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration for boundary conditions
+    ! Transport boundary conditions diagnostic
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesBC'
     diagID  = 'SpeciesBC'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesBC( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesBC = 0.0_f8
-       State_Diag%Archive_SpeciesBC = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesBC, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesBC,                              &
+         archiveData    = State_Diag%Archive_SpeciesBC,                      &
+         mapData        = State_Diag%Map_SpeciesBC,                          &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species Concentration
+    ! Species concentration diagnostic
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesConc'
-    diagID  = 'SpeciesConc'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConc = 0.0_f8
-       State_Diag%Archive_SpeciesConc = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesConc,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    diagId  = 'SpeciesConc'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConc,                            &
+         archiveData    = State_Diag%Archive_SpeciesConc,                    &
+         mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------------------------------------------
     ! Fraction of total time each grid box spent in the troposphere
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%FracOfTimeInTrop'
     diagID  = 'FracOfTimeInTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%FracOfTimeInTrop( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FracOfTimeInTrop = 0.0_f4
-       State_Diag%Archive_FracOfTimeInTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%FracOfTimeInTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%FracOfTimeInTrop,                       &
+         archiveData    = State_Diag%Archive_FracOfTimeInTrop,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
+
 
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetEmisDryDepFull'
     diagID  = 'BudgetEmisDryDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepFull = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepFull,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepFull,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepFull,           &
+         mapData        = State_Diag%Map_BudgetEmisDryDepFull,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only emissions
-    arrayID = 'State_Diag%BudgetEmisDryDepTrop'
     diagID  = 'BudgetEmisDryDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepTrop = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepTrop,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepTrop,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+         mapData        = State_Diag%Map_BudgetEmisDryDepTrop,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only emissions
-    arrayID = 'State_Diag%BudgetEmisDryDepPBL'
     diagID  = 'BudgetEmisDryDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDryDepPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepPBL = 0.0_f8
-       State_Diag%Archive_BudgetEmisDryDepPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetEmisDryDepPBL,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepPBL,                    &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+         mapData        = State_Diag%Map_BudgetEmisDryDepPBL,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for emissions budget
@@ -1444,54 +2046,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for transport  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetTransportFull'
-    diagID  = 'BudgetTransportFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportFull = 0.0_f8
-       State_Diag%Archive_BudgetTransportFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportFull,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    diagId = 'BudgetTransportFull'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportFull,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportFull,            &
+         mapData        = State_Diag%Map_BudgetTransportFull,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only transport
-    arrayID = 'State_Diag%BudgetTransportTrop'
     diagID  = 'BudgetTransportTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportTrop = 0.0_f8
-       State_Diag%Archive_BudgetTransportTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportTrop,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportTrop,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportTrop,            &
+         mapData        = State_Diag%Map_BudgetTransportTrop,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only transport
-    arrayID = 'State_Diag%BudgetTransportPBL'
     diagID  = 'BudgetTransportPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetTransportPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportPBL = 0.0_f8
-       State_Diag%Archive_BudgetTransportPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetTransportPBL,               &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportPBL,                     &
+         archiveData    = State_Diag%Archive_BudgetTransportPBL,             &
+         mapData        = State_Diag%Map_BudgetTransportPBL,                 &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for transport budget
@@ -1504,54 +2121,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for mixing (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetMixingFull'
     diagID  = 'BudgetMixingFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingFull = 0.0_f8
-       State_Diag%Archive_BudgetMixingFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                          &
-                                State_Diag%BudgetMixingFull,                &
-                                State_Chm, State_Diag, RC                  )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingFull,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingFull,               &
+         mapData        = State_Diag%Map_BudgetMixingFull,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only mixing
-    arrayID = 'State_Diag%BudgetMixingTrop'
     diagID  = 'BudgetMixingTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingTrop = 0.0_f8
-       State_Diag%Archive_BudgetMixingTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetMixingTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingTrop,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingTrop,               &
+         mapData        = State_Diag%Map_BudgetMixingTrop,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only mixing
-    arrayID = 'State_Diag%BudgetMixingPBL'
     diagID  = 'BudgetMixingPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetMixingPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingPBL = 0.0_f8
-       State_Diag%Archive_BudgetMixingPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetMixingPBL,                  &
-                                State_Chm, State_Diag, RC                    )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingPBL,                        &
+         archiveData    = State_Diag%Archive_BudgetMixingPBL,                &
+         mapData        = State_Diag%Map_BudgetMixingPBL,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for mixing budget
@@ -1564,54 +2196,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for convection (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetConvectionFull'
     diagID  = 'BudgetConvectionFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionFull = 0.0_f8
-       State_Diag%Archive_BudgetConvectionFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionFull,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionFull,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionFull,           &
+         mapData        = State_Diag%Map_BudgetConvectionFull,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only convection
-    arrayID = 'State_Diag%BudgetConvectionTrop'
     diagID  = 'BudgetConvectionTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionTrop = 0.0_f8
-       State_Diag%Archive_BudgetConvectionTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionTrop,             &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionTrop,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionTrop,           &
+         mapData        = State_Diag%Map_BudgetConvectionTrop,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only convection
-    arrayID = 'State_Diag%BudgetConvectionPBL'
     diagID  = 'BudgetConvectionPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetConvectionPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionPBL = 0.0_f8
-       State_Diag%Archive_BudgetConvectionPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetConvectionPBL,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionPBL,                    &
+         archiveData    = State_Diag%Archive_BudgetConvectionPBL,            &
+         mapData        = State_Diag%Map_BudgetConvectionPBL,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for convection budget
@@ -1624,54 +2271,69 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for chemistry (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetChemistryFull'
     diagID  = 'BudgetChemistryFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryFull( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryFull = 0.0_f8
-       State_Diag%Archive_BudgetChemistryFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryFull,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryFull,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryFull,            &
+         mapData        = State_Diag%Map_BudgetChemistryFull,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only chemistry
-    arrayID = 'State_Diag%BudgetChemistryTrop'
     diagID  = 'BudgetChemistryTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryTrop( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryTrop = 0.0_f8
-       State_Diag%Archive_BudgetChemistryTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryTrop,              &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryTrop,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryTrop,            &
+         mapData        = State_Diag%Map_BudgetChemistryTrop,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only chemistry
-    arrayID = 'State_Diag%BudgetChemistryPBL'
     diagID  = 'BudgetChemistryPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetChemistryPBL( IM, JM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryPBL = 0.0_f8
-       State_Diag%Archive_BudgetChemistryPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetChemistryPBL,               &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryPBL,                     &
+         archiveData    = State_Diag%Archive_BudgetChemistryPBL,             &
+         mapData        = State_Diag%Map_BudgetChemistryPBL,                 &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Set high-level logical for archiving chemistry budget
@@ -1684,54 +2346,93 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for wet deposition (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetWetDepFull'
     diagID  = 'BudgetWetDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepFull = 0.0_f8
-       State_Diag%Archive_BudgetWetDepFull = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepFull,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepFull,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepFull,               &
+         mapData        = State_Diag%Map_BudgetWetDepFull,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! Trop-only wet deposition
-    arrayID = 'State_Diag%BudgetWetDepTrop'
     diagID  = 'BudgetWetDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepTrop = 0.0_f8
-       State_Diag%Archive_BudgetWetDepTrop = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepTrop,                 &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepTrop,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepTrop,               &
+         mapData        = State_Diag%Map_BudgetWetDepTrop,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! PBL-only wet deposition
-    arrayID = 'State_Diag%BudgetWetDepPBL'
     diagID  = 'BudgetWetDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepPBL = 0.0_f8
-       State_Diag%Archive_BudgetWetDepPBL = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%BudgetWetDepPBL,                  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepPBL,                        &
+         archiveData    = State_Diag%Archive_BudgetWetDepPBL,                &
+         mapData        = State_Diag%Map_BudgetWetDepPBL,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Species concentration diagnostic
+    !------------------------------------------------------------------------
+    diagId  = 'SpeciesConc'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConc,                            &
+         archiveData    = State_Diag%Archive_SpeciesConc,                    &
+         mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     ! High-level logical for wet deposition budget
@@ -1741,382 +2442,472 @@ CONTAINS
        State_Diag%Archive_BudgetWetDep = .TRUE.
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Dry deposition flux from chemistry
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepChm'
+    ! NOTE: Turn on this diagnostic if we are saving total drydep
+    !------------------------------------------------------------------------
+
+    ! Check if the "DryDep" diagnostic is also in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine, RC )
+
     diagID  = 'DryDepChm'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
-    IF ( Found .OR. Found2 ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( ArrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepChm = 0.0_f4
-       State_Diag%Archive_DryDepChm = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepChm,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepChm,                              &
+         archiveData    = State_Diag%Archive_DryDepChm,                      &
+         mapData        = State_Diag%Map_DryDepChm,                          &
+         diagId         = diagId,                                            &
+         forceDefine    = forceDefine,                                       &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Dry deposition flux from mixing
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepMix'
+    !------------------------------------------------------------------------
+    ! Dry deposition flux from chemistry
+    ! NOTE: Turn on this diagnostic if we are saving total drydep
+    !------------------------------------------------------------------------
     diagID  = 'DryDepMix'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
-    IF ( Found .OR. Found2 ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepMix = 0.0_f4
-       State_Diag%Archive_DryDepMix = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepMix,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepMix,                              &
+         archiveData    = State_Diag%Archive_DryDepMix,                      &
+         mapData        = State_Diag%Map_DryDepMix,                          &
+         forceDefine    = forceDefine,                                       &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Total dry deposition flux
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDep'
+    !------------------------------------------------------------------------
+    ! Total dry deposition flux = DryDepChm + DryDepMix
+    !------------------------------------------------------------------------
     diagID  = 'DryDep'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDep = 0.0_f4
-       State_Diag%Archive_DryDep = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDep,        &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDep,                                 &
+         archiveData    = State_Diag%Archive_DryDep,                         &
+         mapData        = State_Diag%Map_DryDep,                             &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Dry deposition velocity
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVel,                              &
+         archiveData    = State_Diag%Archive_DryDepVel,                      &
+         mapData        = State_Diag%Map_DryDepVel,                          &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
 #ifdef MODEL_GEOS
-    ! DryDepVel is needed by some other diagnostics, always use with GEOS-5
-    Found = .TRUE.
+         ! DryDepVel always needs to be defined for MODEL_GEOS
+         forceDefine    = .TRUE.,                                            &
 #endif
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVel = 0.0_f4
-       State_Diag%Archive_DryDepVel = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepVel,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
     ! Aerodynamic resistance @ 2m (ckeller, 11/17/17)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepRa2m'
     diagID  = 'DryDepRa2m'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! DryDepRa2m is needed by some other diagnostics; always use with GEOS-5
-    Found = .TRUE.
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepRa2m( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRa2m = 0.0_f4
-       State_Diag%Archive_DryDepRa2m = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepRa2m,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepRa2m,                             &
+         archiveData    = State_Diag%Archive_DryDepRa2m,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Aerodynamic resistance @ 10m (ckeller, 11/17/17)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepRa10m'
     diagID  = 'DryDepRa10m'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! DryDepRa10m is needed by some other diagnostics; always use with GEOS-5
-    Found = .TRUE.
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepRa10m( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRa10m = 0.0_f4
-       State_Diag%Archive_DryDepRa10m = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepRa10m,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepRa10m,                            &
+         archiveData    = State_Diag%Archive_DryDepRa10m,                    &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Monin-Obukhov length
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%MoninObukhov'
     diagID  = 'MoninObukhov'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    ! ckeller hack: always add to make sure that we can compute 2M
-    ! concentrations
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%MoninObukhov( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MoninObukhov = 0.0_f4
-       State_Diag%Archive_MoninObukhov = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%MoninObukhov,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%MoninObukhov,                           &
+         archiveData    = State_Diag%Archive_MoninObukhov,                   &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Bry
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%Bry'
     diagID  = 'Bry'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%Bry( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Bry = 0.0_f4
-       State_Diag%Archive_Bry = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%Bry,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%Bry,                                    &
+         archiveData    = State_Diag%Archive_Bry,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 #endif
 
     !-----------------------------------------------------------------------
     ! Zonal Advective Flux (east positive)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%AdvFluxZonal'
     diagID  = 'AdvFluxZonal'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AdvFluxZonal( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxZonal = 0.0_f4
-       State_Diag%Archive_AdvFluxZonal = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxZonal,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%AdvFluxZonal,                           &
+         archiveData    = State_Diag%Archive_AdvFluxZonal,                   &
+         mapData        = State_Diag%Map_AdvFluxZonal,                       &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Meridional Advective Flux (south positive)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%AdvFluxMerid'
     diagID  = 'AdvFluxMerid'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AdvFluxMerid( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxMerid = 0.0_f4
-       State_Diag%Archive_AdvFluxMerid = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxMerid,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%AdvFluxMerid,                           &
+         archiveData    = State_Diag%Archive_AdvFluxMerid,                   &
+         mapData        = State_Diag%Map_AdvFluxMerid,                       &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Vertical Advective Flux (downwards positive)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%AdvFluxVert'
     diagID  = 'AdvFluxVert'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxVert = 0.0_f4
-       State_Diag%Archive_AdvFluxVert = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxVert,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%AdvFluxVert,                            &
+         archiveData    = State_Diag%Archive_AdvFluxVert,                    &
+         mapData        = State_Diag%Map_AdvFluxVert,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Fraction of BL occupied by level L
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PBLMixFrac'
     diagID  = 'PBLMixFrac'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PBLMixFrac( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PBLMixFrac = 0.0_f4
-       State_Diag%Archive_PBLMixFrac = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PBLMixFrac,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%PBLMixFrac,                             &
+         archiveData    = State_Diag%Archive_PBLMixFrac,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Mass change due to boundary layer mixing
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PBLFlux'
     diagID  = 'PBLFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PBLFlux( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PBLFlux = 0.0_f4
-       State_Diag%Archive_PBLFlux = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PBLFlux,       &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%PBLFlux,                                &
+         archiveData    = State_Diag%Archive_PBLFlux,                        &
+         mapData        = State_Diag%Map_PblFlux,                            &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Mass change due to cloud convection
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%CloudConvFlux'
     diagID  = 'CloudConvFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%CloudConvFlux( IM, JM, LM, nAdvect ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%CloudConvFlux = 0.0_f4
-       State_Diag%Archive_CloudConvFlux = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%CloudConvFlux, &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CloudConvFlux,                          &
+         archiveData    = State_Diag%Archive_CloudConvFlux,                  &
+         mapData        = State_Diag%Map_CloudConvFlux,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Fraction of soluble species lost in convective updrafts
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossConvFrac'
     diagID  = 'WetLossConvFrac'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossConvFrac( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConvFrac = 0.0_f4
-       State_Diag%Archive_WetLossConvFrac = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID,                           &
-                                State_Diag%WetLossConvFrac,                  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossConvFrac,                        &
+         archiveData    = State_Diag%Archive_WetLossConvFrac,                &
+         mapData        = State_Diag%Map_WetLossConvFrac,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Loss of soluble species in convective updrafts
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossConv'
     diagID  = 'WetLossConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConv = 0.0_f4
-       State_Diag%Archive_WetLossConv = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossConv,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossConv,                            &
+         archiveData    = State_Diag%Archive_WetLossConv,                    &
+         mapData        = State_Diag%Map_WetLossConv,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Loss of solutble species in large-scale rainout/washout
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WetLossLS'
     diagID  = 'WetLossLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetLossLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossLS = 0.0_f4
-       State_Diag%Archive_WetLossLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossLS,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%WetLossLS,                              &
+         archiveData    = State_Diag%Archive_WetLossLS,                      &
+         mapData        = State_Diag%Map_WetLossLS,                          &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Fraction of grid box undergoing large-scale precipitation
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PrecipFracLS'
-    diagID  = 'PrecipFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracLS = 0.0_f4
-       State_Diag%Archive_PrecipFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PrecipFracLS,  &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to rainout in large-scale precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RainFracLS'
-    diagID  = 'RainFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracLS = 0.0_f4
-       State_Diag%Archive_RainFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%RainFracLS,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to washout in large-scale precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WashFracLS'
-    diagID  = 'WashFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracLS = 0.0_f4
-       State_Diag%Archive_WashFracLS = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WashFracLS,    &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of grid box undergoing large-scale precipitation
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%PrecipFracLS'
+!###    diagID  = 'PrecipFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%PrecipFracLS = 0.0_f4
+!###       State_Diag%Archive_PrecipFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PrecipFracLS,  &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
+!###
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of soluble species lost to rainout in large-scale precip
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%RainFracLS'
+!###    diagID  = 'RainFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%RainFracLS = 0.0_f4
+!###       State_Diag%Archive_RainFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%RainFracLS,    &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
+!###
+!###    !-----------------------------------------------------------------------
+!###    ! Fraction of soluble species lost to washout in large-scale precip
+!###    !-----------------------------------------------------------------------
+!###    arrayID = 'State_Diag%WashFracLS'
+!###    diagID  = 'WashFracLS'
+!###    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+!###    IF ( Found ) THEN
+!###       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+!###       ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+!###       CALL GC_CheckVar( arrayID, 0, RC )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###       State_Diag%WashFracLS = 0.0_f4
+!###       State_Diag%Archive_WashFracLS = .TRUE.
+!###       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WashFracLS,    &
+!###                                State_Chm, State_Diag, RC                   )
+!###       IF ( RC /= GC_SUCCESS ) RETURN
+!###    ENDIF
 
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
@@ -2128,41 +2919,48 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PbFromRnDecay'
        diagID  = 'PbFromRnDecay'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PbFromRnDecay( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PbFromRnDecay = 0.0_f4
-          State_Diag%Archive_PbFromRnDecay = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%PbFromRnDecay,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PbFromRnDecay,                       &
+            archiveData    = State_Diag%Archive_PbFromRnDecay,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Radioactive decay of Rn, Pb, and Be7
-       ! (separate into 3 different arrays??)
+       ! Radioactive decay of Rn, Pb, Be7, and Be10
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadDecay'
        diagID  = 'RadDecay'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadDecay( IM, JM, LM, nSpecies ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadDecay = 0.0_f4
-          State_Diag%Archive_RadDecay = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%RadDecay,   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadDecay,                            &
+            archiveData    = State_Diag%Archive_RadDecay,                    &
+            mapData        = State_Diag%Map_RadDecay,                        &
+            diagId         = diagId,                                         &
+            diagFlag       = 'N',                                            &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ELSE
 
        !-------------------------------------------------------------------
@@ -2234,153 +3032,185 @@ CONTAINS
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkyLWSurf'
        diagID  = 'RadAllSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkyLWSurf = 0.0_f4
-          State_Diag%Archive_RadAllSkyLWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkyLWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWSurf,                     &
+            archiveData    = State_Diag%Archive_RadAllSkyLWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkyLWTOA'
        diagID  = 'RadAllSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkyLWTOA = 0.0_f4
-          State_Diag%Archive_RadAllSkyLWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkyLWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWTOA,                      &
+            archiveData    = State_Diag%Archive_RadAllSkyLWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkySWSurf'
        diagID  = 'RadAllSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkySWSurf = 0.0_f4
-          State_Diag%Archive_RadAllSkySWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkySWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWSurf,                     &
+            archiveData    = State_Diag%Archive_RadAllSkySWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadAllSkySWTOA'
        diagID  = 'RadAllSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadAllSkySWTOA = 0.0_f4
-          State_Diag%Archive_RadAllSkySWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadAllSkySWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWTOA,                      &
+            archiveData    = State_Diag%Archive_RadAllSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkyLWSurf'
        diagID  = 'RadClrSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkyLWSurf = 0.0_f4
-          State_Diag%Archive_RadClrSkyLWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkyLWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWSurf,                     &
+            archiveData    = State_Diag%Archive_RadClrSkyLWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky LW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkyLWTOA'
        diagID  = 'RadClrSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkyLWTOA = 0.0_f4
-          State_Diag%Archive_RadClrSkyLWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkyLWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWTOA,                      &
+            archiveData    = State_Diag%Archive_RadClrSkyLWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkySWSurf'
        diagID  = 'RadClrSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkySWSurf = 0.0_f4
-          State_Diag%Archive_RadClrSkySWSurf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkySWSurf,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWSurf,                     &
+            archiveData    = State_Diag%Archive_RadClrSkySWSurf,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ atm top
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RadClrSkySWTOA'
        diagID  = 'RadClrSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RadClrSkySWTOA = 0.0_f4
-          State_Diag%Archive_RadClrSkySWTOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RadClrSkySWTOA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWTOA,                      &
+            archiveData    = State_Diag%Archive_RadClrSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -2437,71 +3267,118 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-#ifndef MODEL_GEOS
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RxnRate'
        diagID  = 'RxnRate'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, NREACT ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RxnRate = 0.0_f4
-          State_Diag%Archive_RxnRate = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%RxnRate,   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnRate,                             &
+            archiveData    = State_Diag%Archive_RxnRate,                     &
+            mapData        = State_Diag%Map_RxnRate,                         &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-#else
-       IF ( INPUT_Opt%NN_RxnRates > 0 ) THEN
-          State_Diag%Archive_RxnRate = .TRUE.
-          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, Input_Opt%NN_RxnRates ), &
-                    STAT=RC )
-          State_Diag%RxnRate = 0.0_f4
-       ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%OHreactivity'
        diagID  = 'OHreactivity'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%OHreactivity = 0.0_f4
-          State_Diag%Archive_OHreactivity = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%OHreactivity,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OHreactivity,                        &
+            archiveData    = State_Diag%Archive_OHreactivity,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
-       !
-       ! NOTE: Dimension array nPhotol+2 to archive special photolysis
-       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol+2 ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JVal = 0.0_f4
-          State_Diag%Archive_JVal = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%JVal,       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JVal,                                &
+            archiveData    = State_Diag%Archive_JVal,                        &
+            mapData        = State_Diag%Map_JVal,                            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'P',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! J-Values for O3_O1D (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'JValO3O1D'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JValO3O1D,                           &
+            archiveData    = State_Diag%Archive_JValO3O1D,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! J-Values for O3_O3P (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'JValO3O3P'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JValO3O3P,                           &
+            archiveData    = State_Diag%Archive_JValO3O3P,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
@@ -2510,569 +3387,667 @@ CONTAINS
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
        ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JNoon'
        diagID  = 'JNoon'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoon = 0.0_f4
-          State_Diag%Archive_JNoon = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,     State_Diag%JNoon,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JNoon,                               &
+            archiveData    = State_Diag%Archive_JNoon,                       &
+            mapData        = State_Diag%Map_JNoon,                           &
+            diagId         = diagId,                                         &
+            diagFlag       = 'P',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
-       ! Counter array for noontime J-value boxes
-       ! Must be saved in conjunction with State_Diag%JNoon
-       arrayID = 'State_Diag%JNoonFrac'
        diagID  = 'JNoonFrac'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoonFrac( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoonFrac = 0.0_f4
-          State_Diag%Archive_JNoonFrac = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%JNoonFrac,                     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%JNoonFrac,                           &
+            archiveData    = State_Diag%Archive_JNoonFrac,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Diffuse UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxDiffuse'
-       diagID  = 'UVFluxDiffuse'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxDiffuse = 0.0_f4
-          State_Diag%Archive_UVFluxDiffuse = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%UVFluxDiffuse,                 &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID  = 'UvFluxDiffuse'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxDiffuse,                       &
+            archiveData    = State_Diag%Archive_UvFluxDiffuse,               &
+            mapData        = State_Diag%Map_UvFluxDiffuse,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Direct UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxDirect'
        diagID  = 'UVFluxDirect'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxDirect = 0.0_f4
-          State_Diag%Archive_UVFluxDirect = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%UVFluxDirect,                  &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxDirect,                        &
+            archiveData    = State_Diag%Archive_UvFluxDirect,                &
+            mapData        = State_Diag%Map_UvFluxDirect,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Net UV flux per wavelength bin
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%UVFluxNet'
        diagID  = 'UVFluxNet'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM, W_ ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%UVFluxNet = 0.0_f4
-          State_Diag%Archive_UVFluxNet = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%UVFluxNet, &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%UvFluxNet,                           &
+            archiveData    = State_Diag%Archive_UvFluxNet,                   &
+            mapData        = State_Diag%Map_UvFluxNet,                       &
+            diagId         = diagId,                                         &
+            diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! HO2 concentration upon exiting the FlexChem solver
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%HO2concAfterChem'
        diagID  = 'HO2concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%HO2concAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%HO2concAfterChem = 0.0_f4
-          State_Diag%Archive_HO2concAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%HO2concAfterChem,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HO2concAfterChem,                    &
+            archiveData    = State_Diag%Archive_HO2concAfterChem,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! O1D concentration upon exiting the FlexChem solver
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%O1DconcAfterChem'
        diagID  = 'O1DconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%O1DconcAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%O1DconcAfterChem = 0.0_f4
-          State_Diag%Archive_O1DconcAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%O1DconcAfterChem,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%O1DconcAfterChem,                    &
+            archiveData    = State_Diag%Archive_O1DconcAfterChem,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! O3P concentration upon exiting the FlexChem solver
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%O3PconcAfterChem'
        diagID  = 'O3PconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%O3PconcAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%O3PconcAfterChem = 0.0_f4
-          State_Diag%Archive_O3PconcAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%O3PconcAfterChem,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%O3PconcAfterChem,                    &
+            archiveData    = State_Diag%Archive_O3PconcAfterChem,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 by aqueous oxidation of HOBr in cloud
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromHOBrInCloud'
        diagID  = 'ProdSO4fromHOBrInCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromHOBrInCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromHOBrInCloud = 0.0_f4
-          State_Diag%Archive_ProdSO4fromHOBrInCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromHOBrInCloud,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromHOBrInCloud,              &
+            archiveData    = State_Diag%Archive_ProdSO4fromHOBrInCloud,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 by SRHOBr
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromSRHOBr'
        diagID  = 'ProdSO4fromSRHOBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromSRHOBr( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromSRHOBr = 0.0_f4
-          State_Diag%Archive_ProdSO4fromSRHOBr = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromSRHOBr,             &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromSRHOBr,                   &
+            archiveData    = State_Diag%Archive_ProdSO4fromSRHOBr,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of ASOA (Aromatic SOA) [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassASOA'
        diagID  = 'AerMassASOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassASOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassASOA = 0.0_f4
-          State_Diag%Archive_AerMassASOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassASOA,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassASOA,                         &
+            archiveData    = State_Diag%Archive_AerMassASOA,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of INDIOL (Isoprene SOA) [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassINDIOL'
        diagID  = 'AerMassINDIOL'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassINDIOL( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassINDIOL = 0.0_f4
-          State_Diag%Archive_AerMassINDIOL = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassINDIOL,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassINDIOL,                       &
+            archiveData    = State_Diag%Archive_AerMassINDIOL,               &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of ISN1OA [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassISN1OA'
        diagID  = 'AerMassISN1OA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassISN1OA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassISN1OA = 0.0_f4
-          State_Diag%Archive_AerMassISN1OA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassISN1OA,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassISN1OA,                       &
+            archiveData    = State_Diag%Archive_AerMassISN1OA,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of LVOCOA [kg/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassLVOCOA'
        diagID  = 'AerMassLVOCOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassLVOCOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassLVOCOA = 0.0_f4
-          State_Diag%Archive_AerMassLVOCOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassLVOCOA,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassLVOCOA,                       &
+            archiveData    = State_Diag%Archive_AerMassLVOCOA,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of OPOA
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassOPOA'
        diagID  = 'AerMassOPOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassOPOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassOPOA = 0.0_f4
-          State_Diag%Archive_AerMassOPOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassOPOA,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassOPOA,                         &
+            archiveData    = State_Diag%Archive_AerMassOPOA,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of POA
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassPOA'
        diagID  = 'AerMassPOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassPOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassPOA = 0.0_f4
-          State_Diag%Archive_AerMassPOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassPOA,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPOA,                          &
+            archiveData    = State_Diag%Archive_AerMassPOA,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of SOAGX [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSOAGX'
        diagID  = 'AerMassSOAGX'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSOAGX( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSOAGX = 0.0_f4
-          State_Diag%Archive_AerMassSOAGX = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassSOAGX,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassSOAGX,                        &
+            archiveData    = State_Diag%Archive_AerMassSOAGX,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of SOAIE [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSOAIE'
        diagID  = 'AerMassSOAIE'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSOAIE( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSOAIE = 0.0_f4
-          State_Diag%Archive_AerMassSOAIE = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassSOAIE,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassSOAIE,                        &
+            archiveData    = State_Diag%Archive_AerMassSOAIE,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of TSOA (Terpene SOA) [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassTSOA'
        diagID  = 'AerMassTSOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassTSOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassTSOA = 0.0_f4
-          State_Diag%Archive_AerMassTSOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassTSOA,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassTSOA,                         &
+            archiveData    = State_Diag%Archive_AerMassTSOA,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Beta NO (branching ratio) [ug C/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%BetaNO'
        diagID  = 'BetaNO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%BetaNO( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%BetaNO = 0.0_f4
-          State_Diag%Archive_BetaNO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%BetaNO,                        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%BetaNO,                              &
+            archiveData    = State_Diag%Archive_BetaNO,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Total biogenic organic aerosol mass [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%TotalBiogenicOA'
        diagID  = 'TotalBiogenicOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%TotalBiogenicOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%TotalBiogenicOA = 0.0_f4
-          State_Diag%Archive_TotalBiogenicOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%TotalBiogenicOA,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TotalBiogenicOA,                     &
+            archiveData    = State_Diag%Archive_TotalBiogenicOA,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP Integrations per grid box
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppIntCounts'
        diagID  = 'KppIntCounts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppIntCounts( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppIntCounts = 0.0_f4
-          State_Diag%Archive_KppIntCounts = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppIntCounts,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppIntCounts,                        &
+            archiveData    = State_Diag%Archive_KppIntCounts,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of times KPP updated the Jacobian per grid box
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppJacCounts'
        diagID  = 'KppJacCounts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppJacCounts( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppJacCounts = 0.0_f4
-          State_Diag%Archive_KppJacCounts = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppJacCounts,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppJacCounts,                        &
+            archiveData    = State_Diag%Archive_KppJacCounts,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
        !-------------------------------------------------------------------
        ! Number of KPP total internal integration time steps
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppTotSteps'
        diagID  = 'KppTotSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppTotSteps( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppTotSteps = 0.0_f4
-          State_Diag%Archive_KppTotSteps = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppTotSteps,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTotSteps,                         &
+            archiveData    = State_Diag%Archive_KppTotSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP accepted internal integration time steps
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppAccSteps'
        diagID  = 'KppAccSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppAccSteps( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppAccSteps = 0.0_f4
-          State_Diag%Archive_KppAccSteps = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppAccSteps,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAccSteps,                         &
+            archiveData    = State_Diag%Archive_KppAccSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP rejected internal integration time steps
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppRejSteps'
        diagID  = 'KppRejSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppRejSteps( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppRejSteps = 0.0_f4
-          State_Diag%Archive_KppRejSteps = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppRejSteps,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppRejSteps,                         &
+            archiveData    = State_Diag%Archive_KppRejSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP LU Decompositions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppLuDecomps'
        diagID  = 'KppLuDecomps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppLuDecomps( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppLuDecomps = 0.0_f4
-          State_Diag%Archive_KppLuDecomps = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppLuDecomps,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppLuDecomps,                        &
+            archiveData    = State_Diag%Archive_KppLuDecomps,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP substitutions (forward and backward)
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppSubsts'
        diagID  = 'KppSubsts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppSubsts( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppSubsts = 0.0_f4
-          State_Diag%Archive_KppSubsts = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppSubsts,                     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppSubsts,                           &
+            archiveData    = State_Diag%Archive_KppSubsts,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Number of KPP singular matrix decompositions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%KppSmDecomps'
        diagID  = 'KppSmDecomps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppSmDecomps( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppSmDecomps = 0.0_f4
-          State_Diag%Archive_KppSmDecomps = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppSmDecomps,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppSmDecomps,                        &
+            archiveData    = State_Diag%Archive_KppsmDecomps,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! CH4 pseudo-flux
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%CH4pseudoFlux'
        diagID  = 'CH4pseudoFlux'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%CH4pseudoFlux( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%CH4pseudoFlux = 0.0_f4
-          State_Diag%Archive_CH4pseudoFlux = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%CH4pseudoFlux,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CH4pseudoFlux,                       &
+            archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 #endif
 
@@ -3080,20 +4055,23 @@ CONTAINS
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%KppError'
        diagID  = 'KppError'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%KppError( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%KppError = 0.0_f4
-          State_Diag%Archive_KppError = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%KppError,                      &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppError,                            &
+            archiveData    = State_Diag%Archive_KppError,                    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 #endif
 
@@ -3205,59 +4183,68 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Dry deposition resistance RA at user-defined altitude above sfc
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%DryDepRaALT1'
        diagID  = 'DryDepRa' // TRIM( TmpHT )
-       CALL Check_DiagList( am_I_Root, Diag_List, DiagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%DryDepRaALT1 = 0.0_f4
-          State_Diag%Archive_DryDepRaALT1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%DryDepRaALT1,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DryDepRaALT1,                        &
+            archiveData    = State_Diag%Archive_DryDepRaALT1,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Dry deposition velocity for species that are requested
        ! at a user-defined altitude above the surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%DryDepVelForALT1'
        diagID  = 'DryDepVelFor' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, DiagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%DryDepVelForALT1( IM, JM, nDryAlt ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%DryDepVelForALT1 = 0.0_f4
-          State_Diag%Archive_DryDepVelForALT1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%DryDepVelForALT1,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DryDepVelForALT1,                    &
+            archiveData    = State_Diag%Archive_DryDepVelForALT1,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Species concentration at user-defined height above surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%SpeciesConcALT1'
        diagID  = 'SpeciesConc' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%SpeciesConcALT1 = 0.0_f4
-          State_Diag%Archive_SpeciesConcALT1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%SpeciesConcALT1,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SpeciesConcALT1,                     &
+            archiveData    = State_Diag%Archive_SpeciesConcALT1,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -3313,58 +4300,71 @@ CONTAINS
        ! OH concentration upon exiting the FlexChem solver (fullchem
        ! simulations) or the CH4 specialty simulation chemistry routine
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%OHconcAfterChem'
        diagID  = 'OHconcAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
 #ifdef MODEL_GEOS
        Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
 #endif
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%OHconcAfterChem = 0.0_f4
-          State_Diag%Archive_OHconcAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%OHconcAfterChem,               &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OHconcAfterChem,                     &
+            archiveData    = State_Diag%Archive_OHconcAfterChem,             &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
 #ifdef MODEL_GEOS
-       arrayID = 'State_Diag%O3concAfterChem'
        diagID  = 'O3concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        Found = .TRUE. ! Always add - needed for NOx diagnostics
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%O3concAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%O3concAfterChem = 0.0_f4
-          State_Diag%Archive_O3concAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%O3concAfterChem,               &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%O3concAfterChem,                     &
+            archiveData    = State_Diag%Archive_O3concAfterChem,             &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
-       arrayID = 'State_Diag%RO2concAfterChem'
        diagID  = 'RO2concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        Found = .TRUE. ! Always add - needed for NOx diagnostics
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RO2concAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RO2concAfterChem = 0.0_f4
-          State_Diag%Archive_RO2concAfterChem = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%RO2concAfterChem,               &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RO2concAfterChem,                    &
+            archiveData    = State_Diag%Archive_RO2concAfterChem,            &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 #endif
 
@@ -3406,915 +4406,1093 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Dust Optical Depth
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%AODDust'
        diagID  = 'AODDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODDust( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODDust = 0.0_f4
-          State_Diag%Archive_AODDust = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODDust,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODDust,                             &
+            archiveData    = State_Diag%Archive_AODDust,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Dust Optical Depth per bin at 1st wavelength
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%AODDustWL1'
        TmpWL   = RadWL(1)                           ! Workaround for ifort 17
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODDustWL1( IM, JM, LM, NDUST ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODDustWL1 = 0.0_f4
-          State_Diag%Archive_AODDustWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODDustWL1,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODDustWL1,                          &
+            archiveData    = State_Diag%Archive_AODDustWL1,                  &
+            mapData        = State_Diag%Map_AODDustWL1,                      &
+            diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Dust Optical Depth per bin at 2nd wavelength
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%AODDustWL2'
        TmpWL   = RadWL(2)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODDustWL2( IM, JM, LM, NDUST ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODDustWL2 = 0.0_f4
-          State_Diag%Archive_AODDustWL2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODDustWL2,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODDustWL2,                          &
+            archiveData    = State_Diag%Archive_AODDustWL2,                  &
+            mapData        = State_Diag%Map_AODDustWL2,                      &
+            diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Dust Optical Depth per bin at 3rd wavelength
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%AODDustWL3'
        TmpWL   = RadWL(3)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODDustWL3( IM, JM, LM, NDUST ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODDustWL3 = 0.0_f4
-          State_Diag%Archive_AODDustWL3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODDustWL3,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODDustWL3,                          &
+            archiveData    = State_Diag%Archive_AODDustWL3,                  &
+            mapData        = State_Diag%Map_AODDustWL3,                      &
+            diagId         = diagId,                                         &
+            diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Optical Depth per Hygroscopic Aerosol Species at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODHygWL1'
-       TmpWL   = RadWL(1)
-       diagID  = 'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODHygWL1( IM, JM, LM, nHygGrth ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODHygWL1 = 0.0_f4
-          State_Diag%Archive_AODHygWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL1,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWL  = RadWL(1)
+       diagID = 'AODHyg' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODHygWL1,                           &
+            archiveData    = State_Diag%Archive_AODHygWL1,                   &
+            mapData        = State_Diag%Map_AODHygWL1,                       &
+            diagId         = diagId,                                         &
+            diagFlag       = 'H',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Optical Depth per Hygroscopic Aerosol Species at 2nd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODHygWL2'
-       TmpWL   = RadWL(2)
-       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODHygWL2( IM, JM, LM, nHygGrth ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODHygWL2 = 0.0_f4
-          State_Diag%Archive_AODHygWL2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL2,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWL  = RadWL(2)
+       diagID = 'AODHyg' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODHygWL2,                           &
+            archiveData    = State_Diag%Archive_AODHygWL2,                   &
+            mapData        = State_Diag%Map_AODHygWL2,                       &
+            diagId         = diagId,                                         &
+            diagFlag       = 'H',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Optical Depth per Hygroscopic Aerosol Species at 3rd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODHygWL3'
-       TmpWL   = RadWL(3)
-       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODHygWL3( IM, JM, LM, nHygGrth ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODHygWL3 = 0.0_f4
-          State_Diag%Archive_AODHygWL3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL3,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWL  = RadWL(3)
+       diagID = 'AODHyg' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODHygWL3,                           &
+            archiveData    = State_Diag%Archive_AODHygWL3,                   &
+            mapData        = State_Diag%Map_AODHygWL3,                       &
+            diagId         = diagId,                                         &
+            diagFlag       = 'H',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Isoprene SOA Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSOAfromAqIsopWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSOAfromAqIsopWL1( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSOAfromAqIsopWL1 = 0.0_f4
-          State_Diag%Archive_AODSOAfromAqIsopWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODSOAfromAqIsopWL1,           &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSOAfromAqIsopWL1,                 &
+            archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL1,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Isoprene SOA Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSOAfromAqIsopWL2'
-       TmpWl   = RadWL(2)
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSOAfromAqIsopWL2( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSOAfromAqIsopWL2 = 0.0_f4
-          State_Diag%Archive_AODSOAfromAqIsopWL2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODSOAfromAqIsopWL2,           &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWl  = RadWL(2)
+       diagID = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSOAfromAqIsopWL2,                 &
+            archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL2,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Isoprene SOA Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSOAfromAqIsopWL3'
-       TmpWl   = RadWL(3)
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSOAfromAqIsopWL3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSOAfromAqIsopWL3 = 0.0_f4
-          State_Diag%Archive_AODSOAfromAqIsopWL3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODSOAfromAqIsopWL3,           &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWl  = RadWL(3)
+       diagID = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSOAfromAqIsopWL3,                 &
+            archiveData    = State_Diag%Archive_AODSOAfromAqIsopWL3,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Stratospheric Liquid Aerosol Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSLAWL1'
-       TmpWL   = RadWL(1)
-       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSLAWL1 = 0.0_f4
-          State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWL  = RadWL(1)
+       diagID = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSLAWL1,                           &
+            archiveData    = State_Diag%Archive_AODSLAWL1,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Stratospheric Liquid Aerosol Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(2)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSLAWL1 = 0.0_f4
-          State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSLAWL2,                           &
+            archiveData    = State_Diag%Archive_AODSLAWL2,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Stratospheric Liquid Aerosol Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODSLAWL1'
-       TmpWL   = RadWL(3)
-       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODSLAWL1 = 0.0_f4
-          State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       TmpWL  = RadWL(3)
+       diagID = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODSLAWL3,                           &
+            archiveData    = State_Diag%Archive_AODSLAWL3,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODPSCWL1'
-       TmpWL   = RadWL(1)
-       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODPSCWL1( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODPSCWL1 = 0.0_f4
-          State_Diag%Archive_AODPSCWL1 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODPSCWL1,  &
-                                   State_Chm, State_Diag, RC                )
+       TmpWL  = RadWL(1)
+       diagID = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODPSCWL1,                           &
+            archiveData    = State_Diag%Archive_AODPSCWL1,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODPSCWL2'
-       TmpWL   = RadWL(2)
-       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODPSCWL2( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODPSCWL2 = 0.0_f4
-          State_Diag%Archive_AODPSCWL2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODPSCWL2,                     &
-                                   State_Chm, State_Diag, RC                )
+       TmpWL  = RadWL(2)
+       diagID = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODPSCWL2,                           &
+            archiveData    = State_Diag%Archive_AODPSCWL2,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AODPSCWL3'
-       TmpWL   = RadWL(3)
-       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AODPSCWL3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AODPSCWL3 = 0.0_f4
-          State_Diag%Archive_AODPSCWL3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AODPSCWL3,                     &
-                                   State_Chm, State_Diag, RC                )
+       TmpWL  = RadWL(3)
+       diagID = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AODPSCWL3,                           &
+            archiveData    = State_Diag%Archive_AODPSCWL3,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Hygroscopic Growth per Aerosol Species
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerHygGrowth'
-       diagID  = 'AerHygroscopicGrowth'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerHygGrowth( IM, JM, LM, nHygGrth ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerHygGrowth = 0.0_f4
-          State_Diag%Archive_AerHygGrowth = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerHygGrowth,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerHygroscopicGrowth'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerHygGrowth,                        &
+            archiveData    = State_Diag%Archive_AerHygGrowth,                &
+            mapData        = State_Diag%Map_AerHygGrowth,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'H',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Surface Area of Mineral Dust
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerSurfAreaDust'
        diagID  = 'AerSurfAreaDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerSurfAreaDust( IM, JM, LM ), STAT=RC)
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerSurfAreaDust = 0.0_f4
-          State_Diag%Archive_AerSurfAreaDust = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerSurfAreaDust,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerSurfAreaDust,                     &
+            archiveData    = State_Diag%Archive_AerSurfAreaDust,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Surface Area of Hygroscopic Aerosol Species
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerSurfAreaHyg'
        diagID  = 'AerSurfAreaHyg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerSurfAreaHyg( IM, JM, LM, nHygGrth ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerSurfAreaHyg = 0.0_f4
-          State_Diag%Archive_AerSurfAreaHyg = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerSurfAreaHyg,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerSurfAreaHyg,                      &
+            archiveData    = State_Diag%Archive_AerSurfAreaHyg,              &
+            mapData        = State_Diag%Map_AerSurfAreaHyg,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'H',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Stratospheric Liquid Aerosol Number Density
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerNumDenSLA'
        diagID  = 'AerNumDensityStratLiquid'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerNumDenSLA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerNumDenSLA = 0.0_f4
-          State_Diag%Archive_AerNumDenSLA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerNumDenSLA,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerNumDenSLA,                        &
+            archiveData    = State_Diag%Archive_AerNumDenSLA,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Strospheric Particulate Aerosol Number Density
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerNumDenPSC'
        diagID  = 'AerNumDensityStratParticulate'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerNumDenPSC( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerNumDenPSC = 0.0_f4
-          State_Diag%Archive_AerNumDenPSC = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerNumDenPSC,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerNumDenPSC,                        &
+            archiveData    = State_Diag%Archive_AerNumDenPSC,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aqueous Aerosol Volume
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerAqVol'
-       diagID  = 'AerAqueousVolume'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerAqVol( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerAqVol = 0.0_f4
-          State_Diag%Archive_AerAqVol = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AerAqVol,   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerAqueousVolume'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerAqVol,                            &
+            archiveData    = State_Diag%Archive_AerAqVol,                    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Stratospheric Liquid Aerosol Surface Area
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerSurfAreaSLA'
-       diagID  = 'AerSurfAreaStratLiquid'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerSurfAreaSLA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerSurfAreaSLA = 0.0_f4
-          State_Diag%Archive_AerSurfAreaSLA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerSurfAreaSLA,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerSurfAreaStratLiquid'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerSurfAreaSLA,                      &
+            archiveData    = State_Diag%Archive_AerSurfAreaSLA,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Polar Stratospheric Cloud Type 1a/2 Surface Area
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerSurfAreaPSC'
-       diagID  = 'AerSurfAreaPolarStratCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerSurfAreaPSC( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerSurfAreaPSC = 0.0_f4
-          State_Diag%Archive_AerSurfAreaPSC = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerSurfAreaPSC,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerSurfAreaPolarStratCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerSurfAreaPSC,                      &
+            archiveData    = State_Diag%Archive_AerSurfAreaPSC,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of Hydrophilic BC (aka BCPI)
        ! from Hydrophobic BC (aka BCPO)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdBCPIfromBCPO'
-       diagID  = 'ProdBCPIfromBCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdBCPIfromBCPO( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdBCPIfromBCPO = 0.0_f4
-          State_Diag%Archive_ProdBCPIfromBCPO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdBCPIfromBCPO,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdBCPIfromBCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdBCPIfromBCPO,                    &
+            archiveData    = State_Diag%Archive_ProdBCPIfromBCPO,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of Hydrophilic OC (aka OCPI)
        ! from Hydrophobic OC (aka OCPO)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdOCPIfromOCPO'
-       diagID  = 'ProdOCPIfromOCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdOCPIfromOCPO( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdOCPIfromOCPO = 0.0_f4
-          State_Diag%Archive_ProdOCPIfromOCPO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdOCPIfromOCPO,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdOCPIfromOCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdOCPIfromOCPO,                    &
+            archiveData    = State_Diag%Archive_ProdOCPIfromOCPO,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of H2O2 in cloud
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromH2O2inCloud'
-       diagID  = 'ProdSO4fromH2O2inCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromH2O2inCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromH2O2inCloud = 0.0_f4
-          State_Diag%Archive_ProdSO4fromH2O2inCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromH2O2inCloud,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromH2O2inCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromH2O2inCloud,              &
+            archiveData    = State_Diag%Archive_ProdSO4fromH2O2inCloud,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of O3 in cloud
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromO3inCloud'
-       diagID  = 'ProdSO4fromO3inCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromO3inCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromO3inCloud = 0.0_f4
-          State_Diag%Archive_ProdSO4fromO3inCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromO3inCloud,          &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromO3inCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromO3inCloud,                &
+            archiveData    = State_Diag%Archive_ProdSO4fromO3inCloud,        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of O2 metal-catalyzed
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromO2inCloudMetal'
        diagID  = 'ProdSO4fromO2inCloudMetal'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal(IM, JM, LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromO2inCloudMetal = 0.0_f4
-          State_Diag%Archive_ProdSO4fromO2inCloudMetal = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromO2inCloudMetal,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromO2inCloudMetal,           &
+            archiveData    = State_Diag%Archive_ProdSO4fromO2inCloudMetal,   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from O3 in sea salt aerosols
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSo4fromO3inSeaSalt'
-       diagID  = 'ProdSo4fromO3inSeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSo4fromO3inSeaSalt( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSo4fromO3inSeaSalt = 0.0_f4
-          State_Diag%Archive_ProdSo4fromO3inSeaSalt = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSo4fromO3inSeaSalt,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID  = 'ProdSO4fromO3inSeaSalt'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromO3inSeaSalt,              &
+            archiveData    = State_Diag%Archive_ProdSO4fromO3inSeaSalt,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 by SRO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromSRO3'
-       diagID  = 'ProdSO4fromSRO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromSRO3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromSRO3 = 0.0_f4
-          State_Diag%Archive_ProdSO4fromSRO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromSRO3,               &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromSRO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromSRO3,                     &
+            archiveData    = State_Diag%Archive_ProdSO4fromSRO3,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 by O3s
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromO3s'
        diagID  = 'ProdSO4fromO3s'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromO3s( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromO3s = 0.0_f4
-          State_Diag%Archive_ProdSO4fromO3s = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromO3s,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromO3s,                      &
+            archiveData    = State_Diag%Archive_ProdSO4fromO3s,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Loss of HNO3 on sea salt
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossHNO3onSeaSalt'
-       diagID  = 'LossHNO3onSeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossHNO3onSeaSalt( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossHNO3onSeaSalt = 0.0_f4
-          State_Diag%Archive_LossHNO3onSeaSalt = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossHNO3onSeaSalt,             &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'LossHNO3onSeaSalt'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossHNO3onSeaSalt,                   &
+            archiveData    = State_Diag%Archive_LossHNO3onSeaSalt,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of black carbon [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassBC'
-       diagID  = 'AerMassBC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassBC( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassBC = 0.0_f4
-          State_Diag%Archive_AerMassBC = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassBC,                     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerMassBC'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassBC,                           &
+            archiveData    = State_Diag%Archive_AerMassBC,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of NH4 [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassNH4'
-       diagID  = 'AerMassNH4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassNH4( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassNH4 = 0.0_f4
-          State_Diag%Archive_AerMassNH4 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassNH4,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerMassNH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassNH4,                          &
+            archiveData    = State_Diag%Archive_AerMassNH4,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of NIT [kg/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassNIT'
-       diagID  = 'AerMassNIT'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassNIT( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassNIT = 0.0_f4
-          State_Diag%Archive_AerMassNIT = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassNIT,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerMassNIT'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassNIT,                          &
+            archiveData    = State_Diag%Archive_AerMassNIT,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of total seasalt (SALA + SALC) [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSAL'
-       diagID  = 'AerMassSAL'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSAL( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSAL = 0.0_f4
-          State_Diag%Archive_AerMassSAL = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassSAL,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerMassSAL'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassSAL,                          &
+            archiveData    = State_Diag%Archive_AerMassSAL,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Aerosol mass of SO4 [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSO4'
-       diagID  = 'AerMassSO4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSO4( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSO4 = 0.0_f4
-          State_Diag%Archive_AerMassSO4 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassSO4,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'AerMassSO4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassSO4,                          &
+            archiveData    = State_Diag%Archive_AerMassSO4,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! PM2.5, aka prticulate matter with (r < 2.5 um) [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25'
-       diagID  = 'PM25'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25 = 0.0_f4
-          State_Diag%Archive_PM25 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%PM25,                          &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25,                                &
+            archiveData    = State_Diag%Archive_PM25,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! PM25 nitrates
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25ni'
-       diagID  = 'PM25ni'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25ni( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25ni = 0.0_f4
-          State_Diag%Archive_PM25ni = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25ni,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25ni'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25ni,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25ni,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 sulfates
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25su'
-       diagID  = 'PM25su'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25su( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25su = 0.0_f4
-          State_Diag%Archive_PM25su = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25su,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25su'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25su,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25su,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 OC
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25oc'
-       diagID  = 'PM25oc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25oc( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25oc = 0.0_f4
-          State_Diag%Archive_PM25oc = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25oc,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25oc'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25oc,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25oc,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 BC
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25bc'
-       diagID  = 'PM25bc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25bc( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25bc = 0.0_f4
-          State_Diag%Archive_PM25bc = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25bc,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25bc'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25bc,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25bc,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 dust
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25du'
-       diagID  = 'PM25du'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25du( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25du = 0.0_f4
-          State_Diag%Archive_PM25du = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25du,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25du'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25du,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25du,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 sea salt
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25ss'
-       diagID  = 'PM25ss'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25ss( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25ss = 0.0_f4
-          State_Diag%Archive_PM25ss = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25ss,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25ss'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25ss,                       &
+            archiveData    = State_Diag%Archive_AerMassPM25ss,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! PM25 SOA
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25soa'
-       diagID  = 'PM25soa'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25soa( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25soa = 0.0_f4
-          State_Diag%Archive_PM25soa = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25soa,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'PM25soa'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassPM25soa,                      &
+            archiveData    = State_Diag%Archive_AerMassPM25soa,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 #endif
 
        !-------------------------------------------------------------------
        ! Total organic aerosol mass [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%TotalOA'
        diagID  = 'TotalOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%TotalOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%TotalOA = 0.0_f4
-          State_Diag%Archive_TotalOA = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%TotalOA,                       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TotalOA,                             &
+            archiveData    = State_Diag%Archive_TotalOA,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Total organic carbon mass [ug/m3]
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%TotalOC'
        diagID  = 'TotalOC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%TotalOC( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%TotalOC = 0.0_f4
-          State_Diag%Archive_TotalOC = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%TotalOC,                       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TotalOC,                             &
+            archiveData    = State_Diag%Archive_TotalOC,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ELSE
 
        !-------------------------------------------------------------------
@@ -4399,96 +5577,111 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Production of SO4 in gas phase
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromGasPhase'
-       diagID  = 'ProdSO4fromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromGasPhase( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromGasPhase = 0.0_f4
-          State_Diag%Archive_ProdSO4fromGasPhase = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromGasPhase,           &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromGasPhase'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromGasPhase,                 &
+            archiveData    = State_Diag%Archive_ProdSO4fromGasPhase,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of MSA from DMS
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdMSAfromDMS'
        diagID  = 'ProdMSAfromDMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdMSAfromDMS = 0.0_f4
-          State_Diag%Archive_ProdMSAfromDMS = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdMSAfromDMS,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdMSAfromDMS,                      &
+            archiveData    = State_Diag%Archive_ProdMSAfromDMS,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Total production of SO2 from DMS
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO2fromDMS'
-       diagID  = 'ProdSO2fromDMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO2fromDMS( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO2fromDMS = 0.0_f4
-          State_Diag%Archive_ProdSO2fromDMS = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO2fromDMS,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO2fromDMS'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO2fromDMS,                      &
+            archiveData    = State_Diag%Archive_ProdSO2fromDMS,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO2 from DMS and NO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO2fromDMSandNO3'
-       diagID  = 'ProdSO2fromDMSandNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO2fromDMSandNO3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO2fromDMSandNO3 = 0.0_f4
-          State_Diag%Archive_ProdSO2fromDMSandNO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO2fromDMSandNO3,          &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO2fromDMSandNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO2fromDMSandNO3,                &
+            archiveData    = State_Diag%Archive_ProdSO2fromDMSandNO3,        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO2 from DMS and OH
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO2fromDMSandOH'
-       diagID  = 'ProdSO2fromDMSandOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO2fromDMSandOH( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO2fromDMSandOH = 0.0_f4
-          State_Diag%Archive_ProdSO2fromDMSandOH = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO2fromDMSandOH,           &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO2fromDMSandOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO2fromDMSandOH,                 &
+            archiveData    = State_Diag%Archive_ProdSO2fromDMSandOH,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -4547,41 +5740,50 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemical loss for selected species or families
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%Loss'
        diagID  = 'Loss'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Loss,                                &
+            archiveData    = State_Diag%Archive_Loss,                        &
+            mapData        = State_Diag%Map_Loss,                            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'X',                                            &
+            RC             = RC                                             )
 
-       CALL Check_DiagList( am_I_Root, Diag_List, 'Loss', Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%Loss( IM, JM, LM, nLoss ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%Loss = 0.0_f4
-          State_Diag%Archive_Loss = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%Loss,       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Chemical production for selected species or families
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%Prod'
        diagID  = 'Prod'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Prod,                                &
+            archiveData    = State_Diag%Archive_Prod,                        &
+            mapData        = State_Diag%Map_Prod,                            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Y',                                            &
+            RC             = RC                                             )
 
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%Prod( IM, JM, LM, nProd ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%Prod = 0.0_f4
-          State_Diag%Archive_Prod = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID, State_Diag%Prod,       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-
     ELSE
 
        !-------------------------------------------------------------------
@@ -4627,58 +5829,67 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Production of SO4 from oxidation on dust
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromOxidationOnDust'
-       diagID  = 'ProdSO4fromOxidationOnDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromOxidationOnDust(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromOxidationOnDust = 0.0_f4
-          State_Diag%Archive_ProdSO4fromOxidationOnDust = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromOxidationOnDust,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromOxidationOnDust'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromOxidationOnDust,          &
+            archiveData    = State_Diag%Archive_ProdSO4fromOxidationOnDust,  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of NIT from HNO3 uptake on dust
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdNITfromHNO3uptakeOnDust'
-       diagID  = 'ProdNITfromHNO3uptakeOnDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdNITfromHNO3uptakeOnDust = 0.0_f4
-          State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdNITfromHNO3uptakeOnDust,   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdNITfromHNO3uptakeOnDust'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdNITfromHNO3uptakeOnDust,         &
+            archiveData    = State_Diag%Archive_ProdNITfromHNO3uptakeOnDust, &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from uptake of H2SO4(g)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromUptakeOfH2SO4g'
-       diagID  = 'ProdSO4fromUptakeOfH2SO4g'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromUptakeOfH2SO4g = 0.0_f4
-          State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromUptakeOfH2SO4g,     &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdSO4fromUptakeOfH2SO4g'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromUptakeOfH2SO4g,           &
+            archiveData    = State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g,   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -4727,248 +5938,286 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Loss of POPPOC by gas phase
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossPOPPOCPObyGasPhase'
-       diagID  = 'LossPOPPOCPObyGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossPOPPOCPObyGasPhase(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossPOPPOCPObyGasPhase = 0.0_f4
-          State_Diag%Archive_LossPOPPOCPObyGasPhase = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossPOPPOCPObyGasPhase,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'LossPOPPOCPObyGasPhase'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossPOPPOCPObyGasPhase,              &
+            archiveData    = State_Diag%Archive_LossPOPPOCPObyGasPhase,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPOC from gas phase
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPOCPOfromGasPhase'
-       diagID  = 'ProdPOPPOCPOfromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPOCPOfromGasPhase = 0.0_f4
-          State_Diag%Archive_ProdPOPPOCPOfromGasPhase = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPOCPOfromGasPhase,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPOCPOfromGasPhase'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPOCPOfromGasPhase,            &
+            archiveData    = State_Diag%Archive_ProdPOPPOCPOfromGasPhase,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Loss of POPPBC by gas phase
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossPOPPBCPObyGasPhase'
        diagID  = 'LossPOPPBCPObyGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossPOPPBCPObyGasPhase(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossPOPPBCPObyGasPhase = 0.0_f4
-          State_Diag%Archive_LossPOPPBCPObyGasPhase = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossPOPPBCPObyGasPhase,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossPOPPBCPObyGasPhase,              &
+            archiveData    = State_Diag%Archive_LossPOPPBCPObyGasPhase,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPBC by gas phase
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPBCPOfromGasPhase'
-       diagID  = 'ProdPOPPBCPOfromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPBCPOfromGasPhase = 0.0_f4
-          State_Diag%Archive_ProdPOPPBCPOfromGasPhase = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPBCPOfromGasPhase,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID  = 'ProdPOPPBCPObyGasPhase'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPBCPOfromGasPhase,            &
+            archiveData    = State_Diag%Archive_ProdPOPPBCPOfromGasPhase,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPG from OH
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPGfromOH'
-       diagID  = 'ProdPOPGfromOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPGfromOH(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPGfromOH = 0.0_f4
-          State_Diag%Archive_ProdPOPGfromOH = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPGfromOH,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPGfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPGfromOH,                      &
+            archiveData    = State_Diag%Archive_ProdPOPGfromOH,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPOCPO from O3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPOCPOfromO3'
-       diagID  = 'ProdPOPPOCPOfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPOCPOfromO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPOCPOfromO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPOCPOfromO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPOCPOfromO3,            &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPOCPOfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPOCPOfromO3,                  &
+            archiveData    = State_Diag%Archive_ProdPOPPOCPOfromO3,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPOCPI from O3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPOCPIfromO3'
-       diagID  = 'ProdPOPPOCPIfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPOCPIfromO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPOCPIfromO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPOCPIfromO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPOCPIfromO3,            &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPOCPIfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPOCPIfromO3,                  &
+            archiveData    = State_Diag%Archive_ProdPOPPOCPIfromO3,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPBCPO from O3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPBCPOfromO3'
-       diagID  = 'ProdPOPPBCPOfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPBCPOfromO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPBCPOfromO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPBCPOfromO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPBCPOfromO3,            &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPBCPOfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPBCPOfromO3,                  &
+            archiveData    = State_Diag%Archive_ProdPOPPBCPOfromO3,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPBCPI from O3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPBCPIfromO3'
-       diagID  = 'ProdPOPPBCPIfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPBCPIfromO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPBCPIfromO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPBCPIfromO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPBCPIfromO3,            &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       diagID = 'ProdPOPPBCPIfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPBCPIfromO3,                  &
+            archiveData    = State_Diag%Archive_ProdPOPPBCPIfromO3,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
        !--------------------------------------------------------------------
        ! Prod of POPPOCPO from NO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPOCPOfromNO3'
-       diagID  = 'ProdPOPPOCPOfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPOCPOfromNO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPOCPOfromNO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPOCPOfromNO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPOCPOfromNO3,           &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPOCPOfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPOCPOfromNO3,                 &
+            archiveData    = State_Diag%Archive_ProdPOPPOCPOfromNO3,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPOCPI from NO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPOCPIfromNO3'
-       diagID  = 'ProdPOPPOCPIfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPOCPIfromNO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPOCPIfromNO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPOCPIfromNO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPOCPIfromNO3,           &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPOCPIfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPOCPIfromNO3,                 &
+            archiveData    = State_Diag%Archive_ProdPOPPOCPIfromNO3,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPBCPO from NO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPBCPOfromNO3'
-       diagID  = 'ProdPOPPBCPOfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPBCPOfromNO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPBCPOfromNO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPBCPOfromNO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPBCPOfromNO3,           &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPBCPOfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPBCPOfromNO3,                 &
+            archiveData    = State_Diag%Archive_ProdPOPPBCPOfromNO3,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Prod of POPPBCPI from NO3
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdPOPPBCPIfromNO3'
-       diagID  = 'ProdPOPPBCPIfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdPOPPBCPIfromNO3(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdPOPPBCPIfromNO3 = 0.0_f4
-          State_Diag%Archive_ProdPOPPBCPIfromNO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdPOPPBCPIfromNO3,           &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       diagID = 'ProdPOPPBCPIfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdPOPPBCPIfromNO3,                 &
+            archiveData    = State_Diag%Archive_ProdPOPPBCPIfromNO3,         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -5034,20 +6283,23 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdCO2fromCO'
        diagID  = 'ProdCO2fromCO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdCO2fromCO(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdCO2fromCO = 0.0_f4
-          State_Diag%Archive_ProdCO2fromCO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdCO2fromCO,                 &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdCO2fromCO,                       &
+            archiveData    = State_Diag%Archive_ProdCO2fromCO,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -5084,60 +6336,68 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossCH4byClinTrop'
        diagID  = 'LossCH4byClinTrop'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossCH4byClinTrop(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossCH4byClinTrop = 0.0_f4
-          State_Diag%Archive_LossCH4byClinTrop = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossCH4byClinTrop,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossCH4byClinTrop,                   &
+            archiveData    = State_Diag%Archive_LossCH4byClinTrop,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by OH in troposphere
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossCH4byOHinTrop'
        diagID  = 'LossCH4byOHinTrop'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossCH4byOHinTrop(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossCH4byOHinTrop = 0.0_f4
-          State_Diag%Archive_LossCH4byOHinTrop = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossCH4byOHinTrop,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossCH4byOHinTrop,                   &
+            archiveData    = State_Diag%Archive_LossCH4byOHinTrop,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Loss of CH4 in the stratosphere
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossCH4inStrat'
        diagID  = 'LossCH4inStrat'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossCH4inStrat(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossCH4inStrat = 0.0_f4
-          State_Diag%Archive_LossCH4inStrat = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossCH4inStrat,                &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossCH4inStrat,                      &
+            archiveData    = State_Diag%Archive_LossCH4inStrat,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ELSE
 
        !-------------------------------------------------------------------
@@ -5184,41 +6444,46 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Production of CO from CH4
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdCOfromCH4'
        diagID  = 'ProdCOfromCH4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdCOfromCH4(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdCOfromCH4 = 0.0_f4
-          State_Diag%Archive_ProdCOfromCH4 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdCOfromCH4,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdCOfromCH4,                       &
+            archiveData    = State_Diag%Archive_ProdCOfromCH4,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of CO from NMVOC
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdCOfromNMVOC'
        diagID  = 'ProdCOfromNMVOC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdCOfromNMVOC(IM,JM,LM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdCOfromNMVOC = 0.0_f4
-          State_Diag%Archive_ProdCOfromNMVOC = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdCOfromNMVOC,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdCOfromNMVOC,                     &
+            archiveData    = State_Diag%Archive_ProdCOfromNMVOC,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ELSE
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
@@ -5261,783 +6526,926 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Anthropogenic Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0anthro'
        diagID  = 'EmisHg0anthro'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0anthro( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0anthro = 0.0_f4
-          State_Diag%Archive_EmisHg0anthro = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0anthro,                 &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0anthro,                       &
+            archiveData    = State_Diag%Archive_EmisHg0anthro,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Biomass Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0biomass'
        diagID  = 'EmisHg0biomass'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0biomass( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0biomass = 0.0_f4
-          State_Diag%Archive_EmisHg0biomass = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0biomass,                &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0biomass,                      &
+            archiveData    = State_Diag%Archive_EmisHg0biomass,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Geogenic Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0geogenic'
        diagID  = 'EmisHg0geogenic'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0geogenic( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0geogenic = 0.0_f4
-          State_Diag%Archive_EmisHg0geogenic = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0geogenic,               &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0geogenic,                     &
+            archiveData    = State_Diag%Archive_EmisHg0geogenic,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Land Hg0 re-emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0land'
        diagID  = 'EmisHg0land'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0land( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0land = 0.0_f4
-          State_Diag%Archive_EmisHg0land = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0land,                   &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0land,                         &
+            archiveData    = State_Diag%Archive_EmisHg0land,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Oceanic Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0ocean'
        diagID  = 'EmisHg0ocean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0ocean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0ocean = 0.0_f4
-          State_Diag%Archive_EmisHg0ocean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0ocean,                  &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0ocean,                        &
+            archiveData    = State_Diag%Archive_EmisHg0ocean,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Snow Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0snow'
        diagID  = 'EmisHg0snow'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0snow( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0snow = 0.0_f4
-          State_Diag%Archive_EmisHg0snow = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0snow,                   &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0snow,                         &
+            archiveData    = State_Diag%Archive_EmisHg0snow,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Soil Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0soil'
        diagID  = 'EmisHg0soil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0soil( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0soil = 0.0_f4
-          State_Diag%Archive_EmisHg0soil = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0soil,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0soil,                         &
+            archiveData    = State_Diag%Archive_EmisHg0soil,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Vegetation Hg0 emissions
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg0vegetation'
        diagID  = 'EmisHg0vegetation'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg0vegetation( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg0vegetation = 0.0_f4
-          State_Diag%Archive_EmisHg0vegetation = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg0vegetation,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg0vegetation,                   &
+            archiveData    = State_Diag%Archive_EmisHg0vegetation,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Hg2 and HgP anthropogenic emissions
        ! (note: HgP is emitted into Hg2 in the current Hg simulation)
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg2HgPanthro'
        diagID  = 'EmisHg2HgPanthro'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg2HgPanthro( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg2HgPanthro = 0.0_f4
-          State_Diag%Archive_EmisHg2HgPanthro = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg2HgPanthro,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg2HgPanthro,                    &
+            archiveData    = State_Diag%Archive_EmisHg2HgPanthro,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Emission of Hg2 from snowmelt into the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg2snowToOcean'
        diagID  = 'EmisHg2snowToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg2snowToOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg2snowToOcean = 0.0_f4
-          State_Diag%Archive_EmisHg2snowToOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg2snowToOcean,            &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg2snowToOcean,                  &
+            archiveData    = State_Diag%Archive_EmisHg2snowToOcean,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Emission of Hg2 from snowmelt into the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisHg2rivers'
        diagID  = 'EmisHg2rivers'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisHg2rivers( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisHg2rivers = 0.0_f4
-          State_Diag%Archive_EmisHg2rivers = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisHg2rivers,                 &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%EmisHg2rivers,                       &
+            archiveData    = State_Diag%Archive_EmisHg2rivers,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Flux of Hg2 and HgP from air to snow/ice
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxHg2HgPfromAirToSnow'
        diagID  = 'FluxHg2HgPfromAirToSnow'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxHg2HgPfromAirToSnow = 0.0_f4
-          State_Diag%Archive_FluxHg2HgPfromAirToSnow = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxHg2HgPfromAirToSnow,       &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-       !-------------------------------------------------------------------
-       ! Flux of Hg0 from air to ocean
-       !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxHg0fromAirToOcean'
-       diagID  = 'FluxHg0fromAirToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxHg0fromAirToOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-          State_Diag%Archive_FluxHg0fromAirToOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxHg0fromAirToOcean,         &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxHg2HgPfromAirToSnow,             &
+            archiveData    = State_Diag%Archive_FluxHg2HgPfromAirToSnow,     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Flux of Hg0 from air to ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxHg0fromOceanToAir'
+       diagID  = 'FluxHg0fromAirToOcean'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxHg0fromAirToOcean,               &
+            archiveData    = State_Diag%Archive_FluxHg0fromAirToOcean,       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of Hg0 from ocean to air
+       !-------------------------------------------------------------------
        diagID  = 'FluxHg0fromOceanToair'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxHg0fromOceanToAir( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-          State_Diag%Archive_FluxHg0fromOceanToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxHg0fromOceantoAir,         &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxHg0fromOceanToAir,               &
+            archiveData    = State_Diag%Archive_FluxHg0fromOceanToAir,       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Flux of Hg2 to the deep ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxHg2toDeepOcean'
        diagID  = 'FluxHg2toDeepOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxHg2toDeepOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxHg2toDeepOcean = 0.0_f4
-          State_Diag%Archive_FluxHg2toDeepOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxHg2toDeepOcean,            &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxHg2toDeepOcean,                  &
+            archiveData    = State_Diag%Archive_FluxHg2toDeepOcean,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Flux of organic carbon to the deep ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxOCtoDeepOcean'
        diagID  = 'FluxOCtoDeepOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxOCtoDeepOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxOCtoDeepOcean = 0.0_f4
-          State_Diag%Archive_FluxOCtoDeepOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxOCtoDeepOcean,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxOCtoDeepOcean,                   &
+            archiveData    = State_Diag%Archive_FluxOCtoDeepOcean,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Flux of Hg2 and HgP deposited to the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxHg2HgPfromAirToOcean'
        diagID  = 'FluxHg2HgPfromAirToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-          State_Diag%Archive_FluxHg2HgPfromAirToOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxHg2HgPfromAirToOcean,      &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%FluxHg2HgPfromAirToOcean,            &
+            archiveData    = State_Diag%Archive_FluxHg2HgPfromAirToOcean,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Mass of Hg0 in the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%MassHg0inOcean'
        diagID  = 'MassHg0inOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%MassHg0inOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%MassHg0inOcean = 0.0_f4
-          State_Diag%Archive_MassHg0inOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%MassHg0inOcean,                &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MassHg0inOcean,                      &
+            archiveData    = State_Diag%Archive_MassHg0inOcean,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Mass of Hg2 in the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%MassHg2inOcean'
        diagID  = 'MassHg2inOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%MassHg2inOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%MassHg2inOcean = 0.0_f4
-          State_Diag%Archive_MassHg2inOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%MassHg2inOcean,                &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MassHg2inOcean,                      &
+            archiveData    = State_Diag%Archive_MassHg2inOcean,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Mass of HgP in the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%MassHgPinOcean'
        diagID  = 'MassHgPinOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%MassHgPinOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%MassHgPinOcean = 0.0_f4
-          State_Diag%Archive_MassHgPinOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%MassHgPinOcean,                &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MassHgPinOcean,                      &
+            archiveData    = State_Diag%Archive_MassHgPinOcean,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Mass of total Hg in the ocean
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%MassHgTotalInOcean'
        diagID  = 'MassHgTotalInOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%MassHgTotalInOcean( IM, JM ), STAT=RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%MassHgTotalInOcean = 0.0_f4
-          State_Diag%Archive_MassHgTotalInOcean = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%MassHgTotalInOcean,              &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MassHgTotalInOcean,                  &
+            archiveData    = State_Diag%Archive_MassHgTotalInOcean,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! Br concentration
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%ConcBr'
        diagID  = 'ConcBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ConcBr( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ConcBr = 0.0_f4
-          State_Diag%Archive_ConcBr = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ConcBr,                        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ConcBr,                              &
+            archiveData    = State_Diag%Archive_ConcBr,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! BrO concentration
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ConcBrO'
        diagID  = 'ConcBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ConcBrO( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ConcBrO = 0.0_f4
-          State_Diag%Archive_ConcBrO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ConcBrO,                       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ConcBrO,                             &
+            archiveData    = State_Diag%Archive_ConcBrO,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! Br concentration in polar regions
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%PolarConcBr'
        diagID  = 'PolarConcBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PolarConcBr( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PolarConcBr = 0.0_f4
-          State_Diag%Archive_PolarConcBr = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%PolarConcBr,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PolarConcBr,                         &
+            archiveData    = State_Diag%Archive_PolarConcBr,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! BrO concentration in polar regions
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%PolarConcBrO'
        diagID  = 'PolarConcBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PolarConcBrO( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PolarConcBrO = 0.0_f4
-          State_Diag%Archive_PolarConcBrO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%PolarConcBrO,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PolarConcBrO,                        &
+            archiveData    = State_Diag%Archive_PolarConcBrO,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! O3 concentration in polar regions
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%PolarConcO3'
        diagID  = 'PolarConcO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PolarConcO3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PolarConcO3 = 0.0_f4
-          State_Diag%Archive_PolarConcO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%PolarConcO3,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PolarConcO3,                         &
+            archiveData    = State_Diag%Archive_PolarConcO3,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! Loss of Hg2 by sea salt
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%LossHg2bySeaSalt'
        diagID  = 'LossHg2bySeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossHg2bySeaSalt = 0.0_f4
-          State_Diag%Archive_LossHg2bySeaSalt = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossHg2bySeaSalt,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossHg2bySeaSalt,                    &
+            archiveData    = State_Diag%Archive_LossHg2bySeaSalt,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !----------------------------------------------------------------
        ! Loss rate of Hg2 by sea salt
        !----------------------------------------------------------------
-       arrayID = 'State_Diag%LossRateHg2bySeaSalt'
        diagID  = 'LossRateHg2bySeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossRateHg2bySeaSalt( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossRateHg2bySeaSalt = 0.0_f4
-          State_Diag%Archive_LossRateHg2bySeaSalt = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%LossRateHg2bySeaSalt,          &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossRateHg2bySeaSalt,                &
+            archiveData    = State_Diag%Archive_LossRateHg2bySeaSalt,        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from Br
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromBr'
        diagID  = 'ProdHg2fromBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromBr( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromBr = 0.0_f4
-          State_Diag%Archive_ProdHg2fromBr = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromBr,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromBr,                       &
+            archiveData    = State_Diag%Archive_ProdHg2fromBr,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from BrY
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromBrY'
        diagID  = 'ProdHg2fromBrY'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromBrY( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromBrY = 0.0_f4
-          State_Diag%Archive_ProdHg2fromBrY = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromBrY,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromBrY,                      &
+            archiveData    = State_Diag%Archive_ProdHg2fromBrY,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from ClY
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromClY'
        diagID  = 'ProdHg2fromClY'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromClY( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromClY = 0.0_f4
-          State_Diag%Archive_ProdHg2fromClY = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromClY,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromClY,                      &
+            archiveData    = State_Diag%Archive_ProdHg2fromClY,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from Hg0
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHg0'
        diagID  = 'ProdHg2fromHg0'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHg0( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHg0 = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHg0 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHg0,                &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHg0,                      &
+            archiveData    = State_Diag%Archive_ProdHg2fromHg0,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + Br2
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBr2'
        diagID  = 'ProdHg2fromHgBrPlusBr2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBr2 = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBr2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBr2,        &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBr2,              &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBr2,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + BrBrO
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrBrO'
        diagID  = 'ProdHg2fromHgBrPlusBrBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO( IM, JM, LM ),       &
-                    STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBrBrO = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBrBrO,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBrBrO,            &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + BrClO
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrClO'
        diagID  = 'ProdHg2fromHgBrPlusBrClO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO( IM, JM, LM ),       &
-                    STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBrClO = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBrClO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBrClO,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBrClO,            &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBrClO,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + BrHO2
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrHO2'
        diagID  = 'ProdHg2fromHgBrPlusBrHO2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2( IM, JM, LM ),       &
-                    STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBrHO2 = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBrHO2,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBrHO2,            &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + BrNO2
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrNO2'
        diagID  = 'ProdHg2fromHgBrPlusBrNO2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2( IM, JM, LM ),       &
-                    STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBrNO2 = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBrNO2,      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBrNO2,            &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2,    &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from HgBr + BrOH
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrOH'
        diagID  = 'ProdHg2fromHgBrPlusBrOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH( IM, JM, LM ),        &
-                    STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromHgBrPlusBrOH = 0.0_f4
-          State_Diag%Archive_ProdHg2fromHgBrPlusBrOH = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromHgBrPlusBrOH,       &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromHgBrPlusBrOH,             &
+            archiveData    = State_Diag%Archive_ProdHg2fromHgBrPlusBrOH,     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from O3
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromO3'
        diagID  = 'ProdHg2fromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromO3( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromO3 = 0.0_f4
-          State_Diag%Archive_ProdHg2fromO3 = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromO3,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromO3,                       &
+            archiveData    = State_Diag%Archive_ProdHg2fromO3,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !---------------------------------------------------------------------
        ! Production of Hg2 from OH
        !---------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHg2fromOH'
        diagID  = 'ProdHg2fromOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromOH( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHg2fromOH = 0.0_f4
-          State_Diag%Archive_ProdHg2fromOH = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHg2fromOH,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHg2fromOH,                       &
+            archiveData    = State_Diag%Archive_ProdHg2fromOH,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Particulate Bound Hg (PBM)
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%ParticulateBoundHg'
        diagID  = 'ParticulateBoundHg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ParticulateBoundHg( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ParticulateBoundHg = 0.0_f4
-          State_Diag%Archive_ParticulateBoundHg = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ParticulateBoundHg,            &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ParticulateBoundHg,                  &
+            archiveData    = State_Diag%Archive_ParticulateBoundHg,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !-------------------------------------------------------------------
        ! Reactive Gaseous Hg (RGM)
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%ReactiveGaseousHg'
        diagID  = 'ReactiveGaseousHg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ReactiveGaseousHg( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ReactiveGaseousHg = 0.0_f4
-          State_Diag%Archive_ReactiveGaseousHg = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ReactiveGaseousHg,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ReactiveGaseousHg,                   &
+            archiveData    = State_Diag%Archive_ReactiveGaseousHg,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
     ELSE
@@ -6121,7 +7529,7 @@ CONTAINS
              CASE( 33 )
                 diagId = 'FluxHg2HgPfromAirToSnow'
              CASE( 34 )
-                diagId = 'FluxHg0fromAirToOcean'
+                diagId = 'FluxHg0froimAirToOcean'
              CASE( 35 )
                 diagId = 'FluxHg0fromOceanToAir'
              CASE( 36 )
@@ -6166,19 +7574,24 @@ CONTAINS
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
     !!-------------------------------------------------------------------
-    !arrayID = 'State_Diag%xxx'
     !diagID  = 'xxx'
-    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    !IF ( Found ) THEN
-    !   IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-    !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
-    !   CALL GC_CheckVar( arrayID, 0, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
-    !   State_Diag%xxx = 0.0_f4
-    !   State_Diag%Archive_xxx = .TRUE.
-    !   CALL Register_DiagField( Input_Opt, diagID, State_Diag%xxx, &
-    !                            State_Chm, State_Diag, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !CALL Init_and_Register(                                                  &
+    !     Input_Opt      = Input_Opt,                                         &
+    !     State_Chm      = State_Chm,                                         &
+    !     State_Diag     = State_Diag,                                        &
+    !     State_Grid     = State_Grid,                                        &
+    !     DiagList       = Diag_List,                                         &
+    !     TaggedDiagList = TaggedDiag_List,                                   &
+    !     Ptr2Data       = State_Diag%xxx,                                    &
+    !     archiveData    = State_Diag%Archive_xxx,                            &
+    !     mapData        = State_Diag%Map_xxx,                                &
+    !     diagId         = diagId,                                            &
+    !     RC             = RC                                                )
+    !
+    !IF( RC /= GC_SUCCESS ) THEN
+    !   errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+    !   CALL GC_Error( errMsg, RC, thisLoc )
+    !   RETURN
     !ENDIF
 
     !========================================================================
@@ -6289,12 +7702,15 @@ CONTAINS
                                     State_Diag%Archive_KppDiags             )
 
     !=======================================================================
-    ! Set arrays used to calculate budget diagnostics, if needed
+    ! Work array used to to calculate budget diagnostics, if needed
+    ! 4th dimension is column region: Full, Trop, PBL respectively
     !=======================================================================
     IF ( State_Diag%Archive_Budget ) THEN
-       ! 4th dimension is column region: Full, Trop, PBL respectively
-       ALLOCATE( State_Diag%BudgetMass1( IM, JM, State_Chm%nAdvect,3 ), STAT=RC)
-       ALLOCATE( State_Diag%BudgetMass2( IM, JM, State_Chm%nAdvect,3 ), STAT=RC)
+        ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
+                                               State_Grid%NY,                &
+                                               State_Chm%nAdvect,            &
+                                               3                 ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -6349,1532 +7765,1139 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> Cleanup_State_Diag (in Headers/state_diag_mod.F90)'
 
-    !=======================================================================
+    !========================================================================
     ! Deallocate module variables
+    !========================================================================
+    CALL Finalize( diagId   = 'SpeciesRst',                                  &
+                   Ptr2Data = State_Diag%SpeciesRst,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesBC',                                   &
+                   Ptr2Data = State_Diag%SpeciesBC,                          &
+                   mapData  = State_Diag%Map_SpeciesBC,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesConc',                                 &
+                   Ptr2Data = State_Diag%SpeciesConc,                        &
+                   mapData  = State_Diag%Map_SpeciesConc,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FracOfTimeInTrop',                            &
+                   Ptr2Data = State_Diag%FracOfTimeInTrop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetColumnMass',                            &
+                   Ptr2Data = State_Diag%BudgetColumnMass,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetEmisDryDepFull',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepFull,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepFull,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetEmisDryDepTrop',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepTrop,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepTrop,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetEmisDryDepPBL',                         &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepPBL,                &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetTransportFull',                         &
+                   Ptr2Data = State_Diag%BudgetTransportFull,                &
+                   mapData  = State_Diag%Map_BudgetTransportFull,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetTransportTrop',                         &
+                   Ptr2Data = State_Diag%BudgetTransportTrop,                &
+                   mapData  = State_Diag%Map_BudgetTransportTrop,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetTransportPBL',                          &
+                   Ptr2Data = State_Diag%BudgetTransportPBL,                 &
+                   mapData  = State_Diag%Map_BudgetTransportPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetMixingFull',                            &
+                   Ptr2Data = State_Diag%BudgetMixingFull,                   &
+                   mapData  = State_Diag%Map_BudgetMixingFull,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetMixingTrop',                            &
+                   Ptr2Data = State_Diag%BudgetMixingTrop,                   &
+                   mapData  = State_Diag%Map_BudgetMixingTrop,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetMixingPBL',                             &
+                   Ptr2Data = State_Diag%BudgetMixingPBL,                    &
+                   mapData  = State_Diag%Map_BudgetMixingPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetConvectionFull',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionFull,               &
+                   mapData  = State_Diag%Map_BudgetConvectionFull,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetConvectionTrop',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionTrop,               &
+                   mapData  = State_Diag%Map_BudgetConvectionTrop,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetConvectionPBL',                         &
+                   Ptr2Data = State_Diag%BudgetConvectionPBL,                &
+                   mapData  = State_Diag%Map_BudgetConvectionPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetChemistryFull',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryFull,                &
+                   mapData  = State_Diag%Map_BudgetChemistryFull,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetChemistryTrop',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryTrop,                &
+                   mapData  = State_Diag%Map_BudgetChemistryTrop,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetChemistryPBL',                          &
+                   Ptr2Data = State_Diag%BudgetChemistryPBL,                 &
+                   mapData  = State_Diag%Map_BudgetChemistryPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetWetDepFull',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepFull,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepFull,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetWetDepTrop',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepTrop,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepTrop,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetWetDepPBL',                             &
+                   Ptr2Data = State_Diag%BudgetWetDepPBL,                    &
+                   mapData  = State_Diag%Map_BudgetWetDepPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepChm',                                   &
+                   Ptr2Data = State_Diag%DryDepChm,                          &
+                   mapData  = State_Diag%Map_DryDepChm,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepMix',                                   &
+                   Ptr2Data = State_Diag%DryDepMix,                          &
+                   mapData  = State_Diag%Map_DryDepMix,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDep',                                      &
+                   Ptr2Data = State_Diag%DryDep,                             &
+                   mapData  = State_Diag%Map_DryDep,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVel',                                   &
+                   Ptr2Data = State_Diag%DryDepVel,                          &
+                   mapData  = State_Diag%Map_DryDepVel,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JVal',                                        &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   mapData  = State_Diag%Map_JVal,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JValO3O1D',                                   &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JValO3O3P',                                   &
+                   Ptr2Data = State_Diag%JVal,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JNoon',                                       &
+                   Ptr2Data = State_Diag%JNoon,                              &
+                   mapData  = State_Diag%Map_JNoon,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'JNoonFrac',                                   &
+                   Ptr2Data = State_Diag%JNoonFrac,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RxnRate',                                     &
+                   Ptr2Data = State_Diag%RxnRate,                            &
+                   mapData  = State_Diag%Map_RxnRate,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OHreactivity',                                &
+                   Ptr2Data = State_Diag%OHreactivity,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
+                   Ptr2Data = State_Diag%UvFluxDiffuse,                      &
+                   mapData  = State_Diag%Map_UvFluxDiffuse,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'UvFluxDirect',                                &
+                   Ptr2Data = State_Diag%UvFluxDirect,                       &
+                   mapData  = State_Diag%Map_UvFluxDirect,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'UvFluxNet',                                   &
+                   Ptr2Data = State_Diag%UvFluxNet,                          &
+                   mapData  = State_Diag%Map_UvFluxNet,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AdvFluxZonal',                                &
+                   Ptr2Data = State_Diag%AdvFluxZonal,                       &
+                   mapData  = State_Diag%Map_AdvFluxZonal,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AdvFluxMerid',                                &
+                   Ptr2Data = State_Diag%AdvFluxMerid,                       &
+                   mapData  = State_Diag%Map_AdvFluxMerid,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AdvFluxVert',                                 &
+                   Ptr2Data = State_Diag%AdvFluxVert,                        &
+                   mapData  = State_Diag%Map_AdvFluxVert,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PBLMixFrac',                                  &
+                   Ptr2Data = State_Diag%PBLMixFrac,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PBLFlux',                                     &
+                   Ptr2Data = State_Diag%PBLFlux,                            &
+                   mapData  = State_Diag%Map_PBLFlux,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CloudConvFlux',                               &
+                   Ptr2Data = State_Diag%CloudConvFlux,                      &
+                   mapData  = State_Diag%Map_CloudConvFlux,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'WetLossConv',                                 &
+                   Ptr2Data = State_Diag%WetLossConv,                        &
+                   mapData  = State_Diag%Map_WetLossConv,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'WetLossConvFrac',                             &
+                   Ptr2Data = State_Diag%WetLossConvFrac,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'WetLossLS',                                   &
+                   Ptr2Data = State_Diag%WetLossLS,                          &
+                   mapData  = State_Diag%Map_WetLossLS,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+!    IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%PrecipFracLS => NULL()
+!    ENDIF
+!
+!    IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%RainFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%RainFracLS => NULL()
+!    ENDIF
+!
+!    IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
+!       DEALLOCATE( State_Diag%WashFracLS, STAT=RC )
+!       CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%WashFracLS => NULL()
+!    ENDIF
+
+    CALL Finalize( diagId   = 'PbFromRnDecay',                               &
+                   Ptr2Data = State_Diag%PbFromRnDecay,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadDecay',                                    &
+                   Ptr2Data = State_Diag%RadDecay,                           &
+                   mapData  = State_Diag%Map_RadDecay,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkyLWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkyLWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkyLWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkyLWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkySWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWSurf',                             &
+                   Ptr2Data = State_Diag%RadClrSkyLWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWTOA',                              &
+                   Ptr2Data = State_Diag%RadClrSkyLWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWSurf',                             &
+                   Ptr2Data = State_Diag%RadAllSkySWSurf,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdBCPIfromBCPO',                            &
+                   Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdOCPIfromOCPO',                            &
+                   Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OHconcAfterChem',                             &
+                   Ptr2Data = State_Diag%OHconcAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O1DconcAfterChem',                            &
+                   Ptr2Data = State_Diag%O1DconcAfterChem,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O3PconcAfterChem',                            &
+                   Ptr2Data = State_Diag%O3PconcAfterChem,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODdust',                                     &
+                   Ptr2Data = State_Diag%AODdust,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL1',                                  &
+                   Ptr2Data = State_Diag%AODDustWL1,                         &
+                   mapData  = State_Diag%Map_AODDustWL1,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL2',                                  &
+                   Ptr2Data = State_Diag%AODDustWL2,                         &
+                   mapData  = State_Diag%Map_AODDustWL2,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODDustWL3',                                  &
+                   Ptr2Data = State_Diag%AODDustWL3,                         &
+                   mapData  = State_Diag%Map_AODDustWL3,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL1',                                   &
+                   Ptr2Data = State_Diag%AODHygWL1,                          &
+                   mapData  = State_Diag%Map_AODHygWL1,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL2',                                   &
+                   Ptr2Data = State_Diag%AODHygWL2,                          &
+                   mapData  = State_Diag%Map_AODHygWL2,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODHygWL3',                                   &
+                   Ptr2Data = State_Diag%AODHygWL3,                          &
+                   mapData  = State_Diag%Map_AODHygWL3,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL1',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL1,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL2',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL2,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSOAfromAqIsopWL3',                         &
+                   Ptr2Data = State_Diag%AODSOAfromAqIsopWL3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerHygGrowth',                                &
+                   Ptr2Data = State_Diag%AerHygGrowth,                       &
+                   mapData  = State_Diag%Map_AerHygGrowth,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaDust',                             &
+                   Ptr2Data = State_Diag%AerSurfAreaDust,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaHyg',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaHyg,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerNumDenSLA',                                &
+                   Ptr2Data = State_Diag%AerNumDenSLA,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerNumDenPSC',                                &
+                   Ptr2Data = State_Diag%AerNumDenPSC,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerAqVol',                                    &
+                   Ptr2Data = State_Diag%AerAqVol,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaSLA',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaSLA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerSurfAreaPSC',                              &
+                   Ptr2Data = State_Diag%AerSurfAreaPSC,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL1',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL2',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODSLAWL3',                                   &
+                   Ptr2Data = State_Diag%AODSLAWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL1',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL2',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AODPSCWL3',                                   &
+                   Ptr2Data = State_Diag%AODPSCWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Loss',                                        &
+                   Ptr2Data = State_Diag%Loss,                               &
+                   mapData  = State_Diag%Map_Loss,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Prod',                                        &
+                   Ptr2Data = State_Diag%Prod,                               &
+                   mapData  = State_Diag%Map_Prod,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMSandOH',                         &
+                   Ptr2Data = State_Diag%ProdSO2fromDMSandOH,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMSandNO3',                        &
+                   Ptr2Data = State_Diag%ProdSO2fromDMSandNO3,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2fromDMS',                              &
+                   Ptr2Data = State_Diag%ProdSO2fromDMS,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdMSAfromDMS',                              &
+                   Ptr2Data = State_Diag%ProdMSAfromDMS,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdNITfromHNO3uptakeOnDust',                 &
+                   Ptr2Data = State_Diag%ProdNITfromHNO3uptakeOnDust,        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromGasPhase',                         &
+                   Ptr2Data = State_Diag%ProdSO4fromGasPhase,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromH2O2inCloud',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromH2O2inCloud,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3inCloud',                        &
+                   Ptr2Data = State_Diag%ProdSO4fromO3inCloud,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromHOBrInCloud',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromHOBrInCloud,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO2inCloudMetal',                   &
+                   Ptr2Data = State_Diag%ProdSO4fromO2inCloudMetal,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3inSeaSalt',                      &
+                   Ptr2Data = State_Diag%ProdSO4fromO3inSeaSalt,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromOxidationOnDust',                  &
+                   Ptr2Data = State_Diag%ProdSO4fromOxidationOnDust,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromUptakeOfH2SO4g',                   &
+                   Ptr2Data = State_Diag%ProdSO4fromUptakeOfH2SO4g,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromSRO3',                             &
+                   Ptr2Data = State_Diag%ProdSO4fromSRO3,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromSRHOBr',                           &
+                   Ptr2Data = State_Diag%ProdSO4fromSRHOBr,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO4fromO3s',                              &
+                   Ptr2Data = State_Diag%ProdSO4fromO3s,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossHNO3onSeaSalt',                           &
+                   Ptr2Data = State_Diag%LossHNO3onSeaSalt,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassASOA',                                 &
+                   Ptr2Data = State_Diag%AerMassASOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassBC',                                   &
+                   Ptr2Data = State_Diag%AerMassBC,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassINDIOL',                               &
+                   Ptr2Data = State_Diag%AerMassINDIOL,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassISN1OA',                               &
+                   Ptr2Data = State_Diag%AerMassISN1OA,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassLVOCOA',                               &
+                   Ptr2Data = State_Diag%AerMassLVOCOA,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassNH4',                                  &
+                   Ptr2Data = State_Diag%AerMassNH4,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassNIT',                                  &
+                   Ptr2Data = State_Diag%AerMassNIT,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassOPOA',                                 &
+                   Ptr2Data = State_Diag%AerMassOPOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassPOA',                                  &
+                   Ptr2Data = State_Diag%AerMassPOA,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSAL',                                  &
+                   Ptr2Data = State_Diag%AerMassSAL,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSO4',                                  &
+                   Ptr2Data = State_Diag%AerMassSO4,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSOAGX',                                &
+                   Ptr2Data = State_Diag%AerMassSOAGX,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassSOAIE',                                &
+                   Ptr2Data = State_Diag%AerMassSOAIE,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassTSOA',                                 &
+                   Ptr2Data = State_Diag%AerMassTSOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BetaNO',                                      &
+                   Ptr2Data = State_Diag%BetaNO,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PM25',                                        &
+                   Ptr2Data = State_Diag%PM25,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalOA',                                     &
+                   Ptr2Data = State_Diag%TotalOA,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalBiogenicOA',                             &
+                   Ptr2Data = State_Diag%TotalBiogenicOA,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotalOC',                                     &
+                   Ptr2Data = State_Diag%TotalOC,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossPOPPOCPObyGasPhase',                      &
+                   Ptr2Data = State_Diag%LossPOPPOCPObyGasPhase,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromGasPhase',                    &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromGasPhase,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossPOPPBCPObyGasPhase',                      &
+                   Ptr2Data = State_Diag%LossPOPPBCPObyGasPhase,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromGasPhase',                    &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromGasPhase,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPGfromOH',                              &
+                   Ptr2Data = State_Diag%ProdPOPGfromOH,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPIfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPOCPIfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPIfromO3',                          &
+                   Ptr2Data = State_Diag%ProdPOPPBCPIfromO3,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPOfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPOCPOfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPOCPIfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPOCPIfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPOfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPBCPOfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdPOPPBCPIfromNO3',                         &
+                   Ptr2Data = State_Diag%ProdPOPPBCPIfromNO3,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCO2fromCO',                               &
+                   Ptr2Data = State_Diag%ProdCO2fromCO,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4byClinTrop',                           &
+                   Ptr2Data = State_Diag%LossCH4byClinTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4byOHinTrop',                           &
+                   Ptr2Data = State_Diag%LossCH4byOHinTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossCH4inStrat',                              &
+                   Ptr2Data = State_Diag%LossCH4inStrat,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCOfromCH4',                               &
+                   Ptr2Data = State_Diag%ProdCOfromCH4,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdCOfromNMVOC',                             &
+                   Ptr2Data = State_Diag%ProdCOfromNMVOC,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0anthro',                               &
+                   Ptr2Data = State_Diag%EmisHg0anthro,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0biomass',                              &
+                   Ptr2Data = State_Diag%EmisHg0biomass,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0geogenic',                             &
+                   Ptr2Data = State_Diag%EmisHg0geogenic,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0land',                                 &
+                   Ptr2Data = State_Diag%EmisHg0land,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0ocean',                                &
+                   Ptr2Data = State_Diag%EmisHg0ocean,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0soil',                                 &
+                   Ptr2Data = State_Diag%EmisHg0soil,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0snow',                                 &
+                   Ptr2Data = State_Diag%EmisHg0snow,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg0vegetation',                           &
+                   Ptr2Data = State_Diag%EmisHg0vegetation,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2HgPanthro',                            &
+                   Ptr2Data = State_Diag%EmisHg2HgPanthro,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2snowToOcean',                          &
+                   Ptr2Data = State_Diag%EmisHg2snowToOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EmisHg2rivers',                               &
+                   Ptr2Data = State_Diag%EmisHg2rivers,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2HgPfromAirToSnow',                     &
+                   Ptr2Data = State_Diag%FluxHg2HgPfromAirToSnow,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg0fromAirToOcean',                       &
+                   Ptr2Data = State_Diag%FluxHg0fromAirToOcean,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg0fromOceanToAir',                       &
+                   Ptr2Data = State_Diag%FluxHg0fromOceanToAir,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2toDeepOcean',                          &
+                   Ptr2Data = State_Diag%FluxHg2toDeepOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxHg2HgPfromAirToOcean',                    &
+                   Ptr2Data = State_Diag%FluxHg2HgPfromAirToOcean,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'FluxOCtoDeepOcean',                           &
+                   Ptr2Data = State_Diag%FluxOCtoDeepOcean,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHg0inOcean',                              &
+                   Ptr2Data = State_Diag%MassHg0inOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHg2inOcean',                              &
+                   Ptr2Data = State_Diag%MassHg2inOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHgPinOcean',                              &
+                   Ptr2Data = State_Diag%MassHgPinOcean,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MassHgTotalInOcean',                          &
+                   Ptr2Data = State_Diag%MassHgTotalInOcean,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcBr',                                      &
+                   Ptr2Data = State_Diag%ConcBr,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcBrO',                                     &
+                   Ptr2Data = State_Diag%ConcBrO,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossHg2bySeaSalt',                            &
+                   Ptr2Data = State_Diag%LossHg2bySeaSalt,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossRateHg2bySeaSalt',                        &
+                   Ptr2Data = State_Diag%LossRateHg2bySeaSalt,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcBr',                                 &
+                   Ptr2Data = State_Diag%PolarConcBr,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcBrO',                                &
+                   Ptr2Data = State_Diag%PolarConcBrO,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PolarConcO3',                                 &
+                   Ptr2Data = State_Diag%PolarConcO3,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromBr',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromBr,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromBrY',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromBrY,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromClY',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromClY,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHg0',                              &
+                   Ptr2Data = State_Diag%ProdHg2fromHg0,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBr2',                      &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBr2,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrBrO',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrBrO,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrClO',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrClO,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrplusBrHO2',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrHO2,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrplusBrNO2',                    &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrNO2,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromHgBrPlusBrOH',                     &
+                   Ptr2Data = State_Diag%ProdHg2fromHgBrPlusBrOH,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromOH',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromOH,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdHg2fromO3',                               &
+                   Ptr2Data = State_Diag%ProdHg2fromO3,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ParticulateBoundHg',                          &
+                   Ptr2Data = State_Diag%ParticulateBoundHg,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ReactiveGaseousHg',                           &
+                   Ptr2Data = State_Diag%ReactiveGaseousHg,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepRaALT1',                                &
+                   Ptr2Data = State_Diag%DryDepRaALT1,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelForALT1',                            &
+                   Ptr2Data = State_Diag%DryDepVelForALT1,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesConcALT1',                             &
+                   Ptr2Data = State_Diag%SpeciesConcALT1,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppIntCounts',                                &
+                   Ptr2Data = State_Diag%KppIntCounts,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppJacCounts',                                &
+                   Ptr2Data = State_Diag%KppJacCounts,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppTotSteps',                                 &
+                   Ptr2Data = State_Diag%KppTotSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppAccSteps',                                 &
+                   Ptr2Data = State_Diag%KppAccSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppRejSteps',                                 &
+                   Ptr2Data = State_Diag%KppRejSteps,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppLuDecomps',                                &
+                   Ptr2Data = State_Diag%KppLuDecomps,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppSubsts',                                   &
+                   Ptr2Data = State_Diag%KppSubsts,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppSmDecomps',                                &
+                   Ptr2Data = State_Diag%KppSmDecomps,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+#ifdef MODEL_GEOS
     !=======================================================================
+    ! These fields are only used when GC is interfaced to NASA/GEOS
+    !=======================================================================
+    CALL Finalize( diagId   = 'DryDepRa2m',                                  &
+                   Ptr2Data = State_Diag%DryDepRa2m,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesRst ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesRst, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesRst', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesRst => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'DryDepRa10m',                                 &
+                   Ptr2Data = State_Diag%DryDepRa10m,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesBC ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesBC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesBC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesBC => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'MoninObhukov',                                &
+                   Ptr2Data = State_Diag%MoninObhukov,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConc => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'Bry',                                         &
+                   Ptr2Data = State_Diag%Bry,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%FracOfTimeInTrop ) ) THEN
-       DEALLOCATE( State_Diag%FracOfTimeInTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FracOfTimeInTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FracOfTimeInTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'O3concAfterChem',                             &
+                   Ptr2Data = State_Diag%O3concAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMass1 => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'RO2concAfterChem',                             &
+                   Ptr2Data = State_Diag%RO2concAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMass2 ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMass2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMass2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMass2 => NULL()
-    ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepFull => NULL()
-    ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25ni',                                      &
+                   Ptr2Data = State_Diag%PM25ni,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDryDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDryDepPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25su',                                      &
+                   Ptr2Data = State_Diag%PM25su,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25oc',                                      &
+                   Ptr2Data = State_Diag%PM25oc,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25bc',                                      &
+                   Ptr2Data = State_Diag%PM25bc,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportPBL => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25ss',                                      &
+                   Ptr2Data = State_Diag%PM25ss,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingFull => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25du',                                      &
+                   Ptr2Data = State_Diag%PM25du,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingTrop => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'PM25soa',                                     &
+                   Ptr2Data = State_Diag%PM25soa,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-    IF ( ASSOCIATED( State_Diag%BudgetMixingPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetMixingPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetMixingPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingPBL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionFull => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetConvectionPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetConvectionPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetConvectionPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionPBL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryFull => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetChemistryPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetChemistryPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetChemistryPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryPBL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepFull => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetWetDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetWetDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetWetDepPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepPBL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
-       DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepChm', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepChm => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepMix ) ) THEN
-       DEALLOCATE( State_Diag%DryDepMix, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepMix', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepMix    => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDep ) ) THEN
-       DEALLOCATE( State_Diag%DryDep, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDep', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDep => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepVel ) ) THEN
-       DEALLOCATE( State_Diag%DryDepVel, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepVel', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVel => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepRa2m', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRa2m   => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepRa10m ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRa10m, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepRa10m', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRa10m  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MoninObukhov ) ) THEN
-       DEALLOCATE( State_Diag%MoninObukhov, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MoninObukhov', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MoninObukhov => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%Bry ) ) THEN
-       DEALLOCATE( State_Diag%Bry, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Bry', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Bry => NULL()
-    ENDIF
+    CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
+                   Ptr2Data = State_Diag%CH4pseudoFlux,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
-    IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
-       DEALLOCATE( State_Diag%JVal, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JVal => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%JValIndiv ) ) THEN
-       DEALLOCATE( State_Diag%JValIndiv, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JvalIndiv', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JValIndiv => NULL()
-    ENDIF
+#if defined(MODEL_GEOS) || defined(MODEL_WRF)
+    !=======================================================================
+    ! These fields are only used when GEOS-Chem
+    ! is interfaced to NASA/GEOS or to WRF (as WRF-GC)
+    !=======================================================================
+    CALL Finalize( diagId   = 'KppError',                                    &
+                   Ptr2Data = State_Diag%KppError,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
-
-    IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
-       DEALLOCATE( State_Diag%JNoon, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JNoon => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%JNoonFrac ) ) THEN
-       DEALLOCATE( State_Diag%JNoonFrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JNoonFrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%JNoonFrac => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RxnRate ) ) THEN
-       DEALLOCATE( State_Diag%RxnRate, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RxnRate', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRate=> NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
-       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%OHreactivity', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%OHreactivity => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
-       DEALLOCATE( State_Diag%RxnRconst, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RxnRconst', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRconst => NULL()
-    ENDIF
-#endif
-
-    IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxDiffuse', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDiffuse => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%UVFluxDirect ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxDirect', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDirect => NULL()
-
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%UVFluxNet ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxNet, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%UvFluxNet', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxNet => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AdvFluxZonal ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AdvFluxZonal', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxZonal => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AdvFluxMerid ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxMerid, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AdvFluxMerid', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxMerid => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AdvFluxVert ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxVert, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AdvFluxVert', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AdvFluxVert => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PBLMixFrac ) ) THEN
-       DEALLOCATE( State_Diag%PBLMixFrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PBLMixFrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PBLMixFrac => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PBLFlux ) ) THEN
-       DEALLOCATE( State_Diag%PBLFlux, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PBLFlux', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PBLFlux => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%CloudConvFlux ) ) THEN
-       DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%CloudConvFlux', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%CloudConvFlux => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WetLossConv ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConv, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossConv', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConv => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WetLossConvFrac ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConvFrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossConvFrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossConvFrac => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
-       DEALLOCATE( State_Diag%WetLossLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WetLossLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetLossLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
-       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
-       DEALLOCATE( State_Diag%RainFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
-       DEALLOCATE( State_Diag%WashFracLS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracLS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
-       DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PbFromRnDecay', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PbFromRnDecay => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadDecay ) ) THEN
-       DEALLOCATE( State_Diag%RadDecay, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadDecay', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadDecay => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkyLWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkyLWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkySWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkySWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadAllSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadAllSkySWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadAllSkySWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkyLWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkyLWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkySWSurf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkySWSurf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RadClrSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadClrSkySWTOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RadClrSkySWTOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdBCPIfromBCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdBCPIfromBCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdOCPIfromOCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdOCPIfromOCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdOCPIfromOCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%OHconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%OHconcAfterChem  => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%O3concAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O3concAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%O3concAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%O3concAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RO2concAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%RO2concAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RO2concAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RO2concAfterChem => NULL()
-    ENDIF
-#endif
-
-    IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%HO2concAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%HO2concAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%O1DconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%O1DconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%O1DconcAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%O3PconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%O3PconcAfterChem', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%O3PconcAfterChem => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDust ) ) THEN
-       DEALLOCATE( State_Diag%AODDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODDustWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODDustWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODDustWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODHygWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODHygWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODHygWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSOAfromAqIsopWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerHygGrowth ) ) THEN
-       DEALLOCATE( State_Diag%AerHygGrowth, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerHygGrowth', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerHygGrowth => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaDust ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaHyg ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaHyg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaHyg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaHyg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerNumDenSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenSLA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerNumDenSLA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerNumDenSLA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerNumDenPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenPSC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerNumDenPSC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerNumDenPSC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerAqVol ) ) THEN
-       DEALLOCATE( State_Diag%AerAqVol, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerAqVol', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerAqVol => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaSLA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaSLA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaSLA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaPSC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerSurfAreaPSC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerSurfAreaPSC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODSLAWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODSLAWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODSLAWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AODPSCWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AODPSCWL3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AODPSCWL3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%Loss ) ) THEN
-       DEALLOCATE( State_Diag%Loss, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Loss', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Loss => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%Prod ) ) THEN
-       DEALLOCATE( State_Diag%Prod, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Prod', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Prod => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMSandOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMSandNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMS ) ) THEN
-       DEALLOCATE(  State_Diag%ProdSO2fromDMS, STAT=RC )
-       CALL GC_CheckVar( ' State_Diag%ProdSO2fromDMS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO2fromDMS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdMSAfromDMS ) ) THEN
-       DEALLOCATE( State_Diag%ProdMSAfromDMS, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdMSAfromDMS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdMSAfromDMS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust ) ) THEN
-       DEALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdNITfromHNO3uptakeOnDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdNITfromHNO3uptakeOnDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromH2O2inCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromH2O2inCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromH2O2inCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3inCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromHOBrInCloud, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromHOBrInCloud', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromHOBrInCloud => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO2inCloudMetal ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO2inCloudMetal', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO2inCloudMetal => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inSeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3inSeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromOxidationOnDust, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromOxidationOnDust', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromOxidationOnDust => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromUptakeOfH2SO4g', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromUptakeOfH2SO4g => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromSRO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRHOBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRHOBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRHOBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromSRHOBr => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3s ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3s, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3s', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdSO4fromO3s => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossHNO3onSeaSalt  ) ) THEN
-       DEALLOCATE( State_Diag%LossHNO3onSeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossHNO3onSeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossHNO3onSeaSalt => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%CH4pseudoFlux ) ) THEN
-       DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%CH4pseudoflux => NULL()
-    ENDIF
-#endif
-
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-    IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
-       DEALLOCATE( State_Diag%KppError, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppError => NULL()
-    ENDIF
-#endif
-
-    IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassASOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassASOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassASOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassBC ) ) THEN
-       DEALLOCATE( State_Diag%AerMassBC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassBC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassBC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassINDIOL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassINDIOL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassINDIOL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassINDIOL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassISN1OA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassISN1OA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassISN1OAL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassISN1OA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassLVOCOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassLVOCOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassLVOCOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassLVOCOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassNH4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNH4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassNH4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassNH4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassNIT ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNIT, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassNIT', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassNIT => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassOPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassOPOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassOPOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassOPOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassPOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassPOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassPOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSAL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSAL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSAL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSAL => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSO4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSO4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSO4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSO4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAGX ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAGX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAGX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAIE ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAIE, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAIE', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAIE => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassTSOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassTSOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassTSOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassTSOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BetaNO ) ) THEN
-       DEALLOCATE( State_Diag%BetaNO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BetaNO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BetaNO => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
-       DEALLOCATE( State_Diag%PM25, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25 => NULL()
-    ENDIF
-
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Diag%PM25ni ) ) THEN
-       DEALLOCATE( State_Diag%PM25ni, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25ni', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25ni => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25su ) ) THEN
-       DEALLOCATE( State_Diag%PM25su, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25su', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25su => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25oc ) ) THEN
-       DEALLOCATE( State_Diag%PM25oc, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25oc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25oc => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25bc ) ) THEN
-       DEALLOCATE( State_Diag%PM25bc, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25bc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25bc => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25ss ) ) THEN
-       DEALLOCATE( State_Diag%PM25ss, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25ss', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25ss => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25du ) ) THEN
-       DEALLOCATE( State_Diag%PM25du, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25du', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25du => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25soa ) ) THEN
-       DEALLOCATE( State_Diag%PM25soa, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PM25soa', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PM25soa => NULL()
-    ENDIF
-#endif
-
-    IF ( ASSOCIATED( State_Diag%TotalOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalBiogenicOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalBiogenicOA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TotalOC ) ) THEN
-       DEALLOCATE( State_Diag%TotalOC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%TotalOC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TotalOC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossPOPPOCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPOCPObyGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossPOPPOCPObyGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossPOPPOCPObyGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossPOPPBCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPBCPObyGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossPOPPBCPObyGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossPOPPBCPObyGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromGasPhase', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromGasPhase => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPGfromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPGfromOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPGfromOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPGfromOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPIfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPIfromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPOfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPOCPIfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPOfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromNO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdPOPPBCPIfromNO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCO2fromCO ) ) THEN
-       DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCO2fromCO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCO2fromCO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4byClinTrop ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4byClinTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4byClinTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4byClinTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4byOHinTrop ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4byOHinTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4byOHinTrop => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossCH4inStrat ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4inStrat, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossCH4inStrat', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossCH4inStrat => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCOfromCH4 ) ) THEN
-       DEALLOCATE( State_Diag%ProdCOfromCH4, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCOfromCH4', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCOfromCH4 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdCOfromNMVOC ) ) THEN
-       DEALLOCATE( State_Diag%ProdCOfromNMVOC, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdCOfromNMVOC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdCOfromNMVOC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0anthro => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0biomass ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0biomass, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0biomass', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0biomass => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0geogenic ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0geogenic, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0geogenic', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0geogenic => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0land ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0land, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0land', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0land => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0ocean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0ocean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0ocean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0ocean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0soil => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0snow ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0snow, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0snow', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0snow => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0vegetation ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0vegetation, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0vegetation', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg0vegetation => NULL()
-    ENDIF
-
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2HgPanthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2HgPanthro, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2HgPanthro', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2HgPanthro => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2snowToOcean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2snowToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2snowToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2snowToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg2rivers ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2rivers, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisHg2rivers', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisHg2rivers => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToSnow ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToSnow', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2HgPfromAirToSnow => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg0fromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg0fromAirToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg0fromOceanToAir  ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromOceanToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg0fromOceanToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg0fromOceanToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2toDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2toDeepOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2toDeepOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2toDeepOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxHg2HgPfromAirToOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxOCtoDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxOCtoDeepOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxOCtoDeepOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxOCtoDeepOcean  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHg0inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg0inOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHg0inOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHg0inOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHg2inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg2inOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHg2inOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHg2inOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHgPinOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgPinOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHgPinOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHgPinOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%MassHgTotalInOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgTotalInOcean, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%MassHgTotalInOcean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%MassHgTotalInOcean => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ConcBr ) ) THEN
-       DEALLOCATE( State_Diag%ConcBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ConcBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConcBr  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%ConcBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ConcBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConcBrO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossHg2bySeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossHg2bySeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossHg2bySeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%LossRateHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossRateHg2bySeaSalt, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%LossRateHg2bySeaSalt', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%LossRateHg2bySeaSalt => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcBr ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcBr => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcBrO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PolarConcO3 ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%PolarConcO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PolarConcO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBr, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromBr', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromBr  => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromBrY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBrY, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromBrY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromBrY => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromClY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromClY, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromClY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromClY => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHg0 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHg0, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHg0', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHg0 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBr2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBr2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBr2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrBrO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrBrO => NULL()
-   ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrClO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrClO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrClO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrHO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrHO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrHO2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrNO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrNO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrNO2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromHgBrPlusBrOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ProdHg2fromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromO3, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ProdHg2fromO3', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ProdHg2fromO3 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ParticulateBoundHg ) ) THEN
-       DEALLOCATE( State_Diag%ParticulateBoundHg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ParticulateBoundHg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ParticulateBoundHg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ReactiveGaseousHg ) ) THEN
-       DEALLOCATE( State_Diag%ReactiveGaseousHg, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ReactiveGaseousHg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ReactiveGaseousHg => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepRaALT1 ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRaALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepRaALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRaALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepVelForALT1 ) ) THEN
-       DEALLOCATE( State_Diag%DryDepVelForALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepVelForALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepVelForALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%SpeciesConcALT1 ) ) THEN
-       DEALLOCATE( State_Diag%SpeciesConcALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesConcALT1', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConcALT1 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppIntCounts ) ) THEN
-       DEALLOCATE( State_Diag%KppIntCounts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppIntCounts', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppIntCounts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppJacCounts ) ) THEN
-       DEALLOCATE( State_Diag%KppJacCounts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppJacobians', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppJacCounts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppTotSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppTotSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppTotSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppTotSteps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppAccSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppAccSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppAccSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppAccSteps => NULL()
-    ENDIF
-
-   IF ( ASSOCIATED( State_Diag%KppRejSteps ) ) THEN
-       DEALLOCATE( State_Diag%KppRejSteps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppRejSteps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppRejSteps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppLuDecomps ) ) THEN
-       DEALLOCATE( State_Diag%KppLuDecomps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppLuDecomps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppLuDecomps => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppSubsts ) ) THEN
-       DEALLOCATE( State_Diag%KppSubsts, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppSubsts', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppSubsts => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%KppSmDecomps ) ) THEN
-       DEALLOCATE( State_Diag%KppSmDecomps, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%KppSmDecomps', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%KppSmDecomps => NULL()
-    ENDIF
-
-
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -8226,6 +9249,16 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JVALO3O1D' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O1D'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JVALO3O3P' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O3P'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JNOON' ) THEN
        IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species'
@@ -9310,7 +10343,122 @@ CONTAINS
        RETURN
     ENDIF
 
-   END SUBROUTINE Get_Metadata_State_Diag
+  END SUBROUTINE Get_Metadata_State_Diag
+  !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_NumTags
+!
+! !DESCRIPTION: Returns the number of tags (i.e. individual species or
+!  other quantities) per GEOS-Chem wildcard.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_NumTags( tagId, State_Chm, numTags, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: tagId      ! Wildcard name
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm  ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: numTags    ! Number of tags per wildcard
+    INTEGER,          INTENT(OUT) :: RC         ! Success or failure?
+!
+! !REMARKS:
+!  Split off from routine Get_TagInfo.
+!
+! !REVISION HISTORY:
+!  27 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !=======================================================================
+    ! Get_NumTags begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Get_NumTags (in module "Headers/state_diag_mod.F90)'
+
+    ! Get the number of tags per wildcard name
+    SELECT CASE( TRIM( tagId ) )
+       CASE( '' )
+          numTags = 0
+       CASE( 'ALL',     'S' )
+          numTags = State_Chm%nSpecies
+       CASE( 'ADV',     'A' )
+          numTags = State_Chm%nAdvect
+       CASE( 'AER'          )
+          numTags = State_Chm%nAeroSpc
+       CASE( 'DRY',     'D' )
+          numTags = State_Chm%nDryDep
+       CASE( 'DRYALT'       )
+          numTags = State_Chm%nDryAlt
+       CASE( 'DUSTBIN', 'B' )
+          numTags = NDUST
+       CASE( 'FIX',     'F' )
+          numTags = State_Chm%nKppFix
+       CASE( 'GAS',     'G' )
+          numTags = State_Chm%nGasSpc
+      !------------------------------------------------------
+      ! Prior to 10/24/18:
+      ! Disable Hg tagging for now, but leave commented out
+      ! for future reference (bmy, 10/24/18)
+      !CASE( 'HG0'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HG2'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HGP'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !------------------------------------------------------
+       CASE( 'HYG',     'H' )
+          numTags = State_Chm%nHygGrth
+       CASE( 'KPP',     'K' )
+          numTags = State_Chm%nKppSpc
+       CASE( 'LOS',     'X' )
+          numTags = State_Chm%nLoss
+       CASE( 'NUC',     'N' )
+          numTags = State_Chm%nRadNucl
+       CASE( 'PHO',     'P' )
+          numTags = State_Chm%nPhotol
+       CASE( 'UVFLX',   'U' )
+          numTags = W_
+       CASE( 'PRD',     'Y' )
+          numTags = State_Chm%nProd
+       CASE( 'RRTMG',   'Z' )
+          numTags = nRadFlux
+       CASE( 'RXN',     'R' )
+          numTags = NREACT
+       CASE( 'VAR',     'V' )
+          numTags = State_Chm%nKppVar
+       CASE( 'WET',     'W' )
+          numTags = State_Chm%nWetDep
+       CASE DEFAULT
+          ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
+                   ' is not implemented for getting number of tags'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+  END SUBROUTINE Get_NumTags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -9370,9 +10518,9 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    ErrMsg     = ''
-    ThisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
-    Found      = .TRUE.
+    errMsg     = ''
+    thisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
+    found      = .TRUE.
     numTags    = 0
 
     ! Optional arguments present?
@@ -9382,7 +10530,7 @@ CONTAINS
 
     ! Exit with error if getting tag name but index not specified
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be specified if retrieving an individual tag name'
+       errMsg = 'Index must be specified if retrieving an individual tag name'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -9390,61 +10538,12 @@ CONTAINS
     !=======================================================================
     ! Get number of tags
     !=======================================================================
-    SELECT CASE( TRIM( tagId ) )
-       CASE( 'ALL'     )
-          numTags = State_Chm%nSpecies
-       CASE( 'ADV'     )
-          numTags = State_Chm%nAdvect
-       CASE( 'AER'     )
-          numTags = State_Chm%nAeroSpc
-       CASE( 'DRY'     )
-          numTags = State_Chm%nDryDep
-       CASE( 'DRYALT'  )
-          numTags = State_Chm%nDryAlt
-       CASE( 'DUSTBIN' )
-          numTags = NDUST
-       CASE( 'FIX'     )
-          numTags = State_Chm%nKppFix
-       CASE( 'GAS'     )
-          numTags = State_Chm%nGasSpc
-       !------------------------------------------------------
-       ! Prior to 10/24/18:
-       ! Disable Hg tagging for now, but leave commented out
-       ! for future reference (bmy, 10/24/18)
-       !CASE( 'HG0'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HG2'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HGP'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !------------------------------------------------------
-       CASE( 'HYG'     )
-          numTags = State_Chm%nHygGrth
-       CASE( 'KPP'     )
-          numTags = State_Chm%nKppSpc
-       CASE( 'LOS'     )
-          numTags = State_Chm%nLoss
-       CASE( 'PHO'     )
-          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'   )
-          numTags = W_
-       CASE( 'PRD'     )
-          numTags = State_Chm%nProd
-       CASE( 'RRTMG'   )
-          numTags = nRadFlux
-       CASE( 'RXN'     )
-          numTags = NREACT
-       CASE( 'VAR'     )
-          numTags = State_Chm%nKppVar
-       CASE( 'WET'     )
-          numTags = State_Chm%nWetDep
-       CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
-                   ' is not implemented for getting number of tags'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-    END SELECT
+    CALL Get_NumTags( tagId, State_Chm, numTags, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in routine "Get_NumTags"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Sanity checks -- exit under certain conditions
@@ -9458,9 +10557,9 @@ CONTAINS
 
     ! Exit with error if index exceeds number of tags for this wildcard
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be greater than total number of tags for wildcard' &
+       errMsg = 'Index must be greater than total number of tags for wildcard' &
                 // TRIM(tagId)
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
@@ -9468,7 +10567,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL','ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -9498,18 +10597,16 @@ CONTAINS
        CASE( 'KPP'  )
           D = State_Chm%Map_KppSpc(N)
        CASE( 'PHO'  )
-          IF ( N > State_Chm%nPhotol ) THEN  ! NOTE: To denote the nPhotol+1
-             D = 5000 + N                    ! and nPhotol+2 slots, add a
-          ELSE                               ! large offset, so that we don't
-             D = State_Chm%Map_Photol(N)     ! clobber any existing species #'s
-          ENDIF
+          D = State_Chm%Map_Photol(N)
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
+       CASE( 'NUC'  )
+          D = State_Chm%Map_RadNucl(N)
        CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM( tagId ) // &
+          found= .FALSE.
+          errMsg = 'Handling of tagId ' // TRIM( tagId ) // &
                    ' is not implemented for getting tag name'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
     END SELECT
 
@@ -9540,32 +10637,6 @@ CONTAINS
           D       = INDEX( tagName, '_' )
           tagName = tagName(D+1:)
 
-       ! Photolysis species
-       CASE( 'PHO' )
-
-          ! Save O1_O3D (UCX) or O3 (non-UCX) in the nPhotol+1 slot
-          IF ( D == 5001 + State_Chm%nPhotol ) THEN
-             IF ( Is_UCX ) THEN
-                tagName = 'O3O1D'
-             ELSE
-                tagName = 'O3O1Da'
-             ENDIF
-
-          ! Save O3_O3P (UCX) or POH (non UCX) in the nPhotol+2 slot
-          ELSE IF ( D == 5002 + State_Chm%nPhotol ) THEN
-             IF ( Is_UCX ) THEN
-                tagName = 'O3O3P'
-             ELSE
-                tagName = 'O3O1Db'
-             ENDIF
-
-          ! For all other photolysis species, get the name
-          ! from the GEOS-Chem species database
-          ELSE
-             tagName = State_Chm%SpcData(D)%Info%Name
-
-          ENDIF
-
        ! RRTMG requested output fluxes
        CASE( 'RRTMG' )
           tagName = RadFlux(D)
@@ -9578,46 +10649,15 @@ CONTAINS
        ! UVFlux requested output fluxes
        ! These are at the FAST-JX wavelength bins
        CASE( 'UVFLX' )
-          SELECT CASE( N )
-             CASE( 1  )
-                tagName = '187nm'
-             CASE( 2  )
-                tagName = '191nm'
-             CASE( 3  )
-                tagName = '193nm'
-             CASE( 4  )
-                tagName = '196nm'
-             CASE( 5  )
-                tagName = '202nm'
-             CASE( 6  )
-                tagName = '208nm'
-             CASE( 7  )
-                tagName = '211nm'
-             CASE( 8  )
-                tagName = '214nm'
-             CASE( 9  )
-                tagName = '261nm'
-             CASE( 10 )
-                tagName = '267nm'
-             CASE( 11 )
-                tagName = '277nm'
-             CASE( 12  )
-                tagName = '295nm'
-             CASE( 13  )
-                tagName = '303nm'
-             CASE( 14  )
-                tagName = '310nm'
-             CASE( 15  )
-                tagName = '316nm'
-             CASE( 16  )
-                tagName = '333nm'
-             CASE( 17  )
-                tagName = '380nm'
-             CASE( 18  )
-                tagName = '574nm'
-             CASE DEFAULT
-                tagName = 'NA'
-          END SELECT
+          IF ( D >= 1 .and. D <= 18 ) THEN
+             tagName = UVFlux_Tag_Names(D)
+          ELSE
+             WRITE( errMsg, '(i2.2)' ) D
+             errMsg = 'FAST-JX UV Flux bin ' // TRIM( errMsg ) //           &
+                      'is out of bounds!  It must be in the range 1..18!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
 
        ! Default tag name is the name in the species database
        CASE DEFAULT
@@ -9626,6 +10666,78 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE Get_TagInfo
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_UVFlux_Bin
+!
+! !DESCRIPTION: Returns the FAST_JX wavelength bin corresponding to
+!  a UVFLUX tag name.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_UVFlux_Bin( tagName, bin, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: tagName   ! Tag Name
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: bin       ! Corresponding bin index
+    INTEGER,          INTENT(OUT) :: RC        ! Success or failure
+!
+! !REVISION HISTORY:
+!  01 Jul 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
+
+    !========================================================================
+    ! Get_UVFLux_Bin begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    bin     = -1
+    errMsg  = ''
+    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+
+    ! Get the index for the tagname
+    DO N = 1, 18
+       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+          bin = N
+          EXIT
+       ENDIF
+    ENDDO
+
+    ! Trap potential errros
+    IF ( bin < 0 ) THEN
+       errMsg = 'Could not find bin index for tag name: ' // TRIM( tagName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Get_UVFlux_Bin
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -9725,6 +10837,185 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Get_DiagNameDesc returns the diagnostic name plus any tags, as well
+!  as the diagnostic description plus any tags.  This is a convenience routine
+!  that was abstracted out of the Register_DiagField* routines.
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_DiagNameDesc( Input_Opt, State_Chm, metadataId,             &
+                               desc,      N,         tagId,                  &
+                               diagName,  diagDesc,  RC,                     &
+                               mapData                                      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm   ! Chemistry state object
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId  ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: desc        ! Description metadata
+    INTEGER,               INTENT(IN)  :: N           ! Current tag number
+    CHARACTER(LEN=*),      INTENT(IN)  :: tagId       ! Tag name (e.g. wildcard)
+    TYPE(DgnMap), POINTER, OPTIONAL    :: mapData     ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=255),    INTENT(OUT) :: diagName    ! Diagnostic name + tag
+    CHARACTER(LEN=255),    INTENT(OUT) :: diagDesc    ! Diagnostic desc + tag
+    INTEGER,               INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found
+    INTEGER            :: index
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg
+    CHARACTER(LEN=255) :: tagName
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Get_DiagNameDesc begins here!
+    !=======================================================================
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    index      = -1
+    diagName   = ''
+    diagDesc   = ''
+    tagName    = ''
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = ' -> at Get_TagName (in module Headers/state_diag_mod.F90)'
+
+    IF ( PRESENT( mapData ) ) THEN
+
+       !--------------------------------------------------------------------
+       ! If the mapping object is passed, get the name of each species
+       ! from the modelId as specified in the mapData array
+       !--------------------------------------------------------------------
+
+       ! If indFlag="S", then mapData%slot2id is already the modelId,
+       ! but e.g. if indFlag="D", then mapData%Id is the drydep Id.
+       ! (etc. for other flag values)
+       index = mapData%slot2id(N)
+
+       ! If necessary, convert index to be the modelId so that we use it to
+       ! look up the species name.  NOTE: For some wild cards, there is no
+       ! corresponding species in the species database.  For these, call
+       ! routine Get_TagInfo to look up the tag name.  (bmy, 6/3/20)
+       SELECT CASE( mapData%indFlag )
+          CASE( 'A' )
+             index   = State_Chm%Map_Advect(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'D' )
+             index   = State_Chm%Map_DryDep(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'F' )
+             index   = State_Chm%Map_KppFix(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'H' )
+             index   = State_Chm%Map_HygGrth(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'K' )
+             index   = State_Chm%Map_KppSpc(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'N' )
+             index   = State_Chm%Map_RadNucl(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'P' )
+             index   = State_Chm%Map_Photol(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'S' )
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'V' )
+             index   = State_Chm%Map_KppVar(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE( 'W' )
+             index   = State_Chm%Map_WetDep(index)
+             tagName = State_Chm%SpcData(index)%info%name
+          CASE DEFAULT
+
+             ! Special handling for Loss & Prod
+             SELECT CASE( mapData%indFlag )
+                CASE( 'X', 'Y' )
+                   index = N
+                CASE DEFAULT
+                   ! Pass
+             END SELECT
+
+             ! We need to call Get_TagInfo for diagnostics that
+             ! aren't chemical species (e.g. DUSTBIN, UVFLX, RRTMG, RXN, etc.)
+             CALL Get_TagInfo( Input_Opt = Input_Opt,                     &
+                               State_Chm = State_Chm,                     &
+                               tagID     = tagId,                         &
+                               N         = index,                         &
+                               tagName   = tagName,                       &
+                               found     = found,                         &
+                               RC        = RC                            )
+       END SELECT
+
+       ! Make sure there was no error above
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_reg ) // TRIM( metaDataId )            // &
+                   ' where tagID is ' // TRIM( tagID      )            // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! If the mapping object was not passed, then
+       ! call routine  Get_TagInfo to get the tagName
+       !--------------------------------------------------------------------
+       CALL Get_TagInfo( Input_Opt = Input_Opt,                              &
+                         State_Chm = State_Chm,                              &
+                         tagID     = tagId,                                  &
+                         N         = N,                                      &
+                         tagName   = tagName,                                &
+                         found     = found,                                  &
+                         RC        = RC                                     )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+    ! Add the tag name to the diagnostic name and description
+    diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+    diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
+
+  END SUBROUTINE Get_DiagNameDesc
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Register_DiagField_R4_2D
 !
 ! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State\_Diag,
@@ -9734,7 +11025,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -9743,17 +11035,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! JDiag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -9764,20 +11059,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -9810,17 +11111,21 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagId /= '' ) THEN
 
-       ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get number of tags for this wildcard.  If the mapData object is
+       ! present, then we have already gotten this and saved this
+       ! into mapData%nSlots.  Otherwise, call Get_NumTags.
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -9834,22 +11139,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
-                      ' where tagID is ' // TRIM( tagID      ) //            &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Get_DiagNameDesc!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add taginfo to diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -9913,7 +11223,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -9922,17 +11233,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! Size for Ptr2Data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -9943,20 +11257,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: Found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagID, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -9993,21 +11313,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
 
-       ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       ! Get the total number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
-       IF ( nTags /=  SIZE(Ptr2Data,3) ) THEN
+       IF ( nTags /=  SIZE( Ptr2Data, 3 ) ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
                 '; number of tags is inconsistent with array size'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -10017,22 +11331,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
                       ' where tagID is ' // TRIM( tagID      )            // &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add the tag name to the diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10099,7 +11418,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10108,20 +11428,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
-!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID       ! Name
+    REAL(f4),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:,:)! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots           ! # of slots to
+!                                                            !  size Ptr2Data
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC                ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10132,20 +11452,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10178,22 +11505,26 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged if 4D, get number of tags
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,                &
-                      nTags=nTags )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-               '; Abnormal exit from routine "Get_TagInfo", could not '   // &
-               'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+    ! Make sure one of mapData or nSlots is passed!
+    IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+       errMsg = 'One of mapData or nSlots must be passed '             // &
+            'for tagged diagnostic : ' // TRIM( metadataId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    ! Number of tags
+    IF ( hasMapData ) THEN
+       nTags = mapData%nSlots
+    ELSE IF ( hasNSlots ) THEN
+       nTags = nSlots
     ENDIF
 
     ! Check that number of tags is consistent with array size
     IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-             '; number of tags is inconsistent with array size'
+            '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -10203,22 +11534,27 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
-       ! Get the tag name
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                         N=N, tagName=tagName )
+       ! Get the diagnostic name and description
+       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              metadataId = metadataId,                       &
+                              desc       = desc,                             &
+                              N          = N,                                &
+                              tagId      = tagId,                            &
+                              mapData    = mapData,                          &
+                              diagName   = diagName,                         &
+                              diagDesc   = diagDesc,                         &
+                              RC         = RC                               )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
                    ' where tagID is ' // TRIM( tagID      )               // &
-                   '; Abnormal exit from routine "Get_TagInfo"!'
+                   '; Abnormal exit from routine "Get_DiagNameDesc"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Add the tag name to the diagnostic name and description
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
        CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
@@ -10258,7 +11594,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10267,17 +11604,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10288,20 +11628,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: hasMapData, hasNSlots, found
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_2D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10334,17 +11681,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagId /= '' ) THEN
 
-       ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10358,22 +11707,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
-          ! Trap potential errors
+         ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
-                      ' where tagID is ' // TRIM( tagID      ) //            &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add taginfo to diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10437,7 +11791,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData,   nSlots                    )
 !
 ! !USES:
 !
@@ -10446,17 +11801,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID      ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm       ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData         ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots          ! # of slots to
+!                                                           !  size Ptr2Data
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag      ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10467,20 +11825,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: Found,      onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagID, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_3D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10517,17 +11882,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
 
-       ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Make sure one of mapData or nSlots is passed!
+       IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+          errMsg = 'One of mapData or nSlots must be passed '             // &
+                   'for tagged diagnostic : ' // TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
+       ENDIF
+
+       ! Get the number of tags
+       IF ( hasMapData ) THEN
+          nTags = mapData%nSlots
+       ELSE IF ( hasNSlots ) THEN
+          nTags = nSlots
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10541,22 +11908,27 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
-          ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          ! Get the diagnostic name and description
+          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 metadataId = metadataId,                    &
+                                 desc       = desc,                          &
+                                 N          = N,                             &
+                                 tagId      = tagId,                         &
+                                 mapData    = mapData,                       &
+                                 diagName   = diagName,                      &
+                                 diagDesc   = diagDesc,                      &
+                                 RC         = RC                            )
 
-          ! Trap potential errors
+         ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
                       ' where tagID is ' // TRIM( tagID      )            // &
-                      '; Abnormal exit from routine "Get_TagInfo"!'
+                      '; Abnormal exit from routine "Get_DiagNameDesc"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Add the tag name to the diagnostic name and description
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
@@ -10581,7 +11953,7 @@ CONTAINS
        ENDDO
 
     !-----------------------------------------------------------------------
-    ! If not tied to species then simply add the single field
+    ! If not tied to species, then simply add the single field
     !-----------------------------------------------------------------------
     ELSE
 
@@ -10623,7 +11995,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       mapData ,  nSlots                    )
 !
 ! !USES:
 !
@@ -10632,20 +12005,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
-    REAL(f8),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
-    TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
-!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    CHARACTER(LEN=*),      INTENT(IN)    :: metadataID       ! Diagnostic name
+    REAL(f8),     POINTER, INTENT(IN)    :: Ptr2Data(:,:,:,:)! pointer to data
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+    INTEGER,               OPTIONAL      :: nSlots           ! # of slots to
+!                                                            !  size Ptr2Data
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diag State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC                ! Success/failure
-!
-! !REMARKS:
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -10656,20 +12029,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
-    CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: found, onEdges
+    ! Scalars
+    INTEGER            :: N, nTags, rank, type, vloc, index
+    LOGICAL            :: found, onEdges
+    LOGICAL            :: hasMapData, hasNSlots
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255) :: desc, units, tagId, tagName
+    CHARACTER(LEN=255) :: diagName, diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasNSlots  = PRESENT( nSlots  )
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Diag%'
+    thisLoc    = &
+         ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10699,22 +12079,29 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Assume always tagged. Get number of tags.
+    ! Assume always tagged -- get number of tags.
+    ! If the mapData object is passed, then we have already gotten the
+    ! number of tags in routine Get_Mapping.
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, nTags=nTags   )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+    ! Make sure one of mapData or nSlots is passed!
+    IF ( ( .not. hasMapData ) .and. ( .not. hasNSlots ) ) THEN
+       errMsg = 'One of mapData or nSlots must be passed '                // &
+                'for tagged diagnostic : ' // TRIM( metadataId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    ! Get number of tags
+    IF ( hasMapData ) THEN
+       nTags = mapData%nSlots
+    ELSE IF ( hasNSlots ) THEN
+       nTags = nSlots
     ENDIF
 
     ! Check that number of tags is consistent with array size
     IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
              '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -10725,21 +12112,27 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
-       ! Get the tag name
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         N=N, tagName=tagName )
+       ! Get the diagnostic name and description
+       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              metadataId = metadataId,                       &
+                              desc       = desc,                             &
+                              N          = N,                                &
+                              tagId      = tagId,                            &
+                              mapData    = mapData,                          &
+                              diagName   = diagName,                         &
+                              diagDesc   = diagDesc,                         &
+                              RC         = RC                               )
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
                    ' where tagID is ' // TRIM( tagID      )               // &
-                   '; Abnormal exit from routine "Get_TagInfo"!'
+                   '; Abnormal exit from routine "Get_DiagNameDesc"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Add the tag name to the diagnostic name and description
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
        CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
@@ -10844,8 +12237,8 @@ CONTAINS
     ! Flux outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
-    !   0=BA  1=O3  2=ME  3=SU   4=NI  5=AM
-    !   6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+    !   0=BASE  1=NOO3  2=NOME  3=NOSU   4=NONI   5=NOAM
+    !   6=NOBC  7=NOOA  8=NOSS  9=NODU  10=NOPM  11=NOST (UCX only)
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -10890,8 +12283,8 @@ CONTAINS
              IF ( Input_Opt%LUCX ) THEN
                 State_Diag%RadFluxInd(N) = 11
              ELSE
-                ErrMsg = 'RRTMG flux output "NOST" (no strat aerosol)'       // &
-                         ' is selected, but the UCX mechanism is off!'
+                ErrMsg = 'RRTMG flux output "NOST (no strat aerosol is '  // &
+                         'selected, but the UCX mechanism is off!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -10923,5 +12316,2009 @@ CONTAINS
 110 FORMAT( a, a                )
 
   END SUBROUTINE Init_RRTMG_Indices
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Mapping
+!
+! !DESCRIPTION: Computes a mapping array which contains the index of each
+!  species in its State_Diag array.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Mapping( Input_Opt,   State_Chm, TaggedDiagList,            &
+                          metadataID,  mapData,   indFlag,                   &
+                          RC                                                )
+!
+! !USES:
+!
+    USE CharPak_Mod,        ONLY : CntMat
+    USE CharPak_Mod,        ONLY : Unique
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
+
+!    USE State_Chm_Mod, ONLY : NumSpecies_
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt      ! Root CPU?
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
+    TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags or wildcards
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diagnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        ! Flag for Ind_
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, INTENT(OUT) :: mapData        ! Mapping object
+    INTEGER,               INTENT(OUT) :: RC             ! Success/failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+ !LOCAL VARIABLES:
+
+    ! Scalars
+    LOGICAL                   :: found
+    LOGICAL                   :: isDustBin
+    LOGICAL                   :: isLoss
+    LOGICAL                   :: isProd
+    LOGICAL                   :: isRxnRate
+    LOGICAL                   :: isUvFlx
+    LOGICAL                   :: isWildCard
+    LOGICAL                   :: skipInd
+    INTEGER                   :: index
+    INTEGER                   :: numTags
+    INTEGER                   :: numWildCards
+    INTEGER                   :: nTags
+    INTEGER                   :: S
+
+    ! Strings
+    CHARACTER(LEN=3  )        :: rxnStr
+    CHARACTER(LEN=255)        :: mapName
+    CHARACTER(LEN=255)        :: mapName2
+    CHARACTER(LEN=255)        :: tagName
+    CHARACTER(LEN=255)        :: thisLoc
+    CHARACTER(LEN=255)        :: spcName
+    CHARACTER(LEN=255)        :: wcName
+    CHARACTER(LEN=512)        :: errMsg
+
+    ! Objects
+    TYPE(DgnTagItem), POINTER :: TagItem
+    TYPE(DgnTagList)          :: TagList
+    TYPE(DgnTagList)          :: WildCardList
+
+    !=======================================================================
+    ! Get_Mapping begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    mapName    = 'Map_ ' // TRIM( metadataId )
+    mapName2   = TRIM( mapName ) // '%id'
+    isDustBin  = ( indFlag == 'B'         )
+    isRxnRate  = ( indFlag == 'R'         )
+    isUvFlx    = ( indFlag == 'U'         )
+    isLoss     = ( indFlag == 'X'         )
+    isProd     = ( indFlag == 'Y'         )
+    skipInd    = ( isRxnRate .or. isUvFlx )
+    spcName    = ''
+    wcName     = ''
+    errMsg     = ''
+    thisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
+
+    !=======================================================================
+    ! Get info about the TaggedDiagList attached to this diagnostic
+    !=======================================================================
+    CALL Query_TaggedDiagList( Input_Opt      = Input_Opt,       &
+                               TaggedDiagList = TaggedDiagList,  &
+                               diagName       = metadataId,      &
+                               Found          = Found,           &
+                               isWildCard     = isWildCard,      &
+                               numWildCards   = numWildCards,    &
+                               WildCardList   = WildCardList,    &
+                               numTags        = numTags,         &
+                               TagList        = TagList,         &
+                               RC             = RC              )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Query_TaggedDiagList"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate and populate the mapData object
+    !=======================================================================
+
+    ! Allocate mapData (because it is a pointer, we have to
+    ! allocate the main object before any of the subfields)
+    IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+    ALLOCATE( mapData, STAT=RC )
+    CALL GC_CheckVar( mapName, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize fields of mapData (mostly to missing values)
+    mapData%nSlots  = -1
+    mapData%slot2id => NULL()
+    mapData%nIds    = -1
+    mapData%id2slot => NULL()
+    mapData%indFlag =  indFlag
+
+    IF ( isWildCard ) THEN
+
+       !--------------------------------------------------------------------
+       ! Diagnostic has a wildcard
+       !--------------------------------------------------------------------
+
+       ! Find the number of tags for this wildcard
+       TagItem => WildCardList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+          wcName = TagItem%name
+          CALL Get_NumTags( wcName, State_Chm, mapData%nSlots, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_NumTags"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             TagItem => NULL()
+             RETURN
+          ENDIF
+
+          ! Advance to next wildcard in list
+          ! NOTE: Most diagnostics will only have one wildcard!
+          TagItem => TagItem%next
+       ENDDO
+       TagItem => NULL()
+
+       ! Allocate the mapData%slot2id field
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%slot2id = -1
+
+       ! Get the id for each species indicated by wildcard
+       ! For diagnostics that are not defined species in the
+       ! species database, skip calling the Ind_ function.
+       DO index = 1, mapData%nSlots
+          CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
+                            State_Chm = State_Chm,                           &
+                            tagId     = wcName,                              &
+                            N         = index,                               &
+                            tagName   = spcName,                             &
+                            found     = found,                               &
+                            RC        = RC                                  )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_Mapping!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
+
+          ! Save the in the mapping object
+          IF ( skipInd ) THEN
+             mapData%slot2id(index) = index
+          ELSE IF ( isLoss ) THEN
+             mapData%slot2id(index) = State_Chm%Map_Loss(index)
+          ELSE IF ( isProd ) THEN
+             mapData%slot2id(index) = State_Chm%Map_Prod(index)
+          ELSE
+             mapData%slot2id(index) = Ind_( spcName, indFlag )
+          ENDIF
+       ENDDO
+
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! Diagnostic has tags (i.e. individual non-wildcard species)
+       !--------------------------------------------------------------------
+
+       ! Set the number of tags
+       mapData%nSlots = numTags
+
+       ! Allocate the mapData%id field
+       IF ( ASSOCIATED( mapData%slot2id ) ) DEALLOCATE( mapData%slot2id )
+       ALLOCATE( mapData%slot2id( mapData%nSlots ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%slot2id = -1
+
+       ! Loop thru the list of tags and find the relevant ID
+       ! For diagnostics that are not defined species in the
+       ! species database, skip calling the Ind_ function.
+       TagItem => TagList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+
+          IF ( isDustBin ) THEN
+
+             ! Dustbin: Tag names are "bin1" .. "bin7", so the
+             ! bin number is the last character of the tag name
+             S = LEN_TRIM( TagItem%Name )
+             READ( TagItem%Name(S:S), '(I1)' ) index
+             mapData%slot2id(TagItem%index) = index
+
+          ELSE IF ( isLoss ) THEN
+
+             ! Loss: get the index from State_Chm%Map_Loss
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(index)
+
+          ELSE IF ( isProd ) THEN
+
+             ! Loss: get the index from State_Chm%Map_Loss
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(index)
+
+          ELSE IF ( isRxnRate ) THEN
+
+             ! RxnRate: the last 3 characters is the index #
+             S      = LEN_TRIM( TagItem%name )
+             rxnStr = TagItem%name(S-2:S)
+             READ( rxnstr, '(I3.3) ' ) index
+             mapData%slot2id(TagItem%index) = index
+
+          ELSE IF ( isUvFlx ) THEN
+
+             ! Get the proper UVFLux bin index, which is pegged
+             ! to the corresponding FAST-JX wavelength bin
+             CALL Get_UVFlux_Bin( TagItem%name, index, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                errMsg = 'Error encountered in routine "Get_UVFlux_Bin"!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
+
+             ! Store wavelength bin index in the slot2Id field
+             mapData%slot2id(TagItem%index) = index
+
+          ELSE
+
+             ! Otherwise, this is a defined species.
+             ! Call Ind_() to get the proper index
+             mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )
+
+          ENDIF
+
+          ! Go to next tag
+          TagItem => TagItem%next
+       ENDDO
+       TagItem => NULL()
+    ENDIF
+
+    !--------------------------------------------------------------------
+    ! Create an index array with the max number of possible Id's
+    !--------------------------------------------------------------------
+
+    ! Before proceeding, make sure that slot2Id contains valid values
+    IF ( ANY( mapData%slot2id < 0 ) ) THEN
+       errMsg = 'The mapData%slot2Id array corresponding to collection "' // &
+                TRIM( metadataId ) // '" contains missing values! '       // &
+                'This can indicate that this collection is either '       // &
+                'undefined or turned off.  Please check the HISTORY.rc '  // &
+                'configuration file in your run directory.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Skip computing id2slot for Prod and Loss diagnostics
+    IF ( .not. isLoss .and. .not. isProd ) THEN
+
+       ! Get max number of species for this indFlag
+       CALL Get_NumTags( indFlag, State_Chm, mapData%nIds, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Get_NumTags" (tagId=indFlag)!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Allocate the mapData%id2slot field
+       IF ( ASSOCIATED( mapData%id2slot ) ) DEALLOCATE( mapData%id2slot )
+       ALLOCATE( mapData%id2slot( mapData%nIds ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%id2slot = -1
+
+       ! Populate the mapData%id2slot field
+       DO S = 1, mapData%nSlots
+          index = mapData%slot2Id(S)
+          mapData%id2slot(index) = S
+       ENDDO
+    ENDIF
+
+  END SUBROUTINE Get_Mapping
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_MapData_and_NumSlots
+!
+! !DESCRIPTION: Returns the mapping object (if passed) for a given
+!  diagnostic, as well as the number of slots to size the last dimension
+!  of the diagnostic array.  This is a convenience routine that was
+!  abstracted from the various Init_and_Register_* routines in order
+!  to reduce repetition of code.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_MapData_and_NumSlots( Input_Opt,      State_Chm,            &
+                                       TaggedDiagList, metadataId,           &
+                                       numSlots,       RC,                   &
+                                       indFlag,        mapData              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)  :: Input_Opt      ! Input Options
+    TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
+    TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags/WCs per diag
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diangnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        !
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, OPTIONAL    :: mapData        ! Mapping object
+    INTEGER,               INTENT(OUT) :: numSlots       ! # of slots to
+                                                         !  size data array
+    INTEGER,               INTENT(OUT) :: RC             ! Success or failure?
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found
+
+    ! Strings
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC       = GC_SUCCESS
+    found    = .FALSE.
+    numSlots = 1
+    errMsg   = ''
+    tagId    = ''
+    thisLoc   = &
+     ' -> at Get_MapData_and_NumSlots (in module Headers/state_diag_mod.F90)'
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+
+       ! If the mapping array is passed, then get the vector which contains
+       ! the list of ModelID's from the species database for each
+       ! quantity in the diagnostic, as well as the number of slots
+       ! to allocate for the 4th dimension of Ptr2Data.
+       CALL Get_Mapping( Input_Opt      = Input_Opt,                         &
+                         State_Chm      = State_Chm,                         &
+                         TaggedDiagList = TaggedDiagList,                    &
+                         metadataId     = metadataId,                        &
+                         indFlag        = indFlag,                           &
+                         mapData        = mapData,                           &
+                         RC             = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Get_Mapping": '// TRIM( metadataId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Number of slots to size the 4th dim of Ptr2Data
+       numSlots = mapData%nSlots
+
+    ELSE
+
+       ! If the mapping array is not passed, then find the wildcard
+       ! that is attached to this diagnostic ...
+       CALL Get_Metadata_State_Diag( am_I_Root  = Input_Opt%amIRoot,          &
+                                     metadataId = metadataId,                 &
+                                     Found      = Found,                      &
+                                     tagId      = tagID,                      &
+                                     RC         = RC                         )
+
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          ErrMsg = 'Error encountered in "Get_MetaData_State_Diag", '      // &
+                   'could not get tagId for ' // TRIM( metadataId )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! ... and then find the number of "tags" corresponding to
+       ! this wilcard.  This will be the number of slots for
+       ! allocating the 4th dimension of Ptr2Data.
+       IF ( found ) THEN
+          CALL Get_NumTags( tagId, State_Chm, numSlots, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Abnormal exit from routine "Get_NumTags", could  '  // &
+                      'not get nTags for !' // TRIM( metadataId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+    ENDIF
+
+  END SUBROUTINE Get_MapData_and_NumSlots
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_2D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_2D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      dim1d,       diagFlag                 )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1-D data
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)    ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NW,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_2D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_2D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the id for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+
+    ! Get dimension if this is 1-D tagged data
+    IF ( PRESENT( dim1d ) ) THEN
+       NW = dim1d
+    ELSE
+       NW = -1
+    ENDIF
+
+    ! Allocate the data array
+    IF ( numSlots > 0 .and. NW > 0 ) THEN
+       ALLOCATE( Ptr2Data( NW, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField" (hasMapData=T)!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_3D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 3-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_3D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      diagFlag                              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)  ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_3D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_3D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the modelId for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    IF ( numSlots > 0 ) THEN
+       ALLOCATE( Ptr2Data( NX, NY, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY, NZ       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_4D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  4-byte, 4-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_4D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      diagFlag                              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:)! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R4_4D begins here!
+    !=======================================================================
+
+    ! Initialzie
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R4_4D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the modelId for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    ALLOCATE( Ptr2Data( NX, NY, NZ, numSlots ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f4
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                      &
+                             State_Chm  = State_Chm,                      &
+                             State_Diag = State_Diag,                     &
+                             metadataId = diagId,                         &
+                             Ptr2Data   = Ptr2Data,                       &
+                             mapData    = mapData,                        &
+                             nSlots     = numSlots,                       &
+                             RC         = RC                             )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_2D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_2D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      dim1d,       diagFlag                 )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    INTEGER,               OPTIONAL      :: dim1d            ! Dim for 1d data
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)    ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NW,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_4D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    found      = .FALSE.
+    numSlots   = -1
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_2D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the modelId for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+
+    IF ( PRESENT( dim1d ) ) THEN
+       NW = State_Grid%NZ
+    ELSE
+       NW = -1
+    ENDIF
+
+    ! Allocate array
+    IF ( numSlots > 0 .and. NW > 0 ) THEN
+       ALLOCATE( Ptr2Data( NW, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_3D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 3-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_3D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      diagFlag                              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)  ! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_3D begins here!
+    !=======================================================================
+
+    ! Initialzie
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_3D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the modelId for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) THEN
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    IF ( numSlots > 0 ) THEN
+       ALLOCATE( Ptr2Data( NX, NY, numSlots ), STAT=RC )
+    ELSE
+       ALLOCATE( Ptr2Data( NX, NY, NZ       ), STAT=RC )
+    ENDIF
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                             )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_4D
+!
+! !DESCRIPTION: Allocates a State_Diag array and registers each diagnostic
+!  quantity archived by that array.  This particular routine is for
+!  8-byte, 4-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_4D( Input_Opt,   State_Chm,                &
+                                      State_Diag,  State_Grid,               &
+                                      DiagList,    TaggedDiagList,           &
+                                      Ptr2Data,    diagId,                   &
+                                      archiveData, RC,                       &
+                                      mapData,     forceDefine,              &
+                                      diagFlag                              )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt        ! Input Options
+    TYPE(ChmState),        INTENT(IN)    :: State_Chm        ! Chemistry State
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid       ! Grid State
+    TYPE(DgnList),         INTENT(IN)    :: DiagList         ! Diags specified
+    TYPE(TaggedDgnList),   INTENT(IN)    :: TaggedDiagList   ! Tags and WCs
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId           ! Diagnostic name
+    LOGICAL,               OPTIONAL      :: forceDefine      ! Don't skip diag
+    CHARACTER(LEN=*),      OPTIONAL      :: diagFlag         ! Flag for Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),        INTENT(INOUT) :: State_Diag       ! Diagnostic State
+    LOGICAL,               INTENT(INOUT) :: archiveData      ! Save this diag?
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:)! Pointer to data
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData          ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC               ! Success/failure!
+!
+! !REVISION HISTORY:
+!  31 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: alwaysDefine, found
+    INTEGER            :: NX,           NY
+    INTEGER            :: NZ,           numSlots
+
+    ! Strings
+    CHARACTER(LEN=1)   :: indFlag
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: arrayId
+    CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: thisLoc
+
+    !=======================================================================
+    ! Init_and_Register_R8_4D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    numSlots   = -1
+    found      = .FALSE.
+    arrayID    = 'State_Diag%' // TRIM( diagId )
+    errMsg     = ''
+    thisLoc    = &
+     ' -> at Init_and_Register_R8_4D (in module Headers/state_diag_mod.F90)'
+
+    ! Test if this diagnostic will always be defined
+    ! (e.g. this might be needed for coupling with GEOS)
+    IF ( PRESENT( forceDefine ) ) THEN
+       alwaysDefine = forceDefine
+    ELSE
+       alwaysDefine = .FALSE.
+    ENDIF
+
+    ! If diagFlag is not passed, then we will get the modelId for all
+    ! species (instead of restricting to advected, drydep, wetdep, etc.)
+    IF ( PRESENT( diagFlag ) ) THEN
+       indFlag = diagFlag
+    ELSE
+       indFlag = 'S'
+    ENDIF
+
+    ! Zero/nullify the data and mapping variables
+    !IF ( ASSOCIATED( Ptr2Data ) ) DEALLOCATE( Ptr2Data )
+    Ptr2Data => NULL()
+    archiveData = .FALSE.
+    IF ( PRESENT( mapData ) ) mapData => NULL()
+
+    !=======================================================================
+    ! First determine if the diagnostic is turned on
+    ! Return if it isn't (unless forceDefine = .TRUE.)
+    !=======================================================================
+    CALL Check_DiagList( Input_Opt%amIRoot, DiagList, diagID, found, RC )
+    IF ( ( .not. found ) .and. ( .not. alwaysDefine ) ) RETURN
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th dim of the array;
+    ! also get the mapping object for memory reduction (if passed)
+    !=======================================================================
+    CALL Get_MapData_and_NumSlots( Input_Opt       = Input_Opt,             &
+                                   State_Chm       = State_Chm,             &
+                                   TaggedDiagList  = TaggedDiagList,        &
+                                   metadataId      = diagId,                &
+                                   indFlag         = indFlag,               &
+                                   numSlots        = numSlots,              &
+                                   mapData         = mapData,               &
+                                   RC              = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Get_MapData_and_NumSlots"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    ALLOCATE( Ptr2Data( NX, NY, NZ, numSlots ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    CALL Register_DiagField( Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Diag = State_Diag,                        &
+                             metadataId = diagId,                            &
+                             Ptr2Data   = Ptr2Data,                          &
+                             mapData    = mapData,                           &
+                             nSlots     = numSlots,                          &
+                             RC         = RC                                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Print info about diagnostic
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_MapData
+!
+! !DESCRIPTION: Finalizes a mapping data object
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_MapData( diagId, mapData, RC )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId   ! Diagnostic name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnMap), POINTER, INTENT(INOUT) :: mapData  ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?!
+!
+! !REVISION HISTORY:
+!  01 Apr 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: mapId
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    ! Finalize MapData if it's has been allocated
+    IF ( ASSOCIATED( mapData ) ) THEN
+
+       ! Deallocate and nullify the allId
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%id2slot'
+       IF ( ASSOCIATED( mapData%id2slot ) ) THEN
+          DEALLOCATE( mapData%id2slot, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%id2slot => NULL()
+
+       ! Deallocate and nullify the id field
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%slot2id'
+       IF ( ASSOCIATED( mapData%slot2id ) ) THEN
+          DEALLOCATE( mapData%slot2id, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%slot2id => NULL()
+
+       ! Then finalize the mapData object itself
+       mapId = 'State_Diag%Map_' // TRIM( diagId )
+       DEALLOCATE( mapData, STAT=RC )
+       CALL GC_CheckVar( mapId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+    ENDIF
+
+    ! Nullify mapData
+    mapData => NULL()
+
+  END SUBROUTINE Finalize_MapData
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_2D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_2D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)     ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_3D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 3-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_3D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)   ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R4_4D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 4-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R4_4D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_2D
+!
+! !DESCRIPTION: Deallocates and nullifies an 8-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_2D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:)     ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_3D
+!
+! !DESCRIPTION: Deallocates and nullifies an 8-byte, 3-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_3D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:)   ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Finalize_R8_4D
+!
+! !DESCRIPTION: Deallocates and nullifies a 4-byte, 2-dimensional
+!  data array and its associated mapping object (if present).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Finalize_R8_4D( diagId, Ptr2Data, RC, mapData )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),      INTENT(IN)    :: diagId            ! Diag name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Data aray
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(OUT)   :: RC                ! Success ?
+!
+! !REVISION HISTORY:
+!  01 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId, mapId
+
+    !=======================================================================
+    ! Finalize the data array
+    !=======================================================================
+    arrayId = 'State_Diag%' // TRIM( diagId )
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+       DEALLOCATE( Ptr2Data, STAT=RC )
+       CALL GC_CheckVar( arrayId, 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    Ptr2Data => NULL()
+
+    !=======================================================================
+    ! Finalize the mapping object
+    !=======================================================================
+    IF ( PRESENT( mapData ) ) THEN
+       CALL Finalize_MapData( diagId, mapData, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Finalize_R8_4D
 !EOC
 END MODULE State_Diag_Mod

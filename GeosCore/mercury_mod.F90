@@ -449,7 +449,7 @@ CONTAINS
     LOGICAL            :: LGTMM
     LOGICAL            :: LNLPBL
     LOGICAL            :: prtDebug
-    INTEGER            :: NA, nAdvect
+    INTEGER            :: NA, nAdvect, S
     INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
     REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
     REAL(fp)           :: C_OH, C_O3, C_BR, C_BRO, C_HOCL
@@ -737,7 +737,7 @@ CONTAINS
     !$OMP PRIVATE( GROSS_OX_BR2, GROSS_OX_BRBRO, GROSS_OX_BRHO2 )  &
     !$OMP PRIVATE( GROSS_OX_BRNO2, GROSS_OX_BRCLO, GROSS_OX_BROH ) &
     !$OMP PRIVATE( GROSS_RED, NET_OX )                             &
-    !$OMP PRIVATE( AREA_CM2,  DEP_DRY_FLX )                        &
+    !$OMP PRIVATE( AREA_CM2,  DEP_DRY_FLX, S                     ) &
     !$OMP PRIVATE( F_HG0_DEP, Hg_Cat,      Kstar,       TPL )
     !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
     !%%%% Putting this loop in the correct order causes differences in the %%%%
@@ -1310,8 +1310,11 @@ CONTAINS
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                               DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,S) =                             &
+                   State_Diag%DryDepChm(I,J,S) + DEP_DRY_FLX
+                ENDIF
              ENDIF
 
              ! Archive Hg(II) drydep flux [molec/cm2/s]
@@ -1327,8 +1330,11 @@ CONTAINS
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                                DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,S) =                             &
+                   State_Diag%DryDepChm(I,J,S) + DEP_DRY_FLX
+                ENDIF
              ENDIF
 
              ! Archive Hg(0) drydep flux [molec/cm2/s]
@@ -1344,8 +1350,11 @@ CONTAINS
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                               DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,NN) =                            &
+                   State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+                ENDIF
              ENDIF
           ENDIF
 

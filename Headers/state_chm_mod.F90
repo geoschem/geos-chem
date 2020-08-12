@@ -152,6 +152,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nLoss                ! # of loss species
      INTEGER                    :: nPhotol              ! # photolysis species
      INTEGER                    :: nProd                ! # of prod species
+     INTEGER                    :: nRadNucl             ! # of radionuclides
      INTEGER                    :: nWetDep              ! # wetdep species
 
      !----------------------------------------------------------------------
@@ -171,6 +172,7 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_Photol (:      ) ! Photolysis species IDs
      INTEGER,           POINTER :: Map_Prod   (:      ) ! Prod diag species
      CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
+     INTEGER,           POINTER :: Map_RadNucl(:      ) ! Radionuclide IDs
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
      INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
@@ -313,6 +315,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: SurfaceFlux(:,:,:  )
 
+     !----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: SFC_CH4    (:,:    )
@@ -475,6 +478,7 @@ CONTAINS
     State_Chm%Map_Photol        => NULL()
     State_Chm%Map_Prod          => NULL()
     State_Chm%Name_Prod         => NULL()
+    State_Chm%Map_RadNucl       => NULL()
     State_Chm%Map_WetDep        => NULL()
     State_Chm%Map_WL            => NULL()
 #if defined( MODEL_GEOS )
@@ -636,6 +640,7 @@ CONTAINS
     State_Chm%nKppFix  = SpcCount%nKppFix
     State_Chm%nKppSpc  = SpcCount%nKppSpc
     State_Chm%nPhotol  = SpcCount%nPhotol
+    State_Chm%nRadNucl = SpcCount%nRadNucl
     State_Chm%nWetDep  = SpcCount%nWetDep
     N_Hg0_CATS         = SpcCount%nHg0
     N_Hg2_CATS         = SpcCount%nHg2
@@ -842,9 +847,16 @@ CONTAINS
        State_Chm%Map_Prod = 0
     ENDIF
 
+    IF ( State_Chm%nRadNucl > 0 ) THEN
+       ALLOCATE( State_Chm%Map_RadNucl( State_Chm%nRadNucl ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_RadNucl', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_RadNucl = 0
+    ENDIF
+
     IF ( State_Chm%nWetDep > 0 ) THEN
        ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_Wetdep', 0, RC )
+       CALL GC_CheckVar( 'State_Chm%Map_WetDep', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_WetDep = 0
     ENDIF
@@ -957,6 +969,14 @@ CONTAINS
        IF ( ThisSpc%Is_Photolysis ) THEN
           C                       = ThisSpc%PhotolId
           State_Chm%Map_Photol(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for WETDEP SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_RadioNuclide ) THEN
+          C                        = ThisSpc%RadNuclId
+          State_Chm%Map_RadNucl(C) = ThisSpc%ModelId
        ENDIF
 
        !--------------------------------------------------------------------
@@ -2254,6 +2274,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_Prod', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Prod => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_RadNucl ) ) THEN
+       DEALLOCATE( State_Chm%Map_RadNucl, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_WetDep', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_RadNucl => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
@@ -3964,6 +3991,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_ChmField_Rfp_4D (in Headers/state_chm_mod.F90)'
+    ErrMsg     = ''
     ErrMsg_reg = 'Error encountered while registering State_Chm%'
 
     !-----------------------------------------------------------------------
@@ -4104,6 +4132,8 @@ CONTAINS
 !   'G' : Returns gas-phase species index
 !   'H' : Returns hygroscopic-growth species index
 !   'K' : Returns KPP main species index
+!   'K' : Returns KPP master species index
+!   'N' : Returns radionuclide species index
 !   'P' : Returns photolysis species index
 !   'S' : Returns main species index (aka "ModelId")
 !   'V' : Returns KPP variable species index
@@ -4165,6 +4195,11 @@ CONTAINS
        ! KPP chemical species ID
        CASE( 'K', 'k' )
           Indx = SpcDataLocal(N)%Info%KppSpcId
+          RETURN
+
+       ! KPP chemical species ID
+       CASE( 'N', 'n' )
+          Indx = SpcDataLocal(N)%Info%RadNuclId
           RETURN
 
        ! Photolysis species ID

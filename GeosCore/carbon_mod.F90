@@ -313,8 +313,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -4634,8 +4634,9 @@ CONTAINS
 ! !USES:
 !
    USE ErrCode_Mod
+   USE HCO_Error_Mod
+   USE HCO_State_Mod,         ONLY : HCO_GetHcoID
    USE HCO_State_GC_Mod,      ONLY : HcoState
-   USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
@@ -4818,6 +4819,10 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE ERROR_MOD
+   USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+   USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+   USE HCO_Interface_Common, ONLY : GetHcoDiagn
+   USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Grid_Mod,       ONLY : GrdState
@@ -4827,10 +4832,6 @@ CONTAINS
    USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
    USE TOMAS_MOD,            ONLY : CHECKMN
-   USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-   USE HCO_Interface_Common, ONLY : GetHcoDiagn
-   USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
-   USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
