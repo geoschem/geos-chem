@@ -30,7 +30,6 @@ MODULE Diagnostics_mod
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
-  PRIVATE :: Set_SpcConc_Diagnostic
   PRIVATE :: Set_SpcConc_Diags_VVDry
 !
 ! !PRIVATE DATA MEMBERS:
@@ -115,25 +114,6 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at Set_Diagnostics_EndofTimestep ' // ModLoc
-
-! NOTE: If you need to change SpeciesConc from "v/v dry" to other units,
-! then uncomment this subroutine call.  Also comment out where SpeciesConc
-! gets updated in routine Set_SpcConc_Diags_VVDry below.
-!    !-----------------------------------------------------------------------
-!    ! Set species concentration diagnostic in units specified in state_diag_mod
-!    !-----------------------------------------------------------------------
-!    IF ( State_Diag%Archive_SpeciesConc ) THEN
-!       CALL Set_SpcConc_Diagnostic( 'SpeciesConc', State_Diag%SpeciesConc,   &
-!                                    Input_Opt,  State_Chm,                   &
-!                                    State_Grid, State_Met,                   &
-!                                    RC,         State_Diag%Map_SpeciesConc  )
-!
-!       ! Trap potential errors
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error encountered setting species concentration diagnostic'
-!          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-!       ENDIF
-!    ENDIF
 
     !-----------------------------------------------------------------------
     ! Set species concentration for diagnostics in units of
@@ -297,169 +277,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_SpcConc_Diagnostic
-!
-! !DESCRIPTION: Subroutine Set_SpcConc\_Diagnostic sets the passed species
-!  concentration diagnostic array stored in State_Diag to the instantaneous
-!  State_Chm%Species values converted to the diagnostic unit stored in
-!  the State_Diag metadata.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_SpcConc_Diagnostic( DiagMetadataID, Ptr2Data,               &
-                                     Input_Opt,      State_Chm,              &
-                                     State_Grid,     State_Met,              &
-                                     RC,             mapData                )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Met_Mod,  ONLY : MetState
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnMap
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Diag_Mod, ONLY : Get_Metadata_State_Diag
-    USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*),      INTENT(IN)    :: DiagMetadataID    ! Diagnostic id
-    TYPE(OptInput),        INTENT(IN)    :: Input_Opt         ! Input Options
-    TYPE(GrdState),        INTENT(IN)    :: State_Grid        ! Grid State
-    TYPE(MetState),        INTENT(IN)    :: State_Met         ! Met State
-    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping obj
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),        INTENT(INOUT) :: State_Chm         ! Chem State
-    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Diag array
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,               INTENT(OUT)   :: RC                ! Success?
-!
-! !REMARKS:
-!  The name argument is used to retrieve metadata (units) for the diagnostic
-!  of interest. The Ptr2Data should be of form State_Diag%xxx where xxx is
-!  the name of the diagnostic array to be set.
-!
-!  This routine allows the freedom to easily create multiple species
-!  concentration diagnostics other than the default end-of-timestep
-!  diagnostic State_Diag%SpeciesConc, although this routine is used to set
-!  that as well.
-!
-!  For example, you may create diagnostics for concentrations at different
-!  phases of the GEOS-Chem run by adding new diagnostic arrays, e.g.
-!  State_Diag%SpeciesConc_preChem and State_Diag%SpeciesConc_postChem, to
-!  state_diag_mod.F90. Metadata could be used for 'SpeciesConc' or a new
-!  metadata entry could be created.
-!
-!  Changing the unit string of the metadata in state_diag_mod.F90 will
-!  result in different units in the species concencentration diagnostic
-!  output. The units in the netcdf file metadata will reflect the new units.
-!
-! !REVISION HISTORY:
-!  27 Sep 2017 - E. Lundgren - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-    ! Scalars
-    LOGICAL               :: Found
-    INTEGER               :: I,      J,       L,     N,        S
-
-    ! Strings
-    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
-
-    !====================================================================
-    ! Set_SpcConc_Diagnostic begins here!
-    !====================================================================
-
-    ! Assume success
-    RC      =  GC_SUCCESS
-    Found   = .FALSE.
-    ThisLoc = ' -> Set_SpcConc_Diagnostic ' // ModLoc
-
-    ! Exit if species concentration is not a diagnostics in HISTORY.rc
-    IF ( ASSOCIATED( Ptr2Data ) ) THEN
-
-       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' .or. &
-            TRIM( DiagMetadataID ) == 'SpeciesBC' ) THEN
-
-          ! For GEOS-Chem restart and BC collections force units to v/v dry
-          Units = 'v/v dry'
-
-       ELSE
-
-          ! Retrieve the units of the diagnostic from the metadata
-          CALL Get_Metadata_State_Diag( Input_Opt%amIRoot,     &
-                                        TRIM(DiagMetadataID),  &
-                                        Found, RC, Units=Units )
-
-          ! Allow for alternate format of units
-          IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
-          IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
-          IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-          IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
-
-       ENDIF
-
-       ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
-                               Units, RC, OrigUnit=OrigUnit )
-
-       IF ( PRESENT( mapData ) ) THEN
-
-          ! Copy species concentrations to diagnostic array.  Only loop
-          ! over as many species as indicated by the mapping object.
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( N, S   )
-          DO S = 1, mapData%nSlots
-             N = mapData%slot2id(S)
-             Ptr2Data(:,:,:,S) = State_Chm%Species(:,:,:,N)
-          ENDDO
-          !$OMP END PARALLEL DO
-
-       ELSE
-
-          ! Copy all species concentrations to diagnostic array
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( N      )
-          DO N = 1, State_Chm%nSpecies
-             Ptr2Data(:,:,:,N) = State_Chm%Species(:,:,:,N)
-          ENDDO
-          !$OMP END PARALLEL DO
-
-       ENDIF
-
-       mapData => NULL()
-
-       ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                               OrigUnit, RC )
-
-       ! Error handling
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error converting species units for archiving diagnostics'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-       ENDIF
-    ENDIF
-
-  END SUBROUTINE Set_SpcConc_Diagnostic
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Set_SpcConc_Diags_VVDry
 !
 ! !DESCRIPTION: Subroutine Set_SpcConc\_DiagVVDry sets several species
@@ -497,22 +314,8 @@ CONTAINS
 !
     INTEGER,          INTENT(OUT)   :: RC           ! Success or failure?
 !
-! !REMARKS:
-!  This subroutine was written so as to minimize the number of unit
-!  conversions that occur per call (which happens once per timestep).
-!  Units  are now converted to and from "v/v dry air" only once per call.
-!  The prior algorithm, which used routine Set_SpcConc_Diagnostic,
-!  was converting units 2 or 3 times per call, which can make run times
-!  substantially longer.
-!
-!  The State_Diag%SpeciesConc diagnostic has units of "mol mol-1 dry",
-!  which is equivalent to "v/v dry".  Therefore, we can include the
-!  State_Diag%SpeciesConc diagnostic in this routine.  But if you change
-!  the units of State_Diag%SpeciesConc, you should instead comment it out
-!  below and call routine Set_SpcConc_Diagnostic instead.  This will
-!  ensure that State_Diag%SpeciesConc will get set to the proper units.
-!
 ! !REVISION HISTORY:
+!  08 Jul 2019 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -538,13 +341,10 @@ CONTAINS
     ! Assume success
     RC      =  GC_SUCCESS
     Found   = .FALSE.
-    ThisLoc = ' -> Set_SpcConc_Diagnostics ' // ModLoc
-
-    ! We a ssume all diagnostics are already in [v/v dry]
-    ! This will allow us to minimize unit conversions
-    Units   = 'v/v dry'
+    ThisLoc = ' -> Set_SpcConc_VVDry ' // ModLoc
 
     ! Convert State_Chm%Species unit to [v/v dry]
+    Units   = 'v/v dry'
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             Units, RC, OrigUnit=OrigUnit )
 
@@ -557,10 +357,6 @@ CONTAINS
 
     !=======================================================================
     ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
-    !
-    ! NOTE: If you change the units of SpeciesConc in state_diag_mod.F90,
-    ! then comment this IF block out and then also uncomment the IF block
-    ! in the main routine above where Set_SpcConc_Diagnostic is called.
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesConc ) THEN
 
@@ -583,10 +379,6 @@ CONTAINS
 
     !=======================================================================
     ! Copy species to SpeciesBC (transport boundary conditions) [v/v dry]
-    !
-    ! NOTE: If you change the units of SpeciesBC in state_diag_mod.F90,
-    ! then comment this IF block out and then also uncomment the IF block
-    ! in the main routine above where Set_SpcConc_Diagnostic is called.
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesBC ) THEN
 
@@ -609,10 +401,6 @@ CONTAINS
 
     !=======================================================================
     ! Copy species to SpeciesRst (restart file output) [v/v dry]
-    !
-    ! NOTE: If you change the units of SpeciesBC in state_diag_mod.F90,
-    ! then comment this IF block out and then also uncomment the IF block
-    ! in the main routine above where Set_SpcConc_Diagnostic is called.
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesRst ) THEN
 
