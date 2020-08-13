@@ -24,11 +24,11 @@ Tran/conv timestep [sec]: 600
 Chem/emis timestep [sec]: 1200
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
-Species name            : POPG_PYR
-Species name            : POPPOCPO_PYR
-Species name            : POPPOCPI_PYR
-Species name            : POPPBCPO_PYR
-Species name            : POPPBCPI_PYR
+Species name            : POPG_{POPs_SPC}
+Species name            : POPPOCPO_{POPs_SPC}
+Species name            : POPPOCPI_{POPs_SPC}
+Species name            : POPPBCPO_{POPs_SPC}
+Species name            : POPPBCPI_{POPs_SPC}
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T
@@ -76,17 +76,17 @@ Photolyse nitrate aer.? : F
  => % channel B (NO2)   : 33.333
 ------------------------+------------------------------------------------------
 %%% POPS MENU %%%       :
-POP type [PHE,PYR,BAP]  : PYR
+POP type [PHE,PYR,BAP]  : {POPs_SPC}
 Chemistry processing on?: T
-POP_XMW                 : 202.25d-3
-POP_KOA                 : 7.24d8
-POP_KBC                 : 1.0d11
-POP_K_POPG_OH           : 50d-12
-POP_K_POPG_O3A          : 0d0
-POP_K_POPG_O3B          : 3.0d15
-POP_HSTAR               : 5.37d-4
-POP_DEL_H               : -87d3
-POP_DEL_Hw              : 43d0
+POP_XMW                 : {POPs_XMW}
+POP_KOA                 : {POPs_KOA}
+POP_KBC                 : {POPs_KBC}
+POP_K_POPG_OH           : {POPs_K_POPG_OH}
+POP_K_POPG_O3A          : {POPs_K_POPG_O3A}
+POP_K_POPG_O3B          : {POPs_K_POPG_O3B}
+POP_HSTAR               : {POPs_HSTAR}
+POP_DEL_H               : {POPs_DEL_H}
+POP_DEL_Hw              : {POPs_DEL_Hw}
 ------------------------+------------------------------------------------------
 %%% DEPOSITION MENU %%% :
 Turn on Dry Deposition? : T

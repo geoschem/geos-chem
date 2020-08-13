@@ -13,7 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the POPs simulation for PYR.
+#  This file has been customized for the POPs simulation for {POPs_SPC}.
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -30,7 +30,7 @@ ROOT:                        {DATA_ROOT}/HEMCO
 METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
-DiagnFreq:                   End
+DiagnFreq:                   Monthly
 Wildcard:                    *
 Separator:                   /
 Unit tolerance:              2
@@ -57,7 +57,7 @@ Warnings:                    1
     --> OLSON_LANDMAP          :       true
     --> YUAN_MODIS_LAI         :       true
 #------------------------------------------------------------------------------
-1002    GC_POPs                : on    POPG_PYR/POPPOCPO_PYR/POPPBCPO_PYR
+1002    GC_POPs                : on    POPG_{POPs_SPC}/POPPOCPO_{POPs_SPC}/POPPBCPO_{POPs_SPC}
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -83,8 +83,8 @@ Warnings:                    1
 # --- GEOS-Chem POPs emissions (Extension 1002) ---
 #==============================================================================
 (((GC_POPs
-1002 TOT_POP     $ROOT/POPs/v2015-08/PYR_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
-1002 SURF_POP    $ROOT/POPs/v2015-08/PYR_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
+1002 TOT_POP     $ROOT/POPs/v2015-08/{POPs_SPC}_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
+1002 SURF_POP    $ROOT/POPs/v2015-08/{POPs_SPC}_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
 1002 SOIL_CARBON $ROOT/POPs/v2015-08/GTMM_carbon.generic.1x1.nc     SOIL_CARBON    1985/1/1/0         C xy  1       * - 1 1
 1002 GLOBAL_OC   $ROOT/POPs/v2015-08/OCPO.$met.$RES.nc              OCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
 1002 GLOBAL_BC   $ROOT/POPs/v2015-08/BCPO.$met.$RES.nc              BCPO           2005-2009/1-12/1/0 C xyz 1       * - 1 1
