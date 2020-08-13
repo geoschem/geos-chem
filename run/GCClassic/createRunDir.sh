@@ -72,34 +72,34 @@ valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
     if [[ ${sim_num} = "1" ]]; then
-	sim_type=fullchem
+	sim_name=fullchem
 	valid_sim=1
     elif [[ ${sim_num} = "2" ]]; then
-	sim_type=aerosol
+	sim_name=aerosol
 	valid_sim=1
     elif [[ ${sim_num} = "3" ]]; then
-	sim_type=CH4
+	sim_name=CH4
 	valid_sim=1
     elif [[ ${sim_num} = "4" ]]; then
-	sim_type=CO2
+	sim_name=CO2
 	valid_sim=1
     elif [[ ${sim_num} = "5" ]]; then
-	sim_type=Hg
+	sim_name=Hg
 	valid_sim=1
     elif [[ ${sim_num} = "6" ]]; then
-	sim_type=POPs
+	sim_name=POPs
 	valid_sim=1
     elif [[ ${sim_num} = "7" ]]; then
-	sim_type=tagCH4
+	sim_name=tagCH4
 	valid_sim=1
     elif [[ ${sim_num} = "8" ]]; then
-	sim_type=tagCO
+	sim_name=tagCO
 	valid_sim=1
     elif [[ ${sim_num} = "9" ]]; then
-	sim_type=tagO3
+	sim_name=tagO3
 	valid_sim=1
     elif [[ ${sim_num} = "10" ]]; then
-	sim_type=TransportTracers
+	sim_name=TransportTracers
 	valid_sim=1
     else
 	printf "Invalid simulation option. Try again.\n"
@@ -109,7 +109,7 @@ done
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
 #-----------------------------------------------------------------
-if [[ ${sim_type} = "fullchem" ]]; then
+if [[ ${sim_name} = "fullchem" ]]; then
     
     printf "\nChoose chemistry domain:\n"
     printf "  1. Troposphere + stratosphere (recommended)\n"
@@ -118,10 +118,10 @@ if [[ ${sim_type} = "fullchem" ]]; then
     while [ "${valid_chemgrid}" -eq 0 ]; do
 	read chemgrid_num
 	if [[ ${chemgrid_num} = "1" ]]; then
-	    chemgrid="troposphere"
+	    chemgrid="trop+strat"
 	    valid_chemgrid=1
 	elif [[ ${chemgrid_num} = "2" ]]; then
-	    chemgrid="tropstrat"
+	    chemgrid="trop_only"
 	    valid_chemgrid=1
 	else
 	  printf "Invalid chemistry domain option. Try again.\n"
@@ -138,13 +138,14 @@ if [[ ${sim_type} = "fullchem" ]]; then
     printf "  7. APM\n"
     printf "  8. RRTMG\n"
     valid_sim_option=0
+    sim_extra_option=none
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
 	if [[ ${sim_option} = "1" ]]; then
-	    sim_name="standard"
+	    sim_extra_option=none
 	    valid_sim_option=1
 	elif [[ ${sim_option} = "2" ]]; then
-	    sim_name="benchmark"
+	    sim_extra_option="benchmark"
 	    valid_sim_option=1
 	elif [[ ${sim_option} = "3" ]]; then
 	    printf "\nChoose complex SOA option:\n"
@@ -154,42 +155,43 @@ if [[ ${sim_type} = "fullchem" ]]; then
 	    while [ "${valid_soa}" -eq 0 ]; do
 		read soa_option
 		if [[ ${soa_option} = "1" ]]; then
-		    sim_name="complexSOA"
+		    sim_extra_option="complexSOA"
 		    valid_soa=1
 		elif [[ ${soa_option} = "2" ]]; then
-		    sim_name="complexSOA_SVPOA"
+		    sim_extra_option="complexSOA_SVPOA"
 		    valid_soa=1
 		fi
 	    done
 	    valid_sim_option=1
 	elif [[ ${sim_option} = "4" ]]; then
-	   sim_name="marinePOA"
+	   sim_extra_option="marinePOA"
 	   valid_sim_option=1
 	elif [[ ${sim_option} = "5" ]]; then
-	   sim_name="aciduptake"
+	   sim_extra_option="aciduptake"
 	   valid_sim_option=1
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "\nChoose TOMAS option:\n"
-	    printf "  1. TOMAS15\n"
-	    printf "  1. TOMAS40\n"
+	    printf "  1. TOMAS with 15 bins\n"
+	    printf "  1. TOASS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option
 		if [[ ${tomas_option} = "1" ]]; then
-		    sim_name="TOMAS15"
+		    sim_extra_option="TOMAS15"
 		    valid_tomas=1
 		elif [[ ${tomas_option} = "2" ]]; then
-		    sim_name="TOMAS40"
+		    sim_extra_option="TOMAS40"
 		    valid_tomas=1
+		else
+		    printf "Invalid TOMAS option. Try again.\n"
 		fi
 	    done
 	    valid_sim_option=1
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "7" ]]; then
-	    sim_name="APM"
+	    sim_extra_option="APM"
 	    valid_sim_option=1
 	elif [[ ${sim_option} = "8" ]]; then
-	    sim_name="RRTMG"
+	    sim_extra_option="RRTMG"
 	    valid_sim_option=1
 	else
 	    printf "Invalid simulation option. Try again.\n"
@@ -199,7 +201,7 @@ if [[ ${sim_type} = "fullchem" ]]; then
 #-----------------------------------------------------------------
 # Ask user to specify POPs simulation options
 #-----------------------------------------------------------------
-elif [[ ${sim_type} = "POPs" ]]; then
+elif [[ ${sim_name} = "POPs" ]]; then
     printf "\nChoose POPs type:\n"
     printf "  1. BaP\n"
     printf "  2. PHE\n"
@@ -208,21 +210,47 @@ elif [[ ${sim_type} = "POPs" ]]; then
     while [ "${valid_pops}" -eq 0 ]; do
 	read pops_num
 	if [[ ${pops_num} = "1" ]]; then
-	    sim_name="POPs_BaP"
+	    POP_SPC="BaP"
+	    POP_XMW="252.31d-3"
+	    POP_KOA="3.02d11"
+	    POP_KBC="7.94d13"
+	    POP_K_POPG_OH="50d-12"
+	    POP_K_POPG_O3A="0d0"
+	    POP_K_POPG_O3B="2.8d15"
+	    POP_HSTAR="3.10d-5"
+	    POP_DEL_H="-110d3"
+	    POP_DEL_Hw="43d0"
 	    valid_pops=1
 	elif [[ ${pops_num} = "2" ]]; then
-	    sim_name="POPs_PHE"
+	    POP_SPC="PHE"
+	    POP_XMW="178.23d-3"
+	    POP_KOA="4.37d7"
+	    POP_KBC="1.0d10"
+	    POP_K_POPG_OH="2.7d-11"
+	    POP_K_POPG_O3A="0d0"
+	    POP_K_POPG_O3B="2.15d15"
+	    POP_HSTAR="1.74d-3"
+	    POP_DEL_H="-74d3"
+	    POP_DEL_Hw="47d0"
 	    valid_pops=1
 	elif [[ ${pops_num} = "3" ]]; then
-	    sim_name="POPs_PYR"
+	    POP_SPC="PYR"
+	    POP_XMW="202.25d-3"
+	    POP_KOA="7.24d8"
+	    POP_KBC="1.0d11"
+	    POP_K_POPG_OH="50d-12"
+	    POP_K_POPG_O3A="0d0"
+	    POP_K_POPG_O3B="3.0d15"
+	    POP_HSTAR="5.37d-4"
+	    POP_DEL_H="-87d3"
+	    POP_DEL_Hw="43d0"
 	    valid_pops=1
 	else
 	    printf "Invalid POPs type. Try again.\n"
 	fi
+	sim_name="${sim_name}_${pops_spc}"
     done
 
-else
-    sim_name=${sim_type}
 fi
 
 #-----------------------------------------------------------------
@@ -316,6 +344,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
     while [ "${valid_domain}" -eq 0 ]; do
 	read domain_num
 	if [[ ${domain_num} = "1" ]]; then
+	    domain_name="global"
 	    lon_range="-180.0 180.0"
 	    lat_range=" -90.0  90.0"
 	    half_polar="T"
@@ -323,6 +352,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	    buffer_zone="0  0  0  0"
 	    valid_domain=1
 	else
+	    domain_name="AS"
 	    half_polar="F"
 	    nested_sim="T"
 	    buffer_zone="3  3  3  3"
@@ -336,6 +366,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		fi
   		valid_domain=1
 	    elif [[ ${domain_num} = "3" ]]; then
+		domain_name="EU"
 	        if [[ ${grid_res} = "05x0625" ]]; then 
 	            lon_range="-30.0 50.0"
 		    lat_range=" 30.0 70.0"
@@ -345,6 +376,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		fi
   		valid_domain=1
 	    elif [[ ${domain_num} = "4" ]]; then
+		domain_name="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then 
 	            lon_range="-140.0 -40.0"
 		    lat_range="  10.0  70.0"
@@ -354,6 +386,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		fi
   		valid_domain=1
 	    elif [[ ${domain_num} = "5" ]]; then
+		domain_name="custom"
 	        lon_range="MinLon MaxLon"
 	        lat_range="MinLat MaxLat"
   		valid_domain=1
@@ -416,7 +449,11 @@ if [ -z "$1" ]; then
     printf "\nEnter run directory name, or press return to use default:\n"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=GC_${grid_res}_${met_name}_${sim_name}
+	if [[ "${sim_extra_option}" == "none" ]]; then
+	    rundir_name=GC_${grid_res}_${sim_name}
+	else
+	    rundir_name=GC_${grid_res}_${sim_name}_${sim_extra_option}
+	fi
 	printf " Using default directory name ${rundir_name}\n"
     fi
 else
@@ -460,9 +497,9 @@ cp ./cleanRundir.sh              ${rundir}
 cp ./setCodeDir.sh               ${rundir}
 cp ./README                      ${rundir}
 cp ./gitignore                   ${rundir}/.gitignore
-cp ./input.geos.templates/input.geos.${sim_type}            ${rundir}/input.geos
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_type}            ${rundir}/HISTORY.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_type}  ${rundir}/HEMCO_Config.rc
+cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
+cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
+cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 if [[ ${sim_type} =~ "chem" ]]; then
     cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.standard   ${rundir}/HEMCO_Diagn.rc
 else
@@ -472,14 +509,14 @@ mkdir ${rundir}/OutputDir
 
 # Copy species database; append APM or TOMAS species if needed
 cp -r ../shared/species_database.yml   ${rundir}
-if [[ ${sim_name} =~ "TOMAS" ]]; then
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ../shared/species_database_tomas.yml >> ${rundir}/species_database.yml
-elif [[ ${sim_name} =~ "APM" ]]; then
+elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cat ../shared/species_database_apm.yml >> ${rundir}/species_database.yml
 fi
 
 # If benchmark simulation, put run script in directory
-if [ "${sim_name}" == "benchmark" ]; then
+if [ ${sim_extra_option} = "benchmark" ]; then
     cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
@@ -515,69 +552,81 @@ sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{DUST_SF}|${dust_sf}|"          ${rundir}/HEMCO_Config.rc
-sed -i -e "s|{FREQUENCY}|00000100 000000|"   ${rundir}/HISTORY.rc
-sed -i -e "s|{DURATION}|00000100 000000|"    ${rundir}/HISTORY.rc
 
-# Make changes for specific simulations
-if [[ ${sim_name} = "benchmark" ]]; then
-    line1="--> OFFLINE_DUST           :       true"
-    line2="--> OFFLINE_DUST           :       false"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
-    
-    line1="--> OFFLINE_BIOGENICVOC    :       true"
-    line2="--> OFFLINE_BIOGENICVOC    :       false"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+#-----------------------------------------------------------------
+# Update config file default settings based on simulation selected
+#-----------------------------------------------------------------
 
-    line1="--> OFFLINE_SEASALT        :       true"
-    line2="--> OFFLINE_SEASALT        :       false"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+#### Define function to replace values in config files
+replace_colon_sep_val() {
+    KEY=$1
+    VALUE=$2
+    FILE=$3
+    #printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VALUE}" "${FILE}"
 
-    line1="--> OFFLINE_SOILNOX        :       true"
-    line2="--> OFFLINE_SOILNOX        :       false"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+    # replace value in line starting with 'whitespace + key + whitespace + : +
+    # whitespace + value' where whitespace is variable length including none
+    sed -i -e "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE}
+}
 
-    line1="SoilNOx                : off"
-    line2="SoilNOx                : on "
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+#### Define function to add new line(s) in config files
+add_text() {
+    KEY=$1
+    VALUE=$2
+    FILE=$3
+    sed -i -e "/${KEY}/a ${VALUE}" ${FILE}
+}
 
-    line1="DustDead               : off"
-    line2="DustDead               : on "
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+#### Define function to remove line(s) in config files
+remove_text() {
+    VALUE=$1
+    FILE=$2
+    sed -i -e "/${VALUE}/d" ${FILE}
+}
 
-    line1="SeaSalt                : off"
-    line2="SeaSalt                : on "
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+#-----------------------------
+# Benchmark settings
+#-----------------------------
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    replace_colon_sep_val "--> OFFLINE_DUST"        false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "--> OFFLINE_BIOGENICVOC" false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "--> OFFLINE_SEASALT"     false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "--> OFFLINE_SOILNOX"     false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "DustDead"                on    ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "SoilNOx"                 on    ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "SeaSalt"                 on    ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "Use GC classic timers?"  T     ${rundir}/input.geos
 
-    line1="Use GC classic timers?  : F"
-    line2="Use GC classic timers?  : T"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
-elif [[ ${sim_name} = "aciduptake" ]]; then
-    line1="DustAlk                : off"
-    line2="DustAlk                : on "
-elif [[ ${sim_name} = "marinePOA" ]]; then
-    line1="SeaSalt                : off"
-    line2="SeaSalt                : on "
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|NO     0      3 |NO     104    -1|" ${rundir}/HEMCO_Diagn.rc
+    sed -i -e "s|0      3 |105    -1|"               ${rundir}/HEMCO_Diagn.rc
+    sed -i -e "s|0      4 |108    -1|"               ${rundir}/HEMCO_Diagn.rc
+    sed -i -e "s|#Inv|Inv|"                          ${rundir}/HEMCO_Diagn.rc
+    sed -i -e "s|#'|'|"                              ${rundir}/HISTORY.rc
 fi
 
-# Add species for special simulation options
-if [[ ${sim_name} = "benchmark" ]] || [[ ${sim_name} =~ "complexSOA" ]]; then
-    line1="Online COMPLEX SOA      : F"
-    line2="Online COMPLEX SOA      : T"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
-    
-    line1="Species name            : ALK4"
-    line2="\Species name            : ASOA1\n\
+#-----------------------------
+# Complex SOA settings
+#-----------------------------
+if [[ ${sim_extra_option} = "benchmark"   ]] || \
+   [[ ${sim_extra_option} =~ "complexSOA" ]] || \
+   [[ ${sim_extra_option} = "APM" ]]; then
+
+    # Turn on complex SOA option in input.geos
+    replace_colon_sep_val "Online COMPLEX SOA" T ${rundir}/input.geos
+
+    # Add complex SOA species in input.geos
+    prev_line="Species name            : ALK4"
+    new_line="\Species name            : ASOA1\n\
 Species name            : ASOA2\n\
 Species name            : ASOA3\n\
 Species name            : ASOAN\n\
 Species name            : ASOG1\n\
 Species name            : ASOG2\n\
 Species name            : ASOG3"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
-    line1="Species name            : TOLU"
-    line2="\Species name            : TSOA0\n\
+    add_text $prev_line $new_line ${rundir}/input.geos
+    
+    prev_line="Species name            : TOLU"
+    new_line="\Species name            : TSOA0\n\
 Species name            : TSOA1\n\
 Species name            : TSOA2\n\
 Species name            : TSOA3\n\
@@ -585,95 +634,684 @@ Species name            : TSOG0\n\
 Species name            : TSOG1\n\
 Species name            : TSOG2\n\
 Species name            : TSOG3"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+    add_text $prev_line $new_line ${rundir}/input.geos
+fi
 
-    if [[ ${sim_name} = "complexSOA_SVPOA" ]]; then
-	line1="=> Semivolatile POA?   : F"
-	line2="=> Semivolatile POA?   : T"
-	sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
+#-----------------------------
+# Semivolatile POA settings
+#-----------------------------
+if [[ ${sim_extra_option} = "complexSOA_SVPOA" ]]; then
+	
+    # Turn on semivolatile POA option in input.geos
+    replace_colon_sep_val "=> Semivolatile POA?" T ${rundir}/input.geos
 
-	line1="Species name            : N2O5"
-	line2="Species name            : NAP"
-	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
-	line1="Species name            : OCPI"
-	line2="Species name            : OCPO"
-	sed -i -e "/{$line1}/d"  ${rundir}/input.geos
-	sed -i -e "/{$line2}/d"  ${rundir}/input.geos
-
-	line1="Species name            : OIO"
-	line2="\Species name            : OPOA1\n\
+    # Add semivolatile POA species in input.geos
+    prev_line="Species name            : N2O5"
+    new_line="\Species name            : NAP"
+    add_text $prev_line $new_line ${rundir}/input.geos
+	
+    line="Species name            : OCPI"
+    remove_text $line ${rundir}/input.geos
+    line="Species name            : OCPO"
+    remove_text $line ${rundir}/input.geos
+	
+    prev_line="Species name            : OIO"
+    new_line="\Species name            : OPOA1\n\
 Species name            : OPOA2\n\
 Species name            : OPOG1\n\
 Species name            : OPOG2"
-	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
-	line1="Species name            : PIP"
-	line2="\Species name            : POA1\n\
+    add_text $prev_line $new_line ${rundir}/input.geos
+	
+    prev_line="Species name            : PIP"
+    new_line="\Species name            : POA1\n\
 Species name            : POA2\n\
 Species name            : POG1\n\
 Species name            : POG2"
-	sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-    fi
+    add_text $prev_line $new_line ${rundir}/input.geos
+fi
 
-elif [[ ${sim_name} = "aciduptake" ]]; then
+#-----------------------------
+# Acid uptake settings
+#-----------------------------
+if [[ ${sim_extra_option} = "aciduptake" ]]; then
+    replace_colon_sep_val "DustAlk"          on ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "=> Acidic uptake" T  ${rundir}/input.geos
 
-    line1="=> Acidic uptake ?     : F"
-    line2="=> Acidic uptake ?     : T"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
-    
-    line1="Species name            : DST4"
-    line2="\Species name            : DSTAL1\n\
+    # Add acid uptake species in input.geos
+    prev_line="Species name            : DST4"
+    new_line="\Species name            : DSTAL1\n\
 Species name            : DSTAL2\n\
 Species name            : DSTAL3\n\
 Species name            : DSTAL4"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
-    line1="Species name            : NIT"
-    line2="\Species name            : NITD1\n\
+    add_text $prev_line $new_line ${rundir}/input.geos
+    
+    prev_line="Species name            : NIT"
+    new_line="\Species name            : NITD1\n\
 Species name            : NITD2\n\
 Species name            : NITD3\n\
 Species name            : NITD4"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
-        line1="Species name            : SO4"
-    line2="\Species name            : SO4D1\n\
+    add_text $prev_line $new_line ${rundir}/input.geos
+    
+    prev_line="Species name            : SO4"
+    new_line="\Species name            : SO4D1\n\
 Species name            : SO4D2\n\
 Species name            : SO4D3\n\
 Species name            : SO4D4"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
+    add_text $prev_line $new_line ${rundir}/input.geos
+fi
 
-elif [[ ${sim_name} = "marinePOA" ]]; then
+#-----------------------------
+# Marine POA settings
+#-----------------------------
+if [[ ${sim_extra_option} = "marinePOA" ]]; then
+    replace_colon_sep_val "SeaSalt"                 on ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val " => MARINE ORG AEROSOLS" T  ${rundir}/input.geos
 
-    line1=" => MARINE ORG AEROSOLS : F"
-    line2=" => MARINE ORG AEROSOLS : T"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/input.geos
-    
-    line1="Species name            : MONITU"
-    line2="\Species name            : MOPI\n\
+    # Add marine POA species to input.geos
+    prev_line"Species name            : MONITU"
+    new_line="\Species name            : MOPI\n\
 Species name            : MOPO"
-    sed -i -e "/${line1}/a ${line2}" ${rundir}/input.geos
-
+    add_text $prev_line $new_line ${rundir}/input.geos
 fi
 
-# Save additional diagnostics for benchmark simulations
-if [[ ${sim_name} = "benchmark" ]]; then
-    line1="#Inv"
-    line2="Inv"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HEMCO_Diagn.rc
+#-----------------------------
+# RRTMG settings
+#-----------------------------
+if [[ ${sim_extra_option} = "RRTMG" ]]; then
 
-    line1="#'"
-    line2="'"
-    sed -i -e "s|${line1}|${line2}|" ${rundir}/HISTORY.rc
+    replace_colon_sep_val "Turn on RRTMG?"       T ${rundir}/input.geos
+    replace_colon_sep_val "Calculate LW fluxes?" T ${rundir}/input.geos
+    replace_colon_sep_val "Calculate SW fluxes?" T ${rundir}/input.geos
+    replace_colon_sep_val "Clear-sky flux?"      T ${rundir}/input.geos
+    replace_colon_sep_val "All-sky flux?"        T ${rundir}/input.geos
+    replace_colon_sep_val "--> RRTMG"         true ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|#'RRTMG'|'RRTMG'|"                ${rundir}/HISTORY.rc
 fi
 
+#-----------------------------
+# TOMAS settings
+#-----------------------------
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+    replace_colon_sep_val "Tran/conv timestep [sec]" 1800 ${rundir}/input.geos
+    replace_colon_sep_val "Chem/emis timestep [sec]" 3600 ${rundir}/input.geos
+    replace_colon_sep_val "Use non-local PBL?"       F    ${rundir}/input.geos
+    replace_colon_sep_val "Use linear. strat. chem?" F    ${rundir}/input.geos
+    replace_colon_sep_val "=> Online O3 from model"  F    ${rundir}/input.geos
+    replace_colon_sep_val "TOMAS_Jeagle"             on   ${rundir}HEMCO_Config.rc
+    # Add TOMAS species to input.geos
+    prev_line="Species name            : XYLE"
+    new_line="\Species name            : H2SO4\n\
+Species name            : NK1\n\
+Species name            : NK2\n\
+Species name            : NK3\n\
+Species name            : NK4\n\
+Species name            : NK5\n\
+Species name            : NK6\n\
+Species name            : NK7\n\
+Species name            : NK8\n\
+Species name            : NK9\n\
+Species name            : NK10\n\
+Species name            : NK11\n\
+Species name            : NK12\n\
+Species name            : NK13\n\
+Species name            : NK14\n\
+Species name            : NK15\n\
+Species name            : SF1\n\
+Species name            : SF2\n\
+Species name            : SF3\n\
+Species name            : SF4\n\
+Species name            : SF5\n\
+Species name            : SF6\n\
+Species name            : SF7\n\
+Species name            : SF8\n\
+Species name            : SF9\n\
+Species name            : SF10\n\
+Species name            : SF11\n\
+Species name            : SF12\n\
+Species name            : SF13\n\
+Species name            : SF14\n\
+Species name            : SF15\n\
+Species name            : SS1\n\
+Species name            : SS2\n\
+Species name            : SS3\n\
+Species name            : SS4\n\
+Species name            : SS5\n\
+Species name            : SS6\n\
+Species name            : SS7\n\
+Species name            : SS8\n\
+Species name            : SS9\n\
+Species name            : SS10\n\
+Species name            : SS11\n\
+Species name            : SS12\n\
+Species name            : SS13\n\
+Species name            : SS14\n\
+Species name            : SS15\n\
+Species name            : ECOB1\n\
+Species name            : ECOB2\n\
+Species name            : ECOB3\n\
+Species name            : ECOB4\n\
+Species name            : ECOB5\n\
+Species name            : ECOB6\n\
+Species name            : ECOB7\n\
+Species name            : ECOB8\n\
+Species name            : ECOB9\n\
+Species name            : ECOB1\n\
+Species name            : ECOB11\n\
+Species name            : ECOB12\n\
+Species name            : ECOB13\n\
+Species name            : ECOB14\n\
+Species name            : ECOB15\n\
+Species name            : ECIL1\n\
+Species name            : ECIL2\n\
+Species name            : ECIL3\n\
+Species name            : ECIL4\n\
+Species name            : ECIL5\n\
+Species name            : ECIL6\n\
+Species name            : ECIL7\n\
+Species name            : ECIL8\n\
+Species name            : ECIL9\n\
+Species name            : ECIL10\n\
+Species name            : ECIL11\n\
+Species name            : ECIL12\n\
+Species name            : ECIL13\n\
+Species name            : ECIL14\n\
+Species name            : ECIL15\n\
+Species name            : OCOB1\n\
+Species name            : OCOB2\n\
+Species name            : OCOB3\n\
+Species name            : OCOB4\n\
+Species name            : OCOB5\n\
+Species name            : OCOB6\n\
+Species name            : OCOB7\n\
+Species name            : OCOB8\n\
+Species name            : OCOB9\n\
+Species name            : OCOB10\n\
+Species name            : OCOB11\n\
+Species name            : OCOB12\n\
+Species name            : OCOB13\n\
+Species name            : OCOB14\n\
+Species name            : OCOB15\n\
+Species name            : OCIL1\n\
+Species name            : OCIL2\n\
+Species name            : OCIL3\n\
+Species name            : OCIL4\n\
+Species name            : OCIL5\n\
+Species name            : OCIL6\n\
+Species name            : OCIL7\n\
+Species name            : OCIL8\n\
+Species name            : OCIL9\n\
+Species name            : OCIL10\n\
+Species name            : OCIL11\n\
+Species name            : OCIL12\n\
+Species name            : OCIL13\n\
+Species name            : OCIL14\n\
+Species name            : OCIL15\n\
+Species name            : DUST1\n\
+Species name            : DUST2\n\
+Species name            : DUST3\n\
+Species name            : DUST4\n\
+Species name            : DUST5\n\
+Species name            : DUST6\n\
+Species name            : DUST7\n\
+Species name            : DUST8\n\
+Species name            : DUST9\n\
+Species name            : DUST10\n\
+Species name            : DUST11\n\
+Species name            : DUST12\n\
+Species name            : DUST13\n\
+Species name            : DUST14\n\
+Species name            : DUST15\n\
+Species name            : AW1\n\
+Species name            : AW2\n\
+Species name            : AW3\n\
+Species name            : AW4\n\
+Species name            : AW5\n\
+Species name            : AW6\n\
+Species name            : AW7\n\
+Species name            : AW8\n\
+Species name            : AW9\n\
+Species name            : AW10\n\
+Species name            : AW11\n\
+Species name            : AW12\n\
+Species name            : AW13\n\
+Species name            : AW14\n\
+Species name            : AW15"
+    add_text $prev_line $new_line ${rundir}/input.geos
+    
+    if [[ ${sim_extra_option} = "TOMAS40" ]]; then
+	prev_line="Species name            : NK15"
+	new_line="\Species name            : NK16\n\
+Species name            : NK17\n\
+Species name            : NK18\n\
+Species name            : NK19\n\
+Species name            : NK20\n\
+Species name            : NK21\n\
+Species name            : NK22\n\
+Species name            : NK23\n\
+Species name            : NK24\n\
+Species name            : NK25\n\
+Species name            : NK26\n\
+Species name            : NK27\n\
+Species name            : NK28\n\
+Species name            : NK29\n\
+Species name            : NK30\n\
+Species name            : NK31\n\
+Species name            : NK32\n\
+Species name            : NK33\n\
+Species name            : NK34\n\
+Species name            : NK35\n\
+Species name            : NK36\n\
+Species name            : NK37\n\
+Species name            : NK38\n\
+Species name            : NK39\n\
+Species name            : NK40"
+        add_text $prev_line $new_line ${rundir}/input.geos
 
+prev_line="Species name            : SF15"
+	new_line="\Species name            : SF16\n\
+Species name            : SF17\n\
+Species name            : SF18\n\
+Species name            : SF19\n\
+Species name            : SF20\n\
+Species name            : SF21\n\
+Species name            : SF22\n\
+Species name            : SF23\n\
+Species name            : SF24\n\
+Species name            : SF25\n\
+Species name            : SF26\n\
+Species name            : SF27\n\
+Species name            : SF28\n\
+Species name            : SF29\n\
+Species name            : SF30\n\
+Species name            : SF31\n\
+Species name            : SF32\n\
+Species name            : SF33\n\
+Species name            : SF34\n\
+Species name            : SF35\n\
+Species name            : SF36\n\
+Species name            : SF37\n\
+Species name            : SF38\n\
+Species name            : SF39\n\
+Species name            : SF40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : SS15"
+	new_line="\Species name            : SS16\n\
+Species name            : SS17\n\
+Species name            : SS18\n\
+Species name            : SS19\n\
+Species name            : SS20\n\
+Species name            : SS21\n\
+Species name            : SS22\n\
+Species name            : SS23\n\
+Species name            : SS24\n\
+Species name            : SS25\n\
+Species name            : SS26\n\
+Species name            : SS27\n\
+Species name            : SS28\n\
+Species name            : SS29\n\
+Species name            : SS30\n\
+Species name            : SS31\n\
+Species name            : SS32\n\
+Species name            : SS33\n\
+Species name            : SS34\n\
+Species name            : SS35\n\
+Species name            : SS36\n\
+Species name            : SS37\n\
+Species name            : SS38\n\
+Species name            : SS39\n\
+Species name            : SS40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : ECOB15"
+	new_line="\Species name            : ECOB16\n\
+Species name            : ECOB17\n\
+Species name            : ECOB18\n\
+Species name            : ECOB19\n\
+Species name            : ECOB20\n\
+Species name            : ECOB21\n\
+Species name            : ECOB22\n\
+Species name            : ECOB23\n\
+Species name            : ECOB24\n\
+Species name            : ECOB25\n\
+Species name            : ECOB26\n\
+Species name            : ECOB27\n\
+Species name            : ECOB28\n\
+Species name            : ECOB29\n\
+Species name            : ECOB30\n\
+Species name            : ECOB31\n\
+Species name            : ECOB32\n\
+Species name            : ECOB33\n\
+Species name            : ECOB34\n\
+Species name            : ECOB35\n\
+Species name            : ECOB36\n\
+Species name            : ECOB37\n\
+Species name            : ECOB38\n\
+Species name            : ECOB39\n\
+Species name            : ECOB40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : ECIL15"
+	new_line="\Species name            : ECIL16\n\
+Species name            : ECIL17\n\
+Species name            : ECIL18\n\
+Species name            : ECIL19\n\
+Species name            : ECIL20\n\
+Species name            : ECIL21\n\
+Species name            : ECIL22\n\
+Species name            : ECIL23\n\
+Species name            : ECIL24\n\
+Species name            : ECIL25\n\
+Species name            : ECIL26\n\
+Species name            : ECIL27\n\
+Species name            : ECIL28\n\
+Species name            : ECIL29\n\
+Species name            : ECIL30\n\
+Species name            : ECIL31\n\
+Species name            : ECIL32\n\
+Species name            : ECIL33\n\
+Species name            : ECIL34\n\
+Species name            : ECIL35\n\
+Species name            : ECIL36\n\
+Species name            : ECIL37\n\
+Species name            : ECIL38\n\
+Species name            : ECIL39\n\
+Species name            : ECIL40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : OCOB15"
+	new_line="\Species name            : OCOB16\n\
+Species name            : OCOB17\n\
+Species name            : OCOB18\n\
+Species name            : OCOB19\n\
+Species name            : OCOB20\n\
+Species name            : OCOB21\n\
+Species name            : OCOB22\n\
+Species name            : OCOB23\n\
+Species name            : OCOB24\n\
+Species name            : OCOB25\n\
+Species name            : OCOB26\n\
+Species name            : OCOB27\n\
+Species name            : OCOB28\n\
+Species name            : OCOB29\n\
+Species name            : OCOB30\n\
+Species name            : OCOB31\n\
+Species name            : OCOB32\n\
+Species name            : OCOB33\n\
+Species name            : OCOB34\n\
+Species name            : OCOB35\n\
+Species name            : OCOB36\n\
+Species name            : OCOB37\n\
+Species name            : OCOB38\n\
+Species name            : OCOB39\n\
+Species name            : OCOB40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : OCIL15"
+	new_line="\Species name            : OCIL16\n\
+Species name            : OCIL17\n\
+Species name            : OCIL18\n\
+Species name            : OCIL19\n\
+Species name            : OCIL20\n\
+Species name            : OCIL21\n\
+Species name            : OCIL22\n\
+Species name            : OCIL23\n\
+Species name            : OCIL24\n\
+Species name            : OCIL25\n\
+Species name            : OCIL26\n\
+Species name            : OCIL27\n\
+Species name            : OCIL28\n\
+Species name            : OCIL29\n\
+Species name            : OCIL30\n\
+Species name            : OCIL31\n\
+Species name            : OCIL32\n\
+Species name            : OCIL33\n\
+Species name            : OCIL34\n\
+Species name            : OCIL35\n\
+Species name            : OCIL36\n\
+Species name            : OCIL37\n\
+Species name            : OCIL38\n\
+Species name            : OCIL39\n\
+Species name            : OCIL40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : DUST15"
+	new_line="\Species name            : DUST16\n\
+Species name            : DUST17\n\
+Species name            : DUST18\n\
+Species name            : DUST19\n\
+Species name            : DUST20\n\
+Species name            : DUST21\n\
+Species name            : DUST22\n\
+Species name            : DUST23\n\
+Species name            : DUST24\n\
+Species name            : DUST25\n\
+Species name            : DUST26\n\
+Species name            : DUST27\n\
+Species name            : DUST28\n\
+Species name            : DUST29\n\
+Species name            : DUST30\n\
+Species name            : DUST31\n\
+Species name            : DUST32\n\
+Species name            : DUST33\n\
+Species name            : DUST34\n\
+Species name            : DUST35\n\
+Species name            : DUST36\n\
+Species name            : DUST37\n\
+Species name            : DUST38\n\
+Species name            : DUST39\n\
+Species name            : DUST40"
+        add_text $prev_line $new_line ${rundir}/input.geos
+
+	prev_line="Species name            : AW15"
+	new_line="\Species name            : AW16\n\
+Species name            : AW17\n\
+Species name            : AW18\n\
+Species name            : AW19\n\
+Species name            : AW20\n\
+Species name            : AW21\n\
+Species name            : AW22\n\
+Species name            : AW23\n\
+Species name            : AW24\n\
+Species name            : AW25\n\
+Species name            : AW26\n\
+Species name            : AW27\n\
+Species name            : AW28\n\
+Species name            : AW29\n\
+Species name            : AW30\n\
+Species name            : AW31\n\
+Species name            : AW32\n\
+Species name            : AW33\n\
+Species name            : AW34\n\
+Species name            : AW35\n\
+Species name            : AW36\n\
+Species name            : AW37\n\
+Species name            : AW38\n\
+Species name            : AW39\n\
+Species name            : AW40"
+        add_text $prev_line $new_line ${rundir}/input.geos 
+
+    fi
+fi
+
+if [[ ${sim_extra_option} = "APM" ]]; then
+
+    # Add APM species to input.geos
+    prev_line="Species name            : XYLE"
+    new_line="\Species name            : APMBCBIN01\n\
+Species name            : APMBCBIN02\n\
+Species name            : APMBCBIN03\n\
+Species name            : APMBCBIN04\n\
+Species name            : APMBCBIN05\n\
+Species name            : APMBCBIN06\n\
+Species name            : APMBCBIN07\n\
+Species name            : APMBCBIN08\n\
+Species name            : APMBCBIN09\n\
+Species name            : APMBCBIN10\n\
+Species name            : APMBCBIN11\n\
+Species name            : APMBCBIN12\n\
+Species name            : APMBCBIN13\n\
+Species name            : APMBCBIN14\n\
+Species name            : APMBCBIN15\n\
+Species name            : APMCTBC1\n\
+Species name            : APMCTBC2\n\
+Species name            : APMCTDST1\n\
+Species name            : APMCTDST2\n\
+Species name            : APMCTOC1\n\
+Species name            : APMCTOC2\n\
+Species name            : APMCTSEA1\n\
+Species name            : APMCTSEA2\n\
+Species name            : APMDSTBIN01\n\
+Species name            : APMDSTBIN02\n\
+Species name            : APMDSTBIN03\n\
+Species name            : APMDSTBIN04\n\
+Species name            : APMDSTBIN05\n\
+Species name            : APMDSTBIN06\n\
+Species name            : APMDSTBIN07\n\
+Species name            : APMDSTBIN08\n\
+Species name            : APMDSTBIN09\n\
+Species name            : APMDSTBIN10\n\
+Species name            : APMDSTBIN11\n\
+Species name            : APMDSTBIN12\n\
+Species name            : APMDSTBIN13\n\
+Species name            : APMDSTBIN14\n\
+Species name            : APMDSTBIN15\n\
+Species name            : APMH2SO4\n\
+Species name            : APMLVSOA\n\
+Species name            : APMLVSOG\n\
+Species name            : APMOCBIN01\n\
+Species name            : APMOCBIN02\n\
+Species name            : APMOCBIN03\n\
+Species name            : APMOCBIN04\n\
+Species name            : APMOCBIN05\n\
+Species name            : APMOCBIN06\n\
+Species name            : APMOCBIN07\n\
+Species name            : APMOCBIN08\n\
+Species name            : APMOCBIN09\n\
+Species name            : APMOCBIN10\n\
+Species name            : APMOCBIN11\n\
+Species name            : APMOCBIN12\n\
+Species name            : APMOCBIN13\n\
+Species name            : APMOCBIN14\n\
+Species name            : APMOCBIN15\n\
+Species name            : APMSEABIN01\n\
+Species name            : APMSEABIN02\n\
+Species name            : APMSEABIN03\n\
+Species name            : APMSEABIN04\n\
+Species name            : APMSEABIN05\n\
+Species name            : APMSEABIN06\n\
+Species name            : APMSEABIN07\n\
+Species name            : APMSEABIN08\n\
+Species name            : APMSEABIN09\n\
+Species name            : APMSEABIN10\n\
+Species name            : APMSEABIN11\n\
+Species name            : APMSEABIN12\n\
+Species name            : APMSEABIN13\n\
+Species name            : APMSEABIN14\n\
+Species name            : APMSEABIN15\n\
+Species name            : APMSEABIN16\n\
+Species name            : APMSEABIN17\n\
+Species name            : APMSEABIN18\n\
+Species name            : APMSEABIN19\n\
+Species name            : APMSEABIN20\n\
+Species name            : APMSPBIN01\n\
+Species name            : APMSPBIN02\n\
+Species name            : APMSPBIN03\n\
+Species name            : APMSPBIN04\n\
+Species name            : APMSPBIN05\n\
+Species name            : APMSPBIN06\n\
+Species name            : APMSPBIN07\n\
+Species name            : APMSPBIN08\n\
+Species name            : APMSPBIN09\n\
+Species name            : APMSPBIN10\n\
+Species name            : APMSPBIN11\n\
+Species name            : APMSPBIN12\n\
+Species name            : APMSPBIN13\n\
+Species name            : APMSPBIN14\n\
+Species name            : APMSPBIN15\n\
+Species name            : APMSPBIN16\n\
+Species name            : APMSPBIN17\n\
+Species name            : APMSPBIN18\n\
+Species name            : APMSPBIN19\n\
+Species name            : APMSPBIN20\n\
+Species name            : APMSPBIN21\n\
+Species name            : APMSPBIN22\n\
+Species name            : APMSPBIN23\n\
+Species name            : APMSPBIN24\n\
+Species name            : APMSPBIN25\n\
+Species name            : APMSPBIN26\n\
+Species name            : APMSPBIN27\n\
+Species name            : APMSPBIN28\n\
+Species name            : APMSPBIN29\n\
+Species name            : APMSPBIN30\n\
+Species name            : APMSPBIN31\n\
+Species name            : APMSPBIN32\n\
+Species name            : APMSPBIN33\n\
+Species name            : APMSPBIN34\n\
+Species name            : APMSPBIN35\n\
+Species name            : APMSPBIN36\n\
+Species name            : APMSPBIN37\n\
+Species name            : APMSPBIN38\n\
+Species name            : APMSPBIN39\n\
+Species name            : APMSPBIN40"
+    add_text $prev_line $new_line ${rundir}/input.geos 
+    
+fi
+    
+#-----------------------------------------------------------------
+# Modify input files for troposphere-only chemistry grids
+#-----------------------------------------------------------------
+if [[ ${chemgrid} = "trop_only" ]]; the
+
+    replace_colon_sep_val "=> Set init. strat. H2O"  F ${rundir}/input.geos
+    replace_colon_sep_val "Settle strat. aerosols"   F ${rundir}/input.geos
+    replace_colon_sep_val "Online PSC AEROSOLS"      F ${rundir}/input.geos
+    replace_colon_sep_val "Perform PSC het. chem.?"  F ${rundir}/input.geos
+    replace_colon_sep_val "Calc. strat. aero. OD?"   F ${rundir}/input.geos
+    replace_colon_sep_val "Use UCX strat. chem?"     F ${rundir}/input.geos
+    replace_colon_sep_val "Active strat. H2O"        F ${rundir}/input.geos
+    replace_colon_sep_val "--> STATE_PSC"        false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "--> GMI_PROD_LOSS"    false ${rundir}/HEMCO_Config.rc
+    replace_colon_sep_val "--> UCX_PROD_LOSS"     true ${rundir}/HEMCO_Config.rc
+fi
+
+#-----------------------------------------------------------------
+# Modify input files for nested-grid simulations
+#-----------------------------------------------------------------
+if [[ ${nested_sim} = "T" ]]; then
+    replace_colon_sep_val "--> GC_BCs" true ${rundir}/HEMCO_Config.rc
+    if [[ ${domain_name} = "NA" ]]; then
+	replace_colon_sep_val "--> NEI2011_MONMEAN" false ${rundir}/HEMCO_Config.rc
+	replace_colon_sep_val "--> NEI2011_HOURLY"  true  ${rundir}/HEMCO_Config.rc
+    fi
+fi
+
+#-----------------------------------------------------------------
+# Modify input files for POPs simulations
+#-----------------------------------------------------------------
+if [[ ${sim_name} =~ "POPs" ]]; then
+    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               ${rundir}/input.geos
+    sed -i -e "s|{POPs_XMW}|${POP_XMW}|"               ${rundir}/input.geos
+    sed -i -e "s|{POPs_KOA}|${POP_KOA}|"               ${rundir}/input.geos
+    sed -i -e "s|{POPs_KBC}|${POP_KBC}|"               ${rundir}/input.geos
+    sed -i -e "s|{POPs_K_POPG_OH}|${POP_K_POPG_OH}|"   ${rundir}/input.geos
+    sed -i -e "s|{POPs_K_POPG_O3A}|${POP_K_POPG_O3A}|" ${rundir}/input.geos
+    sed -i -e "s|{POPs_K_POPG_O3B}|${POP_K_POPG_O3B}|" ${rundir}/input.geos
+    sed -i -e "s|{POPs_HSTAR}|${POP_HSTAR}|"           ${rundir}/input.geos
+    sed -i -e "s|{POPs_DEL_H}|${POP_DEL_H}|"           ${rundir}/input.geos
+    sed -i -e "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         ${rundir}/input.geos
+    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               ${rundir}/HEMCO_Diagn.rc
+fi
+
+#-----------------------------------------------------------------
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_name} = "benchmark" ]]; then
+#-----------------------------------------------------------------
+if [[ ${sim_extra_option} = "benchmark" ]]; then
     startdate="20190701"
     enddate="20190801"
-elif [[ ${sim_type} =~ "chem" ]]; then
+elif [[ ${sim_name} = "fullchem" ]]; then
     startdate="20190701"
     enddate="20190801"
 else
@@ -686,6 +1324,13 @@ sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/input.geos
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/input.geos
 sed -i -e "s|{TIME1}|${starttime}|"     ${rundir}/input.geos
 sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
+
+printf '\n NOTE: This run directory has been set up for ${startdate} - ${enddate}. You may modify these settings in input.geos.\n'
+
+sed -i -e "s|{FREQUENCY}|00000100 000000|"   ${rundir}/HISTORY.rc
+sed -i -e "s|{DURATION}|00000100 000000|"    ${rundir}/HISTORY.rc
+
+printf ' \n NOTE: The default frequency and duration of diagnostics is set to monthly. You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n'
 
 #--------------------------------------------------------------------
 # Copy sample restart file
