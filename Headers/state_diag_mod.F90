@@ -573,6 +573,26 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_KppSmDecomps
      LOGICAL                     :: Archive_KppDiags
 
+     !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
+
+     REAL(f8),           POINTER :: AirMassColumnFull(:,:)
+     LOGICAL                     :: Archive_AirMassColumnFull
+
+     REAL(f8),           POINTER :: AirMassColumnTrop(:,:)
+     LOGICAL                     :: Archive_AirMassColumnTrop
+
+     REAL(f8),           POINTER :: MeanCH4columnFull(:,:)
+     LOGICAL                     :: Archive_MeanCH4columnFull
+
+     REAL(f8),           POINTER :: MeanCH4columnTrop(:,:)
+     LOGICAL                     :: Archive_MeanCH4columnTrop
+
+     REAL(f8),           POINTER :: MeanOHcolumnFull(:,:)
+     LOGICAL                     :: Archive_MeanOHcolumnFull
+
+     REAL(f8),           POINTER :: MeanOHcolumnTrop(:,:)
+     LOGICAL                     :: Archive_MeanOHcolumnTrop
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -1492,6 +1512,27 @@ CONTAINS
 
     State_Diag%FracOfTimeInTrop                    => NULL()
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
+
+    !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
+    
+    State_Diag%AirMassColumnFull                   => NULL()
+    State_Diag%Archive_AirMassColumnFull           = .FALSE.
+
+    State_Diag%AirMassColumnTrop                   => NULL()
+    State_Diag%Archive_AirMassColumnTrop           = .FALSE.
+
+    State_Diag%MeanCH4columnFull                   => NULL()
+    State_Diag%Archive_MeanCH4columnFull           = .FALSE.
+
+    State_Diag%MeanCH4columnTrop                   => NULL()
+    State_Diag%Archive_MeanCH4columnTrop           = .FALSE.
+
+    State_Diag%MeanOHcolumnFull                    => NULL()
+    State_Diag%Archive_MeanOHcolumnFull            = .FALSE.
+
+    State_Diag%MeanOHcolumnTrop                    => NULL()
+    State_Diag%Archive_MeanOHcolumnTrop            = .FALSE.
+
 
     !%%%%% TransportTracers diagnostics %%%%%
 
@@ -4368,6 +4409,137 @@ CONTAINS
        ENDIF
 #endif
 
+       !--------------------------------------------------------------------
+       ! Air mass column diagnostics -- full column and trop column
+       !--------------------------------------------------------------------
+       diagId = 'AirMassColumnFull'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AirMassColumnFull,                   &
+            archiveData    = State_Diag%Archive_AirMassColumnFull,           &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagId = 'AirMassColumnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AirMassColumnTrop,                   &
+            archiveData    = State_Diag%Archive_AirMassColumnTrop,           &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Mean CH4 column diagnostics -- full column and trop column
+       !--------------------------------------------------------------------
+       diagId = 'MeanCH4columnFull'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MeanCH4columnFull,                   &
+            archiveData    = State_Diag%Archive_MeanCH4columnFull,           &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagId = 'MeanCH4columnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MeanCH4columnTrop,                   &
+            archiveData    = State_Diag%Archive_MeanCH4columnTrop,           &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Mean OH column diagnostics -- full-column and trop column  
+       !--------------------------------------------------------------------
+       diagId = 'MeanOHcolumnFull'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MeanOHcolumnFull,                    &
+            archiveData    = State_Diag%Archive_MeanOHcolumnFull,            &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       
+       diagId = 'MeanOHcolumnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MeanOHcolumnTrop,                    &
+            archiveData    = State_Diag%Archive_MeanOHcolumnTrop,            &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -4379,17 +4551,36 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       diagID  = 'OHconcAfterChem'
+       DO N = 1, 7
 
-       ! Exit if any of the above are in the diagnostic list
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
-                   'but this is only appropriate for full-chemistry '     // &
-                   'or CH4 simulations.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1 )
+                diagID = 'AirMassColumnFull'
+             CASE( 2 )
+                diagID = 'AirMassColumnTrop'
+             CASE( 3 )
+                diagID = 'MeanCH4columnFull'
+             CASE( 4 )
+                diagID = 'MeanCH4columnTrop'
+             CASE( 5 )
+                diagID = 'MeanOHcolumnFull'
+             CASE( 6 )
+                diagID = 'MeanOHcolumnTrop'
+             CASE( 7  )
+                diagID = 'OHconcAfterChem'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                     'but this is only appropriate for full-chemistry '   // &
+                     'or CH4 simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
 
     ENDIF
 
@@ -8811,6 +9002,37 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'AirMassColumnFull',                            &
+                   Ptr2Data = State_Diag%AirMassColumnFull,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AirMassColumnTrop',                            &
+                   Ptr2Data = State_Diag%AirMassColumnTrop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MeanCH4columnFull',                           &
+                   Ptr2Data = State_Diag%MeanCH4columnFull,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MeanCH4columnTrop',                           &
+                   Ptr2Data = State_Diag%MeanCH4columnTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MeanOHcolumnFull',                            &
+                   Ptr2Data = State_Diag%MeanOHcolumnFull,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MeanOHcolumnTrop',                            &
+                   Ptr2Data = State_Diag%MeanOHcolumnTrop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
 #ifdef MODEL_GEOS
     !=======================================================================
     ! These fields are only used when GC is interfaced to NASA/GEOS
@@ -8844,8 +9066,6 @@ CONTAINS
                    Ptr2Data = State_Diag%RO2concAfterChem,                    &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
-
-
 
     CALL Finalize( diagId   = 'PM25ni',                                      &
                    Ptr2Data = State_Diag%PM25ni,                             &
@@ -9239,7 +9459,8 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BRY' ) THEN
-       IF ( isDesc    ) Desc  = 'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
+       IF ( isDesc    ) Desc  = &
+            'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
 #endif
@@ -9267,7 +9488,8 @@ CONTAINS
        IF ( isTagged  ) TagId = 'PHO'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JNOONFRAC' ) THEN
-       IF ( isDesc    ) Desc  = 'Fraction of the time when local noon occurred at each surface location'
+       IF ( isDesc    ) Desc  = &
+       'Fraction of the time when local noon occurred at each surface location'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
 
@@ -9319,12 +9541,14 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PBLMIXFRAC' ) THEN
-       IF ( isDesc    ) Desc  = 'Fraction of boundary layer occupied by each level'
+       IF ( isDesc    ) Desc  = &
+            'Fraction of boundary layer occupied by each level'
        IF ( isUnits   ) Units = 'placeholder'
        IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PBLFLUX' ) THEN
-       IF ( isDesc    ) Desc  = 'Species mass change due to boundary-layer mixing'
+       IF ( isDesc    ) Desc  = &
+            'Species mass change due to boundary-layer mixing'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
@@ -9336,13 +9560,15 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONVFRAC' ) THEN
-       IF ( isDesc    ) Desc  = 'Fraction of soluble species lost in convective updrafts'
+       IF ( isDesc    ) Desc  = &
+            'Fraction of soluble species lost in convective updrafts'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of soluble species in convective updrafts'
+       IF ( isDesc    ) Desc  = &
+            'Loss of soluble species in convective updrafts'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
@@ -9677,37 +9903,44 @@ CONTAINS
 
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, nitrates'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, nitrates'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SU' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sulfates'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, sulfates'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25OC' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, organic carbon'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, organic carbon'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25BC' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, black carbon'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, black carbon'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25DU' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, dust'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, dust'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SS' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sea salt'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, sea salt'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, SOA'
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, SOA'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 #endif
@@ -9806,7 +10039,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO2INCLOUDMETAL' ) THEN
-       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of O2 metal-catalyzed'
+       IF ( isDesc    ) Desc  = &
+            'Production of SO4 from aqueous oxidation of O2 metal-catalyzed'
        IF ( isUnits   ) Units = 'kg S'
        IF ( isRank    ) Rank  =  3
 
@@ -9854,7 +10088,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSASOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of aerosol products of light aromatics + IVOC oxidation'
+       IF ( isDesc    ) Desc  = &
+            'Mass of aerosol products of light aromatics + IVOC oxidation'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -9864,7 +10099,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSINDIOL' ) THEN
-       IF ( isDesc    ) Desc  = 'Aerosol mass of generic aerosol-phase organonitrate hydrolysis product'
+       IF ( isDesc    ) Desc  = &
+       'Aerosol mass of generic aerosol-phase organonitrate hydrolysis product'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -9889,17 +10125,20 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSOPOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
+       IF ( isDesc    ) Desc  = &
+            'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSPOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
+       IF ( isDesc    ) Desc  = &
+            'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSAL' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of total seasalt aerosol (accumulation + coarse)'
+       IF ( isDesc    ) Desc  = &
+            'Mass of total seasalt aerosol (accumulation + coarse)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -9929,7 +10168,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALBIOGENICOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Sum of all biogenic organic aerosol (OA:OC=2.1)'
+       IF ( isDesc    ) Desc  = &
+            'Sum of all biogenic organic aerosol (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -9974,7 +10214,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSUBSTS' ) THEN
-       IF ( isDesc    ) Desc  = 'Number of KPP forward and backward matrix substitutions'
+       IF ( isDesc    ) Desc  = &
+            'Number of KPP forward and backward matrix substitutions'
        IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
 
@@ -9984,22 +10225,26 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCPOBYGASPHASE' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of POPPOCPO species by gas-phase reactions'
+       IF ( isDesc    ) Desc  = &
+            'Loss of POPPOCPO species by gas-phase reactions'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPOFROMGASPHASE' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species by gas-phase reactions'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPOCPO species by gas-phase reactions'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPBCPOBYGASPHASE' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of POPPBCPO species by gas-phase reactions'
+       IF ( isDesc    ) Desc  = &
+            'Loss of POPPBCPO species by gas-phase reactions'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPOFROMGASPHASE' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species by gas-phase reactions'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPBCPO species by gas-phase reactions'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
@@ -10009,42 +10254,50 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPOFROMO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species from reaction with O3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPOCPO species from reaction with O3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPIFROMO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPOCPI species from reaction with O3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPOCPI species from reaction with O3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPOFROMO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species from reaction with O3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPBCPO species from reaction with O3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPIFROMO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPBCPI species from reaction with O3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPBCPI species from reaction with O3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPOFROMNO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species from reaction with NO3'
+       IF ( isDesc    ) Desc  = '&
+            Prod of POPPOCPO species from reaction with NO3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPIFROMNO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPOCPI species from reaction with NO3'
+       IF ( isDesc    ) Desc  = '&
+            Prod of POPPOCPI species from reaction with NO3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPOFROMNO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species from reaction with NO3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPBCPO species from reaction with NO3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPIFROMNO3' ) THEN
-       IF ( isDesc    ) Desc  = 'Prod of POPPBCPI species from reaction with NO3'
+       IF ( isDesc    ) Desc  = &
+            'Prod of POPPBCPI species from reaction with NO3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
@@ -10054,12 +10307,14 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4BYCLINTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of CH4 by reaction with Cl in troposphere'
+       IF ( isDesc    ) Desc  = &
+            'Loss of CH4 by reaction with Cl in troposphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4BYOHINTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of CH4 by reaction with OH in troposphere'
+       IF ( isDesc    ) Desc  = &
+            'Loss of CH4 by reaction with OH in troposphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
@@ -10146,17 +10401,20 @@ CONTAINS
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG2HGPFROMAIRTOSNOW' ) THEN
-       IF ( isDesc    ) Desc  = 'Deposition flux of Hg2 and HgP to snow and ice'
+       IF ( isDesc    ) Desc  = &
+            'Deposition flux of Hg2 and HgP to snow and ice'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMAIRTOOCEAN' ) THEN
-       IF ( isDesc    ) Desc  = 'Volatization flux of Hg0 from the ocean to the atmosphere'
+       IF ( isDesc    ) Desc  = &
+            'Volatization flux of Hg0 from the ocean to the atmosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMOCEANTOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Deposition flux of Hg0 from the atmosphere to the ocean'
+       IF ( isDesc    ) Desc  = &
+            'Deposition flux of Hg0 from the atmosphere to the ocean'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
@@ -10166,7 +10424,8 @@ CONTAINS
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG2HGPFROMAIRTOOCEAN' ) THEN
-       IF ( isDesc    ) Desc  = 'Deposition flux of Hg2 and HgP from the atmosphere to the ocean'
+       IF ( isDesc    ) Desc  = &
+            'Deposition flux of Hg2 and HgP from the atmosphere to the ocean'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
@@ -10206,12 +10465,14 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHG2BYSEASALT' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss of Hg2 by reaction with sea salt aerosols'
+       IF ( isDesc    ) Desc  = &
+            'Loss of Hg2 by reaction with sea salt aerosols'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSRATEHG2BYSEASALT' ) THEN
-       IF ( isDesc    ) Desc  = 'Loss rate of Hg2 by reaction with sea salt aerosols'
+       IF ( isDesc    ) Desc  = &
+            'Loss rate of Hg2 by reaction with sea salt aerosols'
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  =  2
 
@@ -10324,6 +10585,46 @@ CONTAINS
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRYALT'
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Air mass in full-atmosphere column'
+       IF ( isUnits   ) Units = 'molec'
+       IF ( isRank    ) Rank  =  2
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Air mass in tropospheric column'
+       IF ( isUnits   ) Units = 'molec'
+       IF ( isRank    ) Rank  =  2
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNFULL' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Mass-weighted mean OH concentration, full-atmosphere columns'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Mass-weighted mean OH concentration, troposheric columns' 
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNFULL' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Mass-weighted mean CH4 concentration, full-atmosphere columns'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Mass-weighted mean CH4 concentration, tropospheric columns'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  =  2
        IF ( isType    ) Type  = KINDVAL_F8
 
    ELSE

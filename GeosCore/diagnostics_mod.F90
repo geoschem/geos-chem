@@ -32,11 +32,6 @@ MODULE Diagnostics_mod
 !
   PRIVATE :: Set_SpcConc_Diags_VVDry
 !
-! !PRIVATE DATA MEMBERS:
-!
-    CHARACTER(LEN=255), PARAMETER :: &
-         ModLoc = '(in module GeosCore/diagnostics_mod.F90)'
-!
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -113,14 +108,15 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at Set_Diagnostics_EndofTimestep ' // ModLoc
+    ThisLoc = &
+      ' -> at Set_Diagnostics_EndofTimestep (in GeosCore/diagnostics_mod.F90)'
 
     !-----------------------------------------------------------------------
     ! Set species concentration for diagnostics in units of
     ! v/v dry air = mol/mol dry air
     !-----------------------------------------------------------------------
-    CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag, &
-                                  State_Grid, State_Met, RC      )
+    CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
+                                  State_Grid, State_Met, RC                 )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -266,7 +262,8 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> Zero_Diagnostics_StartofTimestep ' // ModLoc
+    ThisLoc = &
+    ' -> at Zero_Diagnostics_StartofTimestep (in GeosCore/diagnostics_mod.F90)'
 
     ! Zero diagnostics here
 
@@ -341,7 +338,8 @@ CONTAINS
     ! Assume success
     RC      =  GC_SUCCESS
     Found   = .FALSE.
-    ThisLoc = ' -> Set_SpcConc_VVDry ' // ModLoc
+    ThisLoc = &
+         ' -> at Set_SpcConc_Diagnostics (in GeosCore/diagnostics_mod.F90)'
 
     ! Convert State_Chm%Species unit to [v/v dry]
     Units   = 'v/v dry'
@@ -583,7 +581,7 @@ CONTAINS
     ! Initialize
     RC      =  GC_SUCCESS
     errMsg  = ''
-    ThisLoc = ' -> at Compute_Column_Mass ' // ModLoc
+    ThisLoc = ' -> at Compute_Column_Mass (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
 
