@@ -31,7 +31,7 @@ METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
-DiagnFreq:                   End
+DiagnFreq:                   Monthly
 Wildcard:                    *
 Separator:                   /
 Unit tolerance:              1
