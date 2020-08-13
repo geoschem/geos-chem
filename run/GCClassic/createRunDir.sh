@@ -17,6 +17,12 @@ cd ../../../../
 gcdir=$(pwd)
 cd ${curdir}
 
+# Define separator lines
+thickline="\n===========================================================\n"
+thinline="\n-----------------------------------------------------------\n"
+
+printf "${thickline}GEOS-CHEM RUN DIRECTORY CREATION${thickline}"
+
 #-----------------------------------------------------------------
 # Export data root path in ~/.geoschem/config if file exists
 #-----------------------------------------------------------------
@@ -27,8 +33,8 @@ if [[ -f ${HOME}/.geoschem/config ]]; then
         printf "\nSet new path below or manually edit ${HOME}/.geoschem/config.\n"
     fi
 else
-    printf "\nDefine path to ExtData."
-    printf "\nThis will be stored in ${HOME}/.geoschem/config for future automatic use.\n"
+    printf "${thinline}Define path to ExtData"
+    printf "\nThis will be stored in ${HOME}/.geoschem/config for future automatic use.${thinline}"
     mkdir -p ${HOME}/.geoschem
 fi
 
@@ -36,7 +42,7 @@ fi
 # One-time configuration of data root path in ~/.geoschem/config
 #-----------------------------------------------------------------
 if [[ -z "${GC_DATA_ROOT}" ]]; then
-    printf "\nEnter path for ExtData:\n"
+    printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
 	read extdata
@@ -44,7 +50,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
 	elif [[ ! -d ${extdata} ]]; then
-            printf "\nError: ${extdata} does not exist. Enter a new path or hit q to quit.\n"
+            printf "\nERROR: ${extdata} does not exist. Enter a new path or hit q to quit.\n"
 	else
 	    valid_path=1
 	    echo "export GC_DATA_ROOT=${extdata}" >> ${HOME}/.geoschem/config
@@ -56,7 +62,7 @@ fi
 #-----------------------------------------------------------------
 # Ask user to select simulation type
 #-----------------------------------------------------------------
-printf "\nChoose simulation type:\n"
+printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. Aerosols only\n"
 printf "   3. CH4\n"
@@ -111,8 +117,8 @@ done
 #-----------------------------------------------------------------
 if [[ ${sim_name} = "fullchem" ]]; then
     
-    printf "\nChoose chemistry domain:\n"
-    printf "  1. Troposphere + stratosphere (recommended)\n"
+    printf "${thinline}Choose chemistry domain:${thinline}"
+    printf "  1. Troposphere + stratosphere (Recommended)\n"
     printf "  2. Troposphere only\n"
     valid_chemgrid=0
     while [ "${valid_chemgrid}" -eq 0 ]; do
@@ -128,7 +134,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	fi
     done
     
-    printf "\nChoose additional simulation option:\n"
+    printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
     printf "  3. Complex SOA\n"
@@ -148,7 +154,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="benchmark"
 	    valid_sim_option=1
 	elif [[ ${sim_option} = "3" ]]; then
-	    printf "\nChoose complex SOA option:\n"
+	    printf "${thinline}Choose complex SOA option:${thinline}"
 	    printf "  1. Complex SOA\n"
 	    printf "  2. Complex SOA with semivolatile POA\n"
 	    valid_soa=0
@@ -170,7 +176,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	   sim_extra_option="aciduptake"
 	   valid_sim_option=1
 	elif [[ ${sim_option} = "6" ]]; then
-	    printf "\nChoose TOMAS option:\n"
+	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
 	    printf "  1. TOASS with 40 bins\n"
 	    valid_tomas=0
@@ -202,7 +208,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Ask user to specify POPs simulation options
 #-----------------------------------------------------------------
 elif [[ ${sim_name} = "POPs" ]]; then
-    printf "\nChoose POPs type:\n"
+    printf "${thinline}Choose POPs type:${thinline}"
     printf "  1. BaP\n"
     printf "  2. PHE\n"
     printf "  3. PYR\n"
@@ -256,7 +262,7 @@ fi
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
-printf "\nChoose meteorology source:\n"
+printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
 valid_met=0
@@ -296,7 +302,7 @@ done
 #-----------------------------------------------------------------
 # Ask user to select horizontal resolution
 #-----------------------------------------------------------------
-printf "\nChoose horizontal resolution:\n"
+printf "${thinline}Choose horizontal resolution:${thinline}"
 printf "  1. 4.0  x 5.0\n"
 printf "  2. 2.0  x 2.5\n"
 printf "  3. 0.5  x 0.625\n"
@@ -333,7 +339,7 @@ while [ "${valid_res}" -eq 0 ]; do
 done
 
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
-    printf "\nChoose horizontal grid domain:\n"
+    printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"
     printf "  3. Europe\n"
@@ -390,7 +396,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        lon_range="MinLon MaxLon"
 	        lat_range="MinLat MaxLat"
   		valid_domain=1
-	        printf "\n NOTE: You will need to manually set longitude and latitude bounds in input.geos.\n"
+	        printf "\n  -- You will need to manually set longitude and latitude bounds in input.geos.\n"
 	    else
 		printf "Invalid horizontal grid domain option. Try again.\n"
 	    fi
@@ -407,7 +413,7 @@ fi
 #-----------------------------------------------------------------
 # Ask user to select vertical resolution
 #-----------------------------------------------------------------
-printf "\nChoose number of levels:\n"
+printf "${thinline}Choose number of levels:${thinline}"
 printf "  1. 72 (native)\n"
 printf "  2. 47 (reduced)\n"
 
@@ -428,7 +434,7 @@ done
 #-----------------------------------------------------------------
 # Ask user to define path where directoy will be created
 #-----------------------------------------------------------------
-printf "\nEnter path where the run directory will be created:\n"
+printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
     read rundir_path
@@ -436,7 +442,7 @@ while [ "$valid_path" -eq 0 ]; do
 	printf "\nExiting.\n"
 	exit 1
     elif [[ ! -d ${rundir_path} ]]; then
-        printf "\nError: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
+        printf "\nERROR: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
 	valid_path=1
     fi
@@ -446,7 +452,7 @@ done
 # Ask user to define run directoy name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
-    printf "\nEnter run directory name, or press return to use default:\n"
+    printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" == "none" ]]; then
@@ -454,7 +460,7 @@ if [ -z "$1" ]; then
 	else
 	    rundir_name=GC_${grid_res}_${sim_name}_${sim_extra_option}
 	fi
-	printf " Using default directory name ${rundir_name}\n"
+	printf "  -- Using default directory name ${rundir_name}\n"
     fi
 else
     rundir_name=$1
@@ -467,7 +473,7 @@ rundir=${rundir_path}/${rundir_name}
 valid_rundir=0
 while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
-	printf "Warning! ${rundir} already exists.\n"
+	printf "WARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
 	read new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
@@ -569,14 +575,6 @@ replace_colon_sep_val() {
     sed -i -e "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE}
 }
 
-#### Define function to add new line(s) in config files
-add_text() {
-    KEY=$1
-    VALUE=$2
-    FILE=$3
-    sed -i -e "/${KEY}/a ${VALUE}" ${FILE}
-}
-
 #### Define function to remove line(s) in config files
 remove_text() {
     VALUE=$1
@@ -588,15 +586,14 @@ remove_text() {
 # Benchmark settings
 #-----------------------------
 if [[ ${sim_extra_option} = "benchmark" ]]; then
+    replace_colon_sep_val "Use GC classic timers?"  T     ${rundir}/input.geos
     replace_colon_sep_val "--> OFFLINE_DUST"        false ${rundir}/HEMCO_Config.rc
     replace_colon_sep_val "--> OFFLINE_BIOGENICVOC" false ${rundir}/HEMCO_Config.rc
     replace_colon_sep_val "--> OFFLINE_SEASALT"     false ${rundir}/HEMCO_Config.rc
     replace_colon_sep_val "--> OFFLINE_SOILNOX"     false ${rundir}/HEMCO_Config.rc
-    replace_colon_sep_val "DustDead"                on    ${rundir}/HEMCO_Config.rc
-    replace_colon_sep_val "SoilNOx"                 on    ${rundir}/HEMCO_Config.rc
-    replace_colon_sep_val "SeaSalt"                 on    ${rundir}/HEMCO_Config.rc
-    replace_colon_sep_val "Use GC classic timers?"  T     ${rundir}/input.geos
-
+    sed -i -e "s|DustDead               : off|DustDead               : on |" ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|SoilNOx                : off|SoilNOx                : on |" ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|SeaSalt                : off|SeaSalt                : on |" ${rundir}/HEMCO_Config.rc
     sed -i -e "s|NO     0      3 |NO     104    -1|" ${rundir}/HEMCO_Diagn.rc
     sed -i -e "s|0      3 |105    -1|"               ${rundir}/HEMCO_Diagn.rc
     sed -i -e "s|0      4 |108    -1|"               ${rundir}/HEMCO_Diagn.rc
@@ -623,7 +620,7 @@ Species name            : ASOAN\n\
 Species name            : ASOG1\n\
 Species name            : ASOG2\n\
 Species name            : ASOG3"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
     
     prev_line="Species name            : TOLU"
     new_line="\Species name            : TSOA0\n\
@@ -634,7 +631,7 @@ Species name            : TSOG0\n\
 Species name            : TSOG1\n\
 Species name            : TSOG2\n\
 Species name            : TSOG3"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 fi
 
 #-----------------------------
@@ -648,7 +645,7 @@ if [[ ${sim_extra_option} = "complexSOA_SVPOA" ]]; then
     # Add semivolatile POA species in input.geos
     prev_line="Species name            : N2O5"
     new_line="\Species name            : NAP"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 	
     line="Species name            : OCPI"
     remove_text $line ${rundir}/input.geos
@@ -660,14 +657,14 @@ if [[ ${sim_extra_option} = "complexSOA_SVPOA" ]]; then
 Species name            : OPOA2\n\
 Species name            : OPOG1\n\
 Species name            : OPOG2"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 	
     prev_line="Species name            : PIP"
     new_line="\Species name            : POA1\n\
 Species name            : POA2\n\
 Species name            : POG1\n\
 Species name            : POG2"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 fi
 
 #-----------------------------
@@ -683,21 +680,21 @@ if [[ ${sim_extra_option} = "aciduptake" ]]; then
 Species name            : DSTAL2\n\
 Species name            : DSTAL3\n\
 Species name            : DSTAL4"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
     
     prev_line="Species name            : NIT"
     new_line="\Species name            : NITD1\n\
 Species name            : NITD2\n\
 Species name            : NITD3\n\
 Species name            : NITD4"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
     
     prev_line="Species name            : SO4"
     new_line="\Species name            : SO4D1\n\
 Species name            : SO4D2\n\
 Species name            : SO4D3\n\
 Species name            : SO4D4"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 fi
 
 #-----------------------------
@@ -711,7 +708,7 @@ if [[ ${sim_extra_option} = "marinePOA" ]]; then
     prev_line"Species name            : MONITU"
     new_line="\Species name            : MOPI\n\
 Species name            : MOPO"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 fi
 
 #-----------------------------
@@ -876,7 +873,7 @@ Species name            : AW12\n\
 Species name            : AW13\n\
 Species name            : AW14\n\
 Species name            : AW15"
-    add_text $prev_line $new_line ${rundir}/input.geos
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
     
     if [[ ${sim_extra_option} = "TOMAS40" ]]; then
 	prev_line="Species name            : NK15"
@@ -905,7 +902,7 @@ Species name            : NK37\n\
 Species name            : NK38\n\
 Species name            : NK39\n\
 Species name            : NK40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 prev_line="Species name            : SF15"
 	new_line="\Species name            : SF16\n\
@@ -933,7 +930,7 @@ Species name            : SF37\n\
 Species name            : SF38\n\
 Species name            : SF39\n\
 Species name            : SF40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : SS15"
 	new_line="\Species name            : SS16\n\
@@ -961,7 +958,7 @@ Species name            : SS37\n\
 Species name            : SS38\n\
 Species name            : SS39\n\
 Species name            : SS40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : ECOB15"
 	new_line="\Species name            : ECOB16\n\
@@ -989,7 +986,7 @@ Species name            : ECOB37\n\
 Species name            : ECOB38\n\
 Species name            : ECOB39\n\
 Species name            : ECOB40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : ECIL15"
 	new_line="\Species name            : ECIL16\n\
@@ -1017,7 +1014,7 @@ Species name            : ECIL37\n\
 Species name            : ECIL38\n\
 Species name            : ECIL39\n\
 Species name            : ECIL40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : OCOB15"
 	new_line="\Species name            : OCOB16\n\
@@ -1045,7 +1042,7 @@ Species name            : OCOB37\n\
 Species name            : OCOB38\n\
 Species name            : OCOB39\n\
 Species name            : OCOB40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : OCIL15"
 	new_line="\Species name            : OCIL16\n\
@@ -1073,7 +1070,7 @@ Species name            : OCIL37\n\
 Species name            : OCIL38\n\
 Species name            : OCIL39\n\
 Species name            : OCIL40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : DUST15"
 	new_line="\Species name            : DUST16\n\
@@ -1101,7 +1098,7 @@ Species name            : DUST37\n\
 Species name            : DUST38\n\
 Species name            : DUST39\n\
 Species name            : DUST40"
-        add_text $prev_line $new_line ${rundir}/input.geos
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
 	prev_line="Species name            : AW15"
 	new_line="\Species name            : AW16\n\
@@ -1129,7 +1126,7 @@ Species name            : AW37\n\
 Species name            : AW38\n\
 Species name            : AW39\n\
 Species name            : AW40"
-        add_text $prev_line $new_line ${rundir}/input.geos 
+	sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
 
     fi
 fi
@@ -1254,14 +1251,14 @@ Species name            : APMSPBIN37\n\
 Species name            : APMSPBIN38\n\
 Species name            : APMSPBIN39\n\
 Species name            : APMSPBIN40"
-    add_text $prev_line $new_line ${rundir}/input.geos 
+    sed -i -e "/${prev_line}/a ${new_line}" ${rundir}/input.geos
     
 fi
     
 #-----------------------------------------------------------------
 # Modify input files for troposphere-only chemistry grids
 #-----------------------------------------------------------------
-if [[ ${chemgrid} = "trop_only" ]]; the
+if [[ ${chemgrid} = "trop_only" ]]; then
 
     replace_colon_sep_val "=> Set init. strat. H2O"  F ${rundir}/input.geos
     replace_colon_sep_val "Settle strat. aerosols"   F ${rundir}/input.geos
@@ -1325,12 +1322,14 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/input.geos
 sed -i -e "s|{TIME1}|${starttime}|"     ${rundir}/input.geos
 sed -i -e "s|{TIME2}|${endtime}|"       ${rundir}/input.geos
 
-printf '\n NOTE: This run directory has been set up for ${startdate} - ${enddate}. You may modify these settings in input.geos.\n'
+printf "\n  -- This run directory has been set up for $startdate - $enddate."
+printf "\n     You may modify these settings in input.geos.\n"
 
 sed -i -e "s|{FREQUENCY}|00000100 000000|"   ${rundir}/HISTORY.rc
 sed -i -e "s|{DURATION}|00000100 000000|"    ${rundir}/HISTORY.rc
 
-printf ' \n NOTE: The default frequency and duration of diagnostics is set to monthly. You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n'
+printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
+printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
 #--------------------------------------------------------------------
 # Copy sample restart file
@@ -1339,7 +1338,10 @@ sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${gri
 if [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
-    printf "\n NOTE: No sample restart provided for this simulation. You will need to provide an initial restart file or disable GC_RESTARTS in HEMCO_Config.rc to initialize your simulation with default background species concentrations.\n"
+    printf "\n  -- No sample restart provided for this simulation."
+    printf "\n     You will need to provide an initial restart file or disable"
+    printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
+    printf "\n     with default background species concentrations.\n"
 fi
 
 #-----------------------------------------------------------------
@@ -1375,7 +1377,7 @@ printf "\n  Hash: ${commit_hash}"      >> ${version_log}
 #-----------------------------------------------------------------
 # Ask user whether to track run directory changes with git
 #-----------------------------------------------------------------
-printf "\nDo you want to track run directory changes with git? (y/n)\n"
+printf "${thinline}Do you want to track run directory changes with git? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
     read enable_git
