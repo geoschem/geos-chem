@@ -124,7 +124,7 @@ Radiation Timestep [sec]: 10800
 Turn on ObsPack diag?   : F
 Quiet logfile output    : F
 ObsPack input file      : ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
-ObsPack output file     : GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+ObsPack output file     : ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
 ObsPack output species  : NO CO O3
 ------------------------+------------------------------------------------------
 ###############################################################################
@@ -160,7 +160,7 @@ diaginfo.dat path       : diaginfo.dat
 tracerinfo.dat path     : tracerinfo.dat
 ------------------------+------------------------------------------------------
 %%% DIAGNOSTIC MENU %%% :
-Binary punch file name  : trac_avg.geosfp_4x5_benchmark.YYYYMMDDhhmm
+Binary punch file name  : ./OutputDir/GEOSChem.YYYYMMDD.bpch
 Diagnostic Entries ---> :  L   Tracers to print out for each diagnostic
 ND03: Hg emissions, P/L :  0   all
 ND06: Dust aer source   :  1   all
