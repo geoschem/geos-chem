@@ -1,5 +1,5 @@
 ###############################################################################
-###  HISTORY.rc file for GEOS-Chem full chemistry            simulations    ###
+###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)     ###
 ###############################################################################
 
@@ -41,6 +41,7 @@ COLLECTIONS: 'Restart',
              #'KppDiags',
              #'LevelEdgeDiags',
              #'ProdLoss',
+	     ##'RRTMG',
              #'StateChm',
              #'StateMet',
              #'Transport',
@@ -426,6 +427,37 @@ COLLECTIONS: 'Restart',
                               'LossHNO3onSeaSalt             ', 'GIGCchem',
 			      'ProdCOfromCH4                 ', 'GIGCchem',
 			      'ProdCOfromNMVOC               ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE RRTMG COLLECTION %%%%%
+#
+# Flux outputs for different species from the RRTMG radiative transfer model:
+# (See http://wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG)
+#
+#    0=BA (Baseline    )  1=O3 (Ozone          )   2=ME (Methane   )
+#    3=SU (Sulfate     )  4=NI (Nitrate        )   5=AM (Ammonium  )
+#    6=BC (Black carbon)  7=OA (Organic aerosol)   8=SS (Sea Salt  )
+#    9=DU (Mineral dust) 10=PM (All part. matter) 12=ST (Strat aer.)
+#
+# NOTES:
+# (1) You must always list the BASELINE (BA) flux output first!
+# (2) RRTMG is called for each type of flux output.  Therefore,
+#     it is a good idea to only request those fluxes that you need instead
+#     of all possible flux outputs.  This will reduce the overall run time.
+#==============================================================================
+  RRTMG.template:             '%y4%m2%d2_%h2%n2z.nc4',
+  RRTMG.format:               'CFIO',
+  RRTMG.frequency:            {FREQUENCY}
+  RRTMG.duration:             {DURATION}
+  RRTMG.mode:                 'time-averaged'
+  RRTMG.fields:               'RadClrSkyLWSurf_BA            ', 'GIGCchem',
+                              'RadClrSkyLWTOA_BA             ', 'GIGCchem',
+                              'RadClrSkySWSurf_BA            ', 'GIGCchem',
+                              'RadClrSkySWTOA_BA             ', 'GIGCchem',
+                              'RadClrSkyLWSurf_PM            ', 'GIGCchem',
+                              'RadClrSkyLWTOA_PM             ', 'GIGCchem',
+                              'RadClrSkySWSurf_PM            ', 'GIGCchem',
+                              'RadClrSkySWTOA_PM             ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%
