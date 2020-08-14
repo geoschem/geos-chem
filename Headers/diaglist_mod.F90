@@ -718,7 +718,7 @@ CONTAINS
        IWL(1) = INDEX( TRIM(metadataID), 'RADCLRSKY' )
        IWL(2) = INDEX( TRIM(metadataID), 'RADALLSKY' )
        IWLMAX = MAX( IWL(1), IWL(2) )
-       IF ( IWLMAX > 0 ) THEN
+       IF ( IWLMAX > 0 .AND. nRadFlux < 12 ) THEN
 
           IF ( LEN_TRIM( Tag ) > 0 ) THEN
 
@@ -1314,7 +1314,7 @@ CONTAINS
     thisLoc = ' -> at Check_DiagList (in module Headers/diaglist_mod.F90)'
     found   = .FALSE.
 
-    ! Get the optional exactMatch argument, whichg determines
+    ! Get the optional exactMatch argument, which determines
     ! if we should force an exact name match or not (bmy, 10/29/18)
     IF ( PRESENT( partial ) ) THEN
        doPartialMatch = partial

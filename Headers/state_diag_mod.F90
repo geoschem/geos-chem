@@ -571,6 +571,7 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
+
      LOGICAL                     :: Archive_KppDiags
 
      !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
@@ -1506,6 +1507,7 @@ CONTAINS
 
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
+
     State_Diag%Archive_KppDiags                    = .FALSE.
 
     !%%%%% Time in troposphere diagnostic %%%%%
@@ -1543,7 +1545,9 @@ CONTAINS
     State_Diag%Archive_RadDecay                    = .FALSE.
 
     ! RRTMG simulation diagnostics
+
     State_Diag%nRadFlux                            =  0
+
     State_Diag%RadFluxInd                          => NULL()
     State_Diag%RadFluxName                         => NULL()
 
@@ -3068,6 +3072,7 @@ CONTAINS
 
        ! Populate the index arrays for RRTMG
        CALL Init_RRTMG_Indices( Input_Opt, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
@@ -7860,8 +7865,8 @@ CONTAINS
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
+                                State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
+                                State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
                                 State_Diag%Archive_AODDust              .or. &
                                 State_Diag%Archive_AODDustWL1           .or. &
                                 State_Diag%Archive_AODDustWL2           .or. &
