@@ -1772,7 +1772,7 @@ PROGRAM GEOS_Chem
              ! Echo info
              WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
 520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
-                     a2, ' (Index = ', i2.2, ')' )
+                     a4, ' (Index = ', i2.2, ')' )
 
              ! Generate mask for species in RT
              CALL Set_SpecMask( iSpecMenu )
