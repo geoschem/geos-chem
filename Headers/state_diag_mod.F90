@@ -804,7 +804,7 @@ MODULE State_Diag_Mod
 
      INTEGER                     :: nRadFlux
      INTEGER,            POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=2),   POINTER :: RadFluxName(:)
+     CHARACTER(LEN=4),   POINTER :: RadFluxName(:)
 
      REAL(f4),           POINTER :: RadAllSkyLWSurf(:,:,:)
      LOGICAL                     :: Archive_RadAllSkyLWSurf
