@@ -1514,7 +1514,7 @@ CONTAINS
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
     !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
-    
+
     State_Diag%AirMassColumnFull                   => NULL()
     State_Diag%Archive_AirMassColumnFull           = .FALSE.
 
@@ -1532,7 +1532,6 @@ CONTAINS
 
     State_Diag%MeanOHcolumnTrop                    => NULL()
     State_Diag%Archive_MeanOHcolumnTrop            = .FALSE.
-
 
     !%%%%% TransportTracers diagnostics %%%%%
 
@@ -4496,7 +4495,7 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Mean OH column diagnostics -- full-column and trop column  
+       ! Mean OH column diagnostics -- full-column and trop column
        !--------------------------------------------------------------------
        diagId = 'MeanOHcolumnFull'
        CALL Init_and_Register(                                               &
@@ -4517,7 +4516,7 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-       
+
        diagId = 'MeanOHcolumnTrop'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -9157,10 +9156,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  metadataID, Found,    &
-                                      RC,         Desc,       Units,    &
-                                      TagId,      Rank,       Type,     &
-                                      VLoc                             )
+  SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  metadataID, Found,         &
+                                      RC,         Desc,       Units,         &
+                                      TagId,      Rank,       SrcType,       &
+                                      OutType,    VLoc                      )
 !
 ! !USES:
 !
@@ -9170,19 +9169,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root
-    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID   ! State_Diag field ID
+    LOGICAL,             INTENT(IN)            :: am_I_Root
+    CHARACTER(LEN=*),    INTENT(IN)            :: metadataID   ! field ID
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(OUT)           :: Found  ! Item found?
-    INTEGER,             INTENT(OUT)           :: RC     ! Return code
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc   ! Long name string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units  ! Units string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: TagId  ! Tag wildcard (wc)
-    INTEGER,             INTENT(OUT), OPTIONAL :: Rank   ! # of dimensions
-    INTEGER,             INTENT(OUT), OPTIONAL :: Type   ! Desc of data type
-    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc   ! Vert placement
+    LOGICAL,             INTENT(OUT)           :: Found   ! Item found?
+    INTEGER,             INTENT(OUT)           :: RC      ! Return code
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc    ! Long name string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units   ! Units string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: TagId   ! Tag wildcard (wc)
+    INTEGER,             INTENT(OUT), OPTIONAL :: Rank    ! # of dimensions
+    INTEGER,             INTENT(OUT), OPTIONAL :: SrcType ! Source type
+    INTEGER,             INTENT(OUT), OPTIONAL :: OutType ! Output type
+    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc    ! Vert placement
 !
 ! !REMARKS:
 !  If a diagnostic cannot use a wildcard, then set Tag=''.
@@ -9198,7 +9198,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: isDesc,  isUnits,  isRank
-    LOGICAL            :: isVLoc,  isTagged, isType
+    LOGICAL            :: isVLoc,  isTagged, isSrcType, isOutType
 
     ! Strings
     CHARACTER(LEN=5  ) :: TmpWL
@@ -9222,19 +9222,21 @@ CONTAINS
     isDesc    = PRESENT( Desc    )
     isUnits   = PRESENT( Units   )
     isRank    = PRESENT( Rank    )
-    isType    = PRESENT( Type    )
+    isSrcType = PRESENT( SrcType )
+    isOutType = PRESENT( OutType )
     isVLoc    = PRESENT( VLoc    )
     isTagged  = PRESENT( TagID   )
 
     ! Set defaults for optional arguments. Assume type and vertical
     ! location are real (flexible precision) and center unless specified
     ! otherwise
-    IF ( isUnits  ) Units  = ''
-    IF ( isDesc   ) Desc   = ''
-    IF ( isRank   ) Rank   = -1
-    IF ( isType   ) Type   = KINDVAL_F4      ! Assume real*4
-    IF ( isVLoc   ) VLoc   = VLocationCenter ! Assume vertically centered
-    IF ( isTagged ) TagID  = ''
+    IF ( isUnits   ) Units   = ''
+    IF ( isDesc    ) Desc    = ''
+    IF ( isRank    ) Rank    = -1
+    IF ( isSrcType ) SrcType = KINDVAL_F4      ! Assume real*4
+    IF ( isOutType ) OutType = KINDVAL_F4      ! Assume real*4
+    IF ( isVLoc    ) VLoc   = VLocationCenter  ! Assume vertically centered
+    IF ( isTagged  ) TagID  = ''
 
     ! Convert to uppercase
     Name_AllCaps  = To_Uppercase( TRIM( metadataID ) )
@@ -9248,21 +9250,27 @@ CONTAINS
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       !--------------------------------------------------------------------
+       ! NOTE: We will eventually want restart file variables to be written
+       ! to netCDF as REAL*8, but HEMCO cannot yet read this.  For now
+       ! we will keep writing out restart files as REAL*4. (bmy, 8/14/20)
+       IF ( isOutType ) OutType  = KINDVAL_F4
+       !--------------------------------------------------------------------
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FRACOFTIMEINTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of time spent in the troposphere'
@@ -10585,47 +10593,53 @@ CONTAINS
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRYALT'
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Air mass in full-atmosphere column'
        IF ( isUnits   ) Units = 'molec'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Air mass in tropospheric column'
        IF ( isUnits   ) Units = 'molec'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = &
             'Mass-weighted mean OH concentration, full-atmosphere columns'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Mass-weighted mean OH concentration, troposheric columns' 
+            'Mass-weighted mean OH concentration, troposheric columns'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = &
             'Mass-weighted mean CH4 concentration, full-atmosphere columns'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = &
             'Mass-weighted mean CH4 concentration, tropospheric columns'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
-       IF ( isType    ) Type  = KINDVAL_F8
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
    ELSE
 
@@ -11361,14 +11375,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: found, hasMapData, hasNSlots
+    LOGICAL            :: found,      hasMapData, hasNSlots
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
     CHARACTER(LEN=512) :: errMsg
-    CHARACTER(LEN=255) :: errMsg_reg, thisLoc
-    CHARACTER(LEN=255) :: desc, units, tagId, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11384,9 +11399,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,   units=units, rank=rank,       &
-                                  type=type,   vloc=vloc,   tagId=tagId     )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -11463,14 +11486,15 @@ CONTAINS
           ENDIF
 
           ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Diag%Registry,        &
-                                  State        = State_Diag%State,           &
-                                  Variable     = diagName,                   &
-                                  Description  = diagDesc,                   &
-                                  Units        = units,                      &
-                                  Data1d_4     = Ptr2Data(:,N),              &
-                                  RC           = RC                         )
+          CALL Registry_AddField( Input_Opt      = Input_Opt,                &
+                                  Registry       = State_Diag%Registry,      &
+                                  State          = State_Diag%State,         &
+                                  Variable       = diagName,                 &
+                                  Description    = diagDesc,                 &
+                                  Units          = units,                    &
+                                  Data1d_4       = Ptr2Data(:,N),            &
+                                  Output_KindVal = outType,                  &
+                                  RC             = RC                       )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -11488,14 +11512,15 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = MetadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               Data2d_4     = Ptr2Data,                      &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = MetadataID,                  &
+                               Description    = desc,                        &
+                               Units          = units,                       &
+                               Data2d_4       = Ptr2Data,                    &
+                               Output_KindVal = outType,                     &
+                               RC             = RC                          )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -11559,15 +11584,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: Found, onEdges
-    LOGICAL            :: hasMapData, hasNSlots
+    LOGICAL            :: found,      hasMapData
+    LOGICAL            :: hasNSlots,  onEdges
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
-    CHARACTER(LEN=512) :: ErrMsg
-    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255) :: desc, units, tagID, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11582,10 +11608,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,   units=units, rank=rank,       &
-                                  type=type,   vloc=vloc,                    &
-                                  tagID=tagID                               )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -11655,15 +11688,16 @@ CONTAINS
           ENDIF
 
           ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Diag%Registry,        &
-                                  State        = State_Diag%State,           &
-                                  Variable     = diagName,                   &
-                                  Description  = diagDesc,                   &
-                                  Units        = units,                      &
-                                  OnLevelEdges = onEdges,                    &
-                                  Data2d_4     = Ptr2Data(:,:,N),            &
-                                  RC           = RC                         )
+          CALL Registry_AddField( Input_Opt      = Input_Opt,                &
+                                  Registry       = State_Diag%Registry,      &
+                                  State          = State_Diag%State,         &
+                                  Variable       = diagName,                 &
+                                  Description    = diagDesc,                 &
+                                  Units          = units,                    &
+                                  OnLevelEdges   = onEdges,                  &
+                                  Output_KindVal = outType,                  &
+                                  Data2d_4       = Ptr2Data(:,:,N),          &
+                                  RC             = RC                       )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -11682,15 +11716,16 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = metadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d_4     = Ptr2Data,                      &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = metadataID,                  &
+                               Description    = desc,                        &
+                               Units          = units,                       &
+                               OnLevelEdges   = onEdges,                     &
+                               Output_KindVal = outType,                     &
+                               Data3d_4       = Ptr2Data,                    &
+                               RC             = RC                          )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -11754,15 +11789,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: found, onEdges
-    LOGICAL            :: hasMapData, hasNSlots
+    LOGICAL            :: found,      hasMapData
+    LOGICAL            :: hasNSlots,  onEdges
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
-    CHARACTER(LEN=512) :: ErrMsg
-    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255) :: desc, units, tagId, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11778,9 +11814,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,   units=units, rank=rank,       &
-                                  type=type,   vloc=vloc,   tagId=tagId     )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -11858,15 +11902,16 @@ CONTAINS
        ENDIF
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = diagName,                      &
-                               Description  = diagDesc,                      &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d_4     = Ptr2Data(:,:,:,N),             &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = diagName,                    &
+                               Description    = diagDesc,                    &
+                               Units          = units,                       &
+                               OnLevelEdges   = onEdges,                     &
+                               Output_KindVal = outType,                     &
+                               Data3d_4       = Ptr2Data(:,:,:,N),           &
+                               RC             = RC                          )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -11930,14 +11975,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: hasMapData, hasNSlots, found
+    LOGICAL            :: found,      hasMapData, hasNSlots
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
-    CHARACTER(LEN=512) :: ErrMsg
-    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255) :: desc, units, tagId, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11954,9 +12000,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,   units=units, rank=rank,       &
-                                  type=type,   vloc=vloc,   tagId=tagId     )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -12031,14 +12085,15 @@ CONTAINS
           ENDIF
 
           ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Diag%Registry,        &
-                                  State        = State_Diag%State,           &
-                                  Variable     = diagName,                   &
-                                  Description  = diagDesc,                   &
-                                  Units        = units,                      &
-                                  Data1d_8     = Ptr2Data(:,N),              &
-                                  RC           = RC                         )
+          CALL Registry_AddField( Input_Opt      = Input_Opt,                &
+                                  Registry       = State_Diag%Registry,      &
+                                  State          = State_Diag%State,         &
+                                  Variable       = diagName,                 &
+                                  Description    = diagDesc,                 &
+                                  Units          = units,                    &
+                                  Output_KindVal = outType,                  &
+                                  Data1d_8       = Ptr2Data(:,N),            &
+                                  RC             = RC                       )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -12056,14 +12111,15 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = MetadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               Data2d_8     = Ptr2Data,                      &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = MetadataID,                  &
+                               Description    = desc,                        &
+                               Units          = units,                       &
+                               Output_KindVal = outType,                     &
+                               Data2d_8       = Ptr2Data,                    &
+                               RC             = RC                          )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -12127,15 +12183,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: Found,      onEdges
-    LOGICAL            :: hasMapData, hasNSlots
+    LOGICAL            :: found,      hasMapData
+    LOGICAL            :: hasNSlots,  onEdges
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
-    CHARACTER(LEN=512) :: ErrMsg
-    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255) :: desc, units, tagID, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -12151,10 +12208,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,   units=units, rank=rank,       &
-                                  type=type,   vloc=vloc,                    &
-                                  tagID=tagID                               )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -12232,15 +12296,16 @@ CONTAINS
           ENDIF
 
           ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Diag%Registry,        &
-                                  State        = State_Diag%State,           &
-                                  Variable     = diagName,                   &
-                                  Description  = diagDesc,                   &
-                                  Units        = units,                      &
-                                  OnLevelEdges = onEdges,                    &
-                                  Data2d_8     = Ptr2Data(:,:,N),            &
-                                  RC           = RC                         )
+          CALL Registry_AddField( Input_Opt      = Input_Opt,                &
+                                  Registry       = State_Diag%Registry,      &
+                                  State          = State_Diag%State,         &
+                                  Variable       = diagName,                 &
+                                  Description    = diagDesc,                 &
+                                  Units          = units,                    &
+                                  OnLevelEdges   = onEdges,                  &
+                                  Output_KindVal = outType,                  &
+                                  Data2d_8       = Ptr2Data(:,:,N),          &
+                                  RC             = RC                       )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -12259,15 +12324,16 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = metadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d_8     = Ptr2Data,                      &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = metadataID,                  &
+                               Description    = desc,                        &
+                               Units          = units,                       &
+                               OnLevelEdges   = onEdges,                     &
+                               Output_KindVal = outType,                     &
+                               Data3d_8       = Ptr2Data,                    &
+                               RC             = RC                          )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -12331,15 +12397,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, nTags, rank, type, vloc, index
-    LOGICAL            :: found, onEdges
-    LOGICAL            :: hasMapData, hasNSlots
+    LOGICAL            :: found,      hasMapData
+    LOGICAL            :: hasNSlots,  onEdges
+    INTEGER            :: N,          nTags,      rank
+    INTEGER            :: srcType,    outType,    vloc
 
     ! Strings
-    CHARACTER(LEN=512) :: ErrMsg
-    CHARACTER(LEN=255) :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255) :: desc, units, tagId, tagName
-    CHARACTER(LEN=255) :: diagName, diagDesc
+    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255) :: errMsg_reg, thisLoc,    desc
+    CHARACTER(LEN=255) :: units,      tagId,      tagName
+    CHARACTER(LEN=255) :: diagName,   diagDesc
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -12355,9 +12422,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( Input_Opt%amIRoot, metadataID, Found,  RC, &
-                                  desc=desc,  units=units, rank=rank,        &
-                                  type=type,  vloc=vloc,   tagId=tagId      )
+    CALL Get_Metadata_State_Diag( am_I_root  = Input_Opt%amIRoot,            &
+                                  found      = found,                        &
+                                  metadataId = metadataID,                   &
+                                  desc       = desc,                         &
+                                  outType    = outType,                      &
+                                  units      = units,                        &
+                                  rank       = rank,                         &
+                                  srcType    = srcType,                      &
+                                  tagId      = tagId,                        &
+                                  vloc       = vloc,                         &
+                                  RC         = RC                           )
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
@@ -12436,15 +12511,16 @@ CONTAINS
        ENDIF
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Diag%Registry,           &
-                               State        = State_Diag%State,              &
-                               Variable     = diagName,                      &
-                               Description  = diagDesc,                      &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d_8     = Ptr2Data(:,:,:,N),             &
-                               RC           = RC                            )
+       CALL Registry_AddField( Input_Opt      = Input_Opt,                   &
+                               Registry       = State_Diag%Registry,         &
+                               State          = State_Diag%State,            &
+                               Variable       = diagName,                    &
+                               Description    = diagDesc,                    &
+                               Units          = units,                       &
+                               OnLevelEdges   = onEdges,                     &
+                               Output_KindVal = outType,                     &
+                               Data3d_8       = Ptr2Data(:,:,:,N),           &
+                               RC             = RC                            )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
