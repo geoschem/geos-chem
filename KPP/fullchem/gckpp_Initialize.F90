@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Tue Jul 28 17:17:17 2020
-! Working directory    : /mnt/lustre/users/ts551/GC/Code/Code.BleedingEdge/KPP/Standard
+! Time                 : Fri Aug 14 12:21:03 2020
+! Working directory    : /n/home05/msulprizio/GC/GCC_13.0.0/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 

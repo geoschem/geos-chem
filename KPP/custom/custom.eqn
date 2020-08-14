@@ -1,11 +1,12 @@
-{ Standard.eqn
+{ custom.eqn
 
 -------------------------------------------------------------------------------
 DESCRIPTION
 -------------------------------------------------------------------------------
 
-GEOS-Chem KPP standard chemistry file containing species and equations for the
-NOx-Ox-HC-Aer-Br-Cl-I mechanism.
+GEOS-Chem KPP file containing species and equations for the full chemistry
+(NOx-Ox-HC-Aer-Br-Cl-I) mechanism. You may modify this file to create your
+own custom chemical mechanism.
 
 ===============================================================================
 FILE HISTORY
