@@ -12,10 +12,13 @@
 #
 # Initial version: M. Sulprizio, 6/24/2020 (based off GCHPctm/createRunDir.sh)
 
-curdir=$(pwd)
-cd ../../../../
-gcdir=$(pwd)
-cd ${curdir}
+srcrundir=$(pwd -P)
+cd ${srcrundir}
+cd ../..
+gcdir=$(pwd -P)
+cd ../../
+wrapperdir=$(pwd -P)
+cd ${srcrundir}
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -77,37 +80,29 @@ printf "  10. TransportTracers\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
+    valid_sim=1
     if [[ ${sim_num} = "1" ]]; then
 	sim_name=fullchem
-	valid_sim=1
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=aerosol
-	valid_sim=1
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CH4
-	valid_sim=1
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=CO2
-	valid_sim=1
     elif [[ ${sim_num} = "5" ]]; then
 	sim_name=Hg
-	valid_sim=1
     elif [[ ${sim_num} = "6" ]]; then
 	sim_name=POPs
-	valid_sim=1
     elif [[ ${sim_num} = "7" ]]; then
 	sim_name=tagCH4
-	valid_sim=1
     elif [[ ${sim_num} = "8" ]]; then
 	sim_name=tagCO
-	valid_sim=1
     elif [[ ${sim_num} = "9" ]]; then
 	sim_name=tagO3
-	valid_sim=1
     elif [[ ${sim_num} = "10" ]]; then
 	sim_name=TransportTracers
-	valid_sim=1
     else
+        valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
@@ -147,12 +142,11 @@ if [[ ${sim_name} = "fullchem" ]]; then
     sim_extra_option=none
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
+	valid_sim_option=1
 	if [[ ${sim_option} = "1" ]]; then
 	    sim_extra_option=none
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "2" ]]; then
 	    sim_extra_option="benchmark"
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "3" ]]; then
 	    printf "${thinline}Choose complex SOA option:${thinline}"
 	    printf "  1. Complex SOA\n"
@@ -160,21 +154,20 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    valid_soa=0
 	    while [ "${valid_soa}" -eq 0 ]; do
 		read soa_option
+		valid_soa=1
 		if [[ ${soa_option} = "1" ]]; then
 		    sim_extra_option="complexSOA"
-		    valid_soa=1
 		elif [[ ${soa_option} = "2" ]]; then
 		    sim_extra_option="complexSOA_SVPOA"
-		    valid_soa=1
+		else
+		    valid_soa=0
+		    printf "Invalid complex SOA option.Try again.\n"
 		fi
 	    done
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "4" ]]; then
 	   sim_extra_option="marinePOA"
-	   valid_sim_option=1
 	elif [[ ${sim_option} = "5" ]]; then
 	   sim_extra_option="aciduptake"
-	   valid_sim_option=1
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
@@ -182,24 +175,22 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option
+		valid_tomas=1
 		if [[ ${tomas_option} = "1" ]]; then
 		    sim_extra_option="TOMAS15"
-		    valid_tomas=1
 		elif [[ ${tomas_option} = "2" ]]; then
 		    sim_extra_option="TOMAS40"
-		    valid_tomas=1
 		else
+		    valid_tomas=0
 		    printf "Invalid TOMAS option. Try again.\n"
 		fi
 	    done
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "7" ]]; then
 	    sim_extra_option="APM"
-	    valid_sim_option=1
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-	    valid_sim_option=1
 	else
+	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
@@ -215,6 +206,7 @@ elif [[ ${sim_name} = "POPs" ]]; then
     valid_pops=0
     while [ "${valid_pops}" -eq 0 ]; do
 	read pops_num
+	valid_pops=1
 	if [[ ${pops_num} = "1" ]]; then
 	    POP_SPC="BaP"
 	    POP_XMW="252.31d-3"
@@ -226,7 +218,6 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	    POP_HSTAR="3.10d-5"
 	    POP_DEL_H="-110d3"
 	    POP_DEL_Hw="43d0"
-	    valid_pops=1
 	elif [[ ${pops_num} = "2" ]]; then
 	    POP_SPC="PHE"
 	    POP_XMW="178.23d-3"
@@ -238,7 +229,6 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	    POP_HSTAR="1.74d-3"
 	    POP_DEL_H="-74d3"
 	    POP_DEL_Hw="47d0"
-	    valid_pops=1
 	elif [[ ${pops_num} = "3" ]]; then
 	    POP_SPC="PYR"
 	    POP_XMW="202.25d-3"
@@ -250,8 +240,8 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	    POP_HSTAR="5.37d-4"
 	    POP_DEL_H="-87d3"
 	    POP_DEL_Hw="43d0"
-	    valid_pops=1
 	else
+	    valid_pops=0
 	    printf "Invalid POPs type. Try again.\n"
 	fi
 	sim_name="${sim_name}_${pops_spc}"
@@ -268,6 +258,7 @@ printf "  2. GEOS-FP \n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
     read met_num
+    valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met_name='MERRA2'
 	met_dir='MERRA2'
@@ -279,7 +270,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	valid_met=1
 	dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
@@ -292,9 +282,9 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	valid_met=1
 	dust_sf='6.42e-5'
     else
+	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
     fi
 done
@@ -313,27 +303,25 @@ fi
 valid_res=0
 while [ "${valid_res}" -eq 0 ]; do
     read res_num
+    valid_res=1
     if [[ ${res_num} = "1" ]]; then
 	grid_res='4x5'
 	grid_res_long='4.0x5.0'
 	grid_dir=$grid_res
-	valid_res=1
     elif [[ ${res_num} = "2" ]]; then
 	grid_res='2x25'
 	grid_res_long='2.0x2.5'
 	grid_dir='2x2.5'
-	valid_res=1
     elif [[ ${res_num} = "3" ]]; then
 	grid_res='05x0625'
 	grid_res_long='0.5x0.625'
 	grid_dir=$grid_res_long
-	valid_res=1
     elif [[ ${res_num} = "4" ]]; then
 	grid_res='025x03125'
 	grid_res_long='0.25x0.3125'
 	grid_dir=$grid_res_long
-	valid_res=1
     else
+	valid_res=0
 	printf "Invalid horizontal resolution option. Try again.\n"
     fi
 done
@@ -349,6 +337,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
     valid_domain=0
     while [ "${valid_domain}" -eq 0 ]; do
 	read domain_num
+	valid_domain=1
 	if [[ ${domain_num} = "1" ]]; then
 	    domain_name="global"
 	    lon_range="-180.0 180.0"
@@ -356,7 +345,6 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	    half_polar="T"
 	    nested_sim="F"
 	    buffer_zone="0  0  0  0"
-	    valid_domain=1
 	else
 	    domain_name="AS"
 	    half_polar="F"
@@ -370,7 +358,6 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range=" 70.0 140.0"
 		    lat_range=" 15.0  55.0"
 		fi
-  		valid_domain=1
 	    elif [[ ${domain_num} = "3" ]]; then
 		domain_name="EU"
 	        if [[ ${grid_res} = "05x0625" ]]; then 
@@ -380,7 +367,6 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-15.0  40.0"
 		    lat_range=" 32.75 61.25"
 		fi
-  		valid_domain=1
 	    elif [[ ${domain_num} = "4" ]]; then
 		domain_name="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then 
@@ -390,14 +376,14 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-130.0  -60.0"
 		    lat_range="   9.75  60.0"
 		fi
-  		valid_domain=1
 	    elif [[ ${domain_num} = "5" ]]; then
 		domain_name="custom"
 	        lon_range="MinLon MaxLon"
 	        lat_range="MinLat MaxLat"
-  		valid_domain=1
-	        printf "\n  -- You will need to manually set longitude and latitude bounds in input.geos.\n"
+	        printf "\n  -- You will need to manually set longitude and latitude"
+		printf "\n     bounds in the Grid Menu of input.geos.\n"
 	    else
+  		valid_domain=0
 		printf "Invalid horizontal grid domain option. Try again.\n"
 	    fi
         fi
@@ -420,13 +406,13 @@ printf "  2. 47 (reduced)\n"
 valid_lev=0
 while [ "${valid_lev}" -eq 0 ]; do
     read lev_num
+    valid_lev=1
     if [[ ${lev_num} = "1" ]]; then
 	grid_lev='72'
-	valid_lev=1
     elif [[ ${lev_num} = "2" ]]; then
 	grid_lev='47'
-	valid_lev=1
     else
+	valid_lev=0
 	printf "Invalid vertical resolution option. Try again.\n"
     fi
 done
@@ -496,7 +482,7 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 #-----------------------------------------------------------------
 cp -r ./getRunInfo               ${rundir}
-cp -r ../shared/download_data.py ${rundir}
+cp -r ${gcdir}/run/shared/download_data.py ${rundir}
 cp -r ./runScriptSamples         ${rundir}
 cp ./archiveRun.sh               ${rundir}
 cp ./cleanRundir.sh              ${rundir}
@@ -514,11 +500,11 @@ fi
 mkdir ${rundir}/OutputDir
 
 # Copy species database; append APM or TOMAS species if needed
-cp -r ../shared/species_database.yml   ${rundir}
+cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    cat ../shared/species_database_tomas.yml >> ${rundir}/species_database.yml
+    cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
-    cat ../shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
 fi
 
 # If benchmark simulation, put run script in directory
@@ -530,7 +516,7 @@ fi
 #--------------------------------------------------------------------
 # Create symbolic link to code directory
 #--------------------------------------------------------------------
-ln -s ${gcdir} ${rundir}/CodeDir
+ln -s ${wrapperdir} ${rundir}/CodeDir
 
 #--------------------------------------------------------------------
 # Create build directory
@@ -1366,7 +1352,7 @@ last_commit=$(git log -n 1 --pretty=format:"%s")
 commit_date=$(git log -n 1 --pretty=format:"%cd")
 commit_user=$(git log -n 1 --pretty=format:"%cn")
 commit_hash=$(git log -n 1 --pretty=format:"%h")
-cd ${curdir}
+cd ${srcrundir}
 printf "\n  Remote URL: ${remote_url}" >> ${version_log}
 printf "\n  Branch: ${code_branch}"    >> ${version_log}
 printf "\n  Commit: ${last_commit}"    >> ${version_log}
@@ -1390,7 +1376,7 @@ while [ "$valid_response" -eq 0 ]; do
 	git add runScriptSamples/* README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
-	cd ${curdir}
+	cd ${srcrundir}
 	valid_response=1
     elif [[ ${enable_git} = "n" ]]; then
 	valid_response=1

@@ -3,16 +3,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_historyexports_mod.F90
+! !MODULE: gchp_historyexports_mod.F90
 !
-! !DESCRIPTION: Module GIGC\_HistoryExports\_Mod serves as the interface
+! !DESCRIPTION: Module GCHP\_HistoryExports\_Mod serves as the interface
 ! between the HISTORY configuration file, the GEOS-Chem State registry,
 ! and the ESMF Export State.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE GIGC_HistoryExports_Mod
+MODULE GCHP_HistoryExports_Mod
 !
 ! !USES:
 !
@@ -116,8 +116,7 @@ MODULE GIGC_HistoryExports_Mod
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
-!  08 Mar 2018 - E. Lundgren - Define the internal state prefix expected in 
-!                              HISTORY.rc within this module
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,10 +151,11 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    __Iam__('Init_HistoryConfig (gigc_historyexports_mod.F90)')
+    __Iam__('Init_HistoryConfig (gchp_historyexports_mod.F90)')
     ALLOCATE(HistoryConfig)
     HistoryConfig%ROOT               =  ''
     HistoryConfig%ConfigFileName     =  TRIM(configFile)
@@ -212,6 +212,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,7 +228,7 @@ CONTAINS
     ! ================================================================
     ! Init_HistoryExportsList begins here
     ! ================================================================
-    __Iam__('Init_HistoryExportsList (gigc_historyexports_mod.F90)')
+    __Iam__('Init_HistoryExportsList (gchp_historyexports_mod.F90)')
 
     ! Init
     NewHistExp => NULL()
@@ -425,10 +426,11 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    __Iam__('Init_HistoryExport (gigc_historyexports_mod.F90)')
+    __Iam__('Init_HistoryExport (gchp_historyexports_mod.F90)')
     ALLOCATE(NewHistExp)
     NewHistExp%name        = TRIM(name)
     NewHistExp%metadataID  = TRIM(metadataID)
@@ -496,6 +498,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -507,7 +510,7 @@ CONTAINS
     ! ================================================================
     ! Append_HistoryExportsList begins here
     ! ================================================================
-    __Iam__('Append_HistoryExportsList (gigc_historyexports_mod.F90)')
+    __Iam__('Append_HistoryExportsList (gchp_historyexports_mod.F90)')
 
     ! Add new object to the beginning of the linked list
     HistoryExport%next => HistoryConfig%HistoryExportsList%head
@@ -547,6 +550,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,7 +559,7 @@ CONTAINS
 !
     TYPE(HistoryExportObj), POINTER :: current
 
-    __Iam__('Check_HistoryExportsList (gigc_historyexports_mod.F90)')
+    __Iam__('Check_HistoryExportsList (gchp_historyexports_mod.F90)')
 
     ! Assume not found
     found = .False.
@@ -610,6 +614,7 @@ CONTAINS
 !  !
 ! !REVISION HISTORY: 
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -624,7 +629,7 @@ CONTAINS
     ! ================================================================
 
     ! For MAPL/ESMF error handling (defines Iam and STATUS)
-    __Iam__('HistoryExports_SetServices (gigc_historyexports_mod.F90)')
+    __Iam__('HistoryExports_SetServices (gchp_historyexports_mod.F90)')
 
     ! Create a config object if it does not already exist
     IF ( .NOT. ASSOCIATED(HistoryConfig) ) THEN
@@ -737,7 +742,7 @@ CONTAINS
 !  !
 ! !REVISION HISTORY: 
 !  01 Sep 2017 - E. Lundgren - Initial version
-!  02 Nov 2017 - E. Lundgren - Copy HEMCO data to emissions exports
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -751,7 +756,7 @@ CONTAINS
     ! ================================================================
     ! CopyGCStates2Exports begins here
     ! ================================================================
-    __Iam__('CopyGCStates2Exports (gigc_historyexports_mod.F90)')
+    __Iam__('CopyGCStates2Exports (gchp_historyexports_mod.F90)')
 
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
@@ -850,6 +855,7 @@ CONTAINS
 !  !
 ! !REVISION HISTORY: 
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +867,7 @@ CONTAINS
     ! ================================================================
     ! Print_HistoryExportsList begins here
     ! ================================================================
-    __Iam__('Print_HistoryExportsList (gigc_historyexports_mod.F90)')
+    __Iam__('Print_HistoryExportsList (gchp_historyexports_mod.F90)')
 
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
@@ -935,6 +941,7 @@ CONTAINS
 !  !
 ! !REVISION HISTORY: 
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1065,6 +1072,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1077,7 +1085,7 @@ CONTAINS
     ! ================================================================
     ! Destroy_HistoryConfig begins here
     ! ================================================================
-    __Iam__('Destroy_HistoryConfig (gigc_historyexports_mod.F90)')
+    __Iam__('Destroy_HistoryConfig (gchp_historyexports_mod.F90)')
 
     current => NULL()
     next => NULL()
@@ -1107,4 +1115,4 @@ CONTAINS
 
   END SUBROUTINE Destroy_HistoryConfig
 !EOC
-END MODULE GIGC_HistoryExports_Mod
+END MODULE GCHP_HistoryExports_Mod

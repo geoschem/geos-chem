@@ -168,8 +168,9 @@ CONTAINS
     ! Scalars
     LOGICAL                  :: EOF, found, isWildcard, isTagged
     LOGICAL                  :: InDefSection, InFieldsSection
-    INTEGER                  :: QMatch, CMatch, LineNum
-    INTEGER                  :: fId, IOS, N, N1, N2, N3, I, J, C, F, G
+    INTEGER                  :: QMatch, CMatch
+    INTEGER                  :: LineNum, LineLen, LineInd, LineInd2
+    INTEGER                  :: fId, IOS, N, N1, N2, N3, I
     INTEGER                  :: IWLMAX, IWLMAXLOC(1), IWL(3)
     INTEGER                  :: numSpcWords, numIDWords
 
@@ -263,11 +264,11 @@ CONTAINS
 
        ! Update wavelength(s) with string in file
        IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
-          I = INDEX( Line, ':' )
-          CALL StrSplit( Line(I:), ' ', SubStrs, N )
-          DO J = 1, N-1
-             WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
-             RadWL(J) = ADJUSTL( RadWL(J) )
+          LineInd = INDEX( Line, ':' )
+          CALL StrSplit( Line(LineInd:), ' ', SubStrs, N )
+          DO I = 1, N-1
+             WRITE ( RadWL(I), "(a5)" ) SubStrs(I+1)
+             RadWL(I) = ADJUSTL( RadWL(I) )
           ENDDO
 
           ! Exit the search
@@ -430,8 +431,8 @@ CONTAINS
           ENDIF
 
           ! Each collection attribute definition needs to end with a colon
-          C = LEN_TRIM( AttName )
-          IF ( AttName(C:C) /= ':' ) THEN
+          LineLen = LEN_TRIM( AttName )
+          IF ( AttName(LineLen:LineLen) /= ':' ) THEN
              ErrMsg = 'The "' // TRIM( AttName ) // '" '                  // &
                       'collection attribute did not end with a ":" '      // &
                       'character!  Please check the HISTORY.rc file.'
@@ -461,8 +462,8 @@ CONTAINS
 
              ! Make sure that the value ends with a single quote
              ! (comma is optional)
-             C = LEN_TRIM( AttValue )
-             IF ( AttValue(C-1:C) /= "'," ) THEN
+             LineLen = LEN_TRIM( AttValue )
+             IF ( AttValue(LineLen-1:LineLen) /= "'," ) THEN
                 ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
                          '" must end with a single quote character, '     // &
                          'followed by a comma. '                          // &
@@ -491,9 +492,9 @@ CONTAINS
 
              ! Make sure that the value ends with a single quote
              ! (comma is optional)
-             C = LEN_TRIM( AttValue )
-             IF ( AttValue(C:C) == ',' ) C = C -1
-             IF ( AttValue(C:C) /= "'" ) THEN
+             LineLen = LEN_TRIM( AttValue )
+             IF ( AttValue(LineLen:LineLen) == ',' ) LineLen = LineLen -1
+             IF ( AttValue(LineLen:LineLen) /= "'" ) THEN
                 ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
                          '" must end with a single quote character. '     // &
                          'Please check the HISTORY.rc file.'
@@ -514,10 +515,11 @@ CONTAINS
           ! part of the attribute name (up to the "." character.  If this
           ! does not match the expected collection name, then we have a
           ! missing separator ("::") somewhere.  Stop with an error.
-          C = INDEX( AttName, '.' )
-          IF ( AttName(1:C-1) /= TRIM( LastCollName ) ) THEN
+          LineInd = INDEX( AttName, '.' )
+          IF ( AttName(1:LineInd-1) /= TRIM( LastCollName ) ) THEN
              ErrMsg = 'Attribute "' // TRIM( AttName ) // ' specifies a ' // &
-                      'value for collection "' // TRIM( AttName(1:C-1) )  // &
+                      'value for collection "'                            // &
+                      TRIM( AttName(1:LineInd-1) )                      // &
                       '", but the expected collection name is "'          // &
                       TRIM( LastCollName ) // '".  This indicates that '  // &
                       'the end-of-collection delimiter (i.e. "::") is '   // &
@@ -527,29 +529,15 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Throw an error if we cannot find the gridcomp name
-          ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
-          G = INDEX( Line, "'GIGCchem'," )
-          IF ( G == 0 ) THEN
-             ErrMsg = 'The name of the GCHP gridded component '           // &
-                      "(e.g. 'GIGCchem') for attribute "  // '" '         // &
-                      TRIM( AttName ) // '" must be enclosed in '         // &
-                      'single quotes and be followed by a comma. '        // &
-                      'Please check the HISTORY.rc file.'
-             WRITE( ErrorLine, 250 ) LineNum
-             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
-             RETURN
-          ENDIF
-
           ! Save into LineSq the text of the line, skipping over
           ! the attribute name (if we are on the first line),
           ! as well as the gridcomp name
-          F = INDEX( Line, '.fields' )
-          IF ( F > 0 ) THEN
-             C = INDEX( Line, ':' )
-             FieldName = Line(C+1:G-1)
+          LineInd = INDEX( Line, ',' )
+          IF ( INDEX( Line, '.fields' ) > 0 ) THEN
+             LineInd2 = INDEX( Line, ':' )
+             FieldName = Line(LineInd2+1:LineInd)
           ELSE
-             FieldName = Line(1:G-1)
+             FieldName = Line(1:LineInd)
           ENDIF
 
           ! Pack all whitespace in LineSq
@@ -567,8 +555,8 @@ CONTAINS
           ENDIF
 
           ! Make sure that the value ends with a single quote
-          C = LEN_TRIM( FieldName )
-          IF ( FieldName(C-1:C) /= "'," ) THEN
+          LineLen = LEN_TRIM( FieldName )
+          IF ( FieldName(LineLen-1:LineLen) /= "'," ) THEN
              ErrMsg = 'The diagnostic field name "' // TRIM( FieldName )  // &
                       '" must end with a single quote character '         // &
                       'followed by a comma, '                             // &
@@ -584,13 +572,11 @@ CONTAINS
        ! Add unique diagnostic names to diag list
        !====================================================================
 
-       ! Skip line if GIGCchem not present
-       ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
-       ! scan accordingly (ckeller, 12/29/17)
-#ifdef MODEL_GEOS
+       ! Skip line if gridded component name not present and using GCHP or GEOS
+#if defined( MODEL_GCHPCTM )
+       IF ( INDEX( Line, 'GCHPchem' ) .le. 0 ) CYCLE
+#elif defined( MODEL_GEOS )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
-#else
-       IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
 #endif
 
        ! Get diagnostic name
@@ -642,7 +628,7 @@ CONTAINS
        isWildcard = .FALSE.
        wildcard   = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
-#ifdef ESMF_
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
           ! Exit with an error if using GCHP and wildcard is present
           ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                    'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
@@ -650,6 +636,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 #endif
+
           isWildcard = .TRUE.
           CALL StrSplit( name, '?', SubStrs, N )
           wildcard = SubStrs(N-1)
@@ -680,22 +667,22 @@ CONTAINS
        ENDIF
        ! Then strip off the wildcard, if any
        IF ( isWildcard ) THEN
-          I = INDEX( TRIM(registryID), '_' )
-          IF ( I .le. 0 ) THEN
+          LineInd = INDEX( TRIM(registryID), '_' )
+          IF ( LineInd .le. 0 ) THEN
              ErrMsg = 'Error setting registryID. Single underscore must' &
                       // ' precede wildcard in HISTORY.rc!'
              CALL GC_ERROR( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-          registryID = registryID(1:I-1)
+          registryID = registryID(1:LineInd-1)
        ENDIF
 
        ! Get metadataID - start with the registry ID
        metadataID = registryID
        ! Then strip off the tag suffix, if any
        IF ( isTagged ) THEN
-          I = INDEX( TRIM(metadataID), '_' )
-          metadataID = metadataID(1:I-1)
+          LineInd = INDEX( TRIM(metadataID), '_' )
+          metadataID = metadataID(1:LineInd-1)
        ENDIF
 
        ! For registryID and metdataID, handle special case of AOD wavelength
@@ -708,9 +695,9 @@ CONTAINS
           IWLMAXLOC = MAXLOC(IWL)
           registryIDprefix = registryID(1:IWL(IWLMAXLOC(1))-1) // &
                              TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
-          I = INDEX( TRIM(registryID), '_' )
-          IF ( I > 0 ) THEN
-             registryID = TRIM(registryIDprefix) // registryID(I:)
+          LineInd = INDEX( TRIM(registryID), '_' )
+          IF ( LineInd > 0 ) THEN
+             registryID = TRIM(registryIDprefix) // registryID(LineInd:)
           ELSE
              registryID = registryIDprefix
           ENDIF
@@ -769,9 +756,9 @@ CONTAINS
        IWL(1) = INDEX( TRIM(registryID), 'ALT1' )
        IF ( IWL(1) > 0 ) THEN
           registryIDprefix = registryID(1:IWL(1)-1) // TRIM( AltAboveSfc )
-          I = INDEX( TRIM(registryID), '_' )
-          IF ( I > 0 ) THEN
-             registryID = TRIM(registryIDprefix) // registryID(I:)
+          LineInd = INDEX( TRIM(registryID), '_' )
+          IF ( LineInd > 0 ) THEN
+             registryID = TRIM(registryIDprefix) // registryID(LineInd:)
           ELSE
              registryID = registryIDprefix
           ENDIF

@@ -1863,7 +1863,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: I, J, L, N, NA, nAdvect
+    INTEGER             :: I, J, L, N, NA, nAdvect, EC
     REAL(fp)            :: dtime
 
     ! Arrays
@@ -2017,7 +2017,7 @@ CONTAINS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J      )
+    !$OMP PRIVATE( J, EC  )
     DO J = 1, State_Grid%NY
        CALL Vdiff( J,                 1,         p_um1,     p_vm1,           &
                    p_tadv,            p_pmid,    p_pint,    p_rpdel,         &
@@ -2026,7 +2026,7 @@ CONTAINS
                    p_kvh,             p_kvm,     tpert,     qpert,           &
                    p_cgs,             p_shp,     shflx,     State_Grid%NX,   &
                    Input_Opt,         State_Met, State_Chm, State_Diag,      &
-                   ustar_arg=p_ustar, RC=RC                                 )
+                   ustar_arg=p_ustar, RC=EC                                 )
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -2087,7 +2087,6 @@ CONTAINS
 ! !USES:
 !
     USE Calc_Met_Mod,       ONLY : AirQnt
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -2133,17 +2132,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-
     ! Scalars
     LOGICAL            :: prtDebug
+    INTEGER            :: TS_Dyn
+    REAL(fp)           :: DT_Dyn
 
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    REAL(fp)           :: DT_Dyn
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
 
     !=======================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2168,18 +2165,28 @@ CONTAINS
     !=======================================================================
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
-       ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                                  &
-                                 State_Chm, State_Grid, State_Met,           &
-                                 State_Chm%Map_Advect,                       &
-                                 State_Diag%Archive_BudgetMixingFull,        &
-                                 State_Diag%Archive_BudgetMixingTrop,        &
-                                 State_Diag%Archive_BudgetMixingPBL,         &
-                                 State_Diag%BudgetMass1,                     &
-                                 RC )
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetMixingFull,               &
+            diagFull    = NULL(),                                            &
+            mapDataFull = State_Diag%Map_BudgetMixingFull,                   &
+            isTrop      = State_Diag%Archive_BudgetMixingTrop,               &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = State_Diag%Map_BudgetMixingTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
+          ErrMsg = 'Non-local mixing budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2267,37 +2274,32 @@ CONTAINS
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
        ! Get dynamics timestep [s]
-       DT_Dyn = Get_Ts_Dyn()
+       TS_Dyn = Get_Ts_Dyn()
+       DT_Dyn = DBLE( Ts_Dyn )
 
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                                  &
-                                 State_Chm,                                  &
-                                 State_Grid,                                 &
-                                 State_Met,                                  &
-                                 State_Chm%Map_Advect,                       &
-                                 State_Diag%Archive_BudgetMixingFull,        &
-                                 State_Diag%Archive_BudgetMixingTrop,        &
-                                 State_Diag%Archive_BudgetMixingPBL,         &
-                                 State_Diag%BudgetMass2,                     &
-                                 RC                                         )
-
-       ! Archive diagnostics
-       CALL Compute_Budget_Diagnostics( State_Grid,                          &
-                                        State_Chm%Map_Advect,                &
-                                        DT_Dyn,                              &
-                                        State_Diag%Archive_BudgetMixingFull, &
-                                        State_Diag%Archive_BudgetMixingTrop, &
-                                        State_Diag%Archive_BudgetMixingPBL,  &
-                                        State_Diag%BudgetMixingFull,         &
-                                        State_Diag%BudgetMixingTrop,         &
-                                        State_Diag%BudgetMixingPBL,          &
-                                        State_Diag%BudgetMass1,              &
-                                        State_Diag%BudgetMass2,              &
-                                        RC                                  )
+       ! Compute change in column masses (after mixing - before mixing)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetMixingFull,               &
+            diagFull    = State_Diag%BudgetMixingFull,                       &
+            mapDataFull = State_Diag%Map_BudgetMixingFull,                   &
+            isTrop      = State_Diag%Archive_BudgetMixingTrop,               &
+            diagTrop    = State_Diag%BudgetMixingTrop,                       &
+            mapDataTrop = State_Diag%Map_BudgetMixingTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
+            diagPBL     = State_Diag%BudgetMixingPBL,                        &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Dyn,                                            &
+            RC          = RC                                                )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+          ErrMsg = 'Non-local mixing budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

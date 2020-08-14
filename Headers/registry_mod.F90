@@ -1219,7 +1219,7 @@ CONTAINS
        current => current%next
     ENDDO
     current => NULL()
-    
+
     ! Initialize the lookup table
     CALL RegDict%Init( nDiags )
 

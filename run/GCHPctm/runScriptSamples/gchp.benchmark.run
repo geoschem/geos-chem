@@ -48,10 +48,10 @@ if [[ $? == 0 ]]; then
     gchp_env=$(readlink -f gchp.env)
     if [ ! -f ${gchp_env} ] 
     then
-       echo "ERROR: gchp.rc symbolic link is not set!"
+       echo "ERROR: gchp.env symbolic link is not set!"
        echo "Copy or adapt an environment file from the ./envSamples "
        echo "subdirectory prior to running. Then set the gchp.env "
-       echo "symbolic link to point to it using ./setEnvironment."
+       echo "symbolic link to point to it using ./setEnvironment.sh."
        echo "Exiting."
        exit 1
     fi

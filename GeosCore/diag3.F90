@@ -102,7 +102,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
   ! For binary punch file, version 2.0
   CHARACTER (LEN=40) :: CATEGORY
-  REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,State_Grid%NX+1)
+  REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
   REAL(f4)           :: LONRES, LATRES
   INTEGER            :: IFIRST, JFIRST, LFIRST
   INTEGER            :: HALFPOLAR
