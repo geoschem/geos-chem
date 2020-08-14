@@ -1,3 +1,2 @@
-add_subdirectory(Standard)
-add_subdirectory(Tropchem)
-add_subdirectory(SOA_SVPOA)
+add_subdirectory(fullchem)
+add_subdirectory(custom)

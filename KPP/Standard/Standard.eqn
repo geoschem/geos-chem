@@ -5,9 +5,7 @@ DESCRIPTION
 -------------------------------------------------------------------------------
 
 GEOS-Chem KPP standard chemistry file containing species and equations for the
-NOx-Ox-HC-Aer-Br-Cl-I mechanism with the Universal tropospheric-stratospheric
-Chemistry eXtension (UCX). This mechanism applied from the surface to the
-stratopause.
+NOx-Ox-HC-Aer-Br-Cl-I mechanism.
 
 ===============================================================================
 FILE HISTORY
@@ -314,6 +312,8 @@ LIMO       = IGNORE; {C10H16; Limonene}
 LIMO2      = IGNORE; {RO2 from LIMO}
 LISOPOH    = IGNORE; {Dummy spc to track oxidation of ISOP by OH}
 LISOPNO3   = IGNORE; {Dummy spc to track oxidation of ISOP by NO3}
+LNRO2H     = IGNORE; {Dummy spc to track oxidation of NRO2 by HO2}
+LNRO2N     = IGNORE; {Dummy spc to track oxidation of NRO2 by NO}
 LTRO2H     = IGNORE; {Dummy spc to track oxidation of TRO2 by HO2}
 LTRO2N     = IGNORE; {Dummy spc to track oxidation of TRO2 by NO}
 LVOC       = IGNORE; {C5H14O5; Gas-phase low-volatility non-IEPOX product of ISOPOOH (RIP) oxidation}
@@ -357,12 +357,14 @@ MVKPC      = IGNORE; {OCHCH(OOH)C(O)CH3; MVK hydroperoxy-carbonyl}
 N          = IGNORE; {N; Atomic nitrogen}
 N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
+NAP        = IGNORE; {C10H8; Naphthalene; IVOC surrogate}
 NIT        = IGNORE; {NIT; Fine mode inorganic nitrate}
 NITs       = IGNORE; {NITs; Coarse mode inorganic nitrate}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
 NO3        = IGNORE; {NO3; Nitrate radical}
 NPRNO3     = IGNORE; {C3H8ONO2; n-propyl nitrate}
+NRO2       = IGNORE; {Peroxy radical from NAP oxidation}
 O          = IGNORE; {O(3P); Ground state atomic oxygen}
 O1D        = IGNORE; {O(1D); Excited atomic oxygen}
 O3         = IGNORE; {O3; Ozone}
@@ -1285,6 +1287,9 @@ MCO3 + HO2 = 0.13O3 + 0.13ACTA + 0.37MAP +
  0.5MO2 + 0.5CO2 + 0.5OH :                   GCARR(3.14E-12, 0.0E+00, 580.0);     {2019/11/06; Bates2019; KHB}
 HPETHNL + OH = CO + OH + CH2O :              GCARR(1.55E-12, 0.0E+00, 340.0);     {2019/11/06; Bates2019; KHB}
 HPETHNL + OH = GLYX + OH :                   GCARR(2.91E-11, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
+NAP + OH = NRO2 + OH :                       GCARR(1.56E-11, 0.0E+00, 117.0);     {2013/08/12; Pye2010; HOTP}
+NRO2 + HO2 = LNRO2H + HO2 :                  GCARR(1.40E-12, 0.0E+00, 700.0);     {2013/08/12; Pye2010; HOTP}
+NRO2 + NO = LNRO2N + NO :                    GCARR(2.60E-12, 0.0E+00, 350.0);     {2013/08/12; Pye2010; HOTP}
 //
 // Heterogeneous reactions
 //

@@ -105,9 +105,8 @@ target_link_libraries(GeosCore
 		Transport ObsPack HCOI_Shared History
 
 		# Add dependency on the correct KPP library
-		$<$<STREQUAL:${MECH},SOA_SVPOA>:KPP_SOA_SVPOA>
-		$<$<STREQUAL:${MECH},Standard>:KPP_Standard>
-		$<$<STREQUAL:${MECH},Tropchem>:KPP_Tropchem>
+		$<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
+		$<$<STREQUAL:${MECH},custom>:KPP_custom>
 
 		$<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
 		$<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
