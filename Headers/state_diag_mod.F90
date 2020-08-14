@@ -831,6 +831,35 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWTOA
 
+     REAL(f4),           POINTER :: RadAODWL1(:,:,:)
+     LOGICAL                     :: Archive_RadAODWL1
+
+     REAL(f4),           POINTER :: RadAODWL2(:,:,:)
+     LOGICAL                     :: Archive_RadAODWL2
+
+     REAL(f4),           POINTER :: RadAODWL3(:,:,:)
+     LOGICAL                     :: Archive_RadAODWL3
+
+     REAL(f4),           POINTER :: RadSSAWL1(:,:,:)
+     LOGICAL                     :: Archive_RadSSAWL1
+
+     REAL(f4),           POINTER :: RadSSAWL2(:,:,:)
+     LOGICAL                     :: Archive_RadSSAWL2
+
+     REAL(f4),           POINTER :: RadSSAWL3(:,:,:)
+     LOGICAL                     :: Archive_RadSSAWL3
+
+     REAL(f4),           POINTER :: RadAsymWL1(:,:,:)
+     LOGICAL                     :: Archive_RadAsymWL1
+
+     REAL(f4),           POINTER :: RadAsymWL2(:,:,:)
+     LOGICAL                     :: Archive_RadAsymWL2
+
+     REAL(f4),           POINTER :: RadAsymWL3(:,:,:)
+     LOGICAL                     :: Archive_RadAsymWL3
+
+     LOGICAL                     :: Archive_RadOptics
+
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
      ! NOTE: ObsPack archives point data, so don't register these
@@ -1574,6 +1603,35 @@ CONTAINS
 
     State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
+
+    State_Diag%RadAODWL1                           => NULL()
+    State_Diag%Archive_RadAODWL1                   = .FALSE.
+
+    State_Diag%RadAODWL2                           => NULL()
+    State_Diag%Archive_RadAODWL2                   = .FALSE.
+
+    State_Diag%RadAODWL3                           => NULL()
+    State_Diag%Archive_RadAODWL3                   = .FALSE.
+
+    State_Diag%RadSSAWL1                           => NULL()
+    State_Diag%Archive_RadSSAWL1                   = .FALSE.
+
+    State_Diag%RadSSAWL2                           => NULL()
+    State_Diag%Archive_RadSSAWL2                   = .FALSE.
+
+    State_Diag%RadSSAWL3                           => NULL()
+    State_Diag%Archive_RadSSAWL3                   = .FALSE.
+
+    State_Diag%RadAsymWL1                          => NULL()
+    State_Diag%Archive_RadAsymWL1                  = .FALSE.
+
+    State_Diag%RadAsymWL2                          => NULL()
+    State_Diag%Archive_RadAsymWL2                  = .FALSE.
+
+    State_Diag%RadAsymWL3                          => NULL()
+    State_Diag%Archive_RadAsymWL3                  = .FALSE.
+
+    State_Diag%Archive_RadOptics                   = .FALSE.
 
     !%%%%% POPs simulation diagnostics %%%%%
 
@@ -3258,6 +3316,195 @@ CONTAINS
           RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! RRTMG: Aerosol optical depth per wavelength
+       !--------------------------------------------------------------------
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAODWL1,                           &
+            archiveData    = State_Diag%Archive_RadAODWL1,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(2)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAODWL2,                           &
+            archiveData    = State_Diag%Archive_RadAODWL2,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(3)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAODWL3,                           &
+            archiveData    = State_Diag%Archive_RadAODWL3,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Single scattering albedo per wavelength
+       !--------------------------------------------------------------------
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadSSAWL1,                           &
+            archiveData    = State_Diag%Archive_RadSSAWL1,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(2)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadSSAWL2,                           &
+            archiveData    = State_Diag%Archive_RadSSAWL2,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(3)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadSSAWL3,                           &
+            archiveData    = State_Diag%Archive_RadSSAWL3,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Asymmetry parameter per wavelength
+       !--------------------------------------------------------------------
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAsymWL1,                          &
+            archiveData    = State_Diag%Archive_RadAsymWL1,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(2)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAsymWL2,                          &
+            archiveData    = State_Diag%Archive_RadAsymWL2,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       TmpWL   = RadWL(3)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAsymWL3,                          &
+            archiveData    = State_Diag%Archive_RadAsymWL3,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -3269,7 +3516,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 8
+       DO N = 1, 17
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3289,6 +3536,33 @@ CONTAINS
                 diagID = 'RadClrSkySWSurf'
              CASE( 8 )
                 diagID = 'RadClrSkySWTOA'
+             CASE( 9 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 10 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 11 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 12 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 13 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 14 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 15 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 16 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 17 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -7896,6 +8170,16 @@ CONTAINS
                                     State_Diag%Archive_KppSmDecomps    .or.  &
                                     State_Diag%Archive_KppDiags             )
 
+    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
+                                      State_Diag%Archive_RadAODWL2     .or. &
+                                      State_Diag%Archive_RadAODWL3     .or. &
+                                      State_Diag%Archive_RadSSAWL1     .or. &
+                                      State_Diag%Archive_RadSSAWL2     .or. &
+                                      State_Diag%Archive_RadSSAWL3     .or. &
+                                      State_Diag%Archive_RadAsymWL1    .or. &
+                                      State_Diag%Archive_RadAsymWL2    .or. &
+                                      State_Diag%Archive_RadAsymWL3        )
+
     !=======================================================================
     ! Work array used to to calculate budget diagnostics, if needed
     ! 4th dimension is column region: Full, Trop, PBL respectively
@@ -8299,6 +8583,51 @@ CONTAINS
 
     CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
                    Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAODWL1',                                   &
+                   Ptr2Data = State_Diag%RadAODWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAODWL2',                                   &
+                   Ptr2Data = State_Diag%RadAODWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAODWL3',                                   &
+                   Ptr2Data = State_Diag%RadAODWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadSSAWL1',                                   &
+                   Ptr2Data = State_Diag%RadSSAWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadSSAWL2',                                   &
+                   Ptr2Data = State_Diag%RadSSAWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadSSAWL3',                                   &
+                   Ptr2Data = State_Diag%RadSSAWL3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAsymWL1',                                   &
+                   Ptr2Data = State_Diag%RadAsymWL1,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAsymWL2',                                   &
+                   Ptr2Data = State_Diag%RadAsymWL2,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAsymWL3',                                   &
+                   Ptr2Data = State_Diag%RadAsymWL3,                          &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9694,6 +10023,69 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top ' // &
                                 'of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 

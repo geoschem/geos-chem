@@ -1742,6 +1742,40 @@ CONTAINS
              AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= &
                   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
 #endif
+             IF ( State_Diag%Archive_RadOptics ) THEN
+                IF ( W == 1 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL1 ) THEN
+                      State_Diag%RADAODWL1(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL1 ) THEN
+                   State_Diag%RADSSAWL1(I,J,OUTIDX) = SSAOUT
+                      ENDIF
+                   IF ( State_Diag%Archive_RADAsymWL1 ) THEN
+                      State_Diag%RADAsymWL1(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ELSEIF ( W == 2 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL2 ) THEN
+                      State_Diag%RADAODWL2(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL2 ) THEN
+                      State_Diag%RADSSAWL2(I,J,OUTIDX) = SSAOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADAsymWL2 ) THEN
+                      State_Diag%RADAsymWL2(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ELSEIF ( W == 3 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL3 ) THEN
+                      State_Diag%RADAODWL3(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL3 ) THEN
+                      State_Diag%RADSSAWL3(I,J,OUTIDX) = SSAOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADASYMWL3 ) THEN
+                      State_Diag%RADAsymWL3(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ENDIF
+             ENDIF
+
           ENDDO !NWVSELECT
        ENDIF
     ENDDO
