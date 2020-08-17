@@ -719,35 +719,61 @@ CONTAINS
        IWL(2) = INDEX( TRIM(metadataID), 'RADALLSKY' )
        IWLMAX = MAX( IWL(1), IWL(2) )
        IF ( IWLMAX > 0 .AND. nRadFlux < 12 ) THEN
-
-          IF ( LEN_TRIM( Tag ) > 0 ) THEN
-
-             ! If a tag is specified explicitly, then add each
-             ! tag name to the RadFlux array and update nRadFlux
+          IF ( .NOT. isWildcard ) THEN
+             ! If a tag is specified explicitly, then add to the RadFlux array
              IF ( .not. ANY( RadFlux == TRIM(Tag) ) ) THEN
                 nRadFlux          = nRadFlux + 1
                 RadFlux(nRadFlux) = TRIM( Tag )
              ENDIF
-
           ELSE
-
-             ! If a tag is not explicity stated, then manually define all
-             ! slots of the RadFlux array (and update nRadFlux accordingly)
-             ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-             RadFlux(1 ) = 'BASE'
-             RadFlux(2 ) = 'NOO3'
-             RadFlux(3 ) = 'NOME'
-             RadFlux(4 ) = 'NOSU'
-             RadFlux(5 ) = 'NONI'
-             RadFlux(6 ) = 'NOAM'
-             RadFlux(7 ) = 'NOBC'
-             RadFlux(8 ) = 'NOOA'
-             RadFlux(9 ) = 'NOSS'
-             RadFlux(10) = 'NODU'
-             RadFlux(11) = 'NOPM'
-             RadFlux(12) = 'NOST'
-             nRadFlux    = 12
-
+             ! If the RRTMG wildcard is used then add all remaining possible
+             ! outputs, except the stratosphere (NOST). NOST must be explicit
+             ! in HISTORY.rc and is not included in the RRTMG wildcard since
+             ! it may not be relevant to the simulation.
+             IF ( .not. ANY( RadFlux == 'BASE' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOO3' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOME' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOSU' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NONI' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOAM' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOBC' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOOA' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOSS' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NODU' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+             IF ( .not. ANY( RadFlux == 'NOPM' ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
           ENDIF
        ENDIF
 
