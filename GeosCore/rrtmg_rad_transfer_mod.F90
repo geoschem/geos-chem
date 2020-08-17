@@ -2018,27 +2018,27 @@ CONTAINS
     DO N = 1, State_Diag%nRadFlux
 
        SELECT CASE( State_Diag%RadFluxName(N) )
-       CASE( 'O3' )
+       CASE( 'NOO3' )
           Input_Opt%LSpecRadMenu(1)  = 1
-       CASE( 'ME' )
+       CASE( 'NOME' )
           Input_Opt%LSpecRadMenu(2)  = 1
-       CASE( 'SU' )
+       CASE( 'NOSU' )
           Input_Opt%LSpecRadMenu(3)  = 1
-       CASE( 'NI' )
+       CASE( 'NONI' )
           Input_Opt%LSpecRadMenu(4)  = 1
-       CASE( 'AM' )
+       CASE( 'NOAM' )
           Input_Opt%LSpecRadMenu(5)  = 1
-       CASE( 'BC' )
+       CASE( 'NOBC' )
           Input_Opt%LSpecRadMenu(6)  = 1
-       CASE( 'OA' )
+       CASE( 'NOOA' )
           Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'SS' )
+       CASE( 'NOSS' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'DU' )
+       CASE( 'NODU' )
           Input_Opt%LSpecRadMenu(9)  = 1
-       CASE( 'PM' )
+       CASE( 'NOPM' )
           Input_Opt%LSpecRadMenu(10) = 1
-       CASE( 'ST' )
+       CASE( 'NOST' )
           Input_Opt%LSpecRadMenu(11) = 1
        CASE DEFAULT
           ! Nothing
