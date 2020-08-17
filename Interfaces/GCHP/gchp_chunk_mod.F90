@@ -216,7 +216,8 @@ CONTAINS
                         Diagnos    = Input_Opt%TS_DIAG         )
 
     ! Initialize derived-type objects for met, chem, and diag
-    CALL GC_Init_StateObj( HistoryConfig%DiagList, Input_Opt, &
+    CALL GC_Init_StateObj( HistoryConfig%DiagList,                       &
+                           HistoryConfig%TaggedDiagList, Input_Opt,      &
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
 

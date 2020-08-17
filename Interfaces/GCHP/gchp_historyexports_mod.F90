@@ -18,6 +18,7 @@ MODULE GCHP_HistoryExports_Mod
 !
 #include "MAPL_Generic.h"
   USE DiagList_Mod
+  USE TaggedDiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
   USE MAPL_Mod
@@ -51,6 +52,7 @@ MODULE GCHP_HistoryExports_Mod
      LOGICAL                              :: ConfigFileRead
      TYPE(HistoryExportsListObj), POINTER :: HistoryExportsList
      TYPE(DgnList)                        :: DiagList
+     TYPE(TaggedDgnList)                  :: TaggedDiagList
  
  END TYPE HistoryConfigObj
 !
@@ -160,6 +162,7 @@ CONTAINS
     HistoryConfig%ROOT               =  ''
     HistoryConfig%ConfigFileName     =  TRIM(configFile)
     HistoryConfig%ConfigFileRead     =  .FALSE.
+
     CALL Init_DiagList( am_I_Root, configFile, HistoryConfig%DiagList, RC )
     IF ( RC == GC_FAILURE ) THEN
        _ASSERT(.FALSE., 'informative message here')
@@ -167,6 +170,16 @@ CONTAINS
     ENDIF
     ! Optional debugging
     !CALL Print_DiagList( am_I_Root, HistoryConfig%DiagList, RC )
+
+    CALL Init_TaggedDiagList( am_I_Root, HistoryConfig%DiagList,  &
+                              HistoryConfig%TaggedDiagList, RC   )
+    IF ( RC == GC_FAILURE ) THEN
+       _ASSERT(.FALSE., 'informative message here')
+       RETURN
+    ENDIF
+    ! Optional debugging
+    !CALL Print_TaggedDiagList( am_I_Root, HistoryConfig%TaggedDiagList, RC )
+
 
     CALL Init_HistoryExportsList( am_I_Root, HistoryConfig, RC )
     IF ( RC == GC_FAILURE ) THEN

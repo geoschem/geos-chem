@@ -512,7 +512,8 @@ PROGRAM GEOS_Chem
      ENDIF
 
      ! Initialize the TaggedDiag_List (list of wildcards/tags per diagnostic)
-     CALL Init_TaggedDiagList( Input_Opt, Diag_List, TaggedDiag_List, RC )
+     CALL Init_TaggedDiagList( Input_Opt%amIroot, Diag_List,  &
+                               TaggedDiag_List,   RC         )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -520,7 +521,7 @@ PROGRAM GEOS_Chem
 
      IF ( prtDebug ) THEN
         CALL Print_DiagList( Input_Opt%amIRoot, Diag_List, RC )
-        CALL Print_TaggedDiagList( Input_Opt, TaggedDiag_List, RC )
+        CALL Print_TaggedDiagList( Input_Opt%amIRoot, TaggedDiag_List, RC )
      ENDIF
 
      IF ( Input_Opt%useTimers ) THEN
@@ -550,8 +551,7 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
 
   ! Initialize State_Met, State_Chm, and State_Diag objects
-  CALL GC_Init_StateObj( am_I_Root       = am_I_Root,                       &
-                         Diag_List       = Diag_List,                       &
+  CALL GC_Init_StateObj( Diag_List       = Diag_List,                       &
                          TaggedDiag_List = TaggedDiag_List,                 &
                          Input_Opt       = Input_Opt,                       &
                          State_Chm       = State_Chm,                       &

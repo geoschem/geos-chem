@@ -100,16 +100,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TaggedDiagList( Input_Opt, DiagList, TaggedDiagList, RC )
+  SUBROUTINE Init_TaggedDiagList( am_I_Root, DiagList, TaggedDiagList, RC )
 !
 ! !USES:
 !
-    USE CharPak_Mod,   ONLY : To_UpperCase
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Charpak_Mod,   ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),       INTENT(IN)    :: Input_Opt       ! Input Options
+    LOGICAL,              INTENT(IN)    :: am_I_Root       ! On root thread?
     TYPE(DgnList),        INTENT(IN)    :: DiagList        ! Diagnostics List
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -177,7 +176,6 @@ CONTAINS
           ! to this diagnostic exists or not
           !--------------------------------------------------------------
           CALL Query_TaggedDiagList(                                         &
-               Input_Opt      = Input_Opt,                                   &
                TaggedDiagList = TaggedDiagList,                              &
                diagName       = diagnostic%metadataID,                       &
                Found          = taggedDiagListExists,                        &
@@ -207,7 +205,6 @@ CONTAINS
              !     Indices will be updated in the following section.
              !--------------------------------------------------------------
              CALL Update_TaggedDiagList(                                     &
-                  Input_Opt         = Input_Opt,                             &
                   metadataID        = diagnostic%metadataID,                 &
                   isWildCard        = diagnostic%isWildCard,                 &
                   tagName           = tagName,                               &
@@ -231,7 +228,6 @@ CONTAINS
              !     Indices will be updated in the following section.
              !--------------------------------------------------------------
              CALL Init_TaggedDiagItem(                                       &
-                  Input_Opt         = Input_Opt,                             &
                   NewTaggedDiagItem = NewTaggedDiagItem,                     &
                   metadataID        = diagnostic%metadataID,                 &
                   isWildcard        = diagnostic%isWildCard,                 &
@@ -251,7 +247,6 @@ CONTAINS
              ! (4) Add the TaggedDiagItem to the head of the TaggedDiagList
              !--------------------------------------------------------------
              CALL InsertBeginning_TaggedDiagList(                            &
-                  Input_Opt         = Input_Opt,                             &
                   TaggedDiagItem    = NewTaggedDiagItem,                     &
                   TaggedDiagList    = TaggedDiagList,                        &
                   RC                = RC                                    )
@@ -297,7 +292,6 @@ CONTAINS
           ! that corresponds to this State_Diag diagnostic
           !-----------------------------------------------------------------
           CALL Query_TaggedDiagList(                                         &
-               Input_Opt      = Input_Opt,                                   &
                TaggedDiagList = TaggedDiagList,                              &
                diagName       = diagnostic%metadataID,                       &
                Found          = taggedDiagListExists,                        &
@@ -392,15 +386,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TaggedDiagItem( Input_Opt, TaggedDiagItem, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Print_TaggedDiagItem( am_I_Root, TaggedDiagItem, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
+    LOGICAL,             INTENT(IN)  :: am_I_Root
     TYPE(TaggedDgnItem), INTENT(IN)  :: TaggedDiagItem
 !
 ! !OUTPUT PARAMETERS:
@@ -420,7 +410,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Proceed to print info if we are on the root CPU
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( am_I_Root ) THEN
 
        ! Print name of diagnostic to which this TaggedDataItem belongs
        WRITE( 6, 120 ) TRIM( TaggedDiagItem%metadataID )
@@ -432,7 +422,7 @@ CONTAINS
           !---------------------------------
           WRITE( 6, 130 ) ADJUSTL( 'numWildCards:' ),                        &
                           TaggedDiagItem%WildCardList%count
-          CALL Print_TagList( Input_Opt, TaggedDiagItem%WildCardList, RC )
+          CALL Print_TagList( am_I_Root, TaggedDiagItem%WildCardList, RC )
 
        ELSE
 
@@ -441,7 +431,7 @@ CONTAINS
           !----------------------------------
           WRITE( 6, 130 )  ADJUSTL( 'numTags:' ),                            &
                            TaggedDiagItem%TagList%count
-          CALL Print_TagList( Input_Opt, TaggedDiagItem%TagList, RC )
+          CALL Print_TagList( am_I_Root, TaggedDiagItem%TagList, RC )
 
        ENDIF
 
@@ -469,15 +459,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TaggedDiagList( Input_Opt, TaggedDiagList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Print_TaggedDiagList( am_I_Root, TaggedDiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt       ! Input Options object
+    LOGICAL,             INTENT(IN)  :: am_I_Root
     TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -504,7 +490,7 @@ CONTAINS
     current => NULL()
 
     ! Print tagged diagnostic list only if we are on the root core
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( am_I_Root ) THEN
        WRITE( 6, 100 ) REPEAT( '=', 30 )
        WRITE( 6, 110 ) 'Summary of tagged diagnostics'
 
@@ -515,7 +501,7 @@ CONTAINS
        DO WHILE ( ASSOCIATED( current ) )
 
           ! Print wildcard or tag info
-          CALL Print_TaggedDiagItem( Input_Opt, current, RC )
+          CALL Print_TaggedDiagItem( am_I_Root, current, RC )
 
           ! Advance to next item in TaggedDiagList
           current => current%next
@@ -554,7 +540,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_TaggedDiagList( Input_Opt,     TaggedDiagList,            &
+  SUBROUTINE Query_TaggedDiagList( TaggedDiagList,                           &
                                    diagName,      RC,                        &
                                    found,         isWildcard,                &
                                    numWildcards,  numTags,                   &
@@ -564,11 +550,9 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,   ONLY : To_UpperCase
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt       ! Input Options object
     TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList  ! Tagged diag list
     CHARACTER(LEN=*),    INTENT(IN)  :: diagName        ! Name of diagnostic
 !
@@ -750,18 +734,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TaggedDiagItem( Input_Opt,  NewTaggedDiagItem,             &
-                                  metadataID, isWildcard,                    &
-                                  tagName,    index,                         &
-                                  RC                                        )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Init_TaggedDiagItem( NewTaggedDiagItem, metadataID, isWildcard,  &
+                                  tagName,           index,      RC          )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt    ! Input Options object
     CHARACTER(LEN=*),    INTENT(IN)  :: metadataID   ! Collection name
     LOGICAL,             INTENT(IN)  :: isWildcard   ! Is it a wildcard?
     CHARACTER(LEN=*),    INTENT(IN)  :: tagName      ! Name of each tag
@@ -820,7 +797,6 @@ CONTAINS
     ! tag or wildcard for a given State_Diag diagnostic.
     !-----------------------------------------------------------------------
     CALL Init_TagItem(                                                       &
-         Input_Opt    = Input_Opt,                                           &
          NewTagItem   = NewTagItem,                                          &
          name         = tagName,                                             &
          index        = index,                                               &
@@ -840,7 +816,6 @@ CONTAINS
        ! belonging to the NewTaggedDiagItem ...
        !--------------------------------------------------------------------
        CALL InsertBeginning_TagList(                                         &
-            Input_Opt = Input_Opt,                                           &
             TagItem   = NewTagItem,                                          &
             TagList   = NewTaggedDiagItem%wildcardList,                      &
             RC        = RC                                                  )
@@ -859,7 +834,6 @@ CONTAINS
        ! tags belonging to the NewTaggedDiagItem object.
        !--------------------------------------------------------------------
        CALL InsertBeginning_TagList(                                         &
-            Input_Opt = Input_Opt,                                           &
             TagItem   = NewTagItem,                                          &
             TagList   = NewTaggedDiagItem%tagList,                           &
             RC        = RC                                                  )
@@ -888,15 +862,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TagItem( Input_Opt, NewTagItem, name, index, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Init_TagItem( NewTagItem, name, index, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt     ! Input Options object
     TYPE(DgnTagItem), POINTER     :: NewTagItem    ! TagItem object
     CHARACTER(LEN=*), INTENT(IN)  :: name          ! Name of quantity
     INTEGER,          INTENT(IN)  :: index         ! Position of quantity
@@ -950,16 +919,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_TaggedDiagList( Input_Opt,      TaggedDiagItem, &
-                                             TaggedDiagList, RC             )
-!
-! USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE InsertBeginning_TaggedDiagList( TaggedDiagItem,    &
+                                             TaggedDiagList, RC  )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)    :: Input_Opt
     TYPE(TaggedDgnItem), POINTER       :: TaggedDiagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1009,15 +973,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_TagList( Input_Opt, TagItem, TagList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE InsertBeginning_TagList( TagItem, TagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(DgnTagItem), POINTER       :: TagItem     ! Tag or wildcard
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1067,16 +1026,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_Tag_in_TagList( Input_Opt, TagList, name, found, RC )
+  SUBROUTINE Query_Tag_in_TagList( TagList, name, found, RC )
 !
 ! !USES:
 !
     USE Charpak_Mod,   ONLY : To_UpperCase
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(DgnTagList), INTENT(IN)  :: TagList     ! List of tags or wildcards
     CHARACTER(LEN=*), INTENT(IN)  :: name        ! Search string
 !
@@ -1138,15 +1095,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TagList( Input_Opt, TagList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Print_TagList( am_I_Root, TagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt  ! Input Options object
+    LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(DgnTagList), INTENT(IN)    :: TagList    ! List of tags or wildcards
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1174,7 +1127,7 @@ CONTAINS
     current => TagList%head
 
     ! Only print taglist if we are on the root core
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( am_I_Root ) THEN
        DO WHILE ( ASSOCIATED( current ) )
           WRITE( 6, 100 ) ADJUSTL( TRIM( current%name ) ), current%index
  100      FORMAT( 21x, A, I5 )
@@ -1199,18 +1152,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Update_TaggedDiagList( Input_Opt, metadataID, isWildcard,       &
-                                    tagName,   index,      TaggedDiagList,   &
-                                    RC                                      )
+  SUBROUTINE Update_TaggedDiagList( metadataID, isWildcard,     tagName, &
+                                    index,      TaggedDiagList, RC        )
 !
 ! !USES:
 !
     USE Charpak_Mod,   ONLY : To_UpperCase
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)    :: Input_Opt      ! Input Options object
     CHARACTER(LEN=*),    INTENT(IN)    :: metadataID     ! Diagnostic name
     LOGICAL,             INTENT(IN)    :: isWildcard     ! Does this diagnostic
                                                          !  use a wildcard?
@@ -1270,7 +1220,6 @@ CONTAINS
           ! tag or wildcard belonging to a State_Diag diagnostic.
           !-----------------------------------------------------------------
           CALL Init_TagItem(                                                 &
-               Input_Opt    = Input_Opt,                                     &
                NewTagItem   = NewTagItem,                                    &
                name         = tagName,                                       &
                index        = index,                                         &
@@ -1290,7 +1239,6 @@ CONTAINS
              !--------------------------------------------------------------
              current%isWildcard = .TRUE.
              CALL InsertBeginning_TagList(                                   &
-                  Input_Opt = Input_Opt,                                     &
                   TagItem   = NewTagItem,                                    &
                   TagList   = current%wildcardList,                          &
                   RC        = RC                                            )
@@ -1310,7 +1258,6 @@ CONTAINS
              !--------------------------------------------------------------
              current%isWildCard = .FALSE.
              CALL InsertBeginning_TagList(                                   &
-                  Input_Opt = Input_Opt,                                     &
                   TagItem   = NewTagItem,                                    &
                   TagList   = current%tagList,                               &
                   RC        = RC                                            )
