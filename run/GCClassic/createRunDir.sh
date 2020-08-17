@@ -708,7 +708,7 @@ if [[ ${sim_extra_option} = "RRTMG" ]]; then
     replace_colon_sep_val "Clear-sky flux?"      T ${rundir}/input.geos
     replace_colon_sep_val "All-sky flux?"        T ${rundir}/input.geos
     replace_colon_sep_val "--> RRTMG"         true ${rundir}/HEMCO_Config.rc
-    sed -i -e "s|#'RRTMG'|'RRTMG'|"                ${rundir}/HISTORY.rc
+    sed -i -e "s|##'RRTMG'|'RRTMG'|"                ${rundir}/HISTORY.rc
 fi
 
 #-----------------------------
@@ -1252,10 +1252,12 @@ if [[ ${chemgrid} = "trop_only" ]]; then
     replace_colon_sep_val "Perform PSC het. chem.?"  F ${rundir}/input.geos
     replace_colon_sep_val "Calc. strat. aero. OD?"   F ${rundir}/input.geos
     replace_colon_sep_val "Use UCX strat. chem?"     F ${rundir}/input.geos
-    replace_colon_sep_val "Active strat. H2O"        F ${rundir}/input.geos
+    replace_colon_sep_val "Active strat. H2O?"       F ${rundir}/input.geos
     replace_colon_sep_val "--> STATE_PSC"        false ${rundir}/HEMCO_Config.rc
     replace_colon_sep_val "--> GMI_PROD_LOSS"    false ${rundir}/HEMCO_Config.rc
     replace_colon_sep_val "--> UCX_PROD_LOSS"     true ${rundir}/HEMCO_Config.rc
+    sed -i -e "s|'Chem_StatePSC|#'Chem_StatePSC|"      ${rundir}/HISTORY.rc
+
 fi
 
 #-----------------------------------------------------------------
@@ -1320,7 +1322,12 @@ printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\
 #--------------------------------------------------------------------
 # Copy sample restart file
 #--------------------------------------------------------------------
-sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+if [[ ${sim_name} = "fullchem" ]]; then
+    # Use restart file saved out from latest 1-year benchmark
+    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/initial_GEOSChem_rst.4x5_benchmark.nc
+else
+    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+fi
 if [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
