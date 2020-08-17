@@ -207,9 +207,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_StateObj( am_I_Root,  Diag_List, TaggedDiag_List,       &
-                               Input_Opt,  State_Chm, State_Diag,            &
-                               State_Grid, State_Met, RC                    )
+  SUBROUTINE GC_Init_StateObj( Diag_List, TaggedDiag_List, Input_Opt,   &
+                               State_Chm, State_Diag,      State_Grid,  &
+                               State_Met, RC                           )
 !
 ! !USES:
 !
@@ -225,7 +225,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),       INTENT(IN)    :: Diag_List   ! Diagnostics list object
     TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
 !

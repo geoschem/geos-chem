@@ -12794,8 +12794,7 @@ CONTAINS
     !=======================================================================
     ! Get info about the TaggedDiagList attached to this diagnostic
     !=======================================================================
-    CALL Query_TaggedDiagList( Input_Opt      = Input_Opt,       &
-                               TaggedDiagList = TaggedDiagList,  &
+    CALL Query_TaggedDiagList( TaggedDiagList = TaggedDiagList,  &
                                diagName       = metadataId,      &
                                Found          = Found,           &
                                isWildCard     = isWildCard,      &
