@@ -1793,6 +1793,7 @@ PROGRAM GEOS_Chem
                       'for RRTMG output = ' // &
                       TRIM( State_Diag%RadOutName(N) )
              CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
 
           ! Calculate for rest of outputs, if any
           DO N = 2, State_Diag%nRadOut
