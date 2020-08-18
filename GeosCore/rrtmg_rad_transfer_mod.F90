@@ -1957,8 +1957,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  The index fields Input_Opt%RadFluxCt, Input_Opt%RadFluxName, and
-!  Input_Opt%RadFluxInd are populated from information obtained in
+!  The index fields Input_Opt%RadOutCt, Input_Opt%RadOutName, and
+!  Input_Opt%RadOutInd are populated from information obtained in
 !  Headers/diaglist_mod.F90.  But the input.geos file is read before
 !  the diaglist is constructed.  Therefore, we have to delay population
 !  of these fields until after the call to Init_DiagList.
@@ -1989,24 +1989,14 @@ CONTAINS
 
     !=================================================================
     ! For backwards compatibility with existing RRTMG code, we need
-    ! to populate the Input_Opt%LSpecRadMenu based on the flux
+    ! to populate the Input_Opt%LSpecRadMenu based on the RRTMG
     ! outputs requested in the HISTORY.rc file.  Loop over all
     ! possible types of RRTMG flux outputs (excluding baseline,
     ! which is type 0).
     !
-    ! Save the name of each flux output in Input_Opt%RadFluxName
-    ! and its expected index value in Input_Opt%RadFluxInd.
-    ! Expected index values for flux ouptuts are:
-    !
     ! Optional outputs (requested via HISTORY.rc)
     !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-    !   7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
-    !
-    ! This is a bit convoluted but we need to do this in order to
-    ! keep track of the slot of the netCDF diagnostic arrays in
-    ! State_Diag in which to archive the various flux outputs.
-    ! Also this allows us to keep backwards compatibility with the
-    ! existing code to the greatest extent.
+    !   7=OA  8=SS  9=DU  10=PM  11=ST (11 UCX only)
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still
@@ -2015,9 +2005,9 @@ CONTAINS
     !=================================================================
 
     ! Loop over all of the flux outputs requested in HISTORY.rc
-    DO N = 1, State_Diag%nRadFlux
+    DO N = 1, State_Diag%nRadOut
 
-       SELECT CASE( State_Diag%RadFluxName(N) )
+       SELECT CASE( State_Diag%RadOutName(N) )
        CASE( 'NOO3' )
           Input_Opt%LSpecRadMenu(1)  = 1
        CASE( 'NOME' )

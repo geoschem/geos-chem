@@ -458,8 +458,6 @@ CONTAINS
 #endif
 
     ! For RRTMG
-    INTEGER                        :: iSpecMenu
-    INTEGER                        :: iNcDiag
     INTEGER                        :: N
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
@@ -984,38 +982,33 @@ CONTAINS
        End If
        If (Input_Opt%amIRoot .and. NCALLS<10) Then
           Write(6,'(a,x,I3,x,a)') ' --> Calling RRTMG ', &
-                              State_Diag%nRadFlux, ' times'
+                              State_Diag%nRadOut, ' times'
        End If
-       Do N = 1, State_Diag%nRadFlux
-          ! Index number for RRTMG (see list above)
-          iSpecMenu = State_Diag%RadFluxInd(N)
-
-          ! Slot # of netCDF diagnostic arrays to update
-          iNcDiag = N
-
+       Do N = 1, State_Diag%nRadOut
           ! For really excessive output, uncomment the following
 !          If ( Input_Opt%amIRoot .and. FIRST ) Then
 !             ! Echo info
-!             WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
-!520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
+!             WRITE( 6, 520 ) State_Diag%RadOutName(N), &
+!                             State_Diag%RadOutInd(N)
+!520          FORMAT( 5x, '- Calling RRTMG to compute flux and optics: ', &
 !                     a2, ' (Index = ', i2.2, ')' )
 !          End If
 
           ! Generate mask for species in RT
-          CALL Set_SpecMask( iSpecMenu )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
 
           ! Compute radiative fluxes for the given output
-          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                   &
-                                      ThisMonth  = Month,                 &
-                                      iCld       = State_Chm%RRTMG_iCld,  &
-                                      iSpecMenu  = iSpecMenu,             &
-                                      iNcDiag    = iNcDiag,               &
-                                      iSeed      = State_Chm%RRTMG_iSeed, &
-                                      Input_Opt  = Input_Opt,             &
-                                      State_Chm  = State_Chm,             &
-                                      State_Diag = State_Diag,            &
-                                      State_Grid = State_Grid,            &
-                                      State_Met  = State_Met,             &
+          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
+                                      ThisMonth  = Month,                   &
+                                      iCld       = State_Chm%RRTMG_iCld,    &
+                                      iSpecMenu  = State_Diag%RadOutInd(N), &
+                                      iNcDiag    = N,                       &
+                                      iSeed      = State_Chm%RRTMG_iSeed,   &
+                                      Input_Opt  = Input_Opt,               &
+                                      State_Chm  = State_Chm,               &
+                                      State_Diag = State_Diag,              &
+                                      State_Grid = State_Grid,              &
+                                      State_Met  = State_Met,               &
                                       RC         = RC                     )
 
           ! Trap potential errors

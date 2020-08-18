@@ -915,19 +915,30 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 #ifdef RRTMG
 
   !****************************************************************************
-  !  ND72: RRTMG radiation fields
+  !  ND72: RRTMG radiation fields. Binary name is RADMAP_S_n where n are the
+  !        output fields below. xx is output (e.g. BA for base, O3 for ozone),
+  !        and lambda is wavelength value in nm.
   !
   !   # : Field  : Description                      : Units    : Scale
   !   factor
   !  -----------------------------------------------------------------------
-  !  (1 ) ALLTOASW  : All-sky TOA SW (Total)        : W/m2     : SCALERAD
-  !  (2 ) ALLSRFSW  : All-sky Surface SW (Total)    : W/m2     : SCALERAD
-  !  (3 ) ALLTOALW  : All-sky TOA LW (Total)        : W/m2     : SCALERAD
-  !  (4 ) ALLSRFLW  : All-sky Surface LW (Total)    : W/m2     : SCALERAD
-  !  (5 ) CLRTOASW  : Clear-sky TOA SW (Total)      : W/m2     : SCALERAD
-  !  (6 ) CLRSRFSW  : Clear-sky Surface SW (Total)  : W/m2     : SCALERAD
-  !  (7 ) CLRTOALW  : Clear-sky TOA LW (Total)      : W/m2     : SCALERAD
-  !  (8 ) CLRSRFLW  : Clear-sky Surface LW (Total)  : W/m2     : SCALERAD
+  !  (1 ) FSWxxTA     : All-sky TOA SW (Total)        : W/m2     : SCALERAD
+  !  (2 ) FSWxxSA     : All-sky Surface SW (Total)    : W/m2     : SCALERAD
+  !  (3 ) FLWxxTA     : All-sky TOA LW (Total)        : W/m2     : SCALERAD
+  !  (4 ) FLWxxSA     : All-sky Surface LW (Total)    : W/m2     : SCALERAD
+  !  (5 ) FSWxxTC     : Clear-sky TOA SW (Total)      : W/m2     : SCALERAD
+  !  (6 ) FSWxxSC     : Clear-sky Surface SW (Total)  : W/m2     : SCALERAD
+  !  (7 ) FLWxxTC     : Clear-sky TOA LW (Total)      : W/m2     : SCALERAD
+  !  (8 ) FLWxxSC     : Clear-sky Surface LW (Total)  : W/m2     : SCALERAD
+  !  (9 ) AODxxlambda : Aer. optical depth (lambda 1) : UNITLESS : SCALERAD
+  !  (10) AODxxlambda : Aer. optical depth (lambda 2) : UNITLESS : SCALERAD
+  !  (11) AODxxlambda : Aer. optical depth (lambda 3) : UNITLESS : SCALERAD
+  !  (12) SSAxxlambda : Single scat. albedo (lambda 1): UNITLESS : SCALERAD
+  !  (13) SSAxxlambda : Single scat. albedo (lambda 2): UNITLESS : SCALERAD
+  !  (14) SSAxxlambda : Single scat. albedo (lambda 3): UNITLESS : SCALERAD
+  !  (15) ASMxxlambda : Asymmetry parameter (lambda 1): UNITLESS : SCALERAD
+  !  (16) ASMxxlambda : Asymmetry parameter (lambda 2): UNITLESS : SCALERAD
+  !  (17) ASMxxlambda : Asymmetry parameter (lambda 3): UNITLESS : SCALERAD
   !****************************************************************************
   IF ( Input_Opt%LRAD .and. ND72 > 0 ) THEN
      CATEGORY = 'RADMAP-$'

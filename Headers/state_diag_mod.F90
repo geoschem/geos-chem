@@ -803,9 +803,9 @@ MODULE State_Diag_Mod
 
      !%%%%% Simulation with RRTMG %%%%%
 
-     INTEGER                     :: nRadFlux
-     INTEGER,            POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=4),   POINTER :: RadFluxName(:)
+     INTEGER                     :: nRadOut
+     INTEGER,            POINTER :: RadOutInd(:)
+     CHARACTER(LEN=4),   POINTER :: RadOutName(:)
 
      REAL(f4),           POINTER :: RadAllSkyLWSurf(:,:,:)
      LOGICAL                     :: Archive_RadAllSkyLWSurf
@@ -1575,10 +1575,10 @@ CONTAINS
 
     ! RRTMG simulation diagnostics
 
-    State_Diag%nRadFlux                            =  0
+    State_Diag%nRadOut                             =  0
 
-    State_Diag%RadFluxInd                          => NULL()
-    State_Diag%RadFluxName                         => NULL()
+    State_Diag%RadOutInd                           => NULL()
+    State_Diag%RadOutName                          => NULL()
 
     State_Diag%RadAllSkyLWSurf                     => NULL()
     State_Diag%Archive_RadAllSkyLWSurf             = .FALSE.
@@ -3108,24 +3108,24 @@ CONTAINS
        ! RRTMG: Define index arrays
        !--------------------------------------------------------------------
 
-       ! Number of requested RRTMG flux outputs
-       State_Diag%nRadFlux = nRadFlux
+       ! Number of requested RRTMG outputs (tags)
+       State_Diag%nRadOut = nRadOut
 
-       ! Exit if no flux ouptuts have been selected
-       IF ( State_Diag%nRadFlux == 0 ) THEN
-          ErrMsg = 'No RRTMG diagnostic flux outputs have been requested!'
+       ! Exit if no outputs have been selected
+       IF ( State_Diag%nRadOut == 0 ) THEN
+          ErrMsg = 'No RRTMG diagnostic outputs have been requested!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       ! Array to contain the RRTMG indices for each requested flux output
-       ALLOCATE( State_Diag%RadFluxInd( State_Diag%nRadFlux ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadFluxInd', 0, RC )
+       ! Array to contain the RRTMG indices for each requested output
+       ALLOCATE( State_Diag%RadOutInd( State_Diag%nRadOut ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadOutInd', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       ! Array to contain the names of each requested flux output
-       ALLOCATE( State_Diag%RadFluxName( State_Diag%nRadFlux ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadFluxName', 0, RC )
+       ! Array to contain the names of each requested output
+       ALLOCATE( State_Diag%RadOutName( State_Diag%nRadOut ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadOutName', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Populate the index arrays for RRTMG
@@ -11156,7 +11156,7 @@ CONTAINS
        CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )
-          numTags = nRadFlux
+          numTags = nRadOut
        CASE( 'RXN',     'R' )
           numTags = NREACT
        CASE( 'VAR',     'V' )
@@ -11349,9 +11349,9 @@ CONTAINS
           D       = INDEX( tagName, '_' )
           tagName = tagName(D+1:)
 
-       ! RRTMG requested output fluxes
+       ! RRTMG requested outputs
        CASE( 'RRTMG' )
-          tagName = RadFlux(D)
+          tagName = RadOut(D)
 
        ! KPP equation reaction rates
        CASE( 'RXN' )
@@ -12953,7 +12953,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE DiagList_Mod,   ONLY : RadFlux, nRadFlux
+    USE DiagList_Mod,   ONLY : RadOut, nRadOut
 !
 ! !INPUT PARAMETERS:
 !
@@ -12968,8 +12968,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  The index fields State_Diag%nRadFlux, State_Diag%RadFluxName, and
-!  State_Diag%RadFluxInd are populated from information obtained in
+!  The index fields State_Diag%nRadOut, State_Diag%RadOutName, and
+!  State_Diag%RadOutInd are populated from information obtained in
 !  Headers/diaglist_mod.F90.
 !
 ! !REVISION HISTORY:
@@ -13004,58 +13004,58 @@ CONTAINS
     ThisLoc = ' -> at Init_RRTMG_Indices (in module Headers/state_diag_mod.F90)'
 
     !=======================================================================
-    ! Loop over all possible types of RRTMG flux outputs and store the name
-    ! of each flux output in State_Diag%RadFluxName and its expected index
-    ! value in State_Diag%RadFluxInd.
+    ! Loop over all possible types of RRTMG outputs and store the name
+    ! of each output in State_Diag%RadOutName and its expected index
+    ! value in State_Diag%RadOutInd.
     !
-    ! Flux outputs are requested in HISTORY.rc.  The expected
+    ! RRTMG outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
     !   0=BASE  1=NOO3  2=NOME  3=NOSU   4=NONI   5=NOAM
-    !   6=NOBC  7=NOOA  8=NOSS  9=NODU  10=NOPM  11=NOST (UCX only)
+    !   6=NOBC  7=NOOA  8=NOSS  9=NODU  10=NOPM  11=NOST (11 is UCX only)
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
     ! This is a bit convoluted but we need to do this in order to keep
     ! track of the slot of the netCDF diagnostic arrays in State_Diag in
-    ! which to archive the various flux outputs. This also lets us keep
+    ! which to archive the various outputs. This also lets us keep
     ! backwards compatibility with the existing code to the greatest extent.
     !=======================================================================
 
     ! Loop over all of the flux outputs requested in HISTORY.rc
-    DO N = 1, State_Diag%nRadFlux
+    DO N = 1, State_Diag%nRadOut
 
        ! Save the name of the requested flux output
-       State_Diag%RadFluxName(N) = RadFlux(N)
+       State_Diag%RadOutName(N) = RadOut(N)
 
        ! Determine the RRTMG-expected index
        ! corresponding to each flux output name
-       SELECT CASE( State_Diag%RadFluxName(N) )
+       SELECT CASE( State_Diag%RadOutName(N) )
           CASE( 'BASE' )
-             State_Diag%RadFluxInd(N) = 0
+             State_Diag%RadOutInd(N) = 0
           CASE( 'NOO3' )
-             State_Diag%RadFluxInd(N) = 1
+             State_Diag%RadOutInd(N) = 1
           CASE( 'NOME' )
-             State_Diag%RadFluxInd(N) = 2
+             State_Diag%RadOutInd(N) = 2
           CASE( 'NOSU' )
-             State_Diag%RadFluxInd(N) = 3
+             State_Diag%RadOutInd(N) = 3
           CASE( 'NONI' )
-             State_Diag%RadFluxInd(N) = 4
+             State_Diag%RadOutInd(N) = 4
           CASE( 'NOAM' )
-             State_Diag%RadFluxInd(N) = 5
+             State_Diag%RadOutInd(N) = 5
           CASE( 'NOBC' )
-             State_Diag%RadFluxInd(N) = 6
+             State_Diag%RadOutInd(N) = 6
           CASE( 'NOOA' )
-             State_Diag%RadFluxInd(N) = 7
+             State_Diag%RadOutInd(N) = 7
           CASE( 'NOSS' )
-             State_Diag%RadFluxInd(N) = 8
+             State_Diag%RadOutInd(N) = 8
           CASE( 'NODU' )
-             State_Diag%RadFluxInd(N) = 9
+             State_Diag%RadOutInd(N) = 9
           CASE( 'NOPM' )
-             State_Diag%RadFluxInd(N) = 10
+             State_Diag%RadOutInd(N) = 10
           CASE( 'NOST' )
              IF ( Input_Opt%LUCX ) THEN
-                State_Diag%RadFluxInd(N) = 11
+                State_Diag%RadOutInd(N) = 11
              ELSE
                 ErrMsg = 'RRTMG flux output "NOST (no strat aerosol is '  // &
                          'selected, but the UCX mechanism is off!'
@@ -13066,9 +13066,9 @@ CONTAINS
              ! Nothing
        END SELECT
 
-       ! Create a string with the requested flux outputs
-       WRITE( TmpStr, 100 ) State_Diag%RadFluxName(N),                       &
-                            State_Diag%RadFluxInd(N)
+       ! Create a string with the requested outputs
+       WRITE( TmpStr, 100 ) State_Diag%RadOutName(N),                       &
+                            State_Diag%RadOutInd(N)
 
        ! Append to the resultant string
        IF ( N == 1 ) THEN
@@ -13082,7 +13082,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'INIT_RRTMG_INDICES'
        WRITE( 6, '(  a)' ) '------------------'
-       WRITE( 6, 110 ) 'Requested RRTMG fluxes : ', TRIM( FluxStr )
+       WRITE( 6, 110 ) 'Requested RRTMG outputs : ', TRIM( FluxStr )
     ENDIF
 
     ! FORMAT statements

@@ -314,7 +314,7 @@ CONTAINS
           isDIAG = .TRUE.
           CALL Get_Metadata_State_Diag( am_I_Root, current%metadataID,     &
                                         Found, Rc, desc=desc, units=units, &
-                                        rank=rank, type=type, vloc=vloc )
+                                        rank=rank, srcType=type, vloc=vloc )
        ELSEIF ( TRIM(current%state) == 'GEOS5' ) THEN
           ! Skip it
           current => current%next

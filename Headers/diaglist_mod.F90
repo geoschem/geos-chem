@@ -82,8 +82,8 @@ MODULE DiagList_Mod
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
   CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadFlux(12)  ! Names of RRTMG flux outputs
-  INTEGER,           PUBLIC  :: nRadFlux     ! # of selected RRTMG flux outputs
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
   LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
 
@@ -171,7 +171,8 @@ CONTAINS
     INTEGER                  :: QMatch, CMatch
     INTEGER                  :: LineNum, LineLen, LineInd, LineInd2
     INTEGER                  :: fId, IOS, N, N1, N2, N3, I
-    INTEGER                  :: IWLMAX, IWLMAXLOC(1), IWL(3)
+    INTEGER                  :: WLIndMax, WLIndMaxLoc(1), WLInd(3)
+    INTEGER                  :: strIndMax, strInd(5)
     INTEGER                  :: numSpcWords, numIDWords
 
     ! Strings
@@ -202,8 +203,8 @@ CONTAINS
     found           = .FALSE.
     NewDiagItem     => NULL()
     RadWL           =  ''
-    RadFlux         =  ''
-    nRadFlux        =  0
+    RadOut          =  ''
+    nRadOut         =  0
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
@@ -687,14 +688,14 @@ CONTAINS
 
        ! For registryID and metdataID, handle special case of AOD wavelength
        ! Update registryID
-       IWL(1) = INDEX( TRIM(registryID), 'WL1' )
-       IWL(2) = INDEX( TRIM(registryID), 'WL2' )
-       IWL(3) = INDEX( TRIM(registryID), 'WL3' )
-       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
-       IF ( IWLMAX > 0 ) THEN
-          IWLMAXLOC = MAXLOC(IWL)
-          registryIDprefix = registryID(1:IWL(IWLMAXLOC(1))-1) // &
-                             TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
+       WLInd(1) = INDEX( TRIM(registryID), 'WL1' )
+       WLInd(2) = INDEX( TRIM(registryID), 'WL2' )
+       WLInd(3) = INDEX( TRIM(registryID), 'WL3' )
+       WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
+       IF ( WLIndMax > 0 ) THEN
+          WLIndMaxLoc = MAXLOC(WLInd)
+          registryIDprefix = registryID(1:WLInd(WLIndMaxLoc(1))-1) // &
+                             TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
           LineInd = INDEX( TRIM(registryID), '_' )
           IF ( LineInd > 0 ) THEN
              registryID = TRIM(registryIDprefix) // registryID(LineInd:)
@@ -702,86 +703,96 @@ CONTAINS
              registryID = registryIDprefix
           ENDIF
        ENDIF
-       ! Update metadataID
-       IWL(1) = INDEX( TRIM(metadataID), 'WL1' )
-       IWL(2) = INDEX( TRIM(metadataID), 'WL2' )
-       IWL(3) = INDEX( TRIM(metadataID), 'WL3' )
-       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
-       IF ( IWLMAX > 0 ) THEN
-          IWLMAXLOC = MAXLOC(IWL(:))
-          metadataID = metadataID(1:IWL(IWLMAXLOC(1))-1) //  &
-                       TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
+
+       ! Update metadataID with wavelength
+       WLInd(1) = INDEX( TRIM(metadataID), 'WL1' )
+       WLInd(2) = INDEX( TRIM(metadataID), 'WL2' )
+       WLInd(3) = INDEX( TRIM(metadataID), 'WL3' )
+       WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
+       IF ( WLIndMax > 0 ) THEN
+          WLIndMaxLoc = MaxLOC(WLInd(:))
+          metadataID = metadataID(1:WLInd(WLIndMaxLoc(1))-1) //  &
+                       TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
        ENDIF
 
        ! Special handling for the RRTMG diagnostic flux outputs
-       ! Store the list of the requested fluxes in RadFlux
-       IWL(1) = INDEX( TRIM(metadataID), 'RADCLRSKY' )
-       IWL(2) = INDEX( TRIM(metadataID), 'RADALLSKY' )
-       IWLMAX = MAX( IWL(1), IWL(2) )
-       IF ( IWLMAX > 0 .AND. nRadFlux < 12 ) THEN
+       ! Store the list of the requested outputs (tags) in RadOut
+       strInd(1) = INDEX( TRIM(metadataID), 'RADCLR' )
+       strInd(2) = INDEX( TRIM(metadataID), 'RADALL' )
+       strInd(3) = INDEX( TRIM(metadataID), 'RADAOD' )
+       strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
+       strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
+       strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
+       IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
+
+          ! If RRTMG diagnostics present, always calculate BASE since used
+          ! to calculate other outputs. 
+          IF ( nRadOut == 0 ) THEN
+             nRadOut = nRadOut + 1
+             RadOut(nRadOut) = 'BASE'
+          ENDIF
+
+          ! Set the rest of the array to the contents of HISTORY.rc, or to
+          ! include all except stratosphere if wildcard found.
           IF ( .NOT. isWildcard ) THEN
-             ! If a tag is specified explicitly, then add to the RadFlux array
-             IF ( .not. ANY( RadFlux == TRIM(Tag) ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             ! If a tag is specified explicitly, then add to the RadOut array
+             IF ( .not. ANY( RadOut == TRIM(Tag) ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
           ELSE
              ! If the RRTMG wildcard is used then add all remaining possible
-             ! outputs, except the stratosphere (NOST). NOST must be explicit
-             ! in HISTORY.rc and is not included in the RRTMG wildcard since
-             ! it may not be relevant to the simulation.
-             IF ( .not. ANY( RadFlux == 'BASE' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             ! outputs, except the stratosphere (NOST) and BASE (already added).
+             ! NOST must be explicit in HISTORY.rc and is not included in the
+             ! RRTMG wildcard since it may not be relevant to the simulation.
+             IF ( .not. ANY( RadOut == 'NOO3' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOO3' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOME' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOME' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOSU' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOSU' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NONI' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NONI' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOAM' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOAM' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOBC' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOBC' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOOA' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOOA' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOSS' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NOSS' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NODU' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadFlux == 'NODU' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadFlux == 'NOPM' ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+             IF ( .not. ANY( RadOut == 'NOPM' ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
           ENDIF
        ENDIF
 
        ! Special handling for diagnostics at a specific height
        ! (e.g. rename O3CONCATALT --> O3CONCAT10M)
-       IWL(1) = INDEX( TRIM(registryID), 'ALT1' )
-       IF ( IWL(1) > 0 ) THEN
-          registryIDprefix = registryID(1:IWL(1)-1) // TRIM( AltAboveSfc )
+       strInd(1) = INDEX( TRIM(registryID), 'ALT1' )
+       IF ( strInd(1) > 0 ) THEN
+          registryIDprefix = registryID(1:strInd(1)-1) // TRIM( AltAboveSfc )
           LineInd = INDEX( TRIM(registryID), '_' )
           IF ( LineInd > 0 ) THEN
              registryID = TRIM(registryIDprefix) // registryID(LineInd:)
@@ -789,9 +800,9 @@ CONTAINS
              registryID = registryIDprefix
           ENDIF
        ENDIF
-       IWL(2) = INDEX( TRIM(metadataID), 'ALT1' )
-       IF ( IWL(2) > 0 ) THEN
-          metadataID = metadataID(1:IWL(2)-1) // TRIM( AltAboveSfc )
+       strInd(2) = INDEX( TRIM(metadataID), 'ALT1' )
+       IF ( strInd(2) > 0 ) THEN
+          metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
        ENDIF
 
        !====================================================================
