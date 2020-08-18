@@ -1757,18 +1757,47 @@ PROGRAM GEOS_Chem
           ! RRTMG outputs (scheduled in HISTORY.rc):
           !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
           !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+          !
+          ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
+          ! to how it is populated from HISTORY.rc diaglist_mod.F90.
+          ! BASE is always calculated first since its flux is used to calculate
+          ! other RRTMG flux diagnostics.
           !-----------------------------------------------------------
-          DO N = 1, State_Diag%nRadOut
 
-             ! Echo info
+          ! Calculate BASE first
+          N = 1
+
+          ! Echo info
+          WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+
+          ! Generate mask for species in RT
+          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+
+          ! Compute radiative transfer for the given output
+          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
+                                      ThisMonth  = Month,                  &
+                                      iCld       = State_Chm%RRTMG_iCld,   &
+                                      iSpecMenu  = State_Diag%RadOutInd(N),&
+                                      iNcDiag    = N,                      &
+                                      iSeed      = State_Chm%RRTMG_iSeed,  &
+                                      Input_Opt  = Input_Opt,              &
+                                      State_Chm  = State_Chm,              &
+                                      State_Diag = State_Diag,             &
+                                      State_Grid = State_Grid,             &
+                                      State_Met  = State_Met,              &
+                                      RC         = RC          )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
+                      'for RRTMG output = ' // &
+                      TRIM( State_Diag%RadOutName(N) )
+             CALL Error_Stop( ErrMsg, ThisLoc )
+
+          ! Calculate for rest of outputs, if any
+          DO N = 2, State_Diag%nRadOut
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-520          FORMAT( 5x, '- Calling RRTMG to compute fluxes and optics: ', &
-                     a4, ' (Index = ', i2.2, ')' )
-
-             ! Generate mask for species in RT
              CALL Set_SpecMask( State_Diag%RadOutInd(N) )
-
-             ! Compute radiative transfer for the given output
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
                                          iCld       = State_Chm%RRTMG_iCld,   &
@@ -1781,8 +1810,6 @@ PROGRAM GEOS_Chem
                                          State_Grid = State_Grid,             &
                                          State_Met  = State_Met,              &
                                          RC         = RC          )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
                          'for RRTMG output = ' // &
@@ -1790,6 +1817,9 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
           ENDDO
+
+520       FORMAT( 5x, '- Calling RRTMG to compute fluxes and optics: ', &
+                  a4, ' (Index = ', i2.2, ')' )
 
 #ifdef BPCH_DIAG
           ! Increment radiation timestep counter

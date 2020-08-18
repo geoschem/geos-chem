@@ -239,6 +239,7 @@ CONTAINS
     INTEGER            :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
     INTEGER            :: IS_ON,NASPECRAD_ON
     INTEGER            :: IASPECRAD_ON(NASPECRAD)
+    INTEGER            :: BaseIndex
     REAL*8             :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
 
     !-----------------------------------------------------------------
@@ -1693,6 +1694,83 @@ CONTAINS
           ENDIF
 
        ENDIF
+
+       !-------------------------------------------------------
+       ! If not BASE, the subtract flux just calculated from BASE
+       !-------------------------------------------------------
+       IF ( iSpecMenu > 0 ) THEN
+
+          ! Set the state_diag index corresponding to BASE. The BASE
+          ! fluxes are always calculated no matter what outputs are set
+          ! in HISTORY.rc since they are needed here. They are also
+          ! calculated prior to all other outputs. The index always
+          ! corresponds to 1.
+          baseIndex = 1
+
+          ! All-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWTOA(I,J,baseIndex) - &
+                State_Diag%RadAllSkySWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWSurf(I,J,baseIndex) - &
+                State_Diag%RadAllSkySWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWTOA(I,J,baseIndex) - &
+                State_Diag%RadAllSkyLWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWSurf(I,J,baseIndex) - &
+                State_Diag%RadAllSkyLWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWTOA(I,J,baseIndex) - &
+                State_Diag%RadClrSkySWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWSurf(I,J,baseIndex) - &
+                State_Diag%RadClrSkySWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWTOA(I,J,baseIndex) - &
+                State_Diag%RadClrSkyLWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWSurf(I,J,baseIndex) - &
+                State_Diag%RadClrSkyLWSurf(I,J,iNcDiag)
+          ENDIF
+
+       ENDIF
+
+       !-------------------------------------------------------
+       ! Optics diagnostics (AOD, single scattering albedo, asymmetry param)
+       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, and
+       ! methane (hence OUTIDX > 4)T=, and there is one diagnostic per
+       ! RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       !-------------------------------------------------------
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT

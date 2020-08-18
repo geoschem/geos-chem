@@ -725,8 +725,8 @@ CONTAINS
        strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
        IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
 
-          ! If RRTMG diagnostics present, always calculate BASE since used
-          ! to calculate other outputs. 
+          ! If RRTMG diagnostics present, always calculate BASE, and store
+          ! first, since used to calculate other outputs.
           IF ( nRadOut == 0 ) THEN
              nRadOut = nRadOut + 1
              RadOut(nRadOut) = 'BASE'
