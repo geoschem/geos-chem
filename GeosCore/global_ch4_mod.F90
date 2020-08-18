@@ -702,12 +702,10 @@ CONTAINS
                     State_Grid, State_Met, RC )
 
     !=================================================================
-    ! Calculate CH4 chemistry in layers above tropopause if not unified chem
+    ! Calculate CH4 chemistry in layers above tropopause
     !=================================================================
-    IF ( Input_Opt%LUCX ) THEN
-       CALL CH4_STRAT( Input_Opt,  State_Chm, State_Diag, &
-                       State_Grid, State_Met, RC )
-    ENDIF
+    CALL CH4_STRAT( Input_Opt,  State_Chm, State_Diag, &
+                    State_Grid, State_Met, RC )
 
     !=================================================================
     ! Distribute the chemistry sink from total CH4 to other CH4
@@ -1123,9 +1121,6 @@ CONTAINS
     CHARACTER(LEN=255)    :: ThisLoc
     CHARACTER(LEN=255)    :: ErrMsg
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL           :: LUCX
-
     ! Pointers
     REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -1141,9 +1136,6 @@ CONTAINS
     ErrMsg      = ''
     ThisLoc     = ' -> at CH4_STRAT (in module GeosCore/global_ch4_mod.F90)'
   
-    ! Copy fields from INPUT_OPT
-    LUCX  =  Input_Opt%LUCX
-
     ! Point to chemical species
     Spc   => State_Chm%Species
 
