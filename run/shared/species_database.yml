@@ -496,7 +496,7 @@ CH4_PROP: &CH4properties
   MW_g: 16.05
 CH4:
   << : *CH4properties
-  Background_VV: 1.7e-6
+  Background_VV: 1.8e-6
   FullName: Methane
 CH4_BBN:
   << : *CH4properties
