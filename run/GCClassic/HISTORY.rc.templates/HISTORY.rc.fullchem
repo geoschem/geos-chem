@@ -28,6 +28,7 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
+	     'Metrics',
              'SpeciesConc',
              #'AdvFluxVert',
              #'AerosolMass',
@@ -82,6 +83,33 @@ COLLECTIONS: 'Restart',
                               'Met_TMPU1                      ', 'GIGCchem',
                               'Met_BXHEIGHT                   ', 'GIGCchem',
                               'Met_TropLev                    ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE Metrics COLLECTION %%%%%
+#
+# Diagnostics for chemistry metrics such as global mean OH concentration,
+# MCF lifetime, and CH4 lifetime.
+#
+# This diagnostic collection should always be left on.
+# Use the run-directory script ./metrics_fullchem.py to print results.
+#
+# Commented-out diagnostic fields are available to use, but are not
+# necessary for computing the relevant full-chemistry metrics.
+#
+# Available for full-chemistry and CH4 simulations only.
+#==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.format:             'CFIO',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull             ', 'GIGCchem',
+                              'MCFlossInTrop                 ', 'GIGCchem',
+                              'MeanOHcolumnFull              ', 'GIGCchem',
+                              #'AirMassColumnTrop             ', 'GIGCchem',
+                              #'CH4massColumnTrop             ', 'GIGCchem',
+                              #'MeanCH4columnTrop             ', 'GIGCchem',
+                              #'MeanOHcolumnTrop              ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

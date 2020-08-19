@@ -480,22 +480,24 @@ mkdir -p ${rundir}
 
 #-----------------------------------------------------------------
 # Copy run directory files and subdirectories
-#-----------------------------------------------------------------
-cp -r ./getRunInfo               ${rundir}
-cp -r ${gcdir}/run/shared/download_data.py ${rundir}
-cp -r ./runScriptSamples         ${rundir}
-cp ./archiveRun.sh               ${rundir}
-cp ./cleanRundir.sh              ${rundir}
-cp ./setCodeDir.sh               ${rundir}
-cp ./README                      ${rundir}
-cp ./gitignore                   ${rundir}/.gitignore
-cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
+#------------------------------------------------------------------
+cp -r ./getRunInfo  ${rundir}
+cp -r ${gcdir}/run/shared/download_data.py  ${rundir}
+cp -r ./runScriptSamples  ${rundir}
+cp ./archiveRun.sh   ${rundir}
+cp ./cleanRundir.sh  ${rundir}
+cp ./setCodeDir.sh  ${rundir}
+cp ./README  ${rundir}
+cp ./gitignore  ${rundir}/.gitignore
+cp ./input.geos.templates/input.geos.${sim_name}  ${rundir}/input.geos
+cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}  ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-if [[ ${sim_type} =~ "chem" ]]; then
-    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.standard   ${rundir}/HEMCO_Diagn.rc
+if [[ ${sim_name} =~ "chem" ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
+    cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
+    chmod 744 ${rundir}/metrics_fullchem.py
 else
-    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
 fi
 mkdir ${rundir}/OutputDir
 

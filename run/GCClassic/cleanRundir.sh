@@ -11,6 +11,8 @@ rm -f gchp.log
 rm -f HEMCO.log
 rm -f PET*.log
 rm -f multirun.log
+rm -f GC*.log
+rm -f log.dryrun*
 rm -f logfile.000000.out
 rm -f slurm-*
 rm -f 1
