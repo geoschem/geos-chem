@@ -1715,10 +1715,6 @@ PROGRAM GEOS_Chem
 #ifdef RRTMG
        !==============================================================
        !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
-       !
-       ! NOTE: Tracer concentration units are converted locally to
-       ! [kg] in RRTMG. Units should eventually be [kg/kg]
-       ! (ewl, 9/18/15)
        !==============================================================
        IF ( Input_opt%LRAD  .and. ITS_TIME_FOR_RT() .and. notDryRun ) THEN
 
@@ -1732,14 +1728,12 @@ PROGRAM GEOS_Chem
              WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
 500          FORMAT( '#####', 12x, a, 12x, '#####' )
              WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-             FIRST_RT = .FALSE.
           ENDIF
 
           State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
 
           !-----------------------------------------------------------
-          ! Determine if we are doing clear-sky or all-sky
-          !
+          ! Determine if we are doing clear-sky or all-sky.
           ! Clear-sky is output with all-sky, so we just need
           ! to run once regardless of whether both are required
           ! or just one.
@@ -1776,6 +1770,7 @@ PROGRAM GEOS_Chem
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
+                                      First_RT   = First_RT,               &
                                       iCld       = State_Chm%RRTMG_iCld,   &
                                       iSpecMenu  = State_Diag%RadOutInd(N),&
                                       iNcDiag    = N,                      &
@@ -1785,7 +1780,7 @@ PROGRAM GEOS_Chem
                                       State_Diag = State_Diag,             &
                                       State_Grid = State_Grid,             &
                                       State_Met  = State_Met,              &
-                                      RC         = RC          )
+                                      RC         = RC                     )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1801,6 +1796,7 @@ PROGRAM GEOS_Chem
              CALL Set_SpecMask( State_Diag%RadOutInd(N) )
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
+                                         First_RT   = First_RT,               &
                                          iCld       = State_Chm%RRTMG_iCld,   &
                                          iSpecMenu  = State_Diag%RadOutInd(N),&
                                          iNcDiag    = N,                      &
@@ -1833,6 +1829,10 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "RRTMG", RC )
+          ENDIF
+
+          IF ( FIRST_RT ) THEN
+             FIRST_RT = .FALSE.
           ENDIF
        ENDIF
 #endif
