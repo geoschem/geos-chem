@@ -264,6 +264,7 @@ else
     TransConv_Timestep_sec=300
     TransConv_Timestep_HHMMSS=000500
 fi
+RRTMG_Timestep_sec=10800
 
 #------------------------------------------------
 #    Multi-run option
@@ -660,6 +661,7 @@ replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val RUN_DT        ${TransConv_Timestep_sec}  GCHP.rc
 replace_val GCHPchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
+replace_val RRTMG_DT      ${RRTMG_Timestep_sec}      GCHP.rc
 replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
 replace_val dt            ${TransConv_Timestep_sec}  fvcore_layout.rc
@@ -688,8 +690,9 @@ replace_val "Turn on Wet Deposition?"   ${Turn_on_Wet_Deposition}   input.geos
 replace_val AdvCore_Advection           ${ADVCORE_ADVECTION}        GCHP.rc
 echo " "
 echo "Timesteps:"
-replace_val "Tran\/conv timestep \[sec\]"  ${TransConv_Timestep_sec}   input.geos
-replace_val "Chem\/emis timestep \[sec\]"  ${ChemEmiss_Timestep_sec}   input.geos
+replace_val "Tran\/conv timestep \[sec\]"  ${TransConv_Timestep_sec} input.geos
+replace_val "Chem\/emis timestep \[sec\]"  ${ChemEmiss_Timestep_sec} input.geos
+replace_val "Radiation Timestep \[sec\]"   ${RRTMG_Timestep_sec}     input.geos
 	    
 #### Set options in HEMCO_Config.rc
 echo ""

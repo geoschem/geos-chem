@@ -445,7 +445,8 @@ CONTAINS
     LOGICAL                        :: DoRad
 
     ! First call?
-    LOGICAL, SAVE                  :: FIRST = .TRUE.
+    LOGICAL, SAVE                  :: FIRST    = .TRUE.
+    LOGICAL, SAVE                  :: FIRST_RT = .TRUE. ! RRTMG
 
     ! # of times this routine has been called. Only temporary for printing
     ! processes on the first 10 calls.

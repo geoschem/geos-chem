@@ -1703,7 +1703,6 @@ CONTAINS
 
        ENDIF
 
-#if defined( MODEL_CLASSIC )
        !  Flux adjustment to make time-averaged nc diagnostics better match bpch
        IF ( First_RT ) THEN
           IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
@@ -1739,7 +1738,7 @@ CONTAINS
                 State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) * scaleFactor
           ENDIF
        ENDIF
-#endif
+
        !-------------------------------------------------------
        ! If not BASE, the subtract flux just calculated from BASE
        !-------------------------------------------------------
@@ -1901,7 +1900,6 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#if defined( MODEL_CLASSIC )
              ! Optics diagnostic adjustment to improve netcdf vs bpch comparison
              IF ( First_RT ) THEN
                 IF ( State_Diag%Archive_RadOptics ) THEN
@@ -1947,8 +1945,6 @@ CONTAINS
                    ENDIF
                 ENDIF
              ENDIF
-
-#endif
           ENDDO !NWVSELECT
        ENDIF
     ENDDO
