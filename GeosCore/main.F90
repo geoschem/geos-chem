@@ -241,12 +241,6 @@ PROGRAM GEOS_Chem
   CHARACTER(LEN=255)       :: Argv
 
 #ifdef RRTMG
-  !-----------------------------
-  ! Scalars specific to RRTMG
-  !-----------------------------
-  INTEGER                  :: iCld
-  INTEGER                  :: iSeed
-  INTEGER                  :: RADSPEC
   LOGICAL, SAVE            :: FIRST_RT = .TRUE.
 #endif
 
@@ -636,8 +630,8 @@ PROGRAM GEOS_Chem
      CALL Rrtmg_Sw_Ini()
 
      ! Settings
-     iCld  = 0
-     iSeed = 10
+     State_Chm%RRTMG_iCld  = 0
+     State_Chm%RRTMG_iSeed = 10
   ENDIF
 #endif
 
