@@ -240,8 +240,10 @@ CONTAINS
     INTEGER            :: IS_ON,NASPECRAD_ON
     INTEGER            :: IASPECRAD_ON(NASPECRAD)
     INTEGER            :: BaseIndex
-    REAL*8             :: scaleFactor
     REAL*8             :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
+#if defined( MODEL_CLASSIC )
+    REAL*8             :: scaleFactor ! for GC-Classic netcdf diagnostics
+#endif
 
     !-----------------------------------------------------------------
     ! REL AND REI FROM PERSONAL COMMUNICATION FROM LAZAROS OREOPOULOS
@@ -600,9 +602,13 @@ CONTAINS
        id_CCL4   = Ind_('CCL4')
        id_HCFC22 = Ind_('HCFC22')
 
+#if defined( MODEL_CLASSIC )
        ! Set scale factor used to correct first value of netcdf time-averaged
-       ! diagnostics so that zeros are not included in the average
+       ! diagnostics so that zeros are not included in the average. This is
+       ! only necessary for GC-Classic since RRTMG is run the first timestep
+       ! in GCHP.
        scaleFactor = 1.5
+#endif
 
        ! Get pointers to data fields that are read by HEMCO
        ! NOTE: This has to be done here and not in initialization
@@ -1703,7 +1709,9 @@ CONTAINS
 
        ENDIF
 
+#if defined( MODEL_CLASSIC )
        !  Flux adjustment to make time-averaged nc diagnostics better match bpch
+       ! (only needed for GC-Classic since RRTMG not run first timestep)
        IF ( First_RT ) THEN
           IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
              State_Diag%RadAllSkySWTOA(I,J,iNcDiag) = &
@@ -1738,6 +1746,7 @@ CONTAINS
                 State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) * scaleFactor
           ENDIF
        ENDIF
+#endif
 
        !-------------------------------------------------------
        ! If not BASE, the subtract flux just calculated from BASE
@@ -1900,7 +1909,9 @@ CONTAINS
                 ENDIF
              ENDIF
 
+#if defined( MODEL_CLASSIC )
              ! Optics diagnostic adjustment to improve netcdf vs bpch comparison
+             ! (only needed for GC-Classic since RRTMG not run first timestep)
              IF ( First_RT ) THEN
                 IF ( State_Diag%Archive_RadOptics ) THEN
                    IF ( W == 1 ) THEN
@@ -1945,6 +1956,7 @@ CONTAINS
                    ENDIF
                 ENDIF
              ENDIF
+#endif
           ENDDO !NWVSELECT
        ENDIF
     ENDDO
