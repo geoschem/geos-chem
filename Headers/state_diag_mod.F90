@@ -574,10 +574,11 @@ MODULE State_Diag_Mod
 
      LOGICAL                     :: Archive_KppDiags
 
-     !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
+     !%%%%% Chemistry metrics (e.g. mean OH, MCF lifetime, CH4 lifetime) %%%%%
 
      REAL(f8),           POINTER :: AirMassColumnFull(:,:)
      LOGICAL                     :: Archive_AirMassColumnFull
+     LOGICAL                     :: Archive_Metrics
 
      REAL(f8),           POINTER :: AirMassColumnTrop(:,:)
      LOGICAL                     :: Archive_AirMassColumnTrop
@@ -593,6 +594,9 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: MeanOHcolumnTrop(:,:)
      LOGICAL                     :: Archive_MeanOHcolumnTrop
+
+     REAL(f8),           POINTER :: MCFlossInTrop(:,:)
+     LOGICAL                     :: Archive_MCFlossInTrop
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -1544,10 +1548,11 @@ CONTAINS
     State_Diag%FracOfTimeInTrop                    => NULL()
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
-    !%%%%% Mean OH and CH4 lifetime diagnostics %%%%%
+    !%%%%% Chemistry metrics (e.g. mean OH, CH3CCl3 lifetime etc.) %%%%%
 
     State_Diag%AirMassColumnFull                   => NULL()
     State_Diag%Archive_AirMassColumnFull           = .FALSE.
+    State_Diag%Archive_Metrics                     = .FALSE.
 
     State_Diag%AirMassColumnTrop                   => NULL()
     State_Diag%Archive_AirMassColumnTrop           = .FALSE.
@@ -1563,6 +1568,9 @@ CONTAINS
 
     State_Diag%MeanOHcolumnTrop                    => NULL()
     State_Diag%Archive_MeanOHcolumnTrop            = .FALSE.
+
+    State_Diag%MCFlossInTrop                       => NULL()
+    State_Diag%Archive_MCFlossInTrop               = .FALSE.
 
     !%%%%% TransportTracers diagnostics %%%%%
 
@@ -4816,7 +4824,28 @@ CONTAINS
           RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! Methyl chloroform (aka MCF) tropospheric lifetime
+       !--------------------------------------------------------------------
+       diagId = 'MCFlossInTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%MCFlossInTrop,                       &
+            archiveData    = State_Diag%Archive_MCFlossInTrop,               &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ELSE
 
@@ -4829,7 +4858,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 7
+       DO N = 1, 8
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -4845,7 +4874,9 @@ CONTAINS
                 diagID = 'MeanOHcolumnFull'
              CASE( 6 )
                 diagID = 'MeanOHcolumnTrop'
-             CASE( 7  )
+             CASE( 7 )
+                diagID = 'MCFlossInTrop'
+             CASE( 8  )
                 diagID = 'OHconcAfterChem'
           END SELECT
 
@@ -8078,9 +8109,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Print information about the registered fields (short format)
-    !=======================================================================
+    !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
@@ -8092,7 +8123,7 @@ CONTAINS
                          ShortFormat = .TRUE.,                               &
                          RC          = RC                                   )
 
-    !=======================================================================
+    !========================================================================
     ! Set high-level logicals for diagnostics
     !=======================================================================
     State_Diag%Archive_Budget =  &
@@ -8170,20 +8201,112 @@ CONTAINS
                                     State_Diag%Archive_KppSmDecomps    .or.  &
                                     State_Diag%Archive_KppDiags             )
 
-    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
-                                      State_Diag%Archive_RadAODWL2     .or. &
-                                      State_Diag%Archive_RadAODWL3     .or. &
-                                      State_Diag%Archive_RadSSAWL1     .or. &
-                                      State_Diag%Archive_RadSSAWL2     .or. &
-                                      State_Diag%Archive_RadSSAWL3     .or. &
-                                      State_Diag%Archive_RadAsymWL1    .or. &
-                                      State_Diag%Archive_RadAsymWL2    .or. &
-                                      State_Diag%Archive_RadAsymWL3        )
 
     !=======================================================================
+    !========================================================================
+    State_Diag%Archive_Budget = (                                            &
+         State_Diag%Archive_BudgetEmisDryDepFull                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepTrop                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepPBL                         .or. &
+         State_Diag%Archive_BudgetTransportFull                         .or. &
+         State_Diag%Archive_BudgetTransportTrop                         .or. &
+         State_Diag%Archive_BudgetTransportPBL                          .or. &
+         State_Diag%Archive_BudgetMixingFull                            .or. &
+         State_Diag%Archive_BudgetMixingTrop                            .or. &
+         State_Diag%Archive_BudgetMixingPBL                             .or. &
+         State_Diag%Archive_BudgetConvectionFull                        .or. &
+         State_Diag%Archive_BudgetConvectionTrop                        .or. &
+         State_Diag%Archive_BudgetConvectionPBL                         .or. &
+         State_Diag%Archive_BudgetChemistryFull                         .or. &
+         State_Diag%Archive_BudgetChemistryTrop                         .or. &
+         State_Diag%Archive_BudgetChemistryPBL                          .or. &
+         State_Diag%Archive_BudgetWetDepFull                            .or. &
+         State_Diag%Archive_BudgetWetDepTrop                            .or. &
+         State_Diag%Archive_BudgetWetDepPBL                                 )
+
+    State_Diag%Archive_AerMass = (                                           &
+         State_Diag%Archive_AerMassASOA                                 .or. &
+         State_Diag%Archive_AerMassBC                                   .or. &
+         State_Diag%Archive_AerMassINDIOL                               .or. &
+         State_Diag%Archive_AerMassISN1OA                               .or. &
+         State_Diag%Archive_AerMassLVOCOA                               .or. &
+         State_Diag%Archive_AerMassNH4                                  .or. &
+         State_Diag%Archive_AerMassNIT                                  .or. &
+         State_Diag%Archive_AerMassOPOA                                 .or. &
+         State_Diag%Archive_AerMassPOA                                  .or. &
+         State_Diag%Archive_AerMassSAL                                  .or. &
+         State_Diag%Archive_AerMassSO4                                  .or. &
+         State_Diag%Archive_AerMassSOAGX                                .or. &
+         State_Diag%Archive_AerMassSOAIE                                .or. &
+         State_Diag%Archive_AerMassTSOA                                 .or. &
+         State_Diag%Archive_BetaNO                                      .or. &
+         State_Diag%Archive_PM25                                        .or. &
+         State_Diag%Archive_TotalOA                                     .or. &
+         State_Diag%Archive_TotalOC                                     .or. &
+         State_Diag%Archive_TotalBiogenicOA       )
+
+    State_Diag%Archive_AOD = (                                               &
+         State_Diag%Archive_AODHygWL1                                   .or. &
+         State_Diag%Archive_AODHygWL2                                   .or. &
+         State_Diag%Archive_AODHygWL3                                   .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
+         State_Diag%Archive_AODDust                                     .or. &
+         State_Diag%Archive_AODDustWL1                                  .or. &
+         State_Diag%Archive_AODDustWL2                                  .or. &
+         State_Diag%Archive_AODDustWL3                                      )
+
+    State_Diag%Archive_AODStrat = (                                          &
+         State_Diag%Archive_AODSLAWL1                                   .or. &
+         State_Diag%Archive_AODSLAWL2                                   .or. &
+         State_Diag%Archive_AODSLAWL3                                   .or. &
+         State_Diag%Archive_AODPSCWL1                                   .or. &
+         State_Diag%Archive_AODPSCWL2                                   .or. &
+         State_Diag%Archive_AODPSCWL3                                   .or. &
+         State_Diag%Archive_AerNumDenSLA                                .or. &
+         State_Diag%Archive_AerNumDenPSC                                   )
+
+    State_Diag%Archive_ConcAboveSfc = (                                       &
+         State_Diag%Archive_SpeciesConcALT1                             .and. &
+         State_Diag%Archive_DryDepRaALT1                                .and. &
+         State_Diag%Archive_DryDepVelForALT1      )
+
+    State_Diag%Archive_KppDiags = (                                           &
+         State_Diag%Archive_KppIntCounts                                .or.  &
+         State_Diag%Archive_KppJacCounts                                .or.  &
+         State_Diag%Archive_KppTotSteps                                 .or.  &
+         State_Diag%Archive_KppAccSteps                                 .or.  &
+         State_Diag%Archive_KppRejSteps                                 .or.  &
+         State_Diag%Archive_KppLuDecomps                                .or.  &
+         State_Diag%Archive_KppSubsts                                   .or.  &
+         State_Diag%Archive_KppSmDecomps                                .or.  &
+         State_Diag%Archive_KppDiags                                         )
+
+    State_Diag%Archive_Metrics = (                                           &
+         State_Diag%Archive_AirMassColumnFull                           .or. &
+         State_Diag%Archive_AirMassColumnTrop                           .or. &
+         State_Diag%Archive_MeanCH4ColumnFull                           .or. &
+         State_Diag%Archive_MeanCH4ColumnTrop                           .or. &
+         State_Diag%Archive_MeanOHColumnFull                            .or. &
+         State_Diag%Archive_MeanOHColumnTrop                            .or. &
+         State_Diag%Archive_MCFlossInTrop                                   )
+
+    State_Diag%Archive_RadOptics  = (                                        &
+         State_Diag%Archive_RadAODWL1                                   .or. &
+         State_Diag%Archive_RadAODWL2                                   .or. &
+         State_Diag%Archive_RadAODWL3                                   .or. &
+         State_Diag%Archive_RadSSAWL1                                   .or. &
+         State_Diag%Archive_RadSSAWL2                                   .or. &
+         State_Diag%Archive_RadSSAWL3                                   .or. &
+         State_Diag%Archive_RadAsymWL1                                  .or. &
+         State_Diag%Archive_RadAsymWL2                                  .or. &
+         State_Diag%Archive_RadAsymWL3                                      )
+
+    !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
     ! 4th dimension is column region: Full, Trop, PBL respectively
-    !=======================================================================
+    !========================================================================
     IF ( State_Diag%Archive_Budget ) THEN
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
                                                State_Grid%NY,                &
@@ -9362,6 +9485,11 @@ CONTAINS
 
     CALL Finalize( diagId   = 'MeanOHcolumnTrop',                            &
                    Ptr2Data = State_Diag%MeanOHcolumnTrop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'MCFlossInTrop',                               &
+                   Ptr2Data = State_Diag%MCFlossInTrop,                      &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10993,14 +11121,14 @@ CONTAINS
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Air mass in full-atmosphere column'
+       IF ( isDesc    ) Desc  = 'Air mass, full-atmosphere column sum'
        IF ( isUnits   ) Units = 'molec'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
        IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Air mass in tropospheric column'
+       IF ( isDesc    ) Desc  = 'Air mass, tropospheric column sum'
        IF ( isUnits   ) Units = 'molec'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
@@ -11008,7 +11136,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Mass-weighted mean OH concentration, full-atmosphere columns'
+         'Mass-weighted mean OH concentration, full-atmosphere column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
@@ -11016,7 +11144,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Mass-weighted mean OH concentration, troposheric columns'
+         'Mass-weighted mean OH concentration, troposheric column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
@@ -11024,7 +11152,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Mass-weighted mean CH4 concentration, full-atmosphere columns'
+         'Mass-weighted mean CH4 concentration, full-atmosphere column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
@@ -11032,7 +11160,15 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Mass-weighted mean CH4 concentration, tropospheric columns'
+         'Mass-weighted mean CH4 concentration, tropospheric column sum'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MCFLOSSINTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+        'Loss rate of methyl chloroform (CH3CCl3), tropopsheric column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8

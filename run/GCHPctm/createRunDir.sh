@@ -223,9 +223,17 @@ cp ${gcdir}/run/shared/species_database.yml ${rundir}
 
 # If benchmark simulation, put run script in directory; else do not.
 if [ "${sim_name}" == "benchmark" ]; then
-    cp ./runScriptSamples/gchp.benchmark.run           ${rundir}/gchp.benchmark.run
+    cp ./runScriptSamples/gchp.benchmark.run ${rundir}/gchp.benchmark.run
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
+
+# For benchmark or standard simulations, copy the metrics_fullchem.py
+# script to the run directory.  This will compute full-chemistry metrics
+if [[ "${sim_name}" == "benchmark" || "${sim_name}" == "standard" ]]; then
+    cp ${gcdir}/run/shared/metrics_fullchem.py ${rundir}
+    chmod 744 ${rundir}/metrics_fullchem.py
+fi
+
 
 #--------------------------------------------------------------------
 # Create symbolic links to data directories, restart files, and code

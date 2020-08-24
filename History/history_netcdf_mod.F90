@@ -706,9 +706,9 @@ CONTAINS
     REAL(f4),       ALLOCATABLE :: NcData_1d4(:    )
     REAL(f4),       ALLOCATABLE :: NcData_2d4(:,:  )
     REAL(f4),       ALLOCATABLE :: NcData_3d4(:,:,:)
-    REAL(f4),       ALLOCATABLE :: NcData_1d8(:    )
-    REAL(f4),       ALLOCATABLE :: NcData_2d8(:,:  )
-    REAL(f4),       ALLOCATABLE :: NcData_3d8(:,:,:)
+    REAL(f8),       ALLOCATABLE :: NcData_1d8(:    )
+    REAL(f8),       ALLOCATABLE :: NcData_2d8(:,:  )
+    REAL(f8),       ALLOCATABLE :: NcData_3d8(:,:,:)
     REAL(f8)                    :: NcTimeVal (1    )
 
     ! Objects
