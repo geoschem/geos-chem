@@ -183,6 +183,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: metadataID, registryID, registryIDprefix
     CHARACTER(LEN=255)       :: collname, AttName, AttValue
     CHARACTER(LEN=255)       :: AttComp,  FieldName
+    CHARACTER(LEN=2)         :: rrtmgOutputs(10)
 
     ! SAVEd variables
     CHARACTER(LEN=255), SAVE :: LastCollName
@@ -715,8 +716,8 @@ CONTAINS
                        TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
        ENDIF
 
-       ! Special handling for the RRTMG diagnostic flux outputs
-       ! Store the list of the requested outputs (tags) in RadOut
+       ! Special handling for the RRTMG diagnostic outputs
+       ! Store the list of the requested outputs (tags) in RadOut.
        strInd(1) = INDEX( TRIM(metadataID), 'RADCLR' )
        strInd(2) = INDEX( TRIM(metadataID), 'RADALL' )
        strInd(3) = INDEX( TRIM(metadataID), 'RADAOD' )
@@ -742,49 +743,16 @@ CONTAINS
              ENDIF
           ELSE
              ! If the RRTMG wildcard is used then add all remaining possible
-             ! outputs, except the stratosphere (NOST) and BASE (already added).
-             ! NOST must be explicit in HISTORY.rc and is not included in the
+             ! outputs, except the stratosphere (ST) and BASE (already added).
+             ! ST must be explicit in HISTORY.rc and is not included in the
              ! RRTMG wildcard since it may not be relevant to the simulation.
-             IF ( .not. ANY( RadOut == 'NOO3' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'ME' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'SU' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'NI' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'AM' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'BC' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'OA' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'SS' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'DU' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-             IF ( .not. ANY( RadOut == 'PM' ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
+             RRTMGOutputs = (/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
+             DO N = 1, SIZE(rrtmgOutputs,1)
+                IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
+                   nRadOut          = nRadOut + 1
+                   RadOut(nRadOut) = TRIM( rrtmgOutputs(N) )
+                ENDIF
+             ENDDO
           ENDIF
        ENDIF
 
