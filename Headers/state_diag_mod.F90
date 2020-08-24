@@ -13011,8 +13011,8 @@ CONTAINS
     ! RRTMG outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
-    !   0=BASE  1=NOO3  2=NOME  3=NOSU   4=NONI   5=NOAM
-    !   6=NOBC  7=NOOA  8=NOSS  9=NODU  10=NOPM  11=NOST (11 is UCX only)
+    !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
+    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST (11 is UCX only)
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -13033,27 +13033,27 @@ CONTAINS
        SELECT CASE( State_Diag%RadOutName(N) )
           CASE( 'BASE' )
              State_Diag%RadOutInd(N) = 0
-          CASE( 'NOO3' )
+          CASE( 'O3' )
              State_Diag%RadOutInd(N) = 1
-          CASE( 'NOME' )
+          CASE( 'ME' )
              State_Diag%RadOutInd(N) = 2
-          CASE( 'NOSU' )
+          CASE( 'SU' )
              State_Diag%RadOutInd(N) = 3
-          CASE( 'NONI' )
+          CASE( 'NI' )
              State_Diag%RadOutInd(N) = 4
-          CASE( 'NOAM' )
+          CASE( 'AM' )
              State_Diag%RadOutInd(N) = 5
-          CASE( 'NOBC' )
+          CASE( 'BC' )
              State_Diag%RadOutInd(N) = 6
-          CASE( 'NOOA' )
+          CASE( 'OA' )
              State_Diag%RadOutInd(N) = 7
-          CASE( 'NOSS' )
+          CASE( 'SS' )
              State_Diag%RadOutInd(N) = 8
-          CASE( 'NODU' )
+          CASE( 'DU' )
              State_Diag%RadOutInd(N) = 9
-          CASE( 'NOPM' )
+          CASE( 'PM' )
              State_Diag%RadOutInd(N) = 10
-          CASE( 'NOST' )
+          CASE( 'ST' )
              IF ( Input_Opt%LUCX ) THEN
                 State_Diag%RadOutInd(N) = 11
              ELSE

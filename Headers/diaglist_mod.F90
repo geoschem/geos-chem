@@ -749,39 +749,39 @@ CONTAINS
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOME' ) ) THEN
+             IF ( .not. ANY( RadOut == 'ME' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOSU' ) ) THEN
+             IF ( .not. ANY( RadOut == 'SU' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NONI' ) ) THEN
+             IF ( .not. ANY( RadOut == 'NI' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOAM' ) ) THEN
+             IF ( .not. ANY( RadOut == 'AM' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOBC' ) ) THEN
+             IF ( .not. ANY( RadOut == 'BC' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOOA' ) ) THEN
+             IF ( .not. ANY( RadOut == 'OA' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOSS' ) ) THEN
+             IF ( .not. ANY( RadOut == 'SS' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NODU' ) ) THEN
+             IF ( .not. ANY( RadOut == 'DU' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF
-             IF ( .not. ANY( RadOut == 'NOPM' ) ) THEN
+             IF ( .not. ANY( RadOut == 'PM' ) ) THEN
                 nRadOut          = nRadOut + 1
                 RadOut(nRadOut) = TRIM( Tag )
              ENDIF

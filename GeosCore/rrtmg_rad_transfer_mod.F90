@@ -2189,27 +2189,27 @@ CONTAINS
     DO N = 1, State_Diag%nRadOut
 
        SELECT CASE( State_Diag%RadOutName(N) )
-       CASE( 'NOO3' )
+       CASE( 'O3' )
           Input_Opt%LSpecRadMenu(1)  = 1
-       CASE( 'NOME' )
+       CASE( 'ME' )
           Input_Opt%LSpecRadMenu(2)  = 1
-       CASE( 'NOSU' )
+       CASE( 'SU' )
           Input_Opt%LSpecRadMenu(3)  = 1
-       CASE( 'NONI' )
+       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(4)  = 1
-       CASE( 'NOAM' )
+       CASE( 'AM' )
           Input_Opt%LSpecRadMenu(5)  = 1
-       CASE( 'NOBC' )
+       CASE( 'BC' )
           Input_Opt%LSpecRadMenu(6)  = 1
-       CASE( 'NOOA' )
+       CASE( 'OA' )
           Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'NOSS' )
+       CASE( 'SS' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'NODU' )
+       CASE( 'DU' )
           Input_Opt%LSpecRadMenu(9)  = 1
-       CASE( 'NOPM' )
+       CASE( 'PM' )
           Input_Opt%LSpecRadMenu(10) = 1
-       CASE( 'NOST' )
+       CASE( 'ST' )
           Input_Opt%LSpecRadMenu(11) = 1
        CASE DEFAULT
           ! Nothing
