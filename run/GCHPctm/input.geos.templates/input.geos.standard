@@ -5,7 +5,7 @@ End   YYYYMMDD, hhmmss  : 20160701 010000
 Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
-Simulation name         : standard
+Simulation name         : fullchem
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
