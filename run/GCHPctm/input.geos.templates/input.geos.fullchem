@@ -5,7 +5,7 @@ End   YYYYMMDD, hhmmss  : 20160701 010000
 Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
-Simulation name         : benchmark
+Simulation name         : {SIM}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
@@ -20,13 +20,6 @@ Species name            : ACTA
 Species name            : AERI
 Species name            : ALD2
 Species name            : ALK4
-Species name            : ASOA1
-Species name            : ASOA2
-Species name            : ASOA3
-Species name            : ASOAN
-Species name            : ASOG1
-Species name            : ASOG2
-Species name            : ASOG3
 Species name            : ATOOH
 Species name            : BCPI
 Species name            : BCPO
@@ -224,14 +217,6 @@ Species name            : SOAIE
 Species name            : SOAP
 Species name            : SOAS
 Species name            : TOLU
-Species name            : TSOA0
-Species name            : TSOA1
-Species name            : TSOA2
-Species name            : TSOA3
-Species name            : TSOG0
-Species name            : TSOG1
-Species name            : TSOG2
-Species name            : TSOG3
 Species name            : XYLE
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
@@ -255,7 +240,7 @@ Online SULFATE AEROSOLS : T
  => Metal cat. SO2 ox.? : T
 Online CARBON  AEROSOLS : T
  => Use Brown Carbon?   : F
-Online COMPLEX SOA      : T
+Online COMPLEX SOA      : F
  => Semivolatile POA?   : F
 Online DUST    AEROSOLS : T
  => Acidic uptake ?     : F
