@@ -640,7 +640,7 @@ CONTAINS
     ENDIF
 
     ! Evalulate the global Cl from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_Cl', BOH, RC )
+    CALL HCO_EvalFld( HcoState, 'GLOBAL_Cl', BCl, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_Cl not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
