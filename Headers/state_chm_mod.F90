@@ -4791,7 +4791,7 @@ CONTAINS
        State_Chm%HetInfo%HMML%TK   = 298.15_fp
     ELSE
        errMsg = &
-        'HONIT is undefined, but is needed for heterogeneous chemistry!'
+        'HMML is undefined, but is needed for heterogeneous chemistry!'
        CALL GC_Error( errmsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -5001,7 +5001,7 @@ CONTAINS
        State_Chm%HetInfo%IONITA%TK   = 298.15_fp
     ELSE
        errMsg = &
-        'IHN4 is undefined, but is needed for heterogeneous chemistry!'
+        'IONITA is undefined, but is needed for heterogeneous chemistry!'
        CALL GC_Error( errmsg, RC, thisLoc )
        RETURN
     ENDIF
