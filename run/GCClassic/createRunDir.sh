@@ -623,7 +623,10 @@ fi
 #--------------------------------------------------------------------
 if [[ ${sim_name} = "fullchem" ]]; then
     # Use restart file saved out from latest 1-year benchmark
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/initial_GEOSChem_rst.4x5_benchmark.nc
+    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
+elif [[ ${sim_name} = "TransportTracers" ]]; then
+    # Use restart file saved out from latest 1-year benchmark
+    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.8.0/GEOSChem.Restart.TransportTracers.20170101_0000z.nc4
 else
     sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
 fi
