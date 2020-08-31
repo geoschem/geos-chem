@@ -16,14 +16,14 @@ trigger:
       - dev/*
       - bugfix/*
     exclude:
-      - dev/13.0.0*
+      - dev/*13.0.0*
 
 pr:
   branches:
     include:
       - '*'
     exclude:
-      - dev/13.0.0* 
+      - dev/*13.0.0*
 
 # Basic agent and container set up
 pool:
