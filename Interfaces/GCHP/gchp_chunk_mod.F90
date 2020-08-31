@@ -444,7 +444,8 @@ CONTAINS
     LOGICAL                        :: DoRad
 
     ! First call?
-    LOGICAL, SAVE                  :: FIRST = .TRUE.
+    LOGICAL, SAVE                  :: FIRST    = .TRUE.
+    LOGICAL, SAVE                  :: FIRST_RT = .TRUE. ! RRTMG
 
     ! # of times this routine has been called. Only temporary for printing
     ! processes on the first 10 calls.
@@ -457,8 +458,6 @@ CONTAINS
 #endif
 
     ! For RRTMG
-    INTEGER                        :: iSpecMenu
-    INTEGER                        :: iNcDiag
     INTEGER                        :: N
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
@@ -973,56 +972,109 @@ CONTAINS
 
 #if defined( RRTMG )
     ! RRTMG diagnostics
-    If ( DoRad ) Then
+    IF ( DoRad ) THEN
        CALL MAPL_TimerOn( STATE, 'GC_RAD' )
+
+       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
+             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+             WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
+500          FORMAT( '#####', 12x, a, 12x, '#####' )
+             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+       ENDIF
+
        State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
-       If (Input_Opt%LSKYRAD(2) ) Then
+
+       !-----------------------------------------------------------
+       ! Determine if we are doing clear-sky or all-sky.
+       ! Clear-sky is output with all-sky, so we just need
+       ! to run once regardless of whether both are required
+       ! or just one.
+       !-----------------------------------------------------------
+       IF (Input_Opt%LSKYRAD(2) ) Then
           State_Chm%RRTMG_iCld = 1
-       Else
-          State_Chm%RRTMG_iCld = 0
-       End If
-       If (Input_Opt%amIRoot .and. NCALLS<10) Then
-          Write(6,'(a,x,I3,x,a)') ' --> Calling RRTMG ', &
-                              State_Diag%nRadFlux, ' times'
-       End If
-       Do N = 1, State_Diag%nRadFlux
-          ! Index number for RRTMG (see list above)
-          iSpecMenu = State_Diag%RadFluxInd(N)
+       ELSE
+          State_Chm%RRTMG_iCld = 0      !clouds are on
+       ENDIF
 
-          ! Slot # of netCDF diagnostic arrays to update
-          iNcDiag = N
+       !-----------------------------------------------------------
+       ! Calculation for each of the potential output types
+       ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
+       !
+       ! RRTMG outputs (scheduled in HISTORY.rc):
+       !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
+       !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+       !
+       ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
+       ! to how it is populated from HISTORY.rc diaglist_mod.F90.
+       ! BASE is always calculated first since its flux is used to calculate
+       ! other RRTMG flux diagnostics.
+       !-----------------------------------------------------------
 
-          ! For really excessive output, uncomment the following
-!          If ( Input_Opt%amIRoot .and. FIRST ) Then
-!             ! Echo info
-!             WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
-!520          FORMAT( 5x, '- Calling RRTMG to compute flux: ', &
-!                     a2, ' (Index = ', i2.2, ')' )
-!          End If
+       ! Calculate BASE first
+       N = 1
 
-          ! Generate mask for species in RT
-          CALL Set_SpecMask( iSpecMenu )
+       ! Echo info
+       IF ( Input_Opt%amIRoot ) THEN
+          PRINT *, 'Calling RRTMG to compute fluxes and optics'
+          IF ( FIRST_RT ) THEN
+             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+          ENDIF
+       ENDIF
 
-          ! Compute radiative fluxes for the given output
-          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                   &
-                                      ThisMonth  = Month,                 &
-                                      iCld       = State_Chm%RRTMG_iCld,  &
-                                      iSpecMenu  = iSpecMenu,             &
-                                      iNcDiag    = iNcDiag,               &
-                                      iSeed      = State_Chm%RRTMG_iSeed, &
-                                      Input_Opt  = Input_Opt,             &
-                                      State_Chm  = State_Chm,             &
-                                      State_Diag = State_Diag,            &
-                                      State_Grid = State_Grid,            &
-                                      State_Met  = State_Met,             &
-                                      RC         = RC                     )
+       ! Generate mask for species in RT
+       CALL Set_SpecMask( State_Diag%RadOutInd(N) )
 
-          ! Trap potential errors
-          _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer' )
-          
-       End Do
+       ! Compute radiative fluxes for the given output
+       CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
+                                   ThisMonth  = Month,                   &
+                                   First_RT   = First_RT,                &
+                                   iCld       = State_Chm%RRTMG_iCld,    &
+                                   iSpecMenu  = State_Diag%RadOutInd(N), &
+                                   iNcDiag    = N,                       &
+                                   iSeed      = State_Chm%RRTMG_iSeed,   &
+                                   Input_Opt  = Input_Opt,               &
+                                   State_Chm  = State_Chm,               &
+                                   State_Diag = State_Diag,              &
+                                   State_Grid = State_Grid,              &
+                                   State_Met  = State_Met,               &
+                                   RC         = RC                     )
+
+       ! Trap potential errors
+       _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer' )
+
+       ! Calculate for rest of outputs, if any
+       DO N = 2, State_Diag%nRadOut
+          IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
+             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+          ENDIF
+
+          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+
+          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
+                                      ThisMonth  = Month,                  &
+                                      First_RT   = First_RT,               &
+                                      iCld       = State_Chm%RRTMG_iCld,   &
+                                      iSpecMenu  = State_Diag%RadOutInd(N),&
+                                      iNcDiag    = N,                      &
+                                      iSeed      = State_Chm%RRTMG_iSeed,  &
+                                      Input_Opt  = Input_Opt,              &
+                                      State_Chm  = State_Chm,              &
+                                      State_Diag = State_Diag,             &
+                                      State_Grid = State_Grid,             &
+                                      State_Met  = State_Met,              &
+                                      RC         = RC          )
+          _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer')
+       ENDDO
+
+520    FORMAT( 5x, '- ', &
+                  a4, ' (Index = ', i2.2, ')' )
+
+       IF ( FIRST_RT ) THEN
+          FIRST_RT = .FALSE.
+       ENDIF
+
        CALL MAPL_TimerOff( STATE, 'GC_RAD' )
-    End if
+    ENDIF
 #endif
 
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do diagnostics now'

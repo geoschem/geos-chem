@@ -82,8 +82,8 @@ MODULE DiagList_Mod
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
   CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadFlux(12)  ! Names of RRTMG flux outputs
-  INTEGER,           PUBLIC  :: nRadFlux     ! # of selected RRTMG flux outputs
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
   LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
 
@@ -171,7 +171,8 @@ CONTAINS
     INTEGER                  :: QMatch, CMatch
     INTEGER                  :: LineNum, LineLen, LineInd, LineInd2
     INTEGER                  :: fId, IOS, N, N1, N2, N3, I
-    INTEGER                  :: IWLMAX, IWLMAXLOC(1), IWL(3)
+    INTEGER                  :: WLIndMax, WLIndMaxLOC(1), WLInd(3)
+    INTEGER                  :: strIndMax, strInd(5)
     INTEGER                  :: numSpcWords, numIDWords
 
     ! Strings
@@ -182,6 +183,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: metadataID, registryID, registryIDprefix
     CHARACTER(LEN=255)       :: collname, AttName, AttValue
     CHARACTER(LEN=255)       :: AttComp,  FieldName
+    CHARACTER(LEN=2)         :: rrtmgOutputs(10)
 
     ! SAVEd variables
     CHARACTER(LEN=255), SAVE :: LastCollName
@@ -202,8 +204,8 @@ CONTAINS
     found           = .FALSE.
     NewDiagItem     => NULL()
     RadWL           =  ''
-    RadFlux         =  ''
-    nRadFlux        =  0
+    RadOut         =  ''
+    nRadOut        =  0
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
@@ -687,14 +689,14 @@ CONTAINS
 
        ! For registryID and metdataID, handle special case of AOD wavelength
        ! Update registryID
-       IWL(1) = INDEX( TRIM(registryID), 'WL1' )
-       IWL(2) = INDEX( TRIM(registryID), 'WL2' )
-       IWL(3) = INDEX( TRIM(registryID), 'WL3' )
-       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
-       IF ( IWLMAX > 0 ) THEN
-          IWLMAXLOC = MAXLOC(IWL)
-          registryIDprefix = registryID(1:IWL(IWLMAXLOC(1))-1) // &
-                             TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
+       WLInd(1) = INDEX( TRIM(registryID), 'WL1' )
+       WLInd(2) = INDEX( TRIM(registryID), 'WL2' )
+       WLInd(3) = INDEX( TRIM(registryID), 'WL3' )
+       WLIndMax = MAX(WLInd(1),WLInd(2),WLInd(3))
+       IF ( WLIndMax > 0 ) THEN
+          WLIndMaxLOC = MAXLOC(WLInd)
+          registryIDprefix = registryID(1:WLInd(WLIndMaxLOC(1))-1) // &
+                             TRIM(RadWL(WLIndMaxLOC(1))) // 'NM'
           LineInd = INDEX( TRIM(registryID), '_' )
           IF ( LineInd > 0 ) THEN
              registryID = TRIM(registryIDprefix) // registryID(LineInd:)
@@ -703,59 +705,62 @@ CONTAINS
           ENDIF
        ENDIF
        ! Update metadataID
-       IWL(1) = INDEX( TRIM(metadataID), 'WL1' )
-       IWL(2) = INDEX( TRIM(metadataID), 'WL2' )
-       IWL(3) = INDEX( TRIM(metadataID), 'WL3' )
-       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
-       IF ( IWLMAX > 0 ) THEN
-          IWLMAXLOC = MAXLOC(IWL(:))
-          metadataID = metadataID(1:IWL(IWLMAXLOC(1))-1) //  &
-                       TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
+       WLInd(1) = INDEX( TRIM(metadataID), 'WL1' )
+       WLInd(2) = INDEX( TRIM(metadataID), 'WL2' )
+       WLInd(3) = INDEX( TRIM(metadataID), 'WL3' )
+       WLIndMax = MAX(WLInd(1),WLInd(2),WLInd(3))
+       IF ( WLIndMax > 0 ) THEN
+          WLIndMaxLOC = MAXLOC(WLInd(:))
+          metadataID = metadataID(1:WLInd(WLIndMaxLOC(1))-1) //  &
+                       TRIM(RadWL(WLIndMaxLOC(1))) // 'NM'
        ENDIF
 
-       ! Special handling for the RRTMG diagnostic flux outputs
-       ! Store the list of the requested fluxes in RadFlux
-       IWL(1) = INDEX( TRIM(metadataID), 'RADCLRSKY' )
-       IWL(2) = INDEX( TRIM(metadataID), 'RADALLSKY' )
-       IWLMAX = MAX( IWL(1), IWL(2) )
-       IF ( IWLMAX > 0 ) THEN
+       ! Special handling for the RRTMG diagnostic outputs
+       ! Store the list of the requested outputs (tags) in RadOut.
+       strInd(1) = INDEX( TRIM(metadataID), 'RADCLR' )
+       strInd(2) = INDEX( TRIM(metadataID), 'RADALL' )
+       strInd(3) = INDEX( TRIM(metadataID), 'RADAOD' )
+       strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
+       strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
+       strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
+       IF ( strIndMax > 0 .AND. nRadOut < 12 ) THEN
 
-          IF ( LEN_TRIM( Tag ) > 0 ) THEN
+          ! If RRTMG diagnostics present, always calculate BASE, and store
+          ! first, since used to calculate other outputs. 
+          IF ( nRadOut == 0 ) THEN
+             nRadOut = nRadOut + 1
+             RadOut(nRadOut) = 'BASE'
+          ENDIF
 
-             ! If a tag is specified explicitly, then add each
-             ! tag name to the RadFlux array and update nRadFlux
-             IF ( .not. ANY( RadFlux == TRIM(Tag) ) ) THEN
-                nRadFlux          = nRadFlux + 1
-                RadFlux(nRadFlux) = TRIM( Tag )
+          ! Set the rest of the array to the contents of HISTORY.rc, or to
+          ! include all except stratosphere if wildcard found.
+          IF ( .NOT. isWildcard ) THEN
+             ! If a tag is specified explicitly, then add to the RadOut array
+             IF ( .not. ANY( RadOut == TRIM(Tag) ) ) THEN
+                nRadOut          = nRadOut + 1
+                RadOut(nRadOut) = TRIM( Tag )
              ENDIF
 
           ELSE
-
-             ! If a tag is not explicity stated, then manually define all
-             ! slots of the RadFlux array (and update nRadFlux accordingly)
-             ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-             RadFlux(1 ) = 'BASE'
-             RadFlux(2 ) = 'NOO3'
-             RadFlux(3 ) = 'NOME'
-             RadFlux(4 ) = 'NOSU'
-             RadFlux(5 ) = 'NONI'
-             RadFlux(6 ) = 'NOAM'
-             RadFlux(7 ) = 'NOBC'
-             RadFlux(8 ) = 'NOOA'
-             RadFlux(9 ) = 'NOSS'
-             RadFlux(10) = 'NODU'
-             RadFlux(11) = 'NOPM'
-             RadFlux(12) = 'NOST'
-             nRadFlux    = 12
-
+             ! If the RRTMG wildcard is used then add all remaining possible
+             ! outputs, except the stratosphere (ST) and BASE (already added).
+             ! ST must be explicit in HISTORY.rc and is not included in the
+             ! RRTMG wildcard since it may not be relevant to the simulation.
+             RRTMGOutputs =(/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
+             DO N = 1, SIZE(rrtmgOutputs,1)
+                IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
+                   nRadOut          = nRadOut + 1
+                   RadOut(nRadOut) = TRIM( rrtmgOutputs(N) )
+                ENDIF
+             ENDDO
           ENDIF
        ENDIF
 
        ! Special handling for diagnostics at a specific height
        ! (e.g. rename O3CONCATALT --> O3CONCAT10M)
-       IWL(1) = INDEX( TRIM(registryID), 'ALT1' )
-       IF ( IWL(1) > 0 ) THEN
-          registryIDprefix = registryID(1:IWL(1)-1) // TRIM( AltAboveSfc )
+       strInd(1) = INDEX( TRIM(registryID), 'ALT1' )
+       IF ( strInd(1) > 0 ) THEN
+          registryIDprefix = registryID(1:strInd(1)-1) // TRIM( AltAboveSfc )
           LineInd = INDEX( TRIM(registryID), '_' )
           IF ( LineInd > 0 ) THEN
              registryID = TRIM(registryIDprefix) // registryID(LineInd:)
@@ -763,9 +768,9 @@ CONTAINS
              registryID = registryIDprefix
           ENDIF
        ENDIF
-       IWL(2) = INDEX( TRIM(metadataID), 'ALT1' )
-       IF ( IWL(2) > 0 ) THEN
-          metadataID = metadataID(1:IWL(2)-1) // TRIM( AltAboveSfc )
+       strInd(2) = INDEX( TRIM(metadataID), 'ALT1' )
+       IF ( strInd(2) > 0 ) THEN
+          metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
        ENDIF
 
        !====================================================================

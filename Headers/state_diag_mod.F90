@@ -561,9 +561,9 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ReactiveGaseousHg
 
      ! Radiation simulation (RRTMG)
-     INTEGER                   :: nRadFlux
-     INTEGER,          POINTER :: RadFluxInd(:)
-     CHARACTER(LEN=4), POINTER :: RadFluxName(:)
+     INTEGER                   :: nRadOut
+     INTEGER,          POINTER :: RadOutInd(:)
+     CHARACTER(LEN=4), POINTER :: RadOutName(:)
      REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
      REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
      REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
@@ -572,6 +572,15 @@ MODULE State_Diag_Mod
      REAL(f4),         POINTER :: RadClrSkyLWTOA (:,:,:)
      REAL(f4),         POINTER :: RadClrSkySWSurf(:,:,:)
      REAL(f4),         POINTER :: RadClrSkySWTOA (:,:,:)
+     REAL(f4),         POINTER :: RadAODWL1(:,:,:)
+     REAL(f4),         POINTER :: RadAODWL2(:,:,:)
+     REAL(f4),         POINTER :: RadAODWL3(:,:,:)
+     REAL(f4),         POINTER :: RadSSAWL1(:,:,:)
+     REAL(f4),         POINTER :: RadSSAWL2(:,:,:)
+     REAL(f4),         POINTER :: RadSSAWL3(:,:,:)
+     REAL(f4),         POINTER :: RadAsymWL1(:,:,:)
+     REAL(f4),         POINTER :: RadAsymWL2(:,:,:)
+     REAL(f4),         POINTER :: RadAsymWL3(:,:,:)
      LOGICAL :: Archive_RadAllSkyLWSurf
      LOGICAL :: Archive_RadAllSkyLWTOA
      LOGICAL :: Archive_RadAllSkySWSurf
@@ -580,6 +589,16 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_RadClrSkyLWTOA
      LOGICAL :: Archive_RadClrSkySWSurf
      LOGICAL :: Archive_RadClrSkySWTOA
+     LOGICAL :: Archive_RadAODWL1
+     LOGICAL :: Archive_RadAODWL2
+     LOGICAL :: Archive_RadAODWL3
+     LOGICAL :: Archive_RadSSAWL1
+     LOGICAL :: Archive_RadSSAWL2
+     LOGICAL :: Archive_RadSSAWL3
+     LOGICAL :: Archive_RadAsymWL1
+     LOGICAL :: Archive_RadAsymWL2
+     LOGICAL :: Archive_RadAsymWL3
+     LOGICAL :: Archive_RadOptics
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -1107,9 +1126,9 @@ CONTAINS
     State_Diag%Archive_RadDecay                    = .FALSE.
 
     ! RRTMG simulation diagnostics
-    State_Diag%nRadFlux                            =  0
-    State_Diag%RadFluxInd                          => NULL()
-    State_Diag%RadFluxName                         => NULL()
+    State_Diag%nRadOut                            =  0
+    State_Diag%RadOutInd                          => NULL()
+    State_Diag%RadOutName                         => NULL()
     State_Diag%RadAllSkyLWSurf                     => NULL()
     State_Diag%RadAllSkyLWTOA                      => NULL()
     State_Diag%RadAllSkySWSurf                     => NULL()
@@ -1118,6 +1137,16 @@ CONTAINS
     State_Diag%RadClrSkyLWTOA                      => NULL()
     State_Diag%RadClrSkySWSurf                     => NULL()
     State_Diag%RadClrSkySWTOA                      => NULL()
+    State_Diag%RadAODWL1                           => NULL()
+    State_Diag%RadAODWL2                           => NULL()
+    State_Diag%RadAODWL3                           => NULL()
+    State_Diag%RadSSAWL1                           => NULL()
+    State_Diag%RadSSAWL2                           => NULL()
+    State_Diag%RadSSAWL3                           => NULL()
+    State_Diag%RadAsymWL1                          => NULL()
+    State_Diag%RadAsymWL2                          => NULL()
+    State_Diag%RadAsymWL3                          => NULL()
+    State_Diag%Archive_RadOptics                   = .FALSE.
     State_Diag%Archive_RadAllSkyLWSurf             = .FALSE.
     State_Diag%Archive_RadAllSkyLWTOA              = .FALSE.
     State_Diag%Archive_RadAllSkySWSurf             = .FALSE.
@@ -1126,6 +1155,16 @@ CONTAINS
     State_Diag%Archive_RadClrSkyLWTOA              = .FALSE.
     State_Diag%Archive_RadClrSkySWSurf             = .FALSE.
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
+    State_Diag%Archive_RadAODWL1                   = .FALSE.
+    State_Diag%Archive_RadAODWL2                   = .FALSE.
+    State_Diag%Archive_RadAODWL3                   = .FALSE.
+    State_Diag%Archive_RadSSAWL1                   = .FALSE.
+    State_Diag%Archive_RadSSAWL2                   = .FALSE.
+    State_Diag%Archive_RadSSAWL3                   = .FALSE.
+    State_Diag%Archive_RadAsymWL1                  = .FALSE.
+    State_Diag%Archive_RadAsymWL2                  = .FALSE.
+    State_Diag%Archive_RadAsymWL3                  = .FALSE.
+    State_Diag%Archive_RadOptics                   = .FALSE.
 
     ! POPs simulation diagnostics
     State_Diag%LossPOPPOCPObyGasPhase              => NULL()
@@ -2209,27 +2248,28 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Number of requested RRTMG flux outputs
-       State_Diag%nRadFlux = nRadFlux
+       State_Diag%nRadOut = nRadOut
 
        ! Exit if no flux ouptuts have been selected
-       IF ( State_Diag%nRadFlux == 0 ) THEN
+       IF ( State_Diag%nRadOut == 0 ) THEN
           ErrMsg = 'No RRTMG diagnostic flux outputs have been requested!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        ! Array to contain the RRTMG indices for each requested flux output
-       ALLOCATE( State_Diag%RadFluxInd( State_Diag%nRadFlux ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadFluxInd', 0, RC )
+       ALLOCATE( State_Diag%RadOutInd( State_Diag%nRadOut ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadOutInd', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Array to contain the names of each requested flux output
-       ALLOCATE( State_Diag%RadFluxName( State_Diag%nRadFlux ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RadFluxName', 0, RC )
+       ALLOCATE( State_Diag%RadOutName( State_Diag%nRadOut ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadOutName', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Populate the index arrays for RRTMG
        CALL Init_RRTMG_Indices( Input_Opt, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
@@ -2239,7 +2279,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWSurf = 0.0_f4
@@ -2258,7 +2298,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWTOA = 0.0_f4
@@ -2277,7 +2317,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWSurf = 0.0_f4
@@ -2296,7 +2336,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWTOA = 0.0_f4
@@ -2315,7 +2355,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWSurf = 0.0_f4
@@ -2334,7 +2374,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWTOA = 0.0_f4
@@ -2353,7 +2393,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWSurf = 0.0_f4
@@ -2372,7 +2412,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadOut ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWTOA = 0.0_f4
@@ -2382,6 +2422,169 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Aerosol optical depth per wavelength
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%RadAODWL1'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAODWL1( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAODWL1 = 0.0_f4
+          State_Diag%Archive_RadAODWL1 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAODWL1,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadAODWL2'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAODWL2( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAODWL2 = 0.0_f4
+          State_Diag%Archive_RadAODWL2 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAODWL2,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadAODWL3'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAOD' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAODWL3( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAODWL3 = 0.0_f4
+          State_Diag%Archive_RadAODWL3 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAODWL3,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Single scattering albedo per wavelength
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%RadSSAWL1'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadSSAWL1( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadSSAWL1 = 0.0_f4
+          State_Diag%Archive_RadSSAWL1 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadSSAWL1,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadSSAWL2'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadSSAWL2( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadSSAWL2 = 0.0_f4
+          State_Diag%Archive_RadSSAWL2 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadSSAWL2,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadSSAWL3'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadSSA' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadSSAWL3( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadSSAWL3 = 0.0_f4
+          State_Diag%Archive_RadSSAWL3 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadSSAWL3,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Asymmetry parameter per wavelength
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%RadAsymWL1'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAsymWL1( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAsymWL1 = 0.0_f4
+          State_Diag%Archive_RadAsymWL1 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAsymWL1,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadAsymWL2'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAsymWL2( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAsymWL2 = 0.0_f4
+          State_Diag%Archive_RadAsymWL2 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAsymWL2,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RadAsymWL3'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'RadAsym' // TRIM( TmpWL ) // 'nm'  ! to avoid seg faults
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RadAsymWL3( IM, JM, nRadOut ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RadAsymWL3 = 0.0_f4
+          State_Diag%Archive_RadAsymWL3 = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%RadAsymWL3,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
 
     ELSE
 
@@ -2394,7 +2597,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 8
+       DO N = 1, 17
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -2414,6 +2617,33 @@ CONTAINS
                 diagID = 'RadClrSkySWSurf'
              CASE( 8 )
                 diagID = 'RadClrSkySWTOA'
+             CASE( 9 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 10 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 11 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 12 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 13 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 14 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 15 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 16 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 17 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6288,6 +6518,16 @@ CONTAINS
                                     State_Diag%Archive_KppSmDecomps    .or.  &
                                     State_Diag%Archive_KppDiags             )
 
+    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
+                                      State_Diag%Archive_RadAODWL2     .or. &
+                                      State_Diag%Archive_RadAODWL3     .or. &
+                                      State_Diag%Archive_RadSSAWL1     .or. &
+                                      State_Diag%Archive_RadSSAWL2     .or. &
+                                      State_Diag%Archive_RadSSAWL3     .or. &
+                                      State_Diag%Archive_RadAsymWL1    .or. &
+                                      State_Diag%Archive_RadAsymWL2    .or. &
+                                      State_Diag%Archive_RadAsymWL3        )
+
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
     !=======================================================================
@@ -6806,6 +7046,69 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%RadClrSkySWTOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%RadClrSkySWTOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAODWL1 ) ) THEN
+       DEALLOCATE( State_Diag%RadAODWL1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAODWL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAODWL1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAODWL2 ) ) THEN
+       DEALLOCATE( State_Diag%RadAODWL2, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAODWL2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAODWL2 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAODWL3 ) ) THEN
+       DEALLOCATE( State_Diag%RadAODWL3, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAODWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAODWL3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadSSAWL1 ) ) THEN
+       DEALLOCATE( State_Diag%RadSSAWL1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadSSAWL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadSSAWL1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadSSAWL2 ) ) THEN
+       DEALLOCATE( State_Diag%RadSSAWL2, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadSSAWL2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadSSAWL2 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadSSAWL3 ) ) THEN
+       DEALLOCATE( State_Diag%RadSSAWL3, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadSSAWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadSSAWL3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAsymWL1 ) ) THEN
+       DEALLOCATE( State_Diag%RadAsymWL1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAsymWL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAsymWL1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAsymWL2 ) ) THEN
+       DEALLOCATE( State_Diag%RadAsymWL2, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAsymWL2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAsymWL2 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAsymWL3 ) ) THEN
+       DEALLOCATE( State_Diag%RadAsymWL3, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadAsymWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAsymWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
@@ -8425,6 +8728,69 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADSSA' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Single scattering albedo at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(1)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(2)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADASYM' // TRIM(RadWL(3)) // 'NM' ) THEN
+       IF ( isDesc    ) Desc  = 'Asymmetry parameter at ' // &
+                                TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
                                 'from hydrophobic black carbon'
@@ -9431,7 +9797,7 @@ CONTAINS
        CASE( 'PRD'     )
           numTags = State_Chm%nProd
        CASE( 'RRTMG'   )
-          numTags = nRadFlux
+          numTags = nRadOut
        CASE( 'RXN'     )
           numTags = NREACT
        CASE( 'VAR'     )
@@ -9566,9 +9932,9 @@ CONTAINS
 
           ENDIF
 
-       ! RRTMG requested output fluxes
+       ! RRTMG requested outputs (tags)
        CASE( 'RRTMG' )
-          tagName = RadFlux(D)
+          tagName = RadOut(D)
 
        ! KPP equation reaction rates
        CASE( 'RXN' )
@@ -10773,8 +11139,8 @@ CONTAINS
 ! !IROUTINE: Init_RRTMG_Indices
 !
 ! !DESCRIPTION: Populates fields of State\_Diag that are used to keep track
-!  of the requested RRTMG flux outputs and their indices.  These are needed
-!  to be able to pass the proper flux output (and corresponding index for
+!  of the requested RRTMG outputs and their indices.  These are needed
+!  to be able to pass the proper output (and corresponding index for
 !  the appropriate netCDF diagnostic arrays) to DO\_RRTMG\_RAD\_TRANSFER.
 !\\
 !\\
@@ -10786,7 +11152,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE DiagList_Mod,   ONLY : RadFlux, nRadFlux
+    USE DiagList_Mod,   ONLY : RadOut, nRadOut
 !
 ! !INPUT PARAMETERS:
 !
@@ -10801,8 +11167,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  The index fields State_Diag%nRadFlux, State_Diag%RadFluxName, and
-!  State_Diag%RadFluxInd are populated from information obtained in
+!  The index fields State_Diag%nRadOut, State_Diag%RadOutName, and
+!  State_Diag%RadOutInd are populated from information obtained in
 !  Headers/diaglist_mod.F90.
 !
 ! !REVISION HISTORY:
@@ -10837,12 +11203,12 @@ CONTAINS
     ThisLoc = ' -> at Init_RRTMG_Indices (in module Headers/state_diag_mod.F90)'
 
     !=======================================================================
-    ! Loop over all possible types of RRTMG flux outputs and store the name
-    ! of each flux output in State_Diag%RadFluxName and its expected index
-    ! value in State_Diag%RadFluxInd.
+    ! Loop over all possible types of RRTMG outputs and store the name
+    ! of each output in State_Diag%RadOutName and its expected index
+    ! value in State_Diag%RadOutInd.
     !
-    ! Flux outputs are requested in HISTORY.rc.  The expected
-    ! index corresponding to each flux output type is:
+    ! Outputs are requested in HISTORY.rc.  The expected
+    ! index corresponding to each output type is:
     !
     !   0=BA  1=O3  2=ME  3=SU   4=NI  5=AM
     !   6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
@@ -10851,46 +11217,46 @@ CONTAINS
     !
     ! This is a bit convoluted but we need to do this in order to keep
     ! track of the slot of the netCDF diagnostic arrays in State_Diag in
-    ! which to archive the various flux outputs. This also lets us keep
+    ! which to archive the various outputs. This also lets us keep
     ! backwards compatibility with the existing code to the greatest extent.
     !=======================================================================
 
-    ! Loop over all of the flux outputs requested in HISTORY.rc
-    DO N = 1, State_Diag%nRadFlux
+    ! Loop over all of the outputs requested in HISTORY.rc
+    DO N = 1, State_Diag%nRadOut
 
-       ! Save the name of the requested flux output
-       State_Diag%RadFluxName(N) = RadFlux(N)
+       ! Save the name of the requested output
+       State_Diag%RadOutName(N) = RadOut(N)
 
        ! Determine the RRTMG-expected index
-       ! corresponding to each flux output name
-       SELECT CASE( State_Diag%RadFluxName(N) )
+       ! corresponding to each output name
+       SELECT CASE( State_Diag%RadOutName(N) )
           CASE( 'BASE' )
-             State_Diag%RadFluxInd(N) = 0
-          CASE( 'NOO3' )
-             State_Diag%RadFluxInd(N) = 1
-          CASE( 'NOME' )
-             State_Diag%RadFluxInd(N) = 2
-          CASE( 'NOSU' )
-             State_Diag%RadFluxInd(N) = 3
-          CASE( 'NONI' )
-             State_Diag%RadFluxInd(N) = 4
-          CASE( 'NOAM' )
-             State_Diag%RadFluxInd(N) = 5
-          CASE( 'NOBC' )
-             State_Diag%RadFluxInd(N) = 6
-          CASE( 'NOOA' )
-             State_Diag%RadFluxInd(N) = 7
-          CASE( 'NOSS' )
-             State_Diag%RadFluxInd(N) = 8
-          CASE( 'NODU' )
-             State_Diag%RadFluxInd(N) = 9
-          CASE( 'NOPM' )
-             State_Diag%RadFluxInd(N) = 10
-          CASE( 'NOST' )
+             State_Diag%RadOutInd(N) = 0
+          CASE( 'O3' )
+             State_Diag%RadOutInd(N) = 1
+          CASE( 'ME' )
+             State_Diag%RadOutInd(N) = 2
+          CASE( 'SU' )
+             State_Diag%RadOutInd(N) = 3
+          CASE( 'NI' )
+             State_Diag%RadOutInd(N) = 4
+          CASE( 'AM' )
+             State_Diag%RadOutInd(N) = 5
+          CASE( 'BC' )
+             State_Diag%RadOutInd(N) = 6
+          CASE( 'OA' )
+             State_Diag%RadOutInd(N) = 7
+          CASE( 'SS' )
+             State_Diag%RadOutInd(N) = 8
+          CASE( 'DU' )
+             State_Diag%RadOutInd(N) = 9
+          CASE( 'PM' )
+             State_Diag%RadOutInd(N) = 10
+          CASE( 'ST' )
              IF ( Input_Opt%LUCX ) THEN
-                State_Diag%RadFluxInd(N) = 11
+                State_Diag%RadOutInd(N) = 11
              ELSE
-                ErrMsg = 'RRTMG flux output "NOST" (no strat aerosol)'       // &
+                ErrMsg = 'RRTMG output "ST" (no strat aerosol)'       // &
                          ' is selected, but the UCX mechanism is off!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
@@ -10899,9 +11265,9 @@ CONTAINS
              ! Nothing
        END SELECT
 
-       ! Create a string with the requested flux outputs
-       WRITE( TmpStr, 100 ) State_Diag%RadFluxName(N),                       &
-                            State_Diag%RadFluxInd(N)
+       ! Create a string with the requested outputs
+       WRITE( TmpStr, 100 ) State_Diag%RadOutName(N),                       &
+                            State_Diag%RadOutInd(N)
 
        ! Append to the resultant string
        IF ( N == 1 ) THEN
@@ -10915,7 +11281,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'INIT_RRTMG_INDICES'
        WRITE( 6, '(  a)' ) '------------------'
-       WRITE( 6, 110 ) 'Requested RRTMG fluxes : ', TRIM( FluxStr )
+       WRITE( 6, 110 ) 'Requested RRTMG outputs : ', TRIM( FluxStr )
     ENDIF
 
     ! FORMAT statements
