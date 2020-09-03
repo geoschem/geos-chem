@@ -11262,6 +11262,10 @@ CONTAINS
                 RETURN
              ENDIF
           CASE DEFAULT
+             ErrMsg = 'Unknown radiation output string: ' // &
+                      State_Diag%RadOutName(N)
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
              ! Nothing
        END SELECT
 
