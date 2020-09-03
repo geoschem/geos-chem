@@ -10,7 +10,7 @@
 ! and the ESMF Export State.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE GCHP_HistoryExports_Mod
 !
@@ -31,7 +31,7 @@ MODULE GCHP_HistoryExports_Mod
   PUBLIC :: HistoryExports_SetServices
   PUBLIC :: HistoryExports_SetDataPointers
   PUBLIC :: CopyGCStates2Exports
-  PUBLIC :: Destroy_HistoryConfig 
+  PUBLIC :: Destroy_HistoryConfig
 !
 ! !PRIVATE:
 !
@@ -44,7 +44,7 @@ MODULE GCHP_HistoryExports_Mod
 !
 ! !PUBLIC TYPES
 !
-  ! History Configuration Object 
+  ! History Configuration Object
   TYPE, PUBLIC :: HistoryConfigObj
 
      CHARACTER(LEN=255)                   :: ROOT ! TODO: needed?
@@ -53,7 +53,7 @@ MODULE GCHP_HistoryExports_Mod
      TYPE(HistoryExportsListObj), POINTER :: HistoryExportsList
      TYPE(DgnList)                        :: DiagList
      TYPE(TaggedDgnList)                  :: TaggedDiagList
- 
+
  END TYPE HistoryConfigObj
 !
 ! !PRIVATE TYPES
@@ -69,13 +69,13 @@ MODULE GCHP_HistoryExports_Mod
   ! History Export Object
   TYPE :: HistoryExportObj
 
-     CHARACTER(LEN=255)              :: name 
+     CHARACTER(LEN=255)              :: name
      CHARACTER(LEN=255)              :: metadataID
      CHARACTER(LEN=255)              :: registryID
-     CHARACTER(LEN=255)              :: long_name  
-     CHARACTER(LEN=255)              :: units       
+     CHARACTER(LEN=255)              :: long_name
+     CHARACTER(LEN=255)              :: units
      INTEGER                         :: vloc
-     INTEGER                         :: rank        
+     INTEGER                         :: rank
      INTEGER                         :: type
      LOGICAL                         :: isMet
      LOGICAL                         :: isChem
@@ -83,7 +83,7 @@ MODULE GCHP_HistoryExports_Mod
      TYPE(HistoryExportObj), POINTER :: next
 
      ! Pointers to ESMF Export and GEOS-Chem State
-     ! TODO: for now, include all possible data types in the registry. 
+     ! TODO: for now, include all possible data types in the registry.
      REAL,     POINTER :: ExportData2d(:,:)
      REAL,     POINTER :: ExportData3d(:,:,:)
      REAL(fp), POINTER :: GCStateData0d
@@ -93,7 +93,7 @@ MODULE GCHP_HistoryExports_Mod
      REAL(f4), POINTER :: GCStateData0d_4
      REAL(f4), POINTER :: GCStateData1d_4(:)
      REAL(f4), POINTER :: GCStateData2d_4(:,:)
-     REAL(f4), POINTER :: GCStateData3d_4(:,:,:) 
+     REAL(f4), POINTER :: GCStateData3d_4(:,:,:)
      REAL(f8), POINTER :: GCStateData0d_8
      REAL(f8), POINTER :: GCStateData1d_8(:)
      REAL(f8), POINTER :: GCStateData2d_8(:,:)
@@ -129,7 +129,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_HistoryConfig 
+! !IROUTINE: Init_HistoryConfig
 !
 ! !DESCRIPTION:
 !\\
@@ -149,7 +149,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     TYPE(HistoryConfigObj), POINTER :: HistoryConfig
-    INTEGER, INTENT(OUT)            :: RC 
+    INTEGER, INTENT(OUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
@@ -196,9 +196,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_HistoryExportsList 
+! !IROUTINE: Init_HistoryExportsList
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -208,7 +208,7 @@ CONTAINS
 ! !USES:
 !
     USE State_Chm_Mod,    ONLY: Get_Metadata_State_Chm
-    USE State_Diag_Mod,   ONLY: Get_Metadata_State_Diag 
+    USE State_Diag_Mod,   ONLY: Get_Metadata_State_Diag
     USE State_Met_Mod,    ONLY: Get_Metadata_State_Met
 !
 ! !INPUT PARAMETERS:
@@ -336,12 +336,12 @@ CONTAINS
           ! encountered in HISTORY.rc while compiling with ESMF_.
 
           ! When it comes time to implement, create exports in a loop,
-          ! either for all species or for advected species only. Include 
-          ! a check that the export was not already created. Loop over 
-          ! AdvNames if wildcard is ADV. Loop over SpecNames for all other 
-          ! cases, passing not found = OK so that not all are necessarily 
-          ! output. Later on, after species database is initialized, exports 
-          ! for only species in the specific wildcard will be associated 
+          ! either for all species or for advected species only. Include
+          ! a check that the export was not already created. Loop over
+          ! AdvNames if wildcard is ADV. Loop over SpecNames for all other
+          ! cases, passing not found = OK so that not all are necessarily
+          ! output. Later on, after species database is initialized, exports
+          ! for only species in the specific wildcard will be associated
           ! with data and thus included in the output file.
 
           ! If the meantime, skip wildcards if it gets here.
@@ -349,7 +349,7 @@ CONTAINS
           CYCLE
        ENDIF
 
-       ! If this item is for a specific tag, append description. 
+       ! If this item is for a specific tag, append description.
        ! This will need revisiting since there may be tag-dependent
        ! strings to append to long names
        IF ( current%isTagged ) THEN
@@ -374,7 +374,7 @@ CONTAINS
           ErrMsg = "History export init fail for " // TRIM(current%name)
           EXIT
        ENDIF
-       
+
        ! Add new HistoryExportObj to linked list
        CALL Append_HistoryExportsList( am_I_Root,     NewHistExp, &
                                        HistoryConfig, RC       )
@@ -404,9 +404,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_HistoryExport 
+! !IROUTINE: Init_HistoryExport
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -419,23 +419,23 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+    LOGICAL,                INTENT(IN) :: am_I_Root
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(HistoryExportObj), POINTER :: NewHistExp
-    CHARACTER(LEN=*), OPTIONAL      :: name
-    CHARACTER(LEN=*), OPTIONAL      :: metadataID
-    CHARACTER(LEN=*), OPTIONAL      :: registryID
-    CHARACTER(LEN=*), OPTIONAL      :: long_name
-    CHARACTER(LEN=*), OPTIONAL      :: units
-    INTEGER,          OPTIONAL      :: vloc 
-    INTEGER,          OPTIONAL      :: rank
-    INTEGER,          OPTIONAL      :: type
-    LOGICAL,          OPTIONAL      :: isMet
-    LOGICAL,          OPTIONAL      :: isChem
-    LOGICAL,          OPTIONAL      :: isDiag
-    INTEGER,          OPTIONAL      :: RC
+    TYPE(HistoryExportObj), POINTER    :: NewHistExp
+    CHARACTER(LEN=*),       OPTIONAL   :: name
+    CHARACTER(LEN=*),       OPTIONAL   :: metadataID
+    CHARACTER(LEN=*),       OPTIONAL   :: registryID
+    CHARACTER(LEN=*),       OPTIONAL   :: long_name
+    CHARACTER(LEN=*),       OPTIONAL   :: units
+    INTEGER,                OPTIONAL   :: vloc
+    INTEGER,                OPTIONAL   :: rank
+    INTEGER,                OPTIONAL   :: type
+    LOGICAL,                OPTIONAL   :: isMet
+    LOGICAL,                OPTIONAL   :: isChem
+    LOGICAL,                OPTIONAL   :: isDiag
+    INTEGER,                OPTIONAL   :: RC
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
@@ -445,24 +445,80 @@ CONTAINS
 !BOC
     __Iam__('Init_HistoryExport (gchp_historyexports_mod.F90)')
     ALLOCATE(NewHistExp)
-    NewHistExp%name        = TRIM(name)
-    NewHistExp%metadataID  = TRIM(metadataID)
-    NewHistExp%registryID  = TRIM(registryID)
-    NewHistExp%long_name   = TRIM(long_name)
-    NewHistExp%units       = TRIM(units)
-    NewHistExp%vloc        = vloc
-    NewHistExp%rank        = rank
-    NewHistExp%type        = type
-    NewHistExp%isMet       = isMet
-    NewHistExp%isChem      = isChem
-    NewHistExp%isDiag      = isDiag
-    NewHistExp%next          => NULL()
-    NewHistExp%ExportData2d  => NULL()
-    NewHistExp%ExportData3d  => NULL()
-    NewHistExp%GCStateData0d => NULL()
-    NewHistExp%GCStateData1d => NULL()
-    NewHistExp%GCStateData2d => NULL()
-    NewHistExp%GCStateData3d => NULL()
+
+    IF ( PRESENT( name ) ) THEN
+       NewHistExp%name = TRIM(name)
+    ELSE
+       NewHistExp%name = ''
+    ENDIF
+
+    IF ( PRESENT( metaDataId ) ) THEN
+       NewHistExp%metadataID  = TRIM(metadataID)
+    ELSE
+       NewHistExp%metadataID  = ''
+    ENDIF
+
+    IF ( PRESENT( registryId ) ) THEN
+       NewHistExp%registryID = TRIM(registryID)
+    ELSE
+       NewHistExp%registryId = ''
+    ENDIF
+
+    IF ( PRESENT( long_name ) ) THEN
+       NewHistExp%long_name = TRIM(long_name)
+    ELSE
+       NewHistExp%long_name = ''
+    ENDIF
+
+    IF ( PRESENT( units ) ) THEN
+       NewHistExp%units = TRIM(units)
+    ELSE
+       NewHistExp%units = ''
+    ENDIF
+
+    IF ( PRESENT( vloc ) ) THEN
+       NewHistExp%vloc = vloc
+    ELSE
+       NewHistExp%vloc = -1
+    ENDIF
+
+    IF ( PRESENT( rank ) ) THEN
+       NewHistExp%rank = rank
+    ELSE
+       NewHistExp%rank = -1
+    ENDIF
+
+    IF ( PRESENT( type ) ) THEN
+       NewHistExp%type = type
+    ELSE
+       NewHistExp%type = -1
+    ENDIF
+
+    IF ( PRESENT( isMet ) ) THEN
+       NewHistExp%isMet = isMet
+    ELSE
+       NewHistExp%isMet = .FALSE.
+    ENDIF
+
+    IF ( PRESENT( isChem ) ) THEN
+       NewHistExp%isChem = isChem
+    ELSE
+       NewHistExp%isChem = .FALSE.
+    ENDIF
+
+    IF ( PRESENT( isDiag ) ) THEN
+       NewHistExp%isDiag = isDiag
+    ELSE
+       NewHistExp%isDiag = .FALSE.
+    ENDIF
+
+    NewHistExp%next            => NULL()
+    NewHistExp%ExportData2d    => NULL()
+    NewHistExp%ExportData3d    => NULL()
+    NewHistExp%GCStateData0d   => NULL()
+    NewHistExp%GCStateData1d   => NULL()
+    NewHistExp%GCStateData2d   => NULL()
+    NewHistExp%GCStateData3d   => NULL()
     NewHistExp%GCStateData0d_4 => NULL()
     NewHistExp%GCStateData1d_4 => NULL()
     NewHistExp%GCStateData2d_4 => NULL()
@@ -483,9 +539,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Append_HistoryExportsList 
+! !IROUTINE: Append_HistoryExportsList
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -559,7 +615,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     LOGICAL, INTENT(OUT)               :: found
-    INTEGER, INTENT(OUT)               :: RC 
+    INTEGER, INTENT(OUT)               :: RC
 !
 ! !REVISION HISTORY:
 !  12 Sep 2017 - E. Lundgren - Initial version
@@ -583,7 +639,7 @@ CONTAINS
           found = .TRUE.
           RETURN
        ENDIF
-       current => current%next    
+       current => current%next
     ENDDO
     current => NULL()
 
@@ -625,7 +681,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
 !EOP
@@ -660,7 +716,7 @@ CONTAINS
     ENDIF
     current => HistoryConfig%HistoryExportsList%head
     DO WHILE ( ASSOCIATED( current ) )
-       IF ( am_I_Root ) PRINT *, "adding export: ", TRIM(current%name)       
+       IF ( am_I_Root ) PRINT *, "adding export: ", TRIM(current%name)
        ! Create an export for this item
        IF ( current%rank == 3 ) THEN
           IF ( current%vloc == VLocationCenter ) THEN
@@ -707,7 +763,7 @@ CONTAINS
           EXIT
        ENDIF
 
-       current => current%next    
+       current => current%next
     ENDDO
     current => NULL()
 
@@ -716,7 +772,7 @@ CONTAINS
        _ASSERT(.FALSE., 'informative message here')
        RETURN
     ENDIF
-    
+
   END SUBROUTINE HistoryExports_SetServices
 !EOC
 !------------------------------------------------------------------------------
@@ -753,7 +809,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
 !EOP
@@ -776,13 +832,13 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
 
        IF ( current%rank == 2 ) THEN
-          IF ( ASSOCIATED ( current%GCStateData2d ) ) THEN
+          IF ( ASSOCIATED( current%GCStateData2d ) ) THEN
              current%ExportData2d = current%GCStateData2d
-          ELSEIF ( ASSOCIATED ( current%GCStateData2d_4 ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData2d_4 ) ) THEN
              current%ExportData2d = current%GCStateData2d_4
-          ELSEIF ( ASSOCIATED ( current%GCStateData2d_8 ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData2d_8 ) ) THEN
              current%ExportData2d = current%GCStateData2d_8
-          ELSEIF ( ASSOCIATED ( current%GCStateData2d_I ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData2d_I ) ) THEN
              ! Convert integer to float (integers not allowed in MAPL exports)
              current%ExportData2d = FLOAT(current%GCStateData2d_I)
           ELSE
@@ -791,13 +847,13 @@ CONTAINS
              EXIT
           ENDIF
        ELSEIF ( current%rank == 3 ) THEN
-          IF ( ASSOCIATED ( current%GCStateData3d ) ) THEN
+          IF ( ASSOCIATED( current%GCStateData3d ) ) THEN
              current%ExportData3d = current%GCStateData3d
-          ELSEIF ( ASSOCIATED ( current%GCStateData3d_4 ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData3d_4 ) ) THEN
              current%ExportData3d = current%GCStateData3d_4
-          ELSEIF ( ASSOCIATED ( current%GCStateData3d_8 ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData3d_8 ) ) THEN
              current%ExportData3d = current%GCStateData3d_8
-          ELSEIF ( ASSOCIATED ( current%GCStateData3d_I ) ) THEN
+          ELSE IF ( ASSOCIATED( current%GCStateData3d_I ) ) THEN
              current%ExportData3d = FLOAT(current%GCStateData3d_I)
           ELSE
              RC = GC_FAILURE
@@ -813,7 +869,7 @@ CONTAINS
 #endif
        ENDIF
 
-       current => current%next    
+       current => current%next
     ENDDO
     current => NULL()
 
@@ -832,7 +888,7 @@ CONTAINS
        _ASSERT(.FALSE., 'informative message here')
        RETURN
     ENDIF
-    
+
   END SUBROUTINE CopyGCStates2Exports
 !EOC
 !------------------------------------------------------------------------------
@@ -866,7 +922,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
 !EOP
@@ -889,24 +945,24 @@ CONTAINS
     IF ( am_I_Root ) PRINT *, ' '
     DO WHILE ( ASSOCIATED( current ) )
        IF ( am_I_Root ) THEN
-          PRINT *, "Name:        ",   TRIM(current%name) 
+          PRINT *, "Name:        ",   TRIM(current%name)
           PRINT *, " MetadataID: ",   TRIM(current%metadataID)
           PRINT *, " RegistryID: ",   TRIM(current%registryID)
-          PRINT *, " Long name:  ",   TRIM(current%long_name)  
-          PRINT *, " Units:      ",   TRIM(current%units)       
+          PRINT *, " Long name:  ",   TRIM(current%long_name)
+          PRINT *, " Units:      ",   TRIM(current%units)
           PRINT *, " Vert loc:   ",   current%vloc
-          PRINT *, " Rank:       ",   current%rank        
+          PRINT *, " Rank:       ",   current%rank
           PRINT *, " Type:       ",   current%type
           PRINT *, " isMet:      ",   current%isMet
           PRINT *, " isChem:     ",   current%isChem
           PRINT *, " isDiag:     ",   current%isDiag
           PRINT *, " "
        ENDIF
-       current => current%next    
+       current => current%next
     ENDDO
     IF ( am_I_Root ) PRINT *, '==========================='
     current => NULL()
-    
+
   END SUBROUTINE Print_HistoryExportsList
 !EOC
 !------------------------------------------------------------------------------
@@ -952,7 +1008,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
 !EOP
@@ -1003,11 +1059,11 @@ CONTAINS
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
-                                Ptr2d_8   = current%GCStateData2d,   &
+                                Ptr2d_8   = current%GCStateData2d_8, &
                                 Ptr2d_I   = current%GCStateData2d_I, &
                                 Ptr3d     = current%GCStateData3d,   &
                                 Ptr3d_4   = current%GCStateData3d_4, &
-                                Ptr3d_8   = current%GCStateData3d,   &
+                                Ptr3d_8   = current%GCStateData3d_8, &
                                 Ptr3d_I   = current%GCStateData3d_I, &
                                 RC        = RC                      )
        ELSEIF ( current%isDiag ) THEN
@@ -1018,11 +1074,11 @@ CONTAINS
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
-                                Ptr2d_8   = current%GCStateData2d,   &
+                                Ptr2d_8   = current%GCStateData2d_8, &
                                 Ptr2d_I   = current%GCStateData2d_I, &
                                 Ptr3d     = current%GCStateData3d,   &
                                 Ptr3d_4   = current%GCStateData3d_4, &
-                                Ptr3d_8   = current%GCStateData3d,   &
+                                Ptr3d_8   = current%GCStateData3d_8, &
                                 Ptr3d_I   = current%GCStateData3d_I, &
                                 RC        = RC                      )
        ENDIF
@@ -1046,7 +1102,7 @@ CONTAINS
           WRITE(6,*) TRIM(current%name)
        ENDIF
 
-       current => current%next    
+       current => current%next
     ENDDO
     current => NULL()
 
@@ -1055,7 +1111,7 @@ CONTAINS
        _ASSERT(.FALSE., 'informative message here')
        RETURN
     ENDIF
-    
+
   END SUBROUTINE HistoryExports_SetDataPointers
 !EOC
 !------------------------------------------------------------------------------
@@ -1063,7 +1119,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Destroy_HistoryConfig 
+! !IROUTINE: Destroy_HistoryConfig
 !
 ! !DESCRIPTION: Subroutine Destroy_HistoryConfig deallocates a HistoryConfig
 !  object and all of its member objects including the linked list of
