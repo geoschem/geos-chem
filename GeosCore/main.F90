@@ -1810,7 +1810,7 @@ PROGRAM GEOS_Chem
           ENDDO
 
 520       FORMAT( 5x, '- Calling RRTMG to compute fluxes and optics: ', &
-                  a4, ' (Index = ', i2.2, ')' )
+                  a4, ' (Index = ', i4.4, ')' )
 
 #ifdef BPCH_DIAG
           ! Increment radiation timestep counter
@@ -1828,6 +1828,7 @@ PROGRAM GEOS_Chem
           IF ( FIRST_RT ) THEN
              FIRST_RT = .FALSE.
           ENDIF
+
        ENDIF
 #endif
 

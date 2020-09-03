@@ -91,7 +91,7 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
-#if defined( MODEL_GCHPCTM )
+#if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
     USE RRTMG_LW_Init,           ONLY : RRTMG_LW_Ini
     USE RRTMG_SW_Init,           ONLY : RRTMG_SW_Ini
@@ -240,7 +240,7 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
     ENDIF
 
-#if defined( MODEL_GCHPCTM )
+#if defined( RRTMG )
        ! RRTMG initialization
     IF ( Input_Opt%LRAD ) THEN
        CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
@@ -370,7 +370,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
-#if defined( MODEL_GCHPCTM )
+#if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
 #endif
@@ -971,7 +971,7 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling RECOMPUTE_OD')
     ENDIF
 
-#if defined( MODEL_GCHPCTM )
+#if defined( RRTMG )
     ! RRTMG diagnostics
     IF ( DoRad ) THEN
 
@@ -1074,7 +1074,7 @@ CONTAINS
        ENDIF
 
        CALL MAPL_TimerOff( STATE, 'GC_RAD' )
-    END IF
+    ENDIF
 #endif
 
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do diagnostics now'

@@ -8201,6 +8201,15 @@ CONTAINS
                                     State_Diag%Archive_KppSmDecomps    .or.  &
                                     State_Diag%Archive_KppDiags             )
 
+    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
+                                      State_Diag%Archive_RadAODWL2     .or. &
+                                      State_Diag%Archive_RadAODWL3     .or. &
+                                      State_Diag%Archive_RadSSAWL1     .or. &
+                                      State_Diag%Archive_RadSSAWL2     .or. &
+                                      State_Diag%Archive_RadSSAWL3     .or. &
+                                      State_Diag%Archive_RadAsymWL1    .or. &
+                                      State_Diag%Archive_RadAsymWL2    .or. &
+                                      State_Diag%Archive_RadAsymWL3        )
 
     !=======================================================================
     !========================================================================
@@ -8291,17 +8300,6 @@ CONTAINS
          State_Diag%Archive_MeanOHColumnFull                            .or. &
          State_Diag%Archive_MeanOHColumnTrop                            .or. &
          State_Diag%Archive_MCFlossInTrop                                   )
-
-    State_Diag%Archive_RadOptics  = (                                        &
-         State_Diag%Archive_RadAODWL1                                   .or. &
-         State_Diag%Archive_RadAODWL2                                   .or. &
-         State_Diag%Archive_RadAODWL3                                   .or. &
-         State_Diag%Archive_RadSSAWL1                                   .or. &
-         State_Diag%Archive_RadSSAWL2                                   .or. &
-         State_Diag%Archive_RadSSAWL3                                   .or. &
-         State_Diag%Archive_RadAsymWL1                                  .or. &
-         State_Diag%Archive_RadAsymWL2                                  .or. &
-         State_Diag%Archive_RadAsymWL3                                      )
 
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
