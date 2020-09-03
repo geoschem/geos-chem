@@ -1622,6 +1622,7 @@ CONTAINS
        id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
 
+#if !defined( MODEL_CESM )
        IF ( id_O3 > 0 ) THEN
           CALL GetHcoDiagn(                                                  &
                HcoState       = HcoState,                                    &
@@ -1641,6 +1642,7 @@ CONTAINS
                Ptr2D          = PNOxLoss_HNO3,                               &
                RC             = RC                                          )
        ENDIF
+#endif
 
        ! Reset first-time flag
        FIRST = .FALSE.
@@ -1669,6 +1671,7 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+#if !defined( MODEL_CESM )
        ! PBL top level [integral model levels]
        topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -1736,6 +1739,7 @@ CONTAINS
           ! Free pointers
           ThisSpc => NULL()
        ENDDO
+#endif
 
        !=====================================================================
        ! Apply dry deposition frequencies
