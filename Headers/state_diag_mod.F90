@@ -13250,8 +13250,6 @@ CONTAINS
     USE CharPak_Mod,        ONLY : Unique
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : Ind_
-
-!    USE State_Chm_Mod, ONLY : NumSpecies_
 !
 ! !INPUT PARAMETERS:
 !
@@ -13313,12 +13311,12 @@ CONTAINS
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
     mapName2   = TRIM( mapName ) // '%id'
-    isDustBin  = ( indFlag == 'B'         )
-    isRxnRate  = ( indFlag == 'R'         )
-    isUvFlx    = ( indFlag == 'U'         )
-    isLoss     = ( indFlag == 'X'         )
-    isProd     = ( indFlag == 'Y'         )
-    skipInd    = ( isRxnRate .or. isUvFlx )
+    isDustBin  = ( indFlag == 'B'                        )
+    isRxnRate  = ( indFlag == 'R'                        )
+    isUvFlx    = ( indFlag == 'U'                        )
+    isLoss     = ( indFlag == 'X'                        )
+    isProd     = ( indFlag == 'Y'                        )
+    skipInd    = ( isRxnRate .or. isUvFlx .or. isDustBin )
     spcName    = ''
     wcName     = ''
     errMsg     = ''
