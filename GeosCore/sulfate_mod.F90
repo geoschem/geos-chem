@@ -213,8 +213,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -1469,7 +1469,7 @@ CONTAINS
     ! VTS  Settling velocity of particle (m/s)
     LOGICAL                :: IS_UPTAKE_SPC
     INTEGER                :: I,         J,      L
-    INTEGER                :: DryDep_ID
+    INTEGER                :: DryDep_ID, S
     REAL(fp)               :: DTCHEM
     REAL(fp)               :: DELZ,      DELZ1,  REFF
     REAL(fp)               :: P,         DP,     PDP,      TEMP
@@ -1542,13 +1542,13 @@ CONTAINS
     FAC1          =  C1 * ( RUM**C2 )
     FAC2          =  C3 * ( RUM**C4 )
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                 ) &
     !$OMP PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) &
     !$OMP PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  ) &
     !$OMP PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             ) &
-    !$OMP PRIVATE( RHO1,    WTP                                           ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PRIVATE( RHO1,    WTP,   S                                      ) &
+    !$OMP SCHEDULE( DYNAMIC                                               )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1768,7 +1768,10 @@ CONTAINS
           FLUX     = FLUX * AVO / ( EmMW_g * 1.e-3_fp ) / AREA_CM2
 
           ! Drydep flux in chemistry only
-          State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+          S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
+          IF ( S > 0 ) THEN
+             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+          ENDIF
        ENDIF
 
     ENDDO ! I
@@ -1801,14 +1804,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -2121,16 +2124,16 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE TIME_MOD,         ONLY : GET_MONTH
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
+    USE TIME_MOD,         ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -2303,6 +2306,9 @@ CONTAINS
     USE ErrCode_Mod           
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
     USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
     USE State_Chm_Mod,        ONLY : ChmState
@@ -2311,12 +2317,9 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 #ifdef APM
-    USE APM_DRIV_MOD,       ONLY : PSO4GAS
-    USE APM_DRIV_MOD,       ONLY : XO3
+    USE APM_DRIV_MOD,         ONLY : PSO4GAS
+    USE APM_DRIV_MOD,         ONLY : XO3
 #endif
 !
 ! !INPUT PARAMETERS:

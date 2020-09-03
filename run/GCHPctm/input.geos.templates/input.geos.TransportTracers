@@ -5,7 +5,7 @@ End   YYYYMMDD, hhmmss  : 20160101 010000
 Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
-Simulation name         : TransportTracers
+Simulation name         : {SIM}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F

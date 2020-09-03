@@ -171,7 +171,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,       ONLY : REAA
+    USE CMN_FJX_MOD,      ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
@@ -187,7 +187,7 @@ CONTAINS
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
-    USE TOMAS_MOD,         ONLY : IBINS
+    USE TOMAS_MOD,        ONLY : IBINS
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1090,7 +1090,7 @@ CONTAINS
     LOGICAL             :: LINTERP
     CHARACTER(LEN=16)   :: STAMP
     INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID
-    INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
+    INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT, S
     REAL*4              :: TEMP( State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp)            :: TEMP2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp)            :: MSDENS(NAER), DRYAREA, VDRY, VH2O
@@ -1566,7 +1566,7 @@ CONTAINS
           !$OMP PRIVATE( IR                                               ) &
 #endif
           !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            ) &
-          !$OMP PRIVATE( VDRY,     VH2O                                   ) &
+          !$OMP PRIVATE( VDRY,     VH2O,    S                             ) &
           !$OMP SCHEDULE( DYNAMIC )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
@@ -1773,7 +1773,10 @@ CONTAINS
                 IF ( State_Diag%Archive_AerHygGrowth .AND. &
                      L <= State_Grid%MaxChemLev      .AND. &
                      ODSWITCH.EQ.1 ) THEN
-                   State_Diag%AerHygGrowth(I,J,L,NA) = SCALEOD
+                   S = State_Diag%Map_AerHygGrowth%id2slot(NA)
+                   IF ( S > 0 ) THEN
+                      State_Diag%AerHygGrowth(I,J,L,S) = SCALEOD
+                   ENDIF
                 ENDIF
 
                 !=======================================================
@@ -2031,10 +2034,10 @@ CONTAINS
     IF ( State_Diag%Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
 
        ! Loop over aerosol types (dust handled in dust_mod.F90)
-       !$OMP PARALLEL DO                                            &
-       !$OMP DEFAULT( SHARED )                                      &
-       !$OMP PRIVATE( I, J, L, N, W, LINTERP, IsWL1, IsWL2, IsWL3 ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                               ) &
+       !$OMP PRIVATE( I, J, L, N, W, LINTERP, IsWL1, IsWL2, IsWL3, S       ) &
+       !$OMP SCHEDULE( DYNAMIC                                             )
        ! Loop over hydroscopic aerosols
        DO NA = 1, NRHAER
 
@@ -2078,14 +2081,25 @@ CONTAINS
                 !  Sea Salt (coarse) Opt Depth(lambda1,2,3 nm)  [.]
                 IF ( .not. LINTERP ) THEN
                    IF ( State_Diag%Archive_AODHygWL1 .AND. IsWL1 ) THEN
-                      State_Diag%AODHygWL1(I,J,L,NA) = &
+                      S = State_Diag%Map_AODHygWL1%id2slot(NA)
+                      IF ( S > 0 ) THEN
+                         State_Diag%AODHygWL1(I,J,L,S) = &
+                              ODAER(I,J,L,IWVSELECT(1,W),N)
+                      ENDIF
+
+                   ELSE IF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
+                      S = State_Diag%Map_AODHygWL2%id2slot(NA)
+                      IF ( S > 0 ) THEN
+                         State_Diag%AODHygWL2(I,J,L,S) = &
+                              ODAER(I,J,L,IWVSELECT(1,W),N)
+                      ENDIF
+
+                   ELSE IF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
+                      S = State_Diag%Map_AODHygWL3%id2slot(NA)
+                      IF ( S > 0 ) THEN
+                         State_Diag%AODHygWL3(I,J,L,S) = &
                            ODAER(I,J,L,IWVSELECT(1,W),N)
-                   ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
-                      State_Diag%AODHygWL2(I,J,L,NA) = &
-                           ODAER(I,J,L,IWVSELECT(1,W),N)
-                   ELSEIF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
-                      State_Diag%AODHygWL3(I,J,L,NA) = &
-                           ODAER(I,J,L,IWVSELECT(1,W),N)
+                      ENDIF
                    ENDIF
                 ELSE
                    ! Interpolated using angstrom exponent between
@@ -2095,20 +2109,30 @@ CONTAINS
                    IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND. &
                        (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
                       IF ( State_Diag%Archive_AODHygWL1 .AND. IsWL1 ) THEN
-                         State_Diag%AODHygWL1(I,J,L,NA) =          &
-                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
-                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
+                         S = State_Diag%Map_AODHygWL1%id2slot(NA)
+                         IF ( S > 0 ) THEN
+                            State_Diag%AODHygWL1(I,J,L,S) =                  &
+                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**    &
+                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/&
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
-                      ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
-                         State_Diag%AODHygWL2(I,J,L,NA) =          &
-                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
-                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
+                         ENDIF
+
+                      ELSE IF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
+                         S = State_Diag%Map_AODHygWL2%id2slot(NA)
+                         IF ( S > 0 ) THEN
+                            State_Diag%AODHygWL2(I,J,L,S) =                  &
+                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**    &
+                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/&
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
-                      ELSEIF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
-                         State_Diag%AODHygWL3(I,J,L,NA) =          &
-                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
-                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
+                         ENDIF
+                      ELSE IF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
+                         S = State_Diag%Map_AODHygWL3%id2slot(NA)
+                         IF ( S > 0 ) THEN
+                            State_Diag%AODHygWL3(I,J,L,S) =                  &
+                              ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**    &
+                              (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/&
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
+                         ENDIF
                       ENDIF
                    ENDIF
                 ENDIF
@@ -2149,10 +2173,10 @@ CONTAINS
     !------------------------------------
     IF ( State_Diag%Archive_AerSurfAreaHyg .AND. ODSWITCH .EQ. 1) THEN
 
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED )     &
-       !$OMP PRIVATE( I, J, L, N ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO              &
+       !$OMP DEFAULT( SHARED        ) &
+       !$OMP PRIVATE( I, J, L, N, S ) &
+       !$OMP SCHEDULE( DYNAMIC      )
        ! Loop over hydroscopic aerosols
        DO NA = 1, NRHAER
 
@@ -2166,14 +2190,18 @@ CONTAINS
           !  Organic Carbon (hydrophilic) Surface Area  [cm2/cm3]
           !  Sea Salt (accum) Surface Area              [cm2/cm3]
           !  Sea Salt (coarse) Surface Area             [cm2/cm3]
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             State_Diag%AerSurfAreaHyg(I,J,L,NA) = &
-                  TAREA(I,J,L,N+NDUST)
-          ENDDO
-          ENDDO
-          ENDDO
+          !----------------------------------------------------
+          S = State_Diag%Map_AerSurfAreaHyg%id2slot(NA)
+          IF ( S > 0 ) THEN
+             DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+                State_Diag%AerSurfAreaHyg(I,J,L,S) = &
+                     TAREA(I,J,L,N+NDUST)
+             ENDDO
+             ENDDO
+             ENDDO
+          ENDIF
 
        ENDDO ! end of loop over hygroscopic aerosols
        !$OMP END PARALLEL DO

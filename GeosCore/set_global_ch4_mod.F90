@@ -52,8 +52,9 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_State_GC_Mod,  ONLY : HcoState
+    USE HCO_Error_Mod
     USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState, Ind_
     USE State_Diag_Mod,    ONLY : DgnState

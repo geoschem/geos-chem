@@ -273,7 +273,7 @@ MODULE State_Met_Mod
 #endif
 
      !----------------------------------------------------------------------
-     ! Scalars
+     ! Fields for boundary layer mixing
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IMIX          (:,:  ) ! Integer and fractional level
      REAL(fp), POINTER :: FPBL          (:,:  ) !  where PBL top occurs

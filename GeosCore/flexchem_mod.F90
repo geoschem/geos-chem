@@ -14,7 +14,7 @@ MODULE FlexChem_Mod
 !
 ! !USES:
 !
-  USE Precision_Mod            ! For GEOS-Chem Precision (fp)
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -28,6 +28,7 @@ MODULE FlexChem_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Diag_OH_HO2_O1D_O3P
+  PRIVATE :: Diag_Metrics
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
@@ -132,7 +133,7 @@ CONTAINS
     USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
 #ifdef BPCH_DIAG
-    USE TOMAS_MOD,            ONLY : H2SO4_RATE
+>    USE TOMAS_MOD,            ONLY : H2SO4_RATE
 #endif
 #endif
 !
@@ -164,9 +165,9 @@ CONTAINS
     LOGICAL                :: prtDebug,  IsLocNoon
     INTEGER                :: I,         J,        L,         N
     INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      Day   
+    INTEGER                :: P,         MONTH,    YEAR,      Day
     INTEGER                :: WAVELENGTH
-    INTEGER                :: IERR
+    INTEGER                :: IERR,      S
     INTEGER                :: Thread
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
     REAL(fp)               :: TOUT
@@ -282,9 +283,6 @@ CONTAINS
 #ifdef MODEL_GEOS
     GLOB_RCONST = 0.0_f4
     GLOB_JVAL   = 0.0_f4
-
-    ! testing only
-    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
     IF ( Input_Opt%useTimers ) THEN
@@ -590,7 +588,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  ISTATUS                   )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC                        )&
+    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC,    S                  )&
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP SCHEDULE ( DYNAMIC,  1                                            )
@@ -736,23 +734,50 @@ CONTAINS
 
              ! If this FAST_JX photolysis species maps to a valid
              ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 ) THEN
+             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Diag%Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
-                                            + PHOTOL(N)
+                   S = State_Diag%Map_JVal%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%JVal(I,J,L,S) =                             &
+                      State_Diag%JVal(I,J,L,S) + PHOTOL(N)
+                   ENDIF
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Met%IsLocalNoon(I,J) ) THEN
                    IF ( State_Diag%Archive_JNoon ) THEN
-                      State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
-                                                + PHOTOL(N)
+                      S = State_Diag%Map_JNoon%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%JNoon(I,J,L,S) =                         &
+                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                      ENDIF
                    ENDIF
                 ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O1D ) THEN
+                   State_Diag%JValO3O1D(I,J,L) =                             &
+                   State_Diag%JValO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                ! diagnostic in JVal, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JValO3O3P ) THEN
+                   State_Diag%JValO3O3P(I,J,L) =                             &
+                   State_Diag%JValO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
              ENDIF
           ENDDO
 
@@ -794,7 +819,7 @@ CONTAINS
        !====================================================================
        IF ( DO_HETCHEM ) THEN
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Het chem rates", RC, & 
+             CALL Timer_Start( "  -> Het chem rates", RC, &
                                InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
 
@@ -845,12 +870,14 @@ CONTAINS
        ! Update KPP rates
        !==================================================================
 
+       !--------------------------------------------------------------------
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
        !
        ! NOTE: Because VAR and FIX are !$OMP THREADPRIVATE, they
        ! cannot appear in an EQUIVALENCE statement.  Therfore, we
        ! will just copy the relevant elements of C to VAR and FIX
        ! here. (bmy, 3/28/16)
+       !--------------------------------------------------------------------
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
@@ -865,16 +892,17 @@ CONTAINS
           CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
-       ! Archive KPP reaction rates
+       !--------------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive KPP reaction rates [s-1]
+       ! See gckpp_Monitor.F90 for a list of chemical reactions
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-#if !defined( MODEL_GEOS )
-          DO N = 1, NREACT
-             State_Diag%RxnRate(I,J,L,N) = Aout(N)
-#else
-          DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
-#endif
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
 
@@ -1160,17 +1188,17 @@ CONTAINS
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
-          DO F = 1, State_Chm%nLoss
-             KppID                    = State_Chm%Map_Loss(F)
-             State_Diag%Loss(I,J,L,F) = VAR(KppID) / DT
+          DO S = 1, State_Diag%Map_Loss%nSlots
+             KppId = State_Diag%Map_Loss%slot2Id(S)
+             State_Diag%Loss(I,J,L,S) = VAR(KppID) / DT
           ENDDO
        ENDIF
 
        ! Chemical production of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Prod ) THEN
-          DO F = 1, State_Chm%nProd
-             KppID                    = State_Chm%Map_Prod(F)
-             State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
+          DO S = 1, State_Diag%Map_Prod%nSlots
+             KppID = State_Diag%Map_Prod%slot2Id(S)
+             State_Diag%Prod(I,J,L,S) = VAR(KppID) / DT
           ENDDO
        ENDIF
 
@@ -1211,12 +1239,13 @@ CONTAINS
                             InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
-       !==============================================================
-       ! Write out OH reactivity
-       ! The OH reactivity is defined here as the inverse of its life-
-       ! time. In a crude ad-hoc approach, manually add all OH reactants
-       ! (ckeller, 9/20/2017)
-       !==============================================================
+       !====================================================================
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Write out OH reactivity.  The OH reactivity is defined here as the
+       ! inverse of its life-time. In a crude ad-hoc approach, manually add
+       ! all OH reactants (ckeller, 9/20/2017)
+       !====================================================================
        IF ( State_Diag%Archive_OHreactivity ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "  -> OH reactivity diag", RC, &
@@ -1229,7 +1258,6 @@ CONTAINS
                              InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
        ENDIF
-
     ENDDO
     ENDDO
     ENDDO
@@ -1277,9 +1305,26 @@ CONTAINS
     !=======================================================================
     ! Save quantities for computing mean OH lifetime
     !=======================================================================
+
+    !%%% NOTE: this routine is deprecated and will be removed
     CALL DO_DIAG_OH( State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
+    ENDIF
+
+    ! Compute mean OH and mean CH4 diagnostics
+    CALL Diag_Metrics( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, State_Met, RC                            )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Diag_Mean_OH_and_CH4'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    IF ( prtDebug ) THEN
+       CALL DEBUG_MSG( '### Do_FlexChem: after Diag_Metrics' )
     ENDIF
 
     !=======================================================================
@@ -1664,6 +1709,249 @@ CONTAINS
       Spc       => NULL()
 
   END SUBROUTINE Diag_OH_HO2_O1D_O3P
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diag_Mean_OH_and_CH4
+!
+! !DESCRIPTION: Computes mass-weighted mean OH columns (full-atmosphere and
+!  trop-only) that are needed to compute the overall mean OH concentration.
+!  This is used as a metric as to how reactive, or "hot" the chemistry
+!  mechanism is.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diag_Metrics( Input_Opt,  State_Chm, State_Diag,                &
+                           State_Grid, State_Met, RC                        )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Chm_Mod,  ONLY : Ind_
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REMARKS:
+!  References:
+!  (1) Prather, M. and C. Spivakovsky, "Tropospheric OH and
+!       the lifetimes of hydrochlorofluorocarbons", JGR,
+!       Vol 95, No. D11, 18723-18729, 1990.
+!  (2) Lawrence, M.G, Joeckel, P, and von Kuhlmann, R., "What
+!       does the global mean OH concentraton tell us?",
+!       Atm. Chem. Phys, 1, 37-49, 2001.
+!  (3) WMO/UNEP Scientific Assessment of Ozone Depletion: 2010
+!
+! !REVISION HISTORY:
+!  18 Aug 2020 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! SAVEd scalars
+    LOGICAL, SAVE      :: first  = .TRUE.
+    INTEGER, SAVE      :: id_OH  = -1
+    INTEGER, SAVE      :: id_CH4 = -1
+
+    ! Scalars
+    INTEGER            :: I,           J,           L
+    REAL(f8)           :: airMass,     airMassFull, airMassTrop
+    REAL(f8)           :: ch4conc,     ch4Mass,     CH4massFull
+    REAL(f8)           :: CH4massTrop, OHconc,      OHmass
+    REAL(f8)           :: OHmassFull,  OHmassTrop,  Ktrop
+    REAL(f8)           :: MCFlossTrop, volume
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg,  thisLoc
+
+    !========================================================================
+    ! Compute_Mean_OH_and_CH4 begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Compute_Mean_OH (in module GeosCore/diagnostics_mod.F90)'
+
+    ! Exit if we have not turned on the Metrics collection
+    IF ( .not. State_Diag%Archive_Metrics ) RETURN
+
+    ! First-time setup
+    IF ( first ) THEN
+
+       ! Get the species ID for OH
+       id_OH  = Ind_('OH')
+       IF ( id_OH < 0 ) THEN
+          errMsg = 'OH is not a defined species in this simulation!!!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+       ! Get the species ID for CH4
+       id_CH4 = Ind_('CH4')
+       IF ( id_CH4 < 0 ) THEN
+          errMsg = 'CH4 is not a defined species in this simulation!!!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       first  = .FALSE.
+    ENDIF
+
+    !========================================================================
+    ! Loop over surface boxes and compute mean OH in columns
+    !========================================================================
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,           J,           L,           airMass           )&
+    !$OMP PRIVATE( CH4conc,     CH4mass,     Ktrop,       OHconc            )&
+    !$OMP PRIVATE( OHmass,      volume,      airMassFull, airMassTrop       )&
+    !$OMP PRIVATE( CH4massFull, MCFlossTrop, CH4massTrop, OHmassFull        )&
+    !$OMP PRIVATE( OHMassTrop                                               )&
+    !$OMP SCHEDULE( DYNAMIC, 4                                              )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       !--------------------------------------------------------------------
+       ! Zero column-specific quantities
+       !--------------------------------------------------------------------
+       airMass     = 0.0_f8
+       airMassFull = 0.0_f8
+       airMassTrop = 0.0_f8
+       CH4conc     = 0.0_f8
+       CH4mass     = 0.0_f8
+       CH4massFull = 0.0_f8
+       CH4massTrop = 0.0_f8
+       MCFlossTrop = 0.0_f8
+       Ktrop       = 0.0_f8
+       OHconc      = 0.0_f8
+       OHmass      = 0.0_f8
+       OHmassFull  = 0.0_f8
+       OHmassTrop  = 0.0_f8
+
+       !--------------------------------------------------------------------
+       ! Loop over the number of levels in the full-atmosphere column
+       ! Limit the computations to boxes in the chemistry grid
+       !--------------------------------------------------------------------
+       DO L = 1, State_Met%ChemGridLev(I,J)
+
+          ! Compute box volume [cm3], and air mass [molec]
+          ! Note: air mass is also the atmospheric burden of methyl
+          ! chloroform (aka MCF, formula=CH3CCl3), since we assume a
+          ! uniform mixing ratio (=1) of MCF in air.
+          volume  = State_Met%AIRVOL(I,J,L)    * 1.0e+6_f8
+          airMass = State_Met%AIRNUMDEN(I,J,L) * volume
+
+          ! OH conc [molec cm^-3] and airmass-weighted OH [molec^2 cm^-3]
+          OHconc  = State_Chm%Species(I,J,L,id_OH)
+          OHmass  = OHconc * airMass
+
+          ! CH4 conc [molec cm^-3] and airmass-weighted CH4 [molec^2 cm^-3]
+          CH4conc = State_Chm%Species(I,J,L,id_CH4)
+          CH4mass = CH4conc * airMass
+
+          ! Sum the air mass [molec], mass-weighted OH [molec^2 cm^-3]
+          ! and mass-weighted CH4 [molec**2 cm-3] in the full-atm column
+          airMassFull = airMassFull + airMass
+          CH4massFull = CH4massFull + CH4Mass
+          OHmassFull  = OHmassFull  + OHMass
+
+          ! Only do the following for tropospheric boxes ...
+          IF ( State_Met%InTroposphere(I,J,L) ) THEN
+
+             ! Sum the air mass [molec], mass-weighted OH [molec^2 cm^-3]
+             ! and mass-weighted CH4 [molec^2 cm-3] in the trop-only column
+             airMassTrop = airMassTrop + airMass
+             CH4massTrop = CH4MassTrop + CH4mass
+             OHmassTrop  = OHmassTrop  + OHmass
+
+             ! Compute MCF loss rate in the troposphere
+             ! Ktrop (Arrhenius parameter) has units [cm3/molec/s]
+             ! OHconc has units [molec/cm3]
+             ! AirMass has units [molec]
+             ! Resultant units of MCF loss rate = [molec/s]
+             IF ( State_Diag%Archive_MCFlossInTrop ) THEN
+                Ktrop = 1.64e-12_f8 * EXP( -1520.0_f8 / State_Met%T(I,J,L) )
+                MCFlossTrop = MCFlossTrop + ( Ktrop * OHconc * airMass )
+             ENDIF
+          ENDIF
+       ENDDO
+
+       !-----------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       ! Air mass [molec]
+       !-----------------------------------------------------------------
+       IF ( State_Diag%Archive_AirMassColumnFull ) THEN
+          State_Diag%AirMassColumnFull(I,J) = airMassFull
+       ENDIF
+
+       IF ( State_Diag%Archive_AirMassColumnTrop ) THEN
+          State_Diag%AirMassColumnTrop(I,J) = airMassTrop
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       ! Mass-weighted mean CH4 [molec/cm3]
+       !-----------------------------------------------------------------
+       IF ( State_Diag%Archive_MeanCH4columnFull ) THEN
+          State_Diag%MeanCH4columnFull(I,J) = CH4massFull
+       ENDIF
+
+       IF ( State_Diag%Archive_MeanCH4columnTrop ) THEN
+          State_Diag%MeanCH4columnTrop(I,J) = CH4massTrop
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       ! Mass-weighted mean OH [molec cm-3]
+       !-----------------------------------------------------------------
+       IF ( State_Diag%Archive_MeanOHcolumnFull ) THEN
+          State_Diag%MeanOHcolumnFull(I,J) = OHmassFull
+       ENDIF
+
+       IF ( State_Diag%Archive_MeanOHcolumnTrop ) THEN
+          State_Diag%MeanOHcolumnTrop(I,J) = OHmassTrop
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       ! MCF lifetime [s] = MCF total atmospheric burden [molec]
+       !                  / MCF loss rate in trop [molec/s]
+       !-----------------------------------------------------------------
+       IF ( State_Diag%Archive_MCFlossInTrop ) THEN
+          State_Diag%MCFlossInTrop(I,J) = MCFlossTrop
+       ENDIF
+
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Diag_Metrics
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

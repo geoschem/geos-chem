@@ -53,15 +53,19 @@ MODULE HistItem_Mod
      INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
-     REAL(f4)           :: AddOffset             ! Offset and scale factor
-     REAL(f4)           :: ScaleFactor           !  for packed data
-     REAL(f4)           :: MissingValue          ! Missing value
+     REAL(f4)           :: AddOffset4            ! Offset and scale factor
+     REAL(f4)           :: ScaleFactor4          !  for packed data (4-byte)
+     REAL(f4)           :: MissingValue4         ! Missing value (4-byte)
+     REAL(f8)           :: AddOffset8            ! Offset and scale factor
+     REAL(f8)           :: ScaleFactor8          !  for packed data (8-byte)
+     REAL(f8)           :: MissingValue8         ! Missing value (8-byte)
      CHARACTER(LEN=255) :: AvgMethod             ! Averaging method
 
      !----------------------------------------------------------------------
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
      !----------------------------------------------------------------------
      INTEGER            :: Source_KindVal        ! Identifies the source type
+     INTEGER            :: Output_KindVal        ! Identifies the output type
 
      REAL(f8), POINTER  :: Source_0d_8           ! Ptr to 0D 8-byte    data
 
@@ -129,24 +133,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Create( Input_Opt,    Item,           Id,              &
-                              ContainerId,  Name,           RC,              &
-                              LongName,     Units,          SpaceDim,        &
-                              OnLevelEdges, AddOffset,      MissingValue,    &
-                              ScaleFactor,  Source_KindVal, Operation,       &
-                              DimNames,     Dimensions,     Subset_X,        &
-                              Subset_Y,     Subset_Z,       Source_0d_8,     &
-                              Source_1d,    Source_1d_8,    Source_1d_4,     &
-                              Source_1d_I,  Source_2d,      Source_2d_8,     &
-                              Source_2d_4,  Source_2d_I,    Source_3d,       &
-                              Source_3d_8,  Source_3d_4,    Source_3d_I     )
+  SUBROUTINE HistItem_Create( Input_Opt,     Item,           Id,             &
+                              ContainerId,   Name,           RC,             &
+                              LongName,      Units,          SpaceDim,       &
+                              OnLevelEdges,  AddOffset4,     MissingValue4,  &
+                              ScaleFactor4,  AddOffset8,     ScaleFactor8,   &
+                              MissingValue8, Source_KindVal, Output_KindVal, &
+                              Operation,     DimNames,       Dimensions,     &
+                              Subset_X,      Subset_Y,       Subset_Z,       &
+                              Source_0d_8,   Source_1d,      Source_1d_8,    &
+                              Source_1d_4,   Source_1d_I,    Source_2d,      &
+                              Source_2d_8,   Source_2d_4,    Source_2d_I,    &
+                              Source_3d,     Source_3d_8,    Source_3d_4,    &
+                              Source_3d_I                                   )
 !
 ! !USES:
 !
   USE CharPak_Mod,         ONLY : TranLc
   USE ErrCode_Mod
   USE History_Util_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
+  USE Input_Opt_Mod,       ONLY : OptInput
   USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -167,9 +173,12 @@ CONTAINS
     LOGICAL,           OPTIONAL    :: OnLevelEdges       ! =T if data defined
                                                          !  on level edges;
                                                          ! =F if on centers
-    REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant
-    REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for
-    REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
+    REAL(f4),          OPTIONAL    :: AddOffset4         ! COARDS-compliant
+    REAL(f4),          OPTIONAL    :: MissingValue4      !  attributes for
+    REAL(f4),          OPTIONAL    :: ScaleFactor4       !  netCDF output
+    REAL(f4),          OPTIONAL    :: AddOffset8         ! COARDS-compliant
+    REAL(f4),          OPTIONAL    :: MissingValue8      !  attributes for
+    REAL(f4),          OPTIONAL    :: ScaleFactor8       !  netCDF output
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
                                                          !  0=copy  from source
                                                          !  1=accum from source
@@ -178,7 +187,8 @@ CONTAINS
                                                          !  ("yz", "z", etc.)
 
     ! Optional pointers to data targets
-    INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
+    INTEGER,           OPTIONAL    :: Source_KindVal     ! Kind of source data
+    INTEGER,           OPTIONAL    :: Output_KindVal     ! Type of output data
     REAL(fp), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
     REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
     REAL(fp), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
@@ -291,6 +301,10 @@ CONTAINS
     Z1 = UNDEFINED_INT
     Z1 = UNDEFINED_INT
 
+    ! Zero the number of updates (won't get set until History_Update)
+    ! in order to prevent uninitialized values from causing side-effects.
+    Item%nUpdates = 0.0_f8
+
     !========================================================================
     ! Required inputs, handle these first
     !========================================================================
@@ -360,7 +374,7 @@ CONTAINS
     Item%NcXDimId = UNDEFINED_INT
     Item%NcYDimId = UNDEFINED_INT
     Item%NcZDimId = UNDEFINED_INT
-    ITem%NcIDimId = UNDEFINED_INT
+    Item%NcIDimId = UNDEFINED_INT
     Item%NcTdimId = UNDEFINED_INT
     Item%NcVarId  = UNDEFINED_INT
 
@@ -378,30 +392,57 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! Add_Offset
+    ! Add_Offset - 4 bytes
     !--------------------------------------------
-    IF ( PRESENT( AddOffset ) ) THEN
-       Item%AddOffset = AddOffset
+    IF ( PRESENT( AddOffset4 ) ) THEN
+       Item%AddOffset4 = AddOffset4
     ELSE
-       Item%AddOffset = 0.0_f4
+       Item%AddOffset4 = 0.0_f4
     ENDIF
 
     !--------------------------------------------
-    ! MissingValue
+    ! Add_Offset - 8 bytes
     !--------------------------------------------
-    IF ( PRESENT( MissingValue ) ) THEN
-       Item%MissingValue = MissingValue
+    IF ( PRESENT( AddOffset8 ) ) THEN
+       Item%AddOffset8 = AddOffset8
     ELSE
-       Item%MissingValue = UNDEFINED
+       Item%AddOffset8 = 0.0_f8
     ENDIF
 
     !--------------------------------------------
-    ! Scale_Factor
+    ! MissingValue - 4 bytes
     !--------------------------------------------
-    IF ( PRESENT( ScaleFactor ) ) THEN
-       Item%ScaleFactor = ScaleFactor
+    IF ( PRESENT( MissingValue4 ) ) THEN
+       Item%MissingValue4 = MissingValue4
     ELSE
-       Item%ScaleFactor = 1.0_f4
+       Item%MissingValue4 = UNDEFINED
+    ENDIF
+
+    !--------------------------------------------
+    ! MissingValue - 8 bytes
+    !--------------------------------------------
+    IF ( PRESENT( MissingValue8 ) ) THEN
+       Item%MissingValue8 = MissingValue8
+    ELSE
+       Item%MissingValue8 = UNDEFINED_DBL
+    ENDIF
+
+    !--------------------------------------------
+    ! Scale_Factor - 4 bytes
+    !--------------------------------------------
+    IF ( PRESENT( ScaleFactor4 ) ) THEN
+       Item%ScaleFactor4 = ScaleFactor4
+    ELSE
+       Item%ScaleFactor4 = 1.0_f4
+    ENDIF
+
+    !--------------------------------------------
+    ! Scale_Factor - 8 bytes
+    !--------------------------------------------
+    IF ( PRESENT( ScaleFactor4 ) ) THEN
+       Item%ScaleFactor8 = ScaleFactor8
+    ELSE
+       Item%ScaleFactor8 = 1.0_f8
     ENDIF
 
     !--------------------------------------------
@@ -414,12 +455,13 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! Source_KindVal
+    ! Output_KindVal (assume 4-byte output
+    ! if not otherwise explicitly stated)
     !--------------------------------------------
-    IF ( PRESENT( Source_KindVal ) ) THEN
-       Item%Source_KindVal = Source_KindVal
+    IF ( PRESENT( Output_KindVal ) ) THEN
+       Item%Output_KindVal = Output_KindVal
     ELSE
-       Item%Source_KindVal = KINDVAL_FP
+       Item%Output_KindVal = KINDVAL_F4
     ENDIF
 
     !--------------------------------------------
@@ -854,9 +896,12 @@ CONTAINS
           PRINT*, 'Long_Name      : ', TRIM( Item%LongName )
           PRINT*, 'Units          : ', TRIM( Item%Units    )
           PRINT*, 'OnLevelEdges   : ', Item%OnLevelEdges
-          PRINT*, 'Add_Offset     : ', Item%AddOffset
-          PRINT*, 'Missing_Value  : ', Item%MissingValue
-          PRINT*, 'Scale_Factor   : ', Item%ScaleFactor
+          PRINT*, 'AddOffset4     : ', Item%AddOffset4
+          PRINT*, 'AddOffset8     : ', Item%AddOffset8
+          PRINT*, 'MissingValue4  : ', Item%MissingValue4
+          PRINT*, 'MissingValue8  : ', Item%MissingValue8
+          PRINT*, 'ScaleFactor4   : ', Item%ScaleFactor4
+          PRINT*, 'ScaleFactor8   : ', Item%ScaleFactor8
           PRINT*, ''
           PRINT*, 'Id             : ', Item%ID
           PRINT*, 'CollectionId   : ', Item%ContainerId

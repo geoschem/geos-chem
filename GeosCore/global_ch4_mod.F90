@@ -512,13 +512,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -640,7 +640,7 @@ CONTAINS
     ENDIF
 
     ! Evalulate the global Cl from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_Cl', BOH, RC )
+    CALL HCO_EvalFld( HcoState, 'GLOBAL_Cl', BCl, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_Cl not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -702,12 +702,10 @@ CONTAINS
                     State_Grid, State_Met, RC )
 
     !=================================================================
-    ! Calculate CH4 chemistry in layers above tropopause if not unified chem
+    ! Calculate CH4 chemistry in layers above tropopause
     !=================================================================
-    IF ( Input_Opt%LUCX ) THEN
-       CALL CH4_STRAT( Input_Opt,  State_Chm, State_Diag, &
-                       State_Grid, State_Met, RC )
-    ENDIF
+    CALL CH4_STRAT( Input_Opt,  State_Chm, State_Diag, &
+                    State_Grid, State_Met, RC )
 
     !=================================================================
     ! Distribute the chemistry sink from total CH4 to other CH4
@@ -1076,14 +1074,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Grid_Mod,    ONLY : GrdState
-    USE State_Met_Mod,     ONLY : MetState
-    USE TIME_MOD,          ONLY : GET_TS_CHEM
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -1123,9 +1121,6 @@ CONTAINS
     CHARACTER(LEN=255)    :: ThisLoc
     CHARACTER(LEN=255)    :: ErrMsg
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL           :: LUCX
-
     ! Pointers
     REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -1141,9 +1136,6 @@ CONTAINS
     ErrMsg      = ''
     ThisLoc     = ' -> at CH4_STRAT (in module GeosCore/global_ch4_mod.F90)'
   
-    ! Copy fields from INPUT_OPT
-    LUCX  =  Input_Opt%LUCX
-
     ! Point to chemical species
     Spc   => State_Chm%Species
 

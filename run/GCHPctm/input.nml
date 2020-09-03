@@ -2,7 +2,7 @@
 print_memory_usage = .false., 
 domains_stack_size = 20000000/
 
-#&fv_core_nml
+#&fv#_core_nml
 #do_schmidt = .true.,
 #stretch_fac = 2.0,
 #target_lat = 37.0,

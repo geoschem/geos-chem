@@ -41,6 +41,7 @@ use strict;                      # Use "IMPLICIT NONE" syntax
 #  3          Start date only     (in YYYYMMDD format               )
 #  4          End   date only     (in YYYYMMDD format               )
 #  5          Simulation name
+#  6          RRTMG setting
 #
 # !REVISION HISTORY: 
 #  06 Apr 2015 - E. Lundgren - Initial version
@@ -127,6 +128,18 @@ sub getInfo($$) {
       # Extract the simulation name
       $runinfo = "$linestrings[3]";
       
+    } elsif ( $id == 6 ) {
+
+      # Grep for line in input.geos
+      $line = qx( grep "Turn on RRTMG" $rundir/input.geos );
+      chomp( $line );
+
+      # Split by spaces
+      @linestrings = split( ' ', $line );
+
+      # Extract the simulation name
+      $runinfo = "$linestrings[4]";
+
     } 
 
   } elsif ( -f "$rundir/HEMCO_sa_Config.rc" ) {

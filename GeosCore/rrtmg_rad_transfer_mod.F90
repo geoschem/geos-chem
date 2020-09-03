@@ -21,7 +21,9 @@ MODULE RRTMG_RAD_TRANSFER_MOD
 #ifdef BPCH_DIAG
   USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
 #endif
+#if defined( MODEL_CLASSIC )
   USE OMP_LIB
+#endif
   USE PARRRTM,      ONLY : NBNDLW
   USE PARRRSW,      ONLY : NBNDSW
 
@@ -124,12 +126,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_RRTMG_RAD_TRANSFER( ThisDay,    ThisMonth,  &
-                                    iCld,       iSpecMenu,  &
-                                    iNcDiag,    iSeed,      &
-                                    Input_Opt,  State_Chm,  &
-                                    State_Diag, State_Grid, &
-                                    State_Met,  RC )
+  SUBROUTINE DO_RRTMG_RAD_TRANSFER( ThisDay,    ThisMonth,  First_RT,   &
+                                    iCld,       iSpecMenu,  iNcDiag,    &
+                                    iSeed,      Input_Opt,  State_Chm,  &
+                                    State_Diag, State_Grid, State_Met,  &
+                                    RC                                 )
 !
 ! !USES:
 !
@@ -175,6 +176,7 @@ CONTAINS
 !
     INTEGER,        INTENT(IN)    :: ThisDay    ! CURRENT DAY
     INTEGER,        INTENT(IN)    :: ThisMonth  ! CURRENT MONTH
+    LOGICAL,        INTENT(IN)    :: First_RT   ! IF FIRST RRTMG TIMESTEP
     INTEGER,        INTENT(IN)    :: iSpecMenu  ! THE SPECIES BEING INCLUDED
                                                 ! NEEDED FOR OUTPUT PURPOSES
     INTEGER,        INTENT(IN)    :: iNcDiag    ! Index for netCDF diag arrays
@@ -188,11 +190,11 @@ CONTAINS
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
     INTEGER,        INTENT(INOUT) :: iCld       ! CLOUD FLAG FOR RRTMG
-                                                  ! 0-NOCLOUD, 1-GREY CLOUD
+                                                ! 0-NOCLOUD, 1-GREY CLOUD
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Failure or success
+    INTEGER,        INTENT(OUT)   :: RC         ! Failure or success
 !
 ! !REMARKS:
 !  THIS ROUTINE PASSES INPUTS TO THE RRTMG DRIVER ROUTINE "RAD_DRIVER"
@@ -221,7 +223,7 @@ CONTAINS
     CHARACTER(LEN=63)  :: OrigUnit
 
     ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
+    LOGICAL, SAVE      :: FIRST    = .TRUE.
     INTEGER, SAVE      :: id_O3,    id_CH4,  id_N2O, id_CFC11
     INTEGER, SAVE      :: id_CFC12, id_CCL4, id_HCFC22
 
@@ -239,7 +241,11 @@ CONTAINS
     INTEGER            :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
     INTEGER            :: IS_ON,NASPECRAD_ON
     INTEGER            :: IASPECRAD_ON(NASPECRAD)
+    INTEGER            :: BaseIndex
     REAL*8             :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
+#if defined( MODEL_CLASSIC )
+    REAL*8             :: scaleFactor ! for GC-Classic netcdf diagnostics
+#endif
 
     !-----------------------------------------------------------------
     ! REL AND REI FROM PERSONAL COMMUNICATION FROM LAZAROS OREOPOULOS
@@ -598,6 +604,14 @@ CONTAINS
        id_CCL4   = Ind_('CCL4')
        id_HCFC22 = Ind_('HCFC22')
 
+#if defined( MODEL_CLASSIC )
+       ! Set scale factor used to correct first value of netcdf time-averaged
+       ! diagnostics so that zeros are not included in the average. This is
+       ! only necessary for GC-Classic since RRTMG is run the first timestep
+       ! in GCHP.
+       scaleFactor = 1.5
+#endif
+
        ! Get pointers to data fields that are read by HEMCO
        ! NOTE: This has to be done here and not in initialization
        ! because we have to wait for HEMCO to read the data from disk,
@@ -611,6 +625,7 @@ CONTAINS
 
        ! Reset first-time flag
        FIRST = .FALSE.
+
     ENDIF
 
     !$OMP PARALLEL DO          &
@@ -1604,7 +1619,9 @@ CONTAINS
 
        !================================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-       !
+       !================================================================
+
+       !================================================================
        ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
        !================================================================
        IF ( ICLD > 0 ) THEN
@@ -1694,6 +1711,122 @@ CONTAINS
 
        ENDIF
 
+#if defined( MODEL_CLASSIC )
+       !  Flux adjustment to make time-averaged nc diagnostics better match bpch
+       ! (only needed for GC-Classic since RRTMG not run first timestep)
+       IF ( First_RT ) THEN
+          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWTOA(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWSurf(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWTOA(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWSurf(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) * scaleFactor
+          ENDIF
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) * scaleFactor
+          ENDIF
+       ENDIF
+#endif
+
+       !-------------------------------------------------------
+       ! If not BASE, the subtract flux just calculated from BASE
+       !-------------------------------------------------------
+       IF ( iSpecMenu > 0 ) THEN
+
+          ! Set the state_diag index corresponding to BASE. The BASE
+          ! fluxes are always calculated no matter what outputs are set
+          ! in HISTORY.rc since they are needed here. They are also
+          ! calculated prior to all other outputs. The index always
+          ! corresponds to 1.
+          baseIndex = 1
+
+          ! All-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWTOA(I,J,baseIndex) - &
+                State_Diag%RadAllSkySWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWSurf(I,J,baseIndex) - &
+                State_Diag%RadAllSkySWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWTOA(I,J,baseIndex) - &
+                State_Diag%RadAllSkyLWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWSurf(I,J,baseIndex) - &
+                State_Diag%RadAllSkyLWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWTOA(I,J,baseIndex) - &
+                State_Diag%RadClrSkySWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWSurf(I,J,baseIndex) - &
+                State_Diag%RadClrSkySWSurf(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWTOA(I,J,baseIndex) - &
+                State_Diag%RadClrSkyLWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWSurf(I,J,baseIndex) - &
+                State_Diag%RadClrSkyLWSurf(I,J,iNcDiag)
+          ENDIF
+
+       ENDIF
+
+       !-------------------------------------------------------
+       ! Optics diagnostics (AOD, single scattering albedo, asymmetry param)
+       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, and
+       ! methane (hence OUTIDX > 4)T=, and there is one diagnostic per
+       ! RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       !-------------------------------------------------------
+
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
@@ -1735,12 +1868,96 @@ CONTAINS
              SSAOUT=SSAOUT/AODOUT
              !offsetting output depending on wavelength
 #ifdef BPCH_DIAG
+             ! Binary diagnostics
              AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = &
                   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
              AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = &
                   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
              AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= &
                   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
+#endif
+             ! Netcdf diagnostics
+             IF ( State_Diag%Archive_RadOptics ) THEN
+                IF ( W == 1 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL1 ) THEN
+                      State_Diag%RADAODWL1(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL1 ) THEN
+                   State_Diag%RADSSAWL1(I,J,OUTIDX) = SSAOUT
+                      ENDIF
+                   IF ( State_Diag%Archive_RADAsymWL1 ) THEN
+                      State_Diag%RADAsymWL1(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ELSEIF ( W == 2 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL2 ) THEN
+                      State_Diag%RADAODWL2(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL2 ) THEN
+                      State_Diag%RADSSAWL2(I,J,OUTIDX) = SSAOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADAsymWL2 ) THEN
+                      State_Diag%RADAsymWL2(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ELSEIF ( W == 3 ) THEN
+                   IF ( State_Diag%Archive_RADAODWL3 ) THEN
+                      State_Diag%RADAODWL3(I,J,OUTIDX) = AODOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADSSAWL3 ) THEN
+                      State_Diag%RADSSAWL3(I,J,OUTIDX) = SSAOUT
+                   ENDIF
+                   IF ( State_Diag%Archive_RADASYMWL3 ) THEN
+                      State_Diag%RADAsymWL3(I,J,OUTIDX) = ASYMOUT
+                   ENDIF
+                ENDIF
+             ENDIF
+
+#if defined( MODEL_CLASSIC )
+             ! Optics diagnostic adjustment to improve netcdf vs bpch comparison
+             ! (only needed for GC-Classic since RRTMG not run first timestep)
+             IF ( First_RT ) THEN
+                IF ( State_Diag%Archive_RadOptics ) THEN
+                   IF ( W == 1 ) THEN
+                      IF ( State_Diag%Archive_RADAODWL1 ) THEN
+                         State_Diag%RADAODWL1(I,J,OUTIDX) = &
+                         State_Diag%RADAODWL1(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADSSAWL1 ) THEN
+                         State_Diag%RADSSAWL1(I,J,OUTIDX) = &
+                         State_Diag%RADSSAWL1(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADAsymWL1 ) THEN
+                         State_Diag%RADAsymWL1(I,J,OUTIDX) = &
+                         State_Diag%RADAsymWL1(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                   ELSEIF ( W == 2 ) THEN
+                      IF ( State_Diag%Archive_RADAODWL2 ) THEN
+                         State_Diag%RADAODWL2(I,J,OUTIDX) = &
+                         State_Diag%RADAODWL2(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADSSAWL2 ) THEN
+                         State_Diag%RADSSAWL2(I,J,OUTIDX) = &
+                         State_Diag%RADSSAWL2(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADAsymWL2 ) THEN
+                         State_Diag%RADAsymWL2(I,J,OUTIDX) = &
+                         State_Diag%RADAsymWL2(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                   ELSEIF ( W == 3 ) THEN
+                      IF ( State_Diag%Archive_RADAODWL3 ) THEN
+                         State_Diag%RADAODWL3(I,J,OUTIDX) = &
+                         State_Diag%RADAODWL3(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADSSAWL3 ) THEN
+                         State_Diag%RADSSAWL3(I,J,OUTIDX) = &
+                         State_Diag%RADSSAWL3(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                      IF ( State_Diag%Archive_RADASYMWL3 ) THEN
+                         State_Diag%RADAsymWL3(I,J,OUTIDX) = &
+                         State_Diag%RADAsymWL3(I,J,OUTIDX) * scaleFactor
+                      ENDIF
+                   ENDIF
+                ENDIF
+             ENDIF
 #endif
           ENDDO !NWVSELECT
        ENDIF
@@ -1923,8 +2140,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  The index fields Input_Opt%RadFluxCt, Input_Opt%RadFluxName, and
-!  Input_Opt%RadFluxInd are populated from information obtained in
+!  The index fields Input_Opt%RadOutCt, Input_Opt%RadOutName, and
+!  Input_Opt%RadOutInd are populated from information obtained in
 !  Headers/diaglist_mod.F90.  But the input.geos file is read before
 !  the diaglist is constructed.  Therefore, we have to delay population
 !  of these fields until after the call to Init_DiagList.
@@ -1955,24 +2172,14 @@ CONTAINS
 
     !=================================================================
     ! For backwards compatibility with existing RRTMG code, we need
-    ! to populate the Input_Opt%LSpecRadMenu based on the flux
+    ! to populate the Input_Opt%LSpecRadMenu based on the RRTMG
     ! outputs requested in the HISTORY.rc file.  Loop over all
     ! possible types of RRTMG flux outputs (excluding baseline,
     ! which is type 0).
     !
-    ! Save the name of each flux output in Input_Opt%RadFluxName
-    ! and its expected index value in Input_Opt%RadFluxInd.
-    ! Expected index values for flux ouptuts are:
-    !
     ! Optional outputs (requested via HISTORY.rc)
     !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-    !   7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
-    !
-    ! This is a bit convoluted but we need to do this in order to
-    ! keep track of the slot of the netCDF diagnostic arrays in
-    ! State_Diag in which to archive the various flux outputs.
-    ! Also this allows us to keep backwards compatibility with the
-    ! existing code to the greatest extent.
+    !   7=OA  8=SS  9=DU  10=PM  11=ST (11 UCX only)
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still
@@ -1981,9 +2188,9 @@ CONTAINS
     !=================================================================
 
     ! Loop over all of the flux outputs requested in HISTORY.rc
-    DO N = 1, State_Diag%nRadFlux
+    DO N = 1, State_Diag%nRadOut
 
-       SELECT CASE( State_Diag%RadFluxName(N) )
+       SELECT CASE( State_Diag%RadOutName(N) )
        CASE( 'O3' )
           Input_Opt%LSpecRadMenu(1)  = 1
        CASE( 'ME' )

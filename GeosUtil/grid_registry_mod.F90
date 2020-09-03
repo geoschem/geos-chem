@@ -85,10 +85,11 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE GC_Grid_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Pressure_Mod
-    USE Registry_Mod,   ONLY : Registry_AddField
-    USE State_Grid_Mod, ONLY : GrdState
+    USE Registry_Mod,       ONLY : Registry_AddField
+    USE Registry_Params_Mod
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -143,15 +144,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'xy',                             &
-                            Data2d_4     = Area,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F4,                     &
+                            DimNames       = 'xy',                           &
+                            Data2d_4       = Area,                           &
+                            RC             = RC                               )
 
     CALL GC_CheckVar( 'GRID_AREA', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -167,15 +169,16 @@ CONTAINS
     P0       = 1000.0_f8
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = '-',                              &
-                            Data0d_8     = P0,                               &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = '-',                            &
+                            Data0d_8       = P0,                             &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_P0', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -196,15 +199,16 @@ CONTAINS
     Time = 0.0_f8
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 't',                              &
-                            Data1d_8     = Time,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 't',                            &
+                            Data1d_8       = Time,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_TIME', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -227,15 +231,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            Data1d_8     = HyAm,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            Data1d_8       = HyAm,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_HYAM', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -258,15 +263,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            Data1d_8     = HyBm,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            Data1d_8       = HyBm,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_HYBM', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -289,15 +295,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            Data1d_8     = Lev,                              &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            Data1d_8       = Lev,                            &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_LEV', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -320,16 +327,17 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            OnLevelEdges = .TRUE.,                           &
-                            Data1d_8     = HyAi,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            OnLevelEdges   = .TRUE.,                         &
+                            Data1d_8       = HyAi,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_HYAI', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -352,16 +360,17 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            OnLevelEdges = .TRUE.,                           &
-                            Data1d_8     = HyBi,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            OnLevelEdges   = .TRUE.,                         &
+                            Data1d_8       = HyBi,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_HYBI', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -384,16 +393,17 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'z',                              &
-                            OnLevelEdges = .TRUE.,                           &
-                            Data1d_8     = ILev,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'z',                            &
+                            OnLevelEdges   = .TRUE.,                         &
+                            Data1d_8       = ILev,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_ILEV', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -416,15 +426,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'y',                              &
-                            Data1d_8     = Lat,                              &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'y',                            &
+                            Data1d_8       = Lat,                            &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_LAT', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -447,15 +458,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'y',                              &
-                            Data1d_8     = LatE,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'y',                            &
+                            Data1d_8       = LatE,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_LATE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -478,15 +490,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'x',                              &
-                            Data1d_8     = Lon,                              &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'x',                            &
+                            Data1d_8       = Lon,                            &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_LON', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -509,15 +522,16 @@ CONTAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = Registry,                         &
-                            State        = State,                            &
-                            Variable     = Variable,                         &
-                            Description  = Desc,                             &
-                            Units        = Units,                            &
-                            DimNames     = 'x',                              &
-                            Data1d_8     = LonE,                             &
-                            RC           = RC                               )
+    CALL Registry_AddField( Input_Opt      = Input_Opt,                      &
+                            Registry       = Registry,                       &
+                            State          = State,                          &
+                            Variable       = Variable,                       &
+                            Description    = Desc,                           &
+                            Units          = Units,                          &
+                            Output_KindVal = KINDVAL_F8,                     &
+                            DimNames       = 'x',                            &
+                            Data1d_8       = LonE,                           &
+                            RC             = RC                             )
 
     CALL GC_CheckVar( 'GRID_LONE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -769,10 +783,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_Grid( Input_Opt,  Variable,     RC,         Description, &
-                          Dimensions, KindVal,      MemoryInKb, Rank,        &
-                          Units,      OnLevelEdges, Ptr0d_8,    Ptr1d_8,     &
-                          Ptr2d_4                                           )
+  SUBROUTINE Lookup_Grid( Input_Opt,      Variable,     RC,                  &
+                          Description,    Dimensions,   Source_KindVal,      &
+                          Output_KindVal, MemoryInKb,   Rank,                &
+                          Units,          OnLevelEdges, Ptr0d_8,             &
+                          Ptr1d_8,        Ptr2d_4                           )
 !
 ! !USES:
 !
@@ -793,7 +808,8 @@ CONTAINS
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
     INTEGER,             OPTIONAL    :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
+    INTEGER,             OPTIONAL    :: Source_KindVal  ! KIND value of data
+    INTEGER,             OPTIONAL    :: Output_KindVal  ! KIND value of data
     REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL    :: Rank            ! Size of data
     CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
@@ -832,22 +848,23 @@ CONTAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,                  &
-                          Registry     = Registry,                           &
-                          RegDict      = RegDict,                            &
-                          State        = State,                              &
-                          Variable     = Variable,                           &
-                          Description  = Description,                        &
-                          Dimensions   = Dimensions,                         &
-                          KindVal      = KindVal,                            &
-                          MemoryInKb   = MemoryInKb,                         &
-                          Rank         = Rank,                               &
-                          Units        = Units,                              &
-                          OnLevelEdges = OnLevelEdges,                       &
-                          Ptr0d_8      = Ptr0d_8,                            &
-                          Ptr1d_8      = Ptr1d_8,                            &
-                          Ptr2d_4      = Ptr2d_4,                            &
-                          RC           = RC                                 )
+    CALL Registry_Lookup( am_I_Root      = Input_Opt%amIRoot,                &
+                          Registry       = Registry,                         &
+                          RegDict        = RegDict,                          &
+                          State          = State,                            &
+                          Variable       = Variable,                         &
+                          Description    = Description,                      &
+                          Dimensions     = Dimensions,                       &
+                          Source_KindVal = Source_KindVal,                   &
+                          Output_KindVal = Output_KindVal,                   &
+                          MemoryInKb     = MemoryInKb,                       &
+                          Rank           = Rank,                             &
+                          Units          = Units,                            &
+                          OnLevelEdges   = OnLevelEdges,                     &
+                          Ptr0d_8        = Ptr0d_8,                          &
+                          Ptr1d_8        = Ptr1d_8,                          &
+                          Ptr2d_4        = Ptr2d_4,                          &
+                          RC             = RC                               )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN

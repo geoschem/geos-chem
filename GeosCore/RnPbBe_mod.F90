@@ -111,7 +111,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: I, J, L
+    INTEGER             :: I, J, L, S
     REAL(fp)            :: ADD_Pb
     REAL(fp)            :: Decay
     REAL(fp)            :: DTCHEM
@@ -211,9 +211,9 @@ CONTAINS
 
     ! Make sure Rn222 is a defined species
     IF ( id_Rn222 > 0 ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, L, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -229,7 +229,10 @@ CONTAINS
 
           ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
           IF ( State_Diag%Archive_RadDecay ) THEN
-             State_Diag%RadDecay(I,J,L,1) = Rn_LOST(I,J,L) / DTCHEM
+             S = State_Diag%Map_RadDecay%id2slot(id_Rn222)
+             IF ( S > 0 ) THEN
+                State_Diag%RadDecay(I,J,L,S) = Rn_LOST(I,J,L) / DTCHEM
+             ENDIF
           ENDIF
 
           ! Subtract Rn_LOST from Spc [kg]
@@ -248,7 +251,7 @@ CONTAINS
     IF ( id_Pb210 > 0 .or. id_Pb210Strat > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, ADD_Pb, Pb_LOST, PbStrat_LOST )
+       !$OMP PRIVATE( I, J, L, ADD_Pb, Pb_LOST, PbStrat_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -285,13 +288,25 @@ CONTAINS
           !-----------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
-          ! Pb210 lost to radioactive decay
+          ! Pb210 lost to radioactive decay [kg/s]
           !-----------------------------------------------------------
-
-          ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
           IF ( State_Diag%Archive_RadDecay ) THEN
-             State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
-             State_Diag%RadDecay(I,J,L,3) = ( PbStrat_LOST /DTCHEM )
+
+             ! Loss of Pb210, full column [kg/s]
+             IF ( id_Pb210 > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Pb210)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( Pb_LOST / DTCHEM )
+                ENDIF
+             ENDIF
+
+             ! Loss of Pb210 produced in stratosphere [kg/s]
+             IF ( id_Pb210Strat > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Pb210Strat)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( PbStrat_LOST / DTCHEM )
+                ENDIF
+             ENDIF
           ENDIF
 
           ! Subtract 210Pb lost to decay from Spc [kg]
@@ -316,7 +331,7 @@ CONTAINS
     IF ( id_Be7 > 0 .or. id_Be7Strat > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7Strat_LOST )
+       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7Strat_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -330,13 +345,25 @@ CONTAINS
           !-----------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
-          ! Be7 lost to radioactive decay
+          ! Be7 lost to radioactive decay [kg/s]
           !-----------------------------------------------------------
-
-          ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
           IF ( State_Diag%Archive_RadDecay ) THEN
-             State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST      / DTCHEM )
-             State_Diag%RadDecay(I,J,L,5) = ( Be7Strat_LOST / DTCHEM )
+
+             ! Be7 loss [kg/s]
+             IF ( id_Be7 > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be7)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( Be7_LOST / DTCHEM )
+                ENDIF
+             ENDIF
+             
+             ! Loss of Be7 produced in stratosphere [kg/s]
+             IF ( id_Be7Strat > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be7Strat)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( Be7Strat_LOST / DTCHEM )
+                ENDIF
+             ENDIF
           ENDIF
 
           ! Subtract amount of 7Be lost to decay from Spc [kg]
@@ -361,7 +388,7 @@ CONTAINS
     IF ( id_Be10 > 0 .or. id_Be10Strat > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST )
+       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -375,13 +402,25 @@ CONTAINS
           !-----------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
-          ! Be10 lost to radioactive decay
+          ! Be10 lost to radioactive decay [kg/s]
           !-----------------------------------------------------------
-
-          ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
           IF ( State_Diag%Archive_RadDecay ) THEN
-             State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST      / DTCHEM)
-             State_Diag%RadDecay(I,J,L,7) = ( Be10Strat_LOST / DTCHEM)
+
+             ! Loss of Be10, whole atmosphere [kg/s]
+             IF ( id_Be10 > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be10)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( Be10_LOST / DTCHEM )
+                ENDIF
+             ENDIF
+
+             ! Loss of Be10 produced in stratosphere [kg/s]
+             IF ( id_Be10Strat > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be10Strat)
+                IF ( S > 0 ) THEN
+                   State_Diag%RadDecay(I,J,L,S) = ( Be10Strat_LOST / DTCHEM)
+                ENDIF
+             ENDIF
           ENDIF
 
           ! Subtract amount of 10Be lost to decay from Spc [kg]

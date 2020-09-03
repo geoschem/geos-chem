@@ -712,37 +712,21 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'ACIDUPTAKE'       .and. &
-         TRIM(Sim) /= 'AEROSOL'          .and. &
-         TRIM(Sim) /= 'APM'              .and. &
-         TRIM(Sim) /= 'BENCHMARK'        .and. &
+    IF ( TRIM(Sim) /= 'AEROSOL'          .and. &
          TRIM(Sim) /= 'CH4'              .and. &
          TRIM(Sim) /= 'CO2'              .and. &
-         TRIM(Sim) /= 'COMPLEXSOA'       .and. &
-         TRIM(Sim) /= 'COMPLEXSOA_SVPOA' .and. &
-         TRIM(Sim) /= 'HEMCO'            .and. &
+         TRIM(Sim) /= 'FULLCHEM'         .and. &
          TRIM(Sim) /= 'HG'               .and. &
-         TRIM(Sim) /= 'MARINEPOA'        .and. &
          TRIM(Sim) /= 'POPS'             .and. &
-         TRIM(Sim) /= 'RRTMG'            .and. &
-         TRIM(Sim) /= 'STANDARD'         .and. &
          TRIM(Sim) /= 'TRANSPORTTRACERS' .and. &
-         TRIM(Sim) /= 'TROPCHEM'         .and. &
          TRIM(Sim) /= 'TAGCO'            .and. &
          TRIM(Sim) /= 'TAGCH4'           .and. &
          TRIM(Sim) /= 'TAGHG'            .and. &
-         TRIM(Sim) /= 'TAGO3'            .and. &
-         TRIM(Sim) /= 'TOMAS12'          .and. &
-         TRIM(Sim) /= 'TOMAS15'          .and. &
-         TRIM(Sim) /= 'TOMAS30'          .and. &
-         TRIM(Sim) /= 'TOMAS40'          ) THEN
+         TRIM(Sim) /= 'TAGO3'            ) THEN
        ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      // &
                 ' valid simulation. Supported simulations are:'     // &
-                ' AcidUptake, Aerosol, APM, Benchmark, CH4, CO2,'   // &
-                ' ComplexSOA, ComplexSOA_SVPOA, HEMCO, Hg,'         // &
-                ' MarinePOA, POPs, RRTMG, Standard,'                // &
-                ' TransportTracers, Tropchem, TagCO, TagCH4, TagHg,'// &
-                ' TagO3, TOMAS12, TOMAS15, TOMAS30, and TOMAS40.'
+                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'           // &
+                ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -751,20 +735,7 @@ CONTAINS
     Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              .or. &
                                      TRIM(Sim) == 'TAGCH4'           )
     Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
-    Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'ACIDUPTAKE'       .or. &
-                                     TRIM(Sim) == 'APM'              .or. &
-                                     TRIM(Sim) == 'BENCHMARK'        .or. &
-                                     TRIM(Sim) == 'COMPLEXSOA'       .or. &
-                                     TRIM(Sim) == 'COMPLEXSOA_SVPOA' .or. &
-                                     TRIM(Sim) == 'HEMCO'            .or. &
-                                     TRIM(Sim) == 'MARINEPOA'        .or. &
-                                     TRIM(Sim) == 'RRTMG'            .or. &
-                                     TRIM(Sim) == 'STANDARD'         .or. &
-                                     TRIM(Sim) == 'TROPCHEM'         .or. &
-                                     TRIM(Sim) == 'TOMAS12'          .or. &
-                                     TRIM(Sim) == 'TOMAS15'          .or. &
-                                     TRIM(Sim) == 'TOMAS30'          .or. &
-                                     TRIM(Sim) == 'TOMAS40'          )
+    Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'FULLCHEM'         )
     Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'               .or. &
                                      TRIM(Sim) == 'TAGHG'            )
     Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
