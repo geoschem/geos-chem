@@ -107,7 +107,6 @@ COLLECTIONS: 'Restart',
                               'MCFlossInTrop                 ', 'GIGCchem',
                               'MeanOHcolumnFull              ', 'GIGCchem',
                               #'AirMassColumnTrop             ', 'GIGCchem',
-                              #'CH4massColumnTrop             ', 'GIGCchem',
                               #'MeanCH4columnTrop             ', 'GIGCchem',
                               #'MeanOHcolumnTrop              ', 'GIGCchem',
 ::
