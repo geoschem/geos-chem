@@ -110,6 +110,9 @@ done
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
 #-----------------------------------------------------------------
+sim_extra_option=none
+
+# Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
     
     printf "${thinline}Choose chemistry domain:${thinline}"
@@ -139,7 +142,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  7. APM\n"
     printf "  8. RRTMG\n"
     valid_sim_option=0
-    sim_extra_option=none
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
 	valid_sim_option=1
@@ -194,10 +196,12 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-    
-#-----------------------------------------------------------------
+
+# Currently no transport tracer extra options
+elif [[ ${sim_name} = "TransportTracers" ]]; then
+   sim_extra_option=none
+
 # Ask user to specify POPs simulation options
-#-----------------------------------------------------------------
 elif [[ ${sim_name} = "POPs" ]]; then
     printf "${thinline}Choose POPs type:${thinline}"
     printf "  1. BaP\n"
@@ -441,7 +445,7 @@ if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	if [[ "${sim_extra_option}" == "none" ]]; then
+	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gc_${grid_res}_${sim_name}
 	else
 	    rundir_name=gc_${grid_res}_${sim_name}_${sim_extra_option}
@@ -511,7 +515,7 @@ elif [[ ${sim_extra_option} =~ "APM" ]]; then
 fi
 
 # If benchmark simulation, put run script in directory
-if [ ${sim_extra_option} = "benchmark" ]; then
+if [[ ${sim_extra_option} = "benchmark" ]]; then
     cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
