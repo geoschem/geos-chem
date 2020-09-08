@@ -261,7 +261,6 @@ cp ${gcdir}/run/shared/setupConfigFiles.sh  ${rundir}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./build.sh                         ${rundir}
-cp ./fvcore_layout.rc                 ${rundir}
 cp ./input.nml                        ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
@@ -278,7 +277,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
     chmod 744 ${rundir}/metrics_fullchem.py
 fi
-cp -r ./environmentFileSamples        ${rundir}
 cp -r ./runScriptSamples              ${rundir}
 mkdir ${rundir}/OutputDir
 
@@ -289,7 +287,6 @@ chmod 744 ${rundir}/build.sh
 chmod 744 ${rundir}/runConfig.sh
 chmod 744 ${rundir}/archiveRun.sh
 chmod 744 ${rundir}/runScriptSamples/*
-chmod 744 ${rundir}/environmentFileSamples/*
 chmod 644 ${rundir}/runScriptSamples/README
 
 # Copy species database; append APM or TOMAS species if needed
@@ -457,7 +454,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
-	git add environmentFileSamples/* runScriptSamples/* README .gitignore
+	git add runScriptSamples/* README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
