@@ -4561,7 +4561,6 @@ COLLECTIONS: #'AerosolMass',
                               'MCFlossInTrop                 ', 'GCHPchem',
                               'MeanOHcolumnFull              ', 'GCHPchem',
                               #'AirMassColumnTrop             ', 'GCHPchem',
-                              #'CH4massColumnTrop             ', 'GCHPchem',
                               #'MeanCH4columnTrop             ', 'GCHPchem',
                               #'MeanOHcolumnTrop              ', 'GCHPchem',
 ::
