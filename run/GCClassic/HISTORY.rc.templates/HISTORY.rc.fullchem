@@ -105,10 +105,10 @@ COLLECTIONS: 'Restart',
   Metrics.mode:               'time-averaged'
   Metrics.fields:             'AirMassColumnFull             ', 'GIGCchem',
                               'MCFlossInTrop                 ', 'GIGCchem',
-                              'MeanOHcolumnFull              ', 'GIGCchem',
-                              #'AirMassColumnTrop             ', 'GIGCchem',
-                              #'MeanCH4columnTrop             ', 'GIGCchem',
-                              #'MeanOHcolumnTrop              ', 'GIGCchem',
+                              'OHwgtByAirMassColumnFull      ', 'GIGCchem',
+                              #'AirMassColumnTrop            ', 'GIGCchem',
+                              #'CH4wgtByAirMassColumnTrop    ', 'GIGCchem',
+                              #'OHwgtByAirMassColumnTrop     ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

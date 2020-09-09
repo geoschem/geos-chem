@@ -1733,6 +1733,8 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
+    USE PhysConstants,  ONLY : AVO
+    USE PhysConstants,  ONLY : XNUMOLAIR
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -1773,20 +1775,25 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL, SAVE      :: first  = .TRUE.
-    INTEGER, SAVE      :: id_OH  = -1
-    INTEGER, SAVE      :: id_CH4 = -1
+    LOGICAL,  SAVE      :: first          = .TRUE.
+    INTEGER,  SAVE      :: id_CH4         = -1
+    REAL(f8), SAVE      :: MCM3toKGM3_CH4 = -1.0_f8
+    INTEGER,  SAVE      :: id_OH          = -1
+    REAL(f8), SAVE      :: MCM3toKGM3_OH  = -1.0_f8 
 
     ! Scalars
-    INTEGER            :: I,           J,           L
-    REAL(f8)           :: airMass,     airMassFull, airMassTrop
-    REAL(f8)           :: ch4conc,     ch4Mass,     CH4massFull
-    REAL(f8)           :: CH4massTrop, OHconc,      OHmass
-    REAL(f8)           :: OHmassFull,  OHmassTrop,  Ktrop
-    REAL(f8)           :: MCFlossTrop, volume
+    INTEGER             :: I,         J,           L
+    REAL(f8)            :: airMass_m, airmass_kg,  airMassFull, airMassTrop
+    REAL(f8)            :: ch4conc,   ch4Mass,     CH4massFull, CH4massTrop
+    REAL(f8)            :: OHconc,    OHmass,      OHmassFull,  OHmassTrop
+    REAL(f8)            :: Ktrop,     MCFlossTrop, volume
 
     ! Strings
-    CHARACTER(LEN=255) :: errMsg,  thisLoc
+    CHARACTER(LEN=255)  :: errMsg,    thisLoc
+!
+! !DEFINED PARAMETERS:
+!
+    REAL(f8), PARAMETER :: M3toCM3 = 1.0e+6_f8
 
     !========================================================================
     ! Compute_Mean_OH_and_CH4 begins here!
@@ -1800,7 +1807,9 @@ CONTAINS
     ! Exit if we have not turned on the Metrics collection
     IF ( .not. State_Diag%Archive_Metrics ) RETURN
 
+    !========================================================================
     ! First-time setup
+    !========================================================================
     IF ( first ) THEN
 
        ! Get the species ID for OH
@@ -1811,7 +1820,6 @@ CONTAINS
           RETURN
        ENDIF
 
-
        ! Get the species ID for CH4
        id_CH4 = Ind_('CH4')
        IF ( id_CH4 < 0 ) THEN
@@ -1820,6 +1828,17 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Convert [molec OH cm-3] --> [kg OH m-3]
+       MCM3toKGM3_OH  = M3toCM3                                              & 
+                      * ( State_Chm%SpcData(id_OH)%Info%MW_g * 1.0e-3_f8 )   &
+                      / AVO
+ 
+       ! Convert [molec CH4 cm-3] --> [kg CH4 m-3]
+       MCM3toKGM3_CH4 = M3toCM3                                              &
+                      * ( State_Chm%SpcData(id_CH4)%Info%MW_g * 1.0e-3_f8 )  &
+                      / AVO
+
+       ! Reset first-time flag
        first  = .FALSE.
     ENDIF
 
@@ -1828,11 +1847,11 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,           J,           L,           airMass           )&
-    !$OMP PRIVATE( CH4conc,     CH4mass,     Ktrop,       OHconc            )&
-    !$OMP PRIVATE( OHmass,      volume,      airMassFull, airMassTrop       )&
-    !$OMP PRIVATE( CH4massFull, MCFlossTrop, CH4massTrop, OHmassFull        )&
-    !$OMP PRIVATE( OHMassTrop                                               )&
+    !$OMP PRIVATE( I,           J,           L,           airMass_m         )&
+    !$OMP PRIVATE( airMass_kg,  CH4conc,     CH4mass,     Ktrop             )&
+    !$OMP PRIVATE( OHconc,      OHmass,      volume,      airMassFull       )&
+    !$OMP PRIVATE( airMassTrop, CH4massFull, MCFlossTrop, CH4massTrop       )&
+    !$OMP PRIVATE( OHmassFull,  OHMassTrop                                  )&
     !$OMP SCHEDULE( DYNAMIC, 4                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1840,7 +1859,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Zero column-specific quantities
        !--------------------------------------------------------------------
-       airMass     = 0.0_f8
+       airMass_m   = 0.0_f8
+       airMass_kg  = 0.0_f8
        airMassFull = 0.0_f8
        airMassTrop = 0.0_f8
        CH4conc     = 0.0_f8
@@ -1860,33 +1880,35 @@ CONTAINS
        !--------------------------------------------------------------------
        DO L = 1, State_Met%ChemGridLev(I,J)
 
-          ! Compute box volume [cm3], and air mass [molec]
-          ! Note: air mass is also the atmospheric burden of methyl
-          ! chloroform (aka MCF, formula=CH3CCl3), since we assume a
-          ! uniform mixing ratio (=1) of MCF in air.
-          volume  = State_Met%AIRVOL(I,J,L)    * 1.0e+6_f8
-          airMass = State_Met%AIRNUMDEN(I,J,L) * volume
+          ! Compute box volume [cm3], and air mass ([molec] and [kg])
+          ! Note: air mass in [molec] is also the atmospheric burden of 
+          ! methyl chloroform (aka MCF, formula=CH3CCl3), since we assume 
+          ! a uniform mixing ratio (=1) of MCF in air.
+          volume      = State_Met%AIRVOL(I,J,L)    * M3toCM3
+          airMass_m   = State_Met%AIRNUMDEN(I,J,L) * volume
+          airMass_kg  = airMass_m / XNUMOLAIR 
 
-          ! OH conc [molec cm^-3] and airmass-weighted OH [molec^2 cm^-3]
-          OHconc  = State_Chm%Species(I,J,L,id_OH)
-          OHmass  = OHconc * airMass
+          ! CH4 and OH concentrations [molec cm^-3]
+          CH4conc     = State_Chm%Species(I,J,L,id_CH4)
+          OHconc      = State_Chm%Species(I,J,L,id_OH )
+         
+          ! Airmass-weighted CH4 [kg air * (kg CH4 m-3)] and
+          ! Airmass-weighted OH  [kg air * (kg OH  m-3)]
+          CH4mass     = airMass_kg * ( CH4conc * MCM3toKGM3_CH4 )
+          OHmass      = airMass_kg * ( OHconc  * MCM3toKGM3_OH  )
 
-          ! CH4 conc [molec cm^-3] and airmass-weighted CH4 [molec^2 cm^-3]
-          CH4conc = State_Chm%Species(I,J,L,id_CH4)
-          CH4mass = CH4conc * airMass
-
-          ! Sum the air mass [molec], mass-weighted OH [molec^2 cm^-3]
-          ! and mass-weighted CH4 [molec**2 cm-3] in the full-atm column
-          airMassFull = airMassFull + airMass
+          ! Sum the air mass, mass-weighted CH4, 
+          ! and mass-weighted OH in the full-atm column
+          airMassFull = airMassFull + airMass_kg
           CH4massFull = CH4massFull + CH4Mass
           OHmassFull  = OHmassFull  + OHMass
 
           ! Only do the following for tropospheric boxes ...
           IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
-             ! Sum the air mass [molec], mass-weighted OH [molec^2 cm^-3]
-             ! and mass-weighted CH4 [molec^2 cm-3] in the trop-only column
-             airMassTrop = airMassTrop + airMass
+             ! Sum the air mass, mass-weighted CH4, 
+             ! and mass-weighted OH in the trop-only column
+             airMassTrop = airMassTrop + airMass_kg
              CH4massTrop = CH4MassTrop + CH4mass
              OHmassTrop  = OHmassTrop  + OHmass
 
@@ -1897,15 +1919,15 @@ CONTAINS
              ! Resultant units of MCF loss rate = [molec/s]
              IF ( State_Diag%Archive_MCFlossInTrop ) THEN
                 Ktrop = 1.64e-12_f8 * EXP( -1520.0_f8 / State_Met%T(I,J,L) )
-                MCFlossTrop = MCFlossTrop + ( Ktrop * OHconc * airMass )
+                MCFlossTrop = MCFlossTrop + ( Ktrop * OHconc * airMass_m )
              ENDIF
           ENDIF
        ENDDO
 
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! Air mass [molec]
-       !-----------------------------------------------------------------
+       ! Air mass [kg]
+       !---------------------------------------------------------------------
        IF ( State_Diag%Archive_AirMassColumnFull ) THEN
           State_Diag%AirMassColumnFull(I,J) = airMassFull
        ENDIF
@@ -1914,28 +1936,28 @@ CONTAINS
           State_Diag%AirMassColumnTrop(I,J) = airMassTrop
        ENDIF
 
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! Mass-weighted mean CH4 [molec/cm3]
-       !-----------------------------------------------------------------
-       IF ( State_Diag%Archive_MeanCH4columnFull ) THEN
-          State_Diag%MeanCH4columnFull(I,J) = CH4massFull
+       ! Mass-weighted mean CH4 [kg air * (kg CH4 m-3)]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_CH4wgtByAirMassColumnFull ) THEN
+          State_Diag%CH4wgtByairMassColumnFull(I,J) = CH4massFull
        ENDIF
 
-       IF ( State_Diag%Archive_MeanCH4columnTrop ) THEN
-          State_Diag%MeanCH4columnTrop(I,J) = CH4massTrop
+       IF ( State_Diag%Archive_CH4wgtByAirMassColumnTrop ) THEN
+          State_Diag%CH4wgtByAirMassColumnTrop(I,J) = CH4massTrop
        ENDIF
 
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! Mass-weighted mean OH [molec cm-3]
-       !-----------------------------------------------------------------
-       IF ( State_Diag%Archive_MeanOHcolumnFull ) THEN
-          State_Diag%MeanOHcolumnFull(I,J) = OHmassFull
+       ! Mass-weighted mean OH [kg air * (kg OH m-3)]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_OHwgtByAirMassColumnFull ) THEN
+          State_Diag%OHwgtByAirMassColumnFull(I,J) = OHmassFull
        ENDIF
 
-       IF ( State_Diag%Archive_MeanOHcolumnTrop ) THEN
-          State_Diag%MeanOHcolumnTrop(I,J) = OHmassTrop
+       IF ( State_Diag%Archive_OHwgtByAirMassColumnTrop ) THEN
+          State_Diag%OHwgtByAirMassColumnTrop(I,J) = OHmassTrop
        ENDIF
 
        !-----------------------------------------------------------------

@@ -4559,11 +4559,10 @@ COLLECTIONS: #'AerosolMass',
   Metrics.mode:               'time-averaged'
   Metrics.fields:             'AirMassColumnFull             ', 'GCHPchem',
                               'MCFlossInTrop                 ', 'GCHPchem',
-                              'MeanOHcolumnFull              ', 'GCHPchem',
+                              'OHwgtByAirMassColumnFull      ', 'GCHPchem',
                               #'AirMassColumnTrop             ', 'GCHPchem',
-                              #'CH4massColumnTrop             ', 'GCHPchem',
-                              #'MeanCH4columnTrop             ', 'GCHPchem',
-                              #'MeanOHcolumnTrop              ', 'GCHPchem',
+                              #'CH4wgtByAirMassColumnTrop     ', 'GCHPchem',
+                              #'OHwgtByAirMassColumnTrop      ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%

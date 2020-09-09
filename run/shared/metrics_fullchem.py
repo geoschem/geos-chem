@@ -14,6 +14,7 @@ import os
 import warnings
 import numpy as np
 import xarray as xr
+import yaml
 
 # Tell matplotlib not to look for an X-window
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -79,10 +80,14 @@ def check_dataset(ds):
     """
 
     # List of variables that we absolutely must have
-    varlist = ["AirMassColumnFull", "MeanOHcolumnFull", "MCFlossInTrop"]
+    required_vars = [
+        "AirMassColumnFull",
+        "OHwgtByAirMassColumnFull",
+        "MCFlossInTrop"
+    ]
 
     # Error check inputs
-    for v in varlist:
+    for v in required_vars:
         if v not in ds.data_vars.keys():
             msg = "The '{}' diagnostic is not in this dataset!".format(v)
             raise ValueError(msg)
@@ -137,20 +142,31 @@ def print_metrics(ds):
         ds : xarray Dataset
     """
 
-    # Conversion factors
-    ten_to_minus_5 = np.float64(1.0e-5)
+    # Physical constants and conversion factors
+    avogadro = 6.022140857e+23                       # Value used in GEOS-Chem
+    m3_to_cm3 = 1.0e6
     s_per_yr = np.float64(86400.0) * np.float64(365.25)
+    ten_to_minus_5 = np.float64(1.0e-5)
 
-    # Sum of air mass in the chemistry grid [molec]
+    # Molecular weights (get from species database)
+    spec_db = yaml.load(open("./species_database.yml"), Loader=yaml.FullLoader)
+    mw_oh_kg = spec_db["OH"]["MW_g"] * 1.0e-3
+    mw_air_kg = 28.9644e-3                           # Value used in GEOS-Chem
+
+    # Sum of air mass in the chemistry grid [kg]
     # NOTE: This is also the same as the total atmospheric burden of
     # methyl chloroform (MCF), which has a constant mixing ratio (=1).
-    airmass = np.nansum(ds["AirMassColumnFull"].values)
+    airmass_kg = np.nansum(ds["AirMassColumnFull"].values)
+    airmass_m = airmass_kg * (avogadro / mw_air_kg)
 
-    # Global Mean OH concentration [1e5 molec cm^-3]
-    oh = (np.nansum(ds["MeanOHcolumnFull"].values) / airmass) * ten_to_minus_5
+    # Divide out total airmass to get total mean OH concentration [kg m-3]
+    oh = (np.nansum(ds["OHwgtByAirMassColumnFull"].values) / airmass_kg)
+
+    # Convert mean OH from [kg m-3] to [1e5 molec cm-3]
+    oh *= (avogadro / (mw_oh_kg * m3_to_cm3)) * ten_to_minus_5
 
     # MCF lifetime [years]
-    mcf = (airmass / np.nansum(ds["MCFlossInTrop"].values)) / s_per_yr
+    mcf = (airmass_m / np.nansum(ds["MCFlossInTrop"].values)) / s_per_yr
 
     # Get start and end time of run
     start = ds.attrs["simulation_start_date_and_time"]
