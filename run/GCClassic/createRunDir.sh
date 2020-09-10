@@ -20,6 +20,9 @@ cd ../../
 wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
+# Load file with utility functions to setup configuration files
+. ${gcdir}/run/shared/setupConfigFiles.sh
+
 # Define separator lines
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
@@ -483,7 +486,6 @@ done
 mkdir -p ${rundir}
 
 # Copy run directory files and subdirectories
-cp ${gcdir}/run/shared/setupConfigFiles.sh  ${rundir}
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
 cp ./getRunInfo                             ${rundir}
@@ -576,10 +578,21 @@ sed -i -e "s|{DURATION}|00000100 000000|"   HISTORY.rc
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
-# Call script to setup configuration files
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
 if [[ ${sim_name} = "fullchem" ]]; then
-    ./setupConfigFiles.sh ${sim_extra_option}
-    rm setupConfigFiles.sh
+    set_common_settings ${sim_extra_option}
+fi
+
+# Modify input files for benchmark that are specific to GEOS-Chem Classic
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    replace_colon_sep_val "Use GC classic timers?"   T    input.geos
+fi
+
+# Modify input files for TOMAS that are specific to GEOS-Chem Classic
+if [[ ${sim_extra_option} = "TOMAS" ]]; then
+    replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
+    replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
 fi
 
 # Modify input files for troposphere-only chemistry grids

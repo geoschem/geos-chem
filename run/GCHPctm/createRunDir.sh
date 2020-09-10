@@ -20,6 +20,9 @@ cd ../../../..
 gchpdir=$(pwd)
 cd ${srcrundir}
 
+# Load file with utility functions to setup configuration files
+. ${gcdir}/run/shared/setupConfigFiles.sh
+
 # Define separator lines
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
@@ -264,7 +267,6 @@ done
 mkdir -p ${rundir}
 
 # Copy run directory files and subdirectories
-cp ${gcdir}/run/shared/setupConfigFiles.sh  ${rundir}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./build.sh                         ${rundir}
@@ -416,9 +418,10 @@ sed -i -e "s|{TIME2}|${end_time}|"       ${rundir}/CAP.rc
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/CAP.rc
 sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/CAP.rc
 
-# Call script to setup configuration files
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
 if [[ ${sim_name} = "fullchem" ]]; then
-    ./setupConfigFiles.sh ${sim_extra_option}
+    set_common_settings ${sim_extra_option}
 fi
 
 #--------------------------------------------------------------------
