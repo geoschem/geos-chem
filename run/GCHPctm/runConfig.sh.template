@@ -297,22 +297,26 @@ Monthly_Diag=0
 #    Dust mass tuning factor
 #------------------------------------------------
 # This value replaces @MASS_TUNING_FACTOR in HEMCO_Config.rc used in the
-# DustDead extension. The mass tuning factor is resolution-dependent.
-if [[ $CS_RES -eq 24 ]]; then
-    Dust_SF=6.0e-4
-elif [[ $CS_RES -eq 48 ]]; then
-    Dust_SF=5.0416e-4
-elif [[ $CS_RES -eq 90 ]]; then
-    Dust_SF=4.0e-4
-elif [[ $CS_RES -eq 180 ]]; then
-    Dust_SF=3.23e-4
-elif [[ $CS_RES -eq 360 ]]; then
-    Dust_SF=2.35e-4
-elif [[ $CS_RES -eq 720 ]]; then
-    Dust_SF=2.3e-4
-else
-    echo "Dust scale factor not defined for this resolution. Please manually change @MASS_TUNING_FACTOR in HEMCO_Config.rc and comment out this check in runConfig.sh."
-    exit 1
+# DustDead extension. The mass tuning factor is resolution-dependent and must
+# be defined here for the target resolution if using online dust.
+dustSetting=(${dustEntry// / })
+if [[ ${dustSetting[3]} = "on" ]]; then
+    if [[ $CS_RES -eq 24 ]]; then
+        Dust_SF=6.0e-4
+    elif [[ $CS_RES -eq 48 ]]; then
+        Dust_SF=5.0416e-4
+    elif [[ $CS_RES -eq 90 ]]; then
+        Dust_SF=4.0e-4
+    elif [[ $CS_RES -eq 180 ]]; then
+        Dust_SF=3.23e-4
+    elif [[ $CS_RES -eq 360 ]]; then
+        Dust_SF=2.35e-4
+    elif [[ $CS_RES -eq 720 ]]; then
+        Dust_SF=2.3e-4
+    else
+        echo "Dust scale factor not defined for this resolution. Please manually change @MASS_TUNING_FACTOR in HEMCO_Config.rc and comment out this check in runConfig.sh."
+        exit 1
+    fi
 fi
 
 ##########################################################
