@@ -600,9 +600,7 @@ ConvectiveCloudTopHeight       -1 103 -1 -1 2 level           Convective_cloud_t
 #InvCEDS_C2H6         C2H6   0    1   5   2   kg/m2/s  C2H6_emission_flux_from_CEDS_inventory
 #InvCEDS_C3H8         C3H8   0    1   5   2   kg/m2/s  C3H8_emission_flux_from_CEDS_inventory
 #InvCEDS_CH2O         CH2O   0    1   5   2   kg/m2/s  CH2O_emission_flux_from_CEDS_inventory
-#InvCEDS_CH4          CH4    0    1   5   2   kg/m2/s  CH4_emission_flux_from_CEDS_inventory
 #InvCEDS_CO           CO     0    1   5   2   kg/m2/s  CO_emission_flux_from_CEDS_inventory
-#InvCEDS_CO2          CO2    0    1   5   2   kg/m2/s  CO2_emission_flux_from_CEDS_inventory
 #InvCEDS_MOH          MOH    0    1   5   2   kg/m2/s  MOH_emission_flux_from_CEDS_inventory
 #InvCEDS_EOH          EOH    0    1   5   2   kg/m2/s  EOH_emission_flux_from_CEDS_inventory
 #InvCEDS_ROH          ROH    0    1   5   2   kg/m2/s  ROH_emission_flux_from_CEDS_inventory
