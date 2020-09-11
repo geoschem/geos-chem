@@ -4,16 +4,16 @@
 # 
 # Argument: archive directory name (can be non-existent)
 #
-# Example usage: ./archiveRun.sh c48_1hr_emissionsOff
+# Example usage: ./archiveRun.sh 1mon_24hrDiag
 #
 # The output data (OutputDir/*.nc4) is moved but everything else is copied, 
 # including log files (*.log, slurm-*), config files (*.rc, input.geos), 
-# run files (*.run, *.env, runConfig.sh), and restarts (only gcchem*). 
+# run files (*.run), and restarts (GEOSChem.Restart.*, HEMCO_restart.*). 
 # Files are stored in subdirectories within the archive directory.
 #
-# Clean the run directory after archiving with 'make cleanup_output' prior to
-# rerunning and archiving a new set of run outputs. Otherwise previous run files
-# will be copied to new run archives.
+# NOTE: Clean the run directory AFTER archiving with './cleanup_output/sh'
+# if you plan on doing another run. Otherwise previous run files will also
+# be archived if this script is called again.
 
 # Initial version: Lizzie Lundgren - 7/12/2018
 
@@ -64,9 +64,7 @@ copyfiles () {
          echo "   -> $2/$file"
          cp -t $2 $file
       else
-         if [[ $file != "*.multirun.sh" ]]; then
-            echo "   Warning: $file not found"
-         fi
+         echo "   Warning: $file not found"
       fi
    done
 }
@@ -78,31 +76,33 @@ mkdir -p ${archivedir}/diagnostics
 mkdir -p ${archivedir}/plots
 mkdir -p ${archivedir}/logs
 mkdir -p ${archivedir}/config
-mkdir -p ${archivedir}/restart
-mkdir -p ${archivedir}/checkpoints
+mkdir -p ${archivedir}/restarts
+mkdir -p ${archivedir}/build
+mkdir -p ${archivedir}/bin
 
 # Move large files rather than copy (except initial restart)
 echo "Moving files and directories..."
 movefiles "Plots"     ${archivedir}/plots
 movefiles "OutputDir" ${archivedir}/diagnostics FILLER
 
+# Copy some of the cmake logs
+cp build/*Properties.txt .
+mv *Properties.txt    ${archivedir}/build
+cp build/CMakeFiles/CMake*.log .
+mv CMake*.log ${archivedir}/build
+
 # Copy everything else
 echo "Copying files..."
-copyfiles input.geos      ${archivedir}/config
-copyfiles "*.rc"          ${archivedir}/config
-copyfiles runConfig.sh    ${archivedir}/config
-copyfiles "*.run"         ${archivedir}/config
-copyfiles "*.env"         ${archivedir}/config
-copyfiles "*.multirun.sh" ${archivedir}/config
-copyfiles "*.log"         ${archivedir}/logs
-copyfiles "slurm-*"       ${archivedir}/logs
-copyfiles "gcchem_*"      ${archivedir}/checkpoints
-copyfiles cap_restart     ${archivedir}/checkpoints
-
-# Special handling for copying initial restart (retrieve filename from config)
-x=$(grep "GIGCchem_INTERNAL_RESTART_FILE:" GCHP.rc)
-rst=${x:37}
-copyfiles $rst          ${archivedir}/restart
+copyfiles geos                           ${archivedir}/bin
+copyfiles input.geos                     ${archivedir}/config
+copyfiles rundir.version                 ${archivedir}/config
+copyfiles "*.rc"                         ${archivedir}/config
+copyfiles "*.run"                        ${archivedir}/config
+copyfiles "*.env"                        ${archivedir}/config
+copyfiles "*.log"                        ${archivedir}/logs
+copyfiles "slurm-*"                      ${archivedir}/logs
+copyfiles "GEOSChem.Restart.*"           ${archivedir}/restarts
+copyfiles "HEMCO_restart.*"              ${archivedir}/restarts
 
 printf "Complete!\n"
 
