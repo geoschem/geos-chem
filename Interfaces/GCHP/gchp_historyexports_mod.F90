@@ -1027,7 +1027,7 @@ CONTAINS
 
     IF ( am_I_Root ) THEN
        WRITE(6,*) " "
-       WRITE(6,*) "Setting history variable pointers to GC and Export States:"
+       WRITE(6,*) "Setting history variable pointers to GC and Export States"
     ENDIF
 
     ! Loop over the History Exports list
@@ -1098,9 +1098,10 @@ CONTAINS
                                  current%name, __RC__ )
        ENDIF
 
-       IF ( Am_I_Root) THEN
-          WRITE(6,*) TRIM(current%name)
-       ENDIF
+       !! debugging
+       !IF ( Am_I_Root) THEN
+       !   WRITE(6,*) TRIM(current%name)
+       !ENDIF
 
        current => current%next
     ENDDO
