@@ -8038,7 +8038,7 @@ MODULE GCKPP_HETRATES
       ! get the volume of cloud [cm3]
       ! QL is [g/g]
       VLiq = QL * AD(I,J,L) / dens_h2o
-      VIce = QI * AD(I,J,L) / dens_h2o
+      VIce = QI * AD(I,J,L) / dens_ice
 
       ALiq = 3.e+0_fp * (VLiq/Vair) / rLiq
 
