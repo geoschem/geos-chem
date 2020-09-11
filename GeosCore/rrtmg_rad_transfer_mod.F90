@@ -1863,9 +1863,13 @@ CONTAINS
              !WE ARE SAVING COLUMN AVERAGED VALUES FOR EACH SPECIES
              !DIVIDE THROUGH BY AOD*SSA (AOD-SSA WEIGHTING ACCOUNTS FOR
              !GRIDBOXES)
-             ASYMOUT=ASYMOUT/SSAOUT
+             IF ( IS_SAFE_DIV(ASYMOUT,SSAOUT) ) THEN
+                ASYMOUT=ASYMOUT/SSAOUT
+             ENDIF
              !DIVIDE THROUGH BY AOD
-             SSAOUT=SSAOUT/AODOUT
+             IF ( IS_SAFE_DIV(SSAOUT,AODOUT) ) THEN
+                SSAOUT=SSAOUT/AODOUT
+             ENDIF
              !offsetting output depending on wavelength
 #ifdef BPCH_DIAG
              ! Binary diagnostics
