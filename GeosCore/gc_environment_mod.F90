@@ -424,7 +424,6 @@ CONTAINS
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-    USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
     USE Dust_Mod,           ONLY : Init_Dust
@@ -718,9 +717,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-    ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
 
 #ifdef TOMAS
     !-----------------------------------------------------------------

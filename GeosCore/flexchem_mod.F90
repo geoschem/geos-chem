@@ -2,6 +2,7 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
+!
 ! !MODULE: flexchem_mod.F90
 !
 ! !DESCRIPTION: Module FlexChem\_Mod contines arrays and routines for the
@@ -96,7 +97,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-    USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -1303,16 +1303,8 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Save quantities for computing mean OH lifetime
+    ! Archive quantities for computing OH metrics
     !=======================================================================
-
-    !%%% NOTE: this routine is deprecated and will be removed
-    CALL DO_DIAG_OH( State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
-    ENDIF
-
-    ! Compute mean OH and mean CH4 diagnostics
     CALL Diag_Metrics( Input_Opt,  State_Chm, State_Diag,                    &
                        State_Grid, State_Met, RC                            )
 
@@ -1715,7 +1707,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Diag_Mean_OH_and_CH4
+! !IROUTINE: Diag_Metrics
 !
 ! !DESCRIPTION: Computes mass-weighted mean OH columns (full-atmosphere and
 !  trop-only) that are needed to compute the overall mean OH concentration.
@@ -1772,28 +1764,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+    REAL(f8), PARAMETER :: M3toCM3        = 1.0e+6_f8
+!
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
     LOGICAL,  SAVE      :: first          = .TRUE.
-    INTEGER,  SAVE      :: id_CH4         = -1
-    REAL(f8), SAVE      :: MCM3toKGM3_CH4 = -1.0_f8
     INTEGER,  SAVE      :: id_OH          = -1
-    REAL(f8), SAVE      :: MCM3toKGM3_OH  = -1.0_f8 
+    REAL(f8), SAVE      :: MCM3toKGM3_OH  = -1.0_f8
 
     ! Scalars
-    INTEGER             :: I,         J,           L
-    REAL(f8)            :: airMass_m, airmass_kg,  airMassFull, airMassTrop
-    REAL(f8)            :: ch4conc,   ch4Mass,     CH4massFull, CH4massTrop
-    REAL(f8)            :: OHconc,    OHmass,      OHmassFull,  OHmassTrop
-    REAL(f8)            :: Ktrop,     MCFlossTrop, volume
+    INTEGER             :: I,           J,           L
+    REAL(f8)            :: airMass_m,   airmass_kg,  airMassFull
+    REAL(f8)            :: airMassTrop, Ktrop,       LossOHbyCH4
+    REAL(f8)            :: LossOHbyMCF, OHconc_mcm3, OHmassWgt
+    REAL(f8)            :: OHmassFull,  OHmassTrop,  volume
 
     ! Strings
-    CHARACTER(LEN=255)  :: errMsg,    thisLoc
-!
-! !DEFINED PARAMETERS:
-!
-    REAL(f8), PARAMETER :: M3toCM3 = 1.0e+6_f8
+    CHARACTER(LEN=255)  :: errMsg,      thisLoc
 
     !========================================================================
     ! Compute_Mean_OH_and_CH4 begins here!
@@ -1820,23 +1810,11 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Get the species ID for CH4
-       id_CH4 = Ind_('CH4')
-       IF ( id_CH4 < 0 ) THEN
-          errMsg = 'CH4 is not a defined species in this simulation!!!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
        ! Convert [molec OH cm-3] --> [kg OH m-3]
-       MCM3toKGM3_OH  = M3toCM3                                              & 
+       MCM3toKGM3_OH  = M3toCM3                                              &
                       * ( State_Chm%SpcData(id_OH)%Info%MW_g * 1.0e-3_f8 )   &
                       / AVO
- 
-       ! Convert [molec CH4 cm-3] --> [kg CH4 m-3]
-       MCM3toKGM3_CH4 = M3toCM3                                              &
-                      * ( State_Chm%SpcData(id_CH4)%Info%MW_g * 1.0e-3_f8 )  &
-                      / AVO
+
 
        ! Reset first-time flag
        first  = .FALSE.
@@ -1847,11 +1825,10 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,           J,           L,           airMass_m         )&
-    !$OMP PRIVATE( airMass_kg,  CH4conc,     CH4mass,     Ktrop             )&
-    !$OMP PRIVATE( OHconc,      OHmass,      volume,      airMassFull       )&
-    !$OMP PRIVATE( airMassTrop, CH4massFull, MCFlossTrop, CH4massTrop       )&
-    !$OMP PRIVATE( OHmassFull,  OHMassTrop                                  )&
+    !$OMP PRIVATE( I,           J,           L,           airMass_kg        )&
+    !$OMP PRIVATE( airMass_m,   airMassFull, airMassTrop, Ktrop             )&
+    !$OMP PRIVATE( LossOHbyCH4, LossOHbyMCF, OHconc_mcm3, OHmassWgt         )&
+    !$OMP PRIVATE( OHmassFull,  OHmassTrop,  volume                         )&
     !$OMP SCHEDULE( DYNAMIC, 4                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1859,20 +1836,18 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Zero column-specific quantities
        !--------------------------------------------------------------------
-       airMass_m   = 0.0_f8
        airMass_kg  = 0.0_f8
+       airMass_m   = 0.0_f8
        airMassFull = 0.0_f8
        airMassTrop = 0.0_f8
-       CH4conc     = 0.0_f8
-       CH4mass     = 0.0_f8
-       CH4massFull = 0.0_f8
-       CH4massTrop = 0.0_f8
-       MCFlossTrop = 0.0_f8
        Ktrop       = 0.0_f8
-       OHconc      = 0.0_f8
-       OHmass      = 0.0_f8
+       LossOHbyCH4 = 0.0_f8
+       LossOHbyMCF = 0.0_f8
+       OHconc_mcm3 = 0.0_f8
+       OHmassWgt   = 0.0_f8
        OHmassFull  = 0.0_f8
        OHmassTrop  = 0.0_f8
+       volume      = 0.0_f8
 
        !--------------------------------------------------------------------
        ! Loop over the number of levels in the full-atmosphere column
@@ -1881,52 +1856,56 @@ CONTAINS
        DO L = 1, State_Met%ChemGridLev(I,J)
 
           ! Compute box volume [cm3], and air mass ([molec] and [kg])
-          ! Note: air mass in [molec] is also the atmospheric burden of 
-          ! methyl chloroform (aka MCF, formula=CH3CCl3), since we assume 
+          ! Note: air mass in [molec] is also the atmospheric burden of
+          ! methyl chloroform (aka MCF, formula=CH3CCl3), since we assume
           ! a uniform mixing ratio (=1) of MCF in air.
           volume      = State_Met%AIRVOL(I,J,L)    * M3toCM3
           airMass_m   = State_Met%AIRNUMDEN(I,J,L) * volume
-          airMass_kg  = airMass_m / XNUMOLAIR 
+          airMass_kg  = airMass_m / XNUMOLAIR
 
-          ! CH4 and OH concentrations [molec cm^-3]
-          CH4conc     = State_Chm%Species(I,J,L,id_CH4)
-          OHconc      = State_Chm%Species(I,J,L,id_OH )
-         
-          ! Airmass-weighted CH4 [kg air * (kg CH4 m-3)] and
-          ! Airmass-weighted OH  [kg air * (kg OH  m-3)]
-          CH4mass     = airMass_kg * ( CH4conc * MCM3toKGM3_CH4 )
-          OHmass      = airMass_kg * ( OHconc  * MCM3toKGM3_OH  )
+          ! OH concentration [molec cm-3]
+          OHconc_mcm3 = State_Chm%Species(I,J,L,id_OH)
 
-          ! Sum the air mass, mass-weighted CH4, 
+          ! Airmass-weighted OH [kg air * (kg OH  m-3)]
+          OHmassWgt   = airMass_kg * ( OHconc_mcm3  * MCM3toKGM3_OH  )
+
+          ! Sum the air mass, mass-weighted CH4,
           ! and mass-weighted OH in the full-atm column
           airMassFull = airMassFull + airMass_kg
-          CH4massFull = CH4massFull + CH4Mass
-          OHmassFull  = OHmassFull  + OHMass
+          OHmassFull  = OHmassFull  + OHMassWgt
 
+          !------------------------------------------------------------------
           ! Only do the following for tropospheric boxes ...
+          !------------------------------------------------------------------
           IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
-             ! Sum the air mass, mass-weighted CH4, 
+             ! Sum the air mass, mass-weighted CH4,
              ! and mass-weighted OH in the trop-only column
              airMassTrop = airMassTrop + airMass_kg
-             CH4massTrop = CH4MassTrop + CH4mass
-             OHmassTrop  = OHmassTrop  + OHmass
+             OHmassTrop  = OHmassTrop  + OHmassWgt
+
+             ! Compute CH4 loss rate in troposphere
+             ! Ktrop (Arrhenius parameter) has units [cm3/molec/s]
+             ! OHconc has units [molec/cm3]
+             ! AirMass has units [molec]
+             ! Resultant units of CH4 loss rate = [molec/s]
+             Ktrop = 2.45e-12_f8 * EXP( -1775.0_f8 / State_Met%T(I,J,L) )
+             LossOHbyCH4 = LossOHbyCH4 + ( Ktrop * OHconc_mcm3 * airMass_m )
 
              ! Compute MCF loss rate in the troposphere
              ! Ktrop (Arrhenius parameter) has units [cm3/molec/s]
              ! OHconc has units [molec/cm3]
              ! AirMass has units [molec]
              ! Resultant units of MCF loss rate = [molec/s]
-             IF ( State_Diag%Archive_MCFlossInTrop ) THEN
-                Ktrop = 1.64e-12_f8 * EXP( -1520.0_f8 / State_Met%T(I,J,L) )
-                MCFlossTrop = MCFlossTrop + ( Ktrop * OHconc * airMass_m )
-             ENDIF
+             Ktrop = 1.64e-12_f8 * EXP( -1520.0_f8 / State_Met%T(I,J,L) )
+             LossOHbyMCF = LossOHbyMCF + ( Ktrop * OHconc_mcm3 * airMass_m )
+
           ENDIF
        ENDDO
 
        !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! Air mass [kg]
+       ! Air mass [kg], full-atmosphere and trop-only column sums
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_AirMassColumnFull ) THEN
           State_Diag%AirMassColumnFull(I,J) = airMassFull
@@ -1938,19 +1917,8 @@ CONTAINS
 
        !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! Mass-weighted mean CH4 [kg air * (kg CH4 m-3)]
-       !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_CH4wgtByAirMassColumnFull ) THEN
-          State_Diag%CH4wgtByairMassColumnFull(I,J) = CH4massFull
-       ENDIF
-
-       IF ( State_Diag%Archive_CH4wgtByAirMassColumnTrop ) THEN
-          State_Diag%CH4wgtByAirMassColumnTrop(I,J) = CH4massTrop
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! HISTORY (aka netCDF diagnostics)
-       ! Mass-weighted mean OH [kg air * (kg OH m-3)]
+       ! Airmass-weighted mean OH [kg air * (kg OH m-3)]
+       ! Full-atmosphere and trop-only column sums
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_OHwgtByAirMassColumnFull ) THEN
           State_Diag%OHwgtByAirMassColumnFull(I,J) = OHmassFull
@@ -1962,11 +1930,17 @@ CONTAINS
 
        !-----------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
-       ! MCF lifetime [s] = MCF total atmospheric burden [molec]
-       !                  / MCF loss rate in trop [molec/s]
-       !-----------------------------------------------------------------
-       IF ( State_Diag%Archive_MCFlossInTrop ) THEN
-          State_Diag%MCFlossInTrop(I,J) = MCFlossTrop
+       !
+       ! OH loss by CH4 + OH in troposphere [molec/s] and
+       ! OH loss by MCF + OH in troposphere [molec/s]
+       ! Full-atmosphere and trop-only column sums
+       !----------------------------------------------------------------
+       IF ( State_Diag%Archive_LossOHbyCH4columnTrop ) THEN
+          State_Diag%LossOHbyCH4columnTrop(I,J) = LossOHbyCH4
+       ENDIF
+
+       IF ( State_Diag%Archive_LossOHbyMCFcolumnTrop ) THEN
+          State_Diag%LossOHbyMCFcolumnTrop(I,J) = LossOHbyMCF
        ENDIF
 
     ENDDO
