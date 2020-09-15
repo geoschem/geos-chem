@@ -269,7 +269,6 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
-cp ./build.sh                         ${rundir}
 cp ./input.nml                        ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
@@ -292,7 +291,6 @@ mkdir ${rundir}/OutputDir
 # Set permissions
 chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
-chmod 744 ${rundir}/build.sh
 chmod 744 ${rundir}/runConfig.sh
 chmod 744 ${rundir}/archiveRun.sh
 chmod 744 ${rundir}/runScriptSamples/*
@@ -374,55 +372,65 @@ sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in runConfig.sh and CAP.rc.\n"
 
 # Special handling for benchmark simulation
-if [[ ${sim_extra_option} = "benchmark" ]]; then
+if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
     total_cores=48
     num_nodes=2
     num_cores_per_node=24
     grid_res=48
-    diag_freq="7440000"
+    timeAvg_freq="7440000"
+    inst_freq="7440000"
+    monthly_diag=1
     start_time="000000"
     end_time="000000"
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
-    printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
-    printf "\n     You may modify these settings in runConfig.sh.\n"
+    printf "\n  -- The default diagnostic frequency and duration is monthly."
 else
-    total_cores=30
+    total_cores=24
     num_nodes=1
-    num_cores_per_node=30
+    num_cores_per_node=24
     grid_res=24
-    diag_freq="010000"
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    monthly_diag=0
     start_time="000000"
     end_time="010000"
     dYYYYMMDD="00000000"
     dHHmmSS="010000"
-    printf "\n  -- The default frequency and duration of diagnostics is set to hourly."
-    printf "\n     You may modify these settings in runConfig.sh.\n"
+    printf "\n  -- The default diagnostic frequency and duration is hourly."
 fi
-diag_dur=${diag_freq}
+printf "\n  -- You may modify these settings in runConfig.sh.\n"
+timeAvg_dur=${timeAvg_freq}
+inst_dur=${inst_freq}
 sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
 sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
 sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{DiagFreq}|${diag_dur}|"                  ${rundir}/runConfig.sh
-sed -i -e "s|{DiagDur}|${diag_freq}|"                  ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"     ${rundir}/runConfig.sh
-sed -i -e "s|{TIME2}|${end_time}|"       ${rundir}/runConfig.sh
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/runConfig.sh
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"     ${rundir}/CAP.rc
-sed -i -e "s|{TIME2}|${end_time}|"       ${rundir}/CAP.rc
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"  ${rundir}/CAP.rc
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/CAP.rc
+sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
+sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{MonthlyDiag}|${monthly_diag}|"           ${rundir}/runConfig.sh
+sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
+sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
+sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
+sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
+sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
+sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc
+sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/CAP.rc
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
 if [[ ${sim_name} = "fullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
+
+# Call runConfig.sh so that all config files are consistent with its
+# default settings. Suppress informational prints.
+./runConfig.sh --silent
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
@@ -463,7 +471,10 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
+	git add *.rc *.sh *.yml *.run input.geos input.nml
+        if [[ ${sim_name} = "fullchem" ]]; then
+            git add *.py
+        fi
 	git add runScriptSamples/* README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}

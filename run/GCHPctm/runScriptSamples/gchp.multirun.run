@@ -100,7 +100,7 @@ else
    echo "No cap_restart prior to run"
 fi
 
-source runConfig.sh > /dev/null
+source runConfig.sh --silent
 
 # Monthly diagnostic option automatically updates HISTORY.rc freq/duration
 # with number of hours for the month of the run. Includes leap year handling.
