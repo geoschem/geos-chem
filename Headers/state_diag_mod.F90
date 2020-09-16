@@ -1940,14 +1940,15 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=5  ) :: TmpWL
     CHARACTER(LEN=10 ) :: TmpHt
-    CHARACTER(LEN=255) :: errMsg,    thisLoc, errMsg_ir
     CHARACTER(LEN=255) :: arrayID,   diagID
+    CHARACTER(LEN=255) :: errMsg,    errMsg_ir,   thisLoc
 
     ! Scalars
     INTEGER            :: C,         N
+    INTEGER            :: NX,        NY,          NW
     LOGICAL            :: am_I_Root, EOF
-    LOGICAL            :: Found,     found2
-    LOGICAL            :: forceDefine
+    LOGICAL            :: found,     forceDefine
+    LOGICAL            :: foundMix,  foundChm
 
     !=======================================================================
     ! Initialize
@@ -2553,63 +2554,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Dry deposition flux from chemistry
-    ! NOTE: Turn on this diagnostic if we are saving total drydep
-    !------------------------------------------------------------------------
-
-    ! Check if the "DryDep" diagnostic is also in the DiagList
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine, RC )
-
-    diagID  = 'DryDepChm'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepChm,                              &
-         archiveData    = State_Diag%Archive_DryDepChm,                      &
-         mapData        = State_Diag%Map_DryDepChm,                          &
-         diagId         = diagId,                                            &
-         forceDefine    = forceDefine,                                       &
-         diagFlag       = 'D',                                               &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Dry deposition flux from chemistry
-    ! NOTE: Turn on this diagnostic if we are saving total drydep
-    !------------------------------------------------------------------------
-    diagID  = 'DryDepMix'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepMix,                              &
-         archiveData    = State_Diag%Archive_DryDepMix,                      &
-         mapData        = State_Diag%Map_DryDepMix,                          &
-         forceDefine    = forceDefine,                                       &
-         diagId         = diagId,                                            &
-         diagFlag       = 'D',                                               &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Total dry deposition flux = DryDepChm + DryDepMix
+    ! Total dry deposition flux
     !------------------------------------------------------------------------
     diagID  = 'DryDep'
     CALL Init_and_Register(                                                  &
@@ -2630,6 +2575,99 @@ CONTAINS
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Dry deposition flux from chemistry
+    ! NOTE: Turn on this diagnostic if we are saving total drydep,
+    ! but do not register individual fields unless they are in HISTORY.rc
+    !------------------------------------------------------------------------
+
+    ! Check if the "DryDep" diagnostic is in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine, RC )
+
+    ! Check if the "DryDepChm" diagnostic is also in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepChm', found, RC )
+
+    IF ( found ) THEN
+
+       ! If DryDepMix is in the DiagList, then allocate all corresponding
+       ! State_Diag fields and register the DryDepMix diagnostic
+       diagID  = 'DryDepChm'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DryDepChm,                           &
+            archiveData    = State_Diag%Archive_DryDepChm,                   &
+            mapData        = State_Diag%Map_DryDepChm,                       &
+            diagId         = diagId,                                         &
+            forceDefine    = forceDefine,                                    &
+            diagFlag       = 'D',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+
+       ! If "DryDep" is registered but "DryDepChm" is not, then initialize
+       ! the State_Diag%DryDepChm fields but do not register the diagnostic.
+       IF ( forceDefine ) THEN
+          CALL Init_NoRegister_DryDepChmMix( State_Diag, RC, Chm=.TRUE. )
+       ENDIF
+
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Dry deposition flux from mixing
+    ! NOTE: Turn on this diagnostic if we are saving total drydep,
+    ! but do not register individual fields unless they are in HISTORY.rc
+    !------------------------------------------------------------------------
+
+    ! Check if the "DryDepMix" diagnostic is also in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepMix', found, RC )
+
+    IF ( found ) THEN
+
+       ! If DryDepMix is in the DiagList, then allocate all
+       ! corresponding State_Diag fields and register the diagnostic
+       diagID  = 'DryDepMix'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DryDepMix,                           &
+            archiveData    = State_Diag%Archive_DryDepMix,                   &
+            mapData        = State_Diag%Map_DryDepMix,                       &
+            forceDefine    = forceDefine,                                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'D',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+
+       ! If "DryDep" is registered but "DryDepMix" is not, then initialize
+       ! the State_Diag%DryDepMix fields but do not register the diagnostic.
+       IF ( forceDefine ) THEN
+          CALL Init_NoRegister_DryDepChmMix( State_Diag, RC, Mix=.TRUE. )
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -13922,8 +13960,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: alwaysDefine, found
-    INTEGER            :: NX,           NY
-    INTEGER            :: NZ,           numSlots
+    INTEGER            :: NX,           NY,       NZ
+    INTEGER            :: NW,           numSlots
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -14107,8 +14145,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: alwaysDefine, found
-    INTEGER            :: NX,           NY
-    INTEGER            :: NZ,           numSlots
+    INTEGER            :: NX,           NY,      NZ
+    INTEGER            :: NW,           numSlots
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -14479,8 +14517,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: alwaysDefine, found
-    INTEGER            :: NX,           NY
-    INTEGER            :: NZ,           numSlots
+    INTEGER            :: NX,           NY,       NZ
+    INTEGER            :: NW,           numSlots
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -14664,8 +14702,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: alwaysDefine, found
-    INTEGER            :: NX,           NY
-    INTEGER            :: NZ,           numSlots
+    INTEGER            :: NX,           NY,      NZ
+    INTEGER            :: NW,           numSlots
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -15225,5 +15263,142 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Finalize_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE:
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_NoRegister_DryDepChmMix( State_Diag, RC, Chm, Mix )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        OPTIONAL      :: Chm          ! Init DryDepChm arrays
+    LOGICAL,        OPTIONAL      :: Mix          ! Init DryDepMix arrays
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!
+! !RETURN VALUE:
+!
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Pointers
+    LOGICAL :: initChm, initMix
+    INTEGER :: NX,      NY,     NW
+    INTEGER :: nSlots,  nIds
+
+    ! Initialize
+    RC     = GC_SUCCESS
+    NX     = SIZE( State_Diag%DryDep, 1 )
+    NY     = SIZE( State_Diag%DryDep, 2 )
+    NW     = SIZE( State_Diag%DryDep, 3 )
+    nSlots = State_Diag%Map_DryDep%nSlots
+    nIds   = State_Diag%Map_DryDep%nIds
+
+    ! Initialize the DryDepChm arrays?
+    IF ( PRESENT( Chm ) ) THEN
+       initChm = Chm
+    ELSE
+       initChm = .FALSE.
+    ENDIF
+
+    ! Initialize the DryDepMix arrays?
+    IF ( PRESENT( Mix ) ) THEN
+       initMix = Mix
+    ELSE
+       initMix = .FALSE.
+    ENDIF
+
+    IF ( initChm ) THEN
+
+       ! Initialize the logical
+       State_Diag%Archive_DryDepChm = State_Diag%Archive_DryDep
+
+       ! Initialzie
+       ALLOCATE( State_Diag%DryDepChm( NX, NY, NW ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepChm', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_diag%DryDepChm = 0.0_f4
+
+       ! Initialize the mapping object
+       ALLOCATE( State_Diag%Map_DryDepChm, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Initialize slot2Id vector
+       State_Diag%Map_DryDepChm%nSlots = State_Diag%Map_DryDep%nSlots
+       ALLOCATE( State_Diag%Map_DryDepChm%slot2Id(nSlots), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%slot2Id', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Map_DryDepChm%slot2Id = State_Diag%Map_DryDep%slot2Id
+
+       ! Initialize id2slot vector
+       State_Diag%Map_DryDepChm%nIds = State_Diag%Map_DryDep%nIds
+       ALLOCATE( State_Diag%Map_DryDepChm%id2slot(nIds), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%id2slot', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Map_DryDepChm%id2slot = State_Diag%Map_DryDep%id2slot
+
+    ENDIF
+
+    IF ( initMix ) THEN
+
+       ! Initialize the logical
+       State_Diag%Archive_DryDepMix = State_Diag%Archive_DryDep
+
+       ! Initialzie
+       ALLOCATE( State_Diag%DryDepMix( NX, NY, NW ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepMix', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_diag%DryDepMix = 0.0_f4
+
+       ! Initialize the mapping object
+       ALLOCATE( State_Diag%Map_DryDepMix, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Initialize slot2Id vector
+       State_Diag%Map_DryDepMix%nSlots = State_Diag%Map_DryDep%nSlots
+       ALLOCATE( State_Diag%Map_DryDepMix%slot2Id(nSlots), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%slot2Id', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Map_DryDepMix%slot2Id = State_Diag%Map_DryDep%slot2Id
+
+       ! Initialize id2slot vector
+       State_Diag%Map_DryDepMix%nIds = State_Diag%Map_DryDep%nIds
+       ALLOCATE( State_Diag%Map_DryDepMix%id2slot(nIds), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%id2slot', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Map_DryDepMix%id2slot = State_Diag%Map_DryDep%id2slot
+
+    ENDIF
+  END SUBROUTINE Init_NoRegister_DryDepChmMix
 !EOC
 END MODULE State_Diag_Mod
