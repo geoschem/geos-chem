@@ -3,10 +3,9 @@
 #SBATCH -c 24
 #SBATCH -N 1
 #SBATCH -t 0-12:00
-#SBATCH -p jacob_dev
-#SBATCH --mem=15000
+#SBATCH -p huce_cascade
+#SBATCH --mem=16000
 #SBATCH --mail-type=END
-#SBATCH --exclusive
 
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -47,12 +46,6 @@
 #EOP
 #------------------------------------------------------------------------------
 #BOC
-
-# Load environment modules
-# This will load the IFORT17 compiler.
-# If you use a different compiler, make sure to load the proper modules.
-source ~/.bashrc
-source ~/init/init.gc-classic.ifort17.centos7
 
 # Set the proper # of threads for OpenMP
 # SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
