@@ -585,14 +585,6 @@ PROGRAM GEOS_Chem
   ! Skip these operations when in dry-run mode
   !-----------------------------------------------------------------
   IF ( notDryRun ) THEN
-
-     ! Initialize the regridding module by storing shadow copies
-     CALL GC_Init_Regridding( Input_Opt, State_Grid, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Initialize_Regridding"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-
      ! Define advected species ID flags for use below
      id_H2O   = Ind_('H2O', 'A')
      id_CH4   = Ind_('CH4', 'A')
