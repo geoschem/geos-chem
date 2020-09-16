@@ -1151,7 +1151,7 @@ Warnings:                    1
 0 CEDS_CO_rRCOR    $ROOT/CEDS/v2020-08/$YYYY/CO-em-process_CEDS_$YYYY.nc                                 CO_rcor            1970-2017/1-12/1/0 C xy kg/m2/s CO    26     1 5
 0 CEDS_SOAP_rRCOR  -                                                                                     -                  -                  - -  -       SOAP  26/280 1 5
 0 CEDS_CO_rRCOC    $ROOT/CEDS/v2020-08/$YYYY/CO-em-process_CEDS_$YYYY.nc                                 CO_rcoc            1970-2017/1-12/1/0 C xy kg/m2/s CO    26     1 5
-0 CEDS_SOAP_rRCOR  -                                                                                     -                  -                  - -  -       SOAP  26/280 1 5
+0 CEDS_SOAP_rRCOC  -                                                                                     -                  -                  - -  -       SOAP  26/280 1 5
 0 CEDS_CO_rRCOO    $ROOT/CEDS/v2020-08/$YYYY/CO-em-process_CEDS_$YYYY.nc                                 CO_rcoo            1970-2017/1-12/1/0 C xy kg/m2/s CO    26     1 5
 0 CEDS_SOAP_rRCOO   -                                                                                     -                  -                  - -  -       SOAP  26/280 1 5
 0 CEDS_CO_rSLV     $ROOT/CEDS/v2020-08/$YYYY/CO-em-process_CEDS_$YYYY.nc                                 CO_slv             1970-2017/1-12/1/0 C xy kg/m2/s CO    26     1 5
@@ -1657,11 +1657,11 @@ Warnings:                    1
 0 CEDS_EOH_gAGR    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_gAGR    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gENE    $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_ene            1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_rENE    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_rENE    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_gENE    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_gENE    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gIND    $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_ind            1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_rIND    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_rIND    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_gIND    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_gIND    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gNRTR   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_nrtr           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
 0 CEDS_EOH_gNRTR   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_gNRTR   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
@@ -1729,8 +1729,8 @@ Warnings:                    1
 0 CEDS_EOH_cROAD   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_cROAD   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_cRCOR   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-total-coal_CEDS_$YYYY.nc                             EOH_rcor           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_cRCOC   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_cRCOC   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_cRCOR   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_cRCOR   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_cRCOC   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-total-coal_CEDS_$YYYY.nc                             EOH_rcoc           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
 0 CEDS_EOH_cRCOC   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_cRCOC   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
@@ -2075,8 +2075,6 @@ Warnings:                    1
 
 0 CEDS_BENZ_rAGR   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_agr           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rENE   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ene           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
-0 CEDS_BENZ_rAGR   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_agr           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
-0 CEDS_BENZ_rENE   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ene           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rIND   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ind           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rNRTR  $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_nrtr          1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rROAD  $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_road          1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
@@ -2118,8 +2116,6 @@ Warnings:                    1
 
 0 CEDS_TOLU_rAGR   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_agr           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rENE   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ene           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
-0 CEDS_TOLU_rAGR   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_agr           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
-0 CEDS_TOLU_rENE   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ene           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rIND   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ind           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rNRTR  $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_nrtr          1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rROAD  $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_road          1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
@@ -2159,8 +2155,6 @@ Warnings:                    1
 0 CEDS_TOLU_cSLV   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-total-coal_CEDS_$YYYY.nc                            TOLU_slv           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_cWST   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-total-coal_CEDS_$YYYY.nc                            TOLU_wst           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 
-0 CEDS_XYLE_rAGR   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_agr           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
-0 CEDS_XYLE_rENE   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ene           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rAGR   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_agr           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rENE   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ene           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rIND   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ind           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
@@ -2575,11 +2569,11 @@ Warnings:                    1
 0 CEDS_EOH_gAGR    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_gAGR    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gENE    $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_ene            1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_rENE    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_rENE    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_gENE    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_gENE    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gIND    $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_ind            1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_rIND    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_rIND    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_gIND    -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_gIND    -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_gNRTR   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc           EOH_nrtr           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
 0 CEDS_EOH_gNRTR   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_gNRTR   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
@@ -2647,8 +2641,8 @@ Warnings:                    1
 0 CEDS_EOH_cROAD   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_cROAD   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_cRCOR   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-total-coal_CEDS_$YYYY.nc                             EOH_rcor           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
-0 CEDS_EOH_cRCOC   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
-0 CEDS_ROH_cRCOC   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
+0 CEDS_EOH_cRCOR   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
+0 CEDS_ROH_cRCOR   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
 0 CEDS_MOH_cRCOC   $ROOT/CEDS/v2020-08/$YYYY/EOH-em-total-coal_CEDS_$YYYY.nc                             EOH_rcoc           1970-2017/1-12/1/0 C xy kg/m2/s MOH   26/90  1 5
 0 CEDS_EOH_cRCOC   -                                                                                     -                  -                  - -  -       EOH   26/91  1 5
 0 CEDS_ROH_cRCOC   -                                                                                     -                  -                  - -  -       ROH   26/92  1 5
@@ -2993,8 +2987,6 @@ Warnings:                    1
 
 0 CEDS_BENZ_rAGR   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_agr           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rENE   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ene           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
-0 CEDS_BENZ_rAGR   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_agr           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
-0 CEDS_BENZ_rENE   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ene           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rIND   $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_ind           1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rNRTR  $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_nrtr          1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
 0 CEDS_BENZ_rROAD  $ROOT/CEDS/v2020-08/$YYYY/BENZ-em-process_CEDS_$YYYY.nc                               BENZ_road          1970-2017/1-12/1/0 C xy kg/m2/s BENZ  26     1 5
@@ -3036,8 +3028,6 @@ Warnings:                    1
 
 0 CEDS_TOLU_rAGR   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_agr           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rENE   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ene           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
-0 CEDS_TOLU_rAGR   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_agr           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
-0 CEDS_TOLU_rENE   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ene           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rIND   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_ind           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rNRTR  $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_nrtr          1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_rROAD  $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-process_CEDS_$YYYY.nc                               TOLU_road          1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
@@ -3077,8 +3067,6 @@ Warnings:                    1
 0 CEDS_TOLU_cSLV   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-total-coal_CEDS_$YYYY.nc                            TOLU_slv           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 0 CEDS_TOLU_cWST   $ROOT/CEDS/v2020-08/$YYYY/TOLU-em-total-coal_CEDS_$YYYY.nc                            TOLU_wst           1970-2017/1-12/1/0 C xy kg/m2/s TOLU  26     1 5
 
-0 CEDS_XYLE_rAGR   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_agr           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
-0 CEDS_XYLE_rENE   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ene           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rAGR   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_agr           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rENE   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ene           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
 0 CEDS_XYLE_rIND   $ROOT/CEDS/v2020-08/$YYYY/XYLE-em-process_CEDS_$YYYY.nc                               XYLE_ind           1970-2017/1-12/1/0 C xy kg/m2/s XYLE  26     1 5
