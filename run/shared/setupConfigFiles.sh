@@ -78,23 +78,23 @@ set_common_settings() {
         # Add complex SOA species in input.geos
         prev_line="Species name            : ALK4"
         new_line="\Species name            : ASOA1\n\
-    Species name            : ASOA2\n\
-    Species name            : ASOA3\n\
-    Species name            : ASOAN\n\
-    Species name            : ASOG1\n\
-    Species name            : ASOG2\n\
-    Species name            : ASOG3"
+Species name            : ASOA2\n\
+Species name            : ASOA3\n\
+Species name            : ASOAN\n\
+Species name            : ASOG1\n\
+Species name            : ASOG2\n\
+Species name            : ASOG3"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
         
         prev_line="Species name            : TOLU"
         new_line="\Species name            : TSOA0\n\
-    Species name            : TSOA1\n\
-    Species name            : TSOA2\n\
-    Species name            : TSOA3\n\
-    Species name            : TSOG0\n\
-    Species name            : TSOG1\n\
-    Species name            : TSOG2\n\
-    Species name            : TSOG3"
+Species name            : TSOA1\n\
+Species name            : TSOA2\n\
+Species name            : TSOA3\n\
+Species name            : TSOG0\n\
+Species name            : TSOG1\n\
+Species name            : TSOG2\n\
+Species name            : TSOG3"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
     fi
     
