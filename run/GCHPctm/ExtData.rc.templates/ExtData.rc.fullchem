@@ -773,9 +773,6 @@ AF_EDGAR_SO2_SWD  kg/m2/s  N Y F%y4-01-01T00:00:00 none none emi_so2  ./MainData
 #==============================================================================
 # --- CEDS (CEDS) ---
 #==============================================================================
-
-%%%% ADD SCALING %%%
-
 CEDS_NO_rAGR     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_agr            ./MainDataDir/CEDS/v2020-08/%y4/NO-em-process_CEDS_%y4.nc
 CEDS_NO_rENE     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ene            ./MainDataDir/CEDS/v2020-08/%y4/NO-em-process_CEDS_%y4.nc
 CEDS_NO_rIND     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ind            ./MainDataDir/CEDS/v2020-08/%y4/NO-em-process_CEDS_%y4.nc
@@ -1179,83 +1176,83 @@ CEDS_C4H10_cWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_butanes_wst  .
 CEDS_C5H12_rAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
 CEDS_C5H12_rENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
 CEDS_C5H12_rIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_rWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
-CEDS_C5H12_gAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_gWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C5H12_bAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_bWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C5H12_cAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C5H12_cWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_rAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_rWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
-CEDS_C6H14_gAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_gWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
-CEDS_C6H14_bAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_bWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
-CEDS_C6H14_cAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
-CEDS_C6H14_cWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_rNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_rWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-process_CEDS_%y4.nc
+CEDS_C5H12_gAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_gWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C5H12_bAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_bWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C5H12_cAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_agr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ene  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_ind  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_nrtr ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_road ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcor ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoc ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_rcoo ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_slv  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C5H12_cWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_pentanes_wst  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_pentanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_rAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_rWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-process_CEDS_%y4.nc
+CEDS_C6H14_gAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_gWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc
+CEDS_C6H14_bAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_bWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-solid-biofuel_CEDS_%y4.nc
+CEDS_C6H14_cAGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_agr   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ene   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cIND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_ind   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cNRTR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_nrtr  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cROAD kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_road  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cRCOR kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcor  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cRCOC kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoc  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cRCOO kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_rcoo  ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cSLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_slv   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
+CEDS_C6H14_cWST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.888 ALK4_hexanes_wst   ./MainDataDir/CEDS/v2020-08/%y4/ALK4_hexanes-em-total-coal_CEDS_%y4.nc
 CEDS_C2H4_rAGR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_agr          ./MainDataDir/CEDS/v2020-08/%y4/C2H4-em-process_CEDS_%y4.nc
 CEDS_C2H4_rENE   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ene          ./MainDataDir/CEDS/v2020-08/%y4/C2H4-em-process_CEDS_%y4.nc
 CEDS_C2H4_rIND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ind          ./MainDataDir/CEDS/v2020-08/%y4/C2H4-em-process_CEDS_%y4.nc
@@ -1907,10 +1904,10 @@ CEDS_MEK_rSHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./
 CEDS_MEK_gSHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./MainDataDir/CEDS/v2020-08/%y4/MEK-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc           
 CEDS_MEK_bSHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./MainDataDir/CEDS/v2020-08/%y4/MEK-em-solid-biofuel_CEDS_%y4.nc                          
 CEDS_MEK_cSHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./MainDataDir/CEDS/v2020-08/%y4/MEK-em-total-coal_CEDS_%y4.nc                             
-CEDS_HCOOH_rSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_sh          ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-process_CEDS_%y4.nc                              
-CEDS_HCOOH_gSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_sh          ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc         
-CEDS_HCOOH_bSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_sh          ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-solid-biofuel_CEDS_%y4.nc                        
-CEDS_HCOOH_cSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_sh          ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-total-coal_CEDS_%y4.nc                           
+CEDS_HCOOH_rSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-process_CEDS_%y4.nc                              
+CEDS_HCOOH_gSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc         
+CEDS_HCOOH_bSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-solid-biofuel_CEDS_%y4.nc                        
+CEDS_HCOOH_cSHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./MainDataDir/CEDS/v2020-08/%y4/HCOOH-em-total-coal_CEDS_%y4.nc                           
 
 # --- if SHIP and NEI2011_SHIP_* ---
 # NEI ship emissions are turned off by default in HEMCO_Config.rc; fill in this section if turning on
