@@ -198,13 +198,6 @@ MODULE GCKPP_HETRATES
 !  - In stratosphere or no?
 !  - Reaction index (e.g. NK1HBr, NK2HBr)
 !
-!  According to S. Eastham, we should also include
-!  cloud and ice area explicitly, in addition to
-!  aerosol area
-!
-!  C.D. Holmes: Cloud uptake of HBr, HOBr, BrNO3, and Cl equivalents should be handled by CloudHet
-!  so that they account for entrainment limits.
-!
 ! !REFERENCES:
 !  Eastham et al., Development and evaluation of the unified tropospheric-
 !    stratospheric chemistry extension (UCX) for the global chemistry-transport
@@ -213,6 +206,10 @@ MODULE GCKPP_HETRATES
 !    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
 !    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
 !    US. Atmos. Chem. Phys., 16, 2961-2990, 2016.
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
+!    4980-4990, https://doi.org/10.1029/2019GL081990   
 !  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
 !    formation from isoprene: application to the southeast United States and
 !    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
@@ -281,7 +278,7 @@ MODULE GCKPP_HETRATES
 !                              database instead of hardcoding in halogens code
 !  17 Oct 2018 - C.D. Holmes - Added cloud heterogeneous chemistry
 !  08 Jun 2019 - X. Wang     - Remove SS debromination options
-
+!  01 Aug 2020 - C.D. Holmes - Bug fixes for cloud properties. Performance improvements for CloudHet
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,6 +323,9 @@ MODULE GCKPP_HETRATES
       REAL(fp)               :: pHCloud, pHSSA(2)
       REAL(fp)               :: SSAlk(2)
       REAL(fp)               :: hno3_th, hcl_th, hbr_th
+
+      ! Cloud heterogeneous chemistry
+      REAL(fp)               :: gammaLiq, gammaIce
 
       ! Pointers and objects
       REAL(fp),       POINTER :: spcVec(:)
@@ -590,9 +590,7 @@ MODULE GCKPP_HETRATES
       ! Calculate genuine first-order uptake reactions first
       HET(ind_HO2,    1) = HetHO2(     H%HO2%MW_g,    2E-1_fp      )
       HET(ind_NO2,    1) = HetNO2(     H%NO2%MW_g,    1E-4_fp      )
-      HET(ind_NO3,    1) = HetNO3(     H%NO3%MW_g,    1E-1_fp      )         &
-                         + CloudHet( 'NO3', CldFr, Aliq,  Aice,              &
-                                      rLiq, rIce,  TempK, XDenA, H )
+      HET(ind_NO3,    1) = HetNO3(     H%NO3%MW_g,    1E-1_fp      )
       HET(ind_GLYX,   1) = HetGLYX(    H%GLYX%MW_g,   1E-1_fp      )
       HET(ind_MGLY,   1) = HetMGLY(    H%MGLY%MW_g,   1E-1_fp      )
       HET(ind_IEPOXA, 1) = HetIEPOX(   H%IEPOXA%MW_g, 1E-1_fp      )
@@ -621,12 +619,29 @@ MODULE GCKPP_HETRATES
       HET(ind_IONITA, 1) = HetIONITA(  H%IONITA%MW_g, 1E-1_fp      )
       HET(ind_MONITA, 1) = HetMONITA(  H%MONITA%MW_g, 1E-1_fp      )
 
-      ! First-order loss in clouds
+      !======================================================================
+      ! NOy uptake in clouds
+      !======================================================================
+      HET(ind_NO2,    1) = HET(ind_NO2, 1)                                   &
+                         + CloudHet( CldFr, Aliq, Aice,                      &
+                                     rLiq,  rIce, TempK,   XDenA,            &
+                                     H%NO2%MW_g,  1e-8_fp, 0.0_fp           )
       HET(ind_NO3,    1) = HET(ind_NO3, 1)                                   &
-                         + CloudHet( 'NO3', CldFr, Aliq, Aice,               &
-                                     rLiq,  rIce, TempK, XDenA, H  )
-      HET(ind_N2O5,   3) = CloudHet( 'N2O5',CldFr, Aliq, Aice,               &
-                                      rLiq, rIce, TempK, XDenA, H  )
+                         + CloudHet( CldFr, Aliq, Aice,                      &
+                                     rLiq,  rIce, TempK,    XDenA,           &
+                                     H%NO3%MW_g,  0.002_fp, 0.001_fp        )
+
+      ! Reactive uptake coefficient for N2O5 on liquid water cloud
+      ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
+      ! For temperature dependence, JPL recommends the same as
+      ! sulfuric acid aerosol at zero percent H2SO4, which is 0.019 at 298 K.
+      ! Then apply constant scale factor (0.03/0.019)
+      gammaLiq = ( 0.03_fp / 0.019_fp ) * &
+         exp( -25.5265_fp + 9283.76_fp / TempK - 851801.0_fp / TempK**2 )
+
+      HET(ind_N2O5,   3) = CloudHet( CldFr, Aliq, Aice,                      &
+                                     rLiq,  rIce, TempK,    XDenA,           &
+                                     H%N2O5%MW_g, gammaLiq, 0.02_fp         )
 
       ! Now calculate reaction rates where the educt can be consumed.
       ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
@@ -662,9 +677,12 @@ MODULE GCKPP_HETRATES
       !----------------------------------------------------------------------
       ! ClNO3 and BrNO3 hydrolysis (update: XW 2019-06-08)
       !----------------------------------------------------------------------
+      gammaLiq = MAX( 0.0021_fp*TempK - 0.561_fp, 1e-30_fp )
+      gammaIce = 5.3e-4_fp * exp(1100.0_fp / TempK)
       kITemp            = HETBrNO3( XDenA, TempK, CldFr, H )
-      kITemp = kITemp   + CloudHet( 'BrNO3', CldFr, Aliq,  Aice,             &
-                                     rLiq,   rIce,  TempK, XDenA, H         )
+      kITemp = kITemp   + CloudHet( CldFr, Aliq,  Aice,                      &
+                                    rLiq,  rIce,  TempK, XDenA,              &
+                                    H%BrNO3%MW_g, gammaLiq, gammaIce        )
 
       HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, H%BrNO3%mId, H%H2O%mId,          &
                                     kITemp, HetMinLife                      )
@@ -1339,19 +1357,27 @@ MODULE GCKPP_HETRATES
 ! !DESCRIPTION: Function CloudHet calculates the loss frequency (1/s) of gas
 !  species due to heterogeneous chemistry on clouds in a partially cloudy grid
 !  cell. The function uses the "entrainment limited uptake" equations of
-!  Holmes et al. (2018). Both liquid and ice water clouds are treated.
+!  Holmes et al. (2019). Both liquid and ice water clouds are treated.
+!
+!  For gasses that are that are consumed in multiple aqueous reactions with different 
+!  products, CloudHet can provide the loss frequency for each reaction branch using the 
+!  optional branch ratios (branchLiq, branchIce) as arguments.
+!
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
+!    4980-4990, https://doi.org/10.1029/2019GL081990   
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION CloudHet( SpeciesName, fc,    Aliq,      Aice,      rLiq,       &
-                       rIce,        T,     airNumDen, H,         xliq,       &
-                       xice,        rpliq, rpice                           ) &
+    FUNCTION CloudHet( fc,    Aliq,      Aice,      rLiq,      rIce,      &
+                       T,     airNumDen, molmass_g, gammaLiq,  gammaIce,  &
+                              branchLiq, branchIce     ) &
                        RESULT( kHet )
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(len=*), INTENT(IN) :: SpeciesName
       REAL(fp),         INTENT(IN) :: fc         ! Cloud Fraction [0-1]
       REAL(fp),         INTENT(IN) :: Aliq       ! Surface area density of
       REAL(fp),         INTENT(IN) :: AIce       !  cloud liquid & ice, cm2/cm3
@@ -1361,11 +1387,11 @@ MODULE GCKPP_HETRATES
       REAL(fp),         INTENT(IN) :: T          ! Temperature, K
       REAL(fp),         INTENT(IN) :: airNumDen  ! Air number density,
                                                  !  molec/cm3
-      TYPE(HetState),   INTENT(IN) :: H          ! Hetchem species metadata
-      REAL(fp),         OPTIONAL   :: xliq       ! For gama set elsewhere
-      REAL(fp),         OPTIONAL   :: xice       ! For gama set elsewhere
-      REAL(fp),         OPTIONAL   :: rpliq      ! Partitioning factors
-      REAL(fp),         OPTIONAL   :: rpice      ! partitioning factors
+      REAL(fp),         INTENT(IN) :: molmass_g  ! molar weight, g/mole
+      REAL(fp),         INTENT(IN) :: gammaLiq   ! Gamma values on liquid water
+      REAL(fp),         INTENT(IN) :: gammaIce   !   and water ice
+      REAL(fp),         OPTIONAL   :: branchLiq  ! Fraction of reactant consumed in a particular reaction branch
+      REAL(fp),         OPTIONAL   :: branchIce  !   in liquid and ice, fraction [0-1] 
 !
 ! !RETURN VALUE:
 !
@@ -1375,6 +1401,9 @@ MODULE GCKPP_HETRATES
 !  23 Aug 2018 - C. D. Holmes - Initial version
 !  17 Oct 2018 - C. D. Holmes - Re-implemented for v12.0.2
 !  08 Jun 2019 - X. Wang      - Update for halogen reactions
+!  01 Aug 2020 - C.D. Holmes  - Structural changes for better performance 
+!              (remove SELECT CASE, pass gamma & molar weight as arguments)
+!                               Revised 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1386,9 +1415,8 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      real(fp) :: kI, gam, rd, gammaLiq, gammaIce, &
-           area, alpha, beta, molmass
-      real(fp) :: kk, ff, xx, rp, kIr
+      real(fp) :: kI, gam, rd, area
+      real(fp) :: kk, ff, xx, branch, kIb, ktmp
       integer  :: K
 !
 !------------------------------------------------------------------------------
@@ -1401,89 +1429,6 @@ MODULE GCKPP_HETRATES
       endif
 
       !------------------------------------------------------------------------
-      ! Select Gamma and molar mass for this species
-      !------------------------------------------------------------------------
-
-      !%%% BMY NOTE: GET RID OF THIS CASE STATEMENT, IT IS INEFFICIENT
-      !%%% TO DO A STRING TEST ON EVERY (I,J,L) GRID BOX (bmy, 6/16/20)
-      select case (trim(speciesName))
-
-      case ('HO2')
-
-         gammaLiq = 0.10_fp
-         gammaIce = 0.025_fp
-         molmass  = H%HO2%MW_g
-
-      case ('NO2')
-
-         gammaLiq = 1e-8_fp
-         gammaIce = 0.0_fp
-         molmass  = H%NO2%MW_g
-
-      case ('NO3')
-
-         gammaLiq = 0.002_fp
-         gammaIce = 0.001_fp
-         molmass  = H%NO3%MW_g
-
-      case ('N2O5')
-
-         ! Reactive uptake coefficient for N2O5 on liquid water cloud
-         ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
-         ! For temperature dependence, JPL recommends the same as
-         ! sulfuric acid aerosol at zero percent H2SO4, which is 0.019 at 298 K.
-         ! Then apply constant scale factor (0.03/0.019)
-         gammaLiq = ( 0.03_fp / 0.019_fp ) * &
-              exp( -25.5265_fp + 9283.76_fp / T - 851801.0_fp / T**2 )
-
-         ! Reactive uptake coefficient for N2O5 on water ice
-         gammaIce = 0.02_fp
-         molmass  = H%N2O5%MW_g
-
-      case ('BrNO3')
-
-         gammaLiq = MAX( 0.0021_fp*T - 0.561_fp, 1e-30_fp )
-         gammaIce = 5.3e-4_fp * exp(1100.0_fp / T)
-         molmass  = H%BrNO3%MW_g
-
-      case ('ClNO3')
-
-         if ( present(xliq) ) gammaLiq = xliq
-         if ( present(xice) ) gammaIce = xice
-         molmass = H%ClNO3%MW_g
-
-      case ('HOBr')
-
-         if ( present(xliq) ) gammaLiq = xliq
-         if ( present(xice) ) gammaIce = xice
-         molmass = H%HOBr%MW_g
-
-      case ('HOCl')
-
-         if ( present(xliq) ) gammaLiq = xliq
-         if ( present(xice) ) gammaIce = xice
-         molmass = H%HOCl%MW_g
-
-      case ('O3')
-
-         if ( present(xliq) ) gammaLiq = xliq
-         gammaIce = 0.0_fp
-         molmass = H%O3%MW_g
-
-      case ('ClNO2')
-
-         if ( present(xliq) ) gammaLiq = xliq
-         gammaIce = 0.0_fp
-         molmass = H%ClNO2%MW_g
-
-      case default
-
-         print*, speciesName // ' not found in CloudHet function'
-         call GEOS_CHEM_STOP
-
-      end select
-
-      !------------------------------------------------------------------------
       ! Loss frequency inside cloud
       !
       ! Assume both water and ice phases are inside the same cloud, so mass
@@ -1491,14 +1436,14 @@ MODULE GCKPP_HETRATES
       !------------------------------------------------------------------------
 
       ! initialize loss, 1/s
-      kI = 0 !total loss rate of a gas in cloud
-      kIr = 0 !real loss rate for specific reaction
+      kI  = 0 ! total loss rate of a gas in cloud
+      kIb = 0 ! loss rate for specific reaction branch
 
       ! Loop over water (K=1) and ice (K=2)
       do K=1, 2
 
          ! initialize reactions partitioning factor
-         rp = 1.0e0_fp
+         branch = 1.0e0_fp
 
          ! Liquid water cloud
          if (K==1) then
@@ -1512,7 +1457,7 @@ MODULE GCKPP_HETRATES
             ! Liquid surface area density, cm2/cm3
             area = Aliq
 
-            if ( present(rpliq) ) rp = rpliq
+            if ( present(branchLiq) ) branch = branchLiq
 
          ! Ice water cloud
          elseif (K==2) then
@@ -1526,7 +1471,7 @@ MODULE GCKPP_HETRATES
             ! Ice surface area density, cm2/cm3
             area = Aice
 
-            if ( present(rpice) ) rp = rpice
+            if ( present(branchIce) ) branch = branchIce
 
          else
 
@@ -1534,17 +1479,25 @@ MODULE GCKPP_HETRATES
             call GEOS_CHEM_STOP
 
          endif
-!         print'(I4,6E10.3)',K,area,rd,airnumden,gam,T,molmass
 
          ! Skip calculation if there is no surface area
          if (area <= 0) cycle
 
+         ! Convert grid-average cloud condensate surface area density to in-cloud surface area density
+         area = safe_div(area, fc, 0.e+0_fp)
+
          ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
          ! Pass radius in cm and mass in g.
-         kI = kI + arsl1k( area, rd, airnumden, gam, sqrt(T), sqrt(molmass))
-         kIr = kIr + arsl1k( area, rd, airnumden, gam, sqrt(T), sqrt(molmass))*rp
+         ktmp = arsl1k( area, rd, airnumden, gam, sqrt(T), sqrt(molmass_g))
+         kI   = kI + ktmp
+
+         ! In-cloud loss frequency for particular reaction branch, 1/s
+         kIb = kIb + ktmp * branch
 
       end do
+
+      ! Mean branch ratio for reaction of interest in cloud (averaged over ice and liquid)
+      branch = kIb / kI
 
 !      !------------------------------------------------------------------------
 !      ! Grid-average loss frequency; Add in-cloud and entrainment rates in series
@@ -1588,7 +1541,13 @@ MODULE GCKPP_HETRATES
       ! kHet = kI * xx / ( 1d0 + xx )
       !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
       !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-      kHet = kIr / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
+      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) ) 
+      
+      ! Overall loss rate in a particular reaction branch, 1/s
+      kHet = kHet * branch
+      ! Note: CloudHet currently requires calling CloudHet N times for N reaction branches.
+      ! Returning both total loss frequency and mean branch ratio would allow calculation of 
+      ! all loss rates with N-1 calls to CloudHet (more efficient) (C.D. Holmes)
 
     end function CloudHet
 !EOC
@@ -4751,8 +4710,8 @@ MODULE GCKPP_HETRATES
 
       X2 = 0
 
-      kISum = CloudHet( 'ClNO2', CldFr,  Aliq,  Aice, rLiq, rIce,             &
-                         TK,     denAir, H,     X1,    X2,  r1               )
+      kISum = CloudHet( CldFr, Aliq,   Aice,         rLiq, rIce,             &
+                        TK,    denAir, H%ClNO2%MW_g, X1,   X2,  r1               )
 
     END FUNCTION HetClNO2_TCld
 !EOC
@@ -5370,8 +5329,8 @@ MODULE GCKPP_HETRATES
       ! Reaction on liquid clouds (tropospheric only)
       X1 = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc, H )
       X2 = 0.0_fp
-      kISum = CloudHet( 'O3', CldFr,  Aliq, Aice, rLiq, rIce,               &
-                         TK,  denAir, H,    X1,   X2,   r_ac               )
+      kISum = CloudHet( CldFr, Aliq,   Aice,      rLiq, rIce,               &
+                        TK,    denAir, H%O3%MW_g, X1,   X2,   r_ac               )
 
     END FUNCTION HETO3_TCld
 !EOC
@@ -5960,8 +5919,8 @@ MODULE GCKPP_HETRATES
          r2 = 0.0_fp
       ENDIF
 
-      kISum = CloudHet( 'ClNO3', CldFr,  Aliq, Aice, rLiq, rIce,             &
-                         TK,     denAir, H,    X1,   X2,   r1,   r2         )
+      kISum = CloudHet( CldFr,  Aliq,   Aice,         rLiq, rIce,             &
+                        TK,     denAir, H%ClNO3%MW_g, X1,   X2,   r1,   r2         )
 
     END FUNCTION HetClNO3_TCld
 !EOC
@@ -6100,8 +6059,8 @@ MODULE GCKPP_HETRATES
          r2 = 0.0_fp
       ENDIF
 
-      kISum = CloudHet( 'HOBr', CldFr,  Aliq, Aice, rLiq, rIce,              &
-                         TK,    denAir, H,    X1,   X2,   r1,   r2          )
+      kISum = CloudHet( CldFr,  Aliq,   Aice,        rLiq, rIce,              &
+                        TK,     denAir, H%HOBr%MW_g, X1,   X2,   r1,   r2          )
 
     END FUNCTION HetHOBr_TCld
 !EOC
@@ -7319,8 +7278,8 @@ MODULE GCKPP_HETRATES
          r2 = 0.0_fp
       ENDIF
 
-      kISum = CloudHet( 'HOCl', CldFr,  Aliq, Aice, rLiq, rIce,              &
-                         TK,    denAir, H,    X1,   X2,   r1,   r2          )
+      kISum = CloudHet( CldFr, Aliq,   Aice,        rLiq, rIce,              &
+                        TK,    denAir, H%HOCl%MW_g, X1,   X2,   r1,   r2          )
 
     END FUNCTION HetHOCl_TCld
 !EOC
@@ -7926,9 +7885,9 @@ MODULE GCKPP_HETRATES
       REAL(fp),       INTENT(OUT) :: rIce     ! Radius of ice cloud crystals (cm)
       REAL(fp),       INTENT(OUT) :: ALiq     ! Sfc area of liq. cloud (cm2/cm3)
       REAL(fp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2/cm3)
-      REAL(fp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud (cm3/cm3)
-      REAL(fp),       INTENT(OUT) :: VIce     ! Volume of ice cloud (cm3/cm3)
-      REAL(fp),       INTENT(OUT) :: CLDFr     ! cloud fraction
+      REAL(fp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud condensate (cm3/cm3)
+      REAL(fp),       INTENT(OUT) :: VIce     ! Volume of ice cloud condensate (cm3/cm3)
+      REAL(fp),       INTENT(OUT) :: CLDFr    ! cloud fraction
 !
 ! !REMARKS:
 !  References:
@@ -7940,6 +7899,7 @@ MODULE GCKPP_HETRATES
 !  21 Dec 2016 - S. D. Eastham - Adapted from CLD1K_BrNO3
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  15 Oct 2018 - C.D. Holmes - Corrections for ice radius, volume, surface area
+!  01 Aug 2020 - C.D. Holmes - Vliq, Vice now cm3/cm3 units, consistent with comments and Aliq, Aice
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7957,7 +7917,7 @@ MODULE GCKPP_HETRATES
       REAL(fp), PARAMETER :: XCLDrIce = 38.5e-4_fp
 
       ! Density of H2O liquid [kg/cm3]
-      REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp
+      REAL(fp), PARAMETER :: dens_liq = 0.001e+0_fp
 
       ! Density of H2O ice [kg/cm3]
       REAL(fp), PARAMETER :: dens_ice = 0.91e-3_fp
@@ -8035,12 +7995,12 @@ MODULE GCKPP_HETRATES
          rLiq = XCLDR_MARI
       ENDIF
 
-      ! get the volume of cloud [cm3]
+      ! get the volume of cloud condensate [cm3(condensate)/cm3(air)]
       ! QL is [g/g]
-      VLiq = QL * AD(I,J,L) / dens_h2o
-      VIce = QI * AD(I,J,L) / dens_ice
+      VLiq = QL * AD(I,J,L) / dens_liq / Vair
+      VIce = QI * AD(I,J,L) / dens_ice / Vair
 
-      ALiq = 3.e+0_fp * (VLiq/Vair) / rLiq
+      ALiq = 3.e+0_fp * VLiq / rLiq
 
       !-----------------------------------------------
       ! Ice water clouds
@@ -8079,7 +8039,7 @@ MODULE GCKPP_HETRATES
       rIce = 0.5e+0_fp * alpha * exp( beta * (T-273.15e+0_fp) ) / 1e+4_fp
 
       ! Ice surface area density, cm2/cm3
-      AIce = 3.e+0_fp * (VIce/VAir) / rIce * 2.25e+0_fp
+      AIce = 3.e+0_fp * VIce / rIce * 2.25e+0_fp
 
       ! Free Pointers
       NULLIFY( AD      )
@@ -8110,7 +8070,7 @@ MODULE GCKPP_HETRATES
 !
       REAL(fp),  INTENT(IN) :: HCl, HBr  ! Number density [#/cm3]
       REAL(fp),  INTENT(IN) :: VAir    ! Volume of air [cm3]
-      REAL(fp),  INTENT(IN) :: VLiq, VIce ! Volume of the cloud (liq and ice) [cm3]
+      REAL(fp),  INTENT(IN) :: VLiq, VIce ! Volume of the cloud (liq and ice) [cm3(condensate)/cm3(air)]
       REAL(fp),  INTENT(IN) :: TK      ! Air temperature [K]
       REAL(fp),  INTENT(IN) :: CF      ! Cloud fraction
       REAL(fp),  INTENT(IN) :: pHCloud ! Cloud pH
@@ -8150,8 +8110,8 @@ MODULE GCKPP_HETRATES
       !---------------------------------------------------------------
 
 
-      !V_tot = (VLiq/VAir) + ((VIce/VAir) / T2L) ! (cm3(liq)/cm3(air)
-      V_tot = VLiq/VAir ! (cm3(liq)/cm3(air)
+      !V_tot = VLiq + (VIce / T2L) ! (cm3(liq)/cm3(air)
+      V_tot = VLiq ! (cm3(liq)/cm3(air)
       V_tot = SAFE_DIV(V_tot, CF, 0.e+0_fp) ! only consider in cloud
 
 
