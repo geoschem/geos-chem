@@ -87,8 +87,6 @@ MODULE UCX_MOD
   ! I_SPA           : Index of particulate PSCs
   ! INITMR_BASIS    : Year for which the initializing mixing ratios
   !                   were calculated (needed for future-scaling)
-  ! UCXNETCDF       : Read data from NetCDF
-  !
   !=================================================================
 
   INTEGER,  PARAMETER           :: UCX_NLEVS=51
@@ -97,15 +95,6 @@ MODULE UCX_MOD
   INTEGER,  PARAMETER           :: I_SLA=1
   INTEGER,  PARAMETER           :: I_SPA=2
   INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
-
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-  ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
-  ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not
-  ! preprocessed for external grid (hplin, 8/15/18).
-  LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
-#else
-  LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
-#endif
 !
 ! PRIVATE TYPES:
 !
@@ -184,8 +173,7 @@ MODULE UCX_MOD
   ! simulation grid (see GET_JJNOX).
   ! Similar to the surface mixing ratio boundary conditions, we now
   ! read all the NOx coefficients during initialization to avoid
-  ! additional I/O calls during run time (only if UCXNETCDF = false)
-  ! (ckeller, 05/12/2014).
+  ! additional I/O calls during run time (ckeller, 05/12/2014).
   !=================================================================
   REAL(fp), ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
   REAL(fp), ALLOCATABLE         :: NOXLAT(:)
@@ -674,160 +662,10 @@ CONTAINS
     NOX_O = 0e+0_fp
     NOX_J = 0e+0_fp
 
-    IF (UCXNETCDF) THEN
-       ! Allocate and zero 2D data array
-       ALLOCATE( NOXDATA2D( State_Grid%NY, 51, 6 ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
-       NOXDATA2D = 0e+0_fp
-
-       ! Allocate and zero 2D input array
-       ALLOCATE( NOXD2D_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXD2D_IN' )
-       NOXD2D_IN = 0e+0_fp
-
-       NOX_FILE = TRIM(NOON_FILE_ROOT)
-
-       IF ( prtDebug ) THEN
-          WRITE(DBGMSG,'(3a)') ' ### UCX: Reading mesospheric NOx coeff from ',&
-               TRIM( NOX_FILE )
-          CALL DEBUG_MSG( TRIM(DBGMSG) )
-       ENDIF
-
-       CALL NcOp_Rd (fId,TRIM(NOX_FILE))
-
-       ! Start and count indices
-       st3d = (/ 1,        1,          TARG_MONTH /)
-       ct3d = (/ UCX_NLAT, UCX_NLEVS,  1          /)
-
-       DO ITRAC = 1,6
-          SELECT CASE (ITRAC)
-          CASE ( 1 )
-             TARG_TRAC = 'O'
-          CASE ( 2 )
-             TARG_TRAC = 'O1D'
-          CASE ( 3 )
-             TARG_TRAC = 'JNO'
-          CASE ( 4 )
-             TARG_TRAC = 'JNO2'
-          CASE ( 5 )
-             TARG_TRAC = 'JNO3'
-          CASE ( 6 )
-             TARG_TRAC = 'JN2O'
-          END SELECT
-          CALL NcRd( NOXD2D_IN, fId, TRIM(TARG_TRAC), st3d, ct3d )
-
-          !! Debug
-          !IF ( prtDebug ) THEN
-          !   WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', &
-          !      TRIM(TARG_TRAC), ', native: '
-          !   CALL DEBUG_MSG( DBGMSG )
-          !   DO J=1,19
-          !      WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXD2D_IN(J,1)
-          !      CALL DEBUG_MSG( DBGMSG )
-          !   ENDDO
-          !ENDIF
-
-          ! Regrid each level from 19 to State_Grid%NY latitudes
-          ! Precalculated matrix for simple linear algebra
-          ! Need to reverse levels - have layer 1 = TOA
-          DO ILEV = 1,51
-             NOXDATA2D(:,UCX_NLEVS+1-ILEV,ITRAC) = &
-                  MATMUL(UCX_REGRID,NOXD2D_IN(:,ILEV))
-          ENDDO
-
-          !! Debug
-          !IF ( prtDebug ) THEN
-          !   WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', &
-          !      TRIM(TARG_TRAC), ', regridded: '
-          !   CALL DEBUG_MSG( DBGMSG )
-          !   DO J=1,State_Grid%NY
-          !      WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
-          !      CALL DEBUG_MSG( DBGMSG )
-          !   ENDDO
-          !ENDIF
-       ENDDO
-
-       DEALLOCATE( NOXD2D_IN )
-       CALL NcCl( fId )
-    ELSE
-
-       ! All the coefficients are now stored in NOXCOEFF.
-       ! NOXDATA2D points to the desired month slice.
-       ! (ckeller, 05/12/14)
-       NOXDATA2D => NOXCOEFF(:,:,:,TARG_MONTH)
-
-       !! Allocate and zero 2D data array
-       !ALLOCATE( NOXDATA2D( State_Grid%NY, 51, 6 ), STAT=AS )
-       !IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
-       !NOXDATA2D = 0d0
-       !DO ITRAC = 1,6
-       !   SELECT CASE (ITRAC)
-       !   CASE ( 1 )
-       !      TARG_TRAC = 'O'
-       !   CASE ( 2 )
-       !      TARG_TRAC = 'O1D'
-       !   CASE ( 3 )
-       !      TARG_TRAC = 'JNO'
-       !   CASE ( 4 )
-       !      TARG_TRAC = 'JNO2'
-       !   CASE ( 5 )
-       !      TARG_TRAC = 'JNO3'
-       !   CASE ( 6 )
-       !      TARG_TRAC = 'JN2O'
-       !   END SELECT
-       !   WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT), &
-       !       TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
-       !
-       !   ! Get a free LUN
-       !   IU_FILE = findFreeLUN()
-       !
-       !   IOS = 1
-       !   OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
-       !   IF ( IOS /= 0 ) THEN
-       !      WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
-       !      CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
-       !   ENDIF
-       !
-       !   IF ( prtDebug ) THEN
-       !      WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', &
-       !                TRIM( NOX_FILE )
-       !      CALL DEBUG_MSG( TRIM(DBGMSG) )
-       !   ENDIF
-       !
-       !   ! Read in data
-       !   DO ILEV = 1,51
-       !      READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
-       !      IF ( IOS /= 0 ) THEN
-       !         WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading ' &
-       !            'line ', ILEV, ' in file ', TRIM( NOX_FILE )
-       !         CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
-       !      ENDIF
-       !   ENDDO
-       !
-       !   IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-       !110   FORMAT(91E10.3)
-       !   ELSE IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       !110   FORMAT(46E10.3)
-       !   ELSE
-       !      ! use 2x25 as default
-       !110   FORMAT(91E10.3)
-       !   ENDIF
-       !
-       !   CLOSE(IU_FILE)
-       !
-       !   ! Debug
-       !   IF ( prtDebug ) THEN
-       !      WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', &
-       !         TRIM(TARG_TRAC), ', regridded: '
-       !      CALL DEBUG_MSG( DBGMSG )
-       !      DO J=1,State_Grid%NY
-       !         WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
-       !         CALL DEBUG_MSG( DBGMSG )
-       !      ENDDO
-       !   ENDIF
-       !ENDDO
-
-    ENDIF
+    ! All the coefficients are now stored in NOXCOEFF.
+    ! NOXDATA2D points to the desired month slice.
+    ! (ckeller, 05/12/14)
+    NOXDATA2D => NOXCOEFF(:,:,:,TARG_MONTH)
 
     ! Scan through target array, element by element
     !$OMP PARALLEL DO       &
@@ -896,11 +734,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Cleanup
-    IF (UCXNETCDF) THEN
-       IF ( ASSOCIATED(NOXDATA2D) ) DEALLOCATE( NOXDATA2D )
-    ELSE
-       NOXDATA2D => NULL()
-    ENDIF
+    NOXDATA2D => NULL()
 
   END SUBROUTINE GET_NOXCOEFF
 !EOC
@@ -4393,43 +4227,22 @@ CONTAINS
     ! Input data sources
     ! --------------------------------------------------------------
 
-    ! Determine folder paths from root folder
-    ! Regridding of netCDF input data is currently not supported.
-    ! NOTE: netCDF inputs not read by GCHP, GEOS-5, WRF-GC
-    IF (UCXNETCDF) THEN
-
-       IF ( TRIM(State_Grid%GridRes) /= '4.0x5.0'   .and. &
-            TRIM(State_Grid%GridRes) /= '2.0x2.5' ) THEN
-          DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25' // &
-                   ' and 4x5 - try setting the module variable'   // &
-                   ' UCXNETCDF=.FALSE.'
-          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.F90)!' )
-          RETURN
-       ENDIF
-
-       WRITE( NOON_FILE_ROOT,'(a,a)') &
-            TRIM(Input_Opt%CHEM_INPUTS_DIR), 'UCX_201403/Init2D/Noontime.nc'
-
     ! For ASCII input, use 2x25 grid for all other grids than 4x5.
     ! This is ok for the NOx coeffs which can be regridded on the fly
     ! from 2x25 onto any other grid. This won't work for the 2D
     ! boundary conditions, but those have been checked in the logical
     ! check above (USE2DDATA).
+    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+       GRIDSPEC = 'Grid4x5/InitCFC_'
     ELSE
-
-       IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-          GRIDSPEC = 'Grid4x5/InitCFC_'
-       ELSE
-          GRIDSPEC = 'Grid2x25/InitCFC_'
-       ENDIF
-       WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
-#ifdef MODEL_GEOS
-            'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
-#else
-            'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-#endif
-
+       GRIDSPEC = 'Grid2x25/InitCFC_'
     ENDIF
+    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
+#ifdef MODEL_GEOS
+         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
+#else
+         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+#endif
 
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and return.
@@ -4646,9 +4459,7 @@ CONTAINS
     ENDDO
 
     ! Initialize NOXCOEFF arrays
-    IF ( .NOT. UCXNETCDF ) THEN
-       CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
-    ENDIF
+    CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
 
   END SUBROUTINE INIT_UCX
 !EOC
