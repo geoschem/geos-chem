@@ -216,15 +216,15 @@ MODULE State_Diag_Mod
 
      !%%%%% Photolysis %%%%%
 
-     REAL(f4),           POINTER :: JVal(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_JVal
-     LOGICAL                     :: Archive_JVal
+     REAL(f4),           POINTER :: Jval(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_Jval
+     LOGICAL                     :: Archive_Jval
 
-     REAL(f4),           POINTER :: JValO3O1D(:,:,:)
-     LOGICAL                     :: Archive_JValO3O1D
+     REAL(f4),           POINTER :: JvalO3O1D(:,:,:)
+     LOGICAL                     :: Archive_JvalO3O1D
 
-     REAL(f4),           POINTER :: JValO3O3P(:,:,:)
-     LOGICAL                     :: Archive_JValO3O3P
+     REAL(f4),           POINTER :: JvalO3O3P(:,:,:)
+     LOGICAL                     :: Archive_JvalO3O3P
 
      REAL(f4),           POINTER :: JNoon(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_JNoon
@@ -931,9 +931,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppError(:,:,:)
      LOGICAL                     :: Archive_KppError
 
-     REAL(f4),           POINTER :: JValIndiv(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_JValIndiv
-     LOGICAL                     :: Archive_JValIndiv
+     REAL(f4),           POINTER :: JvalIndiv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_JvalIndiv
+     LOGICAL                     :: Archive_JvalIndiv
 
      REAL(f4),           POINTER :: RxnRconst(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_RxnRconst
@@ -1194,15 +1194,15 @@ CONTAINS
 
     !%%%%% Chemistry, J-value, Prod/Loss diagnostics %%%%%
 
-    State_Diag%JVal                                => NULL()
-    State_Diag%Map_JVal                            => NULL()
-    State_Diag%Archive_JVal                        = .FALSE.
+    State_Diag%Jval                                => NULL()
+    State_Diag%Map_Jval                            => NULL()
+    State_Diag%Archive_Jval                        = .FALSE.
 
-    State_Diag%JValO3O1D                           => NULL()
-    State_Diag%Archive_JValO3O1D                   = .FALSE.
+    State_Diag%JvalO3O1D                           => NULL()
+    State_Diag%Archive_JvalO3O1D                   = .FALSE.
 
-    State_Diag%JValO3O3P                           => NULL()
-    State_Diag%Archive_JValO3O3P                   = .FALSE.
+    State_Diag%JvalO3O3P                           => NULL()
+    State_Diag%Archive_JvalO3O3P                   = .FALSE.
 
     State_Diag%JNoon                               => NULL()
     State_Diag%Map_JNoon                           => NULL()
@@ -1840,8 +1840,8 @@ CONTAINS
     State_Diag%Bry                                 => NULL()
     State_Diag%Archive_Bry                         = .FALSE.
 
-    State_Diag%JValIndiv                           => NULL()
-    State_Diag%Archive_JValIndiv                   = .FALSE.
+    State_Diag%JvalIndiv                           => NULL()
+    State_Diag%Archive_JvalIndiv                   = .FALSE.
 
     State_Diag%RxnRconst                           => NULL()
     State_Diag%Archive_RxnRconst                   = .FALSE.
@@ -3643,7 +3643,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
        !--------------------------------------------------------------------
-       diagID  = 'JVal'
+       diagID  = 'Jval'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -3651,9 +3651,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%JVal,                                &
-            archiveData    = State_Diag%Archive_JVal,                        &
-            mapData        = State_Diag%Map_JVal,                            &
+            Ptr2Data       = State_Diag%Jval,                                &
+            archiveData    = State_Diag%Archive_Jval,                        &
+            mapData        = State_Diag%Map_Jval,                            &
             diagId         = diagId,                                         &
             diagFlag       = 'P',                                            &
             RC             = RC                                             )
@@ -3667,7 +3667,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! J-Values for O3_O1D (instantaneous values)
        !--------------------------------------------------------------------
-       diagID  = 'JValO3O1D'
+       diagID  = 'JvalO3O1D'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -3675,8 +3675,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%JValO3O1D,                           &
-            archiveData    = State_Diag%Archive_JValO3O1D,                   &
+            Ptr2Data       = State_Diag%JvalO3O1D,                           &
+            archiveData    = State_Diag%Archive_JvalO3O1D,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -3689,7 +3689,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! J-Values for O3_O3P (instantaneous values)
        !--------------------------------------------------------------------
-       diagID  = 'JValO3O3P'
+       diagID  = 'JvalO3O3P'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -3697,8 +3697,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%JValO3O3P,                           &
-            archiveData    = State_Diag%Archive_JValO3O3P,                   &
+            Ptr2Data       = State_Diag%JvalO3O3P,                           &
+            archiveData    = State_Diag%Archive_JvalO3O3P,                   &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -4419,7 +4419,7 @@ CONTAINS
              CASE( 1  )
                 diagID = 'RxnRate'
              CASE( 2  )
-                diagID = 'JVal'
+                diagID = 'Jval'
              CASE( 3  )
                 diagID = 'JNoon'
              CASE( 4  )
@@ -8527,19 +8527,19 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'JVal',                                        &
-                   Ptr2Data = State_Diag%JVal,                               &
-                   mapData  = State_Diag%Map_JVal,                           &
+    CALL Finalize( diagId   = 'Jval',                                        &
+                   Ptr2Data = State_Diag%Jval,                               &
+                   mapData  = State_Diag%Map_Jval,                           &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'JValO3O1D',                                   &
-                   Ptr2Data = State_Diag%JVal,                               &
+    CALL Finalize( diagId   = 'JvalO3O1D',                                   &
+                   Ptr2Data = State_Diag%Jval,                               &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'JValO3O3P',                                   &
-                   Ptr2Data = State_Diag%JVal,                               &
+    CALL Finalize( diagId   = 'JvalO3O3P',                                   &
+                   Ptr2Data = State_Diag%Jval,                               &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -13484,10 +13484,14 @@ CONTAINS
              mapData%slot2id(TagItem%index) = index
 
           ELSE
-
+             
              ! Otherwise, this is a defined species.
              ! Call Ind_() to get the proper index
              mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )
+             IF ( indFlag ==' P' .and. Input_Opt%amIRoot ) THEN
+                print*, '@@@ ', TRIM(TagItem%Name), TagItem%index, &
+                     Ind_( TagItem%name, indFlag )
+             ENDIF
 
           ENDIF
 
