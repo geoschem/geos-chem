@@ -4231,8 +4231,7 @@ CONTAINS
 ! !IROUTINE: get_jjnox
 !
 ! !DESCRIPTION: Subroutine GET\_JJNOX maps grid box at location IISIM, JJSIM of
-! the simulation grid onto the latitude grid of the NOXCOEFF array. JJNOX can
-! differ from JJSIM if it's not a 4x5 or 2x25 simulation.
+! the simulation grid onto the latitude grid of the NOXCOEFF array.
 !\\
 !\\
 ! This routine simply returns the index of the NOx latitude vector that covers
@@ -4273,27 +4272,20 @@ CONTAINS
     ! GET_JJNOX begins here!
     !=================================================================
 
-    ! Nothing to do for 'standard' grids
-    IF ( .not. State_Grid%NestedGrid ) THEN
-       JJNOX = JJSIM
-    ELSE
+    ! Init
+    JJNOX = -1
 
-       ! Init
-       JJNOX = -1
+    ! Get latitude in degrees north on simulation grid
+    LAT = State_Grid%YMid( IISIM, JJSIM )
 
-       ! Get latitude in degrees north on simulation grid
-       LAT = State_Grid%YMid( IISIM, JJSIM )
-
-       ! Loop over all latitudes of the NOx grid until we reach the grid
-       ! box where the simulation latitude sits in.
-       DO I = 1,JJNOXCOEFF
-          IF ( LAT < NOXLAT(I+1) ) THEN
-             JJNOX = I
-             EXIT
-          ENDIF
-       ENDDO
-
-    ENDIF
+    ! Loop over all latitudes of the NOx grid until we reach the grid
+    ! box where the simulation latitude sits in.
+    DO I = 1,JJNOXCOEFF
+       IF ( LAT < NOXLAT(I+1) ) THEN
+          JJNOX = I
+          EXIT
+       ENDIF
+    ENDDO
 
   END FUNCTION GET_JJNOX
 !EOC
