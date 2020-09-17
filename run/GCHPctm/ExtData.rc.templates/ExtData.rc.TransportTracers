@@ -345,6 +345,8 @@ CEDS_CO25d_rRCOC    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc          
 CEDS_CO25d_rRCOO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo           ./MainDataDir/CEDS/v2020-08/%y4/CO-em-process_CEDS_%y4.nc
 CEDS_CO25d_rSLV     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-process_CEDS_%y4.nc
 CEDS_CO25d_rWST     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-process_CEDS_%y4.nc
+CEDS_CO25d_rSHP     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-process_CEDS_%y4.nc
+#
 CEDS_CO25d_gAGR     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
 CEDS_CO25d_gENE     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
 CEDS_CO25d_gIND     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
@@ -355,6 +357,8 @@ CEDS_CO25d_gRCOC    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc          
 CEDS_CO25d_gRCOO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo           ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
 CEDS_CO25d_gSLV     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
 CEDS_CO25d_gWST     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
+CEDS_CO25d_gSHP     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-liquid-fuel-plus-natural-gas_CEDS_%y4.nc 
+#
 CEDS_CO25d_bAGR     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
 CEDS_CO25d_bENE     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
 CEDS_CO25d_bIND     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
@@ -365,6 +369,8 @@ CEDS_CO25d_bRCOC    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc          
 CEDS_CO25d_bRCOO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo           ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
 CEDS_CO25d_bSLV     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
 CEDS_CO25d_bWST     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
+CEDS_CO25d_bSHP     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-solid-biofuel_CEDS_%y4.nc
+#
 CEDS_CO25d_cAGR     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
 CEDS_CO25d_cENE     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
 CEDS_CO25d_cIND     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
@@ -375,6 +381,7 @@ CEDS_CO25d_cRCOC    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc          
 CEDS_CO25d_cRCOO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo           ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
 CEDS_CO25d_cSLV     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
 CEDS_CO25d_cWST     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
+CEDS_CO25d_cSHP     kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./MainDataDir/CEDS/v2020-08/%y4/CO-em-total-coal_CEDS_%y4.nc
 
 ###############################################################################
 ###

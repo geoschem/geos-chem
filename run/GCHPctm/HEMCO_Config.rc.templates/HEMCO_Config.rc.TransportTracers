@@ -135,7 +135,7 @@ Warnings:                    1
 0 CEDS_CO25d_gRCOO    $ROOT/CEDS/v2020-08/$YYYY/CO-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc CO_rcoo 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
 0 CEDS_CO50d_gRCOO    -                                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
 0 CEDS_CO25d_gSLV     $ROOT/CEDS/v2020-08/$YYYY/CO-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc CO_slv  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d gSLV     -                                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO50d_gSLV     -                                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
 0 CEDS_CO25d_gWST     $ROOT/CEDS/v2020-08/$YYYY/CO-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc CO_wst  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
 0 CEDS_CO50d_gWST     -                                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
 0 CEDS_CO25d_gSHP     $ROOT/CEDS/v2020-08/$YYYY/CO-em-liquid-fuel-plus-natural-gas_CEDS_$YYYY.nc CO_shp  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
