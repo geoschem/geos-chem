@@ -312,8 +312,8 @@ fi
 
 # Create symbolic links to data directories, restart files, and code
 ln -s ${gchpdir}                                ${rundir}/CodeDir
-ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDataDir
-ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/MainDataDir
+ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDir
+ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/HcoDir
 ln -s ${GFTL}                                   ${rundir}/gFTL
 if [ "${met_name}" == "GEOSFP" ]; then
    ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir

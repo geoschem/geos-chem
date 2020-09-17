@@ -1,7 +1,7 @@
 OutputDir
 MetDir
-ChemDataDir
-MainDataDir
+ChemDir
+HcoDir
 CodeDir
 rundir.version
 *~
