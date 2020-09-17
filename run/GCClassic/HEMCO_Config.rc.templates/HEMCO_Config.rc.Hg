@@ -219,9 +219,9 @@ Warnings:                    1
 #==============================================================================
 
 (((STREETS
-0 STREETS_HG0 $ROOT/MERCURY/v2020-07/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 STREETS_HG2 $ROOT/MERCURY/v2020-07/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 STREETS_HGP $ROOT/MERCURY/v2020-07/Streets2019_Hg.nc HgP 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 STREETS_HG0 $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 STREETS_HG2 $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 STREETS_HGP $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))STREETS
 
 #==============================================================================
@@ -230,78 +230,78 @@ Warnings:                    1
 #==============================================================================
 
 (((EDGAR_TOT
-0 EDGAR_TOT_HG0 $ROOT/MERCURY/v2020-07/EDGAR_totals_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_TOT_HG2 $ROOT/MERCURY/v2020-07/EDGAR_totals_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_TOT_HGP $ROOT/MERCURY/v2020-07/EDGAR_totals_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_TOT_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_TOT_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_TOT_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_TOT
 
 (((EDGAR_CEM
-0 EDGAR_CEM_HG0 $ROOT/MERCURY/v2020-07/EDGAR_cement_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_CEM_HG2 $ROOT/MERCURY/v2020-07/EDGAR_cement_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_CEM_HGP $ROOT/MERCURY/v2020-07/EDGAR_cement_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_CEM_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_CEM_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_CEM_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_CEM
 
 (((EDGAR_CHLOR
-0 EDGAR_CHLOR_HG0 $ROOT/MERCURY/v2020-07/EDGAR_chlor_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_CHLOR_HG2 $ROOT/MERCURY/v2020-07/EDGAR_chlor_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_CHLOR_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_CHLOR_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_CHLOR
 
 (((EDGAR_COMB_A
-0 EDGAR_COMB_A_HG0 $ROOT/MERCURY/v2020-07/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_COMB_A_HG2 $ROOT/MERCURY/v2020-07/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_COMB_A_HGP $ROOT/MERCURY/v2020-07/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_COMB_A_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_COMB_A_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_COMB_A_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_COMB_A
 
 (((EDGAR_COMB_B
-0 EDGAR_COMB_B_HG0 $ROOT/MERCURY/v2020-07/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_COMB_B_HG2 $ROOT/MERCURY/v2020-07/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_COMB_B_HGP $ROOT/MERCURY/v2020-07/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_COMB_B_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_COMB_B_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_COMB_B_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_COMB_B
 
 (((EDGAR_GLASS
-0 EDGAR_GLASS_HG0 $ROOT/MERCURY/v2020-07/EDGAR_glass_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_GLASS_HG2 $ROOT/MERCURY/v2020-07/EDGAR_glass_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_GLASS_HGP $ROOT/MERCURY/v2020-07/EDGAR_glass_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_GLASS_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_GLASS_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_GLASS_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_GLASS
 
 (((EDGAR_GOLDA
-0 EDGAR_GOLDA_HG0 $ROOT/MERCURY/v2020-07/EDGAR_gold_A_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_GOLDA_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_A_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
 )))EDGAR_GOLDA
 
 (((EDGAR_GOLDB
-0 EDGAR_GOLDB_HG0 $ROOT/MERCURY/v2020-07/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_GOLDB_HG2 $ROOT/MERCURY/v2020-07/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_GOLDB_HGP $ROOT/MERCURY/v2020-07/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_GOLDB_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_GOLDB_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_GOLDB_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_GOLDB
 
 (((EDGAR_IRO
-0 EDGAR_IRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR_Iro_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_IRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR_Iro_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_IRO_HGP $ROOT/MERCURY/v2020-07/EDGAR_Iro_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_IRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_IRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_IRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_IRO
 
 (((EDGAR_NFEOTH
-0 EDGAR_NFEOTH_HG0 $ROOT/MERCURY/v2020-07/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_NFEOTH_HG2 $ROOT/MERCURY/v2020-07/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_NFEOTH_HGP $ROOT/MERCURY/v2020-07/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_NFEOTH_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_NFEOTH_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_NFEOTH_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_NFEOTH
 
 (((EDGAR_SHIP
-0 EDGAR_SHIP_HG0 $ROOT/MERCURY/v2020-07/EDGAR_shipping_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_SHIP_HG2 $ROOT/MERCURY/v2020-07/EDGAR_shipping_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_SHIP_HGP $ROOT/MERCURY/v2020-07/EDGAR_shipping_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_SHIP_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_SHIP_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_SHIP_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_SHIP
 
 (((EDGAR_TRO
-0 EDGAR_TRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_TRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_TRO_HGP $ROOT/MERCURY/v2020-07/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_TRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_TRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_TRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_TRO
 
 (((EDGAR_WASTE
-0 EDGAR_WASTE_HG0 $ROOT/MERCURY/v2020-07/EDGAR_waste_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 EDGAR_WASTE_HG2 $ROOT/MERCURY/v2020-07/EDGAR_waste_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 EDGAR_WASTE_HGP $ROOT/MERCURY/v2020-07/EDGAR_waste_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_WASTE_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_WASTE_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 EDGAR_WASTE_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))EDGAR_WASTE
 
 #==============================================================================
