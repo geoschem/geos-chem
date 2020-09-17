@@ -3344,7 +3344,7 @@ Warnings:                    1
 # Source: Riddick et al., 2012, NERC Environmental Information Data Centre
 #==============================================================================
 (((SEABIRD_NH3
-0 SEABIRD_NH3   $ROOT/NH3/v2018-08/NH3_Arctic_seabirds.nc  NH3_SEABIRDS 1990/1-12/1/0 C xy  kg/m2/s NH3 - 30 1
+0 SEABIRD_NH3   $ROOT/NH3/v2018-04/NH3_Arctic_seabirds.nc  NH3_SEABIRDS 1990/1-12/1/0 C xy  kg/m2/s NH3 - 30 1
 )))SEABIRD_NH3
 
 #==============================================================================
