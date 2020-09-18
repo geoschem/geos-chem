@@ -365,8 +365,8 @@ COLLECTIONS: 'Restart',
   DryDep.duration:            {DURATION}
   DryDep.mode:                'time-averaged'
   DryDep.fields:              'DryDepVel_?DRY?               ', 'GIGCchem',
-                              #'DryDepChm_?DRY?              ', 'GIGCchem',
-                              #'DryDepChm_?DRY?              ', 'GIGCchem',
+                              ##'DryDepChm_?DRY?              ', 'GIGCchem',
+                              ##'DryDepMix_?DRY?              ', 'GIGCchem',
                               'DryDep_?DRY?                  ', 'GIGCchem',
 ::
 #==============================================================================
