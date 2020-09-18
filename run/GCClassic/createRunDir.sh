@@ -496,9 +496,9 @@ cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-if [[ ${sim_name} = "fullchem" ]]; then
-    cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
-    chmod 744 ${rundir}/metrics_fullchem.py
+if [[ ${sim_name} == "fullchem" || ${sim_name} == "CH4" ]]; then
+    cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
+    chmod 744 ${rundir}/metrics.py
 fi
 cp -r ./runScriptSamples ${rundir}
 mkdir ${rundir}/OutputDir
@@ -517,7 +517,7 @@ elif [[ ${sim_extra_option} =~ "APM" ]]; then
 fi
 
 # If benchmark simulation, put run script in directory
-if [[ ${sim_extra_option} = "benchmark" ]]; then
+if [[ ${sim_extra_option} == "benchmark" ]]; then
     cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi

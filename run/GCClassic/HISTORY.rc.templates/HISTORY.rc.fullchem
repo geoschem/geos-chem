@@ -1,4 +1,4 @@
- ###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)     ###
 ###############################################################################
@@ -28,7 +28,7 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-	     'Metrics',
+             'Metrics',
              'SpeciesConc',
              #'AdvFluxVert',
              #'AerosolMass',
@@ -93,9 +93,6 @@ COLLECTIONS: 'Restart',
 # This diagnostic collection should always be left on.
 # Use the run-directory script ./metrics_fullchem.py to print results.
 #
-# Commented-out diagnostic fields are available to use, but are not
-# necessary for computing the relevant full-chemistry metrics.
-#
 # Available for full-chemistry and CH4 simulations only.
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
@@ -104,11 +101,9 @@ COLLECTIONS: 'Restart',
   Metrics.duration:           'End',
   Metrics.mode:               'time-averaged'
   Metrics.fields:             'AirMassColumnFull             ', 'GIGCchem',
-                              'MCFlossInTrop                 ', 'GIGCchem',
-                              'MeanOHcolumnFull              ', 'GIGCchem',
-                              #'AirMassColumnTrop             ', 'GIGCchem',
-                              #'MeanCH4columnTrop             ', 'GIGCchem',
-                              #'MeanOHcolumnTrop              ', 'GIGCchem',
+                              'LossOHbyCH4columnTrop         ', 'GIGCchem',
+                              'LossOHbyMCFcolumnTrop         ', 'GIGCchem',
+                              'OHwgtByAirMassColumnFull      ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
@@ -454,8 +449,8 @@ COLLECTIONS: 'Restart',
                               'ProdSO4fromO3s                ', 'GIGCchem',
                               'Loss_?LOS?                    ', 'GIGCchem',
                               'LossHNO3onSeaSalt             ', 'GIGCchem',
-			      'ProdCOfromCH4                 ', 'GIGCchem',
-			      'ProdCOfromNMVOC               ', 'GIGCchem',
+                              'ProdCOfromCH4                 ', 'GIGCchem',
+                              'ProdCOfromNMVOC               ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE RRTMG COLLECTION %%%%%
@@ -470,7 +465,7 @@ COLLECTIONS: 'Restart',
 #
 # NOTES:
 # (1) Only request diagnostics you need to reduce the overall run time.
-# (2) The ?RRTMG? wildcard includes all output except ST (strat aerosols). 
+# (2) The ?RRTMG? wildcard includes all output except ST (strat aerosols).
 #     However, if ST is included explicitly for one diagnostic then it
 #     will be included for all others that use the wildcard.
 # (3) Only enable ST if running with UCX.
@@ -582,7 +577,7 @@ COLLECTIONS: 'Restart',
                               'Met_CLDTOPS                   ', 'GIGCchem',
                               'Met_CONVDEPTH                 ', 'GIGCchem',
                               'Met_DELP                      ', 'GIGCchem',
-			      'Met_DELPDRY                   ', 'GIGCchem',
+                              'Met_DELPDRY                   ', 'GIGCchem',
                               'Met_DQRCU                     ', 'GIGCchem',
                               'Met_DQRLSAN                   ', 'GIGCchem',
                               'Met_DTRAIN                    ', 'GIGCchem',

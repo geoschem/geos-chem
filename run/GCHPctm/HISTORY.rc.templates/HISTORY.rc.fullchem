@@ -5298,9 +5298,6 @@ COLLECTIONS: #'AerosolMass',
 # This diagnostic collection should always be left on.
 # Use the run-directory script ./metrics_fullchem.py to print results.
 #
-# Commented-out diagnostic fields are available to use, but are not
-# necessary for computing the relevant full-chemistry metrics.
-#
 # Available for full-chemistry and CH4 simulations only.
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
@@ -5309,9 +5306,10 @@ COLLECTIONS: #'AerosolMass',
   Metrics.duration:           010000
   Metrics.monthy:             0
   Metrics.mode:               'time-averaged'
-  Metrics.fields:             'AirMassColumnFull             ', 'GCHPchem',
-                              'MCFlossInTrop                 ', 'GCHPchem',
-                              'MeanOHcolumnFull              ', 'GCHPchem',
+  Metrics.fields:             'AirMassColumnFull           ', 'GCHPchem',
+                              'LossOHbyCH4columnTrop       ', 'GCHPchem',
+                              'LossOHbyMCFcolumnTrop       ', 'GCHPchem',
+                              'OHwgtByAirMassColumnFull    ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%
@@ -5364,8 +5362,8 @@ COLLECTIONS: #'AerosolMass',
                           'Loss_CO                    ', 'GCHPchem',
                           'Loss_Ox                    ', 'GCHPchem',
                           'LossHNO3onSeaSalt          ', 'GCHPchem',
-			  'ProdCOfromCH4              ', 'GCHPchem',
-			  'ProdCOfromNMVOC            ', 'GCHPchem',
+                          'ProdCOfromCH4              ', 'GCHPchem',
+                          'ProdCOfromNMVOC            ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE RRTMG COLLECTION %%%%%

@@ -583,20 +583,26 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: AirMassColumnTrop(:,:)
      LOGICAL                     :: Archive_AirMassColumnTrop
 
-     REAL(f8),           POINTER :: MeanCH4columnFull(:,:)
-     LOGICAL                     :: Archive_MeanCH4columnFull
+     REAL(f8),           POINTER :: CH4emission(:,:)
+     LOGICAL                     :: Archive_CH4emission
 
-     REAL(f8),           POINTER :: MeanCH4columnTrop(:,:)
-     LOGICAL                     :: Archive_MeanCH4columnTrop
+     REAL(f8),           POINTER :: CH4massColumnFull(:,:)
+     LOGICAL                     :: Archive_CH4massColumnFull
 
-     REAL(f8),           POINTER :: MeanOHcolumnFull(:,:)
-     LOGICAL                     :: Archive_MeanOHcolumnFull
+     REAL(f8),           POINTER :: CH4massColumnTrop(:,:)
+     LOGICAL                     :: Archive_CH4massColumnTrop
 
-     REAL(f8),           POINTER :: MeanOHcolumnTrop(:,:)
-     LOGICAL                     :: Archive_MeanOHcolumnTrop
+     REAL(f8),           POINTER :: LossOHbyCH4columnTrop(:,:)
+     LOGICAL                     :: Archive_LossOHbyCH4columnTrop
 
-     REAL(f8),           POINTER :: MCFlossInTrop(:,:)
-     LOGICAL                     :: Archive_MCFlossInTrop
+     REAL(f8),           POINTER :: LossOHbyMCFcolumnTrop(:,:)
+     LOGICAL                     :: Archive_LossOHbyMCFcolumnTrop
+
+     REAL(f8),           POINTER :: OHwgtByAirMassColumnFull(:,:)
+     LOGICAL                     :: Archive_OHwgtByAirMassColumnFull
+
+     REAL(f8),           POINTER :: OHwgtByAirMassColumnTrop(:,:)
+     LOGICAL                     :: Archive_OHwgtByAirMassColumnTrop
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -1557,20 +1563,26 @@ CONTAINS
     State_Diag%AirMassColumnTrop                   => NULL()
     State_Diag%Archive_AirMassColumnTrop           = .FALSE.
 
-    State_Diag%MeanCH4columnFull                   => NULL()
-    State_Diag%Archive_MeanCH4columnFull           = .FALSE.
+    State_Diag%CH4emission                         => NULL()
+    State_Diag%Archive_CH4emission                 = .FALSE.
 
-    State_Diag%MeanCH4columnTrop                   => NULL()
-    State_Diag%Archive_MeanCH4columnTrop           = .FALSE.
+    State_Diag%CH4massColumnFull                   => NULL()
+    State_Diag%Archive_CH4massColumnFull           = .FALSE.
 
-    State_Diag%MeanOHcolumnFull                    => NULL()
-    State_Diag%Archive_MeanOHcolumnFull            = .FALSE.
+    State_Diag%CH4massColumnTrop                   => NULL()
+    State_Diag%Archive_CH4massColumnTrop           = .FALSE.
 
-    State_Diag%MeanOHcolumnTrop                    => NULL()
-    State_Diag%Archive_MeanOHcolumnTrop            = .FALSE.
+    State_Diag%OHwgtByAirMassColumnFull            => NULL()
+    State_Diag%Archive_OHwgtByAirMassColumnFull    = .FALSE.
 
-    State_Diag%MCFlossInTrop                       => NULL()
-    State_Diag%Archive_MCFlossInTrop               = .FALSE.
+    State_Diag%OHwgtByAirMassColumnTrop            => NULL()
+    State_Diag%Archive_OHwgtByAirMassColumnTrop    = .FALSE.
+
+    State_Diag%LossOHbyCH4columnTrop               => NULL()
+    State_Diag%Archive_LossOHbyCH4columnTrop       = .FALSE.
+
+    State_Diag%LossOHbyMCFcolumnTrop               => NULL()
+    State_Diag%Archive_LossOHbyMCFcolumnTrop       = .FALSE.
 
     !%%%%% TransportTracers diagnostics %%%%%
 
@@ -4734,7 +4746,7 @@ CONTAINS
 #endif
 
        !--------------------------------------------------------------------
-       ! Air mass column diagnostics -- full column and trop column
+       ! Air mass -- full column and trop column
        !--------------------------------------------------------------------
        diagId = 'AirMassColumnFull'
        CALL Init_and_Register(                                               &
@@ -4777,9 +4789,9 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Mean CH4 column diagnostics -- full column and trop column
+       ! CH4 emission -- needed to compute lifetime metrics for CH4 sims
        !--------------------------------------------------------------------
-       diagId = 'MeanCH4columnFull'
+       diagId = 'CH4emission'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4787,28 +4799,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%MeanCH4columnFull,                   &
-            archiveData    = State_Diag%Archive_MeanCH4columnFull,           &
-            diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       diagId = 'MeanCH4columnTrop'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%MeanCH4columnTrop,                   &
-            archiveData    = State_Diag%Archive_MeanCH4columnTrop,           &
+            Ptr2Data       = State_Diag%CH4emission,                         &
+            archiveData    = State_Diag%Archive_CH4emission,                 &
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
@@ -4820,9 +4812,9 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Mean OH column diagnostics -- full-column and trop column
+       ! Airmass-weighted CH4 -- full column and trop-only column
        !--------------------------------------------------------------------
-       diagId = 'MeanOHcolumnFull'
+       diagId = 'CH4massColumnFull'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4830,8 +4822,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%MeanOHcolumnFull,                    &
-            archiveData    = State_Diag%Archive_MeanOHcolumnFull,            &
+            Ptr2Data       = State_Diag%CH4massColumnFull,                   &
+            archiveData    = State_Diag%Archive_CH4massColumnFull,           &
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
@@ -4842,7 +4834,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       diagId = 'MeanOHcolumnTrop'
+       diagId = 'CH4massColumnTrop'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4850,8 +4842,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%MeanOHcolumnTrop,                    &
-            archiveData    = State_Diag%Archive_MeanOHcolumnTrop,            &
+            Ptr2Data       = State_Diag%CH4massColumnTrop,                   &
+            archiveData    = State_Diag%Archive_CH4massColumnTrop,           &
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
@@ -4863,9 +4855,9 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Methyl chloroform (aka MCF) tropospheric lifetime
+       ! Airmass-weighted OH -- full column and trop-only column
        !--------------------------------------------------------------------
-       diagId = 'MCFlossInTrop'
+       diagId = 'OHwgtByAirMassColumnFull'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4873,8 +4865,74 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%MCFlossInTrop,                       &
-            archiveData    = State_Diag%Archive_MCFlossInTrop,               &
+            Ptr2Data       = State_Diag%OHwgtByAirMassColumnFull,            &
+            archiveData    = State_Diag%Archive_OHwgtByAirMassColumnFull,    &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagId = 'OHwgtByAirMassColumnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OHwgtByAirMassColumnTrop,            &
+            archiveData    = State_Diag%Archive_OHwgtByAirMassColumnTrop,    &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CH4 loss in the troposphere
+       !--------------------------------------------------------------------
+       diagId = 'LossOHbyCH4columnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossOHbyCH4columnTrop,               &
+            archiveData    = State_Diag%Archive_LossOHbyCH4columnTrop,       &
+            diagId         = diagId,                                         &
+            forceDefine    = found,                                          &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Methyl chloroform (aka MCF) loss in the troposphere
+       !--------------------------------------------------------------------
+       diagId = 'LossOHbyMCFcolumnTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossOHbyMCFcolumnTrop,               &
+            archiveData    = State_Diag%Archive_LossOHbyMCFcolumnTrop,       &
             diagId         = diagId,                                         &
             forceDefine    = found,                                          &
             RC             = RC                                             )
@@ -4896,25 +4954,29 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 8
+       DO N = 1, 10
 
           ! Select the diagnostic ID
           SELECT CASE( N )
-             CASE( 1 )
+             CASE( 1  )
                 diagID = 'AirMassColumnFull'
-             CASE( 2 )
+             CASE( 2  )
                 diagID = 'AirMassColumnTrop'
-             CASE( 3 )
-                diagID = 'MeanCH4columnFull'
-             CASE( 4 )
-                diagID = 'MeanCH4columnTrop'
-             CASE( 5 )
-                diagID = 'MeanOHcolumnFull'
-             CASE( 6 )
-                diagID = 'MeanOHcolumnTrop'
-             CASE( 7 )
-                diagID = 'MCFlossInTrop'
+             CASE( 3  )
+                diagID = 'CH4emission'
+             CASE( 4  )
+                diagID = 'CH4massColumnFull'
+             CASE( 5  )
+                diagID = 'CH4massColumnTrop'
+             CASE( 6  )
+                diagID = 'OHwgtByAirMassColumnFull'
+             CASE( 7  )
+                diagID = 'OHwgtByAirMassColumnTrop'
              CASE( 8  )
+                diagID = 'LossOHbyCH4columnTrop'
+             CASE( 9  )
+                diagID = 'LossOHbyMCFcolumnTrop'
+             CASE( 10 )
                 diagID = 'OHconcAfterChem'
           END SELECT
 
@@ -8314,30 +8376,32 @@ CONTAINS
          State_Diag%Archive_AerNumDenSLA                                .or. &
          State_Diag%Archive_AerNumDenPSC                                   )
 
-    State_Diag%Archive_ConcAboveSfc = (                                       &
-         State_Diag%Archive_SpeciesConcALT1                             .and. &
-         State_Diag%Archive_DryDepRaALT1                                .and. &
+    State_Diag%Archive_ConcAboveSfc = (                                      &
+         State_Diag%Archive_SpeciesConcALT1                            .and. &
+         State_Diag%Archive_DryDepRaALT1                               .and. &
          State_Diag%Archive_DryDepVelForALT1      )
 
-    State_Diag%Archive_KppDiags = (                                           &
-         State_Diag%Archive_KppIntCounts                                .or.  &
-         State_Diag%Archive_KppJacCounts                                .or.  &
-         State_Diag%Archive_KppTotSteps                                 .or.  &
-         State_Diag%Archive_KppAccSteps                                 .or.  &
-         State_Diag%Archive_KppRejSteps                                 .or.  &
-         State_Diag%Archive_KppLuDecomps                                .or.  &
-         State_Diag%Archive_KppSubsts                                   .or.  &
-         State_Diag%Archive_KppSmDecomps                                .or.  &
-         State_Diag%Archive_KppDiags                                         )
+    State_Diag%Archive_KppDiags = (                                          &
+         State_Diag%Archive_KppIntCounts                               .or.  &
+         State_Diag%Archive_KppJacCounts                               .or.  &
+         State_Diag%Archive_KppTotSteps                                .or.  &
+         State_Diag%Archive_KppAccSteps                                .or.  &
+         State_Diag%Archive_KppRejSteps                                .or.  &
+         State_Diag%Archive_KppLuDecomps                               .or.  &
+         State_Diag%Archive_KppSubsts                                  .or.  &
+         State_Diag%Archive_KppSmDecomps                               .or.  &
+         State_Diag%Archive_KppDiags                                        )
 
     State_Diag%Archive_Metrics = (                                           &
          State_Diag%Archive_AirMassColumnFull                           .or. &
          State_Diag%Archive_AirMassColumnTrop                           .or. &
-         State_Diag%Archive_MeanCH4ColumnFull                           .or. &
-         State_Diag%Archive_MeanCH4ColumnTrop                           .or. &
-         State_Diag%Archive_MeanOHColumnFull                            .or. &
-         State_Diag%Archive_MeanOHColumnTrop                            .or. &
-         State_Diag%Archive_MCFlossInTrop                                   )
+         State_Diag%Archive_CH4emission                                 .or. &
+         State_Diag%Archive_CH4massColumnFull                           .or. &
+         State_Diag%Archive_CH4massColumnTrop                           .or. &
+         State_Diag%Archive_LossOHbyCH4columnTrop                       .or. &
+         State_Diag%Archive_LossOHbyMCFcolumnTrop                       .or. &
+         State_Diag%Archive_OHwgtByAirMassColumnFull                    .or. &
+         State_Diag%Archive_OHwgtByAirMassColumnTrop                        )
 
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
@@ -9504,28 +9568,38 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MeanCH4columnFull',                           &
-                   Ptr2Data = State_Diag%MeanCH4columnFull,                  &
+    CALL Finalize( diagId   = 'CH4emission',                                 &
+                   Ptr2Data = State_Diag%CH4emission,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MeanCH4columnTrop',                           &
-                   Ptr2Data = State_Diag%MeanCH4columnTrop,                  &
+    CALL Finalize( diagId   = 'CH4massColumnFull',                           &
+                   Ptr2Data = State_Diag%CH4massColumnFull,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MeanOHcolumnFull',                            &
-                   Ptr2Data = State_Diag%MeanOHcolumnFull,                   &
+    CALL Finalize( diagId   = 'CH4massColumnTrop',                           &
+                   Ptr2Data = State_Diag%CH4massColumnTrop,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MeanOHcolumnTrop',                            &
-                   Ptr2Data = State_Diag%MeanOHcolumnTrop,                   &
+    CALL Finalize( diagId   = 'OHwgtByAirMassColumnFull',                    &
+                   Ptr2Data = State_Diag%OHwgtByAirMassColumnFull,           &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MCFlossInTrop',                               &
-                   Ptr2Data = State_Diag%MCFlossInTrop,                      &
+    CALL Finalize( diagId   = 'OHwgtByAirMassColumnTrop',                    &
+                   Ptr2Data = State_Diag%OHwgtByAirMassColumnTrop,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossOHbyCH4columnTrop',                       &
+                   Ptr2Data = State_Diag%LossOHbyCH4columnTrop,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossOHbyMCFcolumnTrop',                       &
+                   Ptr2Data = State_Diag%LossOHbyMCFcolumnTrop,              &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -11158,51 +11232,67 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Air mass, full-atmosphere column sum'
-       IF ( isUnits   ) Units = 'molec'
+       IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
        IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AIRMASSCOLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Air mass, tropospheric column sum'
-       IF ( isUnits   ) Units = 'molec'
+       IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
        IF ( isOutType ) OutType  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OHWGTBYAIRMASSCOLUMNFULL' ) THEN
        IF ( isDesc    ) Desc  = &
-         'Mass-weighted mean OH concentration, full-atmosphere column sum'
+         'Airmass-weighted OH concentration, full-atmosphere column sum'
+       IF ( isUnits   ) Units = 'kg air kg OH m-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OHWGTBYAIRMASSCOLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+         'Airmass-weighted mean OH concentration, troposheric column sum'
+       IF ( isUnits   ) Units = 'kg air kg OH m-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CH4EMISSION' ) THEN
+       IF ( isDesc    ) Desc  = &
+         'CH4 emission, used for computing lifetime metrics'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CH4MASSCOLUMNFULL' ) THEN
+       IF ( isDesc    ) Desc  = &
+         'Airmass-weighted CH4 concentration, full-atmosphere column sum'
+       IF ( isUnits   ) Units = 'kg air kg CH4 m-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CH4MASSCOLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+         'Airmass-weighted CH4 concentration, tropospheric column sum'
+       IF ( isUnits   ) Units = 'kg air kg CH4 m-3'
+       IF ( isRank    ) Rank  =  2
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+       IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSOHBYCH4COLUMNTROP' ) THEN
+       IF ( isDesc    ) Desc  = &
+        'Loss rate of methane (CH4), tropopsheric column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
        IF ( isOutType ) OutType  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANOHCOLUMNTROP' ) THEN
-       IF ( isDesc    ) Desc  = &
-         'Mass-weighted mean OH concentration, troposheric column sum'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  =  2
-       IF ( isSrcType ) SrcType  = KINDVAL_F8
-       IF ( isOutType ) OutType  = KINDVAL_F8
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNFULL' ) THEN
-       IF ( isDesc    ) Desc  = &
-         'Mass-weighted mean CH4 concentration, full-atmosphere column sum'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  =  2
-       IF ( isSrcType ) SrcType  = KINDVAL_F8
-       IF ( isOutType ) OutType  = KINDVAL_F8
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'MEANCH4COLUMNTROP' ) THEN
-       IF ( isDesc    ) Desc  = &
-         'Mass-weighted mean CH4 concentration, tropospheric column sum'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  =  2
-       IF ( isSrcType ) SrcType  = KINDVAL_F8
-       IF ( isOutType ) OutType  = KINDVAL_F8
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'MCFLOSSINTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSOHBYMCFCOLUMNTROP' ) THEN
        IF ( isDesc    ) Desc  = &
         'Loss rate of methyl chloroform (CH3CCl3), tropopsheric column sum'
        IF ( isUnits   ) Units = 'molec cm-3'
