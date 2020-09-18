@@ -282,8 +282,8 @@ cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 if [[ ${sim_name} = "fullchem" ]]; then
-    cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
-    chmod 744 ${rundir}/metrics_fullchem.py
+    cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
+    chmod 744 ${rundir}/metrics.py
 fi
 cp -r ./runScriptSamples              ${rundir}
 mkdir ${rundir}/OutputDir

@@ -172,11 +172,11 @@ def read_metrics_collection(data_dir):
         if len(dirs) > 0:
             for d in dirs:
                 for f in files:
-                    if "GEOSChem.Metrics" in f:
+                    if ".Metrics." in f:
                         file_list.append(os.path.join(root, d, f))
         else:
             for f in files:
-                if "GEOSChem.Metrics" in f:
+                if ".Metrics." in f:
                     file_list.append(os.path.join(root, f))
 
     # Combine data into a single dataset
@@ -278,6 +278,36 @@ def overall_ch4_lifetimes(ds):
     return ch4_life_full, ch4_life_trop
 
 
+def get_start_and_end_dates(ds):
+    """
+    Gets the start and end dates of a GEOS-Chem Classic or
+    a GCHP simulation.
+
+    Args:
+    -----
+        ds : xarray Dataset
+
+    Returns:
+    --------
+        start, end : str
+     """
+    # Get start and end date of simulation for GCHP or GEOS-Chem Classic
+    if "nf" in ds.dims:
+        with open("./CAP.rc", "r") as cap_file:
+            for line in cap_file:
+                if "BEG_DATE:" in line:
+                    substrs = (line.rstrip()).split()
+                    start = substrs[1] + " " + substrs[2] + "z"
+                elif "END_DATE:" in line:
+                    substrs = (line.rstrip()).split()
+                    end = substrs[1] + " " + substrs[2] + "z"
+    else:
+        start = ds.attrs["simulation_start_date_and_time"]   # GC-Classic
+        end = ds.attrs["simulation_end_date_and_time"]
+
+    return start, end
+
+
 def print_metrics(ds, is_ch4_sim=False):
     """
     Prints the mass-weighted mean OH (full atmospheric column)
@@ -302,15 +332,14 @@ def print_metrics(ds, is_ch4_sim=False):
     if is_ch4_sim:
         ch4_life_full, ch4_life_trop = overall_ch4_lifetimes(ds)
 
-    # Get start and end time of run
-    start = ds.attrs["simulation_start_date_and_time"]
-    end = ds.attrs["simulation_end_date_and_time"]
+    # Get start and end dates of the simulation
+    start, end = get_start_and_end_dates(ds)
 
     # Print results
     print("="*78)
     if is_ch4_sim:
         print("GEOS-Chem METHANE SIMULATION METRICS\n")
-    else: 
+    else:
         print("GEOS-Chem FULL-CHEMISTRY SIMULATION METRICS\n")
     print("Simulation start : {}".format(start))
     print("Simulation end   : {}".format(end))

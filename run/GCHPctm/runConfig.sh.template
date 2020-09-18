@@ -180,8 +180,9 @@ timeAvg_collections=(SpeciesConc    \
                      DryDep         \
                      Emissions      \
                      JValues        \
-                     LevelEdgeDiags \
                      KPPDiags       \
+                     LevelEdgeDiags \
+                     Metrics        \
                      ProdLoss       \
                      RadioNuclide   \
                      RRTMG 	    \
