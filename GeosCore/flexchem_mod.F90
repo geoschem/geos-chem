@@ -252,7 +252,7 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
-    IF (State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF (State_Diag%Archive_Jval           ) State_Diag%Jval           = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
@@ -738,11 +738,11 @@ CONTAINS
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_JVal ) THEN
-                   S = State_Diag%Map_JVal%id2slot(P)
+                IF ( State_Diag%Archive_Jval ) THEN
+                   S = State_Diag%Map_Jval%id2slot(P)
                    IF ( S > 0 ) THEN
-                      State_Diag%JVal(I,J,L,S) =                             &
-                      State_Diag%JVal(I,J,L,S) + PHOTOL(N)
+                      State_Diag%Jval(I,J,L,S) =                             &
+                      State_Diag%Jval(I,J,L,S) + PHOTOL(N)
                    ENDIF
                 ENDIF
 
@@ -761,21 +761,21 @@ CONTAINS
              ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
 
                 ! J(O3_O1D).  This used to be stored as the nPhotol+1st
-                ! diagnostic in JVal, but needed to be broken off
+                ! diagnostic in Jval, but needed to be broken off
                 ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JValO3O1D ) THEN
-                   State_Diag%JValO3O1D(I,J,L) =                             &
-                   State_Diag%JValO3O1D(I,J,L) + PHOTOL(N)
+                IF ( State_Diag%Archive_JvalO3O1D ) THEN
+                   State_Diag%JvalO3O1D(I,J,L) =                             &
+                   State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
                 ENDIF
 
              ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
 
                 ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
-                ! diagnostic in JVal, but needed to be broken off
+                ! diagnostic in Jval, but needed to be broken off
                 ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JValO3O3P ) THEN
-                   State_Diag%JValO3O3P(I,J,L) =                             &
-                   State_Diag%JValO3O3P(I,J,L) + PHOTOL(N)
+                IF ( State_Diag%Archive_JvalO3O3P ) THEN
+                   State_Diag%JvalO3O3P(I,J,L) =                             &
+                   State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
                 ENDIF
 
              ENDIF
@@ -1401,7 +1401,7 @@ CONTAINS
     ENDIF
     IF ( Input_Opt%NN_Jvals > 0 ) THEN
        DO N = 1, Input_Opt%NN_Jvals
-          State_Diag%JValIndiv(:,:,:,N) = GLOB_JVAL(:,:,:,Input_Opt%Jval_IDs(N))
+          State_Diag%JvalIndiv(:,:,:,N) = GLOB_JVAL(:,:,:,Input_Opt%Jval_IDs(N))
        ENDDO
     ENDIF
 #endif

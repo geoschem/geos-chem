@@ -382,6 +382,8 @@ COLLECTIONS: 'Restart',
   JValues.duration:           {DURATION}
   JValues.mode:               'time-averaged'
   JValues.fields:             'Jval_?PHO?                    ', 'GIGCchem',
+                              'JvalO3O1D                     ', 'GIGCchem',
+                              'JvalO3O3P                     ', 'GIGCchem',
                               'UVFluxDiffuse_?UVFLX?         ', 'GIGCchem',
                               'UVFluxDirect_?UVFLX?          ', 'GIGCchem',
                               'UVFluxNet_?UVFLX?             ', 'GIGCchem',
