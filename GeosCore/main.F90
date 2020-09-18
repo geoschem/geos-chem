@@ -1756,7 +1756,6 @@ PROGRAM GEOS_Chem
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
-                                      First_RT   = First_RT,               &
                                       iCld       = State_Chm%RRTMG_iCld,   &
                                       iSpecMenu  = State_Diag%RadOutInd(N),&
                                       iNcDiag    = N,                      &
@@ -1782,7 +1781,6 @@ PROGRAM GEOS_Chem
              CALL Set_SpecMask( State_Diag%RadOutInd(N) )
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
-                                         First_RT   = First_RT,               &
                                          iCld       = State_Chm%RRTMG_iCld,   &
                                          iSpecMenu  = State_Diag%RadOutInd(N),&
                                          iNcDiag    = N,                      &
