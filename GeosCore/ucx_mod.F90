@@ -453,9 +453,16 @@ CONTAINS
           NEW_NO3 = OLD_NO3 + (OLD_NO2 + OLD_NO + OLD_N) - &
                               (NEW_NO2 + NEW_NO + NEW_N)
           FRACN   = 0.0e+0_fp
-          FRACNO  = NEW_NO/localNOx
-          FRACNO2 = NEW_NO2/localNOx
-          FRACNO3 = NEW_NO3/localNOx
+          ! Enforce safe division (bmy, 9/17/20)
+          IF ( localNOx > 0.0_fp ) THEN
+             FRACNO  = NEW_NO/localNOx
+             FRACNO2 = NEW_NO2/localNOx
+             FRACNO3 = NEW_NO3/localNOx
+          ELSE
+             FRACNO  = 0.0_fp
+             FRACNO2 = 0.0_fp
+             FRACNO3 = 0.0_fp
+          ENDIF
        Else
           ! Calculate remaining rate constants
           ! 1:  NO2 + O -> NO + O2
@@ -494,7 +501,14 @@ CONTAINS
           ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
           ! Two cases: Daytime/nighttime
           NO_ALPHA = RRATE(k_JNO) / (RRATE(9)*0.21e+0_fp*NDAIR)
-          NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P)) / (RRATE(2)*LOCALO3)
+
+          ! Enforce safe division (bmy, 9/17/20)
+          IF ( RRATE(2) * LocalO3 > 0.0_fp ) THEN
+             NO_BETA = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P)) / (RRATE(2)*LOCALO3)
+          ELSE
+             NO_BETA = 0.0_fp
+          ENDIF
+
           NO_GAMMA = (RRATE(3)*LOCALO3) / RRATE(k_JNO3)
 
           ! Calculate the partition fractions
@@ -989,7 +1003,7 @@ CONTAINS
                    ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
                    ! which produces slip correction factore with small error
                    ! compared to the above with less computation.
-                   !========================================================= 
+                   !=========================================================
 
                    ! Slip correction factor (as function of P*dp)
                    ! Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp * &
@@ -3145,7 +3159,7 @@ CONTAINS
 !
 ! !IROUTINE: cacl_sla_gamma
 !
-! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking 
+! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking
 !  coefficients on the surface of local stratospheric liquid aerosols,
 !  relevant to each of the 11 reactions listed in Kirner's paper.
 !\\
@@ -4248,7 +4262,7 @@ CONTAINS
     ! In dry-run mode, print file path to dryrun log and return.
     !=================================================================
     IF ( Input_Opt%DryRun ) THEN
-         
+
        ! Test if the file exists and define an output string
        FileName = Noon_File_Root
        INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
