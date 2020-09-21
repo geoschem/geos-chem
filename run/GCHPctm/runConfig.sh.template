@@ -247,11 +247,11 @@ if [[ ${dustSetting[3]} = "on" ]]; then
     elif [[ $CS_RES -eq 720 ]]; then
         Dust_SF=2.3e-4
     else
-        echo "Dust scale factor not defined for this resolution. Please manually change @MASS_TUNING_FACTOR in HEMCO_Config.rc and comment out this check in runConfig.sh."
+        echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
         exit 1
     fi
 fi
-# Dust_SF replaces @MASS_TUNING_FACTOR in HEMCO_Config.rc used in the
+# Dust_SF sets mass tuning factor in HEMCO_Config.rc used in the
 # DustDead extension. The mass tuning factor is resolution-dependent and must
 # be defined here for the target resolution if using online dust.
 # NOTE: the online dust extension is NOT recommended for use in GCHP

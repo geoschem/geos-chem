@@ -133,14 +133,8 @@ Warnings:                    1
 104     SoilNOx                : off   NO
     --> Use fertilizer NOx     :       true
 105     DustDead               : off   DST1/DST2/DST3/DST4
-# Replace @MASS_TUNING_FACTOR with value matching run resolution
-#C24  --> Mass tuning factor     : 6.0e-4
-#C48  --> Mass tuning factor     : 5.0416e-4
-#C90  --> Mass tuning factor     : 4.0e-4
-#C180 --> Mass tuning factor     : 3.23e-4
-#C360 --> Mass tuning factor     : 2.35e-4
-#C720 --> Mass tuning factor     : 2.3e-4
-    --> Mass tuning factor     :       @MASS_TUNING_FACTOR
+# Mass tuning factor auto-updated with resolution-dependent value set in runConfig.sh
+    --> Mass tuning factor     :       5.0416e-4
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
