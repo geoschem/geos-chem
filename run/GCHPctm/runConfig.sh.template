@@ -197,7 +197,6 @@ timeAvg_collections=(SpeciesConc    \
 inst_freq="{InstFreq}"
 inst_dur="{InstDur}"
 inst_collections=(ConcAboveSfc      \
-                  StateMet_inst     \
 )
 
 # Set Monthly_Diag to 1 to enable time-averaged monthly diagnostics. 0 = off.
