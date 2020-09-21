@@ -298,8 +298,10 @@ MODULE State_Met_Mod
 ! !MODULE INTERFACES:
 !
   INTERFACE Register_MetField
-     MODULE PROCEDURE Register_MetField_Rfp_2D
-     MODULE PROCEDURE Register_MetField_Rfp_3D
+     MODULE PROCEDURE Register_MetField_R4_2D
+     MODULE PROCEDURE Register_MetField_R4_3D
+     MODULE PROCEDURE Register_MetField_R8_2D
+     MODULE PROCEDURE Register_MetField_R8_3D
      MODULE PROCEDURE Register_MetField_Int_2D
      MODULE PROCEDURE Register_MetField_Int_3D
   END INTERFACE Register_MetField
@@ -4185,15 +4187,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_MetField_Rfp_2D
+! !IROUTINE: Register_MetField_R4_2D
 !
-! !DESCRIPTION: Registers a 2-D State\_Met field (flexible precision).
+! !DESCRIPTION: Registers a 2-D State\_Met field (4-byte real).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Met, RC                        )
+  SUBROUTINE Register_MetField_R4_2D( Input_Opt, metadataID, Ptr2Data,      &
+                                      State_Met, RC,         noRegister    )
 !
 ! !USES:
 !
@@ -4202,14 +4204,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(fp),          POINTER       :: Ptr2Data(:,:)   ! pointer to met
-    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    REAL(f4),         POINTER     :: Ptr2Data(:,:)       ! Pointer to array
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
@@ -4220,25 +4223,43 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: desc,  units, ErrMsg_reg, ThisLoc
-    INTEGER                :: rank,  type,  vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: rank,  type,       vloc
+    LOGICAL            :: found, doRegister
 
-    !---------------------
+    ! Strings
+    CHARACTER(LEN=255) :: desc,  ErrMsg_reg, units, ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
+
+    !========================================================================
+    ! Register_MetField_R4_2D begins here!
+    !========================================================================
+
     ! Initialize
-    !---------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_MetField_Rfp_2D (in Headers/state_met_mod.F90)'
-    ErrMsg  = ''
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
     ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+      ' -> at Register_MetField_R4_2D (in Headers/state_met_mod.F90)'
 
-    !---------------------
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
     ! Get metadata
-    !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc                       )
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4248,51 +4269,53 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------
+    !========================================================================
     ! Check dimensions
-    !---------------------
+    !========================================================================
     IF ( rank /= 2 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    !---------------------
-    ! Add to registry
-    !---------------------
-    CALL Registry_AddField( Input_Opt   = Input_Opt,                         &
-                            Registry    = State_Met%Registry,                &
-                            State       = State_Met%State,                   &
-                            Variable    = TRIM( MetadataID ),                &
-                            Units       = TRIM( Units      ),                &
-                            Description = TRIM( Desc       ),                &
-                            Data2d      = Ptr2Data,                          &
-                            RC          = RC                                )
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt   = Input_Opt,                      &
+                               Registry    = State_Met%Registry,             &
+                               State       = State_Met%State,                &
+                               Variable    = TRIM( MetadataID ),             &
+                               Units       = TRIM( Units      ),             &
+                               Description = TRIM( Desc       ),             &
+                               Data2d_4    = Ptr2Data,                       &
+                               RC          = RC                             )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Registry_AddField"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+            '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
-  END SUBROUTINE Register_MetField_Rfp_2D
+  END SUBROUTINE Register_MetField_R4_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_MetField_Rfp_3D
+! !IROUTINE: Register_MetField_R4_3D
 !
-! !DESCRIPTION: Registers a 3-D State\_Met field (flexible precision).
+! !DESCRIPTION: Registers a 3-D State\_Met field (4-byte real).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Met, RC                        )
+  SUBROUTINE Register_MetField_R4_3D( Input_Opt, metadataID, Ptr2Data,        &
+                                      State_Met, RC,         noRegister      )
 !
 ! !USES:
 !
@@ -4301,14 +4324,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to met
-    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    REAL(f4),         POINTER     :: Ptr2Data(:,:,:)     ! Pointer to data
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC                  ! Success/failure
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
@@ -4319,25 +4343,43 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: desc,  units,  ErrMsg_reg, ThisLoc
-    INTEGER                :: rank,  type,   vloc
-    LOGICAL                :: found, onEdges
+    ! Scalars
+    INTEGER            :: rank,  type,    vloc
+    LOGICAL            :: found, onEdges, doRegister
 
-    !---------------------
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: desc,  units,   ErrMsg_reg, ThisLoc
+
+    !========================================================================
+    ! Register_MetField_R4_3D begins here!
+    !========================================================================
+
     ! Initialize
-    !---------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_MetField_Rfp_3D (in Headers/state_met_mod.F90)'
-    ErrMsg  = ''
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
     ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+         ' -> at Register_MetField_R4_3D (in Headers/state_met_mod.F90)'
 
-    !---------------------
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
     ! Get metadata
-    !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc )
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )   
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4347,9 +4389,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------
+    !========================================================================
     ! Check dimensions
-    !---------------------
+    !========================================================================
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4359,43 +4401,45 @@ CONTAINS
     ! Is the data placed on vertical edges?
     onEdges = ( vLoc == vLocationEdge )
 
-    !---------------------
-    ! Add to registry
-    !---------------------
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = State_Met%Registry,               &
-                            State        = State_Met%State,                  &
-                            Variable     = TRIM( MetadataID ),               &
-                            Units        = TRIM( Units      ),               &
-                            Description  = TRIM( Desc       ),               &
-                            OnLevelEdges = onEdges,                          &
-                            Data3d       = Ptr2Data,                         &
-                            RC           = RC                               )
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
+                               Registry     = State_Met%Registry,            &
+                               State        = State_Met%State,               &
+                               Variable     = TRIM( MetadataID ),            & 
+                               Units        = TRIM( Units      ),            &
+                               Description  = TRIM( Desc       ),            &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_4     = Ptr2Data,                      &
+                               RC           = RC                            )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Registry_AddField"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+             '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
-  END SUBROUTINE Register_MetField_Rfp_3D
+  END SUBROUTINE Register_MetField_R4_3D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_MetField_Int_2D
+! !IROUTINE: Register_MetField_R8_2D
 !
-! !DESCRIPTION: Registers a 2-D State\_Met field (integer precision).
+! !DESCRIPTION: Registers a 2-D State\_Met field (8-byte real).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Met, RC                        )
+  SUBROUTINE Register_MetField_R8_2D( Input_Opt, metadataID, Ptr2Data,      &
+                                      State_Met, RC,         noRegister    )
 !
 ! !USES:
 !
@@ -4404,14 +4448,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    INTEGER,           POINTER       :: Ptr2Data(:,:)   ! pointer to met
-    TYPE(MetState),    INTENT(INOUT) :: State_Met       ! Obj for met state
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    REAL(f8),         POINTER     :: Ptr2Data(:,:)       ! Pointer to array
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC               ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
@@ -4422,25 +4467,43 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg_reg, ThisLoc
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
+    ! Scalars
+    INTEGER            :: rank,  type,       vloc
+    LOGICAL            :: found, doRegister
 
-    !---------------------
+    ! Strings
+    CHARACTER(LEN=255) :: desc,  ErrMsg_reg, units, ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
+
+    !========================================================================
+    ! Register_MetField_R8_2D begins here!
+    !========================================================================
+
     ! Initialize
-    !---------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_MetField_Int_2D (in Headers/state_met_mod.F90)'
-    ErrMsg  = ''
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
     ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+      ' -> at Register_MetField_R8_2D (in Headers/state_met_mod.F90)'
 
-    !---------------------
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
     ! Get metadata
-    !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc                       )
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4450,33 +4513,279 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------
+    !========================================================================
     ! Check dimensions
-    !---------------------
+    !========================================================================
     IF ( rank /= 2 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    !---------------------
-    ! Add to registry
-    !---------------------
-    CALL Registry_AddField( Input_Opt   = Input_Opt,                         &
-                            Registry    = State_Met%Registry,                &
-                            State       = State_Met%State,                   &
-                            Variable    = TRIM( metadataID ),                &
-                            units       = TRIM( units      ),                &
-                            Description = TRIM( desc       ),                &
-                            Data2d_I    = Ptr2Data,                          &
-                            RC          = RC                                )
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt   = Input_Opt,                      &
+                               Registry    = State_Met%Registry,             &
+                               State       = State_Met%State,                &
+                               Variable    = TRIM( MetadataID ),             &
+                               Units       = TRIM( Units      ),             &
+                               Description = TRIM( Desc       ),             &
+                               Data2d_8    = Ptr2Data,                       &
+                               RC          = RC                             )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+            '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Register_MetField_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_MetField_R8_3D
+!
+! !DESCRIPTION: Registers a 3-D State\_Met field (8-byte real).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_MetField_R8_3D( Input_Opt, metadataID, Ptr2Data,        &
+                                      State_Met, RC,         noRegister      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    REAL(f8),         POINTER     :: Ptr2Data(:,:,:)     ! Pointer to data
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success/failure
+!
+! !REVISION HISTORY:
+!  07 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: rank,  type,    vloc
+    LOGICAL            :: found, onEdges, doRegister
+
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: desc,  units,   ErrMsg_reg, ThisLoc
+
+    !========================================================================
+    ! Register_MetField_R8_3D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+         ' -> at Register_MetField_R8_3D (in Headers/state_met_mod.F90)'
+
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )   
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Registry_AddField"!'
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    !========================================================================
+    ! Check dimensions
+    !========================================================================
+    IF ( rank /= 3 ) THEN
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == vLocationEdge )
+
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
+                               Registry     = State_Met%Registry,            &
+                               State        = State_Met%State,               &
+                               Variable     = TRIM( MetadataID ),            & 
+                               Units        = TRIM( Units      ),            &
+                               Description  = TRIM( Desc       ),            &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_8     = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+             '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Register_MetField_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_MetField_Int_2D
+!
+! !DESCRIPTION: Registers a 2-D State\_Met field (4-byte integer).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_MetField_Int_2D( Input_Opt, metadataID, Ptr2Data,      &
+                                       State_Met, RC,         noRegister    )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    INTEGER,          POINTER     :: Ptr2Data(:,:)       ! Pointer to array
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  07 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: rank,  type,       vloc
+    LOGICAL            :: found, doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: desc,  ErrMsg_reg, units, ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
+
+    !========================================================================
+    ! Register_MetField_Int_2D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+      ' -> at Register_MetField_Int_2D (in Headers/state_met_mod.F90)'
+
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Check dimensions
+    !========================================================================
+    IF ( rank /= 2 ) THEN
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt   = Input_Opt,                      &
+                               Registry    = State_Met%Registry,             &
+                               State       = State_Met%State,                &
+                               Variable    = TRIM( MetadataID ),             &
+                               Units       = TRIM( Units      ),             &
+                               Description = TRIM( Desc       ),             &
+                               Data2d_I    = Ptr2Data,                       &
+                               RC          = RC                             )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+            '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE Register_MetField_Int_2D
@@ -4488,29 +4797,30 @@ CONTAINS
 !
 ! !IROUTINE: Register_MetField_Int_3D
 !
-! !DESCRIPTION: Registers a 3-D State\_Met field (integer precision).
+! !DESCRIPTION: Registers a 3-D State\_Met field (4-byte integer).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Met, RC                        )
+  SUBROUTINE Register_MetField_Int_3D( Input_Opt, metadataID, Ptr2Data,       &
+                                       State_Met, RC,         noRegister     )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    INTEGER,           POINTER       :: Ptr2Data(:,:,:) ! pointer to met
-    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID          ! Field name
+    INTEGER,          POINTER     :: Ptr2Data(:,:,:)     ! Pointer to data
+    TYPE(MetState),   INTENT(IN)  :: State_Met           ! Meteorology State
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC                  ! Success/failure
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
@@ -4521,25 +4831,43 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: desc,   units,  ErrMsg_reg, ThisLoc
-    INTEGER                :: rank,   type,   vloc
-    LOGICAL                :: found,  onEdges
+    ! Scalars
+    INTEGER            :: rank,  type,    vloc
+    LOGICAL            :: found, onEdges, doRegister
 
-    !---------------------
+    ! Strings
+    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255) :: desc,  units,   ErrMsg_reg, ThisLoc
+
+    !========================================================================
+    ! Register_MetField_Int_3D begins here!
+    !========================================================================
+
     ! Initialize
-    !---------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_MetField_Int_3D (in Headers/state_met_mod.F90)'
-    ErrMsg  = ''
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
     ErrMsg_reg = 'Error encountered while registering State_Met%'
+    ThisLoc    = &
+         ' -> at Register_MetField_Int_3D (in Headers/state_met_mod.F90)'
 
-    !---------------------
+    IF ( PRESENT( noRegister ) ) THEN 
+       doRegister = ( .not. noRegister ) 
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
     ! Get metadata
-    !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc                       )
+    !========================================================================
+    CALL Get_MetaData_State_Met( am_I_Root  = Input_Opt%amIRoot,             &
+                                 metadataId = metadataId,                    &
+                                 found      = found,                         &
+                                 desc       = desc,                          &
+                                 units      = units,                         &
+                                 rank       = rank,                          &
+                                 type       = type,                          &
+                                 vloc       = vloc,                          &
+                                 RC         = RC                            )   
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4549,9 +4877,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------
+    !========================================================================
     ! Check dimensions
-    !---------------------
+    !========================================================================
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4561,25 +4889,27 @@ CONTAINS
     ! Is the data placed on vertical edges?
     onEdges = ( vLoc == vLocationEdge )
 
-    !---------------------
-    ! Add to registry
-    !---------------------
-    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
-                            Registry     = State_Met%Registry,               &
-                            State        = State_Met%State,                  &
-                            Variable     = TRIM( metadataID ),               &
-                            units        = TRIM( units      ),               &
-                            Description  = TRIM( desc       ),               &
-                            OnLevelEdges = onEdges,                          &
-                            Data3d_I     = Ptr2Data,                         &
-                            RC           = RC                               )
+    !========================================================================
+    ! Add to registry (unless we specifically say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
+                               Registry     = State_Met%Registry,            &
+                               State        = State_Met%State,               &
+                               Variable     = TRIM( MetadataID ),            & 
+                               Units        = TRIM( Units      ),            &
+                               Description  = TRIM( Desc       ),            &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_I     = Ptr2Data,                      &
+                               RC           = RC                            )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Registry_AddField"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+             '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE Register_MetField_Int_3D

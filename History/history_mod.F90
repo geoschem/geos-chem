@@ -1992,10 +1992,6 @@ CONTAINS
                              Rank           = Rank,                          &
                              Units          = Units,                         &
                              OnLevelEdges   = OnLevelEdges,                  &
-                             Ptr0d          = Ptr0d,                         &
-                             Ptr1d          = Ptr1d,                         &
-                             Ptr2d          = Ptr2d,                         &
-                             Ptr3d          = Ptr3d,                         &
                              Ptr0d_8        = Ptr0d_8,                       &
                              Ptr1d_8        = Ptr1d_8,                       &
                              Ptr2d_8        = Ptr2d_8,                       &
@@ -2035,10 +2031,6 @@ CONTAINS
                              Rank           = Rank,                          &
                              Units          = Units,                         &
                              OnLevelEdges   = OnLevelEdges,                  &
-                             Ptr0d          = Ptr0d,                         &
-                             Ptr1d          = Ptr1d,                         &
-                             Ptr2d          = Ptr2d,                         &
-                             Ptr3d          = Ptr3d,                         &
                              Ptr0d_8        = Ptr0d_8,                       &
                              Ptr1d_8        = Ptr1d_8,                       &
                              Ptr2d_8        = Ptr2d_8,                       &
@@ -2078,10 +2070,6 @@ CONTAINS
                              Rank           = Rank,                          &
                              Units          = Units,                         &
                              OnLevelEdges   = OnLevelEdges,                  &
-                             Ptr0d          = Ptr0d,                         &
-                             Ptr1d          = Ptr1d,                         &
-                             Ptr2d          = Ptr2d,                         &
-                             Ptr3d          = Ptr3d,                         &
                              Ptr0d_8        = Ptr0d_8,                       &
                              Ptr1d_8        = Ptr1d_8,                       &
                              Ptr2d_8        = Ptr2d_8,                       &
@@ -2210,15 +2198,12 @@ CONTAINS
                           Source_KindVal = Source_KindVal,                   &
                           Output_KindVal = Output_KindVal,                   &
                           Source_0d_8    = Ptr0d_8,                          &
-                          Source_1d      = Ptr1d,                            &
                           Source_1d_8    = Ptr1d_8,                          &
                           Source_1d_4    = Ptr1d_4,                          &
                           Source_1d_I    = Ptr1d_I,                          &
-                          Source_2d      = Ptr2d,                            &
                           Source_2d_8    = Ptr2d_8,                          &
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
-                          Source_3d      = Ptr3d,                            &
                           Source_3d_8    = Ptr3d_8,                          &
                           Source_3d_4    = Ptr3d_4,                          &
                           Source_3d_I    = Ptr3d_I,                          &
@@ -2581,19 +2566,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 3 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Source_3d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d = Item%Source_3d_8
@@ -2632,19 +2606,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 2 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Source_2d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_8
@@ -2683,19 +2646,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 1 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Source_1d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_8
