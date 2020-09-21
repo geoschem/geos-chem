@@ -320,10 +320,21 @@ if [ "${met_name}" == "GEOSFP" ]; then
 else
    ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
 fi
-restarts=${GC_DATA_ROOT}/SPC_RESTARTS
+restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 for N in 24 48 90 180 360
 do
-    ln -s ${restarts}/initial_GEOSChem_rst.c${N}_${sim_name}.nc  ${rundir}
+    src_prefix="GCHP.Restart.${sim_name}."
+    src_suffix=".c${N}.nc4"
+    target_name=initial_GEOSChem_rst.c${N}_${sim_name}.nc
+    if [[ ${sim_name} = "fullchem" ]]; then
+        start_date="20160701_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_12.9.0/${src_name} ${rundir}/${target_name}
+    elif [[ ${sim_name} = "TransportTracers" ]]; then
+        start_date="20170101_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_12.8.0/${src_name} ${rundir}/${target_name}
+    fi
 done
 
 #--------------------------------------------------------------------
