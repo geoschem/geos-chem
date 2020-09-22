@@ -180,6 +180,7 @@ CONTAINS
     LOGICAL, SAVE            :: FIRST = .TRUE.
     INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
     INTEGER, SAVE            :: id_NIT,  id_SALA, id_SO4
+    INTEGER, SAVE            :: id_HMS ! jmm 12/5/18    
     INTEGER, SAVE            :: id_SALACL, id_HCL, id_SALCCL
     INTEGER, SAVE            :: id_SO4s, id_NITs, id_SALC
     INTEGER, SAVE            :: id_SALAAL, id_SALCAL
@@ -279,6 +280,7 @@ CONTAINS
        id_NIT  = Ind_('NIT' )
        id_SALA = Ind_('SALA')
        id_SO4  = Ind_('SO4' )
+       id_HMS  = Ind_('HMS' )       
        id_SALACL = Ind_('SALACL')
        id_HCL = Ind_('HCl')
        id_SALC = Ind_('SALC')
@@ -292,6 +294,11 @@ CONTAINS
        ! Make sure certain tracers are defined
        IF ( id_SO4 <= 0 ) THEN
           ErrMsg = 'SO4 is an undefined species!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( id_HMS <= 0 ) THEN
+          ErrMsg = 'HMS is an undefined species!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -545,7 +552,9 @@ CONTAINS
 
                ! Total SO4 [mole/m3], also consider SO4s in SALA
                TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08*AlkR) &
-                    * 1.e+3_fp / ( 96.e+0_fp * VOL)
+                    * 1.e+3_fp / ( 96.e+0_fp * VOL) + &
+                    Spc(I,J,L,id_HMS) * 0.5e+3_fp / ( 111.e+0_fp * VOL) 
+                    
 
                ! Total NH3 [mole/m3]
                TNH3 = Spc(I,J,L,id_NH4)*1.e+3_fp/(18.e+0_fp*VOL) +     &
@@ -557,7 +566,7 @@ CONTAINS
                TSO4 = Spc(I,J,L,id_SO4s) &
                      * 1.e+3_fp * AlkR / (31.4e+0_fp * VOL) + &
                      Spc(I,J,L,id_SALC)*0.08_fp               & 
-                     * 1.e+3_fp * AlkR / (96.e+0_fp * VOL)    
+                     * 1.e+3_fp * AlkR / (96.e+0_fp * VOL)                 
 
                ! Total NH3 [mole/m3]
                !TNH3 = Spc(I,J,L,id_NH4s)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+ &
@@ -896,7 +905,8 @@ CONTAINS
                          Spc(I,J,L,id_NH4) /18e+0_fp         + &
                          Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp*2e+0_fp + &    
+          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp*2e+0_fp + &
+                         Spc(I,J,L,id_HMS)  / 111e+0_fp        + &
                          Spc(I,J,L,id_NIT)  / 62e+0_fp         + &
                          HNO3_DEN           / 63e+0_fp         + &
                          Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)

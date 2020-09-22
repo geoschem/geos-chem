@@ -260,6 +260,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AerMassPOA      (:,:,:  ) ! POA [ug/m3]
      REAL(f4),  POINTER :: AerMassSAL      (:,:,:  ) ! Total seasalt [ug/m3]
      REAL(f4),  POINTER :: AerMassSO4      (:,:,:  ) ! Sulfate [ug/m3]
+     REAL(f4),  POINTER :: AerMassHMS      (:,:,:  ) ! HMS [ug/m3] !(jmm, 06/28/19)     
      REAL(f4),  POINTER :: AerMassSOAGX    (:,:,:  ) ! SOAGX [ug/m3]
      REAL(f4),  POINTER :: AerMassSOAIE    (:,:,:  ) ! SOAIE [ug/m3]
      REAL(f4),  POINTER :: AerMassTSOA     (:,:,:  ) ! Terpene SOA [ug/m3]
@@ -280,6 +281,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_AerMassPOA
      LOGICAL :: Archive_AerMassSAL
      LOGICAL :: Archive_AerMassSO4
+     LOGICAL :: Archive_AerMassHMS ! jmm 06/29/18           
      LOGICAL :: Archive_AerMassSOAGX
      LOGICAL :: Archive_AerMassSOAIE
      LOGICAL :: Archive_AerMassTSOA
@@ -365,6 +367,9 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
      REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:)
+     REAL(f4),  POINTER :: ProdHMSfromSO2andHCHOinCloud(:,:,:) ! (jmm, 06/29/18)
+     REAL(f4),  POINTER :: ProdSO2andHCHOfromHMSinCloud(:,:,:) ! (jmm, 01/18/20)
+     REAL(f4),  POINTER :: ProdSO4fromHMSinCloud       (:,:,:) ! (jmm, 06/29/18)     
      LOGICAL :: Archive_ProdSO2fromDMSandOH
      LOGICAL :: Archive_ProdSO2fromDMSandNO3
      LOGICAL :: Archive_ProdSO2fromDMS
@@ -382,6 +387,9 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdSO4fromSRHOBr
      LOGICAL :: Archive_ProdSO4fromO3s
      LOGICAL :: Archive_LossHNO3onSeaSalt
+     LOGICAL :: Archive_ProdHMSfromSO2andHCHOinCloud ! (jmm, 06/29/18)
+     LOGICAL :: Archive_ProdSO2andHCHOfromHMSinCloud ! (jmm, 01/18/20)
+     LOGICAL :: Archive_ProdSO4fromHMSinCloud        ! (jmm, 06/29/18)     
 
      ! O3 and HNO3 at a given height above the surface
      REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
@@ -949,6 +957,7 @@ CONTAINS
     State_Diag%AerMassPOA                          => NULL()
     State_Diag%AerMassSAL                          => NULL()
     State_Diag%AerMassSO4                          => NULL()
+    State_Diag%AerMassHMS                          => NULL() ! jmm 06/28/19    
     State_Diag%AerMassSOAGX                        => NULL()
     State_Diag%AerMassSOAIE                        => NULL()
     State_Diag%AerMassTSOA                         => NULL()
@@ -969,6 +978,7 @@ CONTAINS
     State_Diag%Archive_AerMassPOA                  = .FALSE.
     State_Diag%Archive_AerMassSAL                  = .FALSE.
     State_Diag%Archive_AerMassSO4                  = .FALSE.
+    State_Diag%Archive_AerMassHMS                  = .FALSE. ! jmm 06/28/19
     State_Diag%Archive_AerMassSOAGX                = .FALSE.
     State_Diag%Archive_AerMassSOAIE                = .FALSE.
     State_Diag%Archive_AerMassTSOA                 = .FALSE.
@@ -1051,6 +1061,9 @@ CONTAINS
     State_Diag%ProdSO4fromSRHOBr                   => NULL()
     State_Diag%ProdSO4fromO3s                      => NULL()
     State_Diag%LossHNO3onSeaSalt                   => NULL()
+    State_Diag%ProdSO4fromHMSinCloud               => NULL() ! (jmm, 06/29/18)
+    State_Diag%ProdHMSfromSO2andHCHOinCloud        => NULL() ! (jmm, 06/29/18)
+    State_Diag%ProdSO2andHCHOfromHMSinCloud        => NULL() ! (jmm, 01/18/20)    
     State_Diag%Archive_ProdSO2fromDMSandOH         = .FALSE.
     State_Diag%Archive_ProdSO2fromDMSandNO3        = .FALSE.
     State_Diag%Archive_ProdSO2fromDMS              = .FALSE.
@@ -1068,6 +1081,9 @@ CONTAINS
     State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
     State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
     State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE.
+    State_Diag%Archive_ProdSO4fromHMSinCloud       = .FALSE.  ! (jmm, 06/29/18)
+    State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud= .FALSE.  ! (jmm, 06/29/18)
+    State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud= .FALSE.  ! (jmm, 01/18/20)    
 
     ! O3 and HNO3 at a given height above the surface
     State_Diag%DryDepRaALT1                        => NULL()
@@ -4017,6 +4033,66 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Production of HMS from aqueous reaction of SO2 in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdHMSfromSO2andHCHOinCloud'
+       diagID  = 'ProdHMSfromSO2andHCHOinCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdHMSfromSO2andHCHOinCloud( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdHMSfromSO2andHCHOinCloud = 0.0_f4
+          State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%ProdHMSfromSO2andHCHOinCloud,  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO2 and HCHO from aqueous reaction of HMS in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO2andHCHOfromHMSinCloud'
+       diagID  = 'ProdSO2andHCHOfromHMSinCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO2andHCHOfromHMSinCloud( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO2andHCHOfromHMSinCloud = 0.0_f4
+          State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%ProdSO2andHCHOfromHMSinCloud,  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 from aqueous oxidation of HMS in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromHMSinCloud'
+       diagID  = 'ProdSO4fromHMSinCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromHMSinCloud( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromHMSinCloud = 0.0_f4
+          State_Diag%Archive_ProdSO4fromHMSinCloud = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%ProdSO4fromHMSinCloud,         &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       
+       !--------------------------------------------------------------------
        ! Loss of HNO3 on sea salt
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossHNO3onSeaSalt'
@@ -4130,6 +4206,26 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! Aerosol mass of HMS [ug/m3]
+       ! (jmm, 06/29/18)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassHMS'
+       diagID  = 'AerMassHMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassHMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassHMS = 0.0_f4
+          State_Diag%Archive_AerMassHMS = .TRUE.
+          CALL Register_DiagField( Input_Opt, diagID,                        &
+                                   State_Diag%AerMassHMS,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       
        !-------------------------------------------------------------------
        ! PM2.5, aka prticulate matter with (r < 2.5 um) [ug/m3]
        !-------------------------------------------------------------------
@@ -4326,7 +4422,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 21
+       DO N = 1, 25
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -4375,6 +4471,14 @@ CONTAINS
                 diagID = 'TotalOA'
              CASE( 21 )
                 diagID = 'TotalOC'
+             CASE( 22 ) ! (jmm, 06/29/18)
+                diagID = 'ProdSO4fromHMSinCloud'
+             CASE( 23 ) ! (jmm, 06/29/18)
+                diagID = 'ProdHMSfromSO2andHCHOinCloud'
+             CASE( 24 ) ! (jmm, 06/29/18)
+                diagID = 'AerMassHMS'
+             CASE( 25 ) ! (jmm, 06/29/18)
+                diagID = 'ProdSO2andHCHOfromHMSinCloud'                
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6244,6 +6348,7 @@ CONTAINS
                                    State_Diag%Archive_AerMassPOA        .or. &
                                    State_Diag%Archive_AerMassSAL        .or. &
                                    State_Diag%Archive_AerMassSO4        .or. &
+                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18) 
                                    State_Diag%Archive_AerMassSOAGX      .or. &
                                    State_Diag%Archive_AerMassSOAIE      .or. &
                                    State_Diag%Archive_AerMassTSOA       .or. &
@@ -7097,6 +7202,27 @@ CONTAINS
        State_Diag%ProdSO4fromH2O2inCloud => NULL()
     ENDIF
 
+    ! (jmm, 06/29/18)
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromHMSinCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromHMSinCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromHMSinCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    ! (jmm, 06/29/18)
+    IF ( ASSOCIATED( State_Diag%ProdHMSfromSO2andHCHOinCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdHMSfromSO2andHCHOinCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdHMSfromSO2andHCHOinCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF    
+
+    ! (jmm, 06/29/18)
+    IF ( ASSOCIATED( State_Diag%ProdSO2andHCHOfromHMSinCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO2andHCHOfromHMSinCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO2andHCHOfromHMSinCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF    
+    
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inCloud ) ) THEN
        DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inCloud', 2, RC )
@@ -7261,6 +7387,13 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AerMassSO4 => NULL()
     ENDIF
+
+    ! (jmm, 06/28/18)
+    IF ( ASSOCIATED( State_Diag%AerMassHMS ) ) THEN
+       DEALLOCATE( State_Diag%AerMassHMS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassHMS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF        
 
     IF ( ASSOCIATED( State_Diag%AerMassSOAGX ) ) THEN
        DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC )
@@ -8760,6 +8893,27 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
+       !(jmm, 06/29/18)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMHMSINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
+                                'oxidation of HMS in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+       !(jmm, 06/29/18)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHMSFROMSO2ANDHCHOINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of HMS from aqueous ' // &
+                                'reaction of SO2 and HCHO in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+       !(jmm, 01/18/20)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2ANDHCHOFROMHMSINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO2 and HCHO from ' // &
+                                'aqueous reaction of HS and OH- in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3      
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
                                 'oxidation of O3 in clouds'
@@ -8874,6 +9028,12 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Mass of sulfate aerosol'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
+
+       ! (jmm, 06/29/18)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSHMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of hydroxymethanesulfonate aerosol'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3              
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAGX' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of aerosol-phase glyoxal'
