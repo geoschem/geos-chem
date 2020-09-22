@@ -2169,15 +2169,19 @@ KO2:
 LBRO2H:
   FullName: Dummy species to track oxidation of BRO2 by HO2
   Is_Gas: true
+  MW_g: 159.13
 LBRO2N:
   FullName: Dummy species to track oxidation of BRO2 by NO
   Is_Gas: true
+  MW_g: 159.13
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
+  MW_g: 16.05
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
+  MW_g: 28.01
 LIMO:
   DD_F0: 0.0
   DD_Hstar: 7.0e-2
@@ -2199,24 +2203,31 @@ LIMO2:
 LISOPNO3:
   FullName: Dummy species to track oxidation of ISOP by NO3
   Is_Gas: true
+  MW_g: 68.13
 LISOPOH:
   FullName: Dummy species to track oxidation of ISOP by OH
   Is_Gas: true
+  MW_g: 68.13
 LNRO2H:
   FullName: Dummy species to track oxidation of NRO2 by HO2
   Is_Gas: true
+  MW_g: 159.17
 LNRO2N:
   FullName: Dummy species to track oxidation of NRO2 by NO
   Is_Gas: true
+  MW_g: 159.17
 LOx:
   FullName: Dummy species to track loss rate of Ox
   Is_Gas: true
+  MW_g: 48.00
 LTRO2H:
   FullName: Dummy species to track oxidation of TRO2 by HO2
   Is_Gas: true
+  MW_g: 173.16
 LTRO2N:
   FullName: Dummy species to track oxidation of TRO2 by NO
   Is_Gas: true
+  MW_g: 173.16
 LVOC:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -2247,9 +2258,11 @@ LVOCOA:
 LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
+  MW_g: 187.19
 LXRO2N:
   FullName: Dummy species to track oxidation of XRO2 by NO
   Is_Gas: true
+  MW_g: 187.19
 MACR:
   DD_F0: 1.0
   DD_Hstar: 6.5
@@ -3080,6 +3093,7 @@ Pb210Strat:
 PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
+  MW_g: 28.01
 pFe:
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -3096,6 +3110,7 @@ pFe:
 PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
+  MW_g: 34.02
 PIO2:
   Formula: C10H17O3
   FullName: Peroxy radical from MTPA
@@ -3369,6 +3384,7 @@ POPPOCPO_PYR:
 POx:
   FullName: Dummy species to track production rate of Ox
   Is_Gas: true
+  MW_g: 48.00
 PP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -3444,6 +3460,7 @@ PRPN:
 PSO4:
   FullName: Dummy species to track production of SO4
   Is_Gas: true
+  MW_g: 96.06
 PYAC:
   DD_F0: 1.0
   DD_Hstar: 3.14e+5
