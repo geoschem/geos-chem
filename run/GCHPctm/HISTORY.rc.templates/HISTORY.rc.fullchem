@@ -111,19 +111,12 @@ COLLECTIONS: #'AerosolMass',
 #
 #           SpeciesConc.levels: 1 2 3
 #
-#    (9) Setting monthly to 1 and mode to 'time-averaged' will enable
-#        1-month diagnostics. Frequency and duration are then ignored.
-#
-#           SpeciesConc.monthly: 1
-#           SpeciesConc.mode:    'time-averaged'
-#
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:     '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:       'CFIO',
   Emissions.frequency:    010000
   Emissions.duration:     010000
-  Emissions.monthly:      0
   Emissions.mode:         'time-averaged'
   Emissions.fields:       'EmisACET_Total       ', 'GCHPchem',
                           'EmisACET_Anthro      ', 'GCHPchem',
@@ -603,7 +596,6 @@ COLLECTIONS: #'AerosolMass',
   AerosolMass.format:     'CFIO',
   AerosolMass.frequency:  010000
   AerosolMass.duration:   010000
-  AerosolMass.monthly:    0
   AerosolMass.mode:       'time-averaged'
   AerosolMass.fields:     'AerMassBC          ', 'GCHPchem',
                           'AerMassINDIOL      ', 'GCHPchem',
@@ -636,7 +628,6 @@ COLLECTIONS: #'AerosolMass',
   Aerosols.format:        'CFIO',
   Aerosols.frequency:     010000
   Aerosols.duration:      010000
-  Aerosols.monthly:       0
   Aerosols.mode:          'time-averaged'
   Aerosols.fields:        'AODHygWL1_SO4                 ', 'GCHPchem',
                           'AODHygWL1_BCPI                ', 'GCHPchem',
@@ -747,7 +738,6 @@ COLLECTIONS: #'AerosolMass',
   Budget.format:          'CFIO',
   Budget.frequency:       010000
   Budget.duration:        010000
-  Budget.monthly:         0
   Budget.mode:            'time-averaged'
   Budget.fields:          'BudgetWetDepPBL_SOAS           ', 'GCHPchem',
                           'BudgetWetDepPBL_SOAIE          ', 'GCHPchem',
@@ -4461,7 +4451,6 @@ COLLECTIONS: #'AerosolMass',
   CloudConvFlux.format:    'CFIO',
   CloudConvFlux.frequency: 010000
   CloudConvFlux.duration:  010000
-  CloudConvFlux.monthly:   0
   CloudConvFlux.mode:      'time-averaged'
   CloudConvFlux.fields:    'CloudConvFlux_XYLE          ', 'GCHPchem',
                            'CloudConvFlux_TOLU          ', 'GCHPchem',
@@ -4719,7 +4708,6 @@ COLLECTIONS: #'AerosolMass',
   ConcAfterChem.format:    'CFIO',
   ConcAfterChem.frequency: 010000
   ConcAfterChem.duration:  010000
-  ConcAfterChem.monthly:   0
   ConcAfterChem.mode:      'time-averaged'
   ConcAfterChem.fields:    'OHconcAfterChem               ', 'GCHPchem',
                            'HO2concAfterChem              ', 'GCHPchem',
@@ -4737,7 +4725,6 @@ COLLECTIONS: #'AerosolMass',
   DryDep.format:          'CFIO',
   DryDep.frequency:       010000
   DryDep.duration:        010000
-  DryDep.monthly:         0
   DryDep.mode:            'time-averaged'
   DryDep.fields:          'DryDepVel_SOAS       ', 'GCHPchem',
                           'DryDepVel_SOAIE      ', 'GCHPchem',
@@ -5071,7 +5058,6 @@ COLLECTIONS: #'AerosolMass',
   JValues.format:         'CFIO',
   JValues.frequency:      010000
   JValues.duration:       010000
-  JValues.monthly:        0
   JValues.mode:           'time-averaged'
   JValues.fields:         'JvalO3O3P              ', 'GCHPchem',
                           'JvalO3O1D              ', 'GCHPchem',
@@ -5277,7 +5263,6 @@ COLLECTIONS: #'AerosolMass',
   KppDiags.format:        'CFIO',
   KppDiags.frequency:     010000
   KppDiags.duration:      010000
-  KppDiags.monthly:       0
   KppDiags.mode:          'time-averaged'
   KppDiags.fields:        'KppIntCounts                  ', 'GCHPchem',
                           'KppJacCounts                  ', 'GCHPchem',
@@ -5303,7 +5288,6 @@ COLLECTIONS: #'AerosolMass',
   Metrics.format:             'CFIO',
   Metrics.frequency:          010000
   Metrics.duration:           010000
-  Metrics.monthy:             0
   Metrics.mode:               'time-averaged'
   Metrics.fields:             'AirMassColumnFull           ', 'GCHPchem',
                               'LossOHbyCH4columnTrop       ', 'GCHPchem',
@@ -5321,7 +5305,6 @@ COLLECTIONS: #'AerosolMass',
   LevelEdgeDiags.format:    'CFIO',
   LevelEdgeDiags.frequency: 010000
   LevelEdgeDiags.duration:  010000
-  LevelEdgeDiags.monthly:   0
   LevelEdgeDiags.mode:      'time-averaged'
   LevelEdgeDiags.fields:    'Met_CMFMC                     ', 'GCHPchem',
                             'Met_PEDGE                     ', 'GCHPchem',
@@ -5342,7 +5325,6 @@ COLLECTIONS: #'AerosolMass',
   ProdLoss.format:        'CFIO',
   ProdLoss.frequency:     010000
   ProdLoss.duration:      010000
-  ProdLoss.monthly:       0
   ProdLoss.mode:          'time-averaged'
   ProdLoss.fields:        'Prod_SO4                   ', 'GCHPchem',
                           'Prod_CO                    ', 'GCHPchem',
@@ -5376,7 +5358,6 @@ COLLECTIONS: #'AerosolMass',
   RRTMG.format:     'CFIO',
   RRTMG.frequency:  010000
   RRTMG.duration:   010000
-  RRTMG.monthly:    0
   RRTMG.mode:       'time-averaged'
   RRTMG.fields:     'RadAllSkyLWSurf_BASE ', 'GCHPchem',
                     'RadAllSkyLWSurf_O3   ', 'GCHPchem',
@@ -5513,7 +5494,6 @@ COLLECTIONS: #'AerosolMass',
   SpeciesConc.format:     'CFIO',
   SpeciesConc.frequency:  010000
   SpeciesConc.duration:   010000
-  SpeciesConc.monthly:    0
   SpeciesConc.mode:       'time-averaged'
   SpeciesConc.fields:     'SpeciesConc_RCOOH          ', 'GCHPchem',
                           'SpeciesConc_O2             ', 'GCHPchem',
@@ -5830,7 +5810,6 @@ COLLECTIONS: #'AerosolMass',
   StateChm.format:        'CFIO',
   StateChm.frequency:     010000
   StateChm.duration:      010000
-  StateChm.monthly:       0
   StateChm.mode:          'time-averaged'
   StateChm.fields:        'Chem_phSav                ', 'GCHPchem',
                           'Chem_HplusSav             ', 'GCHPchem',
@@ -5861,7 +5840,6 @@ COLLECTIONS: #'AerosolMass',
   StateMet.format:    'CFIO',
   StateMet.frequency: 010000
   StateMet.duration:  010000
-  StateMet.monthly:   0
   StateMet.mode:      'time-averaged'
   StateMet.fields:    'Met_AD               ', 'GCHPchem',
                       #'Met_AIRDEN          ', 'GCHPchem',
@@ -5959,7 +5937,6 @@ COLLECTIONS: #'AerosolMass',
   WetLossConv.format:     'CFIO',
   WetLossConv.frequency:  010000
   WetLossConv.duration:   010000
-  WetLossConv.monthly:    0
   WetLossConv.mode:       'time-averaged'
   WetLossConv.fields:     'WetLossConvFrac_SOAS       ', 'GCHPchem',
                           'WetLossConvFrac_SOAIE      ', 'GCHPchem',
@@ -6262,7 +6239,6 @@ COLLECTIONS: #'AerosolMass',
   WetLossLS.format:       'CFIO',
   WetLossLS.frequency:    010000
   WetLossLS.duration:     010000
-  WetLossLS.monthly:      0
   WetLossLS.mode:         'time-averaged'
   WetLossLS.fields:       'WetLossLS_SOAS           ', 'GCHPchem',
                           #'WetLossLS_TSOG3          ', 'GCHPchem',

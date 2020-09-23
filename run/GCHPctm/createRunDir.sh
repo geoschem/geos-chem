@@ -382,8 +382,6 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
-
 # Special handling for benchmark simulation
 if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
     total_cores=48
@@ -392,12 +390,12 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     grid_res=48
     timeAvg_freq="7440000"
     inst_freq="7440000"
-    monthly_diag=1
     start_time="000000"
     end_time="000000"
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
-    printf "\n  -- The default diagnostic frequency and duration is monthly."
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
+    printf "\n  -- The default diagnostic frequency and duration is 31 days."
 else
     total_cores=24
     num_nodes=1
@@ -405,11 +403,11 @@ else
     grid_res=24
     timeAvg_freq="010000"
     inst_freq="010000"
-    monthly_diag=0
     start_time="000000"
     end_time="010000"
     dYYYYMMDD="00000000"
     dHHmmSS="010000"
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
     printf "\n  -- The default diagnostic frequency and duration is hourly."
 fi
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
@@ -423,7 +421,6 @@ sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
 sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{MonthlyDiag}|${monthly_diag}|"           ${rundir}/runConfig.sh
 sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh

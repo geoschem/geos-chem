@@ -102,19 +102,12 @@ COLLECTIONS: 'Emissions',
 #
 #           SpeciesConc.levels: 1 2 3
 #
-#    (9) Setting monthly to 1 and mode to 'time-averaged' will enable
-#        1-month diagnostics. Frequency and duration are then ignored.
-#
-#           SpeciesConc.monthly: 1
-#           SpeciesConc.mode:    'time-averaged'
-#
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:  '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:    'CFIO',
   Emissions.frequency: 010000
   Emissions.duration:  010000
-  Emissions.monthly:   0
   Emissions.mode:      'time-averaged'
   Emissions.fields:    'EmisRn_Soil                 ', 'GCHPchem',
                        'EmisBe7_Cosmic              ', 'GCHPchem',
@@ -135,7 +128,6 @@ COLLECTIONS: 'Emissions',
   Budget.format:    'CFIO',
   Budget.frequency: 010000
   Budget.duration:  010000
-  Budget.monthly:   0
   Budget.mode:      'time-averaged'
   Budget.fields:    'BudgetChemistryFull_Rn222                    ', 'GCHPchem',
                     'BudgetChemistryFull_Pb210                    ', 'GCHPchem',
@@ -317,7 +309,6 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.format:    'CFIO',
   CloudConvFlux.frequency: 010000
   CloudConvFlux.duration:  010000
-  CloudConvFlux.monthly:   0
   CloudConvFlux.mode:      'time-averaged'
   CloudConvFlux.fields:    'CloudConvFlux_Rn222                   ', 'GCHPchem',
                            'CloudConvFlux_Pb210                   ', 'GCHPchem',
@@ -338,7 +329,6 @@ COLLECTIONS: 'Emissions',
   DryDep.format:           'CFIO',
   DryDep.frequency:        010000
   DryDep.duration:         010000
-  DryDep.monthly:          0
   DryDep.mode:             'time-averaged'
   DryDep.fields:           'DryDep_Pb210          ', 'GCHPchem',
                            'DryDep_Pb210Strat     ', 'GCHPchem',
@@ -358,7 +348,6 @@ COLLECTIONS: 'Emissions',
   LevelEdgeDiags.format:    'CFIO',
   LevelEdgeDiags.frequency: 010000
   LevelEdgeDiags.duration:  010000
-  LevelEdgeDiags.monthly:   0
   LevelEdgeDiags.mode:      'time-averaged'
   LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GCHPchem',
                             'Met_PEDGE          ', 'GCHPchem',
@@ -373,7 +362,6 @@ COLLECTIONS: 'Emissions',
   RadioNuclide.format:      'CFIO',
   RadioNuclide.frequency:   010000
   RadioNuclide.duration:    010000
-  RadioNuclide.monthly:     0
   RadioNuclide.mode:        'time-averaged'
   RadioNuclide.fields:      'PbFromRnDecay           ', 'GCHPchem',  
                             'RadDecay_Rn222          ', 'GCHPchem',
@@ -389,7 +377,6 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.format:       'CFIO',
   SpeciesConc.frequency:    010000
   SpeciesConc.duration:     010000
-  SpeciesConc.monthly:      0
   SpeciesConc.mode:         'time-averaged'
   SpeciesConc.fields:       'SpeciesConc_Rn222                   ', 'GCHPchem',
                             'SpeciesConc_Pb210                   ', 'GCHPchem',
@@ -410,7 +397,6 @@ COLLECTIONS: 'Emissions',
   StateMet.format:          'CFIO',
   StateMet.frequency:       010000
   StateMet.duration:        010000
-  StateMet.monthly:         0
   StateMet.mode:            'time-averaged'
   StateMet.fields:          'Met_AD             ', 'GCHPchem',
                             'Met_AIRDEN         ', 'GCHPchem',
@@ -498,7 +484,6 @@ COLLECTIONS: 'Emissions',
   WetLossConv.format:       'CFIO',
   WetLossConv.frequency:    010000
   WetLossConv.duration:     010000
-  WetLossConv.monthly:      0
   WetLossConv.mode:         'time-averaged'
   WetLossConv.fields:       'WetLossConv_Pb210           ', 'GCHPchem',
                             'WetLossConv_Pb210Strat      ', 'GCHPchem',
@@ -518,7 +503,6 @@ COLLECTIONS: 'Emissions',
   WetLossLS.format:         'CFIO',
   WetLossLS.frequency:      010000
   WetLossLS.duration:       010000
-  WetLossLS.monthly:        0
   WetLossLS.mode:           'time-averaged'
   WetLossLS.fields:         'WetLossLS_Pb210      ', 'GCHPchem',
                             'WetLossLS_Pb210Strat ', 'GCHPchem',

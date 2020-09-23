@@ -74,6 +74,8 @@ Start_Time="{DATE1} {TIME1}"
 End_Time="{DATE2} {TIME2}"
 Duration="{dYYYYMMDD} {dHHmmss}"
 Num_Runs=1
+Monthly_Diag=0 # Only for use with multi-run script gchp.multirun.sh. Set to 1 to enable.
+#
 # The simplest run is a single segment run (Num_Runs=1). For this case
 # duration should be less than or equal to the difference between start
 # and end time. If end time is past start time plus duration, the simulation
@@ -184,9 +186,8 @@ Checkpoint_Ref_Time=
 #------------------------------------------------
 #    Output Diagnostics
 #------------------------------------------------        
-Monthly_Diag="{MonthlyDiag}"
-timeAvg_freq="{AvgFreq}"   # Ignored if Monthly_Diag=1
-timeAvg_dur="{AvgDur}"     # Ignored if Monthly_Diag=1
+timeAvg_freq="{AvgFreq}"
+timeAvg_dur="{AvgDur}"
 timeAvg_collections=(SpeciesConc    \
                      AerosolMass    \
                      Aerosols       \
@@ -214,11 +215,7 @@ inst_freq="{InstFreq}"
 inst_dur="{InstDur}"
 inst_collections=(ConcAboveSfc      \
 )
-
-# Set Monthly_Diag to 1 to enable time-averaged monthly diagnostics. 0 = off.
 # Set frequency and duration for time-averaged and instantaneous collections.
-# Frequency and duration are ignored for time-averaged collections if
-# monthly diagnostics are on.
 #
 #   Frequency = frequency of diagnostic calculation (HHmmSS)
 #   Duration  = frequency of diagnostic file  write (HHmmSS)
@@ -571,12 +568,11 @@ else
     exit 1
 fi
 
-#### Set output frequency, duration, mode, and monthly diagnostics.
+#### Set output frequency, duration, and mode
 print_msg " "
 print_msg "Diagnostics:" 
 if [[ ${#timeAvg_collections[@]} > 0 ]]; then
    for c in ${timeAvg_collections[@]}; do
-      replace_val $c.monthly     ${Monthly_Diag}   HISTORY.rc
       replace_val $c.mode        "'time-averaged'" HISTORY.rc
       replace_val $c.frequency   ${timeAvg_freq}   HISTORY.rc  
       replace_val $c.duration    ${timeAvg_dur}    HISTORY.rc
@@ -585,7 +581,6 @@ fi
 if [[ ${#inst_collections[@]} > 0 ]]; then
    for c in ${inst_collections[@]}; do
       replace_val $c.mode        "'instantaneous'" HISTORY.rc
-      replace_val $c.monthly     0                 HISTORY.rc
       replace_val $c.frequency   ${inst_freq}      HISTORY.rc  
       replace_val $c.duration    ${inst_dur}       HISTORY.rc
    done
