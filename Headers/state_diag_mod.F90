@@ -5906,8 +5906,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25ni,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25ni,               &
+            Ptr2Data       = State_Diag%PM25ni,                       &
+            archiveData    = State_Diag%Archive_PM25ni,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -5928,8 +5928,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25su,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25su,               &
+            Ptr2Data       = State_Diag%PM25su,                       &
+            archiveData    = State_Diag%Archive_PM25su,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -5950,8 +5950,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25oc,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25oc,               &
+            Ptr2Data       = State_Diag%PM25oc,                       &
+            archiveData    = State_Diag%Archive_PM25oc,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -5972,8 +5972,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25bc,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25bc,               &
+            Ptr2Data       = State_Diag%PM25bc,                       &
+            archiveData    = State_Diag%Archive_PM25bc,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -5994,8 +5994,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25du,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25du,               &
+            Ptr2Data       = State_Diag%PM25du,                       &
+            archiveData    = State_Diag%Archive_PM25du,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -6016,8 +6016,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25ss,                       &
-            archiveData    = State_Diag%Archive_AerMassPM25ss,               &
+            Ptr2Data       = State_Diag%PM25ss,                       &
+            archiveData    = State_Diag%Archive_PM25ss,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -6038,8 +6038,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%AerMassPM25soa,                      &
-            archiveData    = State_Diag%Archive_AerMassPM25soa,              &
+            Ptr2Data       = State_Diag%PM25soa,                      &
+            archiveData    = State_Diag%Archive_PM25soa,              &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -9618,8 +9618,8 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'MoninObhukov',                                &
-                   Ptr2Data = State_Diag%MoninObhukov,                       &
+    CALL Finalize( diagId   = 'MoninObukhov',                                &
+                   Ptr2Data = State_Diag%MoninObukhov,                       &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
