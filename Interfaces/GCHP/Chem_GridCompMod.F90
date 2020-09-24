@@ -383,7 +383,6 @@ CONTAINS
     USE inquireMod,           ONLY : findFreeLUN
     USE FILE_MOD,             ONLY : IOERROR
 #if defined( MODEL_GEOS )
-    USE SPECIES_DATABASE_MOD, ONLY : Spc_Info
     USE CMN_FJX_MOD
     USE GCKPP_Monitor
     USE GCKPP_Parameters
@@ -450,8 +449,7 @@ CONTAINS
     REAL(fp)                      :: F_FJX
     INTEGER                       :: JJ, NUNIT
     CHARACTER(LEN=255)            :: MYFRIENDLIES
-    CHARACTER(LEN=31)             :: iName
-    CHARACTER(LEN=127)            :: FullName, Formula 
+    CHARACTER(LEN=127)            :: FullName
     LOGICAL                       :: FriendDyn, FriendTurb
 #endif
 
@@ -671,15 +669,17 @@ CONTAINS
                                      MYFRIENDLIES = 'GEOSCHEMCHEM'
 
           ! Get long name
-          iName = TRIM(SUBSTRS(1))
-          CALL Spc_Info ( iName=iName,                  &
-                          KppSpcID=-1,                  &
-                          oDiagName = FullName,         &
-                          oFormula = Formula,           &
-                          Found=Found,                  &
-                          Underscores = .TRUE.,         &
-                          RC = RC )
-          IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
+          ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+          !iName = TRIM(SUBSTRS(1))
+          !CALL Spc_Info ( iName=iName,                  &
+          !                KppSpcID=-1,                  &
+          !                oDiagName = FullName,         &
+          !                oFormula = Formula,           &
+          !                Found=Found,                  &
+          !                Underscores = .TRUE.,         &
+          !                RC = RC )
+          !IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
+          FullName = TRIM(SUBSTRS(1))
 
           call MAPL_AddInternalSpec(GC, &
                SHORT_NAME         = TRIM(SPFX)//TRIM(SUBSTRS(1)), &
@@ -741,12 +741,14 @@ CONTAINS
           IF ( .NOT. Found ) THEN 
 
              ! Get long name
-             iName = TRIM(SpcName)
-             CALL Spc_Info ( iName=iName, &
-                             KppSpcID=-1, oDiagName = FullName, &
-                             oFormula = Formula, &
-                             Found=Found, Underscores = .TRUE., RC = RC )
-             IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+             ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+             !iName = TRIM(SpcName)
+             !CALL Spc_Info ( iName=iName, &
+             !                KppSpcID=-1, oDiagName = FullName, &
+             !                oFormula = Formula, &
+             !                Found=Found, Underscores = .TRUE., RC = RC )
+             !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+             FullName = TRIM(SpcName)
 
              ! Error trap for POx and LOx. Their species names in the internal
              ! state must be all caps
@@ -1001,11 +1003,13 @@ CONTAINS
     ! GEOS-5 only (should handle diags elsewhere, use State vars now):
     !-- Exports
     DO I=1,Nadv
-       iName = TRIM(AdvSpc(I))
-       CALL Spc_Info ( iName=iName, &
-                       KppSpcID=-1, oDiagName = FullName, Found=Found, &
-                       Underscores = .FALSE., RC = RC )
-       IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+       !iName = TRIM(AdvSpc(I))
+       !CALL Spc_Info ( iName=iName, &
+       !                KppSpcID=-1, oDiagName = FullName, Found=Found, &
+       !                Underscores = .FALSE., RC = RC )
+       !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+       FullName = TRIM(SpcName)
 
        ! For all advected species, create placeholder export for deposition 
        ! diagnostics. These may not be defined for all species (some species 
@@ -1108,11 +1112,14 @@ CONTAINS
     ! Add exports for tropospheric and total column densities
     DO I=1,SIZE(COLLIST,1)
        SpcName = COLLIST(I)
-       iName = TRIM(SpcName)
-       CALL Spc_Info ( iName=iName, &
-                       KppSpcID=-1, oDiagName = FullName,         &
-                       Found = Found, Underscores = .TRUE., RC = RC )
-       IF ( .NOT. Found ) FullName = TRIM(SpcName)
+       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+       !iName = TRIM(SpcName)
+       !CALL Spc_Info ( iName=iName, &
+       !                KppSpcID=-1, oDiagName = FullName,         &
+       !                Found = Found, Underscores = .TRUE., RC = RC )
+       !IF ( .NOT. Found ) FullName = TRIM(SpcName)
+       FullName = TRIM(SpcName)
+
        CALL MAPL_AddExportSpec(GC,                                            &
           SHORT_NAME         = 'TOTCOL_'//TRIM(SpcName),                      & 
           LONG_NAME          = TRIM(FullName)//' total column density',        &
