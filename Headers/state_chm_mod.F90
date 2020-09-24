@@ -40,7 +40,10 @@ MODULE State_Chm_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
+  PRIVATE :: Init_and_Register
+  PRIVATE :: Init_Mapping_Vectors
   PRIVATE :: Register_ChmField
+  PRIVATE :: Zero_State_Chm
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -58,9 +61,9 @@ MODULE State_Chm_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  !=========================================================================
+  !==========================================================================
   ! Derived types for passing modelId and MW of species to HetChem routines
-  !=========================================================================
+  !==========================================================================
   TYPE, PUBLIC :: HetSpc
      INTEGER  :: mId
      REAL(fp) :: MW_g
@@ -130,14 +133,14 @@ MODULE State_Chm_Mod
      TYPE(HetSpc) :: SO4
   END TYPE HetState
 
-  !=========================================================================
+  !==========================================================================
   ! Derived type for Chemistry State
-  !=========================================================================
+  !==========================================================================
   TYPE, PUBLIC :: ChmState
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Count of each type of species
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      INTEGER                    :: nSpecies             ! # species (all)
      INTEGER                    :: nAdvect              ! # advected species
      INTEGER                    :: nAeroSpc             ! # of Aerosol Species
@@ -155,9 +158,9 @@ MODULE State_Chm_Mod
      INTEGER                    :: nRadNucl             ! # of radionuclides
      INTEGER                    :: nWetDep              ! # wetdep species
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Mapping vectors to subset types of species
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
      INTEGER,           POINTER :: Map_DryAlt (:      ) ! Dryalt species IDs
@@ -182,34 +185,34 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
 #endif
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Physical properties & indices for each species
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! GC Species database
      TYPE(dictionary_t)         :: SpcDict              ! Species dictionary
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Chemical species
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Boundary conditions
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: BoundaryCond(:,:,:,:)! Boundary conditions
                                                         !  [kg/kg dry air]
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! RRTMG state variables
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      INTEGER                    :: RRTMG_iSeed
      INTEGER                    :: RRTMG_iCld
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Aerosol quantities
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
@@ -225,34 +228,34 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
      REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for nitrogen deposition
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: DryDepNitrogen (:,:) ! Dry deposited N
      REAL(fp),          POINTER :: WetDepNitrogen (:,:) ! Wet deposited N
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Cloud quantities
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
      REAL(fp),          POINTER :: isCloud    (:,:,:  ) ! Cloud presence [-]
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for KPP solver
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: KPPHvalue  (:,:,:  ) ! H-value for Rosenbrock
                                                         !  solver
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for UCX mechanism
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(f4),          POINTER :: STATE_PSC  (:,:,:  ) ! PSC type (see Kirner
                                                         !  et al. 2011, GMD)
      REAL(fp),          POINTER :: KHETI_SLA  (:,:,:,:) ! Strat. liquid aerosol
                                                         !  reaction cofactors
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! For isoprene SOA via ISORROPIA
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: pHSav      (:,:,:,:) ! ISORROPIA aerosol pH
      REAL(fp),          POINTER :: HplusSav   (:,:,:,:) ! H+ concentration [M]
      REAL(fp),          POINTER :: WaterSav   (:,:,:,:) ! ISORROPIA aerosol H2O
@@ -262,9 +265,9 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: AcidPurSav (:,:,:  ) !
      REAL(fp),          POINTER :: BiSulSav   (:,:,:  ) ! Bisulfate conc [M]
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! For the tagged Hg simulation
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      INTEGER                    :: N_HG_CATS            ! # of Hg categories
      INTEGER,           POINTER :: Hg0_Id_List(:      ) ! Hg0 cat <-> tracer #
      INTEGER,           POINTER :: Hg2_Id_List(:      ) ! Hg2 cat <-> tracer #
@@ -294,49 +297,49 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for
                                                         ! HOCl removal by SO2
                                                         ! [unitless]
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for dry deposition
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for Linoz stratospheric ozone algorithm
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: TLSTT      (:,:,:,:) ! TLSTT (I,J,L,LINOZ_NFIELDS)
 
-     !----------------------------------------------------------------------
+     !------------------------------------------------------------------------
      ! Fields for Gan Luo et al Wetdep scheme (GMD-12-3439-2019)
-     !----------------------------------------------------------------------
+     !------------------------------------------------------------------------
      REAL(fp),          POINTER :: PSO4s      (:,:,:  )
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for non-local PBL mixing
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: SurfaceFlux(:,:,:  )
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: SFC_CH4    (:,:    )
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Fields for TOMS overhead ozone column data
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: TO3_DAILY  (:,:    ) ! Daily overhead ozone
      REAL(fp),          POINTER :: TOMS1      (:,:    )
      REAL(fp),          POINTER :: TOMS2      (:,:    )
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
 
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! Indices and MW's of species in heterogenous chemistry
-     !----------------------------------------------------------------------
+     !-----------------------------------------------------------------------
      TYPE(HetState),    POINTER :: HetInfo
 
   END TYPE ChmState
@@ -351,14 +354,184 @@ MODULE State_Chm_Mod
 !
 ! !MODULE INTERFACES:
 !
+  INTERFACE Init_and_Register
+     MODULE PROCEDURE Init_and_Register_R4_2D
+     MODULE PROCEDURE Init_and_Register_R4_3D
+     MODULE PROCEDURE Init_and_Register_R4_4D
+     MODULE PROCEDURE Init_and_Register_R8_2D
+     MODULE PROCEDURE Init_and_Register_R8_3D
+     MODULE PROCEDURE Init_and_Register_R8_4D
+  END INTERFACE Init_and_Register
+
   INTERFACE Register_ChmField
+     MODULE PROCEDURE Register_ChmField_R4_2D
      MODULE PROCEDURE Register_ChmField_R4_3D
-     MODULE PROCEDURE Register_ChmField_Rfp_2D
-     MODULE PROCEDURE Register_ChmField_Rfp_3D
-     MODULE PROCEDURE Register_ChmField_Rfp_4D
+     MODULE PROCEDURE Register_ChmField_R4_4D
+     MODULE PROCEDURE Register_ChmField_R8_2D
+     MODULE PROCEDURE Register_ChmField_R8_3D
+     MODULE PROCEDURE Register_ChmField_R8_4D
   END INTERFACE Register_ChmField
 
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Zero_State_Chm
+!
+! !DESCRIPTION: Nullifies and/or zeroes all fields of State\_Chm.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Zero_State_Chm( State_Chm, RC )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !========================================================================
+    ! Assume success
+    !========================================================================
+    RC = GC_SUCCESS
+
+    !========================================================================
+    ! Initialize or nullify each member of State_Chm
+    ! This will prevent potential deallocation errors
+    !========================================================================
+
+    ! Counters
+    State_Chm%nAdvect           =  0
+    State_Chm%nAeroSpc          =  0
+    State_Chm%nAeroType         =  0
+    State_Chm%nDryAlt           =  0
+    State_Chm%nDryDep           =  0
+    State_Chm%nGasSpc           =  0
+    State_Chm%nHygGrth          =  0
+    State_Chm%nKppVar           =  0
+    State_Chm%nKppFix           =  0
+    State_Chm%nKppSpc           =  0
+    State_Chm%nLoss             =  0
+    State_Chm%nPhotol           =  0
+    State_Chm%nProd             =  0
+    State_Chm%nSpecies          =  0
+    State_Chm%nWetDep           =  0
+
+    ! Mapping vectors
+    State_Chm%Map_Advect        => NULL()
+    State_Chm%Map_Aero          => NULL()
+    State_Chm%Map_DryAlt        => NULL()
+    State_Chm%Map_DryDep        => NULL()
+    State_Chm%Map_GasSpc        => NULL()
+    State_Chm%Map_HygGrth       => NULL()
+    State_Chm%Map_KppVar        => NULL()
+    State_Chm%Map_KppFix        => NULL()
+    State_Chm%Map_KppSpc        => NULL()
+    State_Chm%Map_Loss          => NULL()
+    State_Chm%Name_Loss         => NULL()
+    State_Chm%Map_Photol        => NULL()
+    State_Chm%Map_Prod          => NULL()
+    State_Chm%Name_Prod         => NULL()
+    State_Chm%Map_RadNucl       => NULL()
+    State_Chm%Map_WetDep        => NULL()
+    State_Chm%Map_WL            => NULL()
+
+    ! Species-based quantities
+    State_Chm%SpcData           => NULL()
+    State_Chm%Species           => NULL()
+    State_Chm%Spc_Units         =  ''
+    State_Chm%BoundaryCond      => NULL()
+
+    ! RRTMG state
+    State_Chm%RRTMG_iSeed       = 0
+    State_Chm%RRTMG_iCld        = 0
+
+    ! Aerosol and chemistry quantities
+    State_Chm%AeroArea          => NULL()
+    State_Chm%AeroRadi          => NULL()
+    State_Chm%WetAeroArea       => NULL()
+    State_Chm%WetAeroRadi       => NULL()
+    State_Chm%AeroH2O           => NULL()
+    State_Chm%GammaN2O5         => NULL()
+    State_Chm%SSAlk             => NULL()
+    State_Chm%OMOC_POA          => NULL()
+    State_Chm%OMOC_OPOA         => NULL()
+    State_Chm%DryDepNitrogen    => NULL()
+    State_Chm%WetDepNitrogen    => NULL()
+    State_Chm%pHCloud           => NULL()
+    State_Chm%isCloud           => NULL()
+    State_Chm%QLxpHCloud        => NULL()
+    State_Chm%KPPHvalue         => NULL()
+    State_Chm%STATE_PSC         => NULL()
+    State_Chm%KHETI_SLA         => NULL()
+    State_Chm%ACLArea           => NULL()
+    State_Chm%ACLRadi           => NULL()
+    State_Chm%HSO3_AQ           => NULL()
+    State_Chm%SO3_AQ            => NULL()
+    State_Chm%fupdateHOBr       => NULL()
+    State_Chm%fupdateHOCl       => NULL()
+    State_Chm%TLSTT             => NULL()
+    State_Chm%TO3_DAILY         => NULL()
+    State_Chm%TOMS1             => NULL()
+    State_Chm%TOMS2             => NULL()
+    State_Chm%SFC_CH4           => NULL()
+
+    ! Emissions and drydep quantities
+    State_Chm%DryDepSav         => NULL()
+    State_Chm%SurfaceFlux       => NULL()
+
+    ! Wetdep quantities
+    State_Chm%H2O2AfterChem     => NULL()
+    State_Chm%SO2AfterChem      => NULL()
+    State_Chm%PSO4s             => NULL()
+    State_Chm%QQ3D              => NULL()
+
+    ! Isoprene SOA
+    State_Chm%pHSav             => NULL()
+    State_Chm%HplusSav          => NULL()
+    State_Chm%WaterSav          => NULL()
+    State_Chm%SulRatSav         => NULL()
+    State_Chm%NaRatSav          => NULL()
+    State_Chm%AcidPurSav        => NULL()
+    State_Chm%ClRatSav          => NULL()
+    State_Chm%BiSulSav          => NULL()
+
+    ! Hg simulation quantities
+    State_Chm%N_HG_CATS         =  0
+    State_Chm%Hg0_Id_List       => NULL()
+    State_Chm%Hg2_Id_List       => NULL()
+    State_Chm%HgP_Id_List       => NULL()
+    State_Chm%Hg_Cat_Name       => NULL()
+    State_Chm%OceanHg0          => NULL()
+    State_Chm%OceanHg2          => NULL()
+    State_Chm%OceanHgP          => NULL()
+    State_Chm%SnowHgOcean       => NULL()
+    State_Chm%SnowHgLand        => NULL()
+    State_Chm%SnowHgOceanStored => NULL()
+    State_Chm%SnowHgLandStored  => NULL()
+
+#ifdef MODEL_GEOS
+    ! Quantities needed for GEOS-5
+    State_Chm%DryDepRa2m        => NULL()
+    State_Chm%DryDepRa10m       => NULL()
+#endif
+
+  END SUBROUTINE Zero_State_Chm
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -377,13 +550,13 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod
     USE CharPak_Mod,          ONLY : To_UpperCase
     USE CMN_Size_Mod,         ONLY : NDUST, NAER
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
     USE State_Grid_Mod,       ONLY : GrdState
-    USE CMN_FJX_MOD,          ONLY : W_         ! For UVFlx diagnostic
 !
 ! !INPUT PARAMETERS:
 !
@@ -412,12 +585,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: N, C, IM, JM, LM
-    INTEGER                 :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    INTEGER                 :: nKHLSA, nAerosol, nMatches
+    INTEGER                 :: C,          N
+    INTEGER                 :: nKHLSA,     nAerosol,   nMatches
 
     ! Strings
-    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc, ChmID
+    CHARACTER(LEN=255)      :: errMsg_ir,  errMsg
+    CHARACTER(LEN=255)      :: chmId,      thisLoc
+
+    ! String arrays
+    CHARACTER(LEN=17)       :: fieldId(NDUST+NAER)
 
     ! Objects
     TYPE(SpcIndCt)          :: SpcCount
@@ -425,158 +601,38 @@ CONTAINS
     INTEGER,        POINTER :: CheckIds(:)
     REAL(fp),       POINTER :: Ptr2data(:,:,:)
 
-    !=======================================================================
-    ! Initialization
-    !=======================================================================
+    !========================================================================
+    ! Init_State_Chm begins here!
+    !========================================================================
 
-    ! Error handling
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
+    ! Initialize
+    RC         =  GC_SUCCESS
+    nAerosol   =  NDUST + NAER
+    Ptr2data   => NULL()
+    ThisSpc    => NULL()
+    errMsg     =  ''
+    errMsg_ir  =  'Error encountered in "Init_and_Register", chmId = '
+    thisLoc    =  &
+         ' -> at Init_State_Chm (in module Headers/state_chm_mod.F90)'
+
+    ! Nullify or zero all State_Chm variables
+    CALL Zero_State_Chm( State_Chm, RC )
 
     ! Count the # of chemistry states we have initialized, so SpcData(Local)
     ! is not deallocated until the last ChmState is cleaned up.
     ! This avoids dangling pointers with detrimental effects. (hplin, 8/3/18)
-    nChmState                   =  nChmState + 1
+    nChmState = nChmState + 1
 
-    ! Shorten grid parameters for readability
-    IM                          =  State_Grid%NX ! # latitudes
-    JM                          =  State_Grid%NY ! # longitudes
-    LM                          =  State_Grid%NZ ! # levels
+    ! Nullify SpcDataLocal upon the first allocation of the Chemistry
+    ! State object.  This will avoid undefined pointer errors.
+    IF ( nChmState == 1 ) THEN
+       SpcDataLocal => NULL()
+    ENDIF
 
-    ! Number of aerosols
-    nAerosol                    =  NDUST + NAER
-
-    ! Initialize or nullify each member of State_Chm
-    ! This will prevent potential deallocation errors
-    State_Chm%nAdvect           =  0
-    State_Chm%nAeroSpc          =  0
-    State_Chm%nAeroType         =  0
-    State_Chm%nDryAlt           =  0
-    State_Chm%nDryDep           =  0
-    State_Chm%nGasSpc           =  0
-    State_Chm%nHygGrth          =  0
-    State_Chm%nKppVar           =  0
-    State_Chm%nKppFix           =  0
-    State_Chm%nKppSpc           =  0
-    State_Chm%nLoss             =  0
-    State_Chm%nPhotol           =  0
-    State_Chm%nProd             =  0
-    State_Chm%nSpecies          =  0
-    State_Chm%nWetDep           =  0
-    State_Chm%Map_Advect        => NULL()
-    State_Chm%Map_Aero          => NULL()
-    State_Chm%Map_DryAlt        => NULL()
-    State_Chm%Map_DryDep        => NULL()
-    State_Chm%Map_GasSpc        => NULL()
-    State_Chm%Map_HygGrth       => NULL()
-    State_Chm%Map_KppVar        => NULL()
-    State_Chm%Map_KppFix        => NULL()
-    State_Chm%Map_KppSpc        => NULL()
-    State_Chm%Map_Loss          => NULL()
-    State_Chm%Name_Loss         => NULL()
-    State_Chm%Map_Photol        => NULL()
-    State_Chm%Map_Prod          => NULL()
-    State_Chm%Name_Prod         => NULL()
-    State_Chm%Map_RadNucl       => NULL()
-    State_Chm%Map_WetDep        => NULL()
-    State_Chm%Map_WL            => NULL()
-#if defined( MODEL_GEOS )
-    State_Chm%DryDepRa2m        => NULL()
-    State_Chm%DryDepRa10m       => NULL()
-#endif
-    State_Chm%SpcData           => NULL()
-    State_Chm%Species           => NULL()
-    State_Chm%Spc_Units         =  ''
-    State_Chm%BoundaryCond      => NULL()
-
-    ! RRTMG state
-    State_Chm%RRTMG_iSeed       = 0
-    State_Chm%RRTMG_iCld        = 0
-
-    ! Aerosol parameters
-    State_Chm%AeroArea          => NULL()
-    State_Chm%AeroRadi          => NULL()
-    State_Chm%WetAeroArea       => NULL()
-    State_Chm%WetAeroRadi       => NULL()
-    State_Chm%AeroH2O           => NULL()
-    State_Chm%GammaN2O5         => NULL()
-    State_Chm%SSAlk             => NULL()
-    State_Chm%H2O2AfterChem     => NULL()
-    State_Chm%SO2AfterChem      => NULL()
-    State_Chm%OMOC_POA          => NULL()
-    State_Chm%OMOC_OPOA         => NULL()
-    State_Chm%DryDepNitrogen    => NULL()
-    State_Chm%WetDepNitrogen    => NULL()
-    State_Chm%pHCloud           => NULL()
-    State_Chm%isCloud           => NULL()
-    State_Chm%QLxpHCloud        => NULL()
-    State_Chm%KPPHvalue         => NULL()
-    State_Chm%STATE_PSC         => NULL()
-    State_Chm%KHETI_SLA         => NULL()
-    State_Chm%ACLArea           => NULL()
-    State_Chm%ACLRadi           => NULL()
-
-    ! Isoprene SOA
-    State_Chm%pHSav             => NULL()
-    State_Chm%HplusSav          => NULL()
-    State_Chm%WaterSav          => NULL()
-    State_Chm%SulRatSav         => NULL()
-    State_Chm%NaRatSav          => NULL()
-    State_Chm%AcidPurSav        => NULL()
-    State_Chm%ClRatSav          => NULL()
-    State_Chm%BiSulSav          => NULL()
-    State_Chm%N_HG_CATS         =  0
-    State_Chm%Hg0_Id_List       => NULL()
-    State_Chm%Hg2_Id_List       => NULL()
-    State_Chm%HgP_Id_List       => NULL()
-    State_Chm%Hg_Cat_Name       => NULL()
-    State_Chm%OceanHg0          => NULL()
-    State_Chm%OceanHg2          => NULL()
-    State_Chm%OceanHgP          => NULL()
-    State_Chm%SnowHgOcean       => NULL()
-    State_Chm%SnowHgLand        => NULL()
-    State_Chm%SnowHgOceanStored => NULL()
-    State_Chm%SnowHgLandStored  => NULL()
-    State_Chm%HSO3_AQ           => NULL()
-    State_Chm%SO3_AQ            => NULL()
-    State_Chm%fupdateHOBr       => NULL()
-    State_Chm%fupdateHOCl       => NULL()
-    State_Chm%DryDepSav         => NULL()
-    State_Chm%TLSTT             => NULL()
-
-    ! For Luo et al wetdep
-    State_Chm%PSO4s             => NULL()
-    State_Chm%QQ3D              => NULL()
-
-    ! For LINOZ
-    State_Chm%TLSTT             => NULL()
-
-    ! For dry deposition
-    State_Chm%DryDepSav         => NULL()
-    State_Chm%SurfaceFlux       => NULL()
-
-    ! Zero local variables
-    N_Hg0_CATS                  =  0
-    N_Hg2_CATS                  =  0
-    N_HgP_CATS                  =  0
-
-    ! For global CH4
-    State_Chm%SFC_CH4           => NULL()
-
-    ! For TOMS module
-    State_Chm%TO3_DAILY         => NULL()
-    State_Chm%TOMS1             => NULL()
-    State_Chm%TOMS2             => NULL()
-
-    ! Local variables
-    Ptr2data                    => NULL()
-    ThisSpc                     => NULL()
-
-    !=======================================================================
+    !========================================================================
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
-    !=======================================================================
+    !========================================================================
     IF ( ASSOCIATED( SpcDataLocal ) ) THEN
 
        ! If the species database has already been initialized on this core,
@@ -606,10 +662,10 @@ CONTAINS
 
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Before proceeding, make sure none of the species has a blank name,
     ! because this has the potential to halt the run inadvertently.
-    !=======================================================================
+    !========================================================================
 
     ! The total number of species is the size of SpcData
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
@@ -623,9 +679,9 @@ CONTAINS
        ENDIF
     ENDDO
 
-    !=======================================================================
+    !========================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
-    !=======================================================================
+    !========================================================================
 
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and
@@ -642,9 +698,6 @@ CONTAINS
     State_Chm%nPhotol  = SpcCount%nPhotol
     State_Chm%nRadNucl = SpcCount%nRadNucl
     State_Chm%nWetDep  = SpcCount%nWetDep
-    N_Hg0_CATS         = SpcCount%nHg0
-    N_Hg2_CATS         = SpcCount%nHg2
-    N_HgP_CATS         = SpcCount%nHgP
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
@@ -684,9 +737,9 @@ CONTAINS
     !STOP
     !########################################################################
 
-    !=======================================================================
+    !========================================================================
     ! Populate the species lookup table, for quick index lookup via Ind_
-    !=======================================================================
+    !========================================================================
 
     ! Initialize the species lookup table
     CALL State_Chm%SpcDict%Init( State_Chm%nSpecies )
@@ -724,18 +777,18 @@ CONTAINS
     !### Debug: Show the values in the lookup table
     !###CALL State_Chm%SpcDict%Show()
 
-    !=======================================================================
+    !========================================================================
     ! Exit if this is a dry-run simulation
-    !=======================================================================
+    !========================================================================
     IF ( Input_Opt%DryRun ) THEN
        RC = GC_SUCCESS
        RETURN
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Populate the HetInfo object, which is used to cleanly pass
     ! modelId's and molecular weights to the het chem routine
-    !=======================================================================
+    !========================================================================
     State_Chm%HetInfo => NULL()
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        CALL Init_HetInfo( State_Chm, RC )
@@ -746,9 +799,1146 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !========================================================================
+    ! Initialize the 1-D mapping vectors (e.g. State_Chm%Map_DryDep)
+    !========================================================================
+    CALL Init_Mapping_Vectors( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Init_Mapping_Vectors" routine!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize chemical species fields
+    !========================================================================
+    chmID = 'Species'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%Species,                                     &
+         nSlots     = State_Chm%nSpecies,                                    &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Boundary conditions (only needed for nested grid simulations)
+    !========================================================================
+    IF ( State_Grid%NestedGrid ) THEN
+       chmID = 'BoundaryCond'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BoundaryCond,                             &
+            nSlots     = State_Chm%nAdvect,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+#ifdef MODEL_GEOS
+    !========================================================================
+    ! Allocate and initialize aerodynamic resistance fields (GEOS-5 only)
+    !========================================================================
+    chmID = 'DryDepRa2m'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepRa2m,                                  &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    chmID = 'DryDepRa10m'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepRa10m,                                 &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+#endif
+
+    !========================================================================
+    ! Allocate and initialize quantities that are only relevant for the
+    ! the various FULLCHEM simulations or the AEROSOL-ONLY simulation
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       ! Save nAerosol to State_Chm
+       State_Chm%nAeroType = nAerosol
+
+       !---------------------------------------------------------------------
+       ! AeroArea
+       !---------------------------------------------------------------------
+       fieldId = (/ 'AeroAreaMDUST1   ', 'AeroAreaMDUST2   ',                &
+                    'AeroAreaMDUST3   ', 'AeroAreaMDUST4   ',                &
+                    'AeroAreaMDUST5   ', 'AeroAreaMDUST6   ',                &
+                    'AeroAreaMDUST7   ', 'AeroAreaSULF     ',                &
+                    'AeroAreaBC       ', 'AeroAreaOC       ',                &
+                    'AeroAreaSSA      ', 'AeroAreaSSC      ',                &
+                    'AeroAreaBGSULF   ', 'AeroAreaICEI     '                /)
+
+       ! Allocate and register each field individually
+       DO N = 1, State_Chm%nAeroType
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%AeroArea,                              &
+               nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+        ENDDO
+
+       !---------------------------------------------------------------------
+       ! AeroRadi
+       !---------------------------------------------------------------------
+       fieldId = (/ 'AeroRadiMDUST1   ', 'AeroRadiMDUST2   ',                &
+                    'AeroRadiMDUST3   ', 'AeroRadiMDUST4   ',                &
+                    'AeroRadiMDUST5   ', 'AeroRadiMDUST6   ',                &
+                    'AeroRadiMDUST7   ', 'AeroRadiSULF     ',                &
+                    'AeroRadiBC       ', 'AeroRadiOC       ',                &
+                    'AeroRadiSSA      ', 'AeroRadiSSC      ',                &
+                    'AeroRadiBGSULF   ', 'AeroRadiICEI     '               /)
+
+       ! Allocate and register each field individually
+       DO N = 1, State_Chm%nAeroType
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%AeroRadi,                              &
+               nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! WetAeroArea
+       !---------------------------------------------------------------------
+       fieldId = (/ 'WetAeroAreaMDUST1', 'WetAeroAreaMDUST2',                &
+                    'WetAeroAreaMDUST3', 'WetAeroAreaMDUST4',                &
+                    'WetAeroAreaMDUST5', 'WetAeroAreaMDUST6',                &
+                    'WetAeroAreaMDUST7', 'WetAeroAreaSULF  ',                &
+                    'WetAeroAreaBC    ', 'WetAeroAreaOC    ',                &
+                    'WetAeroAreaSSA   ', 'WetAeroAreaSSC   ',                &
+                    'WetAeroAreaBGSULF', 'WetAeroAreaICEI  '               /)
+
+       ! Allocate and register each field individually
+       DO N = 1, State_Chm%nAeroType
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%WetAeroArea,                           &
+               nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! WetAeroRadi
+       !---------------------------------------------------------------------
+       fieldId = (/ 'WetAeroRadiMDUST1', 'WetAeroRadiMDUST2',                &
+                    'WetAeroRadiMDUST3', 'WetAeroRadiMDUST4',                &
+                    'WetAeroRadiMDUST5', 'WetAeroRadiMDUST6',                &
+                    'WetAeroRadiMDUST7', 'WetAeroRadiSULF  ',                &
+                    'WetAeroRadiBC    ', 'WetAeroRadiOC    ',                &
+                    'WetAeroRadiSSA   ', 'WetAeroRadiSSC   ',                &
+                    'WetAeroRadiBGSULF', 'WetAeroRadiICEI  '               /)
+
+       ! Allocate and register each field individually
+       DO N = 1, State_Chm%nAeroType
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%WetAeroRadi,                           &
+               nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! AeroH2O
+       !---------------------------------------------------------------------
+       fieldId = (/ 'AeroH2OMDUST1    ', 'AeroH2OMDUST2    ',                &
+                    'AeroH2OMDUST3    ', 'AeroH2OMDUST4    ',                &
+                    'AeroH2OMDUST5    ', 'AeroH2OMDUST6    ',                &
+                    'AeroH2OMDUST7    ', 'AeroH2OSULF      ',                &
+                    'AeroH2OBC        ', 'AeroH2OOC        ',                &
+                    'AeroH2OSSA       ', 'AeroH2OSSC       ',                &
+                    'AeroH2OBGSULF    ', 'AeroH2OICEI      '               /)
+
+       ! Allocate and register each field individually
+       DO N = 1, State_Chm%nAeroType
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%AeroH2O,                               &
+               nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! AClArea, xnw 1/20/18
+       !---------------------------------------------------------------------
+       chmID = 'AClArea'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%AClArea,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! AClRadi, xnw 1/20/18
+       !---------------------------------------------------------------------
+       chmID = 'AClRadi'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%AClRadi,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! GammaN2O5
+       !---------------------------------------------------------------------
+       fieldId(1) = 'GammaN2O5overall '
+       fieldId(2) = 'GammaN2O5fine    '
+       fieldId(3) = 'YieldClNO2fine   '
+
+       ! Allocate and register each field individually
+       DO N = 1, 3
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%GammaN2O5,                             &
+               nSlots     = 3,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! OM:OC Ratios
+       !---------------------------------------------------------------------
+       chmId = 'OMOCpoa'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%OMOC_POA,                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'OMOCopoa'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%OMOC_OPOA,                                &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! phSav
+       !---------------------------------------------------------------------
+       fieldId(1) = 'pHaccumMode'
+       fieldId(2) = 'pHcoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%phSav,                                 &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! HplusSav
+       !---------------------------------------------------------------------
+       fieldId(1) = 'HplusAccumMode'
+       fieldId(2) = 'HplusCoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%HplusSav,                              &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! WaterSav
+       !---------------------------------------------------------------------
+       fieldId(1) = 'WaterAccumMode'
+       fieldId(2) = 'WaterCoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%WaterSav,                              &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! SulRatSav
+       !---------------------------------------------------------------------
+       chmId = 'SulRate'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SulRatSav,                                &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+       !---------------------------------------------------------------------
+       ! NaRatSav
+       !---------------------------------------------------------------------
+       fieldId(1) = 'NaRateAccumMode'
+       fieldId(2) = 'NaRateCoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%NaRatSav,                              &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! ClRatSav
+       !---------------------------------------------------------------------
+       fieldId(1) = 'ClRateAccumMode'
+       fieldId(2) = 'ClRateCoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%ClRatSav,                              &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! AcidPurSav
+       !---------------------------------------------------------------------
+       chmId  = 'AcidPurSav'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%AcidPurSav,                               &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! BisulSav
+       !---------------------------------------------------------------------
+       chmId  = 'BisulSav'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BiSulSav,                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! phCloud
+       !---------------------------------------------------------------------
+       chmId = 'pHCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%pHCloud,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! QLxphCloud
+       !---------------------------------------------------------------------
+       chmId = 'QLxpHCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QLxpHCloud,                               &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! isCloud (jmm 3/1/19)
+       !---------------------------------------------------------------------
+       chmId = 'isCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%isCloud,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SSAlk
+       !---------------------------------------------------------------------
+       fieldId(1) = 'SSAlkAccumMode'
+       fieldId(2) = 'SSAlkCoarseMode'
+
+       ! Allocate and register each field individually
+       DO N = 1, 2
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%SSAlk,                                 &
+               nSlots     = 2,                                               &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! HSO3_AQ
+       !---------------------------------------------------------------------
+       chmId = 'HSO3AQ'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%HSO3_AQ,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SO3_AQ
+       !---------------------------------------------------------------------
+       chmId = 'SO3AQ'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SO3_AQ,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! fupdateHOBr
+       !---------------------------------------------------------------------
+       chmId = 'fupdateHOBr'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%fupdateHOBr,                              &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! fupdateHOCl
+       !---------------------------------------------------------------------
+       chmId = 'fupdateHOCl'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%fupdateHOCl,                              &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! DryDepNitrogen
+       !---------------------------------------------------------------------
+       chmId = 'DryDepNitrogen'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%DryDepNitrogen,                           &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! WetDepNitrogen
+       !---------------------------------------------------------------------
+       chmId = 'WetDepNitrogen'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%WetDepNitrogen,                           &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize fields only needed for FULLCHEM simulations
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !---------------------------------------------------------------------
+       ! KPPHvalue
+       !---------------------------------------------------------------------
+       chmId = 'KPPHvalue'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%KPPHvalue,                                &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !------------------------------------------------------------------------
+       ! TOMS_MOD
+       ! Not registered to the registry as these are fields internal to the
+       ! toms_mod module state.
+       !------------------------------------------------------------------------
+       chmId = 'TO3_DAILY'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TO3_DAILY,                                &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS1'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS1,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS2'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS2,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !========================================================================
+       ! Allocate and initialize fields for FULLCHEM simulations with UCX
+       !========================================================================
+       IF ( Input_Opt%LUCX ) THEN
+
+          !---------------------------------------------------------------------
+          ! STATE_PSC (polar stratospheric clouds)
+          !---------------------------------------------------------------------
+          chmId = 'StatePSC'
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = chmId,                                           &
+               Ptr2Data   = State_Chm%STATE_PSC,                             &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
+          !---------------------------------------------------------------------
+          ! KHETI_SLA
+          !---------------------------------------------------------------------
+          fieldId = (/ 'KhetiSLAN2O5H2O  ', 'KhetiSLAN2O5HCl  ',             &
+                       'KhetiSLAClNO3H2O ', 'KhetiSLAClNO3HCl ',             &
+                       'KhetiSLAClNO3HBr ', 'KhetiSLABrNO3H2O ',             &
+                       'KhetiSLABrNO3HCl ', 'KhetiSLAHOClHCl  ',             &
+                       'KhetiSLAHOClHBr  ', 'KhetiSLAHOBrHCl  ',             &
+                       'KhetiSLAHOBrHBr  ', '                 ',             &
+                       '                 ', '                 '            /)
+
+          ! Allocate and register each field individually
+          nKHLSA = 11
+          DO N = 1, nKHLSA
+             CALL Init_and_Register(                                         &
+                  Input_Opt  = Input_Opt,                                    &
+                  State_Chm  = State_Chm,                                    &
+                  State_Grid = State_Grid,                                   &
+                  chmId      = TRIM( fieldId(N) ),                           &
+                  Ptr2Data   = State_Chm%KHETI_SLA,                          &
+                  nSlots     = nKHLSA,                                       &
+                  nCat       = N,                                            &
+                  RC         = RC                                           )
+
+             IF ( RC /= GC_SUCCESS ) THEN
+                errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
+          ENDDO
+       ENDIF
+
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize quantities for wet deposition routines
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! H2O2AfterChem
+    !------------------------------------------------------------------------
+    chmId = 'H2O2AfterChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%H2O2AfterChem,                               &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SO2AfterChem
+    !------------------------------------------------------------------------
+    chmId = 'SO2AfterChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SO2AfterChem,                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+#ifdef LUO_WETDEP
+    !------------------------------------------------------------------
+    ! Gan Luo et al wetdep fields
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+
+        ! PSO4s
+       chmId = 'PSO4s'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%PSO4s,                                    &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+        ! QQ3D
+       chmId = 'QQ3D'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QQ3D,                                     &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
+    !========================================================================
+    ! Allocate fields for various GeosCore modules
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! DryDepSav
+    !------------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmId = 'DryDepFreq'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%DryDepSav,                                &
+            nSlots     = State_Chm%nDryDep,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! TLSTT (Linoz)
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
+        chmId = 'TLSTT'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TLSTT,                                    &
+            nSlots     = Input_Opt%LINOZ_NFIELDS,                            &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SFC_CH4
+    ! Not registered to the registry as these are fields internal to the
+    ! set_global_ch4_mod module state.
+    !------------------------------------------------------------------------
+    chmId = 'SFC_CH4'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SFC_CH4,                                     &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! Surface flux for non-local PBL mixing
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
+       chmId = 'SurfaceFlux'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SurfaceFlux,                              &
+            nSlots     = State_Chm%nAdvect,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     !=======================================================================
+    ! Initialize State_Chm quantities pertinent to Hg/tagHg simulations
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       CALL Init_Hg_Simulation_Fields( Input_Opt, State_Chm, State_Grid,     &
+                                       SpcCount,  RC                        )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "Init_Hg_Simulation_Fields"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Once we are done registering all fields, we need to define the
+    ! registry lookup table.  This algorithm will avoid hash collisions.
+    !========================================================================
+    CALL Registry_Set_LookupTable( Registry  = State_Chm%Registry,           &
+                                   RegDict   = State_Chm%RegDict,            &
+                                   RC        = RC                           )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Print out the list of registered fields
+    !========================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 10 )
+ 10    FORMAT( /, 'Registered variables contained within the State_Chm object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+
+    ! Print registered fields
+    CALL Registry_Print( Input_Opt   = Input_Opt,             &
+                         Registry    = State_Chm%Registry,    &
+                         ShortFormat = .TRUE.,                &
+                         RC          = RC                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry Print"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
+
+    ! Free pointer for safety's sake
+    ThisSpc => NULL()
+
+    ! Echo output
+    IF ( Input_Opt%amIRoot ) THEN
+       print*, REPEAT( '#', 79 )
+    ENDIF
+
+    ! Format statement
+100 FORMAT( I3, 2x, A31 )
+110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+
+  END SUBROUTINE Init_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Mapping_Vectors
+!
+! !DESCRIPTION: Initializes the 1-D mapping vectors in the State_Chm object.
+!  This was split off from Init_State_Chm.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_Mapping_Vectors( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE GCKPP_Parameters, ONLY : NSPEC
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE Cmn_Fjx_Mod,      ONLY : W_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: C,      N
+
+    ! Strings
+    CHARACTER(LEN=255)     :: errMsg, thisLoc
+
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
+    !========================================================================
+    ! Init_Mapping_Vectors begins here!
+    !========================================================================
+
+    ! Initialize
+    RC         =  GC_SUCCESS
+    ThisSpc    => NULL()
+    errMsg     =  ''
+    thisLoc    =  &
+       ' -> at Init_Mapping_Vectors (in module Headers/state_chm_mod.F90)'
+
+    !========================================================================
     ! Allocate and initialize mapping vectors to subset species
-    !=======================================================================
+    !========================================================================
     IF ( State_Chm%nAdvect > 0 ) THEN
        ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 0, RC )
@@ -868,9 +2058,9 @@ CONTAINS
        State_Chm%Map_WL = 0
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Set up the species mapping vectors
-    !=======================================================================
+    !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
@@ -883,9 +2073,9 @@ CONTAINS
        ! GEOS-Chem Species Database entry for species # N
        ThisSpc => State_Chm%SpcData(N)%Info
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for ADVECTED SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Advected ) THEN
 
           ! Update the mapping vector of advected species
@@ -895,93 +2085,94 @@ CONTAINS
           ! Print to screen
           IF ( Input_Opt%amIRoot ) THEN
              WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
+ 100         FORMAT( I3, 2x, A31 )
           ENDIF
 
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for AEROSOL SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Aerosol ) THEN
           C                     = ThisSpc%AerosolId
           State_Chm%Map_Aero(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for DRYDEP SPECIES TO SAVE AT A GIVEN ALTITUDE
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_DryAlt ) THEN
           C                       = ThisSpc%DryAltId
           State_Chm%Map_DryAlt(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for DRYDEP SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_DryDep ) THEN
           C                       = ThisSpc%DryDepId
           State_Chm%Map_Drydep(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for GAS SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
           C                       = ThisSpc%GasSpcId
           State_Chm%Map_GasSpc(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for HYGROSCOPIC GROWTH SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_HygroGrowth ) THEN
           C                        = ThisSpc%HygGrthId
           State_Chm%Map_HygGrth(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for KPP ACTIVE (VARIABLE) SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_ActiveChem ) THEN
           C                       = ThisSpc%KppVarId
           State_Chm%Map_KppVar(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for KPP FIXED SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_FixedChem ) THEN
           C                       = ThisSpc%KppFixId
           State_Chm%Map_KppFix(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for SPECIES IN THE KPP MECHANISM
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Kpp ) THEN
           C                       = ThisSpc%KppSpcId
           State_Chm%Map_KppSpc(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for PHOTOLYSIS SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Photolysis ) THEN
           C                       = ThisSpc%PhotolId
           State_Chm%Map_Photol(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for WETDEP SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_RadioNuclide ) THEN
           C                        = ThisSpc%RadNuclId
           State_Chm%Map_RadNucl(C) = ThisSpc%ModelId
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Set up the mapping for WETDEP SPECIES
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ThisSpc%Is_WetDep ) THEN
           C                       = ThisSpc%WetDepId
           State_Chm%Map_WetDep(C) = ThisSpc%ModelId
@@ -992,1140 +2183,302 @@ CONTAINS
 
     ENDDO
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Set up the mapping for UVFlux Diagnostics
     ! placeholder for now since couldn't figure out how to read in WL from file
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( W_ > 0 ) THEN
 
+       ! Define identifying string
        DO N = 1, W_
-          !
-          ! Define identifying string
-                State_Chm%Map_WL(N) = 0
+          State_Chm%Map_WL(N) = 0
        ENDDO
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Set up the mapping for PRODUCTION AND LOSS DIAGNOSTIC SPECIES
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Chm%nProd > 0 .or. State_Chm%nLoss > 0 ) THEN
        CALL MapProdLossSpecies( Input_Opt, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "MapProdLossSpecies"!'
+          ErrMsg = 'Error encountered in routine "MapProdLossSpecies"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-    !=======================================================================
-    ! Allocate and initialize chemical species fields
-    !=======================================================================
-    chmID = 'Species'
-    ALLOCATE( State_Chm%Species( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Species = 0.0_fp
-    CALL Register_ChmField( Input_Opt, chmID, State_Chm%Species, State_Chm, RC )
-    CALL GC_CheckVar( 'State_Chm%Species', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+  END SUBROUTINE Init_Mapping_Vectors
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Hg_Simulation_Fields
+!
+! !DESCRIPTION: Initializes State_Chm quantities that pertain to the
+!  Hg or tagged Hg simulations.  This was split off from Init_State_Chm.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_Hg_Simulation_Fields( Input_Opt, State_Chm, State_Grid,    &
+                                        SpcCount,  RC                       )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN)    :: State_Grid
+    TYPE(SpcIndCt), INTENT(IN)    :: SpcCount
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!
+! !REVISION HISTORY:
+!  23 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: C
+    INTEGER                :: N
 
-    !=======================================================================
-    ! Allocate and initialize boundary condition fields
-    !=======================================================================
-    chmID = 'BoundaryCond'
-    ALLOCATE( State_Chm%BoundaryCond( IM, JM, LM, State_Chm%nSpecies ), STAT=RC)
-    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%BoundaryCond = 0.0_fp
-    CALL Register_ChmField( Input_Opt, chmID, State_Chm%BoundaryCond, &
-                            State_Chm, RC )
-    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+    ! Strings
+    CHARACTER(LEN=255)     :: chmId
+    CHARACTER(LEN=255)     :: errMsg
+    CHARACTER(LEN=255)     :: errMsg_ir
+    CHARACTER(LEN=255)     :: thisLoc
 
-#if defined( MODEL_GEOS )
-    !=======================================================================
-    ! Allocate and initialize aerodynamic resistance fields
-    !=======================================================================
-    ALLOCATE( State_Chm%DryDepRa2m( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%DryDepRa2m = 0.0_fp
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
 
-    ALLOCATE( State_Chm%DryDepRa10m( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%DryDepRa10m = 0.0_fp
-#endif
+    !========================================================================
+    ! Init_Hg_Simulation_Fields begins here!
+    !========================================================================
 
-    !=======================================================================
-    ! Allocate and initialize quantities that are only relevant for the
-    ! the various fullchem simulations or the aerosol-only simulation
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+    ! Initialize
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_ir  =  'Error encountered in "Init_and_Register", chmId = '
+    thisLoc    = &
+     ' -> at Init_Hg_Simulation_Fields (in module Headers/state_chm_mod.F90)'
 
-       ! Save nAerosol to State_Chm
-       State_Chm%nAeroType = nAerosol
-
-       !--------------------------------------------------------------------
-       ! AeroArea
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroArea(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AeroArea = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'AeroAreaMDUST1'
-             CASE( 2  )
-                chmID = 'AeroAreaMDUST2'
-             CASE( 3  )
-                chmID = 'AeroAreaMDUST3'
-             CASE( 4  )
-                chmID = 'AeroAreaMDUST4'
-             CASE( 5  )
-                chmID = 'AeroAreaMDUST5'
-             CASE( 6  )
-                chmID = 'AeroAreaMDUST6'
-             CASE( 7  )
-                chmID = 'AeroAreaMDUST7'
-             CASE( 8  )
-                chmID = 'AeroAreaSULF'
-             CASE( 9  )
-                chmID = 'AeroAreaBC'
-             CASE( 10 )
-                chmID = 'AeroAreaOC'
-             CASE( 11 )
-                chmID = 'AeroAreaSSA'
-             CASE( 12 )
-                chmID = 'AeroAreaSSC'
-             CASE( 13 )
-                chmID = 'AeroAreaBGSULF'
-             CASE( 14 )
-                chmID  = 'AeroAreaICEI'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
-                         // ' dry aerosol area categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroArea,     &
-                                  State_Chm, RC,    Ncat=N )
-          CALL GC_CheckVar( 'State_Chm%AeroArea', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-
-
-       !--------------------------------------------------------------------
-       ! AeroRadi
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroRadi(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AeroRadi    = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'AeroRadiMDUST1'
-             CASE( 2  )
-                chmID = 'AeroRadiMDUST2'
-             CASE( 3  )
-                chmID = 'AeroRadiMDUST3'
-             CASE( 4  )
-                chmID = 'AeroRadiMDUST4'
-             CASE( 5  )
-                chmID = 'AeroRadiMDUST5'
-             CASE( 6  )
-                chmID = 'AeroRadiMDUST6'
-             CASE( 7  )
-                chmID = 'AeroRadiMDUST7'
-             CASE( 8  )
-                chmID = 'AeroRadiSULF'
-             CASE( 9  )
-                chmID = 'AeroRadiBC'
-             CASE( 10 )
-                chmID = 'AeroRadiOC'
-             CASE( 11 )
-                chmID = 'AeroRadiSSA'
-             CASE( 12 )
-                chmID = 'AeroRadiSSC'
-             CASE( 13 )
-                chmID = 'AeroRadiBGSULF'
-             CASE( 14 )
-                chmID = 'AeroRadiICEI'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
-                         // ' dry aerosol radius categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroRadi,      &
-                                  State_Chm, RC,    Ncat=N                  )
-          CALL GC_CheckVar( 'State_Chm%AeroRadi', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! WetAeroArea
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%WetAeroArea(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%WetAeroArea = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'WetAeroAreaMDUST1'
-             CASE( 2  )
-                chmID = 'WetAeroAreaMDUST2'
-             CASE( 3  )
-                chmID = 'WetAeroAreaMDUST3'
-             CASE( 4  )
-                chmID = 'WetAeroAreaMDUST4'
-             CASE( 5  )
-                chmID = 'WetAeroAreaMDUST5'
-             CASE( 6  )
-                chmID = 'WetAeroAreaMDUST6'
-             CASE( 7  )
-                chmID = 'WetAeroAreaMDUST7'
-             CASE( 8  )
-                chmID = 'WetAeroAreaSULF'
-             CASE( 9  )
-                chmID = 'WetAeroAreaBC'
-             CASE( 10 )
-                chmID = 'WetAeroAreaOC'
-             CASE( 11 )
-                chmID = 'WetAeroAreaSSA'
-             CASE( 12 )
-                chmID = 'WetAeroAreaSSC'
-             CASE( 13 )
-                chmID = 'WetAeroAreaBGSULF'
-             CASE( 14 )
-                chmID = 'WetAeroAreaICEI'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
-                         // ' wet aerosol area categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetAeroArea,   &
-                                  State_Chm, RC,    Ncat=N                  )
-          CALL GC_CheckVar( 'State_Chm%WetAeroArea', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-
-       !--------------------------------------------------------------------
-       ! AClArea, xnw 1/20/18
-       !--------------------------------------------------------------------
-       chmID  = 'AClArea'
-       ALLOCATE( State_Chm%AClArea( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AClArea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AClArea = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AClArea,        &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%AClArea', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-
-       !--------------------------------------------------------------------
-       ! AClRadi, xnw 1/20/18
-       !--------------------------------------------------------------------
-       chmID  = 'AClRadi'
-       ALLOCATE( State_Chm%AClRadi( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AClRadi', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AClRadi = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AClArea,        &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%AClRadi', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! WetAeroRadi
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%WetAeroRadi(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%WetAeroRadi = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'WetAeroRadiMDUST1'
-             CASE( 2  )
-                chmID = 'WetAeroRadiMDUST2'
-             CASE( 3  )
-                chmID = 'WetAeroRadiMDUST3'
-             CASE( 4  )
-                chmID = 'WetAeroRadiMDUST4'
-             CASE( 5  )
-                chmID = 'WetAeroRadiMDUST5'
-             CASE( 6  )
-                chmID = 'WetAeroRadiMDUST6'
-             CASE( 7  )
-                chmID = 'WetAeroRadiMDUST7'
-             CASE( 8  )
-                chmID = 'WetAeroRadiSULF'
-             CASE( 9  )
-                chmID = 'WetAeroRadiBC'
-             CASE( 10 )
-                chmID = 'WetAeroRadiOC'
-             CASE( 11 )
-                chmID = 'WetAeroRadiSSA'
-             CASE( 12 )
-                chmID = 'WetAeroRadiSSC'
-             CASE( 13 )
-                chmID = 'WetAeroRadiBGSULF'
-             CASE( 14 )
-                chmID = 'WetAeroRadiICEI'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
-                         // ' wet aerosol radius categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetAeroRadi,   &
-                                  State_Chm, RC,    Ncat=N )
-          CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! AeroH2O
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroH2O( IM, JM, LM, State_Chm%nAeroType ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AeroH2O', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AeroH2O = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'AeroH2OMDUST1'
-             CASE( 2  )
-                chmID = 'AeroH2OMDUST2'
-             CASE( 3  )
-                chmID = 'AeroH2OMDUST3'
-             CASE( 4  )
-                chmID = 'AeroH2OMDUST4'
-             CASE( 5  )
-                chmID = 'AeroH2OMDUST5'
-             CASE( 6  )
-                chmID = 'AeroH2OMDUST6'
-             CASE( 7  )
-                chmID = 'AeroH2OMDUST7'
-             CASE( 8  )
-                chmID = 'AeroH2OSULF'
-             CASE( 9  )
-                chmID = 'AeroH2OBC'
-             CASE( 10 )
-                chmID = 'AeroH2OOC'
-             CASE( 11 )
-                chmID = 'AeroH2OSSA'
-             CASE( 12 )
-                chmID = 'AeroH2OSSC'
-             CASE( 13 )
-                chmID = 'AeroH2OBGSULF'
-             CASE( 14 )
-                chmID = 'AeroH2OICEI'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
-                         // ' aerosol H2O categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroH2O,   &
-                                  State_Chm, RC,    Ncat=N )
-          CALL GC_CheckVar( 'State_Chm%AeroH2O', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! GammaN2O5
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%GammaN2O5( IM, JM, LM, 3 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%GammaN2O5', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%GammaN2O5 = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, 3
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'GammaN2O5overall'
-             CASE( 2  )
-                chmID = 'GammaN2O5fine'
-             CASE( 3  )
-                chmID = 'YieldClNO2fine'
-             CASE DEFAULT
-                ErrMsg = 'State_Chm%GammaN2O5 exceeds the number of defined' &
-                         // ' N2O5 uptake categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%GammaN2O5,     &
-                                  State_Chm, RC,    Ncat=N )
-          CALL GC_CheckVar( 'State_Chm%GammaN2O5', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! OM:OC Ratios
-       !--------------------------------------------------------------------
-       chmId = 'OMOCpoa'
-       ALLOCATE( State_Chm%OMOC_POA( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%OMOC_POA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%OMOC_POA = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OMOC_POA,         &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%OMOC_POA', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       !--------------------------------------------------------------------
-       chmId = 'OMOCopoa'
-       ALLOCATE( State_Chm%OMOC_OPOA( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%OMOC_OPOA = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OMOC_OPOA,        &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! phSav
-       !--------------------------------------------------------------------
-       chmId = 'phSav'
-       ALLOCATE( State_Chm%phSav( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%phSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%phSav = 0.0_fp
-       DO N = 1, 2
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%phSav,            &
-               State_Chm, RC, Ncat=N )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! HplusSav
-       !--------------------------------------------------------------------
-       chmId = 'HplusSav'
-       ALLOCATE( State_Chm%HplusSav( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%HplusSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%HplusSav = 0.0_fp
-       DO N = 1, 2
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%HplusSav,            &
-               State_Chm, RC, Ncat=N )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! WaterSav
-       !--------------------------------------------------------------------
-       chmID  = 'WaterSav'
-       ALLOCATE( State_Chm%WaterSav( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%WaterSav = 0.0_fp
-       DO N = 1, 2
-          CALL Register_ChmField(  Input_Opt, chmID, State_Chm%WaterSav,      &
-               State_Chm, RC, Ncat = N )
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! SulRatSav
-       !--------------------------------------------------------------------
-       chmID  = 'SulRatSav'
-       ALLOCATE( State_Chm%SulRatSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SulRatSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SulRatSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SulRatSav,        &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%SulRatSav', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! NaRatSav
-       !--------------------------------------------------------------------
-       chmId = 'NaRatSav'
-       ALLOCATE( State_Chm%NaRatSav( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%NaRatSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%NaRatSav = 0.0_fp
-       DO N = 1, 2
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%NaRatSav,            &
-               State_Chm, RC, Ncat=N )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! ClRatSav
-       !--------------------------------------------------------------------
-       chmId = 'ClRatSav'
-       ALLOCATE( State_Chm%ClRatSav( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%ClRatSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%ClRatSav = 0.0_fp
-       DO N = 1, 2
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%ClRatSav,            &
-               State_Chm, RC, Ncat=N )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! AcidPurSav
-       !--------------------------------------------------------------------
-       chmID  = 'AcidPurSav'
-       ALLOCATE( State_Chm%AcidPurSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%AcidPurSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%AcidPurSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AcidPurSav,       &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%AcidPurSav', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! BisulSav
-       !--------------------------------------------------------------------
-       chmID  = 'BisulSav'
-       ALLOCATE( State_Chm%BisulSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BiSulSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BisulSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%BisulSav,         &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%BiSulSav', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! phCloud
-       !--------------------------------------------------------------------
-       chmId = 'pHCloud'
-       ALLOCATE( State_Chm%pHCloud( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%pHCloud', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%pHCloud = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%pHCloud,          &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%pHCloud', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! QLxphCloud
-       !--------------------------------------------------------------------
-       chmId = 'QLxpHCloud'
-       ALLOCATE( State_Chm%QLxpHCloud( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%QLxpHCloud = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%QLxpHCloud,          &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-
-       !--------------------------------------------------------------------
-       ! isCloud
-       ! jmm 3/1/19
-       !--------------------------------------------------------------------
-       chmId = 'isCloud'
-       ALLOCATE( State_Chm%isCloud( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%isCloud', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%isCloud = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%isCloud,          &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%isCloud', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! SSAlk
-       !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%SSAlk( IM, JM, LM, 2 ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SSAlk', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SSAlk = 0.0_fp
-
-       ! Register accumulation mode as category 1
-       chmId = 'SSAlkAccum'
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SSAlk,            &
-                               State_Chm, RC,    nCat=1                     )
-       CALL GC_CheckVar( 'State-Chm%SSAlk', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       ! Register coarse mode as category 1
-       chmId = 'SSAlkCoarse'
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SSAlk,            &
-                               State_Chm, RC,    nCat=2                     )
-       CALL GC_CheckVar( 'State_Chm%SSAlk', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! HSO3_AQ
-       !------------------------------------------------------------------
-       chmID = 'HSO3AQ'
-       ALLOCATE( State_Chm%HSO3_AQ( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%HSO3_AQ = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%HSO3_AQ,          &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! SO3_AQ
-       !------------------------------------------------------------------
-       chmID = 'SO3AQ'
-       ALLOCATE( State_Chm%SO3_AQ( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SO3_AQ = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SO3_AQ,           &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! fupdateHOBr
-       !------------------------------------------------------------------
-       chmID = 'fupdateHOBr'
-       ALLOCATE( State_Chm%fupdateHOBr( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%fupdateHOBr = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%fupdateHOBr,     &
-                               State_Chm, RC                               )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! fupdateHOCl
-       !------------------------------------------------------------------
-       chmID = 'fupdateHOCl'
-       ALLOCATE( State_Chm%fupdateHOCl( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%fupdateHOCl = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%fupdateHOCl,     &
-                               State_Chm, RC                               )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-
-
-       !------------------------------------------------------------------
-       ! DryDepNitrogen
-       !------------------------------------------------------------------
-       chmID = 'DryDepNitrogen'
-       ALLOCATE( State_Chm%DryDepNitrogen( IM, JM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepNitrogen = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%DryDepNitrogen,   &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! WetDepNitrogen
-       !------------------------------------------------------------------
-       chmID = 'WetDepNitrogen'
-       ALLOCATE( State_Chm%WetDepNitrogen( IM, JM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%WetDepNitrogen = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetDepNitrogen,   &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+    ! Hg0, Hg2, HgP should all have the same number of categories as
+    ! returned from the species database.  If not, there's an error.
+    IF ( SpcCount%nHg0 == SpcCount%nHg2 .and.                                &
+         SpcCount%nHg0 == SpcCount%nHgP        ) THEN
+       State_Chm%N_Hg_CATS = SpcCount%nHg0
+    ELSE
+       ErrMsg = 'Inconsistent number of Hg categories!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
-    !=======================================================================
-    ! Allocate and initialize quantities for wet deposition routines
-    !=======================================================================
-
-    !------------------------------------------------------------------
-    ! H2O2AfterChem
-    !------------------------------------------------------------------
-    chmID = 'H2O2AfterChem'
-    ALLOCATE( State_Chm%H2O2AfterChem( IM, JM, LM ) , STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 0, RC )
+    ! Index array: Hg0 species # <--> Hg0 category #
+    ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%H2O2AfterChem = 0.0_fp
-    CALL Register_ChmField( Input_Opt, chmID, State_Chm%H2O2AfterChem,    &
-                            State_Chm, RC                                )
-    CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 1, RC )
+    State_Chm%Hg0_Id_List = 0
+
+    ! Index array: Hg2 species # <--> Hg0 category #
+    ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Hg2_Id_List = 0
 
-    !------------------------------------------------------------------
-    ! SO2AfterChem
-    !------------------------------------------------------------------
-    chmID = 'SO2AfterChem'
-    ALLOCATE( State_Chm%SO2AfterChem( IM, JM, LM ) , STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 0, RC )
+    ! Index array: HgP species # <--> Hg0 category #
+    ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%SO2AfterChem = 0.0_fp
-    CALL Register_ChmField( Input_Opt, chmID, State_Chm%SO2AfterChem,     &
-                            State_Chm, RC                                )
-    CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 1, RC )
+    State_Chm%HgP_Id_List = 0
+
+    ! Hg category names
+    ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Hg_Cat_Name = ''
 
-    !=======================================================================
-    ! Allocate and initialize fields for KPP solver
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
 
-       !--------------------------------------------------------------------
-       ! KPPHvalue
-       !--------------------------------------------------------------------
-       chmID = 'KPPHvalue'
-       ALLOCATE( State_Chm%KPPHvalue( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KPPHvalue', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%KPPHvalue = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%KPPHvalue,        &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%KPPHvalue', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       ! Point to Species Database entry for Hg species N
+       ThisSpc => State_Chm%SpcData(N)%Info
 
-    ENDIF
-
-    !=======================================================================
-    ! Allocate and initialize fields for UCX mechamism
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LUCX ) THEN
-
-       !--------------------------------------------------------------------
-       ! STATE_PSC
-       !--------------------------------------------------------------------
-       chmID = 'StatePSC'
-       ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%STATE_PSC = 0.0_f4
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%STATE_PSC,        &
-                            State_Chm, RC )
-       CALL GC_CheckVar( 'State_Chm%STATE_PSC', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! KHETI_SLA
-       !-------------------------------------------------------------------
-       nKHLSA = 11
-       ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KHETISLA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%KHETI_SLA = 0.0_fp
-
-       ! Loop over all entries to register each category individually
-       DO N = 1, nKHLSA
-
-          ! Define identifying string
-          SELECT CASE( N )
-             CASE( 1  )
-                chmID = 'KhetiSLAN2O5H2O'
-             CASE( 2  )
-                chmID = 'KhetiSLAN2O5HCl'
-             CASE( 3  )
-                chmID = 'KhetiSLAClNO3H2O'
-             CASE( 4  )
-                chmID = 'KhetiSLAClNO3HCl'
-             CASE( 5  )
-                chmID = 'KhetiSLAClNO3HBr'
-             CASE( 6  )
-                chmID = 'KhetiSLABrNO3H2O'
-             CASE( 7  )
-                chmID = 'KhetiSLABrNO3HCl'
-             CASE( 8  )
-                chmID = 'KhetiSLAHOClHCl'
-             CASE( 9  )
-                chmID = 'KhetiSLAHOClHBr'
-             CASE( 10 )
-                chmID = 'KhetiSLAHOBrHCl'
-             CASE( 11 )
-                chmID = 'KhetiSLAHOBrHBr'
-             CASE DEFAULT
-                ErrMsg = 'nKHLSA exceeds the number of defined' &
-                       // ' KHETI_SLA categories'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-          END SELECT
-
-          CALL Register_ChmField( Input_Opt, chmID, State_Chm%KHETI_SLA, &
-                                  State_Chm, RC,    Ncat=N )
-          CALL GC_CheckVar( 'State_Chm%KHETISLA', 1, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
-    ENDIF
-
-    !=======================================================================
-    ! Special handling for the Hg and tagHg simulations: get the # of Hg
-    ! categories for total & tagged tracers from the species database
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-       ! Hg0, Hg2, HgP should all have the same number of categories as
-       ! returned from the species database.  If not, there's an error.
-       IF ( N_Hg0_CATS == N_Hg2_CATS .and. N_Hg0_CATS == N_HgP_CATS ) THEN
-          State_Chm%N_Hg_CATS = N_Hg0_CATS
-       ELSE
-          ErrMsg = 'Inconsistent number of Hg categories!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       ! Populate the Hg0 index array
+       IF ( ThisSpc%Is_Hg0 ) THEN
+          State_Chm%Hg0_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
        ENDIF
 
-       ! Index array: Hg0 species # <--> Hg0 category #
-       ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Hg0_Id_List = 0
+       ! Populate the Hg2 index array
+       IF ( ThisSpc%Is_Hg2 ) THEN
+          State_Chm%Hg2_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+       ENDIF
 
-       ! Index array: Hg2 species # <--> Hg0 category #
-       ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Hg2_Id_List = 0
+       ! Populate the HgP index array
+       IF ( ThisSpc%Is_HgP ) THEN
+          State_Chm%HgP_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+       ENDIF
 
-       ! Index array: HgP species # <--> Hg0 category #
-       ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%HgP_Id_List = 0
+       ! Free pointer
+       ThisSpc => NULL()
+    ENDDO
 
-       ! Hg category names
-       ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Hg_Cat_Name = ''
+    ! Loop over Hg categories (except the first
+    DO C = 2, State_Chm%N_Hg_CATS
 
-       ! Loop over all species
-       DO N = 1, State_Chm%nSpecies
+       ! Hg0 tracer number corresponding to this category
+       N                        =  State_Chm%Hg0_Id_List(C)
 
-          ! Point to Species Database entry for Hg species N
-          ThisSpc => State_Chm%SpcData(N)%Info
+       ! The category name (e.g. "_can") follows the "Hg0"
+       ThisSpc                  => State_Chm%SpcData(N)%Info
+       State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
+       ThisSpc                  => NULL()
+    ENDDO
 
-          ! Populate the Hg0 index array
-          IF ( ThisSpc%Is_Hg0 ) THEN
-             State_Chm%Hg0_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
-          ENDIF
+    !------------------------------------------------------------------------
+    ! Hg(0) ocean mass
+    !------------------------------------------------------------------------
+    chmId = 'OceanHg0'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%OceanHg0,                                    &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
 
-          ! Populate the Hg2 index array
-          IF ( ThisSpc%Is_Hg2 ) THEN
-             State_Chm%Hg2_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
-          ENDIF
-
-          ! Populate the HgP index array
-          IF ( ThisSpc%Is_HgP ) THEN
-             State_Chm%HgP_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
-          ENDIF
-
-          ! Free pointer
-          ThisSpc => NULL()
-       ENDDO
-
-       ! Loop over Hg categories (except the first
-       DO C = 2, State_Chm%N_Hg_CATS
-
-          ! Hg0 tracer number corresponding to this category
-          N                        =  State_Chm%Hg0_Id_List(C)
-
-          ! The category name (e.g. "_can") follows the "Hg0"
-          ThisSpc                  => State_Chm%SpcData(N)%Info
-          State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
-          ThisSpc                  => NULL()
-       ENDDO
-
-       !--------------------------------------------------------------------
-       ! Hg(0) ocean mass
-       !--------------------------------------------------------------------
-       chmID = 'OceanHg0'
-       ALLOCATE( State_Chm%OceanHg0( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%OceanHg0', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%OceanHg0 = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHg0,      &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%OceanHg0', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! Hg(II) ocean mass
-       !--------------------------------------------------------------------
-       chmID = 'OceanHg2'
-       ALLOCATE( State_Chm%OceanHg2( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%OceanHg2', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%OceanHg2 = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHg2,      &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%OceanHg2', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! HgP ocean mass
-       !--------------------------------------------------------------------
-       chmID = 'OceanHgP'
-       ALLOCATE( State_Chm%OceanHgP (IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%OceanHgP', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%OceanHgP = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHgP,      &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%OceanHgP', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! Reducible Hg snowpack on ocean
-       !--------------------------------------------------------------------
-       chmID = 'SnowHgOcean'
-       ALLOCATE( State_Chm%SnowHgOcean( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SnowHgOcean = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgOcean,   &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! Reducible Hg snowpack on land
-       !--------------------------------------------------------------------
-       chmID = 'SnowHgLand'
-       ALLOCATE( State_Chm%SnowHgLand( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SnowHgLand', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SnowHgLand = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgLand,    &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%SnowHgLand', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! Non-reducible Hg snowpack on ocean
-       !--------------------------------------------------------------------
-       chmID = 'SnowHgOceanStored'
-       ALLOCATE( State_Chm%SnowHgOceanStored(IM, JM, State_Chm%N_Hg_CATS ), &
-                 STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SnowHgOceanStored = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgOceanStored, &
-                               State_Chm, RC                             )
-       CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !--------------------------------------------------------------------
-       ! Non-reducible Hg snowpack on land
-       !--------------------------------------------------------------------
-       chmID = 'SnowHgLandStored'
-       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ),   &
-                 STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SnowHgLandStored = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgLandStored, &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-    ENDIF
-
-
-    !=======================================================================
-    ! Allocate fields for various GeosCore modules
-    !=======================================================================
-    !------------------------------------------------------------------
-    ! DryDepSav
-    !------------------------------------------------------------------
-    IF ( State_Chm%nDryDep > 0 ) THEN
-        chmID = 'DryDepSav'
-        ALLOCATE( State_Chm%DryDepSav( IM, JM, State_Chm%nDryDep ) , STAT=RC )
-        CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-        State_Chm%DryDepSav = 0.0_fp
-        CALL Register_ChmField( Input_Opt, chmID, State_Chm%DryDepSav,       &
-                                State_Chm, RC                               )
-        CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !------------------------------------------------------------------
-    ! TLSTT (Linoz)
-    !------------------------------------------------------------------
-    IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
-        chmID = 'TLSTT'
-        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ),    &
-                  STAT=RC )
-        CALL GC_CheckVar( 'State_Chm%TLSTT', 0, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-        State_Chm%TLSTT = 0.0_fp
-
-        ! Do not register this field as it is internal
-        ! to the linoz_mod module state. (hplin, 1/24/19)
-        ! Note: We might want to implement support for implementing a 4th
-        ! dimension later.
-    ENDIF
-
-    !------------------------------------------------------------------
-    ! SFC_CH4
-    ! Not registered to the registry as these are fields internal to the
-    ! set_global_ch4_mod module state.
-    !------------------------------------------------------------------
-    chmID = 'SFC_CH4'
-    ALLOCATE( State_Chm%SFC_CH4( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%SFC_CH4', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%SFC_CH4 = 0.0_fp
-
-    !------------------------------------------------------------------
-    ! TOMS_MOD
-    ! Not registered to the registry as these are fields internal to the
-    ! toms_mod module state.
-    !------------------------------------------------------------------
-    chmID = 'TO3_DAILY'
-    ALLOCATE( State_Chm%TO3_DAILY( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%TO3_DAILY', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%TO3_DAILY = 0.0_fp
-
-    chmID = 'TOMS1'
-    ALLOCATE( State_Chm%TOMS1( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%TOMS1', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%TOMS1 = 0.0_fp
-
-    chmID = 'TOMS2'
-    ALLOCATE( State_Chm%TOMS2( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%TOMS2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%TOMS2 = 0.0_fp
-
-    !------------------------------------------------------------------
-    ! Gan Luo et al wetdep fields
-    !------------------------------------------------------------------
-    IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-
-        ! PSO4s
-        chmID = 'PSO4s'
-        ALLOCATE( State_Chm%PSO4s( IM, JM, LM ), STAT=RC )
-        CALL GC_CheckVar( 'State_Chm%PSO4s', 0, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-        State_Chm%PSO4s = 0.0_fp
-        CALL Register_ChmField( Input_Opt, chmID, State_Chm%PSO4s,           &
-                                State_Chm, RC                               )
-        CALL GC_CheckVar( 'State_Chm%PSO4s', 1, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-
-        ! QQ3D
-        chmID = 'QQ3D'
-        ALLOCATE( State_Chm%QQ3D( IM, JM, LM ), STAT=RC )
-        CALL GC_CheckVar( 'State_Chm%QQ3D', 0, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-        State_Chm%QQ3D = 0.0_fp
-        CALL Register_ChmField( Input_Opt, chmID, State_Chm%QQ3D,            &
-                                State_Chm, RC                               )
-        CALL GC_CheckVar( 'State_Chm%QQ3D', 1, RC )
-        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !------------------------------------------------------------------
-    ! Surface flux for non-local PBL mixing
-    !------------------------------------------------------------------
-    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
-       chmID = 'SurfaceFlux'
-       ALLOCATE( State_Chm%SurfaceFlux( IM, JM, State_Chm%nAdvect ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SurfaceFlux = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SurfaceFlux,      &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !========================================================================
-    ! Once we are done registering all fields, we need to define the
-    ! registry lookup table.  This algorithm will avoid hash collisions.
-    !========================================================================
-    CALL Registry_Set_LookupTable( Registry  = State_Chm%Registry,           &
-                                   RegDict   = State_Chm%RegDict,            &
-                                   RC        = RC                           )
-
-    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    !========================================================================
-    ! Print out the list of registered fields
-    !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Chm object:')
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
+    !------------------------------------------------------------------------
+    ! Hg(II) ocean mass
+    !------------------------------------------------------------------------
+    chmId = 'OceanHg2'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%OceanHg2,                                    &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
 
-    ! Print registered fields
-    CALL Registry_Print( Input_Opt   = Input_Opt,             &
-                         Registry    = State_Chm%Registry,    &
-                         ShortFormat = .TRUE.,                &
-                         RC          = RC                    )
-
-    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    !=======================================================================
-    ! Cleanup and quit
-    !=======================================================================
+    !------------------------------------------------------------------------
+    ! HgP ocean mass
+    !------------------------------------------------------------------------
+    chmId = 'OceanHgP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%OceanHgP,                                    &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
 
-    ! Free pointer for safety's sake
-    ThisSpc => NULL()
-
-    ! Echo output
-    IF ( Input_Opt%amIRoot ) THEN
-       print*, REPEAT( '#', 79 )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
-    ! Format statement
-100 FORMAT( I3, 2x, A31 )
-110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
-120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+    !------------------------------------------------------------------------
+    ! Reducible Hg snowpack on ocean
+    !------------------------------------------------------------------------
+    chmId = 'SnowHgOcean'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SnowHgOcean,                                 &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
 
-  END SUBROUTINE Init_State_Chm
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Reducible Hg snowpack on land
+    !------------------------------------------------------------------------
+    chmId = 'SnowHgLand'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SnowHgLand,                                  &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Non-reducible Hg snowpack on ocean
+    !------------------------------------------------------------------------
+    chmId = 'SnowHgOceanStored'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SnowHgOceanStored,                           &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Non-reducible Hg snowpack on land
+    !------------------------------------------------------------------------
+    chmId = 'SnowHgLandStored'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SnowHgLandStored,                            &
+         nSlots     = State_Chm%N_Hg_CATS,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Init_Hg_Simulation_Fields
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2353,14 +2706,14 @@ CONTAINS
        State_Chm%AeroRadi => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%AClArea) ) THEN
+    IF ( ASSOCIATED( State_Chm%AClArea ) ) THEN
        DEALLOCATE( State_Chm%AClArea, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AClArea', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AClArea => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%AClRadi) ) THEN
+    IF ( ASSOCIATED( State_Chm%AClRadi ) ) THEN
        DEALLOCATE( State_Chm%AClRadi, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AClRadi', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2479,7 +2832,6 @@ CONTAINS
        State_Chm%QLxpHCloud => NULL()
     ENDIF
 
-
     IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
        DEALLOCATE( State_Chm%isCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%isCloud', 2, RC )
@@ -2516,12 +2868,14 @@ CONTAINS
        DEALLOCATE( State_Chm%WetDepNitrogen, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetDepNitrogen => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%KPPHvalue ) ) THEN
        DEALLOCATE( State_Chm%KPPHvalue, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%KPPHvalue', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPPHvalue => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
@@ -2566,7 +2920,6 @@ CONTAINS
        State_Chm%fupdateHOCl => NULL()
     ENDIF
 
-
     IF ( ASSOCIATED( State_Chm%OceanHg0 ) ) THEN
        DEALLOCATE( State_Chm%OceanHg0, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%OceanHg0', 2, RC )
@@ -2609,8 +2962,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( MODEL_GEOS )
-    ! Aerodynamic resistance @ 2m
+#ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 3, RC )
@@ -2618,7 +2970,6 @@ CONTAINS
        State_Chm%DryDepRa2m => NULL()
     ENDIF
 
-    ! Aerodynamic resistance @ 10m
     IF ( ASSOCIATED( State_Chm%DryDepRa10m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa10m, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 3, RC )
@@ -2641,6 +2992,7 @@ CONTAINS
        State_Chm%TLSTT => NULL()
     ENDIF
 
+#ifdef LUO_WETDEP
     IF ( ASSOCIATED( State_Chm%PSO4s ) ) THEN
        DEALLOCATE( State_Chm%PSO4s, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%PSO4s', 2, RC )
@@ -2654,6 +3006,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%QQ3D => NULL()
     ENDIF
+#endif
 
     IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
        DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
@@ -2754,7 +3107,7 @@ CONTAINS
 !
   SUBROUTINE Get_Metadata_State_Chm( am_I_Root,  metadataID, Found,      &
                                      RC,         Desc,       Units,      &
-                                     PerSpecies, Rank,       Type,       &
+                                     PerSpc,     Rank,       Type,       &
                                      VLoc )
 !
 ! !USES:
@@ -2769,14 +3122,14 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(OUT)           :: Found      ! Item found?
-    INTEGER,             INTENT(OUT)           :: RC         ! Return code
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc       ! Long name string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units      ! Units string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: PerSpecies ! Max spc wildcard
-    INTEGER,             INTENT(OUT), OPTIONAL :: Rank       ! # of dimensions
-    INTEGER,             INTENT(OUT), OPTIONAL :: Type       ! Desc of data type
-    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
+    LOGICAL,             INTENT(OUT)           :: Found   ! Item found?
+    INTEGER,             INTENT(OUT)           :: RC      ! Return code
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc    ! Long name string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units   ! Units string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: PerSpc  ! Max spc wildcard
+    INTEGER,             INTENT(OUT), OPTIONAL :: Rank    ! # of dimensions
+    INTEGER,             INTENT(OUT), OPTIONAL :: Type    ! Desc of data type
+    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc    ! Vert placement
 !
 ! !REMARKS:
 !
@@ -2790,34 +3143,34 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Name_AllCaps
-    LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc, isSpecies
+    LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc, isSpc
 
     !=======================================================================
     ! Initialize
     !=======================================================================
 
     ! Assume success
-    RC    =  GC_SUCCESS
+    RC      =  GC_SUCCESS
     ThisLoc = ' -> at Get_Metadata_State_Chm (in Headers/state_chm_mod.F90)'
-    Found = .TRUE.
+    Found   = .TRUE.
 
     ! Optional arguments present?
-    isDesc    = PRESENT( Desc  )
-    isUnits   = PRESENT( Units )
-    isRank    = PRESENT( Rank  )
-    isType    = PRESENT( Type  )
-    isVLoc    = PRESENT( VLoc  )
-    isSpecies = PRESENT( PerSpecies )
+    isDesc  = PRESENT( Desc   )
+    isUnits = PRESENT( Units  )
+    isRank  = PRESENT( Rank   )
+    isType  = PRESENT( Type   )
+    isVLoc  = PRESENT( VLoc   )
+    isSpc   = PRESENT( PerSpc )
 
     ! Set defaults for optional arguments. Assume type and vertical
     ! location are real (flexible precision) and center unless specified
     ! otherwise
-    IF ( isUnits ) Units = ''
-    IF ( isDesc  ) Desc  = ''
-    IF ( isRank  ) Rank  = -1              ! Initialize # dims as bad value
-    IF ( isType  ) Type  = KINDVAL_FP      ! Assume real(fp) for State_Chm flds
-    IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume vertically centered
-    IF ( isSpecies ) PerSpecies = ''       ! Assume not per species
+    IF ( isUnits ) Units  = ''
+    IF ( isDesc  ) Desc   = ''
+    IF ( isRank  ) Rank   = -1              ! Init # dims as bad value
+    IF ( isType  ) Type   = KINDVAL_FP      ! Assume flexible precision
+    IF ( isVLoc  ) VLoc   = VLocationCenter ! Assume vertically centered
+    IF ( isSpc   ) PerSpc = ''              ! Assume not per species
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
@@ -2828,16 +3181,16 @@ CONTAINS
     SELECT CASE ( TRIM( Name_AllCaps ) )
 
        CASE ( 'SPECIES' )
-          IF ( isDesc    ) Desc  = 'Concentration for species'
-          IF ( isUnits   ) Units = 'varies'
-          IF ( isRank    ) Rank  = 3
-          IF ( isSpecies ) PerSpecies = 'ALL'
+          IF ( isDesc  ) Desc   = 'Concentration for species'
+          IF ( isUnits ) Units  = 'varies'
+          IF ( isRank  ) Rank   = 3
+          IF ( isSpc   ) PerSpc = 'ALL'
 
        CASE( 'BOUNDARYCOND' )
-          IF ( isDesc    ) Desc  = 'Boundary conditions for species'
-          IF ( isUnits   ) Units = 'v/v'
-          IF ( isRank    ) Rank  = 3
-          IF ( isSpecies ) PerSpecies = 'ALL'
+          IF ( isDesc  ) Desc   = 'Transport boundary conditions for species'
+          IF ( isUnits ) Units  = 'v/v'
+          IF ( isRank  ) Rank   = 3
+          IF ( isSpc   ) PerSpc = 'ADV'
 
        CASE ( 'AEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.15 um)'
@@ -2891,7 +3244,7 @@ CONTAINS
 
        CASE ( 'AEROAREASSA' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt,' &
-                                 // ' accumulation mode'
+                                   // ' accumulation mode'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
@@ -2902,28 +3255,31 @@ CONTAINS
 
        CASE ( 'AEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
-                                 // ' stratospheric sulfate'
+                                   // ' stratospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAICEI' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for irregular ice cloud' &
-                                 // ' (Mischenko)'
+                                   // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AERORADIMDUST1' )
-          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.15 um)'
+          IF ( isDesc  ) Desc  = &
+               'Dry aerosol radius for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AERORADIMDUST2' )
-          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.25 um)'
+          IF ( isDesc  ) Desc  = &
+               'Dry aerosol radius for mineral dust (0.25 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AERORADIMDUST3' )
-          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.4 um)'
+          IF ( isDesc  ) Desc  = &
+               'Dry aerosol radius for mineral dust (0.4 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
@@ -3132,16 +3488,16 @@ CONTAINS
 !          IF ( isRank  ) Rank  = 3
 !
 !       CASE ( 'WETAERORADISALCCL' )
- !         IF ( isDesc  ) Desc  = 'Wet aerosol radius for chloride in coarse' &
-  !                                // 'mode seasalt aerosol'
-   !       IF ( isUnits ) Units = 'cm'
-    !      IF ( isRank  ) Rank  = 3
-
-     !  CASE ( 'WETAERORADISO4S' )
-     !     IF ( isDesc  ) Desc  = 'Wet aerosol radius for sulfate  on' &
-      !                            // 'surface of seasalt aerosol'
-       !   IF ( isUnits ) Units = 'cm'
-        !  IF ( isRank  ) Rank  = 3
+!          IF ( isDesc  ) Desc  = 'Wet aerosol radius for chloride in coarse' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAERORADISO4S' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol radius for sulfate  on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for background' &
@@ -3320,33 +3676,65 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'PHSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH'
+       CASE( 'PHACCUMMODE' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'HPLUSSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration'
+       CASE( 'PHCOARSEMODE' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'HPLUSACCUMMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA H+ concentration, accumulation mode'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'WATERSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol water concentration'
+       CASE( 'HPLUSCOARSEMODE' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration, coarse mode'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'WATERACCUMMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA aerosol water concentration, accumulation mode'
           IF ( isUnits ) Units = 'ug m-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'SULRATSAV' )
+       CASE( 'WATERCOARSEMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA aerosol water concentration, coarse mode'
+          IF ( isUnits ) Units = 'ug m-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'SULRATE' )
           IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'NARATSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA Na+ concentration'
+       CASE( 'NARATEACCUMMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA Na+ concentration, accumulation mode'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'CLRATSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA chloride concentration'
+       CASE( 'NARATECOARSEMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA Na+ concentration, coarse mode'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'CLRATEACCUMMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA chloride concentration, accumulation mode'
+          IF ( isUnits ) Units = 'mol/L'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'CLRATECOARSEMODE' )
+          IF ( isDesc  ) Desc  = &
+             'ISORROPIA chloride concentration, coarse mode'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  = 3
 
@@ -3376,12 +3764,12 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
-       CASE( 'SSALKACCUM' )
+       CASE( 'SSALKACCUMMODE' )
           IF ( isDesc  ) Desc  = 'Sea salt alkalinity, accumulation mode'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
-       CASE( 'SSALKCOARSE' )
+       CASE( 'SSALKCOARSEMODE' )
           IF ( isDesc  ) Desc  = 'Sea salt alkalinity, coarse mode'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
@@ -3437,51 +3825,52 @@ CONTAINS
           IF ( isRank  ) Rank  =  2
 
        CASE( 'OCEANHG0' )
-          IF ( isDesc  ) Desc  = 'Hg(0) ocean mass'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Hg(0) ocean mass'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'OCEANHG2' )
-          IF ( isDesc  ) Desc  = 'Hg(II) ocean mass'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Hg(II) ocean mass'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'OCEANHGP' )
-          IF ( isDesc  ) Desc  = 'HgP ocean mass'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'HgP ocean mass'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'SNOWHGOCEAN' )
-          IF ( isDesc  ) Desc  = 'Reducible Hg snowpack on ocean'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Reducible Hg snowpack on ocean'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'SNOWHGLAND' )
-          IF ( isDesc  ) Desc  = 'Reducible Hg snowpack on land'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Reducible Hg snowpack on land'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'SNOWHGOCEANSTORED' )
-          IF ( isDesc  ) Desc  = 'Non-reducible Hg snowpack on ocean'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Non-reducible Hg snowpack on ocean'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
        CASE( 'SNOWHGLANDSTORED' )
-          IF ( isDesc  ) Desc  = 'Non-reducible Hg snowpack on land'
-          IF ( isUnits ) Units = 'kg'
-          IF ( isRank  ) Rank  = 2
-          IF ( isSpecies ) PerSpecies = 'HgCat'
+          IF ( isDesc  ) Desc   = 'Non-reducible Hg snowpack on land'
+          IF ( isUnits ) Units  = 'kg'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) PerSpc = 'HgCat'
 
-       CASE( 'DRYDEPSAV' )
-          IF ( isDesc  ) Desc  = 'Dry deposition frequencies'
-          IF ( isUnits ) Units = 's-1'
-          IF ( isRank  ) Rank  = 3
+       CASE( 'DRYDEPFREQ' )
+          IF ( isDesc  ) Desc   = 'Dry deposition frequencies'
+          IF ( isUnits ) Units  = 's-1'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) perSpc = 'DRY'
 
        CASE( 'TLSTT' )
           IF ( isDesc  ) Desc  = 'TLSTT'
@@ -3499,9 +3888,10 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
 
        CASE( 'SURFACEFLUX' )
-          IF ( isDesc  ) Desc  = 'Surface flux (E-D) for non-local PBL mixing'
-          IF ( isUnits ) Units = 'kg m-2 s-1'
-          IF ( isRank  ) Rank  = 3
+          IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
+          IF ( isUnits ) Units  = 'kg m-2 s-1'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) perSpc = 'ADV'
 
        CASE DEFAULT
           Found = .False.
@@ -3520,6 +3910,917 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Init_and_Register_R4_2D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 4-byte, 2-dimensional array fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_2D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     RC,              &
+                                      noRegister                            )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),         POINTER     :: Ptr2Data(:,:)       ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !========================================================================
+    ! Init_and_Register_R4_2D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Allocate the field array (if it hasn't already been allocated)
+    !========================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array dimensions
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+
+       ! Allocate the array
+       ALLOCATE( Ptr2Data( NX, NY ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f4
+
+    ENDIF
+
+    !========================================================================
+    ! Register the field (unless we explicitly say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data, State_Chm, RC )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_3D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 4-byte, 3-dimensional array fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_3D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     RC,              &
+                                      nSlots,    nCat,      noRegister      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+    INTEGER,          OPTIONAL    :: nSlots              ! # slots, 3rd dim
+    INTEGER,          OPTIONAL    :: nCat                ! Category index
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),         POINTER     :: Ptr2Data(:,:,:)     ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY, NZ, NW
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !========================================================================
+    ! Init_and_Register_R4_3D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Allocate the field array (if it hasn't already been allocated)
+    !========================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array ID and dimensions
+       ! If optional nSlots is passed, use it for the 3rd dimension
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+       IF ( PRESENT( nSlots ) ) THEN
+          NW = nSlots
+       ELSE
+          NW = State_Grid%NZ
+       ENDIF
+
+       ! Allocate the array
+       ALLOCATE( Ptr2Data( NX, NY, NW ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f4
+
+    ENDIF
+
+    !========================================================================
+    ! Register the field (unless we explicitly say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data,                   &
+                               State_Chm, RC,    nCat=nCat                  )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R4_4D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 4-byte, 4-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R4_4D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     nSlots,          &
+                                      RC,        nCat,      noRegister      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+
+    INTEGER,          INTENT(IN)  :: nSlots              ! # of slots, 4th dim
+    INTEGER,          OPTIONAL    :: nCat                ! Optional category
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4),         POINTER     :: Ptr2Data(:,:,:,:)   ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY, NZ
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !========================================================================
+    ! Init_and_Register_R4_4D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Allocate the field array
+    !========================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array dimensions
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+       NZ = State_Grid%NZ
+
+       ALLOCATE( Ptr2Data( NX, NY, NZ, nSlots ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f4
+
+    ENDIF
+
+    !========================================================================
+    ! Register the field
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data,                   &
+                               State_Chm, RC,    nCat=nCat                  )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_2D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 8-byte, 2-dimensional fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_2D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     RC,              &
+                                      noRegister                            )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),         POINTER     :: Ptr2Data(:,:)       ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !=======================================================================
+    ! Init_and_Register_R8_2D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !=======================================================================
+    ! Allocate the field array (if it hasn't already been allocated)
+    !=======================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array dimensions
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+
+       ! Allocate the data
+       ALLOCATE( Ptr2Data( NX, NY ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f8
+
+    ENDIF
+
+    !=======================================================================
+    ! Register the field
+    !=======================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data, State_Chm, RC )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_3D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 4-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_3D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     RC,              &
+                                      nSlots,    nCat,      noRegister      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+    INTEGER,          OPTIONAL    :: nSlots              ! # slots, 3rd dim
+    INTEGER,          OPTIONAL    :: nCat                ! Category index
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),         POINTER     :: Ptr2Data(:,:,:)     ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY, NZ, NW
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !========================================================================
+    ! Init_and_Register_R4_2D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Allocate the field array (if it hasn't already been allocated)
+    !========================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array dimensions
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+       IF ( PRESENT( nSlots ) ) THEN
+          NW = nSlots
+       ELSE
+          NW = State_Grid%NZ
+       ENDIF
+
+       ! Allocate the array
+       ALLOCATE( Ptr2Data( NX, NY, NW ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f8
+
+    ENDIF
+
+    !========================================================================
+    ! Register the field (unless we explicitly say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data,                   &
+                               State_Chm, RC,    nCat=nCat                  )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_and_Register_R8_4D
+!
+! !DESCRIPTION: Allocates the data array for a State_Chm field,
+!  and also adds the field into the State_Chm registry.
+!  This particular routine is for 4-byte, 2-dimensional arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_and_Register_R8_4D( Input_Opt, State_Chm, State_Grid,      &
+                                      Ptr2Data,  chmId,     nSlots,          &
+                                      RC,        nCat,      noRegister      )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chemistry State
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State
+    CHARACTER(LEN=*), INTENT(IN)  :: chmId               ! Field name
+    INTEGER,          INTENT(IN)  :: nSlots              ! # of slots, 4th dim
+    INTEGER,          OPTIONAL    :: nCat                ! Optional category
+    LOGICAL,          OPTIONAL    :: noRegister          ! Exit after init
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f8),         POINTER     :: Ptr2Data(:,:,:,:)   ! Pointer to data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                  ! Success/failure!
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY, NZ
+    LOGICAL            :: doRegister
+
+    ! Strings
+    CHARACTER(LEN=255) :: arrayId
+
+    !========================================================================
+    ! Init_and_Register_R4_2D begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    arrayId = 'State_Chm%' // TRIM( chmId )
+
+    IF ( PRESENT( noRegister ) ) THEN
+       doRegister = ( .not. noRegister )
+    ELSE
+       doRegister = .TRUE.
+    ENDIF
+
+    !========================================================================
+    ! Allocate the field array (if it hasn't already been allocated)
+    !========================================================================
+    IF ( .not. ASSOCIATED( Ptr2Data ) ) THEN
+
+       ! Get array dimensions
+       NX = State_Grid%NX
+       NY = State_Grid%NY
+       NZ = State_Grid%NZ
+
+       ! Allocate the array
+       ALLOCATE( Ptr2Data( NX, NY, NZ, nSlots ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Ptr2Data = 0.0_f8
+
+    ENDIF
+
+    !========================================================================
+    ! Register the field (unless we explicitly say not to)
+    !========================================================================
+    IF ( doRegister ) THEN
+       CALL Register_ChmField( Input_Opt, chmId, Ptr2Data,                   &
+                               State_Chm, RC,    nCat=nCat                  )
+       CALL GC_CheckVar( arrayId, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Init_and_Register_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Test_for_Species_Dim
+!
+! !DESCRIPTION: Returns true if a State_Chm quantity has a species dimension.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Test_for_Species_Dim( perSpc ) RESULT( returnCode )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: perSpc      ! PerSpc value from metadata
+!
+! !RETURN VALUE:
+!
+    INTEGER                      :: returnCode  !  1  = has species dimension
+                                                !  0  = no species dimension
+                                                ! -1  = unknown perSpc value
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    SELECT CASE( TRIM( perSpc ) )
+       CASE( 'ADV', 'ALL', 'DRY', 'WET', 'HgCat' )
+          returnCode = 1
+       CASE( '' )
+          returnCode = 0
+       CASE DEFAULT
+          returnCode = -1
+    END SELECT
+
+  END FUNCTION Test_For_Species_Dim
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_NumSlots
+!
+! !DESCRIPTION: Returns the number of slots with which to define a
+!  species-based array of State_Chm.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_NumSlots( perSpc, State_Chm ) RESULT( nSlots )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: perSpc      ! PerSpc value from metadata
+    TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
+!
+! !RETURN VALUE:
+!
+    INTEGER                      :: nSlots      ! Number of slots
+
+! !REVISION HISTORY:
+!  23 Sep 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    SELECT CASE( TRIM( perSpc ) )
+       CASE( 'ADV'   )
+          nSlots = State_Chm%nAdvect
+       CASE( 'ALL'   )
+          nSlots = State_Chm%nSpecies
+       CASE( 'DRY'   )
+          nSlots = State_Chm%nDryDep
+       CASE( 'WET'   )
+          nSlots = State_Chm%nWetDep
+       CASE( 'HgCat' )
+          nSlots = State_Chm%N_HG_CATS
+       CASE DEFAULT
+          nSlots = -1
+    END SELECT
+
+  END FUNCTION Get_NumSlots
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Diagnostic_Name
+!
+! !DESCRIPTION: Returns the diagnostic name and description of a species-based
+!  quantity (appending the species to the base name if necessary).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Diagnostic_Name( State_Chm, perSpc,    N,        name,      &
+                                  desc,      diagName,  diagDesc            )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ChmState),     INTENT(IN)  :: State_Chm  ! Chemistry State
+    CHARACTER(LEN=*),   INTENT(IN)  :: perSpc     ! PerSpc value from metadata
+    INTEGER,            INTENT(IN)  :: N          ! Diagnostic index
+    CHARACTER(LEN=*),   INTENT(IN)  :: name       ! Name from metadata
+    CHARACTER(LEN=*),   INTENT(IN)  :: desc       ! Description from metadata
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=255), INTENT(OUT) :: diagName   ! Name        + species name
+    CHARACTER(LEN=255), INTENT(OUT) :: diagDesc   ! Description + species name
+!
+! !REVISION HISTORY:
+!  20 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
+    IF ( PerSpc == 'HgCat' ) THEN
+
+       !---------------------------------------------------------------------
+       ! Hg simulation quantities
+       !---------------------------------------------------------------------
+
+       ! Append the species name to the diagnostic name with an underscore
+       diagName = TRIM( name ) // '_' // TRIM( State_Chm%Hg_Cat_Name(N) )
+
+       ! Append the species name to the diagnostic description
+       diagDesc = TRIM( desc ) // ' ' // TRIM( State_Chm%Hg_Cat_Name(N) )
+
+    ELSE
+
+       !---------------------------------------------------------------------
+       ! All other species-bound quantities
+       !---------------------------------------------------------------------
+
+       ! Point to the Nth entry in the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
+
+       ! Append the species name to the diagnostic name with an underscore
+       diagName = TRIM( name ) // '_' // TRIM( ThisSpc%Name )
+
+       ! Append the species name to the diagnostic description
+       diagDesc = TRIM( desc ) // ' ' // TRIM( ThisSpc%Name )
+
+       ! Free pointer
+       ThisSpc => NULL()
+
+    ENDIF
+
+  END SUBROUTINE Get_Diagnostic_Name
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_R4_2D
+!
+! !DESCRIPTION: Registers a 2-dimensional, 4-byte real array field
+!  of the State\_Chm object.  This allows the diagnostic modules get
+!  a pointer to the field by searching on the field name.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_R4_2D( Input_Opt, metadataID, Ptr2Data,       &
+                                      State_Chm, RC                         )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt         ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID        ! State_Chm field ID
+    REAL(f4),         POINTER     :: Ptr2Data(:,:)     ! Pointer to data
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm         ! Chemistry State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC                ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        hasSpeciesDim
+    INTEGER            :: type,        vloc
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    ! Initialize
+    !========================================================================
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Chm%'
+    thisLoc    = &
+       ' -> at Register_ChmField_R4_2D (in Headers/state_chm_mod.F90)'
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Chm(                                             &
+         am_I_Root  = Input_Opt%amIRoot,                                     &
+         metadataId = metadataId,                                            &
+         found      = found,                                                 &
+         desc       = desc,                                                  &
+         units      = units,                                                 &
+         rank       = rank,                                                  &
+         type       = type,                                                  &
+         vloc       = vloc,                                                  &
+         perSpc     = perSpc,                                                &
+         RC         = RC                                                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == VLocationEdge )
+
+    ! Test if the data has a species dimension
+    hasSpeciesDim = Test_For_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
+    ! If not tied to species then simply register the single field
+    !------------------------------------------------------------------------
+    IF ( hasSpeciesDim == 0 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            Data2d_4     = Ptr2Data,                                         &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !------------------------------------------------------------------------
+    ! Otherwise exit with error
+    !------------------------------------------------------------------------
+    ELSE
+
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc) //    &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Register_ChmField_R4_3D
 !
 ! !DESCRIPTION: Registers a 3-dimensional, 4-byte floating point array field
@@ -3529,8 +4830,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_R4_3D( Input_Opt,  metadataID, Ptr2Data,  &
-                                      State_Chm,  RC )
+  SUBROUTINE Register_ChmField_R4_3D( Input_Opt,  metadataID, Ptr2Data,      &
+                                      State_Chm,  RC,         nCat          )
 !
 ! !USES:
 !
@@ -3539,14 +4840,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt        ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID       ! State_Chm field ID
+    REAL(f4),         POINTER     :: Ptr2Data(:,:,:)  ! pointer to data
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm        ! Chemistry State
+    INTEGER,          OPTIONAL    :: nCat             ! Category index
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC               ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -3559,28 +4861,40 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg,  ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found, onEdges
-    TYPE(Species), POINTER :: SpcInfo
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        type
+    INTEGER            :: vloc,        nSlots,      hasSpeciesDim
 
-    !-----------------------------------------------------------------------
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
+
+    !=========================================================================
     ! Initialize
-    !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_ChmField_R4_3D (in Headers/state_chm_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Chm%'
+    !=========================================================================
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Chm%'
+    thisLoc    = &
+       ' -> at Register_ChmField_R4_3D (in Headers/state_chm_mod.F90)'
 
-    !-----------------------------------------------------------------------
+    !=========================================================================
     ! Get metadata
-    !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc, perSpecies=perSpecies )
+    !=========================================================================
+    CALL Get_MetaData_State_Chm(                                              &
+         am_I_Root  = Input_Opt%amIRoot,                                      &
+         metadataId = metadataId,                                             &
+         found      = found,                                                  &
+         desc       = desc,                                                   &
+         units      = units,                                                  &
+         rank       = rank,                                                   &
+         type       = type,                                                   &
+         vloc       = vloc,                                                   &
+         perSpc     = perSpc,                                                 &
+         RC         = RC                                                     )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3590,10 +4904,97 @@ CONTAINS
        RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
+    ! Test if the quantity has a species dimension
+    hasSpeciesDim = Test_for_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
+    ! If tied to a given category, only register that one
+    !------------------------------------------------------------------------
+    IF ( PRESENT( nCat ) ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            OnLevelEdges = onEdges,                                          &
+            Data2d_4     = Ptr2Data(:,:,nCat),                               &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                   '; Abnormal exit from Registry_AddField!'
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+      ENDIF
+
+    !------------------------------------------------------------------------
+    ! If tied to a particular species, register each species individually
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 1 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Get the length of the species-based dimension
+       nSlots = Get_NumSlots( perSpc, State_Chm )
+
+       ! Loop over all species
+       DO N = 1, nSlots
+
+          ! Append the species name to the diagnostic name & description
+          CALL Get_Diagnostic_Name(                                          &
+               State_Chm    = State_Chm,                                     &
+               perSpc       = perSpc,                                        &
+               N            = N,                                             &
+               name         = metaDataId,                                    &
+               desc         = desc,                                          &
+               diagName     = thisSpcName,                                   &
+               diagDesc     = thisSpcDesc                                   )
+
+          ! Add field to registry
+          CALL Registry_AddField( &
+               Input_Opt    = Input_Opt,                                     &
+               Registry     = State_Chm%Registry,                            &
+               State        = State_Chm%State,                               &
+               Variable     = TRIM( thisSpcName ),                           &
+               Description  = TRIM( thisSpcDesc ),                           &
+               Units        = TRIM( units       ),                           &
+               OnLevelEdges = onEdges,                                       &
+               Data2d_4     = Ptr2Data(:,:,N),                               &
+               RC           = RC                                            )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
+                      '; Abnormal exit from routine "Registry_AddField"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ENDDO
+
+    !------------------------------------------------------------------------
     ! If not tied to species then simply register the single field
-    !-----------------------------------------------------------------------
-    IF ( perSpecies == '' ) THEN
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 0 ) THEN
 
        ! Check that metadata consistent with data size
        IF ( rank /= 3 ) THEN
@@ -3607,15 +5008,16 @@ CONTAINS
        onEdges = ( vLoc == VLocationEdge )
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Chm%Registry,            &
-                               State        = State_Chm%State,               &
-                               Variable     = metadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               Data3d_4     = Ptr2Data,                      &
-                               OnLevelEdges = onEdges,                       &
-                               RC           = RC                            )
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            Data3d_4     = Ptr2Data,                                         &
+            OnLevelEdges = onEdges,                                          &
+            RC           = RC                                               )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3630,8 +5032,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ELSE
 
-       ! Error: cannot register field!
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc) //    &
                 ' is not implemented for this combo of data type and size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -3645,17 +5047,17 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_ChmField_Rfp_2D
+! !IROUTINE: Register_ChmField_R4_4D
 !
-! !DESCRIPTION: Registers a 2-dimensional, flexible-precision array field
-!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
-!  to the field by searching on the field name.
+! !DESCRIPTION: Registers a 4-dimensional, 4-byte real array field
+!  of the State\_Chm object.  This allows the diagnostic modules get
+!  a pointer to the field by searching on the field name.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_2D( Input_Opt, metadataID, Ptr2Data,  &
-                                       State_Chm, RC )
+  SUBROUTINE Register_ChmField_R4_4D( Input_Opt,  metadataID, Ptr2Data,     &
+                                      State_Chm,  RC,         Ncat         )
 !
 ! !USES:
 !
@@ -3664,308 +5066,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
-    REAL(fp),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  20 Sep 2017 - E. Lundgren - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found, onEdges
-    TYPE(Species), POINTER :: SpcInfo
-
-    !-----------------------------------------------------------------------
-    ! Initialize
-    !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_ChmField_Rfp_2D (in Headers/state_chm_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Chm%'
-
-    !-----------------------------------------------------------------------
-    ! Get metadata
-    !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc, perSpecies=perSpecies )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Is the data placed on vertical edges?
-    onEdges = ( vLoc == VLocationEdge )
-
-    !-----------------------------------------------------------------------
-    ! If not tied to species then simply register the single field
-    !-----------------------------------------------------------------------
-    IF ( perSpecies == '' ) THEN
-
-       ! Check that metadata consistent with data size
-       IF ( rank /= 2 ) THEN
-          ErrMsg = 'Data dims and metadata rank do not match for '           &
-                   // TRIM(metadataID)
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Chm%Registry,            &
-                               State        = State_Chm%State,               &
-                               Variable     = metadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               Data2d       = Ptr2Data,                      &
-                               RC           = RC                            )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
-                  '; Abnormal exit from routine "Registry_AddField"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Otherwise exit with error
-    !-----------------------------------------------------------------------
-    ELSE
-
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
-                ' is not implemented for this combo of data type and size'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-
-    ENDIF
-
-  END SUBROUTINE Register_ChmField_Rfp_2D
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Register_ChmField_Rfp_3D
-!
-! !DESCRIPTION: Registers a 3-dimensional, flexible-precision array field
-!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
-!  to the field by searching on the field name.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Register_ChmField_Rfp_3D( Input_Opt, metadataID, Ptr2Data,  &
-                                       State_Chm, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Registry_Params_Mod
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
-    REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  20 Sep 2017 - E. Lundgren - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found, onEdges
-    TYPE(Species), POINTER :: SpcInfo
-
-    !-----------------------------------------------------------------------
-    ! Initialize
-    !-----------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    ThisLoc = ' -> at Register_ChmField_Rfp_3D (in Headers/state_chm_mod.F90)'
-    ErrMsg  = ''
-    ErrMsg_reg = 'Error encountered while registering State_Chm%'
-
-    !-----------------------------------------------------------------------
-    ! Get metadata
-    !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc, perSpecies=perSpecies )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
-                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Is the data placed on vertical edges?
-    onEdges = ( vLoc == VLocationEdge )
-
-    !-----------------------------------------------------------------------
-    ! If not tied to species then simply register the single field
-    !-----------------------------------------------------------------------
-    IF ( perSpecies == '' ) THEN
-
-       ! Check that metadata consistent with data size
-       IF ( rank /= 3 ) THEN
-          ErrMsg = 'Data dims and metadata rank do not match for '           &
-                   // TRIM(metadataID)
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Chm%Registry,            &
-                               State        = State_Chm%State,               &
-                               Variable     = metadataID,                    &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d       = Ptr2Data,                      &
-                               RC           = RC                            )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
-                  '; Abnormal exit from routine "Registry_AddField"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    !-----------------------------------------------------------------------
-    ! If tied to Hg category then register each one
-    !-----------------------------------------------------------------------
-    ELSE IF ( perSpecies == 'HgCat' ) THEN
-
-       ! Loop over all species
-       DO N = 1, State_Chm%N_Hg_CATS
-
-          ! Append Hg category to name and description for tagged Hg
-          IF ( N == 1 ) THEN
-             thisSpcName = TRIM( metadataID )
-             thisSpcDesc = TRIM( Desc       )
-          ELSE
-             thisSpcName = TRIM( metadataID ) // '_' // &
-                  TRIM(State_Chm%Hg_Cat_Name(N))
-             thisSpcDesc = TRIM( Desc       ) // ' ' // &
-                  TRIM(State_Chm%Hg_Cat_Name(N))
-          ENDIF
-
-          ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Chm%Registry ,        &
-                                  State        = State_Chm%State,            &
-                                  Variable     = thisSpcName,                &
-                                  Description  = thisSpcDesc,                &
-                                  Units        = units,                      &
-                                  OnLevelEdges = onEdges,                    &
-                                  Data2d       = Ptr2Data(:,:,N),            &
-                                  RC           = RC                         )
-
-          ! Free pointers
-          SpcInfo => NULL()
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
-                      '; Abnormal exit from routine "Registry_AddField"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       ENDDO
-
-    !-----------------------------------------------------------------------
-    ! Otherwise exit with error
-    !-----------------------------------------------------------------------
-    ELSE
-
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
-                ' is not implemented for this combo of data type and size'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-
-    ENDIF
-
-  END SUBROUTINE Register_ChmField_Rfp_3D
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Register_ChmField_Rfp_4D
-!
-! !DESCRIPTION: Registers a 4-dimensional, flexible-precision array field
-!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
-!  to the field by searching on the field name.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Register_ChmField_Rfp_4D( Input_Opt,  metadataID, Ptr2Data,     &
-                                       State_Chm,  RC,         Ncat         )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Registry_Params_Mod
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
-    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! State_Chm field id
-    REAL(fp),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
-    INTEGER,           OPTIONAL      :: Ncat              ! category index
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt         ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID        ! State_Chm field Id
+    REAL(f4),         POINTER     :: Ptr2Data(:,:,:,:) ! Pointer to data
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm         ! Chemistry State
+    INTEGER,          OPTIONAL    :: Ncat              ! Category index
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,          INTENT(OUT) :: RC                ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -3978,28 +5087,40 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=512)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found, onEdges
-    TYPE(Species), POINTER :: SpcInfo
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        hasSpeciesDim
+    INTEGER            :: type,        vloc,        nSlots
 
-    !-----------------------------------------------------------------------
-    ! Initialize
-    !-----------------------------------------------------------------------
-    RC = GC_SUCCESS
-    ThisLoc = ' -> at Register_ChmField_Rfp_4D (in Headers/state_chm_mod.F90)'
-    ErrMsg     = ''
-    ErrMsg_reg = 'Error encountered while registering State_Chm%'
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
 
-    !-----------------------------------------------------------------------
+    !========================================================================
     ! Initialize
-    !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
-                                 desc=desc, units=units, rank=rank,          &
-                                 type=type, vloc=vloc, perSpecies=perSpecies )
+    !========================================================================
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Chm%'
+    thisLoc    = &
+       ' -> at Register_ChmField_R4_4D (in Headers/state_chm_mod.F90)'
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Chm(                                             &
+         am_I_Root  = Input_Opt%amIRoot,                                     &
+         metadataId = metadataId,                                            &
+         found      = found,                                                 &
+         desc       = desc,                                                  &
+         units      = units,                                                 &
+         rank       = rank,                                                  &
+         type       = type,                                                  &
+         vloc       = vloc,                                                  &
+         perSpc     = perSpc,                                                &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4009,9 +5130,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
+    ! Test if the quantity has a species dimension
+    hasSpeciesDim = Test_For_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
     ! Check that metadata consistent with data size
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' &
                 // TRIM(metadataID)
@@ -4022,32 +5146,71 @@ CONTAINS
     ! Is the data placed on level edges?
     onEdges = ( VLoc == VLocationEdge )
 
-    !-----------------------------------------------------------------------
-    ! If tied to all species then register each one
-    !-----------------------------------------------------------------------
-    IF ( perSpecies == 'ALL' ) THEN
+    !------------------------------------------------------------------------
+    ! If tied to a given category, only registry that one
+    !------------------------------------------------------------------------
+    IF ( PRESENT( Ncat ) ) THEN
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            OnLevelEdges = onEdges,                                          &
+            Data3d_4     = Ptr2Data(:,:,:,Ncat),                             &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                   '; Abnormal exit from Registry_AddField!'
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !------------------------------------------------------------------------
+    ! If tied to a particular species, register each species individually
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 1 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 3 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Get the length of the species-based dimension
+       nSlots = Get_NumSlots( perSpc, State_Chm )
 
        ! Loop over all species
-       DO N = 1, State_Chm%nSpecies
+       DO N = 1, nSlots
 
-          ! Get name from species database for name and description tags
-          SpcInfo     => State_Chm%SpcData(N)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc       ) // ' ' // TRIM( SpcInfo%Name )
+          ! Append the species name to the diagnostic name & description
+          CALL Get_Diagnostic_Name(                                          &
+               State_Chm    = State_Chm,                                     &
+               perSpc       = perSpc,                                        &
+               N            = N,                                             &
+               name         = TRIM( metaDataId ),                            &
+               desc         = TRIM( desc       ),                            &
+               diagName     = thisSpcName,                                   &
+               diagDesc     = thisSpcDesc                                   )
 
           ! Add field to registry
-          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
-                                  Registry     = State_Chm%Registry ,        &
-                                  State        = State_Chm%State,            &
-                                  Variable     = thisSpcName,                &
-                                  Description  = thisSpcDesc,                &
-                                  Units        = units,                      &
-                                  OnLevelEdges = onEdges,                    &
-                                  Data3d       = Ptr2Data(:,:,:,N),          &
-                                  RC           = RC                         )
-
-          ! Free pointers
-          SpcInfo => NULL()
+          CALL Registry_AddField( &
+               Input_Opt    = Input_Opt,                                     &
+               Registry     = State_Chm%Registry,                            &
+               State        = State_Chm%State,                               &
+               Variable     = TRIM( thisSpcName ),                           &
+               Description  = TRIM( thisSpcDesc ),                           &
+               Units        = TRIM( units       ),                           &
+               OnLevelEdges = onEdges,                                       &
+               Data3d_4     = Ptr2Data(:,:,:,N),                             &
+               RC           = RC                                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -4059,21 +5222,279 @@ CONTAINS
 
        ENDDO
 
-    !-----------------------------------------------------------------------
-    ! If tied to a given category, only registry that one
-    !-----------------------------------------------------------------------
-    ELSE IF ( PRESENT(Ncat) ) THEN
+    !------------------------------------------------------------------------
+    ! Otherwise, exit with error
+    !------------------------------------------------------------------------
+    ELSE
+
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc) // &
+                ' is not implemented for this combo of data type and size!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_R8_2D
+!
+! !DESCRIPTION: Registers a 2-dimensional, 8-byte real array field
+!  of the State\_Chm object.  This allows the diagnostic modules get
+!  a pointer to the field by searching on the field name.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_R8_2D( Input_Opt, metadataID, Ptr2Data,       &
+                                      State_Chm, RC                         )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt       ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)  :: metadataID      ! State_Chm field ID
+    REAL(f8),         POINTER     :: Ptr2Data(:,:)   ! Pointer to data
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm       ! Chemistry State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  21 Sep 2020 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        hasSpeciesDim
+    INTEGER            :: type,        vloc
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    ! Initialize
+    !========================================================================
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Chm%'
+    thisLoc    = &
+       ' -> at Register_ChmField_R8_2D (in Headers/state_chm_mod.F90)'
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Chm(                                             &
+         am_I_Root  = Input_Opt%amIRoot,                                     &
+         metadataId = metadataId,                                            &
+         found      = found,                                                 &
+         desc       = desc,                                                  &
+         units      = units,                                                 &
+         rank       = rank,                                                  &
+         type       = type,                                                  &
+         vloc       = vloc,                                                  &
+         perSpc     = perSpc,                                                &
+         RC         = RC                                                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == VLocationEdge )
+
+    ! Test if the quantity has a species dimension
+    hasSpeciesDim = Test_for_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
+    ! If not tied to species then simply register the single field
+    !------------------------------------------------------------------------
+    IF ( hasSpeciesDim == 0 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Add field to registry
-       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
-                               Registry     = State_Chm%Registry ,           &
-                               State        = State_Chm%State,               &
-                               Variable     = metadataID ,                   &
-                               Description  = desc,                          &
-                               Units        = units,                         &
-                               OnLevelEdges = onEdges,                       &
-                               Data3d       = Ptr2Data(:,:,:,Ncat),          &
-                               RC           = RC                            )
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            Data2d_8     = Ptr2Data,                                         &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !------------------------------------------------------------------------
+    ! Otherwise exit with error
+    !------------------------------------------------------------------------
+    ELSE
+
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc) //    &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_R8_3D
+!
+! !DESCRIPTION: Registers a 3-dimensional, 8-byte floating point array field
+!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
+!  to the field by searching on the field name.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_R8_3D( Input_Opt, metadataID, Ptr2Data,       &
+                                      State_Chm, RC,         nCat           )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),    INTENT(IN)  :: Input_Opt       ! Input Options object
+    CHARACTER(LEN=*),  INTENT(IN)  :: metadataID      ! State_Chm field ID
+    REAL(f8),          POINTER     :: Ptr2Data(:,:,:) ! Pointer to data
+    TYPE(ChmState),    INTENT(IN)  :: State_Chm       ! Chemistry State
+    INTEGER,           OPTIONAL    :: nCat            ! Category index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT) :: RC              ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        hasSpeciesDim
+    INTEGER            :: type,        vloc,        nSlots
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    ! Initialize
+    !========================================================================
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ErrMsg_reg = 'Error encountered while registering State_Chm%'
+    ThisLoc    = &
+       ' -> at Register_ChmField_R8_3D (in Headers/state_chm_mod.F90)'
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Chm(                                             &
+         am_I_Root  = Input_Opt%amIRoot,                                     &
+         metadataId = metadataId,                                            &
+         found      = found,                                                 &
+         desc       = desc,                                                  &
+         units      = units,                                                 &
+         rank       = rank,                                                  &
+         type       = type,                                                  &
+         vloc       = vloc,                                                  &
+         perSpc     = perSpc,                                                &
+         RC         = RC                                                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == VLocationEdge )
+
+    ! Test if the data has a species dimension
+    hasSpeciesDim = Test_for_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
+    ! If tied to a given category, only registry that one
+    !------------------------------------------------------------------------
+    IF ( PRESENT( nCat ) ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            OnLevelEdges = onEdges,                                          &
+            Data2d_8     = Ptr2Data(:,:,nCat),                               &
+            RC           = RC                                               )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4083,17 +5504,292 @@ CONTAINS
           RETURN
        ENDIF
 
+    !------------------------------------------------------------------------
+    ! If tied to a particular species, register each species individually
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 1 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Get the length of the species-based dimension
+       nSlots = Get_NumSlots( perSpc, State_Chm )
+
+       ! Loop over all species
+       DO N = 1, nSlots
+
+          ! Append the species name to the diagnostic name & description
+          CALL Get_Diagnostic_Name(                                          &
+               State_Chm    = State_Chm,                                     &
+               perSpc       = perSpc,                                        &
+               N            = N,                                             &
+               name         = TRIM( metaDataId ),                            &
+               desc         = TRIM( desc       ),                            &
+               diagName     = thisSpcName,                                   &
+               diagDesc     = thisSpcDesc                                   )
+
+          ! Add field to registry
+          CALL Registry_AddField( &
+               Input_Opt    = Input_Opt,                                     &
+               Registry     = State_Chm%Registry,                            &
+               State        = State_Chm%State,                               &
+               Variable     = TRIM( thisSpcName ),                           &
+               Description  = TRIM( thisSpcDesc ),                           &
+               Units        = TRIM( units       ),                           &
+               OnLevelEdges = onEdges,                                       &
+               Data2d_8     = Ptr2Data(:,:,N),                               &
+               RC           = RC                                            )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
+                      '; Abnormal exit from routine "Registry_AddField"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ENDDO
+
+    !------------------------------------------------------------------------
+    ! If not tied to species then simply register the single field
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 0 ) THEN
+
+       ! Check that metadata consistent with data size
+       IF ( rank /= 3 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Is the data placed on vertical edges?
+       onEdges = ( vLoc == VLocationEdge )
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            Data3d_8     = Ptr2Data,                                         &
+            OnLevelEdges = onEdges,                                          &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     !-----------------------------------------------------------------------
-    ! Otherwise, exit with error
+    ! Otherwise exit with error
     !-----------------------------------------------------------------------
     ELSE
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
-                ' is not implemented for this combo of data type and size!'
+
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc) //    &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_R8_4D
+!
+! !DESCRIPTION: Registers a 4-dimensional, 8-byte real array field
+!  of the State\_Chm object.  This allows the diagnostic modules get
+!  a pointer to the field by searching on the field name.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_R8_4D( Input_Opt,  metadataID, Ptr2Data,      &
+                                      State_Chm,  RC,         Ncat          )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt         ! Input Options
+    CHARACTER(LEN=*), INTENT(IN)    :: metadataID        ! State_Chm field ID
+    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Pointer to data
+    TYPE(ChmState),   INTENT(IN)    :: State_Chm         ! Chemistry State
+    INTEGER,          OPTIONAL      :: Ncat              ! Category index
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC                ! Success or failure?
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found,       onEdges
+    INTEGER            :: N,           rank,        hasSpeciesDim
+    INTEGER            :: type,        vloc,        nSlots
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg_reg,  thisLoc,     desc
+    CHARACTER(LEN=255) :: thisSpcName, thisSpcDesc, perSpc
+    CHARACTER(LEN=255) :: units
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    ! Initialize
+    !========================================================================
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    errMsg_reg = 'Error encountered while registering State_Chm%'
+    thisLoc    = &
+       ' -> at Register_ChmField_R8_4D (in Headers/state_chm_mod.F90)'
+
+    !========================================================================
+    ! Get metadata
+    !========================================================================
+    CALL Get_MetaData_State_Chm(                                             &
+         am_I_Root  = Input_Opt%amIRoot,                                     &
+         metadataId = metadataId,                                            &
+         found      = found,                                                 &
+         desc       = desc,                                                  &
+         units      = units,                                                 &
+         rank       = rank,                                                  &
+         type       = type,                                                  &
+         vloc       = vloc,                                                  &
+         perSpc     = perSpc,                                                &
+         RC         = RC                                                    )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-  END SUBROUTINE Register_ChmField_Rfp_4D
+    !------------------------------------------------------------------------
+    ! Check that metadata consistent with data size
+    !------------------------------------------------------------------------
+    IF ( rank /= 3 ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' &
+                // TRIM(metadataID)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on level edges?
+    onEdges = ( VLoc == VLocationEdge )
+
+    ! Test if the quantity has a species dimension
+    hasSpeciesDim = Test_for_Species_Dim( perSpc )
+
+    !------------------------------------------------------------------------
+    ! If tied to a given category, only registry that one
+    !------------------------------------------------------------------------
+    IF ( PRESENT( Ncat ) ) THEN
+
+       ! Add field to registry
+       CALL Registry_AddField(                                               &
+            Input_Opt    = Input_Opt,                                        &
+            Registry     = State_Chm%Registry,                               &
+            State        = State_Chm%State,                                  &
+            Variable     = TRIM( metadataID ),                               &
+            Description  = TRIM( desc       ),                               &
+            Units        = TRIM( units      ),                               &
+            OnLevelEdges = onEdges,                                          &
+            Data3d_8     = Ptr2Data(:,:,:,Ncat),                             &
+            RC           = RC                                               )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                   '; Abnormal exit from Registry_AddField!'
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !------------------------------------------------------------------------
+    ! If tied to a particular species, register each species individually
+    !------------------------------------------------------------------------
+    ELSE IF ( hasSpeciesDim == 1 ) THEN
+
+       ! Get the length of the species-based dimension
+       nSlots = Get_NumSlots( perSpc, State_Chm )
+
+       ! Loop over all species
+       DO N = 1, nSlots
+
+          ! Append the species name to the diagnostic name & description
+          CALL Get_Diagnostic_Name(                                          &
+               State_Chm    = State_Chm,                                     &
+               perSpc       = perSpc,                                        &
+               N            = N,                                             &
+               name         = TRIM( metaDataId ),                            &
+               desc         = TRIM( desc       ),                            &
+               diagName     = thisSpcName,                                   &
+               diagDesc     = thisSpcDesc                                   )
+
+          ! Add field to registry
+          CALL Registry_AddField( &
+               Input_Opt    = Input_Opt,                                     &
+               Registry     = State_Chm%Registry,                            &
+               State        = State_Chm%State,                               &
+               Variable     = TRIM( thisSpcName ),                           &
+               Description  = TRIM( thisSpcDesc ),                           &
+               Units        = TRIM( units       ),                           &
+               OnLevelEdges = onEdges,                                       &
+               Data3d_8     = Ptr2Data(:,:,:,N),                             &
+               RC           = RC                                            )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
+                      '; Abnormal exit from routine "Registry_AddField"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ENDDO
+
+    !------------------------------------------------------------------------
+    ! Otherwise, exit with error
+    !------------------------------------------------------------------------
+    ELSE
+
+       ! Error msg
+       ErrMsg = 'Handling of PerSpc metadata ' // TRIM(perSpc ) // &
+                ' is not implemented for this combo of data type and size!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R8_4D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4126,18 +5822,17 @@ CONTAINS
 !
 ! !REMARKS:
 !   Values of FLAG (case-insensitive):
-!   'A' : Returns advected species index
-!   'D' : Returns dry-deposition species index
-!   'F' : Returns KPP fixed species index
-!   'G' : Returns gas-phase species index
-!   'H' : Returns hygroscopic-growth species index
-!   'K' : Returns KPP main species index
-!   'K' : Returns KPP master species index
-!   'N' : Returns radionuclide species index
-!   'P' : Returns photolysis species index
-!   'S' : Returns main species index (aka "ModelId")
-!   'V' : Returns KPP variable species index
-!   'W' : Returns wet-deposition species index
+!   'A' or 'a' : Returns advected species index
+!   'D' or 'd' : Returns dry-deposition species index
+!   'F' or 'f' : Returns KPP fixed species index
+!   'G' or 'g' : Returns gas-phase species index
+!   'H' or 'h' : Returns hygroscopic-growth species index
+!   'K' or 'k' : Returns KPP main species index
+!   'N' or 'n' : Returns radionuclide species index
+!   'P' or 'p' : Returns photolysis species index
+!   'S' or 's' : Returns main species index (aka "ModelId")
+!   'V' or 'v' : Returns KPP variable species index
+!   'W' or 'w' : Returns wet-deposition species index
 !
 ! !REVISION HISTORY:
 !  07 Oct 2016 - M. Long     - Initial version
@@ -4197,7 +5892,7 @@ CONTAINS
           Indx = SpcDataLocal(N)%Info%KppSpcId
           RETURN
 
-       ! KPP chemical species ID
+       ! Radionuclide chemical species ID
        CASE( 'N', 'n' )
           Indx = SpcDataLocal(N)%Info%RadNuclId
           RETURN
