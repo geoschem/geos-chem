@@ -2190,16 +2190,6 @@ PROGRAM GEOS_Chem
           CALL Timer_End( "=> ObsPack diagnostics", RC )
        ENDIF
     ENDIF
-
-    !------------------------------------------------------------------------
-    ! Remind users to run the ./metrics.py script to obtain OH metrics
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, '(a)' ) 'To compute the OH metrics, execute the Python'
-       WRITE( 6, '(a)' ) 'script "metrics.py" in this run directory.'
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
   ENDIF
 
   !--------------------------------------------------------------------------
@@ -2325,6 +2315,17 @@ PROGRAM GEOS_Chem
         CALL Timer_PrintAll( Input_Opt, RC )
      ENDIF
   ENDIF
+
+  !--------------------------------------------------------------------------
+  ! Remind users to run the ./metrics.py script to obtain OH metrics
+  !--------------------------------------------------------------------------
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+     WRITE( 6, '(/,a)' ) REPEAT( '%', 65 )
+     WRITE( 6, 300     ) 'To compute the OH metrics, execute the Python'
+     WRITE( 6, 300     ) '  script "metrics.py" in this run directory. '
+     WRITE( 6, '(a)'   ) REPEAT( '%', 65 )
+ 300 FORMAT( '%%%%%', 5x, a, 5x, '%%%%%' )
+    ENDIF
 
   ! Print ending time of simulation
   CALL Display_End_Time()
