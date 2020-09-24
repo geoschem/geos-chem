@@ -23,6 +23,9 @@ cd ${srcrundir}
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
 
+# Initialize RDI_VARS
+RDI_VARS=""
+
 # Define separator lines
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
@@ -65,6 +68,8 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     done
 fi
 
+RDI_VARS+="RDI_DATA_ROOT=$GC_DATA_ROOT\n"
+
 #-----------------------------------------------------------------
 # Ask user to select simulation type
 #-----------------------------------------------------------------
@@ -85,6 +90,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
+
+RDI_VARS+="RDI_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -176,34 +183,18 @@ while [ "${valid_met}" -eq 0 ]; do
     read met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
-	met_name='MERRA2'
-	met_dir='MERRA2'
-	met_resolution='05x0625'
-	met_native='0.5x0.625'
-	met_latres='05'
-	met_lonres='0625'
-	met_extension='nc4'
-	met_cn_year='2015'
-	pressure_unit='Pa '
-	pressure_scale='0.01'
-	dust_sf='3.86e-4'
+      RDI_VARS+="$(cat ${srcrundir}/settings/merra2_settings.txt)\n"
+      RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n'
     elif [[ ${met_num} = "2" ]]; then
-	met_name='GEOSFP'
-	met_dir='GEOS_FP'
-	met_resolution='025x03125'
-	met_native='0.25x0.3125'
-	met_latres='025'
-	met_lonres='03125'
-	met_extension='nc'
-	met_cn_year='2011'
-	pressure_unit='hPa'
-	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
+      RDI_VARS+="$(cat ${srcrundir}/settings/geosfp_settings.txt)\n"
+      RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
     fi
 done
+
+
 
 #-----------------------------------------------------------------
 # Ask user to define path where directoy will be created
@@ -269,29 +260,18 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
-cp ./input.nml                        ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
-cp ./GCHP.rc.template                 ${rundir}/GCHP.rc
-cp ./CAP.rc.template                  ${rundir}/CAP.rc
-cp ./runConfig.sh.template            ${rundir}/runConfig.sh
-cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
-cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
     chmod 744 ${rundir}/metrics_fullchem.py
 fi
 cp -r ./runScriptSamples              ${rundir}
-mkdir ${rundir}/OutputDir
 
 # Set permissions
 chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
-chmod 744 ${rundir}/runConfig.sh
 chmod 744 ${rundir}/archiveRun.sh
 chmod 744 ${rundir}/runScriptSamples/*
 chmod 644 ${rundir}/runScriptSamples/README
@@ -312,115 +292,34 @@ fi
 
 # Create symbolic links to data directories, restart files, and code
 ln -s ${gchpdir}                                ${rundir}/CodeDir
-ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDir
-ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/HcoDir
 ln -s ${GFTL}                                   ${rundir}/gFTL
-if [ "${met_name}" == "GEOSFP" ]; then
-   ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
-else
-   ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
-fi
 restarts=${GC_DATA_ROOT}/SPC_RESTARTS
 for N in 24 48 90 180 360
 do
     ln -s ${restarts}/initial_GEOSChem_rst.c${N}_${sim_name}.nc  ${rundir}
 done
 
+# Put RDI_RESTART_FILE='initial_GEOSChem_rst.c${CS_RES}'_fullchem.nc in RDI vars
+RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
+
+# Determine settings
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+   RDI_VARS+="$(cat ${srcrundir}/settings/benchmark_settings.txt)\n"
+elif [[ ${sim_name} == "TransportTracers" ]]; then
+   RDI_VARS+="$(cat ${srcrundir}/settings/transporttracer_settings.txt)\n"
+else
+   RDI_VARS+="$(cat ${srcrundir}/settings/fullchem_settings.txt)\n"
+fi
+
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Replace token strings in certain files
-sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
-sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
-sed -i -e "s|{MET}|${met_name}|"              input.geos
-sed -i -e "s|{SIM}|${sim_name}|"              input.geos
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    HEMCO_Config.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"     HEMCO_Config.rc
-sed -i -e "s|{LATRES}|${met_latres}|"         HEMCO_Config.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"         HEMCO_Config.rc
-sed -i -e "s|{DUST_SF}|${dust_sf}|"           HEMCO_Config.rc
-sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 1st in line
-sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 2nd in line
-sed -i -e "s|{MET_RES}|${met_resolution}|"    ExtData.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"     ExtData.rc
-sed -i -e "s|{LATRES}|${met_latres}|"         ExtData.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"         ExtData.rc
-sed -i -e "s|{MET_EXT}|${met_extension}|"     ExtData.rc
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 1st in line
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 2nd in line
-sed -i -e "s|{PRES_UNIT}|${pressure_unit}|"   ExtData.rc
-sed -i -e "s|{PRES_SCALE}|${pressure_scale}|" ExtData.rc
+echo -e "$RDI_VARS" > rdi_vars.txt
 
-# Special handling for start/end date based on simulation so that
-# start year/month/day matches default initial restart file.
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-    startdate="20190701"
-    enddate="20190801"
-elif [[ ${sim_name} = "fullchem" ]]; then
-    startdate="20190701"
-    enddate="20190701"
-else
-    startdate="20190101"
-    enddate="20190201"
-fi
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
-
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
-
-# Special handling for benchmark simulation
-if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
-    total_cores=48
-    num_nodes=2
-    num_cores_per_node=24
-    grid_res=48
-    timeAvg_freq="7440000"
-    inst_freq="7440000"
-    monthly_diag=1
-    start_time="000000"
-    end_time="000000"
-    dYYYYMMDD="00000100"
-    dHHmmSS="000000"
-    printf "\n  -- The default diagnostic frequency and duration is monthly."
-else
-    total_cores=24
-    num_nodes=1
-    num_cores_per_node=24
-    grid_res=24
-    timeAvg_freq="010000"
-    inst_freq="010000"
-    monthly_diag=0
-    start_time="000000"
-    end_time="010000"
-    dYYYYMMDD="00000000"
-    dHHmmSS="010000"
-    printf "\n  -- The default diagnostic frequency and duration is hourly."
-fi
-printf "\n  -- You may modify these settings in runConfig.sh.\n"
-timeAvg_dur=${timeAvg_freq}
-inst_dur=${inst_freq}
-sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
-sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
-sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
-sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{MonthlyDiag}|${monthly_diag}|"           ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
-sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/CAP.rc
+# Call init_rd.sh
+${srcrundir}/init_rd.sh rdi_vars.txt
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
@@ -430,6 +329,7 @@ fi
 
 # Call runConfig.sh so that all config files are consistent with its
 # default settings. Suppress informational prints.
+chmod +x runConfig.sh
 ./runConfig.sh --silent
 
 #--------------------------------------------------------------------

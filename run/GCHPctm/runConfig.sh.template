@@ -11,9 +11,9 @@
 #------------------------------------------------
 #   Compute Resources
 #------------------------------------------------
-TOTAL_CORES={TotalCores}
-NUM_NODES={NumNodes}
-NUM_CORES_PER_NODE={NumCoresPerNode}
+TOTAL_CORES=${RDI_NUM_CORES}
+NUM_NODES=${RDI_NUM_NODES}
+NUM_CORES_PER_NODE=${RDI_CORES_PER_NODE}
 # Set number of cores, number of nodes, and number of cores per node.
 # Total cores must be divisible by 6. Cores per node must equal number
 # of cores divided by number of nodes. Make sure you have these
@@ -55,7 +55,7 @@ NY=6 # Ignore if NXNY_AUTO=ON
 #------------------------------------------------
 #   Internal Cubed Sphere Resolution
 #------------------------------------------------
-CS_RES={GridRes}
+CS_RES=${RDI_CS_RES}
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
@@ -70,9 +70,9 @@ TARGET_LON=170.0
 #------------------------------------------------
 #    Simulation Start, End, Duration, # runs
 #------------------------------------------------
-Start_Time="{DATE1} {TIME1}"
-End_Time="{DATE2} {TIME2}"
-Duration="{dYYYYMMDD} {dHHmmss}"
+Start_Time="${RDI_SIM_START_DATE} ${RDI_SIM_START_TIME}"
+End_Time="${RDI_SIM_END_DATE} ${RDI_SIM_END_TIME}"
+Duration="${RDI_SIM_DUR_YYYYMMDD} ${RDI_SIM_DUR_HHmmSS}"
 Num_Runs=1
 # The simplest run is a single segment run (Num_Runs=1). For this case
 # duration should be less than or equal to the difference between start
@@ -103,7 +103,7 @@ Num_Runs=1
 #------------------------------------------------
 #    Initial Restart File
 #------------------------------------------------
-INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
+INITIAL_RESTART=${RDI_RESTART_FILE}
 
 # By default the linked restart files in the run directories will be 
 # used. Please note that HEMCO restart variables are stored in the same
@@ -168,9 +168,9 @@ Checkpoint_Freq="000000"
 #------------------------------------------------
 #    Output Diagnostics
 #------------------------------------------------        
-Monthly_Diag="{MonthlyDiag}"
-timeAvg_freq="{AvgFreq}"   # Ignored if Monthly_Diag=1
-timeAvg_dur="{AvgDur}"     # Ignored if Monthly_Diag=1
+Monthly_Diag="${RDI_HIST_MONTHLY_DIAG}"
+timeAvg_freq="${RDI_HIST_TIME_AVG_FREQ}"   # Ignored if Monthly_Diag=1
+timeAvg_dur="${RDI_HIST_TIME_AVG_DUR}"     # Ignored if Monthly_Diag=1
 timeAvg_collections=(SpeciesConc    \
                      AerosolMass    \
                      Aerosols       \
@@ -193,8 +193,8 @@ timeAvg_collections=(SpeciesConc    \
 )
 
 # Instantaneous diagnostics
-inst_freq="{InstFreq}"
-inst_dur="{InstDur}"
+inst_freq="${RDI_HIST_INST_FREQ}"
+inst_dur="${RDI_HIST_INST_DUR}"
 inst_collections=(ConcAboveSfc      \
                   StateMet_inst     \
 )
