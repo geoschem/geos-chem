@@ -2422,6 +2422,8 @@ CONTAINS
     REAL(fp)              :: Mn_tot, Mn_d,    Fe_d
     REAL(fp)              :: Fe_ant, Fe_nat,  Fe_tot
     REAL(fp)              :: Fe_d_ant, Fe_d_nat
+    REAL(fp)              :: IONIC
+    
 
     REAL(fp)              :: L6,L6S,SRhocl,L6_1,L6S_1      !XW
     REAL(fp)              :: SO4H3_vv, SO4H4_vv            !XW
@@ -2570,7 +2572,7 @@ CONTAINS
     !$OMP PRIVATE( HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0, TMP          ) &
     !$OMP PRIVATE( L4,    L4S,     KaqO2,  DUST, Mn_ant, Mn_nat, Mn_tot    ) &
     !$OMP PRIVATE( Fe_ant, Fe_nat, Fe_tot, Fe_d, Mn_d,   FeIII,  MnII      ) &
-    !$OMP PRIVATE( Fe_d_ant, Fe_d_nat                                      ) &
+    !$OMP PRIVATE( Fe_d_ant, Fe_d_nat, IONIC                               ) &
     !$OMP PRIVATE( HCHOCl, KHOCl, f_srhocl, HOCl0, L6, L6S, L6S_1          ) &!XW
     !$OMP PRIVATE( SRhocl, L6_1, SO4H3_vv, SO4H4_vv, fupdateHOCl_0         ) &!xw
     !$OMP PRIVATE( HCHO0, HMSc, HMS0, OH0, KaqHCHO, KaqHMS, KaqHMS2        ) &!jmm
@@ -3176,9 +3178,13 @@ CONTAINS
 
           ENDIF
 
+          IONIC = 0.5e+0_fp * ( 4.0e+0_fp * SO4nss +  &
+               TNH3*State_Met%AIRDEN(I,J,L)/(28.97e+0_fp*LWC) + &
+               TNO3*State_Met%AIRDEN(I,J,L)/(28.97e+0_fp*LWC) )
+          
           ! Compute aqueous rxn rates for SO2
           CALL AQCHEM_SO2( LWC,     TK,    PATM,    SO2_ss, H2O20, &
-                           O3,      HPLUS, MnII,    FeIII, &
+                           O3,      HPLUS, MnII,    FeIII, IONIC, &
                            KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
                            HSO3aq,  SO3aq, HCHO0,   KaqHCHO, &
                            KaqHMS, KaqHMS2 ) 
@@ -6686,7 +6692,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AQCHEM_SO2( LWC,     T,     P,       SO2,   H2O2, &
-                         O3,      Hplus, MnII,    FeIII, &
+                         O3,      Hplus, MnII,    FeIII, IONIC, &
                          KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
                          HSO3aq,  SO3aq, HCHO, KaqHCHO,  &
                          KaqHMS, KaqHMS2 )
@@ -6702,6 +6708,7 @@ CONTAINS
     REAL(fp), INTENT(IN)  :: HPLUS   ! Concentration of H+ ion (i.e. pH) [v/v]
     REAL(fp), INTENT(IN)  :: MnII    ! Concentration of MnII [mole/l]
     REAL(fp), INTENT(IN)  :: FeIII   ! Concentration of FeIII [mole/l]
+    REAL(fp), INTENT(IN)  :: IONIC   ! Ionic strength [mole/l]?        
     REAL(fp), INTENT(IN)  :: HCHO    ! HCHO   mixing ratio [v/v] (jmm, 06/13/18)
     
 !
@@ -6802,7 +6809,9 @@ CONTAINS
     REAL(fp)              :: XH2O2G, H2O2aq, KO0, KO1,    KO2
     REAL(fp)              :: HCO3,   XO3g,   O3aq, XHCHOg, HCHCHO ! (jmm, 06/13/18)
     REAL(fp)              :: FHCHCHO,KHCHO1, KHCHO2,  KHMS  ! (jmm, 06/13/18)
-    REAL(fp)              :: KW1,    KHC1,   KHMS2          ! (jmm, 06/15/18)    
+    REAL(fp)              :: KW1,    KHC1,   KHMS2          ! (jmm, 06/15/18)
+    REAL(fp)              :: Eff_mn, Eff_fe !jys 
+    
     
 
     !=================================================================
@@ -6951,9 +6960,28 @@ CONTAINS
     ! ===================================================================
 
     ! Conversion rate from SO2 to SO4 via reaction with O2 (met cat)
-    KaqO2 = FHCSO2 * XSO2g * ( (750e+0_fp * MnII ) + &
-            ( 2600e+0_fp * FeIII ) + (1e+10_fp * MnII * FeIII ) ) * &
+    ! Commented out becasue using ionic strength pH modifiers version
+    !KaqO2 = FHCSO2 * XSO2g * ( (750e+0_fp * MnII ) + &
+    !        ( 2600e+0_fp * FeIII ) + (1e+10_fp * MnII * FeIII ) ) * &
+    !        LWC * R * T   ! [s-1]
+
+    ! Conversion rate from SO2 to SO4 via reaction with O2 (met cat)
+    ! added by shaojy16  10/13/2017
+    ! takes into account pH and ionic strength
+    Eff_mn = 10.0**(-4.0*(SQRT(IONIC)/(1.0+SQRT(IONIC))))
+    Eff_fe = 10.0**(-2.0*(SQRT(IONIC)/(1.0+SQRT(IONIC))))
+
+    IF ( Hplus > 10.0**(-4.2) ) THEN
+       KaqO2 = FHCSO2 * XSO2g * &
+            (3.72e+7_fp*Hplus**(-0.74)* &
+            (MnII*FeIII*Eff_fe*Eff_mn)) * &
             LWC * R * T   ! [s-1]
+    ELSE
+       KaqO2 = FHCSO2 * XSO2g * &
+            (2.51e+13_fp*Hplus**(0.67) * &
+            (MnII*FeIII*Eff_fe*Eff_mn)) * &
+            LWC * R * T   ! [s-1]
+    ENDIF    
 
     !=================================================================
     !  Aqueous reactions of SO2 with HCHO 
