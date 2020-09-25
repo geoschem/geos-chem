@@ -264,8 +264,8 @@ cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 if [[ ${sim_name} = "fullchem" ]]; then
-    cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
-    chmod 744 ${rundir}/metrics_fullchem.py
+    cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
+    chmod 744 ${rundir}/metrics.py
 fi
 cp -r ./runScriptSamples              ${rundir}
 
@@ -293,10 +293,26 @@ fi
 # Create symbolic links to data directories, restart files, and code
 ln -s ${gchpdir}                                ${rundir}/CodeDir
 ln -s ${GFTL}                                   ${rundir}/gFTL
-restarts=${GC_DATA_ROOT}/SPC_RESTARTS
+if [ "${met_name}" == "GEOSFP" ]; then
+   ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
+else
+   ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
+fi
+restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 for N in 24 48 90 180 360
 do
-    ln -s ${restarts}/initial_GEOSChem_rst.c${N}_${sim_name}.nc  ${rundir}
+    src_prefix="GCHP.Restart.${sim_name}."
+    src_suffix=".c${N}.nc4"
+    target_name=initial_GEOSChem_rst.c${N}_${sim_name}.nc
+    if [[ ${sim_name} = "fullchem" ]]; then
+        start_date="20160701_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_12.9.0/${src_name} ${rundir}/${target_name}
+    elif [[ ${sim_name} = "TransportTracers" ]]; then
+        start_date="20170101_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_12.8.0/${src_name} ${rundir}/${target_name}
+    fi
 done
 
 # Put RDI_RESTART_FILE='initial_GEOSChem_rst.c${CS_RES}'_fullchem.nc in RDI vars

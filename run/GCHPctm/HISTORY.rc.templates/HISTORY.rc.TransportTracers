@@ -58,8 +58,7 @@ COLLECTIONS: 'Emissions',
              'LevelEdgeDiags',      
              'RadioNuclide',
              'SpeciesConc',
-             'StateMet',      
-             'StateMet_inst',      
+             'StateMet',
              'WetLossConv',
              'WetLossLS',
 ::
@@ -103,19 +102,12 @@ COLLECTIONS: 'Emissions',
 #
 #           SpeciesConc.levels: 1 2 3
 #
-#    (9) Setting monthly to 1 and mode to 'time-averaged' will enable
-#        1-month diagnostics. Frequency and duration are then ignored.
-#
-#           SpeciesConc.monthly: 1
-#           SpeciesConc.mode:    'time-averaged'
-#
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:  '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:    'CFIO',
   Emissions.frequency: 010000
   Emissions.duration:  010000
-  Emissions.monthly:   0
   Emissions.mode:      'time-averaged'
   Emissions.fields:    'EmisRn_Soil                 ', 'GCHPchem',
                        'EmisBe7_Cosmic              ', 'GCHPchem',
@@ -136,7 +128,6 @@ COLLECTIONS: 'Emissions',
   Budget.format:    'CFIO',
   Budget.frequency: 010000
   Budget.duration:  010000
-  Budget.monthly:   0
   Budget.mode:      'time-averaged'
   Budget.fields:    'BudgetChemistryFull_Rn222                    ', 'GCHPchem',
                     'BudgetChemistryFull_Pb210                    ', 'GCHPchem',
@@ -318,7 +309,6 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.format:    'CFIO',
   CloudConvFlux.frequency: 010000
   CloudConvFlux.duration:  010000
-  CloudConvFlux.monthly:   0
   CloudConvFlux.mode:      'time-averaged'
   CloudConvFlux.fields:    'CloudConvFlux_Rn222                   ', 'GCHPchem',
                            'CloudConvFlux_Pb210                   ', 'GCHPchem',
@@ -339,7 +329,6 @@ COLLECTIONS: 'Emissions',
   DryDep.format:           'CFIO',
   DryDep.frequency:        010000
   DryDep.duration:         010000
-  DryDep.monthly:          0
   DryDep.mode:             'time-averaged'
   DryDep.fields:           'DryDep_Pb210          ', 'GCHPchem',
                            'DryDep_Pb210Strat     ', 'GCHPchem',
@@ -359,7 +348,6 @@ COLLECTIONS: 'Emissions',
   LevelEdgeDiags.format:    'CFIO',
   LevelEdgeDiags.frequency: 010000
   LevelEdgeDiags.duration:  010000
-  LevelEdgeDiags.monthly:   0
   LevelEdgeDiags.mode:      'time-averaged'
   LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GCHPchem',
                             'Met_PEDGE          ', 'GCHPchem',
@@ -374,7 +362,6 @@ COLLECTIONS: 'Emissions',
   RadioNuclide.format:      'CFIO',
   RadioNuclide.frequency:   010000
   RadioNuclide.duration:    010000
-  RadioNuclide.monthly:     0
   RadioNuclide.mode:        'time-averaged'
   RadioNuclide.fields:      'PbFromRnDecay           ', 'GCHPchem',  
                             'RadDecay_Rn222          ', 'GCHPchem',
@@ -390,7 +377,6 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.format:       'CFIO',
   SpeciesConc.frequency:    010000
   SpeciesConc.duration:     010000
-  SpeciesConc.monthly:      0
   SpeciesConc.mode:         'time-averaged'
   SpeciesConc.fields:       'SpeciesConc_Rn222                   ', 'GCHPchem',
                             'SpeciesConc_Pb210                   ', 'GCHPchem',
@@ -411,96 +397,8 @@ COLLECTIONS: 'Emissions',
   StateMet.format:          'CFIO',
   StateMet.frequency:       010000
   StateMet.duration:        010000
-  StateMet.monthly:         0
   StateMet.mode:            'time-averaged'
   StateMet.fields:          'Met_AD             ', 'GCHPchem',
-                            'Met_AIRDEN         ', 'GCHPchem',
-                            'Met_AIRVOL         ', 'GCHPchem',
-                            'Met_ALBD           ', 'GCHPchem',
-                            'Met_AREAM2         ', 'GCHPchem',
-                            'Met_AVGW           ', 'GCHPchem',
-                            'Met_BXHEIGHT       ', 'GCHPchem',
-                            'Met_ChemGridLev    ', 'GCHPchem',
-                            'Met_CLDF           ', 'GCHPchem',
-                            'Met_CLDFRC         ', 'GCHPchem',
-                            'Met_CLDTOPS        ', 'GCHPchem',
-                            'Met_DELP           ', 'GCHPchem',
-                            'Met_DQRCU          ', 'GCHPchem',
-                            'Met_DQRLSAN        ', 'GCHPchem',
-                            'Met_DTRAIN         ', 'GCHPchem',
-                            'Met_EFLUX          ', 'GCHPchem',
-                            'Met_FRCLND         ', 'GCHPchem',
-                            'Met_FRLAKE         ', 'GCHPchem',
-                            'Met_FRLAND         ', 'GCHPchem',
-                            'Met_FRLANDIC       ', 'GCHPchem',
-                            'Met_FROCEAN        ', 'GCHPchem',
-                            'Met_FRSEAICE       ', 'GCHPchem',
-                            'Met_FRSNO          ', 'GCHPchem',
-                            'Met_GWETROOT       ', 'GCHPchem',
-                            'Met_GWETTOP        ', 'GCHPchem',
-                            'Met_HFLUX          ', 'GCHPchem',
-                            'Met_LAI            ', 'GCHPchem',
-                            'Met_LWI            ', 'GCHPchem',
-                            'Met_PARDR          ', 'GCHPchem',
-                            'Met_PARDF          ', 'GCHPchem',
-                            'Met_PBLTOPL        ', 'GCHPchem',
-                            'Met_PBLH           ', 'GCHPchem',
-                            'Met_PHIS           ', 'GCHPchem',
-                            'Met_PMID           ', 'GCHPchem',
-                            'Met_PMIDDRY        ', 'GCHPchem',
-                            'Met_PRECANV        ', 'GCHPchem',
-                            'Met_PRECCON        ', 'GCHPchem',
-                            'Met_PRECLSC        ', 'GCHPchem',
-                            'Met_PRECTOT        ', 'GCHPchem',
-                            'Met_PS1DRY         ', 'GCHPchem',
-                            'Met_PS1WET         ', 'GCHPchem',
-                            'Met_PS2DRY         ', 'GCHPchem',
-                            'Met_PS2WET         ', 'GCHPchem',
-                            'Met_PSC2WET        ', 'GCHPchem',
-                            'Met_PSC2DRY        ', 'GCHPchem',
-                            'Met_QI             ', 'GCHPchem',
-                            'Met_QL             ', 'GCHPchem',
-                            'Met_OMEGA          ', 'GCHPchem',
-                            'Met_OPTD           ', 'GCHPchem',
-                            'Met_REEVAPCN       ', 'GCHPchem',
-                            'Met_REEVAPLS       ', 'GCHPchem',
-                            'Met_SLP            ', 'GCHPchem',
-                            'Met_SNODP          ', 'GCHPchem',
-                            'Met_SNOMAS         ', 'GCHPchem',
-                            'Met_SPHU           ', 'GCHPchem',
-                            'Met_SPHU1          ', 'GCHPchem',
-                            'Met_SPHU2          ', 'GCHPchem',
-                            'Met_SUNCOS         ', 'GCHPchem',
-                            'Met_SUNCOSmid      ', 'GCHPchem',
-                            'Met_SWGDN          ', 'GCHPchem',
-                            'Met_T              ', 'GCHPchem',
-                            'Met_TAUCLI         ', 'GCHPchem',
-                            'Met_TAUCLW         ', 'GCHPchem',
-                            'Met_THETA          ', 'GCHPchem',
-                            'Met_TMPU1          ', 'GCHPchem',
-                            'Met_TMPU2          ', 'GCHPchem',
-                            'Met_TO3            ', 'GCHPchem',
-                            'Met_TropHt         ', 'GCHPchem',
-                            'Met_TropLev        ', 'GCHPchem',
-                            'Met_TropP          ', 'GCHPchem',
-                            'Met_TS             ', 'GCHPchem',
-                            'Met_TSKIN          ', 'GCHPchem',
-                            'Met_TV             ', 'GCHPchem',
-                            'Met_U              ', 'GCHPchem',
-                            'Met_U10M           ', 'GCHPchem',
-                            'Met_USTAR          ', 'GCHPchem',
-                            'Met_UVALBEDO       ', 'GCHPchem',
-                            'Met_V              ', 'GCHPchem',
-                            'Met_V10M           ', 'GCHPchem',
-                            'Met_Z0             ', 'GCHPchem',
-::
-#==============================================================================
-  StateMet_inst.template:   '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet_inst.format:     'CFIO',
-  StateMet_inst.frequency:  010000
-  StateMet_inst.duration:   010000
-  StateMet_inst.mode:       'instantaneous'
-  StateMet_inst.fields:     'Met_AD             ', 'GCHPchem',
                             'Met_AIRDEN         ', 'GCHPchem',
                             'Met_AIRVOL         ', 'GCHPchem',
                             'Met_ALBD           ', 'GCHPchem',
@@ -586,7 +484,6 @@ COLLECTIONS: 'Emissions',
   WetLossConv.format:       'CFIO',
   WetLossConv.frequency:    010000
   WetLossConv.duration:     010000
-  WetLossConv.monthly:      0
   WetLossConv.mode:         'time-averaged'
   WetLossConv.fields:       'WetLossConv_Pb210           ', 'GCHPchem',
                             'WetLossConv_Pb210Strat      ', 'GCHPchem',
@@ -606,7 +503,6 @@ COLLECTIONS: 'Emissions',
   WetLossLS.format:         'CFIO',
   WetLossLS.frequency:      010000
   WetLossLS.duration:       010000
-  WetLossLS.monthly:        0
   WetLossLS.mode:           'time-averaged'
   WetLossLS.fields:         'WetLossLS_Pb210      ', 'GCHPchem',
                             'WetLossLS_Pb210Strat ', 'GCHPchem',

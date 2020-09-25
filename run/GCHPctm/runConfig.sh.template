@@ -74,6 +74,8 @@ Start_Time="${RDI_SIM_START_DATE} ${RDI_SIM_START_TIME}"
 End_Time="${RDI_SIM_END_DATE} ${RDI_SIM_END_TIME}"
 Duration="${RDI_SIM_DUR_YYYYMMDD} ${RDI_SIM_DUR_HHmmSS}"
 Num_Runs=1
+Monthly_Diag=0 # Only for use with multi-run script gchp.multirun.sh. Set to 1 to enable.
+#
 # The simplest run is a single segment run (Num_Runs=1). For this case
 # duration should be less than or equal to the difference between start
 # and end time. If end time is past start time plus duration, the simulation
@@ -156,14 +158,30 @@ RRTMG_Timestep_sec=10800
 #------------------------------------------------
 #    Output Restarts
 #------------------------------------------------
-Checkpoint_Freq="000000"
-# You can output restart files at regular intervals throughout your
-# simulation. These restarts are in addition to the end-of-run restart
-# which is always produced. To configure output restart file frequency,
-# set the variable below to a string of format HHmmSS. More than 2
-# digits for the hours string is permitted (e.g. 1680000 for 7 days).
-# Setting the frequency to 000000 will turn off this feature by setting
-# it to a very large number.
+Periodic_Checkpoint=OFF
+Checkpoint_Freq="1680000"
+Checkpoint_Ref_Date=
+Checkpoint_Ref_Time=
+# You can output restart files at regular or irregular intervals throughout
+# your simulation. These restarts are in addition to the end-of-run restart
+# which is always produced. To turn on periodic checkpoints, set
+# Period_Checkpoint to ON; set to OFF to disable.
+#
+# To configure regular checkpoint files:
+#  - Set Checkpoint_Freq to a string of format HHmmss. More than 2 digits for
+#    hours string is permitted, e.g. 168000 for 7 days.
+#  - Leave Checkpoint_Ref_Date and Checkpoint_Ref_Date blank to use the run
+#    start datetime as reference time; else set them to YYYYMMDD and HHmmss.
+#  - WARNING: if using the run start datetime as reference time then a checkpoint
+#    file will be output the first timestep. That happens before setting the
+#    values from the restart files so it will contain all zeros.
+#
+# To configure irregular checkpoint files:
+#  - Set Checkpoint_Freq to string of space-separated zeros with each zero
+#    corresponding to a single checkpoint file (e.g. 0 0 0 for 3 checkpoints total)
+#  - Set Checkpoint_Ref_Date to a string of space-separated YYYYMMDD values.
+#  - Set Checkpoint_Ref_Time to a string of space-separated HHmmss values.
+#  - WARNING: There is currently a limit of 9 irregular checkpoint values.
 
 #------------------------------------------------
 #    Output Diagnostics
@@ -180,8 +198,9 @@ timeAvg_collections=(SpeciesConc    \
                      DryDep         \
                      Emissions      \
                      JValues        \
-                     LevelEdgeDiags \
                      KPPDiags       \
+                     LevelEdgeDiags \
+                     Metrics        \
                      ProdLoss       \
                      RadioNuclide   \
                      RRTMG 	    \
@@ -196,13 +215,8 @@ timeAvg_collections=(SpeciesConc    \
 inst_freq="${RDI_HIST_INST_FREQ}"
 inst_dur="${RDI_HIST_INST_DUR}"
 inst_collections=(ConcAboveSfc      \
-                  StateMet_inst     \
 )
-
-# Set Monthly_Diag to 1 to enable time-averaged monthly diagnostics. 0 = off.
 # Set frequency and duration for time-averaged and instantaneous collections.
-# Frequency and duration are ignored for time-averaged collections if
-# monthly diagnostics are on.
 #
 #   Frequency = frequency of diagnostic calculation (HHmmSS)
 #   Duration  = frequency of diagnostic file  write (HHmmSS)
@@ -247,11 +261,11 @@ if [[ ${dustSetting[3]} = "on" ]]; then
     elif [[ $CS_RES -eq 720 ]]; then
         Dust_SF=2.3e-4
     else
-        echo "Dust scale factor not defined for this resolution. Please manually change @MASS_TUNING_FACTOR in HEMCO_Config.rc and comment out this check in runConfig.sh."
+        echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
         exit 1
     fi
 fi
-# Dust_SF replaces @MASS_TUNING_FACTOR in HEMCO_Config.rc used in the
+# Dust_SF sets mass tuning factor in HEMCO_Config.rc used in the
 # DustDead extension. The mass tuning factor is resolution-dependent and must
 # be defined here for the target resolution if using online dust.
 # NOTE: the online dust extension is NOT recommended for use in GCHP
@@ -530,21 +544,36 @@ replace_val JOB_SGMT  "${Duration}"   CAP.rc
 
 #### Set frequency of writing restart files
 # Set to a very large number if turned off
-if [[ ${Checkpoint_Freq} == '000000' ]]; then
-   Checkpoint_Freq=100000000
-fi 
 print_msg " "
-print_msg "Checkpoint (restart) frequency:"
-replace_val RECORD_FREQUENCY "${Checkpoint_Freq}" GCHP.rc
-replace_val RECORD_REF_DATE  "${Start_Time:0:8}"  GCHP.rc
-replace_val RECORD_REF_TIME  "${Start_Time:9:6}"  GCHP.rc
+if [[ ${Periodic_Checkpoint} == "ON" ]]; then
+    uncomment_line RECORD_FREQUENCY GCHP.rc
+    uncomment_line RECORD_REF_DATE  GCHP.rc
+    uncomment_line RECORD_REF_TIME  GCHP.rc
+    print_msg "Periodic checkpoints:"
+    replace_val RECORD_FREQUENCY "${Checkpoint_Freq}" GCHP.rc
+    if [[ ${Checkpoint_Ref_Date} == "" ]]; then
+        Checkpoint_Ref_Date="${Start_Time:0:8}"
+    fi
+    if [[ ${Checkpoint_Ref_Time} == "" ]]; then
+        Checkpoint_Ref_Time="${Start_Time:9:6}"
+    fi
+    replace_val RECORD_REF_DATE "${Checkpoint_Ref_Date}" GCHP.rc
+    replace_val RECORD_REF_TIME "${Checkpoint_Ref_Time}" GCHP.rc
+elif [[ ${Periodic_Checkpoint} == "OFF" ]]; then
+    print_msg "Periodic checkpoints are turned off"
+    comment_line RECORD_FREQUENCY GCHP.rc
+    comment_line RECORD_REF_DATE  GCHP.rc
+    comment_line RECORD_REF_TIME  GCHP.rc
+else
+    print_msg "ERROR: unknown setting for Periodic_Checkpoint. Must be ON or OFF."
+    exit 1
+fi
 
-#### Set output frequency, duration, mode, and monthly diagnostics.
+#### Set output frequency, duration, and mode
 print_msg " "
 print_msg "Diagnostics:" 
 if [[ ${#timeAvg_collections[@]} > 0 ]]; then
    for c in ${timeAvg_collections[@]}; do
-      replace_val $c.monthly     ${Monthly_Diag}   HISTORY.rc
       replace_val $c.mode        "'time-averaged'" HISTORY.rc
       replace_val $c.frequency   ${timeAvg_freq}   HISTORY.rc  
       replace_val $c.duration    ${timeAvg_dur}    HISTORY.rc
@@ -553,7 +582,6 @@ fi
 if [[ ${#inst_collections[@]} > 0 ]]; then
    for c in ${inst_collections[@]}; do
       replace_val $c.mode        "'instantaneous'" HISTORY.rc
-      replace_val $c.monthly     0                 HISTORY.rc
       replace_val $c.frequency   ${inst_freq}      HISTORY.rc  
       replace_val $c.duration    ${inst_dur}       HISTORY.rc
    done

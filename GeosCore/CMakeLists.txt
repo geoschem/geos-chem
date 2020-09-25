@@ -35,7 +35,6 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	diag51b_mod.F90
 	diag51_mod.F90
 	diag53_mod.F90
-	diag_oh_mod.F90
 	drydep_mod.F90
 	dust_mod.F90
 	emissions_mod.F90

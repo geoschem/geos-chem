@@ -88,11 +88,6 @@ MODULE Chem_GridCompMod
   PRIVATE  :: Run_           ! Run method
   PRIVATE  :: Finalize_      ! Finalize method
   PRIVATE  :: Extract_       ! Get values from ESMF
-#if defined( MODEL_GEOS )
-  PRIVATE  :: Roundoff       ! Truncates a number
-  PRIVATE  :: Print_Mean_OH  ! Mean OH lifetime
-  PRIVATE  :: GlobalSum      ! Sums across PETs
-#endif
 !
 ! !PRIVATE TYPES:
 !
@@ -388,7 +383,6 @@ CONTAINS
     USE inquireMod,           ONLY : findFreeLUN
     USE FILE_MOD,             ONLY : IOERROR
 #if defined( MODEL_GEOS )
-    USE SPECIES_DATABASE_MOD, ONLY : Spc_Info
     USE CMN_FJX_MOD
     USE GCKPP_Monitor
     USE GCKPP_Parameters
@@ -455,8 +449,7 @@ CONTAINS
     REAL(fp)                      :: F_FJX
     INTEGER                       :: JJ, NUNIT
     CHARACTER(LEN=255)            :: MYFRIENDLIES
-    CHARACTER(LEN=31)             :: iName
-    CHARACTER(LEN=127)            :: FullName, Formula 
+    CHARACTER(LEN=127)            :: FullName
     LOGICAL                       :: FriendDyn, FriendTurb
 #endif
 
@@ -676,15 +669,17 @@ CONTAINS
                                      MYFRIENDLIES = 'GEOSCHEMCHEM'
 
           ! Get long name
-          iName = TRIM(SUBSTRS(1))
-          CALL Spc_Info ( iName=iName,                  &
-                          KppSpcID=-1,                  &
-                          oDiagName = FullName,         &
-                          oFormula = Formula,           &
-                          Found=Found,                  &
-                          Underscores = .TRUE.,         &
-                          RC = RC )
-          IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
+          ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+          !iName = TRIM(SUBSTRS(1))
+          !CALL Spc_Info ( iName=iName,                  &
+          !                KppSpcID=-1,                  &
+          !                oDiagName = FullName,         &
+          !                oFormula = Formula,           &
+          !                Found=Found,                  &
+          !                Underscores = .TRUE.,         &
+          !                RC = RC )
+          !IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
+          FullName = TRIM(SUBSTRS(1))
 
           call MAPL_AddInternalSpec(GC, &
                SHORT_NAME         = TRIM(SPFX)//TRIM(SUBSTRS(1)), &
@@ -746,12 +741,14 @@ CONTAINS
           IF ( .NOT. Found ) THEN 
 
              ! Get long name
-             iName = TRIM(SpcName)
-             CALL Spc_Info ( iName=iName, &
-                             KppSpcID=-1, oDiagName = FullName, &
-                             oFormula = Formula, &
-                             Found=Found, Underscores = .TRUE., RC = RC )
-             IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+             ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+             !iName = TRIM(SpcName)
+             !CALL Spc_Info ( iName=iName, &
+             !                KppSpcID=-1, oDiagName = FullName, &
+             !                oFormula = Formula, &
+             !                Found=Found, Underscores = .TRUE., RC = RC )
+             !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+             FullName = TRIM(SpcName)
 
              ! Error trap for POx and LOx. Their species names in the internal
              ! state must be all caps
@@ -1006,11 +1003,13 @@ CONTAINS
     ! GEOS-5 only (should handle diags elsewhere, use State vars now):
     !-- Exports
     DO I=1,Nadv
-       iName = TRIM(AdvSpc(I))
-       CALL Spc_Info ( iName=iName, &
-                       KppSpcID=-1, oDiagName = FullName, Found=Found, &
-                       Underscores = .FALSE., RC = RC )
-       IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+       !iName = TRIM(AdvSpc(I))
+       !CALL Spc_Info ( iName=iName, &
+       !                KppSpcID=-1, oDiagName = FullName, Found=Found, &
+       !                Underscores = .FALSE., RC = RC )
+       !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
+       FullName = TRIM(SpcName)
 
        ! For all advected species, create placeholder export for deposition 
        ! diagnostics. These may not be defined for all species (some species 
@@ -1113,11 +1112,14 @@ CONTAINS
     ! Add exports for tropospheric and total column densities
     DO I=1,SIZE(COLLIST,1)
        SpcName = COLLIST(I)
-       iName = TRIM(SpcName)
-       CALL Spc_Info ( iName=iName, &
-                       KppSpcID=-1, oDiagName = FullName,         &
-                       Found = Found, Underscores = .TRUE., RC = RC )
-       IF ( .NOT. Found ) FullName = TRIM(SpcName)
+       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
+       !iName = TRIM(SpcName)
+       !CALL Spc_Info ( iName=iName, &
+       !                KppSpcID=-1, oDiagName = FullName,         &
+       !                Found = Found, Underscores = .TRUE., RC = RC )
+       !IF ( .NOT. Found ) FullName = TRIM(SpcName)
+       FullName = TRIM(SpcName)
+
        CALL MAPL_AddExportSpec(GC,                                            &
           SHORT_NAME         = 'TOTCOL_'//TRIM(SpcName),                      & 
           LONG_NAME          = TRIM(FullName)//' total column density',        &
@@ -4752,19 +4754,6 @@ CONTAINS
     deallocate(GC_alarms,stat=status)
     _ASSERT(status==0,'Could not deallocate GC alarms')
 
-#if defined( MODEL_GEOS )
-    !=======================================================================
-    ! Print end-of-simulation output
-    !=======================================================================
-
-    ! GlobalSum used within Print_Mean_OH does not work anymore - skip mean
-    ! OH printout for now (ckeller, 8/27/2019).
-    !! Print mean OH value to GEOS-Chem log-file
-    !IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-    !   CALL Print_Mean_OH( GC, State_Grid, logLun, __RC__ )
-    !ENDIF
-#endif
-
     !=======================================================================
     ! Finalize the Gridded Component
     !=======================================================================
@@ -7921,342 +7910,6 @@ CONTAINS
     RC = ESMF_SUCCESS
 
   END SUBROUTINE FillAeroDP 
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL*8,  INTENT(IN) :: X   ! Number to be rounded
-    INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL*8              :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10d0**(N+1)) + SIGN( 5d0, X ) ) / 10d0 ) / (10d0**N)
-
-  END FUNCTION RoundOff
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: print_mean_oh
-!
-! !DESCRIPTION: Subroutine Print\_Mean\_OH prints the average mass-weighted OH 
-!  concentration at the end of a simulation.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Print_Mean_OH( GC, State_Grid, RC )
-!
-! !USES:
-!
-    USE DIAG_OH_MOD,    ONLY : OH_MASS, AIR_MASS
-    USE State_Grid_Mod, ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(ESMF_GridComp), INTENT(INOUT) :: GC             ! Ref to this GridComp
-    TYPE(GrdState),      INTENT(IN)    :: State_Grid     ! Grid State obj
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,             INTENT(OUT)   :: RC             ! Return code
-!
-! !REMARKS:
-!  The AIRMASS and OHMASS variables are used to pass the data values from the 
-!  ESMF state, which is REAL*4.  We need to make sure that we do not store into
-!  the ESMF state any values that exceed 1e38, which is the maximum allowable 
-!  value.  Therefore, AIRMASS and OHMASS will store the values divided by the
-!  scale factor OH_SCALE = 1d20 in order to prevent this overflow situation.
-!
-! !REVISION HISTORY: 
-!  01 Jul 2010 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    TYPE(MAPL_MetaComp), POINTER :: STATE          ! MAPL MetaComp object
-    INTEGER                      :: LMAX
-    INTEGER                      :: I,J
-    CHARACTER(LEN=ESMF_MAXSTR)   :: compName      ! Name of gridded component
-    REAL*8                       :: SUM_OHMASS   
-    REAL*8                       :: SUM_MASS   
-    REAL*8                       :: OHCONC
-    REAL*8                       :: SUM_OHMASS_NH
-    REAL*8                       :: SUM_MASS_NH
-    REAL*8                       :: OHCONC_NH
-    REAL*8                       :: SUM_OHMASS_SH
-    REAL*8                       :: SUM_MASS_SH
-    REAL*8                       :: OHCONC_SH
-    REAL(ESMF_KIND_R4),  POINTER :: lonCtr(:,:) ! Lon centers on this PET [rad]
-    REAL(ESMF_KIND_R4),  POINTER :: latCtr(:,:) ! Lat centers on this PET [rad]
-    REAL,     POINTER            :: airMass(:,:,:)    ! Air mass [molec air]
-    REAL,     POINTER            :: ohMass (:,:,:)    ! Mass-weighted OH
-    REAL,     POINTER            :: airMass_nh(:,:,:) ! Air mass [molec air]
-    REAL,     POINTER            :: ohMass_nh (:,:,:) ! Mass-weighted OH
-    REAL,     POINTER            :: airMass_sh(:,:,:) ! Air mass [molec air]
-    REAL,     POINTER            :: ohMass_sh (:,:,:) ! Mass-weighted OH
-                                                    !  [molec OH/cm3 * 
-                                                    !   molec air]
- 
-    __Iam__('Print_Mean_OH')
-
-    ! Traceback info
-    CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
-    Iam = TRIM(compName)//'::Print_Mean_OH'
-
-    ! Get generic state object
-    CALL MAPL_GetObjectFromGC( GC, STATE, __RC__ )
-
-    ! Make sure diagnostics are allocated...
-    IF ( ALLOCATED(AIR_MASS) .AND. ALLOCATED(OH_MASS) ) THEN
-
-       ! Pointers to accumulated statistics. Seems like I have to cast from
-       ! R8 to R here...
-       ALLOCATE(airMass   (State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       ALLOCATE(ohMass    (State_Grid%NX,State_Grid%NY,State_Grid%NZ)) 
-       ALLOCATE(airMass_nh(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       ALLOCATE(ohMass_nh (State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       ALLOCATE(airMass_sh(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       ALLOCATE(ohMass_sh (State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       airMass    = 0.0
-       ohMass     = 0.0
-       airMass_nh = 0.0
-       ohMass_nh  = 0.0
-       airMass_sh = 0.0
-       ohMass_sh  = 0.0
-   
-       ! OH diagnostics can have reduced vertical axis...
-       LMAX = SIZE(OH_MASS,3)
-
-       ! Pass to pointers.
-       airMass(:,:,1:LMAX) = AIR_MASS(:,:,1:LMAX) / MAPL_AVOGAD
-       ohMass (:,:,1:LMAX) = OH_MASS(:,:,1:LMAX)  / MAPL_AVOGAD
- 
-       ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
-       SUM_OHMASS = GlobalSum( GC, DataPtr3D=ohMass,  __RC__ )
-   
-       ! Atmospheric air mass [molec air]
-       SUM_MASS   = GlobalSum( GC, DataPtr3D=airMass, __RC__ )
-
-       ! Get the Orbit object (of type MAPL_SunOrbit),
-       ! which is used in the call to MAPL_SunGetInsolation
-       CALL MAPL_Get( STATE,                       &
-                      LONS      = lonCtr,             &
-                      LATS      = latCtr,             &
-                      __RC__                         )
-
-       ! SH/NH
-       DO J=1,State_Grid%NY
-       DO I=1,State_Grid%NX
-          IF ( latCtr(I,J)/PI_180 >= 0.0 ) THEN
-             airMass_nh(I,J,1:LMAX) = AIR_MASS(I,J,1:LMAX) / MAPL_AVOGAD
-             ohMass_nh(I,J,1:LMAX)  = OH_MASS(I,J,1:LMAX) / MAPL_AVOGAD
-          ELSE
-             airMass_sh(I,J,1:LMAX) = AIR_MASS(I,J,1:LMAX) / MAPL_AVOGAD
-             ohMass_sh(I,J,1:LMAX)  = OH_MASS(I,J,1:LMAX) / MAPL_AVOGAD
-          ENDIF
-       ENDDO
-       ENDDO
- 
-       ! Atmospheric air mass
-       SUM_OHMASS_NH = GlobalSum( GC, DataPtr3D=ohMass_nh, __RC__ )
-       SUM_MASS_NH   = GlobalSum( GC, DataPtr3D=airMass_nh, __RC__ )
-
-       SUM_OHMASS_SH = GlobalSum( GC, DataPtr3D=ohMass_sh, __RC__ )
-       SUM_MASS_SH   = GlobalSum( GC, DataPtr3D=airMass_sh, __RC__ )
- 
-       ! Cleanup
-       DEALLOCATE(airMass,ohMass)
-       DEALLOCATE(airMass_nh,ohMass_nh)
-       DEALLOCATE(airMass_sh,ohMass_sh)
-
-    ! Will cause error msg below
-    ELSE
-       SUM_MASS = 0d0
-    ENDIF   
-
-    ! Avoid divide-by-zero errors 
-    IF ( MAPL_am_I_Root() ) THEN
-       IF ( SUM_MASS > 0d0 ) THEN 
-               
-          ! Divide OH by [molec air] and report as [1e5 molec/cm3]
-          OHCONC    = ( SUM_OHMASS    / SUM_MASS    ) / 1d5
-          OHCONC_NH = ( SUM_OHMASS_NH / SUM_MASS_NH ) / 1d5
-          OHCONC_SH = ( SUM_OHMASS_SH / SUM_MASS_SH ) / 1d5
-            
-          ! Write value to log file
-          WRITE( *, '(/,a)' ) REPEAT( '=', 79 ) 
-          WRITE( *, *       ) 'GEOSCHEMchem mass-weighted OH concentration'
-          WRITE( *, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
-          WRITE( *, *       ) 'OH NH/SH ratio: ', OHCONC_NH/OHCONC_SH
-          WRITE( *, '(  a)' ) REPEAT( '=', 79 ) 
-   
-       ELSE
-   
-          ! Write error msg if SUM_MASS is zero
-          WRITE( *, '(/,a)' ) REPEAT( '=', 79 ) 
-          WRITE( *, '(  a)' )  &
-                  'Could not print mass-weighted OH of GEOSCHEMchem!'
-          WRITE( *, '(  a)' ) 'Atmospheric air mass is zero!'
-          WRITE( *, '(  a)' ) REPEAT( '=', 79 ) 
-          
-       ENDIF
-    ENDIF
-
-    !=======================================================================
-    ! All done
-    !=======================================================================
-    _RETURN(ESMF_SUCCESS)
-
-  END SUBROUTINE Print_Mean_OH
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: GlobalSum
-!
-! !DESCRIPTION: Subroutine GlobalSum prints the sum (or minimum, or maximum)
-!  of an array across all PETs.  Calls the ESMF_VMAllFullReduce function
-!  to do the array reduction.  The default is to compute the array sum
-!  unless MINIMUM=.TRUE. or MAXIMUM=.TRUE.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GlobalSum( GC, dataPtr3D, dataPtr2D, minimum, maximum, RC ) &
-                      RESULT( value )
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(ESMF_GridComp),         INTENT(INOUT) :: GC               ! GC name
-    REAL,    POINTER, OPTIONAL,  INTENT(IN)    :: dataPtr3D(:,:,:) ! Data array
-    REAL,    POINTER, OPTIONAL,  INTENT(IN)    :: dataPtr2D(:,:)   ! Data array
-    LOGICAL, OPTIONAL,           INTENT(IN)    :: minimum          ! Get min?
-    LOGICAL, OPTIONAL,           INTENT(IN)    :: maximum          ! Get max?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,                     INTENT(OUT)   :: RC         ! Return code
-!
-! !RETURN VALUE:
-!
-    REAL                                       :: value      ! Sum, max, or min
-! 
-! !REVISION HISTORY: 
-!  01 Jul 2010 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Objects
-    TYPE(ESMF_VM)              :: VM            ! ESMF VM object
-
-    ! Scalars
-    INTEGER                    :: nSize         ! Size of 3-D array
-    CHARACTER(LEN=ESMF_MAXSTR) :: compName      ! Gridded component name
-    __Iam__('GlobalSum')
-
-    ! Arrays 
-    REAL, ALLOCATABLE          :: data1d(:)     ! 1-D array for reduction
-
-    !=======================================================================
-    ! Initialization
-    !=======================================================================
-
-    ! Traceback info
-    !CALL ESMF_GridCompGet( GC, name=compName, vm=VM, __RC__ )
-    CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
-    CALL ESMF_VMGetCurrent(VM, __RC__ )
-    Iam = TRIM(compName)//'::GlobalSum'
-
-    !=======================================================================
-    ! Do the reduction operation across all CPU's: sum, max, or min
-    !=======================================================================
-
-    ! Create a 1-D vector
-    IF ( PRESENT( dataPtr3D ) ) THEN
-       nSize = SIZE( dataPtr3D )
-    ELSEIF ( PRESENT( dataPtr2D ) ) THEN
-       nSize = SIZE( dataPtr2D )
-    ENDIF
-    ALLOCATE( data1d( nSize ), STAT=STATUS )
-    _VERIFY(STATUS)
-    data1d(:) = 0.0
-
-    ! Rearrange into a 1-D array
-    IF ( PRESENT( dataPtr3D ) ) THEN
-       data1d = RESHAPE( dataPtr3D, (/1/) )
-    ELSEIF ( PRESENT( dataPtr2D ) ) THEN
-       data1d = RESHAPE( dataPtr2D, (/1/) )
-    ENDIF
-    
-    ! Compute the sum over all PETS
-    IF ( PRESENT( maximum ) ) THEN
-       CALL ESMF_VMAllFullReduce( VM, data1d, value, nSize,  &
-                                  ESMF_REDUCE_MAX, __RC__ )
-    ELSE IF ( PRESENT( minimum ) ) THEN
-       CALL ESMF_VMAllFullReduce( VM, data1d, value, nSize,  &
-                                  ESMF_REDUCE_MIN, __RC__ )
-    ELSE 
-       CALL ESMF_VMAllFullReduce( VM, data1d, value, nSize,  &
-                                  ESMF_REDUCE_SUM, __RC__ )
-    ENDIF
-
-    ! Deallocate temporary array
-    IF( ALLOCATED( data1D ) ) DEALLOCATE( data1d )
-
-  END FUNCTION GlobalSum
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

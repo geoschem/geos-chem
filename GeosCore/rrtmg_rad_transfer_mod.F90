@@ -126,11 +126,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_RRTMG_RAD_TRANSFER( ThisDay,    ThisMonth,  First_RT,   &
-                                    iCld,       iSpecMenu,  iNcDiag,    &
-                                    iSeed,      Input_Opt,  State_Chm,  &
-                                    State_Diag, State_Grid, State_Met,  &
-                                    RC                                 )
+  SUBROUTINE DO_RRTMG_RAD_TRANSFER( ThisDay,    ThisMonth,  iCld,       &
+                                    iSpecMenu,  iNcDiag,    iSeed,      &
+                                    Input_Opt,  State_Chm,  State_Diag, &
+                                    State_Grid, State_Met,  RC         )
 !
 ! !USES:
 !
@@ -176,7 +175,6 @@ CONTAINS
 !
     INTEGER,        INTENT(IN)    :: ThisDay    ! CURRENT DAY
     INTEGER,        INTENT(IN)    :: ThisMonth  ! CURRENT MONTH
-    LOGICAL,        INTENT(IN)    :: First_RT   ! IF FIRST RRTMG TIMESTEP
     INTEGER,        INTENT(IN)    :: iSpecMenu  ! THE SPECIES BEING INCLUDED
                                                 ! NEEDED FOR OUTPUT PURPOSES
     INTEGER,        INTENT(IN)    :: iNcDiag    ! Index for netCDF diag arrays
@@ -243,9 +241,6 @@ CONTAINS
     INTEGER            :: IASPECRAD_ON(NASPECRAD)
     INTEGER            :: BaseIndex
     REAL*8             :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
-#if defined( MODEL_CLASSIC )
-    REAL*8             :: scaleFactor ! for GC-Classic netcdf diagnostics
-#endif
 
     !-----------------------------------------------------------------
     ! REL AND REI FROM PERSONAL COMMUNICATION FROM LAZAROS OREOPOULOS
@@ -603,14 +598,6 @@ CONTAINS
        id_CFC12  = Ind_('CFC12')
        id_CCL4   = Ind_('CCL4')
        id_HCFC22 = Ind_('HCFC22')
-
-#if defined( MODEL_CLASSIC )
-       ! Set scale factor used to correct first value of netcdf time-averaged
-       ! diagnostics so that zeros are not included in the average. This is
-       ! only necessary for GC-Classic since RRTMG is run the first timestep
-       ! in GCHP.
-       scaleFactor = 1.5
-#endif
 
        ! Get pointers to data fields that are read by HEMCO
        ! NOTE: This has to be done here and not in initialization
@@ -1711,45 +1698,6 @@ CONTAINS
 
        ENDIF
 
-#if defined( MODEL_CLASSIC )
-       !  Flux adjustment to make time-averaged nc diagnostics better match bpch
-       ! (only needed for GC-Classic since RRTMG not run first timestep)
-       IF ( First_RT ) THEN
-          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
-             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) = &
-                State_Diag%RadAllSkySWTOA(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
-             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
-                State_Diag%RadAllSkySWSurf(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
-             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
-                State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
-             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) = &
-                State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) = &
-                State_Diag%RadClrSkySWTOA(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
-                State_Diag%RadClrSkySWSurf(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
-                State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) * scaleFactor
-          ENDIF
-          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) = &
-                State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) * scaleFactor
-          ENDIF
-       ENDIF
-#endif
-
        !-------------------------------------------------------
        ! If not BASE, the subtract flux just calculated from BASE
        !-------------------------------------------------------
@@ -1915,54 +1863,6 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#if defined( MODEL_CLASSIC )
-             ! Optics diagnostic adjustment to improve netcdf vs bpch comparison
-             ! (only needed for GC-Classic since RRTMG not run first timestep)
-             IF ( First_RT ) THEN
-                IF ( State_Diag%Archive_RadOptics ) THEN
-                   IF ( W == 1 ) THEN
-                      IF ( State_Diag%Archive_RADAODWL1 ) THEN
-                         State_Diag%RADAODWL1(I,J,OUTIDX) = &
-                         State_Diag%RADAODWL1(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADSSAWL1 ) THEN
-                         State_Diag%RADSSAWL1(I,J,OUTIDX) = &
-                         State_Diag%RADSSAWL1(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADAsymWL1 ) THEN
-                         State_Diag%RADAsymWL1(I,J,OUTIDX) = &
-                         State_Diag%RADAsymWL1(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                   ELSEIF ( W == 2 ) THEN
-                      IF ( State_Diag%Archive_RADAODWL2 ) THEN
-                         State_Diag%RADAODWL2(I,J,OUTIDX) = &
-                         State_Diag%RADAODWL2(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADSSAWL2 ) THEN
-                         State_Diag%RADSSAWL2(I,J,OUTIDX) = &
-                         State_Diag%RADSSAWL2(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADAsymWL2 ) THEN
-                         State_Diag%RADAsymWL2(I,J,OUTIDX) = &
-                         State_Diag%RADAsymWL2(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                   ELSEIF ( W == 3 ) THEN
-                      IF ( State_Diag%Archive_RADAODWL3 ) THEN
-                         State_Diag%RADAODWL3(I,J,OUTIDX) = &
-                         State_Diag%RADAODWL3(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADSSAWL3 ) THEN
-                         State_Diag%RADSSAWL3(I,J,OUTIDX) = &
-                         State_Diag%RADSSAWL3(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                      IF ( State_Diag%Archive_RADASYMWL3 ) THEN
-                         State_Diag%RADAsymWL3(I,J,OUTIDX) = &
-                         State_Diag%RADAsymWL3(I,J,OUTIDX) * scaleFactor
-                      ENDIF
-                   ENDIF
-                ENDIF
-             ENDIF
-#endif
           ENDDO !NWVSELECT
        ENDIF
     ENDDO

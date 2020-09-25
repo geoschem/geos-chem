@@ -1042,11 +1042,9 @@ CONTAINS
                                 RegDict   = State_Met%RegDict,       &
                                 State     = State_Met%State,         &
                                 Variable  = current%registryID,      &
-                                Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
                                 Ptr2d_8   = current%GCStateData2d_8, &
                                 Ptr2d_I   = current%GCStateData2d_I, &
-                                Ptr3d     = current%GCStateData3d,   &
                                 Ptr3d_4   = current%GCStateData3d_4, &
                                 Ptr3d_8   = current%GCStateData3d_8, &
                                 Ptr3d_I   = current%GCStateData3d_I, &
@@ -1057,11 +1055,9 @@ CONTAINS
                                 RegDict   = State_Chm%RegDict,       &
                                 State     = State_Chm%State,         &
                                 Variable  = current%registryID,      &
-                                Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
                                 Ptr2d_8   = current%GCStateData2d_8, &
                                 Ptr2d_I   = current%GCStateData2d_I, &
-                                Ptr3d     = current%GCStateData3d,   &
                                 Ptr3d_4   = current%GCStateData3d_4, &
                                 Ptr3d_8   = current%GCStateData3d_8, &
                                 Ptr3d_I   = current%GCStateData3d_I, &
@@ -1072,11 +1068,9 @@ CONTAINS
                                 RegDict   = State_Diag%RegDict,      &
                                 State     = State_Diag%State,        &
                                 Variable  = current%registryID,      &
-                                Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
                                 Ptr2d_8   = current%GCStateData2d_8, &
                                 Ptr2d_I   = current%GCStateData2d_I, &
-                                Ptr3d     = current%GCStateData3d,   &
                                 Ptr3d_4   = current%GCStateData3d_4, &
                                 Ptr3d_8   = current%GCStateData3d_8, &
                                 Ptr3d_I   = current%GCStateData3d_I, &

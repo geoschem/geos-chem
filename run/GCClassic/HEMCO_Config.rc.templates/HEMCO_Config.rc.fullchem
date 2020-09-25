@@ -3328,7 +3328,7 @@ Warnings:                    1
 # --- GEIA NH3 from natural sources ---
 #==============================================================================
 (((GEIA_NH3
-0 GEIA_NH3_NATU $ROOT/NH3/v2014-07/NH3_geos.4x5.nc         NH3_NATU     1990/1-12/1/0 C xy  kg/m2/s NH3 - 3 1
+0 GEIA_NH3_NATU $ROOT/NH3/v2019-08/NH3_geos.2x25.nc         NH3_NATU     1990/1-12/1/0 C xy  kg/m2/s NH3 - 3 1
 )))GEIA_NH3
 
 #==============================================================================
@@ -3353,8 +3353,8 @@ Warnings:                    1
 # - These C2H6 emissions are used in place of CEDS
 #==============================================================================
 (((TZOMPASOSA_C2H6
-0 C2H6_2010_oilgas   $ROOT/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010$MM.4x5.nc ANTHR_C2H6   2010/1-12/1/0 C xy kgC/m2/s C2H6 - 1 100
-0 C2H6_2010_biofuel  $ROOT/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010$MM.4x5.nc BIOFUEL_C2H6 2010/1-12/1/0 C xy kgC/m2/s C2H6 - 1 100
+0 C2H6_2010_oilgas   $ROOT/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010$MM.2x25.nc ANTHR_C2H6   2010/1-12/1/0 C xy kgC/m2/s C2H6 - 1 100
+0 C2H6_2010_biofuel  $ROOT/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010$MM.2x25.nc BIOFUEL_C2H6 2010/1-12/1/0 C xy kgC/m2/s C2H6 - 1 100
 )))TZOMPASOSA_C2H6
 
 #==============================================================================
@@ -3366,7 +3366,7 @@ Warnings:                    1
 #==============================================================================
 (((XIAO_C3H8
 0 XIAO_C3H8    $ROOT/XIAO/v2014-09/C3H8_C2H6_ngas.geos.1x1.nc C3H8         1985/1/1/0 C xy kgC/m2/s C3H8 6/7/26/22 1 10
-0 BIOFUEL_C3H8 $ROOT/BIOFUEL/v2014-07/biofuel.geos.4x5.nc     BIOFUEL_C3H8 1985/1/1/0 C xy kgC/m2/s C3H8 -         1 10
+0 BIOFUEL_C3H8 $ROOT/BIOFUEL/v2019-08/biofuel.geos.2x25.nc    BIOFUEL_C3H8 1985/1/1/0 C xy kgC/m2/s C3H8 -         1 10
 )))XIAO_C3H8
 
 #==============================================================================
@@ -3381,10 +3381,10 @@ Warnings:                    1
 # --- Very-short-lived (VSL) iodocarbon emissions (cf. Carlos Ordonez) ---
 #==============================================================================
 (((ORDONEZ_IODOCARB
-0 ORDONEZ_CH3I   $ROOT/IODINE/v2017-09/CH3I_monthly_emissions_Ordonez_2012_COARDS.nc   CH3I   2000/1-12/1/0 C xy kg/m2/s CH3I   - 1 50
-0 ORDONEZ_CH2I2  $ROOT/IODINE/v2017-09/CH2I2_monthly_emissions_Ordonez_2012_COARDS.nc  CH2I2  2000/1-12/1/0 C xy kg/m2/s CH2I2  - 1 1
-0 ORDONEZ_CH2ICL $ROOT/IODINE/v2017-09/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.nc CH2ICl 2000/1-12/1/0 C xy kg/m2/s CH2ICl - 1 1
-0 ORDONEZ_CH2IBR $ROOT/IODINE/v2017-09/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.nc CH2IBr 2000/1-12/1/0 C xy kg/m2/s CH2IBr - 1 1
+0 ORDONEZ_CH3I   $ROOT/IODINE/v2020-02/CH3I_monthly_emissions_Ordonez_2012_COARDS.nc   CH3I   2000/1-12/1/0 C xy kg/m2/s CH3I   - 1 50
+0 ORDONEZ_CH2I2  $ROOT/IODINE/v2020-02/CH2I2_monthly_emissions_Ordonez_2012_COARDS.nc  CH2I2  2000/1-12/1/0 C xy kg/m2/s CH2I2  - 1 1
+0 ORDONEZ_CH2ICL $ROOT/IODINE/v2020-02/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.nc CH2ICl 2000/1-12/1/0 C xy kg/m2/s CH2ICl - 1 1
+0 ORDONEZ_CH2IBR $ROOT/IODINE/v2020-02/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.nc CH2IBr 2000/1-12/1/0 C xy kg/m2/s CH2IBr - 1 1
 )))ORDONEZ_IODOCARB
 
 #==============================================================================
@@ -4043,14 +4043,14 @@ Warnings:                    1
 # --- Dust emissions using DEAD model (Extension 105) ---
 #==============================================================================
 (((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.4x5.nc                  SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.4x5.nc              GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.4x5.nc                  VAI      1985/1-12/1/0 C xy unitless *    -    1 1
+105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_SND   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc              GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc                  VAI      1985/1-12/1/0 C xy unitless *    -    1 1
 )))DustDead
 
 #==============================================================================
@@ -4933,7 +4933,7 @@ Warnings:                    1
 # NOTE: This is only used if NOAA data is unavailable (pre 1979)
 #==============================================================================
 (((CMIP6_SFC_CH4
-* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_$YYYY.nc CH4 1750-1978/1-12/1/0 EY xy ppbv * - 1 1
+* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 EY xy ppbv * - 1 1
 )))CMIP6_SFC_CH4
 
 #==============================================================================
@@ -5156,37 +5156,37 @@ Warnings:                    1
 #
 # Use core CMIP6 observationally constrained data from Meinshausen et al. (2017) GMD
 #==============================================================================
-* SfcVMR_CH3Cl  $ROOT/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_$YYYY.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_$YYYY.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CHCl3  $ROOT/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_$YYYY.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH3Br  $ROOT/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_$YYYY.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Cl  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CHCl3  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Br  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 
 #==============================================================================
 # --- WMO-2018 files (GMI) ---
 #==============================================================================
-* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H2402    $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc C2BR2F4     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_$YYYY.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H2402    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc C2BR2F4     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
 
 #==============================================================================
 # --- Dummy files with a single surface concentration (for OCS and H2) ---
 #==============================================================================
-* SfcVMR_OCS  $ROOT/SfcFix/v2019-12/surface_VMR_OCS.nc OCS 1985/1/1/0  C xy ppbv * - 1 1
-* SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
+* SfcVMR_OCS  $ROOT/SfcFix/v2019-12/surface_VMR_OCS.2x25.nc OCS 1985/1/1/0  C xy ppbv * - 1 1
+* SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.2x25.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
 )))SfcVMR
 
 #==============================================================================
