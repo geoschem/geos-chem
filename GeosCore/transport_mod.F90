@@ -337,7 +337,7 @@ CONTAINS
     INTEGER            :: IORD, JORD, KORD
     INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
     INTEGER            :: ND24x, ND25x, ND26x
-    REAL(fp)           :: D_DYN
+    REAL(f8)           :: D_DYN
 
     ! Arrays
     REAL(fp)           :: P_TP1 (State_Grid%NX,State_Grid%NY)
@@ -1065,7 +1065,7 @@ CONTAINS
     J = State_Grid%NY+1
     YMID_R_W(J) = State_Grid%YMid_R(1,J-1) + (State_Grid%DY * PI_180)
 
-    REAL_N_DYN = N_DYN
+    REAL_N_DYN = REAL( N_DYN, f8 )
 
     ! Call INIT routine from "tpcore_window_mod.F90"
     CALL INIT_WINDOW( State_Grid,    &
