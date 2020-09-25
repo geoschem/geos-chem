@@ -308,9 +308,11 @@
  SO2AfterChem     |   vv-1     | xyz | C |    |   |   |     |      |    |    | S       | soluble_fraction_SO2
  KPPHvalue        |   1        | xyz | C |    |   |   |     |      |    |    | S       | HSAVE_for_KPP 
  SESQ_CARBDENS    | kgCm-3     | xyz | C |    |   |   |     |      |    |    | S       | sesquiterpene_conc_restart
- Iso_Hplus        | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_H+_concentration
- Iso_sulfate      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_sulfate_concentration
- Iso_nitrate      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_Na+_concentration
+ Iso_Hplus_coarse | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_H+_concentration_coarse
+ Iso_Hplus_fine   | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_H+_concentration_fine
+ Iso_sulfate      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_sulfate_concentratio
+ Iso_nitrate_coarse | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_Na+_concentration_coarse
+ Iso_nitrate_fine | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_Na+_concentration_fine
  Iso_bisulfate    | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_bisulfate_concentration
 ### the following are not needed
 # Iso_acidpur      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_acid
