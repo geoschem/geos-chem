@@ -69,17 +69,14 @@ MODULE HistItem_Mod
 
      REAL(f8), POINTER  :: Source_0d_8           ! Ptr to 0D 8-byte    data
 
-     REAL(fp), POINTER  :: Source_1d  (:    )    ! Ptr to 1D flex-prec data
      REAL(f8), POINTER  :: Source_1d_8(:    )    ! Ptr to 1D 8-byte    data
      REAL(f4), POINTER  :: Source_1d_4(:    )    ! Ptr to 1D 4-byte    data
      INTEGER,  POINTER  :: Source_1d_I(:    )    ! Ptr to 1D integer   data
 
-     REAL(fp), POINTER  :: Source_2d  (:,:  )    ! Ptr to 2D flex-prec data
      REAL(f8), POINTER  :: Source_2d_8(:,:  )    ! Ptr to 2D 8-byte    data
      REAL(f4), POINTER  :: Source_2d_4(:,:  )    ! Ptr to 2D 4-byte    data
      INTEGER,  POINTER  :: Source_2d_I(:,:  )    ! Ptr to 2D integer   data
 
-     REAL(fp), POINTER  :: Source_3d  (:,:,:)    ! Ptr to 3D flex-prec data
      REAL(f8), POINTER  :: Source_3d_8(:,:,:)    ! Ptr to 3D 8-byte    data
      REAL(f4), POINTER  :: Source_3d_4(:,:,:)    ! Ptr to 3D 4-byte    data
      INTEGER,  POINTER  :: Source_3d_I(:,:,:)    ! Ptr to 3D integer   data
@@ -141,10 +138,9 @@ CONTAINS
                               MissingValue8, Source_KindVal, Output_KindVal, &
                               Operation,     DimNames,       Dimensions,     &
                               Subset_X,      Subset_Y,       Subset_Z,       &
-                              Source_0d_8,   Source_1d,      Source_1d_8,    &
-                              Source_1d_4,   Source_1d_I,    Source_2d,      &
-                              Source_2d_8,   Source_2d_4,    Source_2d_I,    &
-                              Source_3d,     Source_3d_8,    Source_3d_4,    &
+                              Source_0d_8,   Source_1d_8,    Source_1d_4,    &
+                              Source_1d_I,   Source_2d_8,    Source_2d_4,    &
+                              Source_2d_I,   Source_3d_8,    Source_3d_4,    &
                               Source_3d_I                                   )
 !
 ! !USES:
@@ -189,16 +185,13 @@ CONTAINS
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Kind of source data
     INTEGER,           OPTIONAL    :: Output_KindVal     ! Type of output data
-    REAL(fp), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
-    REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
-    REAL(fp), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
+    REAL(f8), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
+    REAL(f8), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
-    REAL(fp), POINTER, OPTIONAL    :: Source_2d  (:,:  ) ! 2D flex-prec data
     REAL(f8), POINTER, OPTIONAL    :: Source_2d_8(:,:  ) ! 2D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_2d_4(:,:  ) ! 2D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_2d_I(:,:  ) ! 2D integer   data
-    REAL(fp), POINTER, OPTIONAL    :: Source_3d  (:,:,:) ! 3D flex-prec data
     REAL(f8), POINTER, OPTIONAL    :: Source_3d_8(:,:,:) ! 3D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_3d_4(:,:,:) ! 3D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_3d_I(:,:,:) ! 3D integer   data
@@ -228,11 +221,11 @@ CONTAINS
     ! Scalars
     LOGICAL            :: Is_DimNames
     LOGICAL            :: Is_0d_8
-    LOGICAL            :: Is_1d,      Is_1d_8,  Is_1d_4,  Is_1d_I
-    LOGICAL            :: Is_2d,      Is_2d_8,  Is_2d_4,  Is_2d_I
-    LOGICAL            :: Is_3d,      Is_3d_8,  Is_3d_4,  Is_3d_I
-    INTEGER            :: X0,         X1,       Y0,       Y1
-    INTEGER            :: Z0,         Z1,       N
+    LOGICAL            :: Is_1d_8,     Is_1d_4,  Is_1d_I
+    LOGICAL            :: Is_2d_8,     Is_2d_4,  Is_2d_I
+    LOGICAL            :: Is_3d_8,     Is_3d_4,  Is_3d_I
+    INTEGER            :: X0,          X1,       Y0,       Y1
+    INTEGER            :: Z0,          Z1,       N
 
     ! Arrays
     INTEGER            :: Dims(3)
@@ -265,30 +258,24 @@ CONTAINS
 
     ! Determine if the optional source pointers are passed
     Is_0d_8          =  PRESENT( Source_0d_8 )
-    Is_1d            =  PRESENT( Source_1d   )
     Is_1d_8          =  PRESENT( Source_1d_8 )
     Is_1d_4          =  PRESENT( Source_1d_4 )
     Is_1d_I          =  PRESENT( Source_1d_I )
-    Is_2d            =  PRESENT( Source_2d   )
     Is_2d_8          =  PRESENT( Source_2d_8 )
     Is_2d_4          =  PRESENT( Source_2d_4 )
     Is_2d_I          =  PRESENT( Source_2d_I )
-    Is_3d            =  PRESENT( Source_3d   )
     Is_3d_8          =  PRESENT( Source_3d_8 )
     Is_3d_4          =  PRESENT( Source_3d_4 )
     Is_3d_I          =  PRESENT( Source_3d_I )
 
     ! Zero optional source pointers
     IF ( Is_0d_8 ) Item%Source_0d_8 => NULL()
-    IF ( Is_1d   ) Item%Source_1d   => NULL()
     IF ( Is_1d_8 ) Item%Source_1d_8 => NULL()
     IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
     IF ( Is_1d_I ) Item%Source_1d_I => NULL()
-    IF ( Is_2d   ) Item%Source_2d   => NULL()
     IF ( Is_2d_8 ) Item%Source_2d_8 => NULL()
     IF ( Is_2d_4 ) Item%Source_2d_4 => NULL()
     IF ( Is_2d_I ) Item%Source_2d_I => NULL()
-    IF ( Is_3d   ) Item%Source_3d   => NULL()
     IF ( Is_3d_8 ) Item%Source_3d_8 => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
@@ -544,15 +531,7 @@ CONTAINS
           Y0 = Subset_Y(1); Y1 = Subset_Y(2)
           Z0 = Subset_Z(1); Z1 = Subset_Z(2)
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_3d   ) THEN
-                Item%Source_3d => Source_3d(X0:X1, Y0:Y1, Z0:Z1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d(X0:X1, Y0:Y1, Z0:Z1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_3d_8 ) THEN
                 Item%Source_3d_8 => Source_3d_8(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
@@ -585,15 +564,7 @@ CONTAINS
           X0 = Subset_X(1); X1 = Subset_X(2)
           Y0 = Subset_Y(1); Y1 = Subset_Y(2)
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_2d   ) THEN
-                Item%Source_2d => Source_2d(X0:X1, Y0:Y1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d(X0:X1, Y0:Y1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_2d_8 ) THEN
                 Item%Source_2d_8 => Source_2d_8(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
@@ -634,15 +605,7 @@ CONTAINS
                 X0 = 1;           X1 = 1
           END SELECT
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_1d   ) THEN
-                Item%Source_1d   => Source_1d(X0:X1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d(X0:X1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_1d_8 ) THEN
                 Item%Source_1d_8 => Source_1d_8(X0:X1)
                 DO N = 1, Item%SpaceDim
@@ -1004,15 +967,12 @@ CONTAINS
     ! Nullify fields that are just pointing to other objects
     !======================================================================
     Item%Source_0d_8 => NULL()
-    Item%Source_1d   => NULL()
     Item%Source_1d_8 => NULL()
     Item%Source_1d_4 => NULL()
     Item%Source_1d_I => NULL()
-    Item%Source_2d   => NULL()
     Item%Source_2d_8 => NULL()
     Item%Source_2d_4 => NULL()
     Item%Source_2d_I => NULL()
-    Item%Source_3d   => NULL()
     Item%Source_3d_8 => NULL()
     Item%Source_3d_4 => NULL()
     Item%Source_3d_I => NULL()

@@ -1347,6 +1347,10 @@ CONTAINS
    ! Assume success
    RC        = GC_SUCCESS
 
+   ! We only need to get boundary conditions if this is a nested-grid
+   ! simulation.  Otherwise the BoundaryCond field won't be allocated.
+   IF ( .not. State_Grid%NestedGrid ) RETURN
+
    ! Initialize pointers
    Ptr3D     => NULL()
    SpcInfo   => NULL()
