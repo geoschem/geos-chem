@@ -337,7 +337,7 @@ CONTAINS
     INTEGER            :: IORD, JORD, KORD
     INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
     INTEGER            :: ND24x, ND25x, ND26x
-    REAL(f8)           :: D_DYN
+    REAL(fp)           :: D_DYN
 
     ! Arrays
     REAL(fp)           :: P_TP1 (State_Grid%NX,State_Grid%NY)
@@ -376,7 +376,7 @@ CONTAINS
 
     ! Dynamic timestep [s]
     N_DYN       =  GET_TS_DYN()
-    D_DYN       =  DBLE( N_DYN )
+    D_DYN       =  REAL( N_DYN, fp )
 
     ! Define shadow variables for ND24, ND25, ND26
     ND24x       = 0
@@ -631,7 +631,7 @@ CONTAINS
 
     ! Dynamic timestep [s]
     N_DYN       =  GET_TS_DYN()
-    D_DYN       =  DBLE( N_DYN )
+    D_DYN       =  N_DYN
 
     ! (lzh, 09/01/2014)
     BUFF_SIZE   =  2
@@ -972,7 +972,6 @@ CONTAINS
     INTEGER  :: BUFF_SIZE
     INTEGER  :: J,     K,     L,     N_DYN
     INTEGER  :: IM_W1, JM_W1, I0_W1, J0_W1
-    REAL(fp) :: REAL_N_DYN
 
     ! Arrays
     REAL(fp) :: YMID_R_W(0:State_Grid%NY+1)
@@ -982,17 +981,10 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC        =  GC_SUCCESS
+    RC     =  GC_SUCCESS
 
     ! Copy values from Input_Opt
-    LTRAN     = Input_Opt%LTRAN
-
-    ! Cast N_DYN to flexible precision
-#if defined( USE_REAL8 )
-    REAL_N_DYN = DBLE( N_DYN )
-#else
-    REAL_N_DYN = FLOAT( N_DYN )
-#endif
+    LTRAN  = Input_Opt%LTRAN
 
     !=================================================================
     ! Allocate arrays for TPCORE vertical coordinates
@@ -1038,10 +1030,10 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    N_DYN = GET_TS_DYN()
-    N_ADJ = 0
-    NG    = 0
-    MG    = 0
+    N_DYN  = GET_TS_DYN()
+    N_ADJ  = 0
+    NG     = 0
+    MG     = 0
 
     ! (lzh, 4/1/2015)
     BUFF_SIZE = 2
@@ -1065,20 +1057,19 @@ CONTAINS
     J = State_Grid%NY+1
     YMID_R_W(J) = State_Grid%YMid_R(1,J-1) + (State_Grid%DY * PI_180)
 
-    REAL_N_DYN = REAL( N_DYN, f8 )
-
     ! Call INIT routine from "tpcore_window_mod.F90"
-    CALL INIT_WINDOW( State_Grid,    &
-                      IM_W1,         &
-                      JM_W1,         &
-                      State_Grid%NZ, &
-                      JFIRST,        &
-                      JLAST,         &
-                      NG,            &
-                      MG,            &
-                      REAL_N_DYN,    &
-                      Re,            &
-                      YMID_R_W( J0_W1:(J0_W1+JM_W1+1) ) )
+    CALL INIT_WINDOW(                                                        &
+         State_Grid = State_Grid,                                            &
+         IM         = IM_W1,                                                 &
+         JM         = JM_W1,                                                 &
+         KM         = State_Grid%NZ,                                         &
+         JFIRST     = JFIRST,                                                &
+         JLAST      = JLAST,                                                 &
+         NG         = NG,                                                    &
+         MG         = MG,                                                    &
+         DT         = REAL( N_DYN, fp ),                                     &
+         AE         = REAL( Re,    fp ),                                     &
+         CLAT       = YMID_R_W( J0_W1:(J0_W1+JM_W1+1) )                     )
 
   END SUBROUTINE INIT_WINDOW_TRANSPORT
 !EOC
