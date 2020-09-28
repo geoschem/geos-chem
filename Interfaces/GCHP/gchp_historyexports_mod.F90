@@ -158,6 +158,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     __Iam__('Init_HistoryConfig (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
     ALLOCATE(HistoryConfig)
     HistoryConfig%ROOT               =  ''
     HistoryConfig%ConfigFileName     =  TRIM(configFile)
@@ -242,6 +243,7 @@ CONTAINS
     ! Init_HistoryExportsList begins here
     ! ================================================================
     __Iam__('Init_HistoryExportsList (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Init
     NewHistExp => NULL()
@@ -444,6 +446,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     __Iam__('Init_HistoryExport (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
     ALLOCATE(NewHistExp)
 
     IF ( PRESENT( name ) ) THEN
@@ -580,6 +583,7 @@ CONTAINS
     ! Append_HistoryExportsList begins here
     ! ================================================================
     __Iam__('Append_HistoryExportsList (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Add new object to the beginning of the linked list
     HistoryExport%next => HistoryConfig%HistoryExportsList%head
@@ -629,6 +633,7 @@ CONTAINS
     TYPE(HistoryExportObj), POINTER :: current
 
     __Iam__('Check_HistoryExportsList (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Assume not found
     found = .False.
@@ -699,6 +704,7 @@ CONTAINS
 
     ! For MAPL/ESMF error handling (defines Iam and STATUS)
     __Iam__('HistoryExports_SetServices (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Create a config object if it does not already exist
     IF ( .NOT. ASSOCIATED(HistoryConfig) ) THEN
@@ -826,6 +832,7 @@ CONTAINS
     ! CopyGCStates2Exports begins here
     ! ================================================================
     __Iam__('CopyGCStates2Exports (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
@@ -937,6 +944,7 @@ CONTAINS
     ! Print_HistoryExportsList begins here
     ! ================================================================
     __Iam__('Print_HistoryExportsList (gchp_historyexports_mod.F90)')
+    RC = GC_SUCCESS
 
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
@@ -1024,6 +1032,7 @@ CONTAINS
     ! HistoryExports_SetDataPointers begins here
     ! ================================================================
     __Iam__('HistoryExports_SetDataPointers')
+    RC = GC_SUCCESS
 
     IF ( am_I_Root ) THEN
        WRITE(6,*) " "
