@@ -6475,14 +6475,14 @@ CONTAINS
              ALLOCATE(CONV(SIZE(Ptr2m,1),SIZE(Ptr2m,2)))
              DryID = SpcInfo%DryDepID
              IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN 
+                IF ( .NOT. ASSOCIATED(State_Chm%DryDepVel ) ) THEN
                    WRITE(*,*)     &
                        'Cannot compute 2M concentration - need diagnostics '// &
                        'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
                 ENDIF      
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa2m(:,:) *  &
-                            State_Diag%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF
@@ -6505,14 +6505,14 @@ CONTAINS
              ALLOCATE(CONV(SIZE(Ptr10m,1),SIZE(Ptr10m,2)))
              DryID = SpcInfo%DryDepID
              IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN
+                IF ( .NOT. ASSOCIATED(State_Chm%DryDepVel ) ) THEN
                    WRITE(*,*)      &
                      'Cannot compute 10M concentration - need diagnostics '// &
                      'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
                 ENDIF      
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa10m(:,:) * &
-                            State_Diag%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF  

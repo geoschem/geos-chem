@@ -183,6 +183,7 @@ MODULE State_Chm_Mod
      ! For drydep
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
      REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
+     REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! drydep velocity
 #endif
 
      !-----------------------------------------------------------------------
@@ -529,6 +530,7 @@ CONTAINS
     ! Quantities needed for GEOS-5
     State_Chm%DryDepRa2m        => NULL()
     State_Chm%DryDepRa10m       => NULL()
+    State_Chm%DryDepVel         => NULL()
 #endif
 
   END SUBROUTINE Zero_State_Chm
@@ -875,6 +877,22 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          chmId      = chmId,                                                 &
          Ptr2Data   = State_Chm%DryDepRa10m,                                 &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    chmID = 'DryDepVel'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepVel,                                   &
+         nSlots     = State_Chm%nDryDep ,                                    &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2976,6 +2994,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa10m => NULL()
     ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
+       DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepVel => NULL()
+    ENDIF
+
 #endif
 
     IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
@@ -3892,6 +3918,24 @@ CONTAINS
           IF ( isUnits ) Units  = 'kg m-2 s-1'
           IF ( isRank  ) Rank   = 2
           IF ( isSpc   ) perSpc = 'ADV'
+
+#ifdef MODEL_GEOS
+       CASE( 'DRYDEPRA2M' )
+          IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
+          IF ( isUnits   ) Units = 's cm-1'
+          IF ( isRank    ) Rank  = 2
+
+       CASE( 'DRYDEPRA10M' )
+          IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
+          IF ( isUnits   ) Units = 's cm-1'
+          IF ( isRank    ) Rank  = 2
+
+       CASE( 'DRYDEPVEL' )
+          IF ( isDesc    ) Desc   = 'Dry deposition velocity of species'
+          IF ( isUnits   ) Units  = 'cm s-1'
+          IF ( isRank    ) Rank   = 2
+          IF ( isSpc     ) perSpc = 'DRY'
+#endif
 
        CASE DEFAULT
           Found = .False.

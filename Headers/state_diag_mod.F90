@@ -918,14 +918,6 @@ MODULE State_Diag_Mod
      ! GEOS-Chem is interfaced into the NASA-GEOS ESM
      !----------------------------------------------------------------------
 
-     !%%%%% Drydep resistances and related quantities %%%%%
-
-     REAL(f4),           POINTER :: DryDepRa2m(:,:)
-     LOGICAL                     :: Archive_DryDepRa2m
-
-     REAL(f4),           POINTER :: DryDepRa10m(:,:)
-     LOGICAL                     :: Archive_DryDepRa10m
-
      REAL(f4),           POINTER :: MoninObukhov(:,:)
      LOGICAL                     :: Archive_MoninObukhov
 
@@ -1840,12 +1832,6 @@ CONTAINS
     !=======================================================================
     ! These diagnostics are only activated when running GC in NASA/GEOS
     !=======================================================================
-    State_Diag%DryDepRa2m                          => NULL()
-    State_Diag%Archive_DryDepRa2m                  = .FALSE.
-
-    State_Diag%DryDepRa10m                         => NULL()
-    State_Diag%Archive_DryDepRa10m                 = .FALSE.
-
     State_Diag%MoninObukhov                        => NULL()
     State_Diag%Archive_MoninObukhov                = .FALSE.
 
@@ -2698,10 +2684,6 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepVel,                          &
          diagId         = diagId,                                            &
          diagFlag       = 'D',                                               &
-#ifdef MODEL_GEOS
-         ! DryDepVel always needs to be defined for MODEL_GEOS
-         forceDefine    = .TRUE.,                                            &
-#endif
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2711,50 +2693,6 @@ CONTAINS
     ENDIF
 
 #ifdef MODEL_GEOS
-    !-----------------------------------------------------------------------
-    ! Aerodynamic resistance @ 2m (ckeller, 11/17/17)
-    !-----------------------------------------------------------------------
-    diagID  = 'DryDepRa2m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepRa2m,                             &
-         archiveData    = State_Diag%Archive_DryDepRa2m,                     &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Aerodynamic resistance @ 10m (ckeller, 11/17/17)
-    !-----------------------------------------------------------------------
-    diagID  = 'DryDepRa10m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepRa10m,                            &
-         archiveData    = State_Diag%Archive_DryDepRa10m,                    &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !-----------------------------------------------------------------------
     ! Monin-Obukhov length
     !-----------------------------------------------------------------------
@@ -9608,16 +9546,6 @@ CONTAINS
     !=======================================================================
     ! These fields are only used when GC is interfaced to NASA/GEOS
     !=======================================================================
-    CALL Finalize( diagId   = 'DryDepRa2m',                                  &
-                   Ptr2Data = State_Diag%DryDepRa2m,                         &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'DryDepRa10m',                                 &
-                   Ptr2Data = State_Diag%DryDepRa10m,                        &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'MoninObukhov',                                &
                    Ptr2Data = State_Diag%MoninObukhov,                       &
                    RC       = RC                                            )
@@ -10023,16 +9951,6 @@ CONTAINS
        IF ( isTagged  ) TagId = 'DRY'
 
 #ifdef MODEL_GEOS
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA2M' ) THEN
-       IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
-       IF ( isUnits   ) Units = 's cm-1'
-       IF ( isRank    ) Rank  = 2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA10M' ) THEN
-       IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
-       IF ( isUnits   ) Units = 's cm-1'
-       IF ( isRank    ) Rank  = 2
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'MONINOBUKHOV' ) THEN
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
        IF ( isUnits   ) Units = 'm'

@@ -496,7 +496,11 @@ CONTAINS
 
           ! Dry deposition frequency [1/s]
           DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
-          
+
+#if defined( MODEL_GEOS )
+          State_Chm%DryDepVel(I,J,D) = DVZ
+#endif
+
           ! Archive dry dep velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
@@ -1170,14 +1174,7 @@ CONTAINS
     ! Logical flag for Ra (ckeller, 12/29/17)
     State_Chm%DryDepRa2m  = 0.0_fp
     State_Chm%DryDepRa10m = 0.0_fp
-    !WriteRa2m = ASSOCIATED ( State_Diag%DryDepRa2m )
-    !IF ( WriteRa2m ) THEN
-    !   State_Diag%DryDepRa2m = 0.0_fp
-    !ENDIF
-    !WriteRa10m = ASSOCIATED ( State_Diag%DryDepRa10m )
-    !IF ( WriteRa10m ) THEN
-    !   State_Diag%DryDepRa10m = 0.0_fp
-    !ENDIF
+    State_Chm%DryDepVel = 0.0_fp
 #endif
 
     !***********************************************************************
