@@ -257,27 +257,6 @@ MODULE Chem_GridCompMod
 # include "GCHPchem_DeclarePointer___.h"
 #endif
 
-#if !defined( MODEL_GEOS )
-  ! GCHP only
-  ! Use archived convection fields?
-  ! If the attribute 'ARCHIVED_CONV' in the GEOS-Chem configuration file is set
-  ! to '1', GEOS-Chem will use archived convection fields, imported through
-  ! ExtData (ExtData must contain an entry for each of the pointers defined
-  ! below). These data fields are then passed to the GEOS-Chem meteorlogical 
-  ! state instead of the (instantaneous) fields imported from MOIST. The 
-  ! fields imported through ExtData must be named 'ARCHIVED_PFI_CN', 
-  ! 'ARCHIVED_PFL_CN', etc.
-  LOGICAL           :: ArchivedConv
-  REAL, POINTER     :: PTR_ARCHIVED_PFI_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_PFL_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_MFC(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_MFD(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_CVW(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_DQRC   (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_REV_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_T      (:,:,:) => NULL()
-#endif
-
 #if defined( MODEL_GEOS )
   !! GEOS-5 only (also in gchp_providerservices but don't use yet):
   !! -RATS:
@@ -1587,83 +1566,6 @@ CONTAINS
     close(NUNIT)
 #endif
 
-#if !defined( MODEL_GEOS )
-    !=======================================================================
-    !              %%% Test for archived convection fields %%%
-    !=======================================================================
-    CALL ESMF_ConfigGetAttribute( myState%myCF, I, &
-            Label="ARCHIVED_CONV:", Default=0, __RC__ )
-    ArchivedConv = ( I == 1 )
-
-    ! Need to add archived convection fields to import state
-    IF ( ArchivedConv ) THEN
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_PFI_CN',                   &
-          LONG_NAME          = 'archived_PFI_CN',                   &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_PFL_CN',                   &
-          LONG_NAME          = 'archived_PFL_CN',                   &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_MFC',                  &
-          LONG_NAME          = 'archived_CNV_MFC',                  &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_MFD',                  &
-          LONG_NAME          = 'archived_CNV_MFD',                  &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_CVW',                  &
-          LONG_NAME          = 'archived_CNV_CVW',                  &
-          UNITS              = 'hPa s-1',                           &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_DQRC',                     &
-          LONG_NAME          = 'archived_DQRC',                     &
-          UNITS              = 'kg kg-1 s-1',                       &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_REV_CN',                   &
-          LONG_NAME          = 'archived_REV_CN',                   &
-          UNITS              = 'kg kg-1 s-1',                       &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_T',                        &
-          LONG_NAME          = 'archived_T',                        &
-          UNITS              = 'K',                                 &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-    ENDIF ! ArchivedConv 
-
-#endif
-
     ! OLSON
     DO T = 1, NSURFTYPE
        landTypeInt = T-1
@@ -2596,16 +2498,6 @@ CONTAINS
        _VERIFY(STATUS)
     end if
 
-#if !defined( MODEL_GEOS )
-    IF ( ArchivedConv .AND. am_I_Root ) THEN
-       WRITE(*,*) ' '
-       WRITE(*,*) ' --------------------------------------------------- '
-       WRITE(*,*) ' GEOS-Chem will be using archived convection fields! '
-       WRITE(*,*) ' --------------------------------------------------- '
-       WRITE(*,*) ' '
-    ENDIF
-#endif
-
 #if defined( MODEL_GEOS )
     !=======================================================================
     ! Read GEOSCHEMchem settings 
@@ -3328,33 +3220,6 @@ CONTAINS
        HcoState%EXPORT   => EXPORT
        !HcoState => NULL()
 
-       ! To use archived convection fields
-       IF ( ArchivedConv ) THEN
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_PFI_CN ,           &
-                                 'ARCHIVED_PFI_CN'  , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_PFL_CN ,           &
-                                 'ARCHIVED_PFL_CN'  , notFoundOK=.TRUE., &
-                                  __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_MFC,           &
-                                 'ARCHIVED_CNV_MFC' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_MFD,           &
-                                 'ARCHIVED_CNV_MFD' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_CVW,           &
-                                 'ARCHIVED_CNV_CVW' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_DQRC   ,           &
-                                 'ARCHIVED_DQRC'    , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_REV_CN ,           &
-                                 'ARCHIVED_PFI_CN'  , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_T      ,           &  
-                                 'ARCHIVED_T'       , notFoundOK=.TRUE., &
-                                  __RC__ )
-       ENDIF
 #endif
     ENDIF
 
