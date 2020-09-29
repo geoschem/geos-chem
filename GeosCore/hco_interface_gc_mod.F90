@@ -2610,20 +2610,6 @@ CONTAINS
              ! Actual molecular weight of species [g/mol]
              HcoState%Spc(N)%MW_g       = SpcInfo%MW_g
 
-             ! Emitted molecular weight of species [g/mol].
-             ! Some hydrocarbon species (like ISOP) are emitted and
-             ! transported as a number of equivalent carbon atoms.
-             ! For these species, the emitted molecular weight will
-             ! be 12.0 (the weight of 1 carbon atom).
-             HcoState%Spc(N)%EmMW_g     = SpcInfo%EmMw_g
-
-             ! Emitted molecules per molecules of species [1].
-             ! For most species, this will be 1.0.  For hydrocarbon
-             ! species (like ISOP) that are emitted and transported
-             ! as equivalent carbon atoms, this will be be the number
-             ! of moles carbon per mole species.
-             HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio
-
              ! Set Henry's law coefficients
              HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0   ! [M/atm]
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
@@ -2646,8 +2632,6 @@ CONTAINS
              HcoState%Spc(N)%ModID       = N
              HcoState%Spc(N)%SpcName     = 'SESQ'
              HcoState%Spc(N)%MW_g        = 150.0_hp
-             HcoState%Spc(N)%EmMW_g      = 150.0_hp
-             HcoState%Spc(N)%MolecRatio  = 1.0_hp
              HcoState%Spc(N)%HenryK0     = 0.0_hp
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
@@ -2688,8 +2672,6 @@ CONTAINS
                 HcoState%Spc(M)%ModID      = M
                 HcoState%Spc(M)%SpcName    = TRIM( ThisName )
                 HcoState%Spc(M)%MW_g       = 12.0_hp
-                HcoState%Spc(M)%EmMW_g     = 12.0_hp
-                HcoState%Spc(M)%MolecRatio = 1.0_hp
                 HcoState%Spc(M)%HenryK0    = 0.0_hp
                 HcoState%Spc(M)%HenryCR    = 0.0_hp
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp

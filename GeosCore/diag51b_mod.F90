@@ -520,7 +520,7 @@ CONTAINS
                 ! Archive afternoon points
                 Q(X,Y,K,W) = Q(X,Y,K,W) + &
                            ( Spc(I,J,L,N) * ( AIRMW &
-                           / State_Chm%SpcData(N)%Info%emMW_g ) &
+                           / State_Chm%SpcData(N)%Info%MW_g ) &
                              * GOOD(I) )
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
@@ -534,46 +534,46 @@ CONTAINS
 
                 ! NO
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_NO)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_NO)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_NO)    )
 
                 ! NO2
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_NO2)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_NO2)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_NO2)   )
                 ! PAN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_PAN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_PAN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_PAN)   )
 
                 ! HNO3
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_HNO3)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_HNO3)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_HNO3)  )
 
                 ! MPAN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_MPAN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_MPAN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_MPAN)   )
 
                 ! PPN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_PPN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_PPN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_PPN)   )
 
                 ! R4N2
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_R4N2)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_R4N2)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_R4N2)  )
 
                 ! N2O5
                 TMP = TMP + ( 2e+0_fp * ( AIRMW &
-                          / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_N2O5)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_N2O5)  )
 
                 ! HNO4
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_HNO4)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_HNO4)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_HNO4)  )
 
                 ! Save afternoon points
@@ -627,7 +627,7 @@ CONTAINS
                            ( Spc(I,J,L,id_SALA)   + &
                              Spc(I,J,L,id_SALC) ) * &
                              ( AIRMW / &
-                               State_Chm%SpcData(id_SALA)%Info%emMW_g ) &
+                               State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                                * GOOD(I)
 
              ELSE IF ( N == 509 ) THEN

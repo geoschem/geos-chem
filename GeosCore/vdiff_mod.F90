@@ -2006,7 +2006,7 @@ CONTAINS
     ! Convert v/v -> m/m (i.e., kg/kg)
     DO NA = 1, nAdvect
        p_as2(:,:,:,NA) = p_as2(:,:,:,NA)                                     &
-                       / ( AIRMW / State_Chm%SpcData(NA)%Info%emMW_g        )
+                       / ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 
     ! Convert g/kg -> kg/kg
@@ -2036,7 +2036,7 @@ CONTAINS
     ! Convert kg/kg -> v/v
     DO NA = 1, nAdvect
        p_as2(:,:,:,NA) = p_as2(:,:,:,NA)                                     &
-                       * ( AIRMW / State_Chm%SpcData(NA)%Info%emMW_g        )
+                       * ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 
     ! Convert kg/kg -> g/kg

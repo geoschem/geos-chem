@@ -670,8 +670,6 @@ CONTAINS
     !DO N = 1, State_Chm%nAdvect
     !   WRITE( 700, 700 ) N, State_Chm%SpcData(N)%Info%Name,                  &
     !                        State_Chm%SpcData(N)%Info%Mw_g,                  &
-    !                        State_Chm%SpcData(N)%Info%EmMw_g,                &
-    !                        State_Chm%SpcData(N)%Info%MolecRatio,            &
     !                        MAX(State_Chm%SpcData(N)%Info%Henry_K0, 0.0_fp), &
     !                        MAX(State_Chm%SpcData(N)%Info%Henry_CR, 0.0_fp), &
     !                        MAX(State_Chm%SpcData(N)%Info%Henry_pKa,0.0_fp)

@@ -403,19 +403,19 @@ CONTAINS
              if (l.eq.lm) then !top model layer
                 dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *             &
                       State_Met%AD(I,J,L) / ( AIRMW               &
-                      / State_Chm%SpcData(NTRACER)%Info%emMW_g )) &
+                      / State_Chm%SpcData(NTRACER)%Info%MW_g ))   &
                       / ( State_Grid%Area_M2(I,J) * 1e+4_fp )     &
                       * AVO / (AIRMW / ( AIRMW                    &
-                      / State_Chm%SpcData(NTRACER)%Info%emMW_g )  &
+                      / State_Chm%SpcData(NTRACER)%Info%MW_g )    &
                       *1e-3_fp) / 2.687e+16_fp
                 colo3(i,j,l) = dcolo3(i,j,l)*0.5
              else
                 dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *             &
                       State_Met%AD(I,J,L) / ( AIRMW               &
-                      / State_Chm%SpcData(NTRACER)%Info%emMW_g )) &
+                      / State_Chm%SpcData(NTRACER)%Info%MW_g ))   &
                       / ( State_Grid%Area_M2(I,J) * 1e+4_fp )     &
                       * AVO / (AIRMW / ( AIRMW                    &
-                      / State_Chm%SpcData(NTRACER)%Info%emMW_g )  &
+                      / State_Chm%SpcData(NTRACER)%Info%MW_g )    &
                       *1e-3_fp) / 2.687e+16_fp
                 colo3(i,j,l) = colo3(i,j,l+1) +                   &
                      (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5

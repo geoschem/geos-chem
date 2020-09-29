@@ -588,14 +588,6 @@ CONTAINS
    ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
    !=================================================================
 
-   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
-   ! the molecular weight stored in the species database which is
-   ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when
-   ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at
-   ! State_Chm%Spc_Units. (ewl, 8/11/16)
-
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
 110 FORMAT( 'Min and Max of each species in restart file [mol/mol]:' )
@@ -608,7 +600,7 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
-      MW_g    =  SpcInfo%emMW_g
+      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
       v_name = 'SPC_' // TRIM( SpcInfo%Name )
@@ -1373,14 +1365,6 @@ CONTAINS
    ! store in State_Chm%BoundaryCond in [kg/kg dry]
    !=================================================================
 
-   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
-   ! the molecular weight stored in the species database which is
-   ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when
-   ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at
-   ! State_Chm%Spc_Units. (ewl, 8/11/16)
-
    ! Initialize BCs to all zeroes
    State_Chm%BoundaryCond = 0.e+0_fp
 
@@ -1392,7 +1376,7 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
-      MW_g    =  SpcInfo%emMW_g
+      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
       v_name = 'BC_' // TRIM( SpcInfo%Name )
@@ -1556,7 +1540,7 @@ CONTAINS
     INTEGER                 :: Hg_Cat,  topMix
     INTEGER                 :: S
     REAL(fp)                :: dep,     emis
-    REAL(fp)                :: EmMW_kg, fracNoHg0Dep
+    REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
 
     ! Strings
@@ -1731,7 +1715,7 @@ CONTAINS
           CALL GetHcoValDep( NA, I, J, L, found, dep )
           IF ( found ) THEN
              dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%EmMW_g)  )
+                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
           ENDIF
 
           ! Free pointers
@@ -1763,7 +1747,7 @@ CONTAINS
           ! given that spc is in v/v
           dflx(I,J,N) = dflx(I,J,N) &
                       + State_Chm%DryDepSav(I,J,ND) * spc(I,J,N)             &
-                      /  ( AIRMW                    / ThisSpc%EmMW_g        )
+                      /  ( AIRMW                    / ThisSpc%MW_g        )
 
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
@@ -1886,7 +1870,7 @@ CONTAINS
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, EmMw_kg, tmpFlx, S                    )
+       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -1899,8 +1883,8 @@ CONTAINS
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
           ThisSpc => State_Chm%SpcData(N)%Info
 
-          ! Get the (emitted) molecular weight of the species in kg
-          EmMW_kg = ThisSpc%emMW_g * 1.e-3_fp
+          ! Get the molecular weight of the species in kg
+          MW_kg = ThisSpc%MW_g * 1.e-3_fp
 
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
@@ -1908,9 +1892,9 @@ CONTAINS
           ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
           !
           ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
-          ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
+          ! (2) multiplying by ( AVO / MW_KG )    => molec/cm2/s
           !
-          ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
+          ! The term AVO/MW_kg = (molec/mol) / (kg/mol) = molec/kg
           !
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
@@ -1936,7 +1920,7 @@ CONTAINS
              IF ( S > 0 ) THEN
                 State_Diag%DryDepMix(:,:,S) = Dflx(:,:,N)                    &
                                             * 1.0e-4_fp                      &
-                                            * ( AVO / EmMW_kg  )
+                                            * ( AVO / MW_kg  )
              ENDIF
           ENDIF
 
@@ -1956,7 +1940,7 @@ CONTAINS
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N)                                         &
-	               / EmMW_kg                                             &
+	               / MW_kg                                               &
                        * AVO           * 1.e-4_fp                            &
                        * GET_TS_CONV() / GET_TS_EMIS()
 

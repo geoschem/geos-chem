@@ -1466,8 +1466,8 @@ CONTAINS
 
              ! Amt of POPG lost to drydep [molec/cm2/s]
              DEP_DRY_FLXG = DEP_POPG_DRY * AVO &
-                            / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                            / ( AREA_CM2 * DTCHEM         )
+                            / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                            / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPG) = &
@@ -1487,8 +1487,8 @@ CONTAINS
 
              ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPOCPO) = &
@@ -1508,8 +1508,8 @@ CONTAINS
 
              ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPOCPI) = &
@@ -1529,8 +1529,8 @@ CONTAINS
 
              ! Amt of POPPBCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPBCPO) = &
@@ -1550,8 +1550,8 @@ CONTAINS
 
              ! Amt of POPPBCPI lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPBCPI) = &

@@ -1306,7 +1306,7 @@ CONTAINS
 
                 ! Amt of Hg(0) lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
@@ -1326,7 +1326,7 @@ CONTAINS
 
                 ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
@@ -1346,7 +1346,7 @@ CONTAINS
 
                 ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)

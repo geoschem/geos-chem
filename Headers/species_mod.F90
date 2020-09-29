@@ -25,7 +25,7 @@ MODULE Species_Mod
   PUBLIC :: SpcData_Init
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Print
-
+!
 ! !PUBLIC TYPES:
 !
   !=========================================================================
@@ -100,8 +100,6 @@ MODULE Species_Mod
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
-     REAL(fp)           :: EmMW_g           ! Emitted molecular weight [g/mol]
-     REAL(fp)           :: MolecRatio       ! Mol carbon / mol species [1    ]
 
      ! Default background concentration
      REAL(fp)           :: BackgroundVV     ! Background conc [v/v]
@@ -177,14 +175,6 @@ MODULE Species_Mod
   ! background value not defined
   !=========================================================================
   REAL(fp), PARAMETER, PUBLIC :: MISSING_VV  = 1.0e-20_fp ! Missing spc conc
-!
-! !REMARKS:
-! (1) The emission molecular weight is the molecular weight of the emitted
-!      compound. This value is only different to MW_g if the emitted compound
-!      does not correspond to the transported species, e.g. if emissions are
-!      in kg C4H10 but the corresponding species is transported as mass Carbon.
-! (2) MolecRatio is the ratio between # of species molecules per emitted
-!      molecule, e.g. 4 if emissions are kg C4H10 but model species are kg C.
 !
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
@@ -408,9 +398,7 @@ CONTAINS
     Spc%DD_KOA          = MISSING
     Spc%DD_Hstar        = MISSING
     Spc%Density         = MISSING
-    Spc%EmMW_g          = MISSING
     Spc%MW_g            = MISSING
-    Spc%MolecRatio      = MISSING
     Spc%Radius          = MISSING
     Spc%WD_AerScavEff   = MISSING
     Spc%WD_ConvFacI2G   = MISSING
@@ -482,8 +470,6 @@ CONTAINS
        WRITE( 6, 110 )       "FullName       ",  TRIM( ThisSpc%FullName )
        WRITE( 6, 110 )       "Formula        ",  TRIM( ThisSpc%Formula  )
        WRITE( 6, 121 )       "MW_g           ",  ThisSpc%MW_g
-       WRITE( 6, 121 )       "EmMW_g         ",  ThisSpc%EmMW_g
-       WRITE( 6, 121 )       "MolecRatio     ",  ThisSpc%MolecRatio
        IF ( ThisSpc%Is_Gas ) THEN
           WRITE( 6, "(a)" )  "Gas or aerosol  : GAS"
        ELSE IF ( ThisSpc%Is_Aerosol ) THEN

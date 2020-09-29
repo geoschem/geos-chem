@@ -1472,7 +1472,7 @@ CONTAINS
     REAL(fp)               :: RUM,       RWET,   RATIO_R
     REAL(fp)               :: TOT1,      TOT2
     REAL(fp)               :: DEN
-    REAL(fp)               :: EmMw_g
+    REAL(fp)               :: MW_g
     REAL(f8)               :: RHO1,      WTP,    RHO
 
     ! Arrays
@@ -1520,8 +1520,8 @@ CONTAINS
     ! Drydep species index
     DryDep_Id     =  ThisSpc%DryDepId
 
-    ! Emitted Mol Wt [g], aerosol radius [m], and density [kg/m3]
-    EmMW_g        =  ThisSpc%EmMW_g
+    ! Molecular weight [g], aerosol radius [m], and density [kg/m3]
+    MW_g          =  ThisSpc%MW_g
     REFF          =  ThisSpc%Radius
     DEN           =  ThisSpc%Density
 
@@ -1725,7 +1725,7 @@ CONTAINS
 
           ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
           FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( EmMW_g * 1.e-3_fp ) / AREA_CM2
+          FLUX     = FLUX * AVO / ( MW_g * 1.e-3_fp ) / AREA_CM2
 
           ! Store in global AD44 array for bpch diagnostic output
           AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
@@ -1759,7 +1759,7 @@ CONTAINS
 
           ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
           FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( EmMW_g * 1.e-3_fp ) / AREA_CM2
+          FLUX     = FLUX * AVO / ( MW_g * 1.e-3_fp ) / AREA_CM2
 
           ! Drydep flux in chemistry only
           S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
@@ -2729,9 +2729,9 @@ CONTAINS
        ! XW 6/9/19
        IF ( .NOT. FullRun) Then
           SSAlk(I,J,L,1) = AlkA * (7.0d-2 * State_Met%AD(I,J,L)) / &
-                (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
+                (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g)
           SSAlk(I,J,L,2) = AlkC * (7.0d-2 * State_Met%AD(I,J,L)) / &
-                (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%emMW_g)
+                (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g)
        ENDIF
        ! Update sea salt alkalinity [v/v] in FullRun, XW 12/8/17
        IF (FullRun) Then
@@ -3003,7 +3003,7 @@ CONTAINS
                        Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                        1.e+12_fp * State_Met%AD(I,J,L)             &
                        / ( AIRMW                                   &
-                         / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
+                         / State_Chm%SpcData(id_DST1)%Info%MW_g )&
                        / State_Met%AIRVOL(I,J,L)                   
           
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
@@ -3053,7 +3053,7 @@ CONTAINS
              DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) + &
                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                       1.e+12_fp * State_Met%AD(I,J,L) &
-                      / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%emMW_g ) &
+                      / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
                       / State_Met%AIRVOL(I,J,L)
 #endif
 
@@ -3068,7 +3068,7 @@ CONTAINS
              IF ( id_pFe > 0 ) THEN
                 Fe_ant = Spc(I,J,L,id_pFe) * &
                          1.e+12_fp * State_Met%AD(I,J,L) &
-                         / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%emMW_g ) &
+                         / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g ) &
                          / State_Met%AIRVOL(I,J,L)
              ELSE
                 Fe_ant = 0e+0_fp
@@ -3097,10 +3097,10 @@ CONTAINS
              ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
              IF ( LWC > 0e+0_fp ) THEN
                 Fe_d_ant = Fe_ant * 1e-9_fp / &
-                           State_Chm%SpcData(id_pFe)%Info%emMW_g / &
+                           State_Chm%SpcData(id_pFe)%Info%MW_g / &
                            LWC * 1e-3_fp
                 Fe_d_nat = Fe_nat * 1e-9_fp / &
-                           State_Chm%SpcData(id_pFe)%Info%emMW_g / &
+                           State_Chm%SpcData(id_pFe)%Info%MW_g / &
                            LWC * 1e-3_fp
                 Fe_d     = Fe_d_ant * 0.1e+0_fp + &
                            Fe_d_nat * 0.01e+0_fp
@@ -3387,13 +3387,13 @@ CONTAINS
           ALKdst = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +            &
                      Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *          &
                      1.e+9_fp * State_Met%AD(I,J,L)                       &
-                     / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%emMW_g ) &
+                     / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
                      / State_Met%AIRVOL(I,J,L)
 #endif
 
           ALKss  = ( Spc(I,J,L,id_SALA  ) + Spc(I,J,L,id_SALC) ) *        &
                      1.e+9_fp * State_Met%AD(I,J,L)                       &
-                     / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%emMW_g ) &
+                     / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                      / State_Met%AIRVOL(I,J,L)
 
           ALKds = ALKdst + ALKss
@@ -3963,8 +3963,8 @@ CONTAINS
     AIRVOL  => State_Met%AIRVOL
 
     ! Uncomment if transporting salinity/alkalinity as needed
-    MW_SAL1 =  State_Chm%SpcData(id_SALAAL)%Info%emMW_g
-    MW_SAL2 =  State_Chm%SpcData(id_SALCAL)%Info%emMW_g
+    MW_SAL1 =  State_Chm%SpcData(id_SALAAL)%Info%MW_g
+    MW_SAL2 =  State_Chm%SpcData(id_SALCAL)%Info%MW_g
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM  = GET_TS_CHEM()
@@ -4449,10 +4449,10 @@ CONTAINS
     AIRVOL              => State_Met%AIRVOL
 
     ! Set molecular weights locally
-    MW_SO2  = State_Chm%SpcData(id_SO2)%Info%emMW_g
-    MW_SO4  = State_Chm%SpcData(id_SO4)%Info%emMW_g
-    MW_NIT  = State_Chm%SpcData(id_NIT)%Info%emMW_g
-    MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
+    MW_SO2  = State_Chm%SpcData(id_SO2)%Info%MW_g
+    MW_SO4  = State_Chm%SpcData(id_SO4)%Info%MW_g
+    MW_NIT  = State_Chm%SpcData(id_NIT)%Info%MW_g
+    MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%MW_g
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM = GET_TS_CHEM()
@@ -6744,8 +6744,8 @@ CONTAINS
     HNO3 = GNO3 * 1.0e12_fp
 
     ! Set molecular weight local variables
-    MW_SO4 = State_Chm%SpcData(id_SO4)%Info%emMW_g
-    MW_SALC = State_Chm%SpcData(id_SALC)%Info%emMW_g
+    MW_SO4 = State_Chm%SpcData(id_SO4)%Info%MW_g
+    MW_SALC = State_Chm%SpcData(id_SALC)%Info%MW_g
 
     ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
     SO4 = ( aSO4 * AD(I,J,L) * 1.0e+9_fp ) / &
@@ -7238,7 +7238,7 @@ CONTAINS
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
-                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%emMW_g )
+                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
 
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
@@ -7676,7 +7676,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)            :: OH_MOLEC_CM3, MolecRatio
+    REAL(fp)            :: OH_MOLEC_CM3
 
     !=================================================================
     ! GET_OH begins here!
@@ -7692,10 +7692,9 @@ CONTAINS
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
-          MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
           OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) &
                          * State_Met%AIRDEN(I,J,L) * 1e+3_fp * AVO &
-                         / ( AIRMW * MolecRatio )
+                         / AIRMW 
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF
@@ -8043,9 +8042,9 @@ CONTAINS
     !! or using Liao et al [2004] assumption of a continuous supply of
     ! alkalinity based on Laskin et al. [2003]
     !ALK1 = Spc(I,J,L,id_SALA) * State_Met%AD(I,J,L)/
-    !  & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%emMW_g )
+    !  & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g )
     !ALK2 = Spc(I,J,L,id_SALC) * State_Met%AD(I,J,L)/
-    !  & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%emMW_g )
+    !  & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%MW_g )
     !-----------------------------------------------------------------------
 
     ! Conversion from [m-3] --> [cm-3]
@@ -8053,14 +8052,14 @@ CONTAINS
     !N2 = N_DENS(I,J,L,2) * 1.d-6
        !Read Alkalinity from Alkalinity tracers [v/v] to [kg], xnw 12/8/17
     ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/ &
-         ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g )
+         ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
     ALK2 = State_Chm%Species(I,J,L,id_SALCAL) * State_Met%AD(I,J,L)/ &
-      ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%emMW_g )
+      ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
     !Seasalt mass, [v/v] to [kg]
     !SLA = State_Chm%Species(I,J,L,id_SALA) * State_Met%AD(I,J,L)/
-    !     & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%emMW_g )
+    !     & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g )
     !SLC = State_Chm%Species(I,J,L,id_SALC) * State_Met%AD(I,J,L)/
-    !     & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%emMW_g )
+    !     & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%MW_g )
 
 
     ALK = ALK1 + ALK2

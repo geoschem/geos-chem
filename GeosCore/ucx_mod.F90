@@ -406,13 +406,13 @@ CONTAINS
        ! may not be present or correctly defined
        OLD_N   = 0.0_fp
        OLD_NO  = Spc(I,J,L,id_NO) * &
-                 (AIRMW / State_Chm%SpcData(id_NO )%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO )%Info%MW_g) * XAIR
        OLD_NO2 = Spc(I,J,L,id_NO2) * &
-                 (AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO2)%Info%MW_g) * XAIR
        OLD_NO3 = Spc(I,J,L,id_NO3) * &
-                 (AIRMW / State_Chm%SpcData(id_NO3)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO3)%Info%MW_g) * XAIR
        OLD_N2O = kgN2O * &
-                 (AIRMW / State_Chm%SpcData(id_N2O)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_N2O)%Info%MW_g) * XAIR
 
        ! Total concentrations
        localNOx = OLD_N + OLD_NO + OLD_NO2 + OLD_NO3
@@ -420,7 +420,7 @@ CONTAINS
 
        ! Get ozone from model
        LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / &
-                  State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
+                  State_Chm%SpcData(id_O3)%Info%MW_g ) * XAIR
 
        ! These reactions are relevant during both day and night-time
        ! chemistry
@@ -527,14 +527,14 @@ CONTAINS
 
           ! Calculate NOx in kg NO at the beginning
           kgNOx = localNOx / (AIRMW / &
-                  State_Chm%SpcData(id_NO )%Info%emMW_g*XAIR)
+                  State_Chm%SpcData(id_NO )%Info%MW_g*XAIR)
 
           ! Calculate total change in NOx and N2O
           ! Explicit Euler method (fast)
           DNOX = NOXRATE * DTCHEM / ( ( AIRMW / &
-                 State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
+                 State_Chm%SpcData(id_NO)%Info%MW_g) * XAIR )
           DN2O = N2ORATE * DTCHEM / ( AIRMW / &
-                 State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
+                 State_Chm%SpcData(id_N2O)%Info%MW_g * XAIR )
 
           ! Safety check - ensure NOx and N2O are positive
           IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
@@ -558,11 +558,11 @@ CONTAINS
        ! using negative molar mass for N (SDE 2018-03-19)
        NEW_N   = 0.0e+0_fp
        NEW_NO  = localNOx*(fracN+fracNO) / (AIRMW/ &
-                 State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO )%Info%MW_g * XAIR)
        NEW_NO2 = localNOx*fracNO2/(AIRMW/ &
-                 State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO2)%Info%MW_g * XAIR)
        NEW_NO3 = localNOx*fracNO3/(AIRMW/ &
-                 State_Chm%SpcData(id_NO3)%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO3)%Info%MW_g * XAIR)
        NEW_N2O = kgN2O
 
        Spc(I,J,L,id_N)   = 0.d0
@@ -867,8 +867,8 @@ CONTAINS
     LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
 
     ! Copy fields from species database
-    NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
-    HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
+    NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%MW_g  ! g/mol
+    HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%MW_g ! g/mol
 
     ! Initialize pointers
     Spc       => State_Chm%Species     ! Chemical species [kg]
@@ -1437,7 +1437,7 @@ CONTAINS
     prtDebug = Input_Opt%LPRT .and. Input_Opt%amIRoot
 
     ! Copy fields from species database
-    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
 
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
@@ -1707,9 +1707,9 @@ CONTAINS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Copy fields from species database
-    NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%emMW_g   ! g/mol
-    HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%emMW_g  ! g/mol
-    H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%emMW_g   ! g/mol
+    NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%MW_g   ! g/mol
+    HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%MW_g  ! g/mol
+    H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%MW_g   ! g/mol
 
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
@@ -2013,19 +2013,19 @@ CONTAINS
 
        ! Calculate mixing ratios of other relevant species
        H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / &
-                  State_Chm%SpcData(id_SO4)%Info%emMW_g
+                  State_Chm%SpcData(id_SO4)%Info%MW_g
        BrNO3SUM = Spc(I,J,L,id_BrNO3) * INVAIR / &
-                  State_Chm%SpcData(id_BrNO3)%Info%emMW_g
+                  State_Chm%SpcData(id_BrNO3)%Info%MW_g
        ClNO3SUM = Spc(I,J,L,id_ClNO3) * INVAIR / &
-                  State_Chm%SpcData(id_ClNO3)%Info%emMW_g
+                  State_Chm%SpcData(id_ClNO3)%Info%MW_g
        HOClSUM  = Spc(I,J,L,id_HOCl) * INVAIR / &
-                  State_Chm%SpcData(id_HOCl)%Info%emMW_g
+                  State_Chm%SpcData(id_HOCl)%Info%MW_g
        HClSUM   = Spc(I,J,L,id_HCl) * INVAIR / &
-                  State_Chm%SpcData(id_HCl)%Info%emMW_g
+                  State_Chm%SpcData(id_HCl)%Info%MW_g
        HOBrSUM  = Spc(I,J,L,id_HOBr) * INVAIR / &
-                  State_Chm%SpcData(id_HOBr)%Info%emMW_g
+                  State_Chm%SpcData(id_HOBr)%Info%MW_g
        HBrSUM   = Spc(I,J,L,id_HBr) * INVAIR / &
-                  State_Chm%SpcData(id_HBr)%Info%emMW_g
+                  State_Chm%SpcData(id_HBr)%Info%MW_g
 
        ! H2SO4 gas fraction calculated earlier throughout grid
        ! Consider gaseoues H2SO4 to be unavailable for SLA
@@ -3805,8 +3805,8 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from species database
-    SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%emMW_g ! g/mol
-    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+    SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%MW_g ! g/mol
+    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
     RELWT    = SO2_MW_G / SO4_MW_G
 
     ! Initialize GEOS-Chem species array [kg]
