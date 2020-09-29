@@ -85,20 +85,7 @@ MODULE NCDF_MOD
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller   - Initial version
-!  13 Jun 2014 - R. Yantosca - Now use F90 free-format indentation
-!  13 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  10 Jul 2014 - R. Yantosca - Add GET_TAU0 as a PRIVATE local routine
-!  12 Dec 2014 - C. Keller   - Added NC_ISMODELLEVEL
-!  19 Sep 2016 - R. Yantosca - Rewrite NC_VAR_WRITE overloaded functions to
-!                              remove optional args (which chokes Gfortran)
-!  19 Sep 2016 - R. Yantosca - Now include netcdf.inc once at top of module
-!  19 Sep 2016 - R. Yantosca - Remove extra IMPLICIT NONE statements, we only
-!                              need to declare it once at the top of module
-!  10 Apr 2017 - R. Yantosca - Renamed routine NC_READ_TIME_YYYYMMDDhh to
-!                              NC_READ_TIME_YYYYMMDDhhmm, to indicate that
-!                              it will now uses YYYYYMMDDhhmm format
-!  09 Aug 2017 - R. Yantosca - Add public routine NC_SET_DEFMODE
-!  25 Aug 2017 - R. Yantosca - Add NC_Var_Write_*_0D routines
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,6 +157,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,6 +197,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,6 +246,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,6 +285,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -358,6 +349,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,6 +450,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -499,6 +492,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -541,7 +535,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller   - Initial version
-!  20 Feb 2015 - R. Yantosca - Need to add attType to Ncdoes_Attr_Exist
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,14 +687,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller - Initial version
-!  18 Jan 2012 - C. Keller - Now reads 4D, 3D, and 2D arrays, with
-!                            optional dimensions level and time.
-!  18 Apr 2012 - C. Keller - Now also read & apply offset and scale factor
-!  27 Feb 2015 - C. Keller - Added weights.
-!  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
-!  20 Nov 2015 - C. Keller - Bug fix: now read times if weights need be applied.
-!  23 Nov 2015 - C. Keller - Initialize all temporary arrays to 0.0 when allocating
-!  09 Jan 2017 - C. Keller - Bug fix: store time-weighted arrays in temporary array
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1290,11 +1277,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller   - Initial version
-!  09 Oct 2014 - C. Keller   - Now also support 'minutes since ...'
-!  05 Nov 2014 - C. Keller   - Bug fix if reference datetime is in minutes.
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  05 Apr 2017 - C. Keller   - Now also support 'seconds since ...'
-!  10 Apr 2017 - R. Yantosca - Now return times in YYYYMMDDhhmm
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1424,8 +1407,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2012 - C. Keller - Initial version
-!  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
-!  20 Nov 2015 - C. Keller - Now also support 'seconds since ...'
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1643,6 +1625,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Nov 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1806,6 +1789,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1992,6 +1976,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jul 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2042,6 +2027,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jul 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2091,6 +2077,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jul 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2294,6 +2281,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2341,6 +2329,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2399,6 +2388,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2580,7 +2570,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller   - Initial version
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2821,6 +2811,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2901,6 +2892,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2974,6 +2966,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3048,9 +3041,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  10 May 2017 - R. Yantosca - Don't manually increment vId, it's returned
-!                              as an output from NCDEF_VARIABLE
-!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3293,7 +3284,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  13 Jun 2014 - R. Yantosca - Avoid array temporaries
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3377,6 +3368,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3430,6 +3422,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3517,18 +3510,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  11 Jan 2016 - R. Yantosca - Added optional CREATE_NC4 to save as netCDF-4
-!  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
-!  08 Aug 2017 - R. Yantosca - Add more optional arguments (mostly global atts)
-!  08 Aug 2017 - R. Yantosca - Now define in dims in order: time,lev,lat,lon
-!  08 Aug 2017 - R. Yantosca - Add optional KeepDefMode argument so that we can
-!                              stay in netCDF define mode upon leaving this
-!                              routine (i.e. to define variables afterwards)
-!  24 Aug 2017 - R. Yantosca - Added nIlev and iLevId variables so that we can
-!                               create the iLev dimension (level interfaces)
-!  24 Jan 2018 - R. Yantosca - Add update frequency as an optional global attr
-!  31 Jan 2018 - R. Yantosca - Add StartTimeStamp, EndTimeStamp arguments
-!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3766,13 +3748,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid
-!                              excessive switching between define & data modes
-!  18 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
-!  08 Aug 2017 - R. Yantosca - Add more optional arguments for variable atts
-!  24 Aug 2017 - R. Yantosca - Added StandardName, FormulaTerms arguments
-!  24 Aug 2017 - R. Yantosca - Added optional Ilev dimension so that we can
-!                               define variables on level interfaces
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3990,8 +3966,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2017 - R. Yantosca - Initial version
-!  11 Sep 2017 - R. Yantosca - Do not call NF_DEF_VAR_CHUNKING if the netCDF
-!                               library was built w/o compression enabled
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4044,6 +4019,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Aug 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4090,8 +4066,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_1D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4145,8 +4120,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_2D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4206,8 +4180,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_3D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4267,8 +4240,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_4D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4328,6 +4300,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Aug 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4374,8 +4347,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_1D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4429,8 +4401,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_2D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4490,8 +4461,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_3D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4551,8 +4521,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_1D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4611,6 +4580,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Aug 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4657,8 +4627,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_1D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4712,8 +4681,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_2D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4773,8 +4741,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_3D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4834,8 +4801,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
-!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_1D
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4910,17 +4876,7 @@ CONTAINS
 !  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
 !
 ! !REVISION HISTORY:
-!  (1 ) 1985 is the first year of the GEOS epoch.
-!  (2 ) Add TAU0 values for years 1985-2001 (bmy, 8/1/00)
-!  (3 ) Correct error for 1991 TAU values.  Also added 2002 and 2003.
-!        (bnd, bmy, 1/4/01)
-!  (4 ) Updated comments  (bmy, 9/26/01)
-!  (5 ) Now references JULDAY from "julday_mod.f" (bmy, 11/20/01)
-!  (6 ) Now references ERROR_STOP from "error_mod.f"  (bmy, 10/15/02)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  10 Jul 2014 - R. Yantosca - Add this routine as a PRIVATE module variable
-!                              to prevent ncdf_mod.F90 from using bpch2_mod.F
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4979,7 +4935,8 @@ CONTAINS
 
   END FUNCTION GET_TAU0
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GFSC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5009,6 +4966,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Dec 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5044,7 +5002,8 @@ CONTAINS
   END FUNCTION NC_IsModelLevel
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GFSC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5074,6 +5033,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Dec 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

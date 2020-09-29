@@ -26,8 +26,6 @@ MODULE Charpak_Mod
   PUBLIC  :: CStrip
   PUBLIC  :: IsDigit
   PUBLIC  :: ReadOneLine
-  PUBLIC  :: Str2Hash14
-  PUBLIC  :: Str2Hash31
   PUBLIC  :: StrRepl
   PUBLIC  :: StrSplit
   PUBLIC  :: StrSqueeze
@@ -36,6 +34,7 @@ MODULE Charpak_Mod
   PUBLIC  :: TranUc
   PUBLIC  :: Txtext
   PUBLIC  :: WordWrapPrint
+  PUBLIC  :: Unique
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -45,27 +44,7 @@ MODULE Charpak_Mod
 !  made for GEOS-CHEM by Bob Yantosca (1998, 2002, 2004).
 !
 ! !REVISION HISTORY:
-!  (1 ) Moved "cntmat.f", "copytxt.f", "cstrip.f", "fillstr.f", "txt2inum.f",
-!        "txtext.f", into this F90 module for easier bookkeeping
-!        (bmy, 10/15/01)
-!  (2 ) Moved "tranuc.f" into this F90 module (bmy, 11/15/01)
-!  (3 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
-!        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)
-!  (4 ) Wrote a new file "strrepl.f", which replaces a character pattern
-!        within a string with replacement text.  Moved "tranlc.f" into
-!        this module.  Replaced calls to function LENTRIM with F90
-!        intrinsic function LEN_TRIM.  Removed function FILLSTR and
-!        replaced it w/ F90 intrinsic REPEAT. (bmy, 6/25/02)
-!  (5 ) Added routine STRSPLIT as a wrapper for TXTEXT.  Also added
-!        routines STRREPL and STRSQUEEZE. (bmy, 7/30/02)
-!  (6 ) Added function ISDIGIT.  Also replace LEN_TRIM with LEN in routine
-!        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  07 Aug 2017 - R. Yantosca - Add ProTeX headers for subroutines
-!  31 Oct 2017 - R. Yantosca - Converted module to F90 free-format
-!  01 Nov 2017 - R. Yantosca - Added ReadOneLine and CleanText
-!  01 Nov 2017 - R. Yantosca - Added MaxStrLen parameter for ReadOneLine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,8 +87,7 @@ CONTAINS
 !     COMMENTS: Revised slightly (2-5-1996) so that trailing
 !               blanks in str1 are ignored.  Revised again
 !               on 3-6-1996.
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
-!  20 Dec 2017 - R. Yantosca - Now returns the positions where matches occur
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,7 +159,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !     DATE:   DEC. 24, 1993
 !     AUTHOR: R.D. STEWART
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,8 +215,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!  07 Aug 2017 - R. Yantosca - Added ProTeX header
-!  30 Jan 2018 - R. Yantosca - Added KEEPSPACES optional argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,7 +284,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !     DATE:   NOV. 11, 1993
 !     AUTHOR: R.D. STEWART
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,9 +330,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
-!  07 Aug 2017 - R. Yantosca - Updated algorithm to allow PATTERN and
-!                              REPLTXT to have different numbers of characters
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,7 +387,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Jul 2002 - R. Yantosca - Initial version
-!  30 Sep 2014 - R. Yantosca - WORD now has 2047 chars for extra-long strings
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -472,7 +447,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Jul 2002 - R. Yantosca - Initial version
-!  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,7 +484,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,7 +528,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -633,16 +608,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: Jan. 1st, 1995
-!
-!      REVISIONS: FEB 22, 1996.  Slight bug fix (introduced by a
-!        (recent = FLIB 1.04) change in the CntMat routine)
-!        so that TxtExt correctlyhandles groups of characters
-!        delimited by blanks).
-!
-!      MODIFICATIONS by Bob Yantosca (6/25/02)
-!        (1) Replace call to FILLSTR with F90 intrinsic REPEAT
-!
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -739,156 +705,6 @@ CONTAINS
   END SUBROUTINE TxtExt
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Str2Hash14
-!
-! !DESCRIPTION: Returns a unique integer hash for a given character string.
-!  This allows us to implement a fast name lookup algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Str2Hash14( Str ) RESULT( Hash )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=14), INTENT(IN) :: Str    ! String (14 chars long)
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: Hash   ! Hash value from string
-!
-! !REMARKS:
-!  (1) Algorithm taken from this web page:
-!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
-!
-!  (2) For now, we only use the first 14 characers of the character string
-!       to compute the hash value.  Most GEOS-Chem species names only use
-!       at most 14 unique characters.  We can change this later if need be.
-!
-! !REVISION HISTORY:
-!  04 May 2016 - R. Yantosca - Initial version
-!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    Hash = 5381
-
-    !-----------------------------------------------------------------------
-    ! Construct the hash from the first 14 characters of the string,
-    ! which is about the longest species name for GEOS-Chem.
-    !
-    ! NOTE: It's MUCH faster to explicitly write these statements
-    ! instead of writing them using a DO loop (bmy, 5/4/16)
-    !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
-
-  END FUNCTION Str2Hash14
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Str2Hash
-!
-! !DESCRIPTION: Returns a unique integer hash for a given character string.
-!  This allows us to implement a fast name lookup algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Str2Hash31( Str ) RESULT( Hash )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=31), INTENT(IN) :: Str    ! String (31 chars long)
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: Hash   ! Hash value from string
-!
-! !REMARKS:
-!  (1) Algorithm taken from this web page:
-!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
-!
-!  (2) For now, we only use the first 31 characers of the character string
-!       to compute the hash value.  Most GEOS-Chem variable names only use
-!       up to 31 unique characters.  We can change this later if need be.
-!
-! !REVISION HISTORY:
-!  26 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    Hash = 5381
-
-    !-----------------------------------------------------------------------
-    ! Construct the hash from the first 31 characters of the string,
-    ! which is about the longest variable name for GEOS-Chem.
-    !
-    ! NOTE: It's MUCH faster to explicitly write these statements
-    ! instead of writing them using a DO loop.
-    !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(15:15) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(16:16) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(17:17) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(18:18) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(19:19) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(20:20) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(21:21) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(22:22) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(23:23) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(24:24) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(25:25) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(26:26) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(27:27) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(28:28) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(29:29) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(30:30) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(31:31) )
-
-  END FUNCTION Str2Hash31
-!EOC
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -916,6 +732,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jun 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,7 +800,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
-!  01 Nov 2017 - R. Yantosca - Moved to charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,8 +861,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
-!  01 Nov 2017 - R. Yantosca - Moved to charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1077,7 +893,7 @@ CONTAINS
 !\\
 !\\
 ! !INTERFACE:
-  !
+!
   SUBROUTINE WordWrapPrint( Text, LineWidth, Delimiter )
 !
 ! !INPUT PARAMETERS:
@@ -1091,6 +907,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2015 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1164,5 +981,77 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE WordWrapPrint
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Unique
+!
+! !DESCRIPTION: Returns only the unique values in a vector of strings.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Unique( vec, vec_unique )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),              INTENT(IN)    :: vec(:)
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT) :: vec_unique(:)
+!
+! !AUTHOR:
+!  Jacob Williams (jacob@degenerateconic.com)
+!  Source code at: http://degenerateconic.com/unique/
+!  Modified for string handling by Bob Yantosca
+!
+! !REVISION HISTORY:
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    integer :: i,num
+    logical,dimension(size(vec)) :: mask
+
+    mask = .false.
+
+    ! Loop over all elements
+    do i = 1, SIZE( vec )
+
+       ! Assume that all valid array elements are located
+       ! contiguously  Exit upon the encountering the
+       ! first null character. (bmy, 7/23/19)
+       IF ( LEN_TRIM( vec(I) ) == 0 ) EXIT
+
+       !count the number of occurrences of this element:
+       num = count( vec(i)==vec )
+
+       if (num==1) then
+          !there is only one, flag it:
+          mask(i) = .true.
+       else
+          !flag this value only if it hasn't already been flagged:
+          if (.not. any(vec(i)==vec .and. mask) ) mask(i) = .true.
+       end if
+
+    end do
+
+    !return only flagged elements:
+    IF ( ALLOCATED(  vec_unique ) ) DEALLOCATE( vec_unique )
+    ALLOCATE( vec_unique(count(mask)) )
+    vec_unique = PACK( vec, mask )
+
+    !if you also need it sorted, then do so.
+    ! For example, with slatec routine:
+    !call ISORT (vec_unique, [0], size(vec_unique), 1)
+
+  END SUBROUTINE Unique
 !EOC
 END MODULE CharPak_Mod

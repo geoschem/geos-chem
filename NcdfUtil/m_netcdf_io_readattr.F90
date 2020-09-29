@@ -71,10 +71,7 @@ MODULE m_netcdf_io_readattr
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  30 Apr 2012 - R. Yantosca - Modified for compatibility with netCDF-3
-!  30 Apr 2012 - R. Yantosca - Added comments
-!  26 Sep 2013 - R. Yantosca - Add routines for reading vector attributes
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,9 +110,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,9 +178,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,9 +246,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -323,9 +314,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -393,9 +382,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -463,9 +450,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,9 +518,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -602,9 +585,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -661,9 +642,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -720,9 +699,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -779,9 +756,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,9 +813,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -897,9 +870,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -956,9 +927,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
