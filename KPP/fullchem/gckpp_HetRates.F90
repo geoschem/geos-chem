@@ -28,7 +28,7 @@ MODULE GCKPP_HETRATES
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
   USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
-  USE Precision_Mod,      ONLY : fp
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -2553,8 +2553,8 @@ MODULE GCKPP_HETRATES
       H2Ototal = H2Oinorg + H2Oorg
 
       ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
-      volRatioDry = safe_div(max(volInorg - H2Oinorg, 0d0), &
-                             max(volTotal - H2Ototal, 0d0), 0e+0_fp)
+      volRatioDry = safe_div(max(volInorg - H2Oinorg, 0.0_fp),               &
+                             max(volTotal - H2Ototal, 0.0_fp), 0.0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -4823,7 +4823,7 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law [M/atm]
       H_K0_O3 = H%O3%K0 * con_atm_bar
-      H_X     = H_K0_O3 * dexp( H%O3%CR * ( 1.0e0_fp/T - 1.0e0_fp/H%O3%TK ) )
+      H_X     = H_K0_O3 * EXP( H%O3%CR * ( 1.0e0_fp/T - 1.0e0_fp/H%O3%TK ) )
 
       ! O3 mol wt (kg/mol)
       M_X = H%O3%MW_g * 1e-3_fp
@@ -4843,7 +4843,7 @@ MODULE GCKPP_HETRATES
       ! Mass accommodation coefficient
       ab = 1.3e-2_fp
 
-      cavg = dsqrt(8.0e+0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
+      cavg = SQRT(8.0e+0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
 
       ! Liquid phase diffusion coefficient [cm2/s] for NO3
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -4856,7 +4856,7 @@ MODULE GCKPP_HETRATES
 
       H_X = 0.6e+0_fp !M atm-1
       H_X = H_X * con_atm_bar !M/bar
-      l_r = dsqrt(D_l / k_tot)
+      l_r = SQRT(D_l / k_tot)
 !
 !      IF (K_Tot .EQ. 0.0) THEN
 !         K_tot = 1.0e-2_fp
@@ -4923,7 +4923,7 @@ MODULE GCKPP_HETRATES
       ab       = 0.8_fp
 
       ! thermal velocity (cm/s)
-      cavg     = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X) ) *1.0e2_fp
+      cavg     = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for HOCl
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -4936,9 +4936,9 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOCl   = H%HOCl%K0 * con_atm_bar
-      H_X      = H_HOCl * dexp( H%HOCl%CR * ( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
+      H_X      = H_HOCl * EXP( H%HOCl%CR * ( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
 
-      l_r      = dsqrt( D_l / k_tot )
+      l_r      = SQRT( D_l / k_tot )
       gb_tot   = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot   = gb_tot * REACTODIFF_CORR( Radius, l_r )
 
@@ -5007,7 +5007,7 @@ MODULE GCKPP_HETRATES
       ab       = 0.8_fp
 
       ! thermal velocity (cm/s)
-      cavg     = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg     = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for HOCl
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -5015,9 +5015,9 @@ MODULE GCKPP_HETRATES
 
       k_ter    = 1.5e+4_fp                 ! M-1s-1
       H_HOCl   = H%HOCl%K0 * con_atm_bar   ! M/bar
-      H_X      = H_HOCl*dexp( H%HOCl%CR *( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
+      H_X      = H_HOCl*EXP( H%HOCl%CR *( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
 
-      l_r = dsqrt(D_l / (k_ter * C_H * C_X))
+      l_r = SQRT(D_l / (k_ter * C_H * C_X))
       gb       = 4.0_fp * H_X * con_R * T * l_r * k_ter * C_H * C_X / cavg
       gb       = gb * REACTODIFF_CORR( Radius, l_r)
 
@@ -5085,7 +5085,7 @@ MODULE GCKPP_HETRATES
       ab        = 0.01_fp
 
       ! thermal velocity (cm/s)
-      cavg      = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg      = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for ClNO2
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -5103,7 +5103,7 @@ MODULE GCKPP_HETRATES
       k_b2      = 1.01e-1_fp / (H_X*H_X*D_l)
 
       k_tot     = k_b1*C_X1 + k_b2*C_X2
-      l_r       = dsqrt(D_l / k_tot)
+      l_r       = SQRT(D_l / k_tot)
       gb_tot    = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot    = gb_tot * REACTODIFF_CORR( Radius, l_r )
 
@@ -5382,13 +5382,13 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_O3     = H%O3%K0 * con_atm_bar
-      H_X      = H_O3*dexp( H%O3%CR * ( 1.0_fp/T - 1.0_fp/H%O3%TK ) )
+      H_X      = H_O3*EXP( H%O3%CR * ( 1.0_fp/T - 1.0_fp/H%O3%TK ) )
 
       ! Molwt of O3 (kg/mol)
       M_X      = H%O3%MW_g * 1.0e-3_fp
 
       ! Thermal velocity (cm/s)
-      cavg     = dsqrt( 8 * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg     = SQRT( 8 * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       Nmax     = 3.0e14_fp  ! #/cm2
       KLangC   = 1.0e-13_fp !cm3
@@ -5399,9 +5399,9 @@ MODULE GCKPP_HETRATES
       gs       = ( 4.0_fp * k_s * C_Y_surf * KLangC * Nmax )                 &
                / ( cavg * ( 1.0_fp + KLangC * C_X_g )      )
 
-      k_b      = 6.3e8_fp *  dexp(-4.45e3_fp / T) !M-1 s-1
+      k_b      = 6.3e8_fp *  EXP(-4.45e3_fp / T) !M-1 s-1
       D_l      = 8.9e-6_fp !cm2 s-1.
-      l_r      = dsqrt( D_l / (k_b * C_Y ) )! cm
+      l_r      = SQRT( D_l / (k_b * C_Y ) )! cm
       gb       = 4.0_fp * H_X * con_R * T * l_r * k_b * C_Y / cavg
       gb       = gb * REACTODIFF_CORR( Radius, l_r)
 
@@ -6104,9 +6104,9 @@ MODULE GCKPP_HETRATES
       IF (X==1) THEN
          ! This would never be used since HCl uptake is
          ! handled by ISORROPIA now, xnw 1/25/18
-         ab = 4.4e-6_fp * dexp( 2898.0e0_fp / T ) ! ab(RT) = 0.069
+         ab = 4.4e-6_fp * EXP( 2898.0e0_fp / T ) ! ab(RT) = 0.069
       ELSE
-         ab = 1.3e-8_fp * dexp( 4290.0e0_fp / T ) ! ab(RT) = 0.021
+         ab = 1.3e-8_fp * EXP( 4290.0e0_fp / T ) ! ab(RT) = 0.021
       ENDIF
 
       GAM = ab
@@ -6185,14 +6185,14 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOBr = H%HOBr%K0 * con_atm_bar
-      H_X    = H_HOBr * dexp( H%HOBr%CR *( 1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK ) )
+      H_X    = H_HOBr * EXP( H%HOBr%CR *( 1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK ) )
       M_X    = H%HOBr%MW_g * 1e-3_fp
 
       ! Mass accommodation coefficient
       ab     = 0.6e0_fp
 
       ! Thermal velocity [cm/s]
-      cavg   = dsqrt(8*RStarG*T/(pi*M_X)) *1.0e2_fp
+      cavg   = SQRT(8*RStarG*T/(pi*M_X)) *1.0e2_fp
 
       ! Follow Roberts et al, (2014)
       C_Hp1  = min(C_Hp, 1.0e-6)
@@ -6207,7 +6207,7 @@ MODULE GCKPP_HETRATES
 
       ! l_r is diffusive length scale [cm];
       !gb is Bulk reaction coefficient [unitless]
-      l_r    = dsqrt( D_l / k_tot )
+      l_r    = SQRT( D_l / k_tot )
       gb_tot = 4.0e0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot = gb_tot * REACTODIFF_CORR( Radius, l_r)
 
@@ -6373,7 +6373,7 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOBr = H%HOBr%K0 * con_atm_bar
-      H_X    = H_HOBr*dexp(H%HOBr%CR*(1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK))
+      H_X    = H_HOBr*EXP(H%HOBr%CR*(1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK))
 
       ! Molwt of HOBr (kg/mol)
       M_X    = H%HOBr%MW_g * 1e-3_fp
@@ -6382,7 +6382,7 @@ MODULE GCKPP_HETRATES
       ab     = 0.6e0_fp
 
       ! Thermal velocity [cm/s]
-      cavg   = dsqrt( 8 * RStarG * T / ( pi * M_X) ) * 1.0e2_fp
+      cavg   = SQRT( 8 * RStarG * T / ( pi * M_X) ) * 1.0e2_fp
 
       ! Follow Roberts et al, (2014)
       C_Hp1  = min(C_Hp, 1.0e-6)
@@ -6395,7 +6395,7 @@ MODULE GCKPP_HETRATES
 
       ! l_r is diffusive length scale [cm];
       ! gb is Bulk reaction coefficient [unitless]
-      l_r    = dsqrt( D_l / k_tot )
+      l_r    = SQRT( D_l / k_tot )
       gb_tot = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot = gb_tot * REACTODIFF_CORR( Radius, l_r)
 
@@ -6500,10 +6500,10 @@ MODULE GCKPP_HETRATES
 
       ! Calculate gb2 for ClNO3 + Br-
 
-      cavg = dsqrt(8.0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
+      cavg = SQRT(8.0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
 
       D_l  = 5.0e-6_fp !cm2 s-1.
-      gb2   = 4.0e0_fp * con_R * T * 1.0e6_fp * dsqrt(C_Y2*D_l) / cavg ! H*sqrt(kb)=10^6 (M/s)^½ s-1
+      gb2   = 4.0e0_fp * con_R * T * 1.0e6_fp * SQRT(C_Y2*D_l) / cavg ! H*sqrt(kb)=10^6 (M/s)^½ s-1
 
       k_2 = (1.0e6_fp ** 2.0_fp) * C_Y2 !H2k2Br
 
@@ -6513,13 +6513,13 @@ MODULE GCKPP_HETRATES
       ! from ClNO3 + H2O (gamma = 0.0244) independent of Cl- concentration,
       ! but Cl2 rather than HOCl formed. gb2 can be calculated reversely from
       ! gb1 = gb0 hydrolysis
-      gb0 = 4.0e0_fp * con_R * T * 1.2e5_fp * dsqrt(D_l) / cavg
+      gb0 = 4.0e0_fp * con_R * T * 1.2e5_fp * SQRT(D_l) / cavg
 
       k_0 = 1.2e5_fp ** 2.0_fp !H2k0
 
       k_tot = k_0 + k_2 !H2(k0+k2Br)
 
-      gb_tot = 4.0e0_fp * con_R * T * dsqrt(k_tot*D_l) /cavg
+      gb_tot = 4.0e0_fp * con_R * T * SQRT(k_tot*D_l) /cavg
 
       gbr = k_2/k_tot
 
@@ -6596,7 +6596,7 @@ MODULE GCKPP_HETRATES
      rgs = 0.56
      g2 = rgs * hbr_th
      !ClNO3 + H2O
-     cavg = dsqrt(8.0e+0_fp*RStarG*T/(Pi*9.745e-2_fp)) *1.0e2_fp ! thermal velocity (cm/s)
+     cavg = SQRT(8.0e+0_fp*RStarG*T/(Pi*9.745e-2_fp)) *1.0e2_fp ! thermal velocity (cm/s)
      H2Os = 1e15_fp - 3.0*2.7e14_fp*hno3_th
      kks = 4.0_fp * 5.2e-17_fp * exp(2032_fp/T)
      g3 = 1.0_fp / (1.0_fp/0.5_fp + cavg/(kks*H2Os))
@@ -6646,7 +6646,7 @@ MODULE GCKPP_HETRATES
 
       REAL(fp)                 :: exp_temp
 
-      exp_temp = dexp(-2.0e0_fp*X)
+      exp_temp = EXP(-2.0e0_fp*X)
       COTH = (1.0e0_fp + exp_temp)/(1.0e0_fp - exp_temp)
 
       END FUNCTION COTH
@@ -8309,29 +8309,37 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: RC
-      REAL(fp) :: HEFF, KH, TK_8
+      INTEGER :: RC
+      REAL*8  :: CR_8,  H2OLIQ_8, HEFF_8, K0_8, KH_8
+      REAL*8  :: L2G_8, TK_8,     pKa_8,  pH_8
 
       !=================================================================
       ! COMPUTE_L2G_LOCAL begins here!
       !=================================================================
 
-      ! Cast temperature to REAL*8
-      TK_8 = TK
+      ! Cast inputs to REAL*8
+      CR_8  = CR
+      K0_8  = K0
+      pka_8 = pKa
+      pH_8  = pH
+      TK_8  = TK
 
       ! For wetdep, we assume a pH of 4.5 for rainwater
       !pH = 4.5_fp
 
       ! Calculate the Henry's law constant
-      CALL CALC_KH( K0, CR, TK_8, KH, RC )
+      CALL CALC_KH( K0_8, CR_8, TK_8, KH_8, RC )
 
       ! Calculate effective Henry's law constant, corrected for pH
       ! (for those species that have a defined pKa value)
-      CALL CALC_HEFF( pKa, pH, KH, HEFF, RC )
+      CALL CALC_HEFF( pKa_8, pH_8, KH_8, HEFF_8, RC )
 
       ! Use Henry's Law to get the ratio:
       ! [ mixing ratio in liquid phase / mixing ratio in gas phase ]
-      L2G   = HEFF * H2OLIQ
+      L2G_8 = HEFF_8 * H2OLIQ
+
+      ! Cast outputs to flex-precision
+      L2G = L2G_8
 
       END SUBROUTINE COMPUTE_L2G_LOCAL
 !EOC

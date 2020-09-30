@@ -94,7 +94,7 @@ CONTAINS
     INTEGER            :: N
     INTEGER            :: NA
     INTEGER            :: TS_Dyn
-    REAL(fp)           :: DT_Dyn
+    REAL(f8)           :: DT_Dyn
 
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit

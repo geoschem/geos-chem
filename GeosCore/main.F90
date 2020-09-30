@@ -2391,6 +2391,15 @@ CONTAINS
 #endif
 
     !-----------------------------------------------------------------
+    ! Print default floating-point precision
+    !-----------------------------------------------------------------
+#ifdef USE_REAL8
+    WRITE( 6, 130 ) '8-byte real (aka REAL*8)'
+#else
+    WRITE( 6, 130 ) '4-byte real (aka REAL*4)'
+#endif
+
+    !-----------------------------------------------------------------
     ! Print status of OpenMP
     !-----------------------------------------------------------------
 #ifdef NO_OMP
@@ -2443,6 +2452,7 @@ CONTAINS
 100 FORMAT( /, '===> Mode of operation         : ', a             )
 110 FORMAT(    '===> GEOS-Chem version         : ', a             )
 120 FORMAT(    '===> Compiler                  : ', a             )
+130 FORMAT(    '===> Flexible precision set to : ', a             )
 150 FORMAT(    '===> Parallelization w/ OpenMP : ', a             )
 160 FORMAT(    '===> Binary punch diagnostics  : ', a             )
 170 FORMAT(    '===> netCDF diagnostics        : ', a             )
