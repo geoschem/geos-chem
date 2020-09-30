@@ -401,7 +401,7 @@ CONTAINS
     INTEGER            :: L,       LL,     LGOS
     INTEGER            :: JLOOP,   NOBS,   IND
     INTEGER            :: INDS(MAXGOS)
-    REAL(fp)           :: REF_DATE, TIME
+    REAL(fp)           :: REF_DATE
     REAL(fp)           :: GC_PRES(State_Grid%NZ)
     REAL(fp)           :: GC_PEDGE(State_Grid%NZ+1)
     REAL(fp)           :: GC_CH4_NATIVE(State_Grid%NZ)
@@ -428,6 +428,7 @@ CONTAINS
     REAL(fp)           :: FORCE
     REAL(fp)           :: DIFF
     REAL(fp)           :: S_OBS
+    REAL(f8)           :: TIME
 
     ! --- zyz --- Sept 19, 2018
     ! fix the problem that some GOSAT record has negative pressure
