@@ -40,7 +40,7 @@ target_link_libraries(Transport
 if(${USE_REAL8})
   if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_source_files_properties(tpcore_window_mod.F90
-      PROPERTIES COMPILE_FLAGS "-real-size=64")
+      PROPERTIES COMPILE_FLAGS "-r8")
   elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_source_files_properties(tpcore_window_mod.F90
       PROPERTIES COMPILE_FLAGS "-fdefault-real-8 -fdefault-double-8")

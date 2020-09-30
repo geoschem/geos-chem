@@ -28,8 +28,8 @@ endif()
 
 #-----------------------------------------------------------------------------
 # Add all the subdirectories.
-#-----------------------------------------------------------------------------
 # Each subdirectory specifies how it should be built.
+#-----------------------------------------------------------------------------
 add_subdirectory(KPP)
 add_subdirectory(Headers)
 add_subdirectory(GeosUtil)
