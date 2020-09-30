@@ -7,7 +7,7 @@
 # EXPID allows you to specify the beginning of the file path corresponding
 # to each diagnostic collection.  For example:
 #
-#   EXPID: ./GEOSChem 
+#   EXPID: ./GEOSChem
 #      Will create netCDF files whose names begin "GEOSChem",
 #      in this run directory.
 #
@@ -28,13 +28,14 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-	     'CH4',
+             'CH4',
+             'Metrics',
              'SpeciesConc',
              #'Budget',
              #'CloudConvFlux',
              #'ConcAfterChem',
-             #'LevelEdgeDiags',      
-             #'StateMet',      
+             #'LevelEdgeDiags',
+             #'StateMet',
              #'Transport',
              #'BoundaryConditions',
 ::
@@ -65,6 +66,30 @@ COLLECTIONS: 'Restart',
                               'Met_TMPU1                      ', 'GIGCchem',
 ::
 #==============================================================================
+# %%%%% THE Metrics COLLECTION %%%%%
+#
+# Diagnostics for chemistry metrics such as global mean OH concentration,
+# MCF lifetime, and CH4 lifetime.
+#
+# This diagnostic collection should always be left on.
+# Use the run-directory script ./metrics_ch4.py to print results.
+#
+# Available for full-chemistry and CH4 simulations only.
+#==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.format:             'CFIO',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull             ', 'GIGCchem',
+                              'CH4emission                   ', 'GIGCchem',
+                              'CH4massColumnFull             ', 'GIGCchem'
+                              'CH4massColumnTrop             ', 'GIGCchem',
+                              'LossOHbyCH4columnTrop         ', 'GIGCchem',
+                              'LossOHbyMCFcolumnTrop         ', 'GIGCchem',
+                              'OHwgtByAirMassColumnFull      ', 'GIGCchem',
+::
+#==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
 # GEOS-Chem species concentrations (default = advected species)
@@ -92,24 +117,24 @@ COLLECTIONS: 'Restart',
   Budget.frequency:    {FREQUENCY}
   Budget.duration:     {DURATION}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ', 'GIGCchem',  
-                       'BudgetEmisDryDepTrop_?ADV?           ', 'GIGCchem',  
-                       'BudgetEmisDryDepPBL_?ADV?            ', 'GIGCchem',  
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ', 'GIGCchem',
+                       'BudgetEmisDryDepTrop_?ADV?           ', 'GIGCchem',
+                       'BudgetEmisDryDepPBL_?ADV?            ', 'GIGCchem',
                        'BudgetChemistryFull_?ADV?            ', 'GIGCchem',
                        'BudgetChemistryTrop_?ADV?            ', 'GIGCchem',
-                       'BudgetChemistryPBL_?ADV?             ', 'GIGCchem',  
+                       'BudgetChemistryPBL_?ADV?             ', 'GIGCchem',
                        'BudgetTransportFull_?ADV?            ', 'GIGCchem',
                        'BudgetTransportTrop_?ADV?            ', 'GIGCchem',
-                       'BudgetTransportPBL_?ADV?             ', 'GIGCchem',  
+                       'BudgetTransportPBL_?ADV?             ', 'GIGCchem',
                        'BudgetMixingFull_?ADV?               ', 'GIGCchem',
                        'BudgetMixingTrop_?ADV?               ', 'GIGCchem',
-                       'BudgetMixingPBL_?ADV?                ', 'GIGCchem',    
+                       'BudgetMixingPBL_?ADV?                ', 'GIGCchem',
                        'BudgetConvectionFull_?ADV?           ', 'GIGCchem',
                        'BudgetConvectionTrop_?ADV?           ', 'GIGCchem',
-                       'BudgetConvectionPBL_?ADV?            ', 'GIGCchem',  
+                       'BudgetConvectionPBL_?ADV?            ', 'GIGCchem',
                        'BudgetWetDepFull_?WET?               ', 'GIGCchem',
                        'BudgetWetDepTrop_?WET?               ', 'GIGCchem',
-                       'BudgetWetDepPBL_?WET?                ', 'GIGCchem',  
+                       'BudgetWetDepPBL_?WET?                ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE CH4 COLLECTION %%%%%
@@ -155,7 +180,7 @@ COLLECTIONS: 'Restart',
   ConcAfterChem.frequency:    {FREQUENCY}
   ConcAfterChem.duration:     {DURATION}
   ConcAfterChem.mode:         'time-averaged'
-  ConcAfterChem.fields:       'OHconcAfterChem               ', 'GIGCchem',  
+  ConcAfterChem.fields:       'OHconcAfterChem               ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%

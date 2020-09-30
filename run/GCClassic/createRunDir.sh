@@ -20,6 +20,9 @@ cd ../../
 wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
+# Load file with utility functions to setup configuration files
+. ${gcdir}/run/shared/setupConfigFiles.sh
+
 # Define separator lines
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
@@ -110,6 +113,9 @@ done
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
 #-----------------------------------------------------------------
+sim_extra_option=none
+
+# Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
     
     printf "${thinline}Choose chemistry domain:${thinline}"
@@ -139,7 +145,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  7. APM\n"
     printf "  8. RRTMG\n"
     valid_sim_option=0
-    sim_extra_option=none
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
 	valid_sim_option=1
@@ -194,10 +199,12 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-    
-#-----------------------------------------------------------------
+
+# Currently no transport tracer extra options
+elif [[ ${sim_name} = "TransportTracers" ]]; then
+   sim_extra_option=none
+
 # Ask user to specify POPs simulation options
-#-----------------------------------------------------------------
 elif [[ ${sim_name} = "POPs" ]]; then
     printf "${thinline}Choose POPs type:${thinline}"
     printf "  1. BaP\n"
@@ -441,7 +448,7 @@ if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
     read rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	if [[ "${sim_extra_option}" == "none" ]]; then
+	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gc_${grid_res}_${sim_name}
 	else
 	    rundir_name=gc_${grid_res}_${sim_name}_${sim_extra_option}
@@ -479,7 +486,6 @@ done
 mkdir -p ${rundir}
 
 # Copy run directory files and subdirectories
-cp ${gcdir}/run/shared/setupConfigFiles.sh  ${rundir}
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
 cp ./getRunInfo                             ${rundir}
@@ -490,9 +496,9 @@ cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-if [[ ${sim_name} = "fullchem" ]]; then
-    cp -r ${gcdir}/run/shared/metrics_fullchem.py  ${rundir}
-    chmod 744 ${rundir}/metrics_fullchem.py
+if [[ ${sim_name} == "fullchem" || ${sim_name} == "CH4" ]]; then
+    cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
+    chmod 744 ${rundir}/metrics.py
 fi
 cp -r ./runScriptSamples ${rundir}
 mkdir ${rundir}/OutputDir
@@ -511,7 +517,7 @@ elif [[ ${sim_extra_option} =~ "APM" ]]; then
 fi
 
 # If benchmark simulation, put run script in directory
-if [ ${sim_extra_option} = "benchmark" ]; then
+if [[ ${sim_extra_option} == "benchmark" ]]; then
     cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
@@ -572,10 +578,21 @@ sed -i -e "s|{DURATION}|00000100 000000|"   HISTORY.rc
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
-# Call script to setup configuration files
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
 if [[ ${sim_name} = "fullchem" ]]; then
-    ./setupConfigFiles.sh ${sim_extra_option}
-    rm setupConfigFiles.sh
+    set_common_settings ${sim_extra_option}
+fi
+
+# Modify input files for benchmark that are specific to GEOS-Chem Classic
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    replace_colon_sep_val "Use GC classic timers?"   T    input.geos
+fi
+
+# Modify input files for TOMAS that are specific to GEOS-Chem Classic
+if [[ ${sim_extra_option} = "TOMAS" ]]; then
+    replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
+    replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
 fi
 
 # Modify input files for troposphere-only chemistry grids

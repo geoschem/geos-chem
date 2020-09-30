@@ -1,12 +1,12 @@
 !BOC
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( MODEL_ )
-!-----------------------------------------------------------------
+!----------------------------------------------------------------------------
 !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
 !        %%%% GEOS-Chem Coupled with External Models %%%%
 !
 ! When GEOS-Chem is connected to an external model or in GCHP,
 ! the GEOS-Chem classic main.F90 should not be built.
-!-----------------------------------------------------------------
+!----------------------------------------------------------------------------
 #else
 !EOC
 !------------------------------------------------------------------------------
@@ -26,16 +26,16 @@ PROGRAM GEOS_Chem
 !
 ! !USES:
 !
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Parameters to define floating-point variables
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE PRECISION_MOD,   ONLY : fpp => fp  ! Flexible precision
   USE PRECISION_MOD,   ONLY : f4         ! 4-byte floating point
   USE PRECISION_MOD,   ONLY : f8         ! 8-byte floating point
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Basic GEOS-Chem modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE DiagList_Mod          ! Derived type for diagnostics list
   USE TaggedDiagList_Mod    ! Derived type for tagged diagnostics list
   USE Diagnostics_Mod       ! Set select netcdf diagnostics
@@ -58,9 +58,9 @@ PROGRAM GEOS_Chem
   USE TIMERS_MOD            ! For GEOS-Chem timers (optional)
   USE UnitConv_Mod          ! For species conc unit conversions
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! GEOS-Chem chemistry modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE AEROSOL_MOD,     ONLY : Set_AerMass_Diagnostic
   USE CARBON_MOD            ! For SOA simulation
   USE CHEMISTRY_MOD         ! Driver routines for chemistry
@@ -72,16 +72,16 @@ PROGRAM GEOS_Chem
   USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
   USE SET_GLOBAL_CH4_MOD    ! For setting global CH4 concentrations
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! GEOS-Chem deposition modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
   USE DRYDEP_MOD            ! For dry deposition
   USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! GEOS-Chem diagnostics modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
 #ifdef BPCH_DIAG
   USE DIAG_MOD              ! G-C diagnostic arrays & counters
   USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
@@ -89,7 +89,6 @@ PROGRAM GEOS_Chem
   USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
 #endif
   USE PLANEFLIGHT_MOD       ! For planeflight track diag
-  USE DIAG_OH_MOD           ! For OH,HO2,etc. prod diag
   USE HISTORY_MOD           ! Updated netCDF diagnostics
   USE OBSPACK_MOD           ! For ObsPack diagnostics
   USE GOSAT_CH4_MOD         ! For GOSAT observation operator
@@ -97,25 +96,25 @@ PROGRAM GEOS_Chem
   USE HCO_Interface_GC_Mod  ! Writes out HEMCO diagnostics (C. Keller)
   USE HCO_Utilities_GC_Mod  ! Utility routines for GC-HEMCO interface
 
-  !-----------------------------------------------------------------
-  ! GEOS-Chem dynamics modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
+  ! GEOS-Chem convection modules
+  !--------------------------------------------------------------------------
   USE CONVECTION_MOD        ! For deep cloud convection
   USE LINOZ_MOD             ! For LINOX linear strat chemistry
   USE PBL_MIX_MOD           ! To compute PBL height
   USE TRANSPORT_MOD         ! Driver routines for advection
   USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! GEOS-Chem emissions modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
   USE MIXING_MOD            ! performs tracer mixing
   USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! GEOS-Chem meteorology field modules
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE Calc_Met_Mod          ! Met field calculations
   USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data
 #ifdef EXCHANGE
@@ -123,9 +122,9 @@ PROGRAM GEOS_Chem
 #endif
 
 #ifdef RRTMG
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Radiation modules (RRTMG)
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
   USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Rad_Transfer
   USE RRTMG_RAD_TRANSFER_MOD, ONLY : Set_SpecMask
@@ -134,10 +133,10 @@ PROGRAM GEOS_Chem
 #endif
 
 #ifdef APM
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! For APM aerosol microphysics simulation,
   ! see apm_driv_mod.f for more information
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   USE APM_INIT_MOD,      ONLY : APM_NTRACERS
   USE APM_INIT_MOD,      ONLY : APM_INIT
   USE APM_INIT_MOD,      ONLY : CLEANUP_APMARRAYS
@@ -193,6 +192,7 @@ PROGRAM GEOS_Chem
   !-----------------------------
   ! Scalars
   !-----------------------------
+
   ! Logicals
   LOGICAL                  :: ITS_A_FULLCHEM_SIM
   LOGICAL                  :: ITS_A_MERCURY_SIM
@@ -272,9 +272,9 @@ PROGRAM GEOS_Chem
   ! (mlong, bmy, 7/30/12)
   LOGICAL, PARAMETER       :: am_I_Root = .TRUE.
 
-  !=================================================================
+  !==========================================================================
   ! GEOS-CHEM starts here!
-  !=================================================================
+  !==========================================================================
 
 #ifdef TOMAS
   !(sfarina, 6/19/2013) It may seem strange, but this welcome message
@@ -302,13 +302,13 @@ PROGRAM GEOS_Chem
   ! Display model information
   CALL Display_Model_Info()
 
-  !=================================================================
-  !            ***** I N I T I A L I Z A T I O N *****
-  !=================================================================
+  !==========================================================================
+  !                ***** I N I T I A L I Z A T I O N *****
+  !==========================================================================
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Read the user-defined options for the simulation, etc.
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
 
   ! Initialize fields of the Input Options object (including amIRoot)
   CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
@@ -331,9 +331,9 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Initialize GEOS-Chem timers
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( Input_Opt%useTimers ) THEN
 
      ! Call timer initilization
@@ -383,7 +383,7 @@ PROGRAM GEOS_Chem
      CALL Timer_Start( "Initialization",             RC )
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Prepare the GEOS-Chem "dry run" option
   ! If in a "dry-run" mode, GEOS-Chem will simply check whether files
   ! are present (and possibly in the correct format) and go through
@@ -402,7 +402,7 @@ PROGRAM GEOS_Chem
   ! Additionally, this flag must be set after reading input file, or
   ! its value will be overwritten by READ_INPUT_FILE.
   ! (hplin, 11/1/19)
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   CALL Init_Dry_Run( Input_Opt, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Init_Dry_Run"!'
@@ -412,9 +412,9 @@ PROGRAM GEOS_Chem
   ! Define a local convenience variable for negating Input_Opt%DryRun
   notDryRun = ( .not. Input_Opt%DryRun )
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Continue initializzation
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
 
   ! Make sure all directories are valid
   CALL Validate_Directories( Input_Opt, RC )
@@ -478,7 +478,7 @@ PROGRAM GEOS_Chem
   ! Debug output
   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
   !
   ! Initialize the diagnostic list object which contains the
@@ -488,7 +488,7 @@ PROGRAM GEOS_Chem
   ! obj may be stored in the HistoryConfig object in GCHP and we may
   ! want to replicate that behavior in GCC in the future.
   ! (ewl, 9/26/17)
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      IF ( Input_Opt%useTimers ) THEN
         CALL Timer_Start( "All diagnostics",           RC )
@@ -522,7 +522,7 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
   !
   ! To replicate the functionality of the ESMF interface, we must
@@ -540,7 +540,7 @@ PROGRAM GEOS_Chem
   ! GEOS-Chem directly from the ESMF interface.  This is the main
   ! reason we are migrating towards used of these objects instead
   ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
 
   ! Initialize State_Met, State_Chm, and State_Diag objects
   CALL GC_Init_StateObj( Diag_List       = Diag_List,                       &
@@ -556,9 +556,9 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Skip these operations when in dry-run mode
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks,
      ! which require the AREA_M2 field saved out to the StateMet
@@ -566,14 +566,14 @@ PROGRAM GEOS_Chem
      State_Met%Area_M2 = State_Grid%Area_M2
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! For dry-run simulations, call GC_Init_Extra, which will print
   ! out the Olson_drydep_inputs file name and exit.
   !
   ! For regular simulations, initialize various module arrays etc.
   ! This removes the init calls from the run-stage, which cannot
   ! happen when connecting GEOS-Chem to external ESMs.
-  !-----------------------------------------------------------------     
+  !--------------------------------------------------------------------------
   CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm, &
                       State_Diag, State_Grid, RC )
   IF ( RC /= GC_SUCCESS ) THEN
@@ -581,26 +581,18 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Skip these operations when in dry-run mode
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
-
-     ! Initialize the regridding module by storing shadow copies
-     CALL GC_Init_Regridding( Input_Opt, State_Grid, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Initialize_Regridding"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-
      ! Define advected species ID flags for use below
      id_H2O   = Ind_('H2O', 'A')
      id_CH4   = Ind_('CH4', 'A')
 
-     !-----------------------------------------------------------------
+     !-----------------------------------------------------------------------
      ! OBSPACK Diagnostics: Get information from the species
      ! database for all requested ObsPack output species
-     !-----------------------------------------------------------------
+     !-----------------------------------------------------------------------
      IF ( Input_Opt%Do_ObsPack ) THEN
         CALL ObsPack_SpeciesMap_Init( Input_Opt, State_Chm, State_Diag, RC )
         IF ( RC /= GC_SUCCESS ) THEN
@@ -611,9 +603,9 @@ PROGRAM GEOS_Chem
   ENDIF
 
 #ifdef RRTMG
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Initializations for the RRTMG radiative transfer model
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
 
      ! Initialize module variables
@@ -636,9 +628,9 @@ PROGRAM GEOS_Chem
 #endif
 
 #ifdef APM
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Initializations for the APM aerosol microphysics package
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      ! Initialize APM related variables, arrays
      CALL APM_NTRACERS( State_Chm )
@@ -654,9 +646,9 @@ PROGRAM GEOS_Chem
 #endif
 
 #ifdef BPCH_DIAG
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Initialize bpch diagnostic arrays and counters
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      CALL Initialize( Input_Opt, State_Grid, 2, RC )
      CALL Initialize( Input_Opt, State_Grid, 3, RC )
@@ -664,10 +656,10 @@ PROGRAM GEOS_Chem
   ENDIF
 #endif
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Register the horizontal and vertical grid information so that
   ! the History component can use it for netCDF metadata
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      CALL Init_Grid_Registry( Input_Opt, State_Grid, RC )
      IF ( RC /= GC_SUCCESS ) THEN
@@ -676,9 +668,9 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Added to read input file for linoz strat chem
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( LLINOZ ) THEN
      CALL Linoz_Read( Input_Opt, RC )
 
@@ -697,9 +689,9 @@ PROGRAM GEOS_Chem
   TAU   = GET_TAU()
   TAUb  = GET_TAUb()
 
-  !-----------------------------------------------------------------
-  !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
+  !         ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
+  !--------------------------------------------------------------------------
   IF ( Input_Opt%useTimers .and. notDryRun ) THEN
      CALL Timer_Start( "All diagnostics",           RC )
      CALL Timer_Start( "=> History (netCDF diags)", RC )
@@ -723,9 +715,9 @@ PROGRAM GEOS_Chem
      CALL Timer_End( "=> History (netCDF diags)", RC )
   ENDIF
 
-  !-----------------------------------------------------------------
-  !        ***** I N I T I A L I Z A T I O N  continued *****
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
+  !            ***** I N I T I A L I Z A T I O N  continued *****
+  !--------------------------------------------------------------------------
 
   ! To enable FlexGrid, need to initialize HEMCO and run phase 1
   ! before reading initial metfields.
@@ -820,9 +812,9 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  !=================================================================
-  !       *****  I N I T I A L   C O N D I T I O N S *****
-  !=================================================================
+  !==========================================================================
+  !            *****  I N I T I A L   C O N D I T I O N S *****
+  !==========================================================================
 
   ! Initialize the UCX module
   IF ( LUCX ) THEN
@@ -876,9 +868,9 @@ PROGRAM GEOS_Chem
      CALL Timer_End( "Initialization", RC )
   ENDIF
 
-  !=================================================================
-  !        ***** O U T E R   T I M E S T E P   L O O P  *****
-  !=================================================================      
+  !===========================================================================
+  !             ***** O U T E R   T I M E S T E P   L O O P  *****
+  !===========================================================================
 
   ! Echo message before first timestep
   IF ( notDryRun ) THEN
@@ -911,10 +903,10 @@ PROGRAM GEOS_Chem
     ! Get dynamic timestep in seconds
     N_DYN  = GET_TS_DYN()
 
-    !=================================================================
-    !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
-    !     *****    a k a   H E A R T B E A T   L O O P    *****
-    !=================================================================
+    !========================================================================
+    !         ***** D Y N A M I C   T I M E S T E P   L O O P *****
+    !         *****    a k a   H E A R T B E A T   L O O P    *****
+    !========================================================================
     DO N_STEP = 1, N_DYN_STEPS
 
        ! Compute & print time quantities at start of dyn step
@@ -939,7 +931,7 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
        ENDIF
 
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! %%%%% HISTORY (netCDF diagnostics) %%%%%
        !
        ! Certain Hg simulation diagnostics (e.g. deposition of Hg2
@@ -947,7 +939,7 @@ PROGRAM GEOS_Chem
        ! start each timestep, before operations like drydep, wetdep,
        ! and convection are executed.  Call a routine to do this.
        ! (bmy, 10/25/18)
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",           RC )
@@ -966,7 +958,7 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
+       !=====================================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
        !
        !    Phase 1 updates the HEMCO clock and the content of the
@@ -974,7 +966,7 @@ PROGRAM GEOS_Chem
        !    diagnostics organized in the HEMCO diagnostics structure,
        !    and before using any of the HEMCO data list fields.
        !    (ckeller, 4/1/15)
-       !==============================================================
+       !=====================================================================
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "HEMCO", RC )
           CALL Timer_Start( "Input", RC )
@@ -1002,9 +994,9 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: a HEMCO PHASE 1' )
        ENDIf
 
-       !==============================================================
-       !  ***** W R I T E   H E M C O   D I A G N O S T I C S *****
-       !==============================================================
+       !=====================================================================
+       !      ***** W R I T E   H E M C O   D I A G N O S T I C S *****
+       !=====================================================================
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",       RC )
@@ -1030,9 +1022,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       !      ***** O B S P A C K   D I A G N O S T I C S *****
-       !==============================================================
+       !=====================================================================
+       !          ***** O B S P A C K   D I A G N O S T I C S *****
+       !=====================================================================
        IF ( Input_Opt%Do_ObsPack .and. &
           ( ELAPSED_TODAY == 0 ) .and. notDryRun ) THEN
 
@@ -1057,9 +1049,9 @@ PROGRAM GEOS_Chem
        ENDIF
 
 #ifdef BPCH_DIAG
-       !===========================================================
-       ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
-       !===========================================================
+       !=====================================================================
+       !      *****  W R I T E   B P C H   D I A G N O S T I C S *****
+       !=====================================================================
        IF ( ITS_TIME_FOR_BPCH( Input_Opt ) .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
@@ -1083,9 +1075,9 @@ PROGRAM GEOS_Chem
           ! Set time at beginning of next diagnostic timestep
           CALL SET_DIAGb( TAU )
 
-          !===========================================================
-          !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
-          !===========================================================
+          !==================================================================
+          !      ***** Z E R O   B P C H   D I A G N O S T I C S *****
+          !==================================================================
           CALL INITIALIZE( Input_Opt, State_Grid, 2, RC )
           CALL INITIALIZE( Input_Opt, State_Grid, 3, RC )
 
@@ -1099,12 +1091,12 @@ PROGRAM GEOS_Chem
 
 #ifdef GTMM_Hg
 #ifdef BPCH_DIAG
-       !=============================================================
-       !   ***** W R I T E   G T M M   R E S T A R T   F I L E *****
-       !     ***** MUST be done after call to diag3 ****
+       !====================================================================
+       !     ***** W R I T E   G T M M   R E S T A R T   F I L E *****
+       !            ***** MUST be done after call to diag3 ****
        !
        ! %%%%% NOTE: THIS MAY BE BROKEN %%%%
-       !=============================================================
+       !====================================================================
        ! Make land restart file: for GTMM runs only, beginning of each
        ! month but not start of the run.
        IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
@@ -1131,14 +1123,14 @@ PROGRAM GEOS_Chem
 #endif
 #endif
 
-       !==============================================================
-       !       ***** T E S T   F O R   E N D   O F   R U N *****
-       !==============================================================
+       !=====================================================================
+       !          ***** T E S T   F O R   E N D   O F   R U N *****
+       !=====================================================================
        IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
-       !==============================================================
-       !        ***** L E A F   A R E A   I N D I C E S *****
-       !==============================================================
+       !=====================================================================
+       !           ***** L E A F   A R E A   I N D I C E S *****
+       !=====================================================================
        IF ( ITS_A_NEW_DAY() .and. notDryRun ) THEN
 
           ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
@@ -1161,9 +1153,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****
-       !==============================================================
+       !=====================================================================
+       !      ***** I N T E R P O L A T E   Q U A N T I T I E S *****
+       !=====================================================================
 
        ! Do not compute any data in dry-run mode
        IF ( notDryRun ) THEN
@@ -1234,7 +1226,7 @@ PROGRAM GEOS_Chem
 
        IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
 
-       !----------------------------------------------------------
+       !---------------------------------------------------------------------
        ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%
        !
        ! HEMCO can track non-emission data fields for chemistry
@@ -1245,7 +1237,7 @@ PROGRAM GEOS_Chem
        ! HEMCO data list is now updated further above, so can
        ! take these calls out of the emissions sequence.
        ! (ckeller, 4/01/15)
-       !----------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( LCHEM .and. ITS_A_NEW_MONTH() .and. notDryRun ) THEN
 
           ! The following only apply when photolysis is used,
@@ -1300,9 +1292,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       !              ***** T R A N S P O R T *****
-       !==============================================================
+       !=====================================================================
+       !                  ***** T R A N S P O R T *****
+       !=====================================================================
        IF ( ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
@@ -1398,9 +1390,9 @@ PROGRAM GEOS_Chem
           CALL Set_Met_AgeOfAir( State_Grid, State_Met )
        ENDIF
 
-       !==============================================================
-       !     ***** C O M P U T E   P B L   H E I G H T  etc. *****
-       !==============================================================
+       !=====================================================================
+       !        ***** C O M P U T E   P B L   H E I G H T  etc. *****
+       !=====================================================================
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Boundary layer mixing", RC )
@@ -1426,14 +1418,14 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Test for emission timestep
        ! Now always do emissions here, even for full-mixing
        ! (ckeller, 3/5/15)
        !
        ! Emissions are ALWAYS done, even in dry-run mode. This is
        ! raison d'etre for --dry-run (hplin, 11/1/19)
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ITS_TIME_FOR_EMIS() ) THEN
 
 #ifdef BPCH_DIAG
@@ -1441,9 +1433,9 @@ PROGRAM GEOS_Chem
           CALL Set_Ct_Emis( INCREMENT=.TRUE. )
 #endif
 
-          !===========================================================
-          !         ***** D R Y   D E P O S I T I O N *****
-          !===========================================================
+          !==================================================================
+          !            ***** D R Y   D E P O S I T I O N *****
+          !==================================================================
           IF ( LDRYD .and. notDryRun ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
@@ -1469,15 +1461,15 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          !===========================================================
-          !             ***** E M I S S I O N S *****
+          !==================================================================
+          !                ***** E M I S S I O N S *****
           !
           ! NOTE: For a complete description of how emissions from
           ! HEMCO are added into GEOS-Chem (and how they are mixed
           ! into the boundary layer), please see the wiki page:
           !
           ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
-          !===========================================================
+          !==================================================================
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "HEMCO", RC )
           ENDIF
@@ -1507,9 +1499,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Test for convection timestep
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
 
 #ifdef BPCH_DIAG
@@ -1517,17 +1509,17 @@ PROGRAM GEOS_Chem
           CALL Set_Ct_Conv( INCREMENT=.TRUE. )
 #endif
 
-          !===========================================================
-          !      ***** M I X E D   L A Y E R   M I X I N G *****
-          !===========================================================
+          !==================================================================
+          !         ***** M I X E D   L A Y E R   M I X I N G *****
+          !==================================================================
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
-          
+
           ! Compute the surface flux for the non-local mixing,
           ! (which means getting emissions & drydep from HEMCO)
           ! and store it in State_Chm%Surface_Flux
-          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN 
+          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
              CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,             &
                                           State_Diag, State_Grid,            &
                                           State_Met,  RC                    )
@@ -1564,9 +1556,9 @@ PROGRAM GEOS_Chem
 
           IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
 
-          !===========================================================
-          !        ***** C L O U D   C O N V E C T I O N *****
-          !===========================================================
+          !==================================================================
+          !           ***** C L O U D   C O N V E C T I O N *****
+          !==================================================================
           IF ( LCONV ) THEN
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_Start( "Convection", RC )
@@ -1595,9 +1587,9 @@ PROGRAM GEOS_Chem
 
        ENDIF
 
-       !==============================================================
-       !               ***** C H E M I S T R Y *****
-       !============================================================== 
+       !=====================================================================
+       !                  ***** C H E M I S T R Y *****
+       !=====================================================================
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All chemistry", RC )
@@ -1649,9 +1641,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
-       !==============================================================
+       !=====================================================================
+       !    ***** W E T   D E P O S I T I O N  (rainout + washout) *****
+       !=====================================================================
        IF ( LWETD .and. ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
@@ -1677,9 +1669,9 @@ PROGRAM GEOS_Chem
 
        ENDIF
 
-       !==============================================================
-       !      ***** U P D A T E   O P T I C A L   D E P T H *****
-       !==============================================================
+       !=====================================================================
+       !         ***** U P D A T E   O P T I C A L   D E P T H *****
+       !=====================================================================
        IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
@@ -1707,9 +1699,9 @@ PROGRAM GEOS_Chem
        ENDIF
 
 #ifdef RRTMG
-       !==============================================================
-       !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
-       !==============================================================
+       !=====================================================================
+       !    ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
+       !=====================================================================
        IF ( Input_opt%LRAD  .and. ITS_TIME_FOR_RT() .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
@@ -1726,19 +1718,19 @@ PROGRAM GEOS_Chem
 
           State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
 
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
           ! Determine if we are doing clear-sky or all-sky.
           ! Clear-sky is output with all-sky, so we just need
           ! to run once regardless of whether both are required
           ! or just one.
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
           IF ( Input_Opt%LSKYRAD(2) ) THEN
              State_Chm%RRTMG_iCld = 1
           ELSE
              State_Chm%RRTMG_iCld = 0         !clouds are on
           ENDIF
 
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
           ! Calculation for each of the potential output types
           ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
           !
@@ -1748,9 +1740,9 @@ PROGRAM GEOS_Chem
           !
           ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
           ! to how it is populated from HISTORY.rc diaglist_mod.F90.
-          ! BASE is always calculated first since its flux is used to calculate
-          ! other RRTMG flux diagnostics.
-          !-----------------------------------------------------------
+          ! BASE is always calculated first since its flux is used to
+          ! calculate other RRTMG flux diagnostics.
+          !------------------------------------------------------------------
 
           ! Calculate BASE first
           N = 1
@@ -1764,7 +1756,6 @@ PROGRAM GEOS_Chem
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
-                                      First_RT   = First_RT,               &
                                       iCld       = State_Chm%RRTMG_iCld,   &
                                       iSpecMenu  = State_Diag%RadOutInd(N),&
                                       iNcDiag    = N,                      &
@@ -1790,7 +1781,6 @@ PROGRAM GEOS_Chem
              CALL Set_SpecMask( State_Diag%RadOutInd(N) )
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
-                                         First_RT   = First_RT,               &
                                          iCld       = State_Chm%RRTMG_iCld,   &
                                          iSpecMenu  = State_Diag%RadOutInd(N),&
                                          iNcDiag    = N,                      &
@@ -1832,14 +1822,14 @@ PROGRAM GEOS_Chem
        ENDIF
 #endif
 
-       !==============================================================
-       !      ***** D I A G N O S T I C S   A R C H I V A L *****
-       !==============================================================
+       !=====================================================================
+       !         ***** D I A G N O S T I C S   A R C H I V A L *****
+       !=====================================================================
        IF ( notDryRun ) THEN
 
-          !-----------------------------------------------------------
-          !        ***** H I S T O R Y   U P D A T E  *****
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
+          !            ***** H I S T O R Y   U P D A T E  *****
+          !------------------------------------------------------------------
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",           RC )
              CALL Timer_Start( "Output",                    RC )
@@ -1899,9 +1889,9 @@ PROGRAM GEOS_Chem
              CALL Timer_End( "=> History (netCDF diags)", RC )
           ENDIF
 
-          !-----------------------------------------------------------
-          !     ***** O B S P A C K   D I A G N O S T I C S *****
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
+          !         ***** O B S P A C K   D I A G N O S T I C S *****
+          !------------------------------------------------------------------
           IF ( Input_Opt%Do_ObsPack ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
@@ -1920,13 +1910,13 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-          !--------------------------------------------------------------
-          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
-          !--------------------------------------------------------------
+          !------------------------------------------------------------------
+          !    ***** P L A N E F L I G H T   D I A G   S E T U P  *****
+          !------------------------------------------------------------------
           IF ( Input_Opt%Do_Planeflight .and. ITS_A_NEW_DAY() ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "All diagnostics",             RC) 
+                CALL Timer_Start( "All diagnostics",             RC)
                 CALL Timer_Start( "Output",                      RC)
                 CALL Timer_Start( "=> Binary punch diagnostics", RC)
              ENDIF
@@ -1949,11 +1939,11 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-          !-----------------------------------------------------------
-          ! *** C H 4   S I M U L A T I O N   D I A G N O S I C S ***
+          !------------------------------------------------------------------
+          !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
           !
           ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
           IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -1961,11 +1951,11 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          !--------------------------------------------------------------
-          ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
+          !------------------------------------------------------------------
+          !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
           !
           ! CH4 columns from the TCCON instrument (mps, 8/17/17)
-          !--------------------------------------------------------------
+          !------------------------------------------------------------------
           IF ( Input_Opt%TCCON_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -1974,12 +1964,12 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
+       !=====================================================================
+       !       ***** I N C R E M E N T   E L A P S E D   T I M E *****
        !
        ! Moved before diagnostics to count the last timestep as done.
        ! Need to save timestamps for filenames. (ccc, 5/13/09)
-       !==============================================================
+       !=====================================================================
        CALL Timestamp_Diag()
        CALL Set_Elapsed_Sec()
        CALL Set_Current_Time()
@@ -1988,19 +1978,19 @@ PROGRAM GEOS_Chem
        ENDIF
 
        IF ( notDryRun ) THEN
-          !===========================================================
-          !   ***** D I A G N O S T I C S   A R C H I V A L *****
+          !==================================================================
+          !       ***** D I A G N O S T I C S   A R C H I V A L *****
           !
-          !             ***** C O N T I N U E D *****
-          !===========================================================
+          !                 ***** C O N T I N U E D *****
+          !==================================================================
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",              RC )
              CALL Timer_Start( "Output",                       RC )
           ENDIF
 
-          !-----------------------------------------------------------
-          !  ***** P L A N E F L I G H T   D I A G N O S T I C  *****
-          !-----------------------------------------------------------
+          !------------------------------------------------------------------
+          !    ***** P L A N E F L I G H T   D I A G N O S T I C  *****
+          !------------------------------------------------------------------
           IF ( Input_Opt%Do_Planeflight ) THEN
              ! Archive data along the flight track
              CALL PLANEFLIGHT( Input_Opt,  State_Chm, State_Diag, &
@@ -2018,10 +2008,10 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "=> Binary punch diagnostics",  RC )
           ENDIF
- 
-          !-----------------------------------------------------------
-          !  *** A R C H I V E   B P C H   D I A G N O S T I C S ***
-          !-----------------------------------------------------------
+
+          !------------------------------------------------------------------
+          !   ***** A R C H I V E   B P C H   D I A G N O S T I C S *****
+          !------------------------------------------------------------------
           IF ( ITS_TIME_FOR_DIAG() ) THEN
 
              IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
@@ -2043,9 +2033,9 @@ PROGRAM GEOS_Chem
              IF ( prtDebug ) CALL Debug_Msg('### MAIN: a DIAGNOSTICS')
           ENDIF
 
-          !------------------------------------------------------------
-          !  ***** T I M E S E R I E S   D I A G N O S T I C S  *****
-          !------------------------------------------------------------
+          !------------------------------------------------------------------
+          !     ***** T I M E S E R I E S   D I A G N O S T I C S  *****
+          !------------------------------------------------------------------
 
           ! Morning or afternoon timeseries
           IF ( Input_Opt%DO_ND51 ) THEN
@@ -2081,13 +2071,13 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !=================================================================
-       !     ***** C O P Y   I - 3   F I E L D S *****
+       !=====================================================================
+       !            ***** C O P Y   I - 3   F I E L D S *****
        !
-       !     The I-3 fields at the end of an outer timestep (every 3 hours)
-       !     become the fields at the beginning of the next timestep.
-       !     This update must occur before writing History. (wbd1 12/03/19)   
-       !=================================================================
+       ! The I-3 fields at the end of an outer timestep (every 3 hours)
+       ! become the fields at the beginning of the next timestep.
+       ! This update must occur before writing History. (wbd1 12/03/19)
+       !=====================================================================
        IF ( notDryRun ) THEN
           IF ((mod(get_hour(), 3) .eq. 0) .AND. (get_minute() .eq. 0)) THEN
              CALL Copy_I3_Fields( State_Met )
@@ -2097,9 +2087,9 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !--------------------------------------------------------------
-       !            ***** H I S T O R Y   W R I T E *****
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
+       !               ***** H I S T O R Y   W R I T E *****
+       !---------------------------------------------------------------------
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",           RC )
@@ -2124,27 +2114,27 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !==============================================================
-       !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
-       !==============================================================
+       !=====================================================================
+       !     ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
+       !=====================================================================
     ENDDO
   ENDDO
 
-  !=================================================================
-  !         ***** C L E A N U P   A N D   Q U I T *****
-  !=================================================================
+  !==========================================================================
+  !              ***** C L E A N U P   A N D   Q U I T *****
+  !==========================================================================
 9999 CONTINUE
 
   ! Skip operations when running in dry-run mode
   IF ( notDryRun ) THEN
 
-    !--------------------------------------------------------------
-    !     ***** W R I T E   H E M C O   R E S T A R T S *****
+    !------------------------------------------------------------------------
+    !        ***** W R I T E   H E M C O   R E S T A R T S *****
     !
     ! NOTE: If BPCH_DIAG=y, then this is done above whenever
     ! ITS_TIME_FOR_BPCH is TRUE.   If BPCH_DIAG=n, then we have to
     ! add this here to make sure we get HEMCO restart otuput.
-    !--------------------------------------------------------------
+    !------------------------------------------------------------------------
      IF ( Input_Opt%useTimers ) THEN
         CALL Timer_Start( "HEMCO",  RC )
         CALL Timer_Start( "Output", RC )
@@ -2164,11 +2154,11 @@ PROGRAM GEOS_Chem
        CALL Timer_End( "Output", RC )
     ENDIF
 
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     !         ***** O B S P A C K   D I A G N O S T I C S *****
     !
     ! Flush any unwritten ObsPack data to disk and finalize
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( Input_Opt%Do_ObsPack ) THEN
 
        IF ( Input_Opt%useTimers ) THEN
@@ -2198,22 +2188,11 @@ PROGRAM GEOS_Chem
           CALL Timer_End( "=> ObsPack diagnostics", RC )
        ENDIF
     ENDIF
-
-    !--------------------------------------------------------------
-    ! Print the mass-weighted mean OH concentration (if applicable)
-    !--------------------------------------------------------------
-    CALL Print_Diag_OH( Input_Opt, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Print_Diag_OH"!'
-       CALL Error_Stop( ErrMsg, ThisLoc )
-    ENDIF
   ENDIF
 
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   ! Finalize GEOS-Chem
-  !-----------------------------------------------------------------
+  !--------------------------------------------------------------------------
   IF ( Input_Opt%useTimers ) THEN
      CALL Timer_Start( "Finalization", RC )
   ENDIF
@@ -2335,6 +2314,17 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
+  !--------------------------------------------------------------------------
+  ! Remind users to run the ./metrics.py script to obtain OH metrics
+  !--------------------------------------------------------------------------
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+     WRITE( 6, '(/,a)' ) REPEAT( '%', 65 )
+     WRITE( 6, 300     ) 'To compute the OH metrics, execute the Python'
+     WRITE( 6, 300     ) '  script "metrics.py" in this run directory. '
+     WRITE( 6, '(a)'   ) REPEAT( '%', 65 )
+ 300 FORMAT( '%%%%%', 5x, a, 5x, '%%%%%' )
+    ENDIF
+
   ! Print ending time of simulation
   CALL Display_End_Time()
 
@@ -2370,8 +2360,12 @@ CONTAINS
     ! For system time stamp
     CHARACTER(LEN=16) :: STAMP
 
+    ! Version number from CMake
 #include "gc_classic_version.H"
 
+    !-----------------------------------------------------------------
+    ! Write header
+    !-----------------------------------------------------------------
     WRITE(  6, '(a)' ) &
          REPEAT( '*', 13 )                                          // &
          '   S T A R T I N G   G E O S - C H E M   '                // &
@@ -2394,6 +2388,15 @@ CONTAINS
     WRITE( 6, 120  ) 'Intel Fortran Compiler (aka ifort)'
 #elif defined( LINUX_GFORTRAN )
     WRITE( 6, 120 ) 'GNU Fortran compiler (aka gfortran)'
+#endif
+
+    !-----------------------------------------------------------------
+    ! Print default floating-point precision
+    !-----------------------------------------------------------------
+#ifdef USE_REAL8
+    WRITE( 6, 130 ) '8-byte real (aka REAL*8)'
+#else
+    WRITE( 6, 130 ) '4-byte real (aka REAL*4)'
 #endif
 
     !-----------------------------------------------------------------
@@ -2449,6 +2452,7 @@ CONTAINS
 100 FORMAT( /, '===> Mode of operation         : ', a             )
 110 FORMAT(    '===> GEOS-Chem version         : ', a             )
 120 FORMAT(    '===> Compiler                  : ', a             )
+130 FORMAT(    '===> Flexible precision set to : ', a             )
 150 FORMAT(    '===> Parallelization w/ OpenMP : ', a             )
 160 FORMAT(    '===> Binary punch diagnostics  : ', a             )
 170 FORMAT(    '===> netCDF diagnostics        : ', a             )
@@ -2470,8 +2474,8 @@ CONTAINS
 ! file buffers to disk.
 !\\
 !\\
-! CTM\_FLUSH should normally be called after each diagnostic output, so that 
-! in case the run dies, the output files from the last diagnostic timestep 
+! CTM\_FLUSH should normally be called after each diagnostic output, so that
+! in case the run dies, the output files from the last diagnostic timestep
 ! will not be lost.
 !\\
 !\\

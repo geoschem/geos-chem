@@ -18,23 +18,26 @@ MODULE Registry_Params_Mod
 ! !USES:
 !
   USE Precision_Mod
+
   IMPLICIT NONE
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Denotes REAL(fp), aka "flexible precision
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_FP = 1
+  !==========================================================================
+  ! Numerical type parameters used in registering & comparing variables
+  !==========================================================================
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 0           ! 4-byte integer
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F4 = 1           ! 4-byte real
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F8 = 2           ! 8-byte real
+#ifdef USE_REAL8
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_FP = KINDVAL_F8  ! Flex = 8-byte real
+#else
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_FP = KINDVAL_F4  ! Flex = 4-byte real
+#endif
 
-  ! Denotes REAL(f8), aka REAL*8 or 8-byte floating point
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F8 = 2
-
-  ! Denotes REAL(f4), aka REAL*4, or 4-byte floating point
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F4 = 3
-
-  ! Denotes INTEGER
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 4
-
-  ! Vertical locations
+  !==========================================================================
+  ! Vertical location parameters
+  !==========================================================================
   INTEGER, PUBLIC, PARAMETER :: VLocationNone   = 0
   INTEGER, PUBLIC, PARAMETER :: VLocationEdge   = 1
   INTEGER, PUBLIC, PARAMETER :: VLocationCenter = 2

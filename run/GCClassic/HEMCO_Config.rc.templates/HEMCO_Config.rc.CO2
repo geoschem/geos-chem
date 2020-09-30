@@ -122,6 +122,7 @@ END SECTION EXTENSION SWITCHES
 # (Oda & Maksyutov, 2011)
 #
 # ---> Recommended option: ODIAC (set FOSSIL_ODIAC = true)
+#      ODIAC updated to v2019 by J. Fisher and Y. Cao, 12/2019
 #==============================================================================
 (((FOSSIL_CDIAC
 0 FOSSILCO2_CDIAC   $ROOT/CO2/v2014-09/FOSSIL/CDIAC_v2014.monthly.generic.1x1.nc CO2 1980-2014/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 1
@@ -129,7 +130,7 @@ END SECTION EXTENSION SWITCHES
 )))FOSSIL_CDIAC
 
 (((FOSSIL_ODIAC
-0 FOSSILCO2_ODIAC   $ROOT/CO2/v2015-04/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2014/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
+0 FOSSILCO2_ODIAC   $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
 0 FOSSILCO2FF_ODIAC -                                                            -   -                  - -  -       CO2ff 40/41/80 1 2
 )))FOSSIL_ODIAC
 
@@ -234,7 +235,7 @@ END SECTION EXTENSION SWITCHES
 # to make these emissions negative, so that they will be subtracted.
 ===============================================================================
 (((CO2CORR
-0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2015-04/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2014/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
+0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
 0 FOSSILCO2CORR_MONTHLY -                                                          -       -                  - -  -       CO2corr 10/40/41/80/90 8 1
 0 CO2_LIVESTOCK         $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_LIVESTOCK     -                                                          -       -                  - -  -       CO2corr 20/90          8 1

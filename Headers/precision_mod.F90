@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE PRECISION_MOD
+MODULE Precision_Mod
 !
 ! !USES:
 !
@@ -21,24 +21,6 @@ MODULE PRECISION_MOD
 ! !DEFINED PARAMETERS:
 !
   !=================================================================
-  ! Set parameters for floating precision
-  !
-  ! FP will be set to either 4-byte or 8-byte precision at compile
-  ! time.  Most variables can now  declared with REAL(fp).
-  !=================================================================
-#ifdef USE_REAL8
-
-  ! Use 8-byte floating point precision when asked.
-  INTEGER, PARAMETER, PUBLIC :: fp = KIND( REAL( 0.0, 8 ) )
-
-#else
-
-  ! Use 4-byte floating point by default.
-  INTEGER, PARAMETER, PUBLIC :: fp = KIND( REAL( 0.0, 4 ) )
-
-#endif
-
-  !=================================================================
   ! Set parameters for fixed precision
   !
   ! Not all variables can be converted into the flexible precision.
@@ -47,10 +29,28 @@ MODULE PRECISION_MOD
   !=================================================================
 
   ! KIND parameter for 4-byte precision
-  INTEGER, PARAMETER, PUBLIC :: f4 = KIND( REAL( 0.0, 4 ) )
+  INTEGER, PARAMETER, PUBLIC :: f4 = KIND( 0.0_4 )
 
   ! KIND parameter for 8-byte precision
-  INTEGER, PARAMETER, PUBLIC :: f8 = KIND( REAL( 0.0, 8 ) )
+  INTEGER, PARAMETER, PUBLIC :: f8 = KIND( 0.0_8 )
+
+  !=================================================================
+  ! Set parameters for floating precision
+  !
+  ! FP will be set to either 4-byte or 8-byte precision at compile
+  ! time.  Most variables can now  declared with REAL(fp).
+  !=================================================================
+#ifdef USE_REAL8
+
+  ! Use 8-byte floating point precision when asked.
+  INTEGER, PARAMETER, PUBLIC :: fp = f8
+
+#else
+
+  ! Use 4-byte floating point by default.
+  INTEGER, PARAMETER, PUBLIC :: fp = f4
+
+#endif
 !
 ! !REMARKS:
 !  This module is designed to help avoid hard-coding precision.
@@ -61,5 +61,5 @@ MODULE PRECISION_MOD
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
-END MODULE PRECISION_MOD
+END MODULE Precision_Mod
 !EOC

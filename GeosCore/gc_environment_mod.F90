@@ -35,9 +35,6 @@ MODULE GC_Environment_Mod
   PUBLIC  :: GC_Init_StateObj
   PUBLIC  :: GC_Init_Grid
   PUBLIC  :: GC_Init_Extra
-#if !defined( MODEL_CESM )
-  PUBLIC  :: GC_Init_Regridding
-#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -426,7 +423,6 @@ CONTAINS
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-    USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
     USE Dust_Mod,           ONLY : Init_Dust
@@ -721,9 +717,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
-
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS
@@ -832,101 +825,6 @@ CONTAINS
 
   END SUBROUTINE GC_Init_Extra
 !EOC
-#if !defined( MODEL_CESM )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gc_init_regridding
-!
-! !DESCRIPTION: Internal subroutine GC\_INIT\_REGRIDDING passes several
-!  variables to regrid\_a2a\_mod.F90, where they are locally shadowed.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GC_Init_Regridding( Input_Opt, State_Grid, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE GC_Grid_Mod
-    USE Regrid_A2A_Mod
-    USE State_Grid_Mod,     ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  This routine is a wrapper for Init_Map_A2A in regrid_a2a_mod.F90.
-!  Passing variables via Init_Map_A2A helps us to remove dependencies on
-!  other GEOS-Chem routines from regrid_a2a_mod.F90.  This in turn
-!  facilitates the implementation of the HEMCO emissions package.
-!
-! !REVISION HISTORY:
-!  15 Jul 2014 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: I, J
-    CHARACTER(LEN=255) :: DIR
-
-    ! Arrays
-    REAL(fp)           :: LONEDG(State_Grid%NX+1)  ! W longitude edges [deg]
-    REAL(fp)           :: LATSIN(State_Grid%NY+1)  ! SIN(Lat edges)    [1  ]
-    REAL(fp)           :: AREAS (State_Grid%NX, State_Grid%NY)  ! Surface Areas
-                                                                !  [m2 ]
-
-    !================================================================
-    ! GC_Init_Regridding begins here!
-    !================================================================
-
-    ! Assume success
-    RC  = GC_SUCCESS
-
-    ! Exit if this is a dry-run
-    IF ( Input_Opt%DryRun ) RETURN
-
-    ! Directory where netCDF ifles are found
-    DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
-
-    ! Initialize longitudes [deg]
-    DO I = 1, State_Grid%NX+1
-       LONEDG(I) = State_Grid%XEdge(I,1)
-    ENDDO
-
-    ! Initialize sines of latitude [1]
-    DO J = 1, State_Grid%NY+1
-       LATSIN(J) = State_Grid%YSIN(1,J)
-    ENDDO
-
-    ! Initialize surface areas [m2]
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-       AREAS(I,J) = State_Grid%Area_M2(I,J)
-    ENDDO
-    ENDDO
-
-    ! Pass to regrid_a2a_mod.F90, where these will be shadowed locally
-    CALL Init_Map_A2A( State_Grid%NX, State_Grid%NY, LONEDG, LATSIN, &
-                       AREAS,         DIR )
-
-  END SUBROUTINE GC_Init_Regridding
-!EOC
-#endif
 #ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

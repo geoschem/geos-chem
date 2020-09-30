@@ -3495,7 +3495,7 @@ CONTAINS
        ENDIF
 
        ! Land Hg0 emissions [kg/s]
-       IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+       IF ( State_Diag%Archive_EmisHg0land ) THEN
           State_Diag%EmisHg0land(I,J) = EHg0_ln(I,J,1)
        ENDIF
 

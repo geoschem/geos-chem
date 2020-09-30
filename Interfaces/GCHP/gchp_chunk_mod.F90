@@ -79,7 +79,6 @@ CONTAINS
     USE Linoz_Mod,               ONLY : Linoz_Read
     USE PhysConstants,           ONLY : PI_180
     USE Pressure_Mod,            ONLY : Init_Pressure
-    USE Roundoff_Mod,            ONLY : RoundOff
     USE State_Chm_Mod,           ONLY : ChmState
     USE State_Diag_Mod,          ONLY : DgnState
     USE State_Grid_Mod,          ONLY : GrdState, Init_State_Grid
@@ -1029,7 +1028,6 @@ CONTAINS
        ! Compute radiative fluxes for the given output
        CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
                                    ThisMonth  = Month,                   &
-                                   First_RT   = First_RT,                &
                                    iCld       = State_Chm%RRTMG_iCld,    &
                                    iSpecMenu  = State_Diag%RadOutInd(N), &
                                    iNcDiag    = N,                       &
@@ -1052,7 +1050,6 @@ CONTAINS
           CALL Set_SpecMask( State_Diag%RadOutInd(N) )
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
-                                      First_RT   = First_RT,               &
                                       iCld       = State_Chm%RRTMG_iCld,   &
                                       iSpecMenu  = State_Diag%RadOutInd(N),&
                                       iNcDiag    = N,                      &

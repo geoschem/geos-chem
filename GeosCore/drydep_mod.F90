@@ -411,6 +411,9 @@ CONTAINS
     REAL(f8)           :: DVZ, THIK
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
+    ! Pointers
+    REAL(fp), POINTER  :: DEPSAV (:,:,:) ! Dry deposition frequencies [s-1]
+
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
@@ -577,13 +580,13 @@ CONTAINS
           ! Compute drydep frequency and update diagnostics
           !-----------------------------------------------------------
 
-          ! Store dry dep velocity [m/s], after accounting for special treatments
-          State_Chm%DryDepVel(I,J,NDVZ) = DVZ / 100.e+0_f8
+          ! Dry deposition frequency [1/s]
+          DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-          ! Set dry deposition frequency [1/s]
-          State_Chm%DryDepSav(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
+          ! Dry deposition velocities [m/s]
+          State_Chm%DryDepVel(I,J,D) = DVZ / 100.e+0_f8
 
-          ! Archive dry dep velocity [cm/s]
+          ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
              IF ( S > 0 ) THEN 
@@ -1233,18 +1236,13 @@ CONTAINS
     ENDIF
 #endif
 
+    ! Initialize State_Chm%DryDepVel
+    State_Chm%DryDepVel = 0.0e+0_f8
+
 #ifdef MODEL_GEOS
     ! Logical flag for Ra (ckeller, 12/29/17)
     State_Chm%DryDepRa2m  = 0.0_fp
     State_Chm%DryDepRa10m = 0.0_fp
-    !WriteRa2m = ASSOCIATED ( State_Diag%DryDepRa2m )
-    !IF ( WriteRa2m ) THEN
-    !   State_Diag%DryDepRa2m = 0.0_fp
-    !ENDIF
-    !WriteRa10m = ASSOCIATED ( State_Diag%DryDepRa10m )
-    !IF ( WriteRa10m ) THEN
-    !   State_Diag%DryDepRa10m = 0.0_fp
-    !ENDIF
 #endif
 
     !***********************************************************************
@@ -1265,9 +1263,6 @@ CONTAINS
           LDEP(K) = .FALSE.
        ENDIF
     ENDDO
-
-    ! Initialize State_Chm%DryDepVel
-    State_Chm%DryDepVel = 0.0e+0_f8
 
     !***********************************************************************
     !*
