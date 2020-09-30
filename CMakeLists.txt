@@ -1,7 +1,6 @@
 # GEOS-Chem repository CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.9.2 LANGUAGES Fortran)
 
 #---------------------------------------------------------------------
 # Set policies

@@ -2360,8 +2360,12 @@ CONTAINS
     ! For system time stamp
     CHARACTER(LEN=16) :: STAMP
 
+    ! Version number from CMake
 #include "gc_classic_version.H"
 
+    !-----------------------------------------------------------------
+    ! Write header
+    !-----------------------------------------------------------------
     WRITE(  6, '(a)' ) &
          REPEAT( '*', 13 )                                          // &
          '   S T A R T I N G   G E O S - C H E M   '                // &
