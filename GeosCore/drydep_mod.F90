@@ -4215,10 +4215,6 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-#if defined( MODEL_CESM )
-    USE MPISHORTHAND
-    USE SPMD_UTILS
-#endif
 !
 ! !INPUT PARAMETERS:
 !

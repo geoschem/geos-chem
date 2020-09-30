@@ -330,14 +330,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-#if defined( MODEL_CESM )
-    IF ( Input_Opt%amIRoot .and. ( LASTMONTH==0 ) ) THEN
-       WRITE(6,'(a)') 'UCX_NOX NOT YET IMPLEMENTED FOR CESM'
-    ENDIF
-    LASTMONTH = 1
-    RETURN
-#endif
-
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
 
@@ -3899,6 +3891,12 @@ CONTAINS
     USE FILE_MOD,           ONLY : IoError
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
+#if defined( MODEL_CESM )
+    USE UNITS,              ONLY : freeUnit
+#if defined( SPMD )
+    USE MPISHORTHAND
+#endif
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3919,6 +3917,9 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
+#if defined( MODEL_CESM ) && defined( SPMD )
+    INTEGER            :: nSize ! Number of elements in NOXCOEFF
+#endif
 
     ! Strings
     CHARACTER(LEN=255) :: NOX_FILE
@@ -4019,13 +4020,9 @@ CONTAINS
     NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
-      ! Will fix this... eventually
-      IF ( Input_Opt%amIRoot ) THEN
-          WRITE(6,'(a)') ' --GC UCX CESM--> Skipping NOx data read in'
-      ENDIF
-      RETURN
+    nSize = JJNOXCOEFF * UCX_NLEVS * 6 * 12
+    IF ( Input_Opt%amIRoot ) THEN
 #endif
-
     ! Fill array
     DO IMON  = 1,12
     DO ITRAC = 1,6
@@ -4096,9 +4093,18 @@ CONTAINS
        ENDDO
 
        CLOSE(IU_FILE)
+#if defined( MODEL_CESM )
+       CALL freeUnit( IU_FILE )
+#endif
 
     ENDDO !ITRAC
     ENDDO !IMON
+#if defined( MODEL_CESM )
+    ENDIF
+#if defined( SPMD )
+    CALL MPIBCAST( NOXCOEFF, nSize, MPIR8, 0, MPICOM )
+#endif
+#endif
 
   END SUBROUTINE NOXCOEFF_INIT
 !EOC
