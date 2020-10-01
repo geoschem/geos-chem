@@ -74,7 +74,7 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
      LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
      LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
-     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow covered grid box?
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
@@ -1026,6 +1026,25 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%IsIce,                                       &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! IsSnow (do not register for diagnostics)
+    !------------------------------------------------------------------------
+    metId = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%IsSnow,                                      &
          noRegister = .TRUE.,                                                &
          RC         = RC                                                    )
 
