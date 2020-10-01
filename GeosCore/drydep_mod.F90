@@ -411,9 +411,6 @@ CONTAINS
     REAL(f8)           :: DVZ, THIK
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
-    ! Pointers
-    REAL(fp), POINTER  :: DEPSAV (:,:,:) ! Dry deposition frequencies [s-1]
-
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
@@ -580,11 +577,11 @@ CONTAINS
           ! Compute drydep frequency and update diagnostics
           !-----------------------------------------------------------
 
-          ! Dry deposition frequency [1/s]
-          DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
-
           ! Dry deposition velocities [m/s]
-          State_Chm%DryDepVel(I,J,D) = DVZ / 100.e+0_f8
+          State_Chm%DryDepVel(I,J,NDVZ) = DVZ / 100.e+0_f8
+
+          ! Dry deposition frequency [1/s]
+          State_Chm%DryDepSav(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
           ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
@@ -1221,13 +1218,13 @@ CONTAINS
 #if !defined( MODEL_CESM )
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
-       CALL HCO_EvalFld( HcoState, 'surf_iodide', State_Met%Iodide, RC )
+       CALL HCO_EvalFld( HcoState, 'surf_iodide', State_Chm%Iodide, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
-       CALL HCO_EvalFld( HcoState, 'surf_salinity', State_Met%Salinity, RC )
+       CALL HCO_EvalFld( HcoState, 'surf_salinity', State_Chm%Salinity, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
@@ -1508,13 +1505,13 @@ CONTAINS
              N_SPC = State_Chm%Map_DryDep(K)
              IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
 
-                IF (State_Met%SALINITY(I,J) .GT. 20.0_f8) THEN
+                IF (State_Chm%SALINITY(I,J) .GT. 20.0_f8) THEN
 
                    ! Now apply the Luhar et al. [2018] equations for the
                    ! special treatment of O3 dry deposition to the ocean
                    ! surface 
                    CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),&
-                                State_Met%IODIDE(I,J),I,J,DEPVw)
+                                State_Chm%IODIDE(I,J),I,J,DEPVw)
 
                    ! Now convert to the new rc value(s) can probably tidy
                    ! this up a bit
