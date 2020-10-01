@@ -167,7 +167,7 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE RadioNuclide COLLECTION %%%%%
 #
-# Fields of the State_Chm object (see also Aerosols collection)
+# Radioactive production and decay of radionuclide species
 #
 # Available for full-chemistry and aerosols-only simulations
 #==============================================================================
