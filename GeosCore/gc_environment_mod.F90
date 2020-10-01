@@ -807,7 +807,7 @@ CONTAINS
        CALL Init_Diag53( State_Grid )
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF ) && !defined( MODEL_CESM )
+#if defined( MODEL_CLASSIC )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !

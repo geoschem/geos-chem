@@ -295,7 +295,7 @@ CONTAINS
                               State_Met%ALBD(I,J)  >= 0.695e+0_fp )
 
        ! Snow covered: ALBEDO > 40%
-       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  >= 0.40e+0_fp )
+       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  > 0.40e+0_fp )
 
     ENDDO
     ENDDO
