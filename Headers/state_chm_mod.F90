@@ -294,6 +294,8 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Fields for dry deposition
      !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
+     REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
      REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition 
                                                         ! velocities [m/s]
@@ -492,6 +494,8 @@ CONTAINS
     State_Chm%SFC_CH4           => NULL()
 
     ! Emissions and drydep quantities
+    State_Chm%Iodide            => NULL()
+    State_Chm%Salinity          => NULL()
     State_Chm%DryDepSav         => NULL()
     State_Chm%DryDepVel         => NULL()
 #ifdef MODEL_GEOS
@@ -1688,6 +1692,46 @@ CONTAINS
     !========================================================================
     ! Allocate fields for various GeosCore modules
     !========================================================================
+
+    !------------------------------------------------------------------------
+    ! Ocean surface iodide
+    !------------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmId = 'Iodide'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%Iodide,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Ocean surface salinity
+    !------------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmId = 'Salinity'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%Salinity,                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !------------------------------------------------------------------------
     ! DryDepSav
@@ -2996,6 +3040,20 @@ CONTAINS
        State_Chm%DryDepSav => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Iodide ) ) THEN
+       DEALLOCATE( State_Chm%Iodide, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Iodide', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Iodide => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Salinity ) ) THEN
+       DEALLOCATE( State_Chm%Salinity, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Salinity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Salinity => NULL()
+    ENDIF
+
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
@@ -3892,6 +3950,16 @@ CONTAINS
           IF ( isUnits ) Units  = 'kg'
           IF ( isRank  ) Rank   = 2
           IF ( isSpc   ) PerSpc = 'HgCat'
+
+       CASE ( 'IODIDE' )
+          IF ( isDesc  ) Desc  = 'Surface iodide concentration'
+          IF ( isUnits ) Units = 'nM'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SALINITY' )
+          IF ( isDesc  ) Desc  = 'Salinity'
+          IF ( isUnits ) Units = 'PSU'
+          IF ( isRank  ) Rank  = 2
 
        CASE( 'DRYDEPFREQ' )
           IF ( isDesc  ) Desc   = 'Dry deposition frequencies'
