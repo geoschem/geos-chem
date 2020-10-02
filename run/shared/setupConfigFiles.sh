@@ -40,7 +40,7 @@ set_common_settings() {
     fi
     
     valid_options=( "standard" "benchmark" "complexSOA" "complexSOA_SVPOA" \
-    			   "aciduptake" "marinePOA" "TOMAS15" "TOMAS40" "APM" "RRTMG" )
+                    "aciduptake" "marinePOA" "TOMAS15" "TOMAS40" "APM" "RRTMG" )
     for i in "${valid_options[@]}"; do
         if [ "$i" == "$yourValue" ] ; then
             echo "Found"
@@ -62,6 +62,13 @@ set_common_settings() {
         sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc
         sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc
         sed -i -e "s|#Inv|Inv|"                          HEMCO_Diagn.rc
+
+	# Turn @ into # characters for the benchmark simulation,
+	# which should cause MAPL to skip reading these lines.
+	# This is a workaround for a "input file to long" MAPL error.
+	sed -i -e "s|@|#|"                               HISTORY.rc
+
+	# Remove the first comment character on diagnostics
         sed -i -e "s|#'|'|"                              HISTORY.rc
     fi
     
@@ -96,6 +103,8 @@ Species name            : TSOG1\n\
 Species name            : TSOG2\n\
 Species name            : TSOG3"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
+
+	sed -i -e "s|@||"                      HISTORY.rc
     fi
     
     #-----------------------------
@@ -129,6 +138,8 @@ Species name            : TSOG3"
     Species name            : POG1\n\
     Species name            : POG2"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
+
+	sed -i -e "s|@||"                      HISTORY.rc
     fi
     
     #-----------------------------
@@ -159,6 +170,8 @@ Species name            : TSOG3"
     Species name            : SO4D3\n\
     Species name            : SO4D4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
+
+	sed -i -e "s|@||"                      HISTORY.rc
     fi
     
     #-----------------------------
@@ -173,6 +186,8 @@ Species name            : TSOG3"
         new_line="\Species name            : MOPI\n\
     Species name            : MOPO"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
+
+	sed -i -e "s|@||"                      HISTORY.rc
     fi
     
     #-----------------------------
@@ -186,6 +201,8 @@ Species name            : TSOG3"
         replace_colon_sep_val "Clear-sky flux?"      T input.geos
         replace_colon_sep_val "All-sky flux?"        T input.geos
         replace_colon_sep_val "--> RRTMG"         true HEMCO_Config.rc
+
+	sed -i -e "s|@||"                              HISTORY.rc
         sed -i -e "s|##'RRTMG'|'RRTMG'|"               HISTORY.rc
         printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
         printf "\nEdit input.geos and HISTORY.rc in your new run directory to customize options to only"
@@ -592,7 +609,7 @@ Species name            : TSOG3"
     Species name            : AW39\n\
     Species name            : AW40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+        sed -i -e "s|@||"                       HISTORY.rc
         fi
     fi
     
@@ -717,6 +734,6 @@ Species name            : TSOG3"
     Species name            : APMSPBIN39\n\
     Species name            : APMSPBIN40"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        
+        sed -i -e "s|@||"                       HISTORY.rc
     fi
 }

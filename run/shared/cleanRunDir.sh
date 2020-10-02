@@ -17,6 +17,7 @@ rm -fv logfile.000000.out
 rm -fv slurm-*
 rm -fv 1
 rm -fv EGRESS
+rm -fv core.*
 
 # Clean data too. Prompt user to confirm they want to do this.
 # perhaps asking if they want to archive before deletion.
