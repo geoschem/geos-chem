@@ -13454,7 +13454,6 @@ CONTAINS
              RETURN
           ENDIF
 
-
           ! Save the in the mapping object
           IF ( skipInd ) THEN
              mapData%slot2id(index) = index
@@ -13500,12 +13499,12 @@ CONTAINS
           ELSE IF ( isLoss ) THEN
 
              ! Loss: get the index from State_Chm%Map_Loss
-             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(index)
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(TagItem%index)
 
           ELSE IF ( isProd ) THEN
 
-             ! Loss: get the index from State_Chm%Map_Loss
-             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(index)
+             ! Prod get the index from State_Chm%Map_Prod
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(TagItem%index)
 
           ELSE IF ( isRxnRate ) THEN
 
@@ -13534,10 +13533,6 @@ CONTAINS
              ! Otherwise, this is a defined species.
              ! Call Ind_() to get the proper index
              mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )
-             IF ( indFlag ==' P' .and. Input_Opt%amIRoot ) THEN
-                print*, '@@@ ', TRIM(TagItem%Name), TagItem%index, &
-                     Ind_( TagItem%name, indFlag )
-             ENDIF
 
           ENDIF
 
