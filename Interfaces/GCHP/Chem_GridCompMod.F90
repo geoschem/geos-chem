@@ -239,8 +239,8 @@ MODULE Chem_GridCompMod
                                       58.0,   58.0,  180.0,  180.0 ,     &
                                      180.0,  180.0,  132.0                /)
 
-  CHARACTER(LEN=15), PARAMETER :: COLLIST(8) = (/ 'NO2', 'O3',   'CH4', 'CO', &
-                                                  'BrO', 'CH2O', 'SO2', 'IO'  /)
+  CHARACTER(LEN=15), PARAMETER :: COLLIST(8) = (/ 'NO2 ', 'O3  ', 'CH4 ', 'CO  ', &
+                                                  'BrO ', 'CH2O', 'SO2 ', 'IO  '  /)
 #endif
  
   ! Pointers to import, export and internal state data. Declare them as 
