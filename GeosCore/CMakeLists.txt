@@ -1,13 +1,6 @@
 # GeosCore/CMakeLists.txt
 
 #-----------------------------------------------------------------------------
-# Copy the CMake project version to the gc_classic_version.H file
-#-----------------------------------------------------------------------------
-message("Creating ${CMAKE_CURRENT_SOURCE_DIR}/gc_classic_version.H")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/gc_classic_version.H.in
-  ${CMAKE_CURRENT_SOURCE_DIR}/gc_classic_version.H @ONLY)
-
-#-----------------------------------------------------------------------------
 # Define libTransport.a
 #-----------------------------------------------------------------------------
 add_library(Transport

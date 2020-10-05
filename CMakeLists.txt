@@ -17,9 +17,11 @@ endif()
 #-----------------------------------------------------------------------------
 # Print header
 #-----------------------------------------------------------------------------
-message("-----------------------------------------------------------------")
-message("GEOS-Chem ${PROJECT_VERSION}")
-message("-----------------------------------------------------------------")
+get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
+message("=================================================================")
+message("GEOS-Chem ${PROJECT_VERSION} (science codebase)")
+message("Current status: ${GC_REPO_VERSION}")
+message("=================================================================")
 
 #-----------------------------------------------------------------------------
 # Declare the GEOSChemBuildProperties library
@@ -48,6 +50,17 @@ add_subdirectory(ISORROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GTMM)
 add_subdirectory(GeosCore)
+
+#-----------------------------------------------------------------------------
+# Build GEOS-Chem Classic driver program (if MODEL_CLASSIC=T)
+#-----------------------------------------------------------------------------
+if(MODEL_CLASSIC)
+  add_subdirectory(Interfaces/GCClassic)
+endif()
+
+#-----------------------------------------------------------------------------
+# Build GCHPctm driver program (if MODEL_GCHPCTM=T)
+#-----------------------------------------------------------------------------
 if(MODEL_GCHPCTM)
-    add_subdirectory(Interfaces/GCHP)
+  add_subdirectory(Interfaces/GCHP)
 endif()

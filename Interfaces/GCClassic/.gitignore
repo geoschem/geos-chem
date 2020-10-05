@@ -11,3 +11,4 @@ geosapm
 *.continue.*
 *.ppk
 core.*
+gc_classic_version.H
