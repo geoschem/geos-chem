@@ -6729,6 +6729,7 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR) :: FldName
     CHARACTER(LEN=ESMF_MAXSTR) :: SpcName
     CHARACTER(LEN=255)         :: ifile
+    CHARACTER(LEN=255)         :: VarPrefix 
     TYPE(MAPL_SimpleBundle)    :: VarBundle
     TYPE(ESMF_Grid)            :: grid
     TYPE(ESMF_TIME)            :: time
@@ -6819,10 +6820,12 @@ CONTAINS
     IsInPPBV = ( DoIt == 1 )
     CALL ESMF_ConfigGetAttribute( GeosCF, TopLev, Label = 'DO_NOT_OVERWRITE_ABOVE_LEVEL:', Default=LM, __RC__ )
     IF ( TopLev < 0 ) TopLev = LM
+    CALL ESMF_ConfigGetAttribute( GeosCF, VarPrefix, Label = 'VAR_PREFIX:', Default='SpeciesRst_', __RC__ )
 
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) 'Will use the following settings to overwrite restart variables:'
+       WRITE(*,*) 'Variable prefix: ',TRIM(VarPrefix)
        WRITE(*,*) 'External data is in ppbv: ',IsInPPBV
        WRITE(*,*) 'External data is on GEOS levels: ',OnGeosLev
        WRITE(*,*) 'Only overwrite above tropopause: ',AboveTroppOnly
@@ -6872,14 +6875,15 @@ CONTAINS
        SpcName = TRIM(State_Chm%SpcData(N)%Info%Name)
 
        ! Check if variable is in file
-       FldName = 'SPC_'//TRIM(SpcName)
+       FldName = TRIM(VarPrefix)//TRIM(SpcName)
+       !FldName = 'SPC_'//TRIM(SpcName)
        VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(FldName), 3, RC=STATUS, QUIET=.TRUE. )
    
        ! Check other fieldname if default one is not found
-       IF ( VarID <= 0 ) THEN
-          FldName = 'TRC_'//TRIM(SpcName)
-          VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(FldName), 3, RC=STATUS, QUIET=.TRUE. )
-       ENDIF
+       !IF ( VarID <= 0 ) THEN
+       !   FldName = 'TRC_'//TRIM(SpcName)
+       !   VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(FldName), 3, RC=STATUS, QUIET=.TRUE. )
+       !ENDIF
        IF ( VarID <= 0 ) THEN
           FldName = TRIM(SpcName)
           VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(FldName), 3, RC=STATUS, QUIET=.TRUE. )
