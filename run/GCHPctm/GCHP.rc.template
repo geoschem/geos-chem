@@ -95,3 +95,8 @@ STDOUT_LOGLUN:        700
 # %%% Memory debug print level (integer 0 to 3; 0=none, 3=highest)
 #
 MEMORY_DEBUG_LEVEL:   0
+
+#
+# %%% Option to write restart files via o-server
+#
+WRITE_RESTART_BY_OSERVER: NO
