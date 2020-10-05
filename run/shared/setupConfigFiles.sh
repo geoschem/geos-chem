@@ -36,9 +36,9 @@ set_common_settings() {
         sim_extra_option=$1
     else
        echo "Usage: ./setupConfigFiles.sh {sim_extra_option}"
-       exit 
+       exit
     fi
-    
+
     valid_options=( "standard" "benchmark" "complexSOA" "complexSOA_SVPOA" \
                     "aciduptake" "marinePOA" "TOMAS15" "TOMAS40" "APM" "RRTMG" )
     for i in "${valid_options[@]}"; do
@@ -46,7 +46,7 @@ set_common_settings() {
             echo "Found"
         fi
     done
-    
+
     #-----------------------------
     # Benchmark settings
     #-----------------------------
@@ -71,17 +71,24 @@ set_common_settings() {
 	# Remove the first comment character on diagnostics
         sed -i -e "s|#'|'|"                              HISTORY.rc
     fi
-    
+
+    #-----------------------------
+    # Complex SOA settings
+    #-----------------------------
+    if [[ ${sim_extra_option} = "standard"  ]]; then
+	sed -i -e "s|@|#|"                               HISTORY.rc
+    fi
+
     #-----------------------------
     # Complex SOA settings
     #-----------------------------
     if [[ ${sim_extra_option} = "benchmark"   ]] || \
        [[ ${sim_extra_option} =~ "complexSOA" ]] || \
        [[ ${sim_extra_option} = "APM" ]]; then
-    
+
         # Turn on complex SOA option in input.geos
         replace_colon_sep_val "Online COMPLEX SOA" T input.geos
-    
+
         # Add complex SOA species in input.geos
         prev_line="Species name            : ALK4"
         new_line="\Species name            : ASOA1\n\
@@ -92,7 +99,7 @@ Species name            : ASOG1\n\
 Species name            : ASOG2\n\
 Species name            : ASOG3"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        
+
         prev_line="Species name            : TOLU"
         new_line="\Species name            : TSOA0\n\
 Species name            : TSOA1\n\
@@ -106,32 +113,32 @@ Species name            : TSOG3"
 
 	sed -i -e "s|@||"                      HISTORY.rc
     fi
-    
+
     #-----------------------------
     # Semivolatile POA settings
     #-----------------------------
     if [[ ${sim_extra_option} = "complexSOA_SVPOA" ]]; then
-    	
+
         # Turn on semivolatile POA option in input.geos
         replace_colon_sep_val "=> Semivolatile POA?" T input.geos
-    
+
         # Add semivolatile POA species in input.geos
         prev_line="Species name            : N2O5"
         new_line="\Species name            : NAP"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    	
+
         line="Species name            : OCPI"
         remove_text $line input.geos
         line="Species name            : OCPO"
         remove_text $line input.geos
-    	
+
         prev_line="Species name            : OIO"
         new_line="\Species name            : OPOA1\n\
     Species name            : OPOA2\n\
     Species name            : OPOG1\n\
     Species name            : OPOG2"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    	
+
         prev_line="Species name            : PIP"
         new_line="\Species name            : POA1\n\
     Species name            : POA2\n\
@@ -141,14 +148,14 @@ Species name            : TSOG3"
 
 	sed -i -e "s|@||"                      HISTORY.rc
     fi
-    
+
     #-----------------------------
     # Acid uptake settings
     #-----------------------------
     if [[ ${sim_extra_option} = "aciduptake" ]]; then
         replace_colon_sep_val "DustAlk"          on HEMCO_Config.rc
         replace_colon_sep_val "=> Acidic uptake" T  input.geos
-    
+
         # Add acid uptake species in input.geos
         prev_line="Species name            : DST4"
         new_line="\Species name            : DSTAL1\n\
@@ -156,14 +163,14 @@ Species name            : TSOG3"
     Species name            : DSTAL3\n\
     Species name            : DSTAL4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        
+
         prev_line="Species name            : NIT"
         new_line="\Species name            : NITD1\n\
     Species name            : NITD2\n\
     Species name            : NITD3\n\
     Species name            : NITD4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        
+
         prev_line="Species name            : SO4"
         new_line="\Species name            : SO4D1\n\
     Species name            : SO4D2\n\
@@ -173,14 +180,14 @@ Species name            : TSOG3"
 
 	sed -i -e "s|@||"                      HISTORY.rc
     fi
-    
+
     #-----------------------------
     # Marine POA settings
     #-----------------------------
     if [[ ${sim_extra_option} = "marinePOA" ]]; then
         replace_colon_sep_val "SeaSalt"                 on HEMCO_Config.rc
         replace_colon_sep_val " => MARINE ORG AEROSOLS" T  input.geos
-    
+
         # Add marine POA species to input.geos
         prev_line"Species name            : MONITU"
         new_line="\Species name            : MOPI\n\
@@ -189,12 +196,12 @@ Species name            : TSOG3"
 
 	sed -i -e "s|@||"                      HISTORY.rc
     fi
-    
+
     #-----------------------------
     # RRTMG settings
     #-----------------------------
     if [[ ${sim_extra_option} = "RRTMG" ]]; then
-    
+
         replace_colon_sep_val "Turn on RRTMG?"       T input.geos
         replace_colon_sep_val "Calculate LW fluxes?" T input.geos
         replace_colon_sep_val "Calculate SW fluxes?" T input.geos
@@ -208,7 +215,7 @@ Species name            : TSOG3"
         printf "\nEdit input.geos and HISTORY.rc in your new run directory to customize options to only"
         printf "\nwhat you need.\n"
     fi
-    
+
     #-----------------------------
     # TOMAS settings
     #-----------------------------
@@ -356,7 +363,7 @@ Species name            : TSOG3"
     Species name            : AW14\n\
     Species name            : AW15"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        
+
         if [[ ${sim_extra_option} = "TOMAS40" ]]; then
     	prev_line="Species name            : NK15"
     	new_line="\Species name            : NK16\n\
@@ -385,7 +392,7 @@ Species name            : TSOG3"
     Species name            : NK39\n\
     Species name            : NK40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     prev_line="Species name            : SF15"
     	new_line="\Species name            : SF16\n\
     Species name            : SF17\n\
@@ -413,7 +420,7 @@ Species name            : TSOG3"
     Species name            : SF39\n\
     Species name            : SF40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : SS15"
     	new_line="\Species name            : SS16\n\
     Species name            : SS17\n\
@@ -441,7 +448,7 @@ Species name            : TSOG3"
     Species name            : SS39\n\
     Species name            : SS40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : ECOB15"
     	new_line="\Species name            : ECOB16\n\
     Species name            : ECOB17\n\
@@ -469,7 +476,7 @@ Species name            : TSOG3"
     Species name            : ECOB39\n\
     Species name            : ECOB40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : ECIL15"
     	new_line="\Species name            : ECIL16\n\
     Species name            : ECIL17\n\
@@ -497,7 +504,7 @@ Species name            : TSOG3"
     Species name            : ECIL39\n\
     Species name            : ECIL40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : OCOB15"
     	new_line="\Species name            : OCOB16\n\
     Species name            : OCOB17\n\
@@ -525,7 +532,7 @@ Species name            : TSOG3"
     Species name            : OCOB39\n\
     Species name            : OCOB40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : OCIL15"
     	new_line="\Species name            : OCIL16\n\
     Species name            : OCIL17\n\
@@ -553,7 +560,7 @@ Species name            : TSOG3"
     Species name            : OCIL39\n\
     Species name            : OCIL40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : DUST15"
     	new_line="\Species name            : DUST16\n\
     Species name            : DUST17\n\
@@ -581,7 +588,7 @@ Species name            : TSOG3"
     Species name            : DUST39\n\
     Species name            : DUST40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-    
+
     	prev_line="Species name            : AW15"
     	new_line="\Species name            : AW16\n\
     Species name            : AW17\n\
@@ -612,9 +619,9 @@ Species name            : TSOG3"
         sed -i -e "s|@||"                       HISTORY.rc
         fi
     fi
-    
+
     if [[ ${sim_extra_option} = "APM" ]]; then
-    
+
         # Add APM species to input.geos
         prev_line="Species name            : XYLE"
         new_line="\Species name            : APMBCBIN01\n\
