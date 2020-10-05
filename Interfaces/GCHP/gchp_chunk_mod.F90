@@ -896,10 +896,12 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do chemistry now'
        CALL MAPL_TimerOn( STATE, 'GC_CHEM' )
 
-       ! Calculate TOMS O3 overhead. For now, always use it from the
-       ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
-                                 .TRUE., State_Met%TO3, RC )
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ! Calculate TOMS O3 overhead. For now, always use it from the
+          ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
+          CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
+                                    .TRUE., State_Met%TO3, RC )
+       ENDIF
 
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
