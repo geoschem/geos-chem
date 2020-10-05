@@ -73,10 +73,10 @@ set_common_settings() {
     fi
 
     #-----------------------------
-    # Complex SOA settings
+    # Standard settings
     #-----------------------------
-    if [[ ${sim_extra_option} = "standard"  ]]; then
-	sed -i -e "s|@|#|"                               HISTORY.rc
+    if [[ ${sim_extra_option} = none ]]; then
+	sed -i -e 's/@//' HISTORY.rc
     fi
 
     #-----------------------------
@@ -111,7 +111,7 @@ Species name            : TSOG2\n\
 Species name            : TSOG3"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e "s|@||"                      HISTORY.rc
+	sed -i -e 's/@//' HISTORY.rc
     fi
 
     #-----------------------------
@@ -146,7 +146,7 @@ Species name            : TSOG3"
     Species name            : POG2"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e "s|@||"                      HISTORY.rc
+	sed -i -e 's/@//' HISTORY.rc
     fi
 
     #-----------------------------
@@ -178,7 +178,7 @@ Species name            : TSOG3"
     Species name            : SO4D4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e "s|@||"                      HISTORY.rc
+	sed -i -e 's/@//' HISTORY.rc
     fi
 
     #-----------------------------
@@ -616,7 +616,7 @@ Species name            : TSOG3"
     Species name            : AW39\n\
     Species name            : AW40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        sed -i -e "s|@||"                       HISTORY.rc
+	sed -i -e 's/@//' HISTORY.rc
         fi
     fi
 
@@ -741,6 +741,6 @@ Species name            : TSOG3"
     Species name            : APMSPBIN39\n\
     Species name            : APMSPBIN40"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-        sed -i -e "s|@||"                       HISTORY.rc
+	sed -i -e 's/@//' HISTORY.rc
     fi
 }
