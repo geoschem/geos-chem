@@ -902,7 +902,7 @@ CONTAINS
              RESTART            = MAPL_RestartSkip,                        &
              VLOCATION          = MAPL_VLocationCenter,                    &
                                                   __RC__ )
-          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: TRC_Bry; Friendly to: DYNAMICS'
+          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Bry; Friendly to: DYNAMICS'
 
           CALL MAPL_AddInternalSpec(GC,                                    &
              SHORT_NAME         = 'SPC_Cly',                               &
@@ -914,7 +914,7 @@ CONTAINS
              RESTART            = MAPL_RestartSkip,                        &
              VLOCATION          = MAPL_VLocationCenter,                    &
                                                   __RC__ )
-          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: TRC_Cly; Friendly to: DYNAMICS'
+          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Cly; Friendly to: DYNAMICS'
 !
 !-- Add OX to the internal state if GEOS-Chem is the analysis OX provider
 !   Make sure it is friendly to ANALYSIS! In GEOS-Chem, OX is diagnosed 
@@ -5586,7 +5586,7 @@ CONTAINS
            CYCLE 
    
        ! Get species from internal state
-       CALL MAPL_GetPointer ( INTSTATE, IntSpc, 'TRC_'//TRIM(ISPEC), __RC__ )
+       CALL MAPL_GetPointer ( INTSTATE, IntSpc, 'SPC_'//TRIM(ISPEC), __RC__ )
    
        ! Lower bound of PLE 3rd dim
        LB = LBOUND(PLE,3)
