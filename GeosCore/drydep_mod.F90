@@ -198,10 +198,6 @@ MODULE DRYDEP_MOD
   REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
   CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
-  ! Pointers
-  REAL(f4),          POINTER     :: HCO_Iodide(:,:)   => NULL()
-  REAL(f4),          POINTER     :: HCO_Salinity(:,:) => NULL()
-
   ! Allocatable arrays
   REAL(f8),          ALLOCATABLE :: DMID    (:    )
   REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
