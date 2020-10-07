@@ -2339,7 +2339,7 @@ CONTAINS
     INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Reaction List (by Rokjin Park, rjp@io.harvard.edu)
+!  Reaction List (by Rokjin Park)
 !  ============================================================================
 !  (1 ) SO2 production:
 !       DMS + OH, DMS + NO3 (saved in CHEM_DMS)
@@ -2881,9 +2881,7 @@ CONTAINS
           ! NOTE...Sulfate production from aquatic reactions of SO2
           ! with H2O2 & O3 is computed here and followings are
           ! approximations or method used for analytical (integral)
-          ! solution of these computations. Please email us
-          ! (rjp@io.harvard.edu or bmy@io.harvard.edu) if you find
-          ! anything wrong or questionable.
+          ! solution of these computations.
           !
           ! 1) with H2O2(aq)
           !      [HSO3-] + [H+] + [H2O2(aq)] => [SO4=]     (rxn)

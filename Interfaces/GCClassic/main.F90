@@ -158,7 +158,7 @@ PROGRAM GEOS_Chem
 !                 (formerly known as the Harvard-GEOS model)
 !           for 4 x 5, 2 x 2.5 global grids and hi-res nested grids
 !                                                                             .
-!       Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)
+!       Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)
 !
 !                                                                             .
 !  See the GEOS-Chem Web Site:
