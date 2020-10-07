@@ -409,6 +409,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #endif
 
+#if defined( MODEL_CESM )
+     LOGICAL                     :: onlineAlbedo       = .TRUE. ! Use albedo from land model
+     LOGICAL                     :: onlineLandTypes    = .TRUE. ! Use land types from land model
+     LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
+#endif
      !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------

@@ -245,6 +245,9 @@ CONTAINS
     ! SpcData_Init begins here!
     !=====================================================================
 
+    ! Assume success
+    RC = GC_SUCCESS
+
     ! Check if already allocated
     IF ( ASSOCIATED( SpcData ) ) THEN
        CALL SpcData_Cleanup( SpcData )

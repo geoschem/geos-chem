@@ -22,18 +22,27 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-  !#if !defined(ESMF_)
+#if defined( MODEL_CESM )
+    USE CAM_PIO_UTILS, ONLY : CAM_PIO_OPENFILE
+    USE IOFILEMOD,     ONLY : GETFIL
+    USE PIO,           ONLY : PIO_CLOSEFILE, PIO_INQ_DIMID, PIO_INQ_DIMLEN
+    USE PIO,           ONLY : PIO_INQ_VARID, PIO_GET_VAR, PIO_NOERR
+    USE PIO,           ONLY : PIO_NOWRITE, FILE_DESC_T
+#endif
+
+#if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
   USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
   USE m_netcdf_io_read                    ! netCDF data reads
   USE m_netcdf_io_close                   ! netCDF close
-  !#endif
+#endif
 
   IMPLICIT NONE
-  !#if !defined(ESMF_)
+
+#if !defined( EXTERNAL_GRID )
 # include "netcdf.inc"
-  !#endif
+#endif
 
   PRIVATE
 
@@ -661,6 +670,12 @@ CONTAINS
     REAL(fp), DIMENSION(:,:,:), POINTER   :: NOXDATA2D => NULL()
     REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
     INTEGER                               :: LSTART
+
+#if defined( MODEL_CESM )
+    INTEGER            :: iret
+    INTEGER            :: vid
+    TYPE(FILE_DESC_T)  :: ncid
+#endif
 
     ! Local variables for quantities from Input_Opt
     LOGICAL                               :: prtDebug
@@ -3876,6 +3891,12 @@ CONTAINS
     USE FILE_MOD,           ONLY : IoError
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
+#if defined( MODEL_CESM )
+    USE UNITS,              ONLY : freeUnit
+#if defined( SPMD )
+    USE MPISHORTHAND
+#endif
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3896,6 +3917,9 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
+#if defined( MODEL_CESM ) && defined( SPMD )
+    INTEGER            :: nSize ! Number of elements in NOXCOEFF
+#endif
 
     ! Strings
     CHARACTER(LEN=255) :: NOX_FILE
@@ -3995,6 +4019,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
     NOXCOEFF = 0.0e+0_fp
 
+#if defined( MODEL_CESM )
+    nSize = JJNOXCOEFF * UCX_NLEVS * 6 * 12
+    IF ( Input_Opt%amIRoot ) THEN
+#endif
     ! Fill array
     DO IMON  = 1,12
     DO ITRAC = 1,6
@@ -4065,9 +4093,18 @@ CONTAINS
        ENDDO
 
        CLOSE(IU_FILE)
+#if defined( MODEL_CESM )
+       CALL freeUnit( IU_FILE )
+#endif
 
     ENDDO !ITRAC
     ENDDO !IMON
+#if defined( MODEL_CESM )
+    ENDIF
+#if defined( SPMD )
+    CALL MPIBCAST( NOXCOEFF, nSize, MPIR8, 0, MPICOM )
+#endif
+#endif
 
   END SUBROUTINE NOXCOEFF_INIT
 !EOC

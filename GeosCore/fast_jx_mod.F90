@@ -18,6 +18,10 @@ MODULE FAST_JX_MOD
 !
   USE CMN_FJX_MOD
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+#if defined( MODEL_CESM ) && defined( SPMD )
+      USE MPISHORTHAND
+      USE SPMD_UTILS
+#endif
 
   IMPLICIT NONE
 
@@ -1654,6 +1658,10 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
+#if defined( MODEL_CESM )
+    USE UNITS,          ONLY : freeUnit
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1728,8 +1736,16 @@ CONTAINS
           endif
        ENDIF
 
+#if defined( MODEL_CESM )
+       IF ( Input_Opt%amIRoot ) THEN
+          JXUNIT = findFreeLUN()
+       ELSE
+          JXUNIT = 0
+       ENDIF
+#else
        ! Get a free LUN
        JXUNIT = findFreeLUN()
+#endif
 
     ENDIF
 
@@ -1902,6 +1918,13 @@ CONTAINS
              ENDIF
           ENDIF
        ENDDO
+
+#if defined( MODEL_CESM )
+       IF ( Input_Opt%amIRoot ) THEN
+         CALL freeUnit(JXUnit)
+       ENDIF
+#endif
+
     ENDIF
 
 #ifdef MODEL_GEOS
@@ -2046,6 +2069,11 @@ CONTAINS
     !                   NJX = # fast-JX J-values derived from this (.le. X_)
 
     ! >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
+
+#if defined( MODEL_CESM )
+    ! Only read file on root thread if using CESM
+    IF ( Input_Opt%amIRoot ) THEN
+#endif
 
     ! Open file
     open (NUN,FILE=NAMFIL,status='old',form='formatted')
@@ -2234,6 +2262,28 @@ CONTAINS
 
     close(NUN)
 
+#if defined( MODEL_CESM )
+    ENDIF
+
+#if defined( SPMD )
+    CALL MPIBCAST( NJX,       1,             MPIR8,   0, MPICOM )
+    CALL MPIBCAST( NW1,       1,             MPIR8,   0, MPICOM )
+    CALL MPIBCAST( NW2,       1,             MPIR8,   0, MPICOM )
+    CALL MPIBCAST( WBIN,      Size(WBIN),    MPIR8,   0, MPICOM )
+    CALL MPIBCAST( WL,        Size(WL),      MPIR8,   0, MPICOM )
+    CALL MPIBCAST( FL,        Size(FL),      MPIR8,   0, MPICOM )
+    CALL MPIBCAST( QO2,       Size(QO2),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( QO3,       Size(QO3),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( Q1D,       Size(Q1D),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( QQQ,       Size(QQQ),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( QRAYL,     Size(QRAYL),   MPIR8,   0, MPICOM )
+    CALL MPIBCAST( TQQ,       Size(TQQ),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( LQQ,       Size(LQQ),     MPIINT,  0, MPICOM )
+    CALL MPIBCAST( TITLEJX,   X_*6,          MPICHAR, 0, MPICOM )
+    CALL MPIBCAST( SQQ,       X_*1,          MPICHAR, 0, MPICOM )
+#endif
+#endif
+
 100 format(a)
 101 format(10x,5i5)
 102 format(10x,    6e10.3/(10x,6e10.3)/(10x,6e10.3))
@@ -2349,6 +2399,11 @@ CONTAINS
     ! Copy fields from Input_Opt
     LBRC = Input_Opt%LBRC
 
+#if defined( MODEL_CESM )
+    ! Only read file on root thread if using CESM
+    IF ( Input_Opt%amIRoot ) THEN
+#endif
+
     ! Open file
     open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
@@ -2385,6 +2440,20 @@ CONTAINS
     ENDIF
 
     close(NUN)
+
+#if defined( MODEL_CESM )
+    ENDIF
+
+#if defined( SPMD )
+    CALL MPIBCAST( QAA,       Size(QAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( WAA,       Size(WAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( PAA,       Size(PAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( RAA,       Size(RAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( SAA,       Size(SAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( NAA,       1,             MPIINT,  0, MPICOM )
+    CALL MPIBCAST( TITLEAA,   80*A_,         MPICHAR, 0, MPICOM )
+#endif
+#endif
 
     IF ( Input_Opt%amIRoot ) THEN
        write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):', &
@@ -2552,6 +2621,11 @@ CONTAINS
        ! If not a dry-run, read data from each species file
        !--------------------------------------------------------------
 
+#if defined( MODEL_CESM )
+       ! Only read file on root thread if using CESM
+       IF ( Input_Opt%amIRoot ) THEN
+#endif
+
        ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
 
@@ -2589,7 +2663,29 @@ CONTAINS
 
        ! Close file
        CLOSE( NJ1 )
+
+#if defined( MODEL_CESM )
+       ENDIF
+#endif
+
     ENDDO
+
+#if defined( MODEL_CESM ) && defined( SPMD )
+    CALL MPIBCAST( WVAA,      Size(WVAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( RHAA,      Size(RHAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( NRLAA,     Size(NRLAA),    MPIR8,   0, MPICOM )
+    CALL MPIBCAST( NCMAA,     Size(NCMAA),    MPIR8,   0, MPICOM )
+    CALL MPIBCAST( RDAA,      Size(RDAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( RWAA,      Size(RWAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( SGAA,      Size(SGAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( QQAA,      Size(QQAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( ALPHAA,    Size(ALPHAA),   MPIR8,   0, MPICOM )
+    CALL MPIBCAST( REAA,      Size(REAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( SSAA,      Size(SSAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( ASYMAA,    Size(ASYMAA),   MPIR8,   0, MPICOM )
+    CALL MPIBCAST( PHAA,      Size(PHAA),     MPIR8,   0, MPICOM )
+    CALL MPIBCAST( IWV1000,   1,              MPIINT,  0, MPICOM )
+#endif
 
     !=================================================================
     ! Only do the following if we are not running in dry-run mode
@@ -2967,6 +3063,11 @@ CONTAINS
     JMAP(:)   = '------'
     JFACTA(:) = 0.e+0_fp
 
+#if defined( MODEL_CESM )
+    ! Only read file on root thread if using CESM
+    IF ( Input_Opt%amIRoot ) THEN
+#endif
+
     ! Open file
     open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
@@ -3005,6 +3106,21 @@ CONTAINS
           ENDIF
        ENDDO
     enddo
+
+20  close(NUNIT)
+
+#if defined( MODEL_CESM )
+    ENDIF
+#if defined( SPMD )
+
+    CALL MPIBCAST( JLABEL,    JVN_*50,       MPICHAR, 0, MPICOM )
+    CALL MPIBCAST( JFACTA,    JVN_,          MPIR8,   0, MPICOM )
+    CALL MPIBCAST( JMAP,      JVN_*6,        MPICHAR, 0, MPICOM )
+    CALL MPIBCAST( NRATJ,     1,             MPIINT,  0, MPICOM )
+    CALL MPIBCAST( RNAMES,    JVN_*10,       MPICHAR, 0, MPICOM )
+    CALL MPIBCAST( BRANCH,    JVN_,          MPIINT,  0, MPICOM )
+#endif
+#endif
 
     ! Zero / Set index arrays that map Jvalue(j) onto rates
     do K = 1,NRATJ
@@ -4936,10 +5052,24 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
+
+#if defined( MODEL_CESM )
+    USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
+    USE IOFILEMOD,         ONLY : GETFIL
+    USE PIO,               ONLY : PIO_CLOSEFILE
+    USE PIO,               ONLY : PIO_INQ_DIMID
+    USE PIO,               ONLY : PIO_INQ_DIMLEN
+    USE PIO,               ONLY : PIO_INQ_VARID
+    USE PIO,               ONLY : PIO_GET_VAR
+    USE PIO,               ONLY : PIO_NOERR
+    USE PIO,               ONLY : PIO_NOWRITE
+    USE PIO,               ONLY : FILE_DESC_T
+#else
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
     USE m_netcdf_io_close
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -4980,6 +5110,11 @@ CONTAINS
 
     ! Arrays
     INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
+
+#if defined( MODEL_CESM )
+    type(FILE_DESC_T)  :: ncid
+    INTEGER            :: vId, iret
+#endif
 
     !=================================================================
     ! RD_PROF_NC begins here!
@@ -5034,7 +5169,11 @@ CONTAINS
     !=========================================================================
 
     ! Open netCDF file
+#if defined( MODEL_CESM )
+    CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
+#else
     CALL Ncop_Rd( fId, TRIM(nc_path) )
+#endif
 
     ! Echo info to stdout
     IF ( Input_Opt%amIRoot ) THEN
@@ -5053,6 +5192,10 @@ CONTAINS
     ! Read T from file
     st3d   = (/  1,  1,  1 /)
     ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, TREF          )
+#else
     CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
 
     ! Read the T:units attribute
@@ -5063,6 +5206,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
+#endif
 
     !----------------------------------------
     ! VARIABLE: O3
@@ -5074,6 +5218,10 @@ CONTAINS
     ! Read O3 from file
     st3d   = (/  1,  1,  1 /)
     ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, OREF          )
+#else
     CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
 
     ! Read the O3:units attribute
@@ -5084,13 +5232,18 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
+#endif
 
     !=================================================================
     ! Cleanup and quit
     !=================================================================
 
     ! Close netCDF file
+#if defined( MODEL_CESM )
+    CALL PIO_CLOSEFILE( ncid )
+#else
     CALL NcCl( fId )
+#endif
 
     ! Echo info to stdout
     IF ( Input_Opt%amIRoot ) THEN

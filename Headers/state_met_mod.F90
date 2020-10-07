@@ -74,6 +74,7 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
      LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
      LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
@@ -377,6 +378,7 @@ CONTAINS
     State_Met%IsLand         => NULL()
     State_Met%IsWater        => NULL()
     State_Met%IsIce          => NULL()
+    State_Met%IsSnow         => NULL()
     State_Met%LAI            => NULL()
     State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
@@ -1024,6 +1026,25 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%IsIce,                                       &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! IsSnow (do not register for diagnostics)
+    !------------------------------------------------------------------------
+    metId = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%IsSnow,                                      &
          noRegister = .TRUE.,                                                &
          RC         = RC                                                    )
 
@@ -3390,6 +3411,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IsIce', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IsIce => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsSnow ) ) THEN
+       DEALLOCATE( State_Met%IsSnow, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsSnow', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsSnow => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%LAI ) ) THEN

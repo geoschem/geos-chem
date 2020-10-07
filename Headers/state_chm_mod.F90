@@ -179,13 +179,6 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
      INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
-#if defined( MODEL_GEOS )
-     ! For drydep
-     REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
-     REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
-     REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! drydep velocity
-#endif
-
      !-----------------------------------------------------------------------
      ! Physical properties & indices for each species
      !-----------------------------------------------------------------------
@@ -301,7 +294,20 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Fields for dry deposition
      !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
+     REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
+     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities 
+                                                        ! [m/s] - use REAL8 in drydep
+#if defined( MODEL_GEOS )
+     REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
+     REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
+#endif
+
+     !-----------------------------------------------------------------------
+     ! Fields for non-local PBL mixing
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: SurfaceFlux(:,:,:  )
 
      !-----------------------------------------------------------------------
      ! Fields for Linoz stratospheric ozone algorithm
@@ -313,11 +319,6 @@ MODULE State_Chm_Mod
      !------------------------------------------------------------------------
      REAL(fp),          POINTER :: PSO4s      (:,:,:  )
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
-
-     !-----------------------------------------------------------------------
-     ! Fields for non-local PBL mixing
-     !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: SurfaceFlux(:,:,:  )
 
      !-----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
@@ -493,7 +494,16 @@ CONTAINS
     State_Chm%SFC_CH4           => NULL()
 
     ! Emissions and drydep quantities
+    State_Chm%Iodide            => NULL()
+    State_Chm%Salinity          => NULL()
     State_Chm%DryDepSav         => NULL()
+    State_Chm%DryDepVel         => NULL()
+#ifdef MODEL_GEOS
+    State_Chm%DryDepRa2m        => NULL()
+    State_Chm%DryDepRa10m       => NULL()
+#endif
+
+    ! Non-local PBL mixing quantities
     State_Chm%SurfaceFlux       => NULL()
 
     ! Wetdep quantities
@@ -525,13 +535,6 @@ CONTAINS
     State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
-
-#ifdef MODEL_GEOS
-    ! Quantities needed for GEOS-5
-    State_Chm%DryDepRa2m        => NULL()
-    State_Chm%DryDepRa10m       => NULL()
-    State_Chm%DryDepVel         => NULL()
-#endif
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -850,57 +853,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-#ifdef MODEL_GEOS
-    !========================================================================
-    ! Allocate and initialize aerodynamic resistance fields (GEOS-5 only)
-    !========================================================================
-    chmID = 'DryDepRa2m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepRa2m,                                  &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    chmID = 'DryDepRa10m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepRa10m,                                 &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    chmID = 'DryDepVel'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepVel,                                   &
-         nSlots     = State_Chm%nDryDep ,                                    &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !========================================================================
     ! Allocate and initialize quantities that are only relevant for the
@@ -1742,6 +1694,46 @@ CONTAINS
     !========================================================================
 
     !------------------------------------------------------------------------
+    ! Ocean surface iodide
+    !------------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmId = 'Iodide'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%Iodide,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Ocean surface salinity
+    !------------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmId = 'Salinity'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%Salinity,                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! DryDepSav
     !------------------------------------------------------------------------
     IF ( State_Chm%nDryDep > 0 ) THEN
@@ -1753,6 +1745,81 @@ CONTAINS
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%DryDepSav,                                &
             nSlots     = State_Chm%nDryDep,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! DryDepVel
+    !------------------------------------------------------------------
+    chmID = 'DryDepVel'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepVel,                                   &
+         nSlots     = State_Chm%nDryDep ,                                    &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+#ifdef MODEL_GEOS
+    !========================================================================
+    ! Allocate and initialize aerodynamic resistance fields (GEOS-5 only)
+    !========================================================================
+    chmID = 'DryDepRa2m'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepRa2m,                                  &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    chmID = 'DryDepRa10m'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%DryDepRa10m,                                 &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+#endif
+
+    !------------------------------------------------------------------
+    ! Surface flux for non-local PBL mixing
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
+       chmId = 'SurfaceFlux'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SurfaceFlux,                              &
+            nSlots     = State_Chm%nAdvect,                                  &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1803,27 +1870,6 @@ CONTAINS
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
-    ENDIF
-
-    !------------------------------------------------------------------
-    ! Surface flux for non-local PBL mixing
-    !------------------------------------------------------------------
-    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
-       chmId = 'SurfaceFlux'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%SurfaceFlux,                              &
-            nSlots     = State_Chm%nAdvect,                                  &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
     ENDIF
 
     !=======================================================================
@@ -2980,6 +3026,34 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
+       DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepVel => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
+       DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepSav => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Iodide ) ) THEN
+       DEALLOCATE( State_Chm%Iodide, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Iodide', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Iodide => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Salinity ) ) THEN
+       DEALLOCATE( State_Chm%Salinity, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Salinity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Salinity => NULL()
+    ENDIF
+
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
@@ -2994,21 +3068,13 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa10m => NULL()
     ENDIF
-
-    IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
-       DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepVel => NULL()
-    ENDIF
-
 #endif
 
-    IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
-       DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
+    IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
+       DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepSav => NULL()
+       State_Chm%SurfaceFlux => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%TLSTT ) ) THEN
@@ -3033,13 +3099,6 @@ CONTAINS
        State_Chm%QQ3D => NULL()
     ENDIF
 #endif
-
-    IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
-       DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SurfaceFlux', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SurfaceFlux => NULL()
-    ENDIF
 
     IF ( ASSOCIATED( State_Chm%SFC_CH4 ) ) THEN
        DEALLOCATE( State_Chm%SFC_CH4, STAT=RC )
@@ -3892,11 +3951,45 @@ CONTAINS
           IF ( isRank  ) Rank   = 2
           IF ( isSpc   ) PerSpc = 'HgCat'
 
+       CASE ( 'IODIDE' )
+          IF ( isDesc  ) Desc  = 'Surface iodide concentration'
+          IF ( isUnits ) Units = 'nM'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SALINITY' )
+          IF ( isDesc  ) Desc  = 'Salinity'
+          IF ( isUnits ) Units = 'PSU'
+          IF ( isRank  ) Rank  = 2
+
        CASE( 'DRYDEPFREQ' )
           IF ( isDesc  ) Desc   = 'Dry deposition frequencies'
           IF ( isUnits ) Units  = 's-1'
           IF ( isRank  ) Rank   = 2
           IF ( isSpc   ) perSpc = 'DRY'
+
+       CASE( 'DRYDEPVEL' )
+          IF ( isDesc    ) Desc   = 'Dry deposition velocities'
+          IF ( isUnits   ) Units  = 'm s-1'
+          IF ( isRank    ) Rank   = 2
+          IF ( isSpc     ) perSpc = 'DRY'
+
+#ifdef MODEL_GEOS
+       CASE( 'DRYDEPRA2M' )
+          IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
+          IF ( isUnits   ) Units = 's cm-1'
+          IF ( isRank    ) Rank  = 2
+
+       CASE( 'DRYDEPRA10M' )
+          IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
+          IF ( isUnits   ) Units = 's cm-1'
+          IF ( isRank    ) Rank  = 2
+#endif
+
+       CASE( 'SURFACEFLUX' )
+          IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
+          IF ( isUnits ) Units  = 'kg m-2 s-1'
+          IF ( isRank  ) Rank   = 2
+          IF ( isSpc   ) perSpc = 'ADV'
 
        CASE( 'TLSTT' )
           IF ( isDesc  ) Desc  = 'TLSTT'
@@ -3912,30 +4005,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
           IF ( isUnits ) Units = 'cm3 H2O cm-3 air'
           IF ( isRank  ) Rank  = 3
-
-       CASE( 'SURFACEFLUX' )
-          IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
-          IF ( isUnits ) Units  = 'kg m-2 s-1'
-          IF ( isRank  ) Rank   = 2
-          IF ( isSpc   ) perSpc = 'ADV'
-
-#ifdef MODEL_GEOS
-       CASE( 'DRYDEPRA2M' )
-          IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
-          IF ( isUnits   ) Units = 's cm-1'
-          IF ( isRank    ) Rank  = 2
-
-       CASE( 'DRYDEPRA10M' )
-          IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
-          IF ( isUnits   ) Units = 's cm-1'
-          IF ( isRank    ) Rank  = 2
-
-       CASE( 'DRYDEPVEL' )
-          IF ( isDesc    ) Desc   = 'Dry deposition velocity of species'
-          IF ( isUnits   ) Units  = 'cm s-1'
-          IF ( isRank    ) Rank   = 2
-          IF ( isSpc     ) perSpc = 'DRY'
-#endif
 
        CASE DEFAULT
           Found = .False.

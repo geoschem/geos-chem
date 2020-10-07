@@ -6480,9 +6480,10 @@ CONTAINS
                        'Cannot compute 2M concentration - need diagnostics '// &
                        'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
-                ENDIF      
+                ENDIF
+                ! State_Chm%DryDepVel is stored as [m/s]
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa2m(:,:) *  &
-                            State_Chm%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) * 100.e+0_f8 )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF
@@ -6510,9 +6511,10 @@ CONTAINS
                      'Cannot compute 10M concentration - need diagnostics '// &
                      'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
-                ENDIF      
+                ENDIF
+                ! State_Chm%DryDepVel is stored as [m/s]
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa10m(:,:) * &
-                            State_Chm%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) * 100.e+0_f8 )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF  

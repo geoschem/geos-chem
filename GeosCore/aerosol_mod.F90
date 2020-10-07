@@ -174,16 +174,18 @@ CONTAINS
     USE CMN_FJX_MOD,      ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod, ONLY : HcoState
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Met_Mod,    ONLY : MetState
-    USE UCX_MOD,          ONLY : KG_STRAT_AER
-    USE UnitConv_Mod,     ONLY : Convert_Spc_Units
-    USE TIME_MOD,         ONLY : GET_MONTH
+#if !defined( MODEL_CESM )
+    USE HCO_State_GC_Mod,  ONLY : HcoState
+    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+#endif
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod,     ONLY : ChmState
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Grid_Mod,    ONLY : GrdState
+    USE State_Met_Mod,     ONLY : MetState
+    USE UCX_MOD,           ONLY : KG_STRAT_AER
+    USE UnitConv_Mod,      ONLY : Convert_Spc_Units
+    USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
     USE TOMAS_MOD,        ONLY : IBINS
 #endif
@@ -337,10 +339,15 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
+
     ALLOCATE( OMOC(State_Grid%NX, State_Grid%NY), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F: OMOC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+#if !defined( MODEL_CESM )
     CALL HCO_EvalFld( HcoState, Trim(FieldName), OMOC, RC, FOUND=FND )
+#else
+    FND = .False.
+#endif
 
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 

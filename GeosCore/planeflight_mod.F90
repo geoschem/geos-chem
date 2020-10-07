@@ -72,8 +72,8 @@ MODULE PLANEFLIGHT_MOD
   ! PDATE       : Array of dates     at each flight point
   ! PTIME       : Array of times     at each flight point
   ! PTAU        : Array of TAU's     at each flight point
-  ! PLAT        : Array of latitude  at each flight point
-  ! PLON        : Array of longitude at each flight point
+  ! PLATTD      : Array of latitude  at each flight point
+  ! PLONGTD     : Array of longitude at each flight point
   ! PPRESS      : Array of pressure  at each flight point
   ! PTYPE       : Array of ID'#S     at each flight point
   ! NPVAR       : # of var's to be saved at each flight point
@@ -109,8 +109,8 @@ MODULE PLANEFLIGHT_MOD
   REAL(fp),          ALLOCATABLE :: PTAU(:)
 
   ! For specifying lat/lon/alt and ID type
-  REAL*4,            ALLOCATABLE :: PLAT(:)
-  REAL*4,            ALLOCATABLE :: PLON(:)
+  REAL*4,            ALLOCATABLE :: PLATTD(:)
+  REAL*4,            ALLOCATABLE :: PLONGTD(:)
   REAL*4,            ALLOCATABLE :: PPRESS(:)
   REAL*4,            ALLOCATABLE :: POBS(:)
   REAL*4,            ALLOCATABLE :: PTAMB(:)
@@ -1037,11 +1037,11 @@ CONTAINS
           PRES = State_Met%PMID(IJ(1),IJ(2),L_ALT)
        ENDIF
 
-       ! Assign LAT value into global PLAT array
-       PLAT(N)   = LAT
+       ! Assign LAT value into global PLATTD array
+       PLATTD(N) = LAT
 
-       ! Assign LON value into global PLON array
-       PLON(N)   = LON
+       ! Assign LON value into global PLONGTD array
+       PLONGTD(N) = LON
 
        ! Assign PRES value into global PPRESS array
        PPRESS(N) = PRES
@@ -2194,15 +2194,15 @@ CONTAINS
     ! We have not found a valid point
     FOUND = .FALSE.
 
-    ! Get I corresponding to PLON(IND)
-    I = INT( ( PLON(IND) + 180e+0_fp - &
+    ! Get I corresponding to PLONGTD(IND)
+    I = INT( ( PLONGTD(IND) + 180e+0_fp - &
       ( State_Grid%XMinOffset * State_Grid%DX ) ) / State_Grid%DX + 1.5e+0_fp )
 
     ! Handle date line correctly (bmy, 4/23/04)
     IF ( I > State_Grid%nx ) I = I - State_Grid%NX
 
-    ! Get J corresponding to PLAT(IND)
-    J = INT( ( PLAT(IND) +  90e+0_fp - &
+    ! Get J corresponding to PLATTD(IND)
+    J = INT( ( PLATTD(IND) +  90e+0_fp - &
       ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY + 1.5e+0_fp )
 
     ! Get L corresponding to PRESS(IND)
@@ -2270,8 +2270,8 @@ CONTAINS
     ! WRITE_VARS_TO_FILE begins here!
     !=================================================================
 
-    LON_TMP = REAL(PLON(IND),4)
-    LAT_TMP = REAL(PLAT(IND),4)
+    LON_TMP = REAL(PLONGTD(IND),4)
+    LAT_TMP = REAL(PLATTD(IND),4)
 
     ! Skip observations outside the domain
     IF ( LAT_TMP < State_Grid%YMin .OR. &
@@ -2298,7 +2298,7 @@ CONTAINS
     ! Write data to file
     WRITE( IU_PLANE, 110, IOSTAT=IOS )                            &
            IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ), &
-           PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),          &
+           PLATTD(IND), PLONGTD(IND), PPRESS(IND), POBS(IND),          &
            INT( GET_ELAPSED_SEC() / GET_TS_DYN() ), LL, II, JJ,   &
            ( VARI(I), I=1,NPVAR )
 
@@ -2558,11 +2558,11 @@ CONTAINS
        ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
 
-       ALLOCATE( PLAT( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
+       ALLOCATE( PLATTD( MAXPOINTS ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLATTD' )
 
-       ALLOCATE( PLON( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
+       ALLOCATE( PLONGTD( MAXPOINTS ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLONGTD' )
 
        ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
@@ -2588,8 +2588,8 @@ CONTAINS
     PDATE  = 0e0
     PTIME  = 0e0
     PTAU   = 0e0
-    PLAT   = 0e0
-    PLON   = 0e0
+    PLATTD = 0e0
+    PLONGTD= 0e0
     PPRESS = 0e0
     POBS   = 0e0
 
@@ -2626,8 +2626,8 @@ CONTAINS
     IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  )
     IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  )
     IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   )
-    IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
-    IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
+    IF ( ALLOCATED( PLATTD ) ) DEALLOCATE( PLATTD   )
+    IF ( ALLOCATED( PLONGTD) ) DEALLOCATE( PLONGTD   )
     IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
     IF ( ALLOCATED( POBS   ) ) DEALLOCATE( POBS   )
 
