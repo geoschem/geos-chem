@@ -1,9 +1,0 @@
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOI
-! !TITLE: GEOS-Chem Reference\\3. History modules (netCDF diagnostics)
-! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 10 Jul 2018
-!EOI
-!------------------------------------------------------------------------------
