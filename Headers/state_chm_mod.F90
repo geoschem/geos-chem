@@ -297,8 +297,8 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
      REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
-     REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition 
-                                                        ! velocities [m/s]
+     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities 
+                                                        ! [m/s] - use REAL8 in drydep
 #if defined( MODEL_GEOS )
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
      REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
