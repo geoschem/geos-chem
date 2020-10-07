@@ -1,4 +1,5 @@
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !                    Harmonized Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
@@ -112,7 +113,7 @@ MODULE HCO_Interface_GC_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -226,7 +227,7 @@ CONTAINS
     ! Create a splash page
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 100   ) 'HEMCO: Harmonized Emissions Component'
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
  100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
@@ -629,7 +630,7 @@ CONTAINS
   END SUBROUTINE HCOI_GC_INIT
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1016,7 +1017,7 @@ CONTAINS
   END SUBROUTINE HCOI_GC_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1156,7 +1157,7 @@ CONTAINS
   END SUBROUTINE HCOI_GC_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1264,7 +1265,7 @@ CONTAINS
   END SUBROUTINE HCOI_GC_WriteDiagn
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1464,7 +1465,7 @@ CONTAINS
   END SUBROUTINE ExtState_InitTargets
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2127,7 +2128,7 @@ CONTAINS
   END SUBROUTINE ExtState_SetFields
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2305,7 +2306,7 @@ CONTAINS
   END SUBROUTINE ExtState_UpdateFields
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2469,7 +2470,7 @@ CONTAINS
   END SUBROUTINE GridEdge_Set
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2725,7 +2726,7 @@ CONTAINS
   END SUBROUTINE SetHcoSpecies
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2857,7 +2858,7 @@ CONTAINS
   END SUBROUTINE SetHcoGrid
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

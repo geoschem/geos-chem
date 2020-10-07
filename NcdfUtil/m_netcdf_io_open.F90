@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -26,14 +25,17 @@ module m_netcdf_io_open
 ! !REVISION HISTORY:
 !  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  10 Jul 2014 - R. Yantosca - Now
+!
+! !REMARKS:
+!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
+!
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -88,8 +90,7 @@ CONTAINS
   end subroutine Ncop_Rd
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

@@ -875,7 +875,7 @@ CONTAINS
 !EOC
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

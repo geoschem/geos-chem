@@ -1095,7 +1095,7 @@ CONTAINS
   END SUBROUTINE RECOMPUTE_OD
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

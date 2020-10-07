@@ -1,8 +1,7 @@
 #include "MAPL_Generic.h"
 
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -332,8 +331,7 @@ MODULE Chem_GridCompMod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1628,8 +1626,7 @@ CONTAINS
   END SUBROUTINE SetServices
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2704,8 +2701,7 @@ CONTAINS
 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2771,8 +2767,7 @@ CONTAINS
   END SUBROUTINE Run1 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2842,8 +2837,7 @@ CONTAINS
   END SUBROUTINE Run2 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4370,8 +4364,7 @@ CONTAINS
   END SUBROUTINE Run_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4751,8 +4744,7 @@ CONTAINS
   END SUBROUTINE Finalize_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5196,8 +5188,7 @@ CONTAINS
 !EOC
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5328,8 +5319,7 @@ CONTAINS
   END SUBROUTINE CalcTotOzone_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5497,8 +5487,7 @@ CONTAINS
   END SUBROUTINE CalcNO2Column_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5631,8 +5620,7 @@ CONTAINS
   END SUBROUTINE CalcColumns_
 !EOC
 !!------------------------------------------------------------------------------
-!!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Model                            !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -5842,8 +5830,7 @@ CONTAINS
 !  END SUBROUTINE CalcTendencies_ 
 !!EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6001,8 +5988,7 @@ CONTAINS
   END SUBROUTINE NOxDiagnostics_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6549,8 +6535,7 @@ CONTAINS
   END SUBROUTINE CalcSpeciesDiagnostics_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6672,8 +6657,7 @@ CONTAINS
 
   END SUBROUTINE MassWeightedOH_
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7004,8 +6988,7 @@ CONTAINS
   END SUBROUTINE InitFromFile_ 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7240,8 +7223,7 @@ CONTAINS
 !EOC
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7361,8 +7343,7 @@ CONTAINS
   END SUBROUTINE MetVars_For_Lightning_Init
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7538,8 +7519,7 @@ CONTAINS
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7585,8 +7565,7 @@ CONTAINS
 ! GEOS-5 routine moved to gchp_providerservices_mod but needs updating so
 ! use this for now:
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7779,7 +7758,7 @@ CONTAINS
   END SUBROUTINE FillAeroDP 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !

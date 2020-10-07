@@ -568,7 +568,7 @@ CONTAINS
   END SUBROUTINE READ_HG2_PARTITIONING
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
