@@ -852,39 +852,38 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! State_Met variables needed for benchmarking
-    IF ( SimType == 'benchmark' .OR. SimType == 'TransportTracers' ) THEN
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'AREA',  &
-          LONG_NAME          = 'Grid horizontal area',  &
-          UNITS              = 'm2', &
-          DIMS               = MAPL_DimsHorzOnly,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'BXHEIGHT',  &
-          LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
-          UNITS              = 'm', &
-          DIMS               = MAPL_DimsHorzVert,    &
-          VLOCATION          = MAPL_VLocationCenter,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
+    ! Additional outputs useful for unit conversions and post-processing analysis
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'AREA',  &
+       LONG_NAME          = 'Grid horizontal area',  &
+       UNITS              = 'm2', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'BXHEIGHT',  &
+       LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
+       UNITS              = 'm', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
 
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'TropLev',  &
-          LONG_NAME          = 'GEOS-Chem level where the tropopause occurs',  &
-          UNITS              = '1', &
-          DIMS               = MAPL_DimsHorzOnly,    &
-          VLOCATION          = MAPL_VLocationCenter,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
-    ENDIF
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'TropLev',  &
+       LONG_NAME          = 'GEOS-Chem level where the tropopause occurs',  &
+       UNITS              = '1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
 #endif
 
 #if defined( MODEL_GEOS )
