@@ -1,3 +1,4 @@
+
 Ext_AllowExtrap: .true.
 DEBUG_LEVEL: 0
 #
@@ -129,8 +130,8 @@ PHIS m2_s-2 N Y - none none PHIS ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2019-01/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2019-01/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
+FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
+CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
 #
 ###############################################################################
 ###
@@ -2284,18 +2285,18 @@ MEGAN_ORVC 1 Y Y F1990-%m2-01T00:00:00 none none OCPI ./HcoDir/SOA/v2014-07/NVOC
 # --- GFED biomass burning emissions (Extension 111)
 #==============================================================================
 # --- GFED4 ---
-GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2015-10/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
 #
 # --- GFED_daily ---
 GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2015-10/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 #
 # --- GFED_3hourly ---
-GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2015-10/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2020-02/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 #
 #==============================================================================
 # --- FINN v1.5 biomass burning emissions (Extension 114)

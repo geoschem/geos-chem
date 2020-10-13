@@ -197,7 +197,7 @@ timeAvg_collections=(SpeciesConc    \
                      DryDep         \
                      Emissions      \
                      JValues        \
-                     KPPDiags       \
+                     KppDiags       \
                      LevelEdgeDiags \
                      Metrics        \
                      ProdLoss       \
