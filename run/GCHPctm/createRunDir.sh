@@ -64,6 +64,7 @@ printf "  1. Standard\n"
 printf "  2. Benchmark\n"
 printf "  3. TransportTracers\n"
 printf "  4. Standard w/ RRTMG enabled\n"
+printf "  5. CO2 w/ CMS-Flux emissions\n"
 valid_sim=0
 sim_extra_option=none
 while [ "${valid_sim}" -eq 0 ]
@@ -87,6 +88,10 @@ do
 	sim_name_long=${sim_name}
 	sim_type=fullchem
         sim_extra_option=RRTMG
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=CO2
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -282,6 +287,9 @@ elif [ "${sim_name}" == "benchmark" ]; then
 elif [ "${sim_type}" == "fullchem" ]; then
     startdate="20160701"
     enddate="20160701"
+elif [ "${sim_type}" == "CO2" ]; then
+    startdate="20140901"
+    enddate="20140901"
 else
     printf "\nError: Start date is not defined for simulation ${sim_type}."
 fi
@@ -301,6 +309,16 @@ if [ "${sim_name}" == "benchmark" ]; then
     end_time="000000"
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
+elif [ "${sim_type}" == "CO2" ]; then
+    total_cores=48
+    num_nodes=2
+    num_cores_per_node=24
+    grid_res=24
+    diag_freq="010000"
+    start_time="000000"
+    end_time="060000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="060000"
 else
     total_cores=30
     num_nodes=1
