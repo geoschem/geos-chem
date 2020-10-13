@@ -72,7 +72,7 @@ fi
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
-
+printf "   3. CO2 w/ CMS-Flux emissions\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -81,6 +81,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=fullchem
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=TransportTracers
+    elif [[ ${sim_num} = "3" ]]; then
+	sim_name=CO2
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -399,6 +403,9 @@ if [[ ${sim_extra_option} = "benchmark" ]]; then
 elif [[ ${sim_name} = "fullchem" ]]; then
     startdate="20190701"
     enddate="20190701"
+elif [ "${sim_type}" == "CO2" ]; then
+    startdate="20140901"
+    enddate="20140901"
 else
     startdate="20190101"
     enddate="20190201"
@@ -422,6 +429,16 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     dHHmmSS="000000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
     printf "\n  -- The default diagnostic frequency and duration is 31 days."
+elif [ "${sim_type}" == "CO2" ]; then
+    total_cores=48
+    num_nodes=2
+    num_cores_per_node=24
+    grid_res=24
+    diag_freq="010000"
+    start_time="000000"
+    end_time="060000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="060000"
 else
     total_cores=24
     num_nodes=1
