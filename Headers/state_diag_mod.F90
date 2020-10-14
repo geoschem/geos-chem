@@ -942,6 +942,33 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: GCCTTO3(:,:)
      LOGICAL                     :: Archive_GCCTTO3
 
+     REAL(f4),           POINTER :: O3MASS(:,:,:)
+     LOGICAL                     :: Archive_O3MASS
+
+     REAL(f4),           POINTER :: NO2NOx(:,:,:)
+     LOGICAL                     :: Archive_NO2NOx
+
+     REAL(f4),           POINTER :: NOxTau(:,:,:)
+     LOGICAL                     :: Archive_NOxTau
+
+     REAL(f4),           POINTER :: CHEMTOP(:,:)
+     LOGICAL                     :: Archive_CHEMTOP
+
+     REAL(f4),           POINTER :: CHEMTROPP(:,:)
+     LOGICAL                     :: Archive_CHEMTROPP
+
+     REAL(f4),           POINTER :: CONVCLDTOP(:,:)
+     LOGICAL                     :: Archive_CONVCLDTOP
+
+     REAL(f4),           POINTER :: EXTRALNLEVS(:,:)
+     LOGICAL                     :: Archive_EXTRALNLEVS
+
+     REAL(f4),           POINTER :: EXTRALNITER(:,:)
+     LOGICAL                     :: Archive_EXTRALNITER
+
+     REAL(f4),           POINTER :: LIGHTNINGPOTENTIAL(:,:)
+     LOGICAL                     :: Archive_LGHTPOTENTIAL
+
      !%%%%% Chemistry diagnostics %%%%%
 
      REAL(f4),           POINTER :: KppError(:,:,:)
@@ -1873,6 +1900,30 @@ CONTAINS
 
     State_Diag%GCCTTO3                             => NULL()
     State_Diag%Archive_GCCTTO3                     = .FALSE.
+
+    State_Diag%NO2NOx                              => NULL()
+    State_Diag%Archive_NO2NOx                      = .FALSE.
+
+    State_Diag%NOxTau                              => NULL()
+    State_Diag%Archive_NOxTau                      = .FALSE.
+
+    State_Diag%CHEMTOP                             => NULL()
+    State_Diag%Archive_CHEMTOP                     = .FALSE.
+
+    State_Diag%CHEMTROPP                           => NULL()
+    State_Diag%Archive_CHEMTROPP                   = .FALSE.
+
+    State_Diag%CONVCLDTOP                          => NULL()
+    State_Diag%Archive_CONVCLDTOP                  = .FALSE.
+
+    State_Diag%EXTRALNLEVS                         => NULL()
+    State_Diag%Archive_EXTRALNLEVS                 = .FALSE.
+
+    State_Diag%EXTRALNITER                         => NULL()
+    State_Diag%Archive_EXTRALNITER                 = .FALSE.
+
+    State_Diag%LIGHTNINGPOTENTIAL                  => NULL()
+    State_Diag%Archive_LGHTPOTENTIAL               = .FALSE.
 
     State_Diag%JvalIndiv                           => NULL()
     State_Diag%Archive_JvalIndiv                   = .FALSE.
@@ -2905,6 +2956,115 @@ CONTAINS
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! NO2NOx 
+    !-----------------------------------------------------------------------
+    diagID  = 'NO2NOx'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%NO2NOx,                                 &
+         archiveData    = State_Diag%Archive_NO2NOx,                         &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! NOxTau 
+    !-----------------------------------------------------------------------
+    diagID  = 'NOxTau'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%NOxTau,                                 &
+         archiveData    = State_Diag%Archive_NOxTau,                         &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CHEMTOP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CHEMTOP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CHEMTOP,                                &
+         archiveData    = State_Diag%Archive_CHEMTOP,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CHEMTROPP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CHEMTROPP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CHEMTROPP,                              &
+         archiveData    = State_Diag%Archive_CHEMTROPP,                      &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CONVCLDTOP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CONVCLDTOP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CONVCLDTOP,                             &
+         archiveData    = State_Diag%Archive_CONVCLDTOP,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 #endif
 
     !-----------------------------------------------------------------------
@@ -9755,6 +9915,46 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'NO2NOx',                                    &
+                   Ptr2Data = State_Diag%NO2NOx,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'NOxTau',                                    &
+                   Ptr2Data = State_Diag%NOxTau,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CHEMTOP',                                   &
+                   Ptr2Data = State_Diag%CHEMTOP,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CHEMTROPP',                                 &
+                   Ptr2Data = State_Diag%CHEMTROPP,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CONVCLDTOP',                                &
+                   Ptr2Data = State_Diag%CONVCLDTOP,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EXTRALNLEVS',                               &
+                   Ptr2Data = State_Diag%EXTRALNLEVS,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EXTRALNITER',                               &
+                   Ptr2Data = State_Diag%EXTRALNITER,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LightningPotential',                        &
+                   Ptr2Data = State_Diag%LIGHTNINGPOTENTIAL,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'O3concAfterChem',                             &
                    Ptr2Data = State_Diag%O3concAfterChem,                    &
                    RC       = RC                                            )
@@ -10192,6 +10392,46 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'GCCTTO3' ) THEN
        IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_tropospheric_column_density'
        IF ( isUnits   ) Units = 'dobsons'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NO2NOX' ) THEN
+       IF ( isDesc    ) Desc  = 'NO2_to_NOx_ratio'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
+       IF ( isDesc    ) Desc  = 'NOx_chemical_lifetime_against_OH'
+       IF ( isUnits   ) Units = 's'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CHEMTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'chemistry_grid_top_level'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CHEMTROPP' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause_used_by_GEOS-Chem_chemistry'
+       IF ( isUnits   ) Units = 'Pa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONVCLDTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'Convective_cloud_top_level_as_seen_by_GEOS-Chem'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EXTRALNLEVS' ) THEN
+       IF ( isDesc    ) Desc  = 'FAST-JX_EXTRAL_layers'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EXTRALNITER' ) THEN
+       IF ( isDesc    ) Desc  = 'FAST-JX_EXTRAL_iterations'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LIGHTNINGPOTENTIAL' ) THEN
+       IF ( isDesc    ) Desc  = 'Lightning_potential'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
 #endif
 

@@ -909,13 +909,13 @@ CONTAINS
         if(MAPL_am_I_Root()) write(*,*) 'OX added to internal: Friendly to: ANALYSIS, DYNAMICS, TURBULENCE'
 
         ! Add additional RATs/ANOX exports
-        call MAPL_AddExportSpec(GC,                                  &
-           SHORT_NAME         = 'OX_TEND',                           &
-           LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
-           UNITS              = 'mol mol-1 s-1',                     &
-           DIMS               = MAPL_DimsHorzVert,                   &
-           VLOCATION          = MAPL_VLocationCenter,                &
-                                                     __RC__ )
+!        call MAPL_AddExportSpec(GC,                                  &
+!           SHORT_NAME         = 'OX_TEND',                           &
+!           LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
+!           UNITS              = 'mol mol-1 s-1',                     &
+!           DIMS               = MAPL_DimsHorzVert,                   &
+!           VLOCATION          = MAPL_VLocationCenter,                &
+!                                                     __RC__ )
 
         call MAPL_AddExportSpec(GC,                                  &
            SHORT_NAME         = 'O3',                                &
@@ -3674,7 +3674,7 @@ CONTAINS
        !=======================================================================
 #if defined( MODEL_GEOS )
        IF ( PHASE /= 1 ) THEN
-          CALL CalcTotOzone_( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
+          CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
        ENDIF
 #else
        IF ( calcOzone ) THEN
@@ -4813,8 +4813,6 @@ CONTAINS
 !
 ! !USES:
 !
-    ! Fast-JX diagnostics 
-    USE FAST_JX_MOD,             ONLY : EXTRAL_NLEVS, EXTRAL_NITER
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4864,7 +4862,7 @@ CONTAINS
     REAL, POINTER                :: OX(:,:,:)      => NULL()
     REAL, POINTER                :: O3(:,:,:)      => NULL()
     REAL, POINTER                :: O3PPMV(:,:,:)  => NULL()
-    REAL, POINTER                :: OX_TEND(:,:,:) => NULL()
+!    REAL, POINTER                :: OX_TEND(:,:,:) => NULL()
     REAL, POINTER                :: PTR_O3P(:,:,:) => NULL()
     REAL, POINTER                :: PTR_O1D(:,:,:) => NULL()
     REAL, PARAMETER              :: OMW = 16.0
@@ -4880,6 +4878,8 @@ CONTAINS
     REAL, POINTER     :: PTR_CFC11   (:,:,:) => NULL()
     REAL, POINTER     :: PTR_CFC12   (:,:,:) => NULL()
     REAL, POINTER     :: PTR_HCFC22  (:,:,:) => NULL()
+
+    REAL(f4), POINTER            :: O3_MASS(:,:,:) => NULL()
 
     ! For AERO
     REAL                         :: GCMW, FRAC
@@ -4946,20 +4946,12 @@ CONTAINS
                                    Q, __RC__ )
 
     !=======================================================================
-    ! Mass-weighted OH
-    !=======================================================================
-    CALL MassWeightedOH_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                           State_Diag, IMPORT, EXPORT, IntState, Q, PLE, TROPP, __RC__ )
-
-    !=======================================================================
-    ! Ozone diagnostics
+    ! Ozone diagnostics for GEOS coupling with other components. Do these
+    ! via the export state directly, rather than using the State_Diag obj.
     !=======================================================================
 
     ! PTR_O3: kg kg-1 total air
     CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
-
-    ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL CalcTotOzone_( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
 
     ! Fill ozone export states if GC is the analysis OX provider:
     !      OX: volume mixing ratio
@@ -4967,7 +4959,7 @@ CONTAINS
     !  O3PPMV: volume mixing ratio in ppm
     ! OX_TEND: mol mol-1 s-1
     ! Get pointers to analysis OX exports
-    CALL MAPL_GetPointer ( EXPORT, OX_TEND, 'OX_TEND' , NotFoundOK=.TRUE., __RC__ )
+    !CALL MAPL_GetPointer ( EXPORT, OX_TEND, 'OX_TEND' , NotFoundOK=.TRUE., __RC__ )
     CALL MAPL_GetPointer ( EXPORT,      OX, 'OX'      , NotFoundOK=.TRUE., __RC__ )
     CALL MAPL_GetPointer ( EXPORT,      O3, 'O3'      , NotFoundOK=.TRUE., __RC__ )
     CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'O3PPMV'  , NotFoundOK=.TRUE., __RC__ )
@@ -4985,20 +4977,28 @@ CONTAINS
        OX = OX + ( PTR_O1D * MAPL_AIRMW / OMW )
     ENDIF
 
+    !=======================================================================
+    ! Ozone diagnostics handled through State_Diag object
+    !=======================================================================
+
+    ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
+    CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
+
     ! O3 mass in kg/m2
-    CALL MAPL_GetPointer( EXPORT, Ptr3D, 'O3_MASS', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3D) ) THEN
+    IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN 
+       O3_MASS => State_Diag%O3_MASS(:,:,LM:1:-1)
        LB = LBOUND(PLE,3)
        DO L=1,LM
-          Ptr3D(:,:,L) = PTR_O3(:,:,L) * ( g0_100 * ( PLE(:,:,L+LB) -  &
-                                                      PLE(:,:,L+LB-1) ) )
+          O3_MASS(:,:,L)=PTR_O3(:,:,L)*(g0_100*(PLE(:,:,L+LB)-PLE(:,:,L+LB-1)))
        ENDDO
     ENDIF
-    Ptr3D => NULL()
+    O3_MASS => NULL()
 
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
     ! The tracer concentrations of the RATS export states are in mol mol-1.
+    ! These fields are required for coupling with other components. Don't
+    ! do this via the State_Diag object but use the EXPORT state directly.
     !=======================================================================
     ! Get pointers to RATS exports
     CALL MAPL_GetPointer ( EXPORT,      CH4, 'CH4'      , NotFoundOK=.TRUE., __RC__ )
@@ -5088,61 +5088,43 @@ CONTAINS
     ENDIF ! DoAero
 
     !=======================================================================
-    ! Write chemistry top level into CHEMTOP diagnostics array
+    ! Derived met. diagnostics relevant to chemistry processes 
     !=======================================================================
     IF ( Phase /= 1 ) THEN
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEMTOP',               &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
+       ! chemistry top level
+       IF ( State_Diag%Archive_CHEMTOP .AND. &
+            ASSOCIATED(State_Diag%CHEMTOP) ) THEN
           DO J = 1, JM 
           DO I = 1, IM 
-             Ptr2D(I,J) = LM - State_Met%ChemGridLev(I,J) + 1
+             State_Diag%CHEMTOP(I,J) = LM - State_Met%ChemGridLev(I,J) + 1
           ENDDO
           ENDDO
        ENDIF
-       Ptr2D => NULL()
 
        ! chemistry tropopause
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEM_TROPP',            &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          Ptr2D(:,:) = State_Met%TROPP(:,:) * 100.0 ! hPa -> Pa 
+       IF ( State_Diag%Archive_CHEMTROPP .AND. &
+            ASSOCIATED(State_Diag%CHEMTOP) ) THEN
+          State_Diag%CHEMTOP(:,:) = State_Met%TROPP(:,:) * 100.0 ! hPa -> Pa 
        ENDIF
-       Ptr2D => NULL()
     ENDIF
 
+    ! convective cloud top height
     IF ( Phase /= 2 ) THEN
-       ! convective cloud top height
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CONV_CLDTOP',           &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
+       IF ( State_Diag%Archive_CONVCLDTOP .AND. &
+            ASSOCIATED(State_Diag%CONVCLDTOP) ) THEN
+          State_Diag%CONVCLDTOP(:,:) = 0.0 
           DO J = 1, JM 
           DO I = 1, IM 
              DO L = 1, LM 
                 IF ( State_Met%CMFMC(I,J,L) > 0.0d0 ) THEN
-                   Ptr2D(I,J) = LM - L + 1
+                   State_Diag%CONVCLDTOP(I,J) = REAL(LM-L+1,f4)
                    EXIT
                 ENDIF
              ENDDO
           ENDDO
           ENDDO
        ENDIF
-       Ptr2D => NULL()
     ENDIF
-
-    !=======================================================================
-    ! Lightning potential (from GEOS lightning flash rates and convective 
-    ! fraction) 
-    !=======================================================================
-    if ( Phase /= 1 ) then
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NLEVS', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NLEVS
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NITER', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NITER
-       Ptr2D => NULL()
-    endif
 
     !=======================================================================
     ! Lightning potential (from GEOS lightning flash rates and convective 
@@ -5152,7 +5134,8 @@ CONTAINS
        ! convective cloud top height
        CALL MAPL_GetPointer( EXPORT, Ptr2D, 'LightningPotential', &
                              NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
+       IF ( State_Diag%Archive_LGHTPOTENTIAL .AND. &
+            ASSOCIATED(State_Diag%LightningPotential) ) THEN
           CALL ESMF_UserCompGetInternalState( GC, 'GEOSCHEM_State', wrap, STATUS )
           _ASSERT(STATUS==0,'Could not find GEOSCHEM_State to access configuration file')
           CALL ESMF_ConfigGetAttribute( wrap%ptr%myCF, LFR_SOURCE,     &
@@ -5162,7 +5145,7 @@ CONTAINS
           CALL MAPL_GetPointer( EXPORT, LWI,     'LWI', __RC__ )
           CALL MAPL_GetPointer( EXPORT, CNV_FRC, 'CNV_FRC', __RC__ )
           CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT', NotFoundOk=.TRUE., __RC__ )
-          Ptr2D = 0.0
+          State_Diag%LightningPotential(:,:) = 0.0
           DO J = 1, JM 
           DO I = 1, IM 
              lp1 = 0.0
@@ -5194,11 +5177,10 @@ CONTAINS
              ENDIF
 
              ! Take highest value
-             Ptr2D(I,J) = MAX(lp1,lp2)
+             State_Diag%LightningPotential(I,J) = MAX(lp1,lp2)
           ENDDO
           ENDDO
        ENDIF
-       Ptr2D   => NULL()
        PtrEmis => NULL()
     ENDIF 
 
@@ -5225,7 +5207,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, RC )
+  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -5235,6 +5217,7 @@ CONTAINS
 !
     LOGICAL                          :: am_I_Root
     TYPE(MetState),   INTENT(INOUT)  :: State_Met 
+    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag
     TYPE(ESMF_STATE), INTENT(INOUT)  :: INTSTATE ! Internal state
     TYPE(ESMF_State), INTENT(INOUT)  :: Export   ! Export State
     REAL,             POINTER        :: PLE  (:,:,:)
@@ -5255,8 +5238,8 @@ CONTAINS
 ! 
     REAL,     POINTER            :: O3   (:,:,:) => NULL()
     REAL(fp), POINTER            :: TO3fp(:,:) => NULL()
-    REAL,     POINTER            :: TO3 (:,:)  => NULL()
-    REAL,     POINTER            :: TTO3(:,:)  => NULL()
+    REAL(f4), POINTER            :: TO3 (:,:)  => NULL()
+    REAL(f4), POINTER            :: TTO3(:,:)  => NULL()
 
     REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
@@ -5274,9 +5257,11 @@ CONTAINS
     Iam = 'CalcTotOzone_'
 
     ! Check if we need to compute this
-    IF ( ASSOCIATED( State_Met%TO3 ) ) TO3fp => State_Met%TO3
-    CALL MAPL_GetPointer ( EXPORT, TO3,   'GCCTO3', notFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT, TTO3, 'GCCTTO3', notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED( State_Met%TO3 )    ) TO3fp => State_Met%TO3
+    IF ( State_Diag%Archive_GCCTO3 .AND. &
+         ASSOCIATED(State_Diag%GCCTO3)  ) TO3   => State_Diag%GCCTO3
+    IF ( State_Diag%Archive_GCCTTO3 .AND. &
+         ASSOCIATED(State_Diag%GCCTTO3) ) TTO3  => State_Diag%GCCTTO3
 
     ! Nothing to do if neither of the arrays is associated
     IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) .AND. .NOT. ASSOCIATED(TO3fp) ) THEN
@@ -5332,6 +5317,9 @@ CONTAINS
     END DO
  
     ! Cleanup
+    IF ( ASSOCIATED(TO3fp) ) TO3fp => NULL() 
+    IF ( ASSOCIATED(TO3  ) ) TO3   => NULL() 
+    IF ( ASSOCIATED(TTO3 ) ) TTO3  => NULL() 
     DEALLOCATE(DUsLayerL, STAT=STATUS)
     _VERIFY(STATUS)
     DEALLOCATE(wgt, STAT=STATUS)
@@ -5740,7 +5728,8 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
 
     ! NO2 to NOx ratio & NOx lifetime
-    REAL, POINTER              :: NO2toNOx(:,:,:), NOxtau(:,:,:) 
+    REAL(f4), POINTER          :: NO2toNOx(:,:,:) => NULL()
+    REAL(f4), POINTER          :: NOxtau(:,:,:)   => NULL()
     REAL, ALLOCATABLE          :: JNO2(:,:,:)
     REAL, ALLOCATABLE          :: O3eff(:,:,:)
     REAL, ALLOCATABLE          :: k1O3(:,:,:), k3OH(:,:,:)
@@ -5761,6 +5750,15 @@ CONTAINS
                           NotFoundOk=.TRUE., __RC__ )
     CALL MAPL_GetPointer( EXPORT, NOxtau,   'NOx_tau' , &
                           NotFoundOk=.TRUE., __RC__ )
+
+
+    IF ( State_Diag%Archive_NO2NOx .AND. ASSOCIATED(State_Diag%NO2NOx) ) &
+        NO2toNOx => State_Diag%NO2NOx(:,:,LM:1:-1)
+    IF ( State_Diag%Archive_NOxTau .AND. ASSOCIATED(State_Diag%NOxTau) ) &
+        NOxtau   => State_Diag%NOxTau(:,:,LM:1:-1)
+    IF ( ASSOCIATED(NO2toNOx) ) NO2toNOx(:,:,:) = 0.0
+    IF ( ASSOCIATED(NOxtau  ) ) NOxtau(:,:,:)   = 0.0
+
     IF ( ASSOCIATED(NO2toNOx) .OR. ASSOCIATED(NOxtau) ) THEN
        ! Get j-value index
        idJNO2 = -1
@@ -5838,6 +5836,9 @@ CONTAINS
        DEALLOCATE( jNO2, O3eff, k1O3, k3OH, tmp3d )
     ENDIF 
 
+    IF ( ASSOCIATED(NO2toNOx) ) NO2toNOx => NULL()
+    IF ( ASSOCIATED(NOxtau  ) ) NOxtau   => NULL()
+
     !=======================================================================
     ! All done 
     !=======================================================================
@@ -5907,7 +5908,7 @@ CONTAINS
     REAL                       :: Ra_z0, Ra_2m, Ra_10m
     REAL                       :: t_, rho_, fhs_, ustar_, dz_, z0h_
     REAL                       :: BrCoeff, ClCoeff, OrgClCoeff
-    REAL, POINTER              :: Ptr3D(:,:,:), PtrTmp(:,:,:), Ptr2D(:,:)
+    REAL, POINTER              :: Ptr3D(:,:,:), PtrTmp(:,:,:)
     REAL, POINTER              :: Ptr2m(:,:), Ptr10m(:,:)
     REAL, ALLOCATABLE          :: CONV(:,:), MyPM25(:,:,:)
     TYPE(Species), POINTER     :: SpcInfo
@@ -5968,48 +5969,6 @@ CONTAINS
     IM = SIZE(Q,1)
     JM = SIZE(Q,2)
     LM = SIZE(Q,3)
-
-    !=======================================================================
-    ! Aerodynamic resistance
-    !=======================================================================
-!    ALLOCATE(Ra2m(IM,JM),Ra10m(IM,JM))
-!    ALLOCATE(Lz0(IM,JM))
-!    ! Compute aerodynamic resistance between 2m/10m and surface mid layer.
-!    DO J=1,JM
-!    DO I=1,IM
-!       ! Ra from surface to surface mid-layer
-!       ! Use t2m for all calculations. Only used for Monin-Obukhov.
-!       t_         = T2M(I,J)
-!       rho_       = AIRDENS(I,J,LM)
-!       fhs_       = SH(I,J) 
-!       ustar_     = USTAR(I,J)
-!       dz_        = DELP(I,J,LM) / ( MAPL_GRAV * rho_ )
-!       z0h_       = Z0H(I,J)
-!       Ra_z0      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Lz0(I,J)   = monin_obukhov_length(t_, rho_, fhs_, ustar_ ) 
-!       ! Ra from surface to 2m 
-!       !t_         = T2M(I,J)
-!       dz_        = 2. * 2.
-!       Ra_2m      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Ra2m(I,J)  = 0.01 * ( Ra_z0 - Ra_2m )  ! convert to s cm-1
-!       ! Ra from surface to 10m 
-!       !t_         = T10M(I,J)
-!       dz_        = 2. * 10.
-!       Ra_10m     = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Ra10m(I,J) = 0.01 * ( Ra_z0 - Ra_10m ) ! convert to s cm-1
-!    ENDDO
-!    ENDDO
-
-    CALL MAPL_GetPointer( EXPORT, Ptr2d,  'DryDepRa2m', &
-                          NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa2m
-    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'DryDepRa10m', &
-                          NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa10m
-!    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'MoninObukhov', &
-!                          NotFoundOk=.TRUE., __RC__ )
-!    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = Lz0
-!    DEALLOCATE(Lz0)
 
     !=======================================================================
     ! Exports in dry vol mixing ratio (v/v dry). Includes NOy. Convert from
@@ -6408,129 +6367,6 @@ CONTAINS
 
   END SUBROUTINE CalcSpeciesDiagnostics_
 !EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: MassWeightedOH_ 
-!
-! !DESCRIPTION: MassWeightedOH_ computes vertically integrated OH weighted 
-!  by mass (troposphere only). 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE MassWeightedOH_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                               State_Diag, IMPORT, EXPORT, INTSTATE, Q, PLE, TROPP, RC )
-!
-! !USES:
-!
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)            :: am_I_Root
-    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt
-    TYPE(MetState),      INTENT(INOUT)         :: State_Met
-    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm
-    TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: INTSTATE
-    REAL,                POINTER               :: Q(:,:,:)
-    REAL,                POINTER               :: PLE  (:,:,:)
-    REAL,                POINTER               :: TROPP(:,:  )
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,             INTENT(INOUT)         :: RC       ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  01 Feb 2019 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    ! Objects
-
-    ! Scalars
-    INTEGER                    :: STATUS
-    INTEGER                    :: I, J, L, N, IM, JM, LM, LB, id_OH
-    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
-    CHARACTER(LEN=ESMF_MAXSTR) :: SpcName
-    REAL                       :: MW_kg
-    REAL, POINTER              :: MeanOH(:,:)
-    REAL*8                     :: air_mass, oh_mass, oh_molec, wgt, mwgt, molair
-    TYPE(Species), POINTER     :: SpcInfo
-
-    !=======================================================================
-    ! Routine starts here 
-    !=======================================================================
-
-    ! Identify this routine to MAPL
-    Iam = 'GCC::MassWeightedOH_'
-
-    ! Check for diagnostics
-    CALL MAPL_GetPointer( EXPORT, MeanOH,  'OH_AirMassWgt', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(MeanOH) ) THEN
-       ! Reset
-       MeanOH = 0.0
-
-       ! Get OH species index 
-       id_OH = -1
-       DO N=1,State_Chm%nSpecies
-          SpcInfo   => State_Chm%SpcData(N)%Info ! Species database
-          IF ( TRIM(SpcInfo%Name) == "OH" ) THEN
-             id_OH = N
-             IF ( SpcInfo%emMW_g > 0.0 ) THEN
-                MW_kg = SpcInfo%emMW_g * 1.e-3
-             ELSE
-                MW_kg = 1.0 * 1.e-3
-             ENDIF
-             EXIT
-          ENDIF
-       ENDDO
-       ASSERT_( id_OH > 0 )
-
-       ! Grid size
-       IM = SIZE(Q,1)
-       JM = SIZE(Q,2)
-       LM = SIZE(Q,3)
-
-       ! Lower bound of PLE 3rd dim
-       LB = LBOUND(PLE,3)
-
-       ! Compute mass weighted OH per grid box, troposphere only
-       DO J = 1,JM
-       DO I = 1,IM
-          air_mass = 0.0d0
-          oh_mass  = 0.0d0
-          DO L = 1,LM
-             wgt  = MAX(0.0,MIN(1.0,(PLE(I,J,L+LB)-TROPP(I,J)) &
-                  /(PLE(I,J,L+LB)-PLE(I,J,L+LB-1))))
-             IF ( wgt > 0.0d0 ) THEN
-                molair   = State_Met%AIRNUMDEN(I,J,LM-L+1) / AVO 
-                mwgt     = wgt * molair * State_Met%AIRVOL(I,J,LM-L+1) * 1d-9
-                air_mass = air_mass + mwgt 
-                oh_molec = State_Chm%Species(I,J,LM-L+1,id_OH) / ( 1 - Q(I,J,L) ) &
-                         * State_Met%AIRDEN(I,J,LM-L+1) * ( AVO / MW_kg ) / 1d+9
-                oh_mass  = oh_mass +  oh_molec * 1d-5 * mwgt
-             ENDIF
-          ENDDO
-          IF ( air_mass > 0.0d0 ) MeanOH(I,J) = oh_mass / air_mass * 1e5 *1e3
-       ENDDO
-       ENDDO
-    ENDIF
- 
-    RETURN_(ESMF_SUCCESS)
-
-  END SUBROUTINE MassWeightedOH_
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -7958,144 +7794,6 @@ CONTAINS
     end subroutine mie_
 
   end subroutine aerosol_optics
-!EOC
-!-------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
-!-------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: aerodynamic_resistance --- calculates the aerodynamic resistance
-!
-! !INTERFACE:
-
-   function aerodynamic_resistance(temperature, density_air, flux_sh, &
-                                   friction_velocity, dz, z0h) result (r_a)
-! !USES:
-
-   implicit None
-
-   real :: r_a                           ! Aerodynamic resistance, 'm-1 s'
-
-! !INPUT/OUTPUT PARAMETERS:
-
-! !INPUT PARAMETERS:
-
-   real, intent(in) :: temperature       ! temperature,       'K'
-   real, intent(in) :: density_air       ! density of air,    'kg m-3'
-   real, intent(in) :: flux_sh           ! sensible heat flux at the surface, 
-                                         ! 'W m-2'
-   real, intent(in) :: friction_velocity ! friction velocity, 'm s-1'
-   real, intent(in) :: dz                ! depth of the surface layer, 'm'
-   real, intent(in) :: z0h               ! roughness height for sensible heat,
-                                         ! 'm'
-
-! !OUTPUT PARAMETERS:
-
-
-! !DESCRIPTION: calculates the aerodynamic resistance (see Eq. XX, Seinfeld
-!               and Pandis)
-!
-! !REVISION HISTORY:
-!  15Dec2011  A. Darmenov
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!-------------------------------------------------------------------------
-
-                    __Iam__('aerodynamic_resistance')
-
-   ! local
-   real, parameter :: k = MAPL_KARMAN 
-
-   real :: z_ref
-   real :: f
-   real :: psi_h
-   real :: log_f
-   real :: z0h_
-   real :: eps
-   real :: L
-
-   z_ref = 0.5 * dz
-
-   L = monin_obukhov_length(temperature, density_air, flux_sh, &
-                            friction_velocity)
-
-   f = z_ref / L
-
-   if(f > 1.0) then
-       f = 1.0
-   end if
-
-   if ( (f > 0.0) .and. (f <= 1.0)) then
-       psi_h = -5.0*f
-   else if (f < 0.0) then
-       eps = min(1.0, -f)
-       log_f = log(eps)
-       psi_h = exp(0.598 + 0.39*log_f - 0.09*(log_f**2))
-   endif
-
-   z0h_ = max(z0h, 1e2 * tiny(1.0))
-
-   if ( friction_velocity > tiny(1.0) ) then 
-      r_a = (log(z_ref / z0h_) - psi_h) / (k * friction_velocity)
-   else
-      r_a = 0.0
-   endif
-
-   end function aerodynamic_resistance
-!EOC
-!-------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
-!-------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: monin_obukhov_length --- calculates the Monin-Obukhov length
-!
-! !INTERFACE:
-
-   function monin_obukhov_length(temperature, density_air, flux_sh, &
-                                 friction_velocity) result (L)
-! !USES:
-
-   implicit None
-
-   real :: L                             !  Monin-Obukhov length, 'm'
-
-! !INPUT/OUTPUT PARAMETERS:
-
-! !INPUT PARAMETERS:
-
-   real, intent(in) :: temperature ! temperature,       'K'
-   real, intent(in) :: density_air ! density of air,    'kg m-3'
-   real, intent(in) :: flux_sh     ! sensible heat flux at the surface, 'W m-2'
-   real, intent(in) :: friction_velocity ! friction velocity, 'm s-1'
-
-! !OUTPUT PARAMETERS:
-
-
-! !DESCRIPTION: calculates the calculates the Monin-Obukhov length
-!
-! !REVISION HISTORY:
-!  15Dec2011  A. Darmenov
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!-------------------------------------------------------------------------
-
-                    __Iam__('monin_obukhov_length')
-
-   ! local
-   real, parameter :: k   = MAPL_KARMAN 
-   real, parameter :: g   = MAPL_GRAV
-   real, parameter :: c_p = MAPL_CP
-
-   if (abs(flux_sh) > 1e3*epsilon(0.0)) then
-       L = - density_air * c_p * temperature * friction_velocity**3 / &
-           (k * g * flux_sh)
-   else
-       L = 1/(1e3*epsilon(0.0))
-   end if
-
-   end function monin_obukhov_length
-
 !EOC
 #endif
 
