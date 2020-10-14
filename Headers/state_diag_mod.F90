@@ -924,6 +924,24 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: Bry(:,:,:)
      LOGICAL                     :: Archive_Bry
 
+     REAL(f4),           POINTER :: NOy(:,:,:)
+     LOGICAL                     :: Archive_NOy
+
+     REAL(f4),           POINTER :: Cly(:,:,:)
+     LOGICAL                     :: Archive_Cly
+
+     REAL(f4),           POINTER :: OrganicCl(:,:,:)
+     LOGICAL                     :: Archive_OrganicCl
+
+     REAL(f4),           POINTER :: O3_MASS(:,:,:)
+     LOGICAL                     :: Archive_O3_MASS
+
+     REAL(f4),           POINTER :: GCCTO3(:,:)
+     LOGICAL                     :: Archive_GCCTO3
+
+     REAL(f4),           POINTER :: GCCTTO3(:,:)
+     LOGICAL                     :: Archive_GCCTTO3
+
      !%%%%% Chemistry diagnostics %%%%%
 
      REAL(f4),           POINTER :: KppError(:,:,:)
@@ -1838,6 +1856,24 @@ CONTAINS
     State_Diag%Bry                                 => NULL()
     State_Diag%Archive_Bry                         = .FALSE.
 
+    State_Diag%NOy                                 => NULL()
+    State_Diag%Archive_NOy                         = .FALSE.
+
+    State_Diag%Cly                                 => NULL()
+    State_Diag%Archive_Cly                         = .FALSE.
+
+    State_Diag%OrganicCl                           => NULL()
+    State_Diag%Archive_OrganicCl                   = .FALSE.
+
+    State_Diag%O3_MASS                             => NULL()
+    State_Diag%Archive_O3_MASS                     = .FALSE.
+
+    State_Diag%GCCTO3                              => NULL()
+    State_Diag%Archive_GCCTO3                      = .FALSE.
+
+    State_Diag%GCCTTO3                             => NULL()
+    State_Diag%Archive_GCCTTO3                     = .FALSE.
+
     State_Diag%JvalIndiv                           => NULL()
     State_Diag%Archive_JvalIndiv                   = .FALSE.
 
@@ -2736,6 +2772,139 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! NOy
+    !-----------------------------------------------------------------------
+    diagID  = 'NOy'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%NOy,                                    &
+         archiveData    = State_Diag%Archive_NOy,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Cly
+    !-----------------------------------------------------------------------
+    diagID  = 'Cly'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%Cly,                                    &
+         archiveData    = State_Diag%Archive_Cly,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! OrganicCl
+    !-----------------------------------------------------------------------
+    diagID  = 'OrganicCl'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%OrganicCl,                              &
+         archiveData    = State_Diag%Archive_OrganicCl,                      &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! O3_MASS 
+    !-----------------------------------------------------------------------
+    diagID  = 'O3_MASS'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%O3_MASS,                                &
+         archiveData    = State_Diag%Archive_O3_MASS,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! GCCTO3 
+    !-----------------------------------------------------------------------
+    diagID  = 'GCCTO3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%GCCTO3,                                &
+         archiveData    = State_Diag%Archive_GCCTO3,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! GCCTTO3 
+    !-----------------------------------------------------------------------
+    diagID  = 'GCCTTO3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%GCCTTO3,                                &
+         archiveData    = State_Diag%Archive_GCCTTO3,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
 #endif
 
     !-----------------------------------------------------------------------
@@ -9556,6 +9725,36 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'NOy',                                         &
+                   Ptr2Data = State_Diag%NOy,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Cly',                                         &
+                   Ptr2Data = State_Diag%Cly,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OrganicCl',                                   &
+                   Ptr2Data = State_Diag%OrganicCl,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O3_MASS',                                   &
+                   Ptr2Data = State_Diag%O3_MASS,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'GCCTO3',                                   &
+                   Ptr2Data = State_Diag%GCCTO3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'GCCTTO3',                                   &
+                   Ptr2Data = State_Diag%GCCTTO3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'O3concAfterChem',                             &
                    Ptr2Data = State_Diag%O3concAfterChem,                    &
                    RC       = RC                                            )
@@ -9961,6 +10160,39 @@ CONTAINS
             'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NOY' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates' 
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CLY' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Inorganic_chlorine_=_Cl_ClO_OClO_ClOO_HOCl_HCl_ClNO2_ClNO3_BrCl_ICl_2xCl2_2xCl2O2'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ORGANICCL' ) THEN
+       IF ( isDesc    ) Desc  = &
+            '4CCl4_H1211_3CFC11_3CFC113_2CFC114_CFC115_2CFC12_3CH3CCl3_CH3Cl_2HCFC141b_HCFC142b_HCFC22_2HCFC123_3CHCl3_2CH2Cl2_CH2ICl'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O3_MASS' ) THEN
+       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area' 
+       IF ( isUnits   ) Units = 'kg m-2'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'GCCTO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_total_column_density'
+       IF ( isUnits   ) Units = 'dobsons'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'GCCTTO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_tropospheric_column_density'
+       IF ( isUnits   ) Units = 'dobsons'
+       IF ( isRank    ) Rank  = 2
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN

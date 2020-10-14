@@ -258,29 +258,6 @@ MODULE Chem_GridCompMod
 #endif
 
 #if defined( MODEL_GEOS )
-  !! GEOS-5 only (also in gchp_providerservices but don't use yet):
-  !! -RATS:
-  !REAL, POINTER     :: CH4     (:,:,:) => NULL()
-  !REAL, POINTER     :: N2O     (:,:,:) => NULL()
-  !REAL, POINTER     :: CFC11   (:,:,:) => NULL()
-  !REAL, POINTER     :: CFC12   (:,:,:) => NULL()
-  !REAL, POINTER     :: HCFC22  (:,:,:) => NULL()
-  !
-  !! -Corresponding pointers to internal state. We now use these variables 
-  !!  instead of the auto-generated pointers (GEOSCHEMCHEM_DeclarePointer___.h) 
-  !!  to avoid compilation errors if these species are not defined in 
-  !!  GEOS-Chem (e.g. for specialty sims). 
-  !REAL, POINTER     :: PTR_O3      (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_CH4     (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_N2O     (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_CFC11   (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_CFC12   (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_HCFC22  (:,:,:) => NULL()
-  !REAL, POINTER     :: PTR_H2O     (:,:,:) => NULL()
-  !
-  !! GCCTO3 and GCCTTO3 are the pointers to the corresponding export state fields
-  !REAL, POINTER     :: PTR_GCCTO3 (:,:) => NULL()
-  !REAL, POINTER     :: PTR_GCCTTO3(:,:) => NULL()
 
   ! Perturb ozone?
   LOGICAL           :: PerturbO3
@@ -1715,7 +1692,7 @@ CONTAINS
     REAL(ESMF_KIND_R4),  POINTER :: lonCtr(:,:) ! Lon centers on this PET [rad]
     REAL(ESMF_KIND_R4),  POINTER :: latCtr(:,:) ! Lat centers on this PET [rad]
 
-    INTEGER                      :: I, nFlds, mpiComm
+    INTEGER                      :: I, J, nFlds, mpiComm
     TYPE(ESMF_STATE)             :: INTSTATE 
     TYPE(ESMF_Field)             :: GcFld
 
@@ -1733,22 +1710,23 @@ CONTAINS
 
     TYPE(MAPL_MetaComp), POINTER :: STATE
 
-    ! For AERO
-    INTEGER                      :: J, GCID
-    LOGICAL                      :: FRIENDLY
-    REAL                         :: GCMW, FRAC
-    REAL, POINTER                :: Ptr3D(:,:,:) => NULL()
-    TYPE(ESMF_STATE)             :: Aero
-    TYPE(ESMF_FieldBundle)       :: AeroBdl 
-    TYPE(ESMF_Field)             :: AeroFld
-    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
-
     ! To read various options 
     INTEGER                      :: DoIt 
     REAL                         :: Val, OzPause
 
     ! Mie table updates
     INTEGER                      :: instance
+
+    ! Aerosol bundle
+    REAL                         :: GCMW, FRAC
+    INTEGER                      :: GCID
+    TYPE(ESMF_STATE)             :: Aero
+    TYPE(ESMF_FieldBundle)       :: AeroBdl 
+    TYPE(ESMF_Field)             :: AeroFld
+    LOGICAL                      :: FRIENDLY
+    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
+    REAL, POINTER                :: Ptr3D(:,:,:) => NULL()
+
 #else
     INTEGER                      :: N, trcID
     TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
@@ -2003,10 +1981,10 @@ CONTAINS
        ! This attribute indicates if the aerosol optics method is implemented 
        ! or not. Radiation will not call the aerosol optics method unless this 
        ! attribute is explicitly set to true.
-       call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', &
+       call ESMF_AttributeSet(Aero, name='implements_aerosol_optics_method', &
                               value=.true., __RC__)
-       aeroBdl = ESMF_FieldBundleCreate(name='AEROSOLS', __RC__)
-       call MAPL_StateAdd(Aero, aeroBdl, __RC__)
+       AeroBdl = ESMF_FieldBundleCreate(name='AEROSOLS', __RC__)
+       call MAPL_StateAdd(Aero, AeroBdl, __RC__)
 
        ! Loop over all GC tracers that we may want to add to the AERO
        ! bundle
@@ -2059,7 +2037,6 @@ CONTAINS
                                             DoCopy=.TRUE., __RC__  )
       
                 ! Get molecular weight (g/mol)
-                !GCMW = Input_Opt%Tracer_MW_G(GCID)
                 GCMW = GocartMW(I)      
 
                 ! Fraction of the GC field to be used in the AERO field
@@ -2245,18 +2222,6 @@ CONTAINS
 
     ENDIF ! DoAERO
 
-    ! ckeller, 6/12/19: now do during run stage
-    !CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'TRC_O3', &
-    !                      NotFoundOk=.TRUE., __RC__ )
-    !
-    !IF ( DoRATS ) THEN
-    !   CALL MAPL_GetPointer( INTSTATE,    PTR_CH4, 'TRC_CH4',    __RC__ )
-    !   CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'TRC_N2O',    __RC__ )
-    !   CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'TRC_CFC11',  __RC__ )
-    !   CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'TRC_CFC12',  __RC__ )
-    !   CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'TRC_HCFC22', __RC__ )
-    !   CALL MAPL_GetPointer( INTSTATE,    PTR_H2O, 'TRC_H2O',    __RC__ )
-    !ENDIF
 #else
     IF ( isProvider ) THEN
        CALL Provider_Initialize( am_I_Root, State_Chm, State_Grid, &
@@ -2877,9 +2842,6 @@ CONTAINS
     USE GCKPP_Parameters
     USE GCKPP_Monitor
     USE CMN_FJX_MOD,             ONLY : JVN_
-
-    ! Fast-JX diagnostics 
-    USE FAST_JX_MOD,             ONLY : EXTRAL_NLEVS, EXTRAL_NITER
 #endif
 
 !
@@ -2917,6 +2879,7 @@ CONTAINS
     TYPE(ESMF_Config)            :: GeosCF        ! Config (GEOSCHEM*.rc)
     TYPE(ESMF_Alarm)             :: ALARM
     TYPE(ESMF_VM)                :: VM            ! ESMF VM object
+    TYPE(ESMF_STATE)             :: INTSTATE
                                                   
     ! Scalars                                     
     LOGICAL                      :: am_I_Root     ! Are we on the root PET?
@@ -2975,16 +2938,6 @@ CONTAINS
     REAL,                POINTER :: AIRDENS(:,:,:) => NULL() ! INTERNAL: PEDGE
 #endif
 
-    ! For aero bundle
-    INTEGER                      :: nAero
-    TYPE(ESMF_STATE)             :: INTSTATE
-    TYPE(ESMF_FieldBundle)       :: AeroBdl 
-    TYPE(ESMF_Field)             :: AeroFld
-    REAL, POINTER                :: GcPtr3d  (:,:,:) => NULL()
-    REAL, POINTER                :: AeroPtr3d(:,:,:) => NULL()
-    CHARACTER(LEN=ESMF_MAXSTR)   :: GcName
-    REAL                         :: GCMW, FRAC
-
     ! Initialize variables used for reading Olson and MODIS LAI imports
     INTEGER            :: TT, VV, landTypeInt
     CHARACTER(len=64)  :: landTypeStr, varName, importName
@@ -2992,15 +2945,8 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! GEOS-5 only local variables
     INTEGER                      :: LB            ! Loop indices
-    REAL                         :: lp1, lp2      ! lightning potentials
     REAL                         :: DFPAR_MAX     ! Global max of DFPAR
     REAL(fp)                     :: TS_TEND       ! tendency time step
-
-    ! Other pointer arrays needed by Include_Before_Run.H
-    REAL, POINTER                :: PtrTmp(:,:,:) => NULL()
-    REAL, POINTER                :: PtrEmis(:,:)  => NULL() 
-
-    TYPE(ESMF_STATE)             :: Aero
 
     ! Initialize everything to zero (from registry file)?
     INTEGER                      :: InitZero 
@@ -3036,31 +2982,6 @@ CONTAINS
     INTEGER                      :: JVids(JVN_)
     CHARACTER(LEN=3)             :: III
     CHARACTER(LEN=ESMF_MAXSTR)   :: RRName      ! Name of reaction name 
-
-    ! OX
-    REAL, POINTER                :: OX(:,:,:)
-    REAL, POINTER                :: O3(:,:,:)
-    REAL, POINTER                :: O3PPMV(:,:,:)
-    REAL, POINTER                :: OX_TEND(:,:,:)
-    REAL, POINTER                :: PTR_O3P(:,:,:)
-    REAL, POINTER                :: PTR_O1D(:,:,:)
-    REAL, PARAMETER              :: OMW = 16.0
-
-    ! GEOS-5 only (also in gchp_providerservices but don't use yet):
-    ! -RATS:
-    REAL, POINTER     :: CH4     (:,:,:) => NULL()
-    REAL, POINTER     :: N2O     (:,:,:) => NULL()
-    REAL, POINTER     :: CFC11   (:,:,:) => NULL()
-    REAL, POINTER     :: CFC12   (:,:,:) => NULL()
-    REAL, POINTER     :: HCFC22  (:,:,:) => NULL()
-
-    REAL, POINTER     :: PTR_O3      (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_CH4     (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_N2O     (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_CFC11   (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_CFC12   (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_HCFC22  (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_H2O     (:,:,:) => NULL()
 
     ! GCCTO3 and GCCTTO3 are the pointers to the corresponding export state fields
     REAL, POINTER     :: PTR_GCCTO3 (:,:) => NULL()
@@ -3232,32 +3153,6 @@ CONTAINS
 
 ! GCHP ends the (if FIRST) block and then links HEMCO state to GC objects:
 !    ENDIF
-
-    CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
-
-    ! Get pointers to analysis OX exports
-    IF ( DoANOX ) THEN
-       CALL MAPL_GetPointer ( EXPORT, OX_TEND, 'OX_TEND' , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,      OX, 'OX'      , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,      O3, 'O3'      , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'O3PPMV'  , __RC__ )
-    ENDIF
-
-    ! Get pointers to RATS exports
-    IF ( DoRATS) THEN
-       CALL MAPL_GetPointer ( EXPORT, H2O_TEND, 'H2O_TEND' , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,      CH4, 'CH4'      , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,      N2O, 'N2O'      , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,    CFC11, 'CFC11'    , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,    CFC12, 'CFC12'    , __RC__ )
-       CALL MAPL_GetPointer ( EXPORT,   HCFC22, 'HCFC22'   , __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_CH4, 'SPC_CH4',    __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'SPC_N2O',    __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'SPC_CFC11',  __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'SPC_CFC12',  __RC__ )
-       CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'SPC_HCFC22', __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_H2O, 'SPC_H2O',    __RC__ )
-   ENDIF
 
    ! Link HEMCO state to gridcomp objects
    ASSERT_(ASSOCIATED(HcoState))
@@ -3779,8 +3674,7 @@ CONTAINS
        !=======================================================================
 #if defined( MODEL_GEOS )
        IF ( PHASE /= 1 ) THEN
-          CALL CalcTotOzone_( am_I_Root, Input_Opt, PTR_O3, PLE, GCCTROPP, &
-                              State_Met%TO3, PTR_GCCTTO3, __RC__ )
+          CALL CalcTotOzone_( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
        ENDIF
 #else
        IF ( calcOzone ) THEN
@@ -4020,282 +3914,9 @@ CONTAINS
     !=======================================================================
     ! Diagnostics 
     !=======================================================================
-
-#if defined( MODEL_GEOS )
-
-    !=======================================================================
-    ! NOx diagnostics 
-    !=======================================================================
-    IF ( IsTendTime .AND. Input_Opt%haveImpRst ) THEN 
-       CALL NOxDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                              State_Diag, IMPORT, EXPORT, IntState, __RC__ )
-    ENDIF
-
-    !=======================================================================
-    ! Dry volume mixing ratios and PM2.5 diagnostics 
-    !=======================================================================
-    CALL CalcSpeciesDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                                   State_Diag, IMPORT, EXPORT, IntState, &
-                                   Q, __RC__ )
-
-
-    !=======================================================================
-    ! Mass-weighted OH
-    !=======================================================================
-    CALL MassWeightedOH_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                           State_Diag, IMPORT, EXPORT, IntState, Q, PLE, TROPP, __RC__ )
-
-    !=======================================================================
-    ! Fill ozone export states if GC is the analysis OX provider:
-    !      OX: volume mixing ratio
-    !      O3: mass mixing ratio
-    !  O3PPMV: volume mixing ratio in ppm
-    ! OX_TEND: mol mol-1 s-1
-    !
-    ! GEOS-Chem tracer:
-    ! PTR_O3: kg kg-1 total air
-    !=======================================================================
-     IF ( DoANOX ) THEN
-       ASSERT_(ASSOCIATED(PTR_O3))
-       IF ( ASSOCIATED(O3     ) ) O3      = PTR_O3
-       IF ( ASSOCIATED(O3PPMV ) ) O3PPMV  = PTR_O3  * MAPL_AIRMW / MAPL_O3MW  &
-                                          * 1.00E+06
-       IF ( ASSOCIATED(OX) ) THEN
-          CALL MAPL_GetPointer( INTSTATE, PTR_O3P, 'SPC_O'  , __RC__ )
-          CALL MAPL_GetPointer( INTSTATE, PTR_O1D, 'SPC_O1D', __RC__ )
-          OX =        PTR_O3  * MAPL_AIRMW / MAPL_O3MW
-          OX = OX + ( PTR_O3P * MAPL_AIRMW / OMW )
-          OX = OX + ( PTR_O1D * MAPL_AIRMW / OMW )
-       ENDIF
-    ENDIF
-
-! GEOS-5 (also in gchp_providerservices_mod routine Provider_FillBundles, but 
-! might not be in the right place anymore):
-    !=======================================================================
-    ! Fill RATS export states if GC is the RATS provider
-    ! The tracer concentrations of the RATS export states are in mol mol-1.
-    !=======================================================================
-    IF ( DoRATS) THEN
-       IF ( ASSOCIATED(CH4   ) )    CH4 = PTR_CH4    * MAPL_AIRMW /  16.00
-       IF ( ASSOCIATED(N2O   ) )    N2O = PTR_N2O    * MAPL_AIRMW /  44.00
-       IF ( ASSOCIATED(CFC11 ) )  CFC11 = PTR_CFC11  * MAPL_AIRMW / 137.37
-       IF ( ASSOCIATED(CFC12 ) )  CFC12 = PTR_CFC12  * MAPL_AIRMW / 120.91
-       IF ( ASSOCIATED(HCFC22) ) HCFC22 = PTR_HCFC22 * MAPL_AIRMW /  86.47
-    ENDIF
-
-    !=======================================================================
-    ! Total and tropospheric columns 
-    !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, EXPORT,     &
-                       INTSTATE, PLE, GCCTROPP, __RC__ )
-
-    !=======================================================================
-    ! Total ozone and total tropospheric ozone for export [dobsons].
-    ! 2.69E+20 per dobson.
-    !=======================================================================
-    CALL CalcTotOzone_( am_I_Root, Input_Opt, PTR_O3, PLE, GCCTROPP, &
-                        State_Met%TO3, PTR_GCCTTO3, __RC__ )
-    IF ( ASSOCIATED(PTR_GCCTO3) ) PTR_GCCTO3 = State_Met%TO3
-
-    ! O3 mass in kg/m2
-    CALL MAPL_GetPointer( EXPORT, Ptr3D, 'O3_MASS', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3D) ) THEN
-       LB = LBOUND(PLE,3)
-       DO L=1,State_Grid%NZ
-          Ptr3D(:,:,L) = PTR_O3(:,:,L) * ( g0_100 * ( PLE(:,:,L+LB) -  &
-                                                      PLE(:,:,L+LB-1) ) )
-       ENDDO
-    ENDIF
-    Ptr3D => NULL()
-
-    !=======================================================================
-    ! NO2 columns
-    !=======================================================================
-    IF ( PHASE /= 1 ) THEN
-       CALL MAPL_GetPointer( INTSTATE, PTR_NO2, 'SPC_NO2',      &
-                             NotFoundOk=.TRUE., __RC__ )
-       CALL MAPL_GetPointer( EXPORT, TNO2, 'NO2_TROPCOLUMN',    &
-                             NotFoundOk=.TRUE., __RC__ )
-       CALL MAPL_GetPointer( EXPORT, SNO2, 'NO2_TOTCOLUMN',     &
-                             NotFoundOk=.TRUE., __RC__ )
-       CALL MAPL_GetPointer( EXPORT, FNO2, 'NO2_PBL_FRAC',      &
-                             NotFoundOk=.TRUE., __RC__ )
-
-       CALL CalcNO2Column_( am_I_Root, Input_Opt, PTR_NO2, PLE, &
-                            PPBL, GCCTROPP, TNO2, SNO2, FNO2, RC )
-       _ASSERT(RC==ESMF_SUCCESS,'Error calling CalcNO2Column_')
-       PTR_NO2 => NULL()
-       TNO2    => NULL()
-       SNO2    => NULL()
-    ENDIF
-
-    !=======================================================================
-    ! Fill AERO bundle if GEOS-Chem is the AERO provider.
-    ! For every field of the AERO bundle, we will copy the corresponding
-    ! GEOS-Chem tracer field, converting units from mol mol-1 to kg kg-1.
-    !=======================================================================
-    IF ( DoAERO ) THEN
-
-       ! Get Internal state
-       CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ ) 
-
-       ! Get AERO bundle
-       CALL ESMF_StateGet( EXPORT, 'AERO',     Aero,    __RC__ )
-       CALL ESMF_StateGet( Aero,   'AEROSOLS', AeroBdl, __RC__ )
-
-       ! Number of fields in the AERO Bundle
-       CALL ESMF_FieldBundleGet ( AeroBdl, FieldCount=nAero, __RC__ )
-
-       ! Update every field
-       DO N = 1, nAero
-
-          ! Get field
-          CALL ESMF_FieldBundleGet( AeroBdl, N, AeroFld, __RC__ )
-
-          ! Extract GC tracer name, molecular weight and fraction to be used
-          CALL ESMF_AttributeGet( AeroFld, NAME='GCNAME', VALUE=GcName, __RC__ )
-          CALL ESMF_AttributeGet( AeroFld, NAME='GCMW'  , VALUE=GCMW,   __RC__ )
-          CALL ESMF_AttributeGet( AeroFld, NAME='FRAC',   VALUE=FRAC,  __RC__ ) 
-
-          ! Get pointer to Aero data
-          CALL ESMF_FieldGet( AeroFld, farrayPtr=AeroPtr3D, __RC__ )
-
-          ! Get pointer to GC data
-          CALL MAPL_GetPointer ( INTSTATE, GcPtr3D, TRIM(GcName), __RC__ )
-
-          ! Pass GC to AERO. Convert from mol/mol to kg/kg. Only use the 
-          ! fraction specified during initialization (different from 1 for
-          ! sea salt aerosols only)
-          !AeroPtr3D = GcPtr3D * FRAC * GCMW / MAPL_AIRMW
-          AeroPtr3D = GcPtr3D * FRAC
-
-          !!! writing to diagnostics
-          GcPtr3D   => NULL()
-          CALL ESMF_FieldGet( AeroFld, NAME=GcName, __RC__ )
-          CALL MAPL_GetPointer ( EXPORT, GcPtr3D, 'AERO_'//TRIM(GcName), &
-                                 NotFoundOk=.TRUE., __RC__ )
-          IF ( ASSOCIATED(GcPtr3D) ) GcPtr3D = AeroPtr3D
-          !!!
-
-          ! Free pointers
-          GcPtr3D   => NULL()
-          AeroPtr3D => NULL()
-       ENDDO
-  
-       ! Fill AERO_DP bundle
-       CALL FillAeroDP ( am_I_Root, GC, EXPORT, __RC__ )
-    ENDIF ! DoAero
-
-    !=======================================================================
-    ! Write chemistry top level into CHEMTOP diagnostics array
-    !=======================================================================
-    IF ( Phase /= 1 ) THEN
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEMTOP',               &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             Ptr2D(I,J) = State_Grid%NZ - State_Met%ChemGridLev(I,J) + 1
-          ENDDO
-          ENDDO
-       ENDIF
-       Ptr2D => NULL()
-
-       ! chemistry tropopause
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEM_TROPP',            &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          Ptr2D(:,:) = State_Met%TROPP(:,:) * 100.0 ! hPa -> Pa 
-       ENDIF
-       Ptr2D => NULL()
-    ENDIF
-
-    IF ( Phase /= 2 ) THEN
-       ! convective cloud top height
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CONV_CLDTOP',           &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             DO L = State_Grid%NZ,1,-1
-                IF ( State_Met%CMFMC(I,J,L) > 0.0d0 ) THEN
-                   Ptr2D(I,J) = State_Grid%NZ - L + 1
-                   EXIT
-                ENDIF
-             ENDDO
-          ENDDO
-          ENDDO
-       ENDIF
-       Ptr2D => NULL()
-    ENDIF
-
-    !=======================================================================
-    ! Lightning potential (from GEOS lightning flash rates and convective 
-    ! fraction) 
-    !=======================================================================
-    if ( phase /= 1 ) then
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NLEVS', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NLEVS
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NITER', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NITER
-    endif
-
-    !=======================================================================
-    ! Lightning potential (from GEOS lightning flash rates and convective 
-    ! fraction) 
-    !=======================================================================
-    IF ( Phase /= 2 ) THEN
-       ! convective cloud top height
-       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'LightningPotential', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          _ASSERT(ASSOCIATED(LWI),'LWI is not associated') ! Land-Water-Ice flag
-          _ASSERT(ASSOCIATED(CNV_FRC),'CNV_FRC is not associated') ! Convective fraction
-          CALL MAPL_GetPointer( IMPORT, LFR, 'LFR', __RC__ )
-          CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT',  &
-                                NotFoundOk=.TRUE., __RC__ )
-          Ptr2D = 0.0
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             lp1 = 0.0
-             lp2 = 0.0
-
-             ! If there are HEMCO lightning emissions in current grid box set 
-             ! lightning potential accordingly 
-             IF ( ASSOCIATED(PtrEmis) ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
-                   lp1 = PtrEmis(I,J) / 1.0e-11 ! Land
-                ELSE
-                   lp1 = PtrEmis(I,J) / 1.0e-13 ! Water/Ice
-                ENDIF
-                lp1 = MIN(MAX(0.25,lp1),1.00)
-             ENDIF
-             
-             ! Lightning flash rate
-             IF ( LFR(I,J) > 0.0 ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
-                   lp2 = LFR(I,J) / 5.0e-07 ! Land
-                ELSE
-                   lp2 = LFR(I,J) / 1.0e-08 ! Water/Ice
-                ENDIF
-                lp2 = MIN(MAX(0.25,lp2),1.00)
-
-             ! Convective fraction
-             ELSE
-                lp2 = CNV_FRC(I,J)
-             ENDIF
-
-             ! Take highest value
-             Ptr2D(I,J) = MAX(lp1,lp2)
-          ENDDO
-          ENDDO
-       ENDIF
-       Ptr2D   => NULL()
-       PtrEmis => NULL()
-    ENDIF 
-
+# if defined( MODEL_GEOS )
+    CALL GEOS_Diagnostics_( GC, IMPORT, EXPORT, Clock, Phase, &
+                            Input_Opt, State_Met, State_Chm, State_Diag, __RC__ )
 #else
     !=======================================================================
     ! If we were not doing chemistry, make sure that all tendencies are
@@ -4707,28 +4328,7 @@ CONTAINS
     ! Deallocate the history interface between GC States and ESMF Exports
     CALL Destroy_HistoryConfig( am_I_Root, HistoryConfig, RC )
 
-#if defined( MODEL_GEOS )
-    ! Free local pointers
-    !O3               => NULL()
-    !O3PPMV           => NULL()
-    !OX               => NULL()
-    !OX_TEND          => NULL()
-    !CH4              => NULL()
-    !N2O              => NULL()
-    !CFC11            => NULL()
-    !CFC12            => NULL()
-    !HCFC22           => NULL()
-    !H2O_TEND         => NULL()
-    !PTR_O3           => NULL()
-    !PTR_CH4          => NULL()
-    !PTR_N2O          => NULL()
-    !PTR_CFC11        => NULL()
-    !PTR_CFC12        => NULL()
-    !PTR_HCFC22       => NULL()
-    !PTR_H2O          => NULL()
-    !PTR_GCCTO3       => NULL()
-    !PTR_GCCTTO3      => NULL()
-#else
+#if !defined( MODEL_GEOS )
     ! Deallocate provide pointers and arrays
     CALL Provider_Finalize( am_I_Root, __RC__ )
 #endif
@@ -5201,18 +4801,431 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CalcTotOzone_ 
+! !IROUTINE: GEOS_Diagnostics_ 
 !
-! !DESCRIPTION: CalcTotOzone_ calculates total ozone for the entire
-!  atmosphere and troposphere only (in dobsons) and writes them into
-!  the export variables GCCTO3 and GCCTTO3, respectively. Expects O3 input
-!  in kg/kg total.
+! !DESCRIPTION: Wrapper routine to handle all GEOS-specific diagnostics. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcTotOzone_ ( am_I_Root, Input_Opt, O3, PLE, TROPP, TO3, &
-                             TTO3, RC )
+  SUBROUTINE GEOS_Diagnostics_( GC, IMPORT, EXPORT, Clock, Phase, &
+                                Input_Opt, State_Met, State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+    ! Fast-JX diagnostics 
+    USE FAST_JX_MOD,             ONLY : EXTRAL_NLEVS, EXTRAL_NITER
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT), TARGET :: GC     ! Ref to this GridComp
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
+    TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock  ! ESMF Clock object
+    INTEGER,             INTENT(IN   )         :: Phase  ! Run phase (-1/1/2)
+    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
+    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
+    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
+    TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(INOUT)         :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  08 Oct 2020 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
+    TYPE(ESMF_Alarm)             :: ALARM
+    TYPE(ESMF_STATE)             :: IntState
+
+    LOGICAL                      :: am_I_Root
+    LOGICAL                      :: IsChemTime    ! Chemistry alarm proxy
+    LOGICAL                      :: IsTendTime    ! Time to calculate tendencies
+
+    INTEGER                      :: I,  J,  L, N, LB
+    INTEGER                      :: IM, JM, LM
+
+    REAL, POINTER                :: Q(:,:,:)     => NULL()
+    REAL, POINTER                :: PLE(:,:,:)   => NULL()
+    REAL, POINTER                :: TROPP(:,:)   => NULL()
+
+    REAL, POINTER                :: Ptr2D(:,:)     => NULL()
+    REAL, POINTER                :: Ptr3D(:,:,:)   => NULL()
+    REAL, POINTER                :: PTR_O3(:,:,:)  => NULL()
+    REAL, POINTER                :: OX(:,:,:)      => NULL()
+    REAL, POINTER                :: O3(:,:,:)      => NULL()
+    REAL, POINTER                :: O3PPMV(:,:,:)  => NULL()
+    REAL, POINTER                :: OX_TEND(:,:,:) => NULL()
+    REAL, POINTER                :: PTR_O3P(:,:,:) => NULL()
+    REAL, POINTER                :: PTR_O1D(:,:,:) => NULL()
+    REAL, PARAMETER              :: OMW = 16.0
+
+    REAL, POINTER     :: CH4     (:,:,:) => NULL()
+    REAL, POINTER     :: N2O     (:,:,:) => NULL()
+    REAL, POINTER     :: CFC11   (:,:,:) => NULL()
+    REAL, POINTER     :: CFC12   (:,:,:) => NULL()
+    REAL, POINTER     :: HCFC22  (:,:,:) => NULL()
+
+    REAL, POINTER     :: PTR_CH4     (:,:,:) => NULL()
+    REAL, POINTER     :: PTR_N2O     (:,:,:) => NULL()
+    REAL, POINTER     :: PTR_CFC11   (:,:,:) => NULL()
+    REAL, POINTER     :: PTR_CFC12   (:,:,:) => NULL()
+    REAL, POINTER     :: PTR_HCFC22  (:,:,:) => NULL()
+
+    ! For AERO
+    REAL                         :: GCMW, FRAC
+    INTEGER                      :: nAero, GCID
+    TYPE(ESMF_STATE)             :: Aero
+    TYPE(ESMF_FieldBundle)       :: AeroBdl 
+    TYPE(ESMF_Field)             :: AeroFld
+    CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
+    REAL, POINTER                :: GcPtr3d  (:,:,:) => NULL()
+    REAL, POINTER                :: AeroPtr3d(:,:,:) => NULL()
+
+    ! LFR diag
+    REAL                          :: lp1, lp2      ! lightning potentials
+    TYPE(GEOSCHEM_Wrap)           :: wrap           ! Wrapper for myState
+    CHARACTER(LEN=ESMF_MAXSTR)    :: LFR_SOURCE 
+    REAL, POINTER                 :: PtrEmis(:,:)  => NULL() 
+    REAL, POINTER                 :: LWI(:,:)      => NULL()
+    REAL, POINTER                 :: LFR(:,:)      => NULL()
+    REAL, POINTER                 :: CNV_FRC(:,:)  => NULL()
+
+    __Iam__('GEOS_Diagnostics_')
+
+    !=======================================================================
+    ! GEOS_Diagnostics_ starts here 
+    !=======================================================================
+
+    ! Are we on the root PET?
+    am_I_Root = MAPL_Am_I_Root()
+
+    ! Get MAPL Generic State
+    CALL MAPL_GetObjectFromGC(GC, STATE, __RC__)
+
+    ! Start timers
+    CALL MAPL_TimerOn(STATE, "GC_DIAGN")
+
+    ! Get Internal state
+    CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=IntState, __RC__ )
+
+    ! Timers
+    CALL MAPL_Get(STATE, RUNALARM=ALARM, __RC__)
+    IsChemTime = ESMF_AlarmIsRinging(ALARM, __RC__)
+    IsTendTime = ( IsChemTime .AND. Phase /= 1 )
+
+    CALL MAPL_GetPointer( IMPORT,     Q,     'Q', __RC__ ) 
+    CALL MAPL_GetPointer( IMPORT,   PLE,   'PLE', __RC__ ) 
+    CALL MAPL_GetPointer( IMPORT, TROPP, 'TROPP', __RC__ ) 
+
+    ! Grid size
+    IM = SIZE(Q,1); JM = SIZE(Q,2); LM = SIZE(Q,3)
+
+    !=======================================================================
+    ! NOx diagnostics 
+    !=======================================================================
+    IF ( IsTendTime .AND. Input_Opt%haveImpRst ) THEN 
+       CALL NOxDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                              State_Diag, IMPORT, EXPORT, IntState, __RC__ )
+    ENDIF
+
+    !=======================================================================
+    ! Dry volume mixing ratios and PM2.5 diagnostics 
+    !=======================================================================
+    CALL CalcSpeciesDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                                   State_Diag, IMPORT, EXPORT, IntState, &
+                                   Q, __RC__ )
+
+    !=======================================================================
+    ! Mass-weighted OH
+    !=======================================================================
+    CALL MassWeightedOH_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                           State_Diag, IMPORT, EXPORT, IntState, Q, PLE, TROPP, __RC__ )
+
+    !=======================================================================
+    ! Ozone diagnostics
+    !=======================================================================
+
+    ! PTR_O3: kg kg-1 total air
+    CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
+
+    ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
+    CALL CalcTotOzone_( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
+
+    ! Fill ozone export states if GC is the analysis OX provider:
+    !      OX: volume mixing ratio
+    !      O3: mass mixing ratio
+    !  O3PPMV: volume mixing ratio in ppm
+    ! OX_TEND: mol mol-1 s-1
+    ! Get pointers to analysis OX exports
+    CALL MAPL_GetPointer ( EXPORT, OX_TEND, 'OX_TEND' , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,      OX, 'OX'      , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,      O3, 'O3'      , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'O3PPMV'  , NotFoundOK=.TRUE., __RC__ )
+
+    IF ( ASSOCIATED(O3) .OR. ASSOCIATED(O3PPMV) .OR. ASSOCIATED(OX) ) THEN
+       ASSERT_(ASSOCIATED(PTR_O3))
+    ENDIF
+    IF ( ASSOCIATED(O3)     ) O3     = PTR_O3
+    IF ( ASSOCIATED(O3PPMV) ) O3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(OX) ) THEN
+       CALL MAPL_GetPointer( INTSTATE, PTR_O3P, 'SPC_O'  , __RC__ )
+       CALL MAPL_GetPointer( INTSTATE, PTR_O1D, 'SPC_O1D', __RC__ )
+       OX =        PTR_O3  * MAPL_AIRMW / MAPL_O3MW
+       OX = OX + ( PTR_O3P * MAPL_AIRMW / OMW )
+       OX = OX + ( PTR_O1D * MAPL_AIRMW / OMW )
+    ENDIF
+
+    ! O3 mass in kg/m2
+    CALL MAPL_GetPointer( EXPORT, Ptr3D, 'O3_MASS', NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D) ) THEN
+       LB = LBOUND(PLE,3)
+       DO L=1,LM
+          Ptr3D(:,:,L) = PTR_O3(:,:,L) * ( g0_100 * ( PLE(:,:,L+LB) -  &
+                                                      PLE(:,:,L+LB-1) ) )
+       ENDDO
+    ENDIF
+    Ptr3D => NULL()
+
+    !=======================================================================
+    ! Fill RATS export states if GC is the RATS provider
+    ! The tracer concentrations of the RATS export states are in mol mol-1.
+    !=======================================================================
+    ! Get pointers to RATS exports
+    CALL MAPL_GetPointer ( EXPORT,      CH4, 'CH4'      , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,      N2O, 'N2O'      , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,    CFC11, 'CFC11'    , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,    CFC12, 'CFC12'    , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,   HCFC22, 'HCFC22'   , NotFoundOK=.TRUE., __RC__ )
+
+    IF ( ASSOCIATED(CH4) ) THEN
+       CALL MAPL_GetPointer( INTSTATE, PTR_CH4, 'SPC_CH4',    __RC__ )
+       CH4 = PTR_CH4 * MAPL_AIRMW /  16.00
+    ENDIF
+    IF ( ASSOCIATED(N2O) ) THEN
+       CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'SPC_N2O',    __RC__ )
+       N2O = PTR_N2O    * MAPL_AIRMW /  44.00
+    ENDIF
+    IF ( ASSOCIATED(CFC11) ) THEN 
+       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'SPC_CFC11',  __RC__ )
+       CFC11 = PTR_CFC11  * MAPL_AIRMW / 137.37
+    ENDIF
+    IF ( ASSOCIATED(CFC12) ) THEN 
+       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'SPC_CFC12',  __RC__ )
+       CFC12 = PTR_CFC12  * MAPL_AIRMW / 120.91
+    ENDIF
+    IF ( ASSOCIATED(HCFC22) ) THEN
+       CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'SPC_HCFC22', __RC__ )
+       HCFC22 = PTR_HCFC22 * MAPL_AIRMW /  86.47
+    ENDIF
+
+    !=======================================================================
+    ! Total and tropospheric columns 
+    !=======================================================================
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, EXPORT,     &
+                       INTSTATE, PLE, TROPP, __RC__ )
+
+    !=======================================================================
+    ! Fill AERO bundle if GEOS-Chem is the AERO provider.
+    ! For every field of the AERO bundle, we will copy the corresponding
+    ! GEOS-Chem tracer field, converting units from mol mol-1 to kg kg-1.
+    !=======================================================================
+    IF ( DoAERO ) THEN
+
+       ! Get AERO bundle
+       CALL ESMF_StateGet( EXPORT, 'AERO',     Aero,    __RC__ )
+       CALL ESMF_StateGet( Aero,   'AEROSOLS', AeroBdl, __RC__ )
+
+       ! Number of fields in the AERO Bundle
+       CALL ESMF_FieldBundleGet ( AeroBdl, FieldCount=nAero, __RC__ )
+
+       ! Update every field
+       DO N = 1, nAero
+
+          ! Get field
+          CALL ESMF_FieldBundleGet( AeroBdl, N, AeroFld, __RC__ )
+
+          ! Extract GC tracer name, molecular weight and fraction to be used
+          CALL ESMF_AttributeGet( AeroFld, NAME='GCNAME', VALUE=GcName, __RC__ )
+          CALL ESMF_AttributeGet( AeroFld, NAME='GCMW'  , VALUE=GCMW,   __RC__ )
+          CALL ESMF_AttributeGet( AeroFld, NAME='FRAC',   VALUE=FRAC,  __RC__ ) 
+
+          ! Get pointer to Aero data
+          CALL ESMF_FieldGet( AeroFld, farrayPtr=AeroPtr3D, __RC__ )
+
+          ! Get pointer to GC data
+          CALL MAPL_GetPointer ( INTSTATE, GcPtr3D, TRIM(GcName), __RC__ )
+
+          ! Pass GC to AERO. Convert from mol/mol to kg/kg. Only use the 
+          ! fraction specified during initialization (different from 1 for
+          ! sea salt aerosols only)
+          !AeroPtr3D = GcPtr3D * FRAC * GCMW / MAPL_AIRMW
+          AeroPtr3D = GcPtr3D * FRAC
+
+          !!! writing to diagnostics
+          GcPtr3D   => NULL()
+          CALL ESMF_FieldGet( AeroFld, NAME=GcName, __RC__ )
+          CALL MAPL_GetPointer ( EXPORT, GcPtr3D, 'AERO_'//TRIM(GcName), &
+                                 NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(GcPtr3D) ) GcPtr3D = AeroPtr3D
+
+          ! Free pointers
+          GcPtr3D   => NULL()
+          AeroPtr3D => NULL()
+       ENDDO
+  
+       ! Fill AERO_DP bundle
+       CALL FillAeroDP ( am_I_Root, GC, EXPORT, __RC__ )
+    ENDIF ! DoAero
+
+    !=======================================================================
+    ! Write chemistry top level into CHEMTOP diagnostics array
+    !=======================================================================
+    IF ( Phase /= 1 ) THEN
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEMTOP',               &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D) ) THEN
+          DO J = 1, JM 
+          DO I = 1, IM 
+             Ptr2D(I,J) = LM - State_Met%ChemGridLev(I,J) + 1
+          ENDDO
+          ENDDO
+       ENDIF
+       Ptr2D => NULL()
+
+       ! chemistry tropopause
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CHEM_TROPP',            &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D) ) THEN
+          Ptr2D(:,:) = State_Met%TROPP(:,:) * 100.0 ! hPa -> Pa 
+       ENDIF
+       Ptr2D => NULL()
+    ENDIF
+
+    IF ( Phase /= 2 ) THEN
+       ! convective cloud top height
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'CONV_CLDTOP',           &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D) ) THEN
+          DO J = 1, JM 
+          DO I = 1, IM 
+             DO L = 1, LM 
+                IF ( State_Met%CMFMC(I,J,L) > 0.0d0 ) THEN
+                   Ptr2D(I,J) = LM - L + 1
+                   EXIT
+                ENDIF
+             ENDDO
+          ENDDO
+          ENDDO
+       ENDIF
+       Ptr2D => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! Lightning potential (from GEOS lightning flash rates and convective 
+    ! fraction) 
+    !=======================================================================
+    if ( Phase /= 1 ) then
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NLEVS', &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NLEVS
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'FJX_EXTRAL_NITER', &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2d) ) Ptr2d = EXTRAL_NITER
+       Ptr2D => NULL()
+    endif
+
+    !=======================================================================
+    ! Lightning potential (from GEOS lightning flash rates and convective 
+    ! fraction) 
+    !=======================================================================
+    IF ( Phase /= 2 ) THEN
+       ! convective cloud top height
+       CALL MAPL_GetPointer( EXPORT, Ptr2D, 'LightningPotential', &
+                             NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D) ) THEN
+          CALL ESMF_UserCompGetInternalState( GC, 'GEOSCHEM_State', wrap, STATUS )
+          _ASSERT(STATUS==0,'Could not find GEOSCHEM_State to access configuration file')
+          CALL ESMF_ConfigGetAttribute( wrap%ptr%myCF, LFR_SOURCE,     &
+                                 Label="LIGHTNING_FLASH_RATE_SOURCE:", &
+                                 Default="LFR_GCC", __RC__  )
+          CALL MAPL_GetPointer( IMPORT, LFR,      TRIM(LFR_SOURCE), __RC__ )
+          CALL MAPL_GetPointer( EXPORT, LWI,     'LWI', __RC__ )
+          CALL MAPL_GetPointer( EXPORT, CNV_FRC, 'CNV_FRC', __RC__ )
+          CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT', NotFoundOk=.TRUE., __RC__ )
+          Ptr2D = 0.0
+          DO J = 1, JM 
+          DO I = 1, IM 
+             lp1 = 0.0
+             lp2 = 0.0
+
+             ! If there are HEMCO lightning emissions in current grid box set 
+             ! lightning potential accordingly 
+             IF ( ASSOCIATED(PtrEmis) ) THEN
+                IF ( LWI(I,J) == 1 ) THEN
+                   lp1 = PtrEmis(I,J) / 1.0e-11 ! Land
+                ELSE
+                   lp1 = PtrEmis(I,J) / 1.0e-13 ! Water/Ice
+                ENDIF
+                lp1 = MIN(MAX(0.25,lp1),1.00)
+             ENDIF
+             
+             ! Lightning flash rate
+             IF ( LFR(I,J) > 0.0 ) THEN
+                IF ( LWI(I,J) == 1 ) THEN
+                   lp2 = LFR(I,J) / 5.0e-07 ! Land
+                ELSE
+                   lp2 = LFR(I,J) / 1.0e-08 ! Water/Ice
+                ENDIF
+                lp2 = MIN(MAX(0.25,lp2),1.00)
+
+             ! Convective fraction
+             ELSE
+                lp2 = CNV_FRC(I,J)
+             ENDIF
+
+             ! Take highest value
+             Ptr2D(I,J) = MAX(lp1,lp2)
+          ENDDO
+          ENDDO
+       ENDIF
+       Ptr2D   => NULL()
+       PtrEmis => NULL()
+    ENDIF 
+
+    ! Start timers
+    CALL MAPL_TimerOff(STATE, "GC_DIAGN")
+
+    _RETURN(ESMF_SUCCESS)
+
+    END SUBROUTINE GEOS_Diagnostics_
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CalcTotOzone_ 
+!
+! !DESCRIPTION: CalcTotOzone_ calculates total ozone for the entire
+!  atmosphere and troposphere only (in dobsons) and writes them into
+!  the export variables GCCTO3 and GCCTTO3, respectively. Expects O3 in the
+!  internal state in kg/kg total.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, INTSTATE, EXPORT, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -5221,15 +5234,11 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL                          :: am_I_Root
-     TYPE(OptInput)                  :: Input_Opt 
-    REAL,     POINTER                :: O3   (:,:,:)
-    REAL,     POINTER                :: PLE  (:,:,:)
-    REAL,     POINTER                :: TROPP(:,:  )
-!                                                             
-! !INPUT/OUTPUT PARAMETERS:                                         
-!              
-    REAL(fp), POINTER                :: TO3 (:,:)
-    REAL,     POINTER                :: TTO3(:,:)
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met 
+    TYPE(ESMF_STATE), INTENT(INOUT)  :: INTSTATE ! Internal state
+    TYPE(ESMF_State), INTENT(INOUT)  :: Export   ! Export State
+    REAL,             POINTER        :: PLE  (:,:,:)
+    REAL,             POINTER        :: TROPP(:,:)  
 !                                                             
 ! !OUTPUT PARAMETERS:                                         
 !              
@@ -5244,6 +5253,11 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 ! 
+    REAL,     POINTER            :: O3   (:,:,:) => NULL()
+    REAL(fp), POINTER            :: TO3fp(:,:) => NULL()
+    REAL,     POINTER            :: TO3 (:,:)  => NULL()
+    REAL,     POINTER            :: TTO3(:,:)  => NULL()
+
     REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
     REAL,  ALLOCATABLE           :: wgt(:,:)      ! Layer thickness weighting
@@ -5259,32 +5273,32 @@ CONTAINS
     ! Traceback handle
     Iam = 'CalcTotOzone_'
 
-    ! Nothing to do if it's a Rn simulation
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-       RC = ESMF_SUCCESS
-       RETURN
-    ENDIF
+    ! Check if we need to compute this
+    IF ( ASSOCIATED( State_Met%TO3 ) ) TO3fp => State_Met%TO3
+    CALL MAPL_GetPointer ( EXPORT, TO3,   'GCCTO3', notFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT, TTO3, 'GCCTTO3', notFoundOK=.TRUE., __RC__ )
 
     ! Nothing to do if neither of the arrays is associated
-    IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) ) THEN
+    IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) .AND. .NOT. ASSOCIATED(TO3fp) ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
 
-    ! Make sure O3 is defined
-    _ASSERT(ASSOCIATED(O3),'O3 is not associated')
+    ! Get O3 from internal state 
+    CALL MAPL_GetPointer ( IntState, O3, 'SPC_O3', __RC__ )
 
     ! Grid size
     IM = SIZE(O3,1)
     JM = SIZE(O3,2)
     LM = SIZE(O3,3)
 
-    ! Lower bound of PLE 3rd dim
+    ! Pressure edges
     LB = LBOUND(PLE,3)
 
     ! Reset values 
-    IF ( ASSOCIATED(TO3 ) ) TO3  = 0.0
-    IF ( ASSOCIATED(TTO3) ) TTO3 = 0.0
+    IF ( ASSOCIATED(TO3fp ) ) TO3fp  = 0.0
+    IF ( ASSOCIATED(TO3   ) ) TO3  = 0.0
+    IF ( ASSOCIATED(TTO3  ) ) TTO3 = 0.0
 
     ! Allocate local variables
     ALLOCATE(DUsLayerL(IM,JM), STAT=STATUS)
@@ -5308,7 +5322,8 @@ CONTAINS
 !       DUsLayerL(:,:) = O3(:,:,L)*(PLE(:,:,L)-PLE(:,:,L-1))               &
 !                        *(MAPL_AVOGAD/2.69E+20)/(MAPL_AIRMW*MAPL_GRAV)
 
-       IF ( ASSOCIATED(TO3) ) TO3 = TO3+DUsLayerL
+       IF ( ASSOCIATED(TO3fp) ) TO3fp = TO3fp+DUsLayerL
+       IF ( ASSOCIATED(TO3  ) ) TO3   = TO3  +DUsLayerL
        IF ( ASSOCIATED(TTO3) ) THEN
           wgt  = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
                  /(PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
@@ -5326,175 +5341,6 @@ CONTAINS
     RC = ESMF_SUCCESS
 
   END SUBROUTINE CalcTotOzone_
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: CalcNO2Column_ 
-!
-! !DESCRIPTION: CalcNO2Column_ calculates total NO2 column (troposphere and
-!  stratosphere. Expects NO2 input in kg/kg total air. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CalcNO2Column_ ( am_I_Root, Input_Opt, NO2, PLE, PPBL,  &
-                              TROPP, TNO2, SNO2, FNO2, RC, omi, LAYERS )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL                          :: am_I_Root
-     TYPE(OptInput)                  :: Input_Opt
-    REAL,     POINTER                :: NO2  (:,:,:)
-    REAL,     POINTER                :: PLE  (:,:,:)
-    REAL,     POINTER                :: PPBL (:,:)
-    REAL,     POINTER                :: TROPP(:,:)
-    LOGICAL,  INTENT(IN), OPTIONAL   :: omi
-!                                                             
-! !INPUT/OUTPUT PARAMETERS:                                         
-!              
-    REAL,     POINTER                :: TNO2(:,:)
-    REAL,     POINTER                :: SNO2(:,:)
-    REAL,     POINTER                :: FNO2(:,:)
-!                                                             
-! !OUTPUT PARAMETERS:                                         
-!              
-    REAL,    POINTER,     OPTIONAL   :: LAYERS(:,:,:)
-    INTEGER, INTENT(OUT), OPTIONAL   :: RC
-!
-! !REVISION HISTORY:
-!  25 Jul 2016 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-! 
-    REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! NO2 in a layer
-    REAL,  ALLOCATABLE           :: wgt(:,:)      ! Layer thickness weighting
-    REAL,  ALLOCATABLE           :: PBLTNO2(:,:)  ! NO2 PBL column
-    REAL                         :: DP, const, iwgt
-    INTEGER                      :: IM, JM, LM, LB, I, J, L, STATUS
-    CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
-
-    LOGICAL                      :: domi
-
-    !=======================================================================
-    ! CalcNO2Column_ begins here
-    !=======================================================================
-
-    ! Traceback handle
-    Iam = 'CalcNO2Column_'
-
-    domi = .FALSE.
-    IF ( PRESENT(omi) ) domi=omi
-
-    ! Nothing to do if it's a Rn simulation
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-       RC = ESMF_SUCCESS
-       RETURN
-    ENDIF
-
-    ! Nothing to do if neither of the arrays is associated
-    IF ( .NOT. ASSOCIATED(TNO2) .AND. .NOT. ASSOCIATED(SNO2) &
-       .AND. .NOT. ASSOCIATED(FNO2) ) THEN
-       RC = ESMF_SUCCESS
-       RETURN
-    ENDIF
-
-    ! Make sure O3 is defined
-    _ASSERT(ASSOCIATED(NO2),'NO2 is not associated')
-
-    ! Grid size
-    IM = SIZE(NO2,1)
-    JM = SIZE(NO2,2)
-    LM = SIZE(NO2,3)
-
-    ! Lower bound of PLE 3rd dim
-    LB = LBOUND(PLE,3)
-
-    ! Reset values 
-    IF ( ASSOCIATED(TNO2) ) TNO2 = 0.0
-    IF ( ASSOCIATED(SNO2) ) SNO2 = 0.0
-    IF ( ASSOCIATED(FNO2) ) FNO2 = 0.0
-    IF ( PRESENT(LAYERS)  ) LAYERS = 0.0
-
-    ! Allocate local variables
-    ALLOCATE(DUsLayerL(IM,JM), STAT=STATUS)
-    _VERIFY(STATUS)
-    ALLOCATE(wgt(IM,JM), STAT=STATUS)
-    _VERIFY(STATUS)
-    IF ( ASSOCIATED(FNO2) ) THEN
-       _ASSERT(ASSOCIATED(PPBL),'PPBL is not associated')
-       ALLOCATE(PBLTNO2(IM,JM), STAT=STATUS)
-       _VERIFY(STATUS)
-       PBLTNO2(:,:) = 0.0
-    ENDIF
-
-    ! constant. Note: MAPL_AVOGAD is kmol-1, MAPL_AIRMW is kg kmol-1, 
-    ! MAPL_GRAV is m s-2.
-    const = MAPL_AVOGAD / 1000.0 / ( MAPL_GRAV * MAPL_AIRMW / 1000.0 )
-    const = const * MAPL_AIRMW / 46.0 ! convert kg/kg total to v/v total
-
-    ! Calculate total NOx
-    DO L = 1,LM
-    DO J = 1,JM
-    DO I = 1,IM
-
-       DUsLayerL(I,J) = NO2(I,J,L) * ( (PLE(I,J,L+LB)-PLE(I,J,L+LB-1)) ) &
-                        * const
-
-       ! rescale: molec/m2 --> molec/cm2
-       DUsLayerL(I,J) = DUsLayerL(I,J) / 1.0e4
-
-       ! compute 1e15 molec/cm2 so that numbers are in better range
-       DUsLayerL(I,J) = DUsLayerL(I,J) / 1.0e15
-
-       IF ( ASSOCIATED(SNO2) ) THEN
-          SNO2(I,J) = SNO2(I,J)+DUsLayerL(I,J)  !*wgt
-       END IF
-
-       wgt(I,J)  = MAX(0.0,MIN(1.0,(PLE(I,J,L)-TROPP(I,J))/(PLE(I,J,L) &
-                   -PLE(I,J,L-1))))
-
-       IF ( ASSOCIATED(TNO2) ) THEN
-          TNO2(I,J) = TNO2(I,J)+DUsLayerL(I,J)*wgt(I,J)
-       END IF
-
-       IF ( PRESENT(LAYERS) ) THEN
-          LAYERS(I,J,L) = DUsLayerL(I,J)*1.0e15*wgt(I,J)
-       END IF
-
-       ! Compute fraction of surface layer relative to total trop. layer
-       IF ( ASSOCIATED(FNO2) ) THEN
-          FNO2(I,J)    = FNO2(I,J) + DUsLayerL(I,J) * wgt(I,J)
-          iwgt         = MAX(0.0,MIN(1.0,(PLE(I,J,L)-PPBL(I,J)) &
-                         /(PLE(I,J,L)-PLE(I,J,L-1))))
-          PBLTNO2(I,J) = PBLTNO2(I,J) + DUsLayerL(I,J) * iwgt
-          IF ( L == LM ) THEN
-             FNO2(I,J) = PBLTNO2(I,J) / FNO2(I,J)
-             !FNO2(I,J) = ( DUsLayerL(I,J)*wgt(I,J) ) / FNO2(I,J)
-          END IF
-       END IF
-
-    END DO
-    END DO
-    END DO
-
-    ! Cleanup
-    DEALLOCATE(DUsLayerL, STAT=STATUS)
-    _VERIFY(STATUS)
-    DEALLOCATE(wgt, STAT=STATUS)
-    _VERIFY(STATUS)
-    IF ( ALLOCATED(PBLTNO2) ) DEALLOCATE(PBLTNO2)
-    ! Successful return
-    RC = ESMF_SUCCESS
-
-  END SUBROUTINE CalcNO2Column_
 !EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
@@ -6061,13 +5907,14 @@ CONTAINS
     REAL                       :: Ra_z0, Ra_2m, Ra_10m
     REAL                       :: t_, rho_, fhs_, ustar_, dz_, z0h_
     REAL                       :: BrCoeff, ClCoeff, OrgClCoeff
-!    REAL, ALLOCATABLE          :: Ra2m(:,:), Ra10m(:,:)
-!    REAL, ALLOCATABLE          :: Lz0(:,:),  L2m(:,:), L10m(:,:)
     REAL, POINTER              :: Ptr3D(:,:,:), PtrTmp(:,:,:), Ptr2D(:,:)
-    REAL, POINTER              :: Bry(:,:,:), NOy(:,:,:), Ptr2m(:,:), Ptr10m(:,:)
-    REAL, POINTER              :: Cly(:,:,:), OrgCl(:,:,:) 
+    REAL, POINTER              :: Ptr2m(:,:), Ptr10m(:,:)
     REAL, ALLOCATABLE          :: CONV(:,:), MyPM25(:,:,:)
     TYPE(Species), POINTER     :: SpcInfo
+    REAL(f4), POINTER          :: NOy(:,:,:) => NULL()
+    REAL(f4), POINTER          :: Bry(:,:,:) => NULL()
+    REAL(f4), POINTER          :: Cly(:,:,:) => NULL()
+    REAL(f4), POINTER          :: OrgCl(:,:,:) => NULL()
 
     ! For PM25 diagnostics
     REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25
@@ -6168,14 +6015,27 @@ CONTAINS
     ! Exports in dry vol mixing ratio (v/v dry). Includes NOy. Convert from
     ! kg/kg total. 
     !=======================================================================
-    CALL MAPL_GetPointer( EXPORT, NOy, 'NOy', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(NOy) ) NOy = 0.0
-    CALL MAPL_GetPointer( EXPORT, Bry, 'Bry', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Bry) ) Bry = 0.0
-    CALL MAPL_GetPointer( EXPORT, Cly, 'Cly', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Cly) ) Cly = 0.0
-    CALL MAPL_GetPointer( EXPORT, OrgCl, 'OrganicCl', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(OrgCl) ) OrgCl = 0.0
+    IF ( State_Diag%Archive_NOy .AND.       &
+         ASSOCIATED(State_Diag%NOy)          ) NOy => State_Diag%NOy(:,:,LM:1:-1)
+    IF ( State_Diag%Archive_Bry .AND.       &
+         ASSOCIATED(State_Diag%Bry)          ) Bry => State_Diag%Bry(:,:,LM:1:-1)
+    IF ( State_Diag%Archive_Cly .AND.       &
+         ASSOCIATED(State_Diag%Cly)          ) Cly => State_Diag%Cly(:,:,LM:1:-1)
+    IF ( State_Diag%Archive_OrganicCl .AND. &
+         ASSOCIATED(State_Diag%OrganicCl)    ) OrgCl => State_Diag%OrganicCl(:,:,LM:1:-1)
+    IF ( ASSOCIATED(NOy)   ) NOy(:,:,:)   = 0.0
+    IF ( ASSOCIATED(Bry)   ) Bry(:,:,:)   = 0.0
+    IF ( ASSOCIATED(Cly)   ) Cly(:,:,:)   = 0.0
+    IF ( ASSOCIATED(OrgCl) ) OrgCl(:,:,:) = 0.0
+
+!    CALL MAPL_GetPointer( EXPORT, NOy, 'NOy', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(NOy) ) NOy = 0.0
+!    CALL MAPL_GetPointer( EXPORT, Bry, 'Bry', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(Bry) ) Bry = 0.0
+!    CALL MAPL_GetPointer( EXPORT, Cly, 'Cly', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(Cly) ) Cly = 0.0
+!    CALL MAPL_GetPointer( EXPORT, OrgCl, 'OrganicCl', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(OrgCl) ) OrgCl = 0.0
 
     ! Check for PM25 diagnostics
     CALL MAPL_GetPointer( EXPORT, PtrPM25         , 'myPM25'         , &
@@ -6537,8 +6397,10 @@ CONTAINS
     !=======================================================================
 
     ! Cleanup
-    !IF ( ALLOCATED(Ra2m ) ) DEALLOCATE(Ra2m )
-    !IF ( ALLOCATED(Ra10m) ) DEALLOCATE(Ra10m)
+    IF ( ASSOCIATED(NOy)   ) NOy   => NULL()
+    IF ( ASSOCIATED(Bry)   ) Bry   => NULL()
+    IF ( ASSOCIATED(Cly)   ) Cly   => NULL()
+    IF ( ASSOCIATED(OrgCl) ) OrgCl => NULL()
 
     ! Successful return
     FIRST = .FALSE.
