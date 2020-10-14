@@ -4627,6 +4627,7 @@ CONTAINS
     USE Get_Ndep_Mod,         ONLY : Soil_Drydep
     USE Global_CH4_Mod,       ONLY : CH4_Emis
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState   
@@ -4821,6 +4822,17 @@ CONTAINS
 
       ! Check if there is emissions or deposition for this species
       CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
+
+      ! If there is emissions for this species, it must be loaded into memory first.
+      ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
+      ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+      IF ( EmisSpec ) THEN
+          CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
+      ENDIF
+
+      IF ( DepSpec ) THEN
+          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
+      ENDIF
 
       !$OMP PARALLEL DO                                                        &
       !$OMP DEFAULT( SHARED )                                                  &
