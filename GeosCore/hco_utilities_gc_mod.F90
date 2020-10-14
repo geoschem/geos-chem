@@ -34,6 +34,8 @@ MODULE HCO_Utilities_GC_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC   :: InquireHco                    ! Inquire availability of emis/drydep field
+  PUBLIC   :: LoadHcoValEmis
+  PUBLIC   :: LoadHcoValDep
   PUBLIC   :: GetHcoValEmis
   PUBLIC   :: GetHcoValDep
   PUBLIC   :: HCO_GC_EvalFld                ! Shim interface for HCO_EvalFld
@@ -98,7 +100,7 @@ MODULE HCO_Utilities_GC_Mod
   ! using an optional argument. This allows shimming as much of the
   ! operating specifics from GEOS-Chem core code as possible.
   !------------------------------------------------------
-  REAL(hp), POINTER                    :: TMP_MDL (:,:,:)
+  REAL(hp), POINTER, PUBLIC            :: TMP_MDL (:,:,:)
   REAL(hp), POINTER                    :: TMP_MDLb(:,:,:)
   REAL(hp), POINTER                    :: TMP_HCO (:,:,:)
 
@@ -176,6 +178,136 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: LoadHcoValEmis
+!
+! !DESCRIPTION: For GC-Classic intermediate grid: Load emissions regridded onto
+!  model grid into the regridding buffer. Does nothing in other models.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE LoadHcoValEmis ( Input_Opt, State_Grid, TrcID, AltBuffer )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(OptInput),     INTENT(IN   )  :: Input_Opt  ! Input options
+    TYPE(GrdState),     INTENT(IN   )  :: State_Grid ! Grid State
+    INTEGER,            INTENT(IN   )  :: TrcID      ! GEOS-Chem tracer ID
+    LOGICAL, OPTIONAL,  INTENT(IN   )  :: AltBuffer  ! Alternate buffer? (Use B)
+!
+! !REMARKS:
+!  This is achieved through a OMP CRITICAL failsafe and calls GetHcoValEmis/Dep to
+!  trigger the regridding.
+!
+! !REVISION HISTORY:
+!  27 Sep 2020 - H.P. Lin  - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! !LOCAL VARIABLES:
+!
+    LOGICAL            :: TMP_Found
+    REAL(hp)           :: TMP_Value                   ! Dummy values
+
+#ifdef MODEL_CLASSIC
+    IF ( Input_Opt%LIMGRID ) THEN
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
+
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      ! due to a compiler bug in ifort 19
+      ! we have to use PRESENT and not copy the value, as sometimes it becomes
+      ! flipped! (hplin, 9/29/20)
+      IF ( PRESENT(AltBuffer) ) THEN
+        CALL GetHcoValEmis ( Input_Opt, State_Grid, TrcID, 1, 1, 1, Found=TMP_Found, &
+                           Emis=TMP_Value, AltBuffer=.true. )
+      ELSE
+        CALL GetHcoValEmis ( Input_Opt, State_Grid, TrcID, 1, 1, 1, Found=TMP_Found, &
+                           Emis=TMP_Value )
+      ENDIF
+
+      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValEmis/ImGrid: Loading", TrcID, PRESENT( AltBuffer )
+
+      !$OMP END CRITICAL
+      ! End of LIMGRID OMP Critical section
+    ENDIF
+#endif
+  END SUBROUTINE LoadHcoValEmis
+!EOC
+!------------------------------------------------------------------------------
+!                    Harmonized Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: LoadHcoValDep
+!
+! !DESCRIPTION: For GC-Classic intermediate grid: Load deposition value regridded onto
+!  model grid into the regridding buffer. Does nothing in other models.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE LoadHcoValDep ( Input_Opt, State_Grid, TrcID )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(OptInput),     INTENT(IN   )  :: Input_Opt  ! Input options
+    TYPE(GrdState),     INTENT(IN   )  :: State_Grid ! Grid State
+    INTEGER,            INTENT(IN   )  :: TrcID      ! GEOS-Chem tracer ID
+!
+! !REMARKS:
+!  This is achieved through a OMP CRITICAL failsafe and calls GetHcoValEmis/Dep to
+!  trigger the regridding.
+!
+! !REVISION HISTORY:
+!  27 Sep 2020 - H.P. Lin  - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! !LOCAL VARIABLES:
+!
+    LOGICAL            :: TMP_Found
+    REAL(hp)           :: TMP_Value                   ! Dummy values
+
+#ifdef MODEL_CLASSIC
+    IF ( Input_Opt%LIMGRID ) THEN
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
+
+      ! Check if we have to load the data.
+      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      CALL GetHcoValDep ( Input_Opt, State_Grid, TrcID, 1, 1, 1, Found=TMP_Found, &
+                          Dep=TMP_Value )
+      !$OMP END CRITICAL
+      ! End of LIMGRID OMP Critical section
+
+      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValDep/ImGrid: Loading", TrcID
+    ENDIF
+#endif
+  END SUBROUTINE LoadHcoValDep
+!EOC
+!------------------------------------------------------------------------------
+!                    Harmonized Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: GetHcoValEmis
 !
 ! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an
@@ -187,7 +319,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoValEmis ( Input_Opt, State_Grid, TrcID, I, J, L, Found, Emis, AltBuffer )
+  SUBROUTINE GetHcoValEmis ( Input_Opt, State_Grid, TrcID, I, J, L, Found, Emis, AltBuffer, SkipCheck )
 !
 ! !USES:
 !
@@ -208,6 +340,7 @@ CONTAINS
     INTEGER,            INTENT(IN   )  :: TrcID      ! GEOS-Chem tracer ID
     INTEGER,            INTENT(IN   )  :: I, J, L    ! Position
     LOGICAL, OPTIONAL,  INTENT(IN   )  :: AltBuffer  ! Alternate buffer? (Use B)
+    LOGICAL, OPTIONAL,  INTENT(IN   )  :: SkipCheck  ! Skip buffer validity check - Dangerous, use in tight loops
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -236,7 +369,6 @@ CONTAINS
 !
     CHARACTER(LEN=32)  :: TMP_TrcIDFldName            ! Temporary tracer field name _HCO_Trc_<id>
     INTEGER            :: ZBND
-    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
 
     TMP_MDL_target => NULL()
@@ -245,18 +377,10 @@ CONTAINS
       ! Check if we have to load the data.
       IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
 
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
-      !$OMP CRITICAL
-      IF ( PRESENT(AltBuffer) ) THEN
-        TMP_AltBuffer = AltBuffer
-      ELSE
-        ! This fallover else is not needed logically, but is necessary
-        ! due to a compiler bug in ifort 19 (hplin, 6/25/20)
-        TMP_AltBuffer = .false.
-      ENDIF
-
-      IF ( TMP_AltBuffer ) THEN 
+      ! due to a compiler bug in ifort 19
+      ! we have to use PRESENT and not copy the value, as sometimes it becomes
+      ! flipped! (hplin, 9/29/20)
+      IF ( PRESENT( AltBuffer ) ) THEN 
         TMP_MDL_target => TMP_MDLb
       ELSE
         TMP_MDL_target => TMP_MDL
@@ -266,18 +390,19 @@ CONTAINS
       Found = .false.
 
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_Trc_", TrcID
-      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2M) .or. &
-                  (      TMP_AltBuffer .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
+      IF( .not. PRESENT( SkipCheck ) .and. &
+          .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      PRESENT( AltBuffer ) .and. TMP_TrcIDFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb, TMP_AltBuffer
+        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb
 
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val) ) THEN  ! Present! Read in the data
             ! Retrieve data into the HEMCO temporary!
             ! First, clear the buffer name. We are not sure if this was found yet.
-            IF (.not. TMP_AltBuffer) THEN
+            IF (.not. PRESENT( AltBuffer )) THEN
               LAST_TMP_REGRID_H2M  = "_HCO_Trc_TBD"
             ELSE
               LAST_TMP_REGRID_H2Mb = "_HCO_Trc_TBD"
@@ -297,21 +422,24 @@ CONTAINS
             Found = .true.
             Emis = TMP_MDL_target(I,J,L)
 
-            IF (.not. TMP_AltBuffer) THEN
+            IF (.not. PRESENT( AltBuffer )) THEN
               LAST_TMP_REGRID_H2M  = TMP_TrcIDFldName
             ELSE
               LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
             ENDIF
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName, PRESENT( AltBuffer ), TMP_AltBuffer
+            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName, PRESENT( AltBuffer )
           ENDIF ! Associated
         ENDIF ! TrcID > 0
       ELSE ! Already in buffer! Just read the pointer data
         Found = .true.
-        Emis  = TMP_MDL_target(I,J,L)
+
+        IF ( PRESENT(AltBuffer) ) THEN
+          Emis  = TMP_MDLb(I,J,L)
+        ELSE
+          Emis  = TMP_MDL(I,J,L)
+        ENDIF
       ENDIF
-      !$OMP END CRITICAL
-      ! End of LIMGRID OMP Critical section
     ELSE
 #endif
     ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
@@ -396,9 +524,6 @@ CONTAINS
       Found = .false.
       WRITE(TMP_TrcIDFldName, '(a,i4)') "_HCO_TrcD_", TrcID
 
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!
-      !$OMP CRITICAL
       IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
 
@@ -433,8 +558,6 @@ CONTAINS
         Found = .true.
         Dep  = TMP_MDLb(I,J,1)
       ENDIF
-      !$OMP END CRITICAL
-      ! End of LIMGRID OMP Critical section
     ELSE
 #endif
     ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
@@ -1111,7 +1234,6 @@ CONTAINS
 !
     CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
     INTEGER            :: ZBND
-    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
 
@@ -1137,15 +1259,7 @@ CONTAINS
       ! The first call to the critical section will update the container!!
       !$OMP CRITICAL
 
-      IF ( PRESENT(AltBuffer) ) THEN
-        TMP_AltBuffer = AltBuffer
-      ELSE
-        ! This fallover else is not needed logically, but is necessary
-        ! due to a compiler bug in ifort 19 (hplin, 6/25/20)
-        TMP_AltBuffer = .false.
-      ENDIF
-
-      IF ( TMP_AltBuffer ) THEN 
+      IF ( PRESENT( AltBuffer ) ) THEN 
         TMP_MDL_target => TMP_MDLb
         TMP_MDL_target4 => TMP_MDL_r4b
       ELSE
@@ -1155,8 +1269,8 @@ CONTAINS
 
       ! ... on-demand intermediate regridding. Check if we already have this field
       WRITE(TMP_DiagnFldName, *) "_Dgn_", DiagnName
-      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
-                  (      TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
+      IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
         ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 
@@ -1186,7 +1300,7 @@ CONTAINS
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete", PRESENT(AltBuffer), TMP_AltBuffer
+          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete", PRESENT(AltBuffer)
 
           ! Free the pointer
           TMP_Ptr3D => NULL()
@@ -1286,7 +1400,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
-    LOGICAL            :: TMP_AltBuffer = .false.     ! Use buffer A or B?
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
 
@@ -1312,13 +1425,7 @@ CONTAINS
       ! The first call to the critical section will update the container!!
       !$OMP CRITICAL
 
-      IF ( PRESENT(AltBuffer) ) THEN
-        IF ( AltBuffer ) THEN
-          TMP_AltBuffer = .true.
-        ENDIF
-      ENDIF
-
-      IF ( TMP_AltBuffer ) THEN 
+      IF ( PRESENT( AltBuffer ) ) THEN 
         TMP_MDL_target => TMP_MDLb
         TMP_MDL_target4 => TMP_MDL_r4b
       ELSE
@@ -1328,8 +1435,8 @@ CONTAINS
 
       ! ... on-demand intermediate regridding. Check if we already have this field
       WRITE(TMP_DiagnFldName, *) "_Dgn_", DiagnName
-      IF( .not. ( (.not. TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
-                  (      TMP_AltBuffer .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
+      IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
+                  (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
         ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 

@@ -207,6 +207,7 @@ CONTAINS
     USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE Species_Mod,          ONLY : Species
@@ -217,6 +218,9 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+
+    use timers_mod
+    use hco_utilities_gc_mod, only: TMP_MDL ! danger
 !
 ! !INPUT PARAMETERS:
 !
@@ -528,6 +532,17 @@ CONTAINS
           EmisSpec = .FALSE.
        ENDIF
 
+       ! If there is emissions for this species, it must be loaded into memory first.
+       ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
+       ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+       IF ( EmisSpec ) THEN
+          CALL LoadHcoValEmis ( Input_Opt, State_Grid, N )
+       ENDIF
+
+       IF ( DryDepSpec ) THEN
+          CALL LoadHcoValDep ( Input_Opt, State_Grid, N )
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Can go to next species if this species does not have
        ! dry deposition and/or emissions
@@ -703,7 +718,19 @@ CONTAINS
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP )
+                ! Fix hplin: for intermediate grid, pass SkipCheck in a tight loop. Note that this assumes that adjacent
+                ! calls to GetHcoValEmis are from the same species ID, or there will be big trouble. (hplin, 10/10/20)
+
+#ifdef MODEL_CLASSIC
+                IF ( Input_Opt%LIMGRID ) THEN
+                  FND = .true.
+                  TMP = TMP_MDL(I,J,L) ! this is a kludge for the tight loop optimization
+                ELSE
+#endif
+                  CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP, SkipCheck=.true. )
+#ifdef MODEL_CLASSIC
+                ENDIF
+#endif          
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -786,7 +813,6 @@ CONTAINS
        SpcInfo  => NULL()
 
     ENDDO !N
-
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
     !--------------------------------------------------------------

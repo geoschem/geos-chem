@@ -2325,7 +2325,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE HCO_State_GC_Mod,     ONLY : HcoState
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld, HCO_GC_GetDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld, HCO_GC_GetDiagn, LoadHcoValEmis
 #ifdef APM
     USE APM_DRIV_MOD,         ONLY : PSO4GAS
     USE APM_DRIV_MOD,         ONLY : XO3
@@ -2569,6 +2569,11 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    ! Load emissions into buffer first for ALK1, ALK2 
+    ! BEFORE entering loop (hplin, 9/27/20)
+    CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALA )
+    CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALC, AltBuffer=.true. )
 
     ! Loop over chemistry grid boxes
     ! NOTE: Bob Yantosca verified that these !$OMP PRIVATE statements

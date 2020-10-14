@@ -4634,7 +4634,7 @@ CONTAINS
    USE HCO_Error_Mod
    USE HCO_State_Mod,         ONLY : HCO_GetHcoID
    USE HCO_State_GC_Mod,      ONLY : HcoState
-   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
+   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis, LoadHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
@@ -4740,6 +4740,11 @@ CONTAINS
 
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
+
+   ! First load SESQID into emissions buffer if available
+   IF ( SESQID > 0 ) THEN
+       CALL LoadHcoValEmis ( Input_Opt, State_Grid, SESQID )
+   ENDIF
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
