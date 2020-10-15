@@ -289,6 +289,7 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AIRMW
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
@@ -331,6 +332,10 @@ CONTAINS
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
 
+    ! Arrays
+    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,State_Chm%nSpecies)
+
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
     !====================================================================
@@ -341,16 +346,34 @@ CONTAINS
     ThisLoc = &
          ' -> at Set_SpcConc_Diagnostics (in GeosCore/diagnostics_mod.F90)'
 
-    ! Convert State_Chm%Species unit to [v/v dry]
-    Units   = 'v/v dry'
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            Units, RC, OrigUnit=OrigUnit )
-
-    ! Error handling
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error converting species units for archiving diagnostics #1'
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Store species in v/v dry as temporary variable if diagnostics on
+    IF ( State_Diag%Archive_SpeciesConc .OR. &
+         State_Diag%Archive_SpeciesBC   .OR. &
+         State_Diag%Archive_SpeciesRst  .OR. &
+         State_Diag%Archive_ConcAboveSfc ) THEN
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+                               ( AIRMW / State_Chm%SpcData(N)%Info%emMW_g )
+       ENDDO
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================
@@ -358,7 +381,7 @@ CONTAINS
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesConc ) THEN
 
-       ! Point to mapping obj
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
        mapData => State_Diag%Map_SpeciesConc
 
        !$OMP PARALLEL DO       &
@@ -366,7 +389,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesConc(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%SpeciesConc(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -380,7 +403,7 @@ CONTAINS
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesBC ) THEN
 
-       ! Point to mapping obj
+       ! Point to mapping obj specific to species boundary conditions
        mapData => State_Diag%Map_SpeciesBC
 
        !$OMP PARALLEL DO       &
@@ -388,7 +411,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%SpeciesBC(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -401,15 +424,7 @@ CONTAINS
     ! Copy species to SpeciesRst (restart file output) [v/v dry]
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesRst ) THEN
-
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED  ) &
-       !$OMP PRIVATE( N       )
-       DO N = 1, State_Chm%nSpecies
-          State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(:,:,:,N)
-       ENDDO
-       !$OMP END PARALLEL DO
-
+       State_Diag%SpeciesRst(:,:,:,:) = TmpSpcArr(:,:,:,:)
     ENDIF
 
     !=======================================================================
@@ -458,7 +473,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Species concentration [v/v dry]
-             TmpVal = State_Chm%Species(I,J,1,N)
+             TmpVal = TmpSpcArr(I,J,1,N)
 
              ! Conversion factor used to translate from
              ! lowest model layer (~60m) to the surface
@@ -479,10 +494,6 @@ CONTAINS
        !$OMP END PARALLEL DO
 
     ENDIF
-
-    ! Convert State_Chm%Species back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN

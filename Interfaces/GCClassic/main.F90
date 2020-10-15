@@ -823,8 +823,6 @@ PROGRAM GEOS_Chem
   ENDIF
 
   ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-  ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
-  ! and are converted locally to [kg] for chemistry (ewl, 9/18/15)
   IF ( LSCHEM .and. notDryRun ) THEN
      CALL Init_Strat_Chem( Input_Opt,  State_Chm, State_Met, State_Grid, RC )
 
@@ -1529,7 +1527,6 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
           ! emission rates) to the tracer arrays and performs PBL
           ! mixing.
@@ -1538,9 +1535,6 @@ PROGRAM GEOS_Chem
           ! routine. Otherwise, tracer concentrations are first updated
           ! and the full-mixing is then applied.
           ! (ckeller, 3/5/15)
-          ! NOTE: Tracer concentration units are converted locally
-          ! to [v/v dry air] for mixing. Eventually mixing should
-          ! be updated to use [kg/kg total air] (ewl, 9/18/15)
           CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
                           State_Grid, State_Met, RC )
 
@@ -1565,8 +1559,6 @@ PROGRAM GEOS_Chem
              ENDIF
 
              ! Call the appropriate convection routine
-             ! NOTE: Tracer concentration units are converted locally
-             ! to [kg/kg total air] for convection (ewl, 9/18/15)
              CALL Do_Convection( Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
@@ -1622,9 +1614,6 @@ PROGRAM GEOS_Chem
              ENDIF
 
              ! Do GEOS-Chem chemistry
-             ! NOTE: Tracer concentration units are converted locally
-             ! to [kg] for all of chemistry. We will replace use of [kg]
-             ! once FlexChem is implemented (ewl, 9/18/15)
              CALL Do_Chemistry( Input_Opt,  State_Chm, State_Diag, &
                                 State_Grid, State_Met, RC )
 
@@ -1651,9 +1640,6 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Do wet deposition
-          ! NOTE: Tracer concentration units are converted locally
-          ! to [kg/m2] in wet deposition to enable calculations
-          ! along the column (ewl, 9/18/15)
           CALL Do_WetDep( Input_Opt, State_Chm, State_Diag, State_Grid, &
                           State_Met, RC )
 
