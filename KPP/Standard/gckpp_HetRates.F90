@@ -1261,18 +1261,18 @@ MODULE GCKPP_HETRATES
 
       ! These uptake reactions require non-acidic aerosol
       ! Fine sea salt first
-      IF (SSAlk(1).gt.0.05) THEN
-         HET(ind_HOI,  1) = HETIUptake( H%HOI%MW_g,   0.01_fp, 11, Input_Opt )
-         HET(ind_IONO, 1) = HETIUptake( H%IONO%MW_g,  0.02_fp, 11, Input_Opt )
-         HET(ind_IONO2,1) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 11, Input_Opt )
-      ENDIF
+!       IF (SSAlk(1).gt.0.05) THEN
+!          HET(ind_HOI,  1) = HETIUptake( H%HOI%MW_g,   0.01_fp, 11, Input_Opt )
+!          HET(ind_IONO, 1) = HETIUptake( H%IONO%MW_g,  0.02_fp, 11, Input_Opt )
+!          HET(ind_IONO2,1) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 11, Input_Opt )
+!       ENDIF
 
       ! Now coarse sea salt
-      IF (SSAlk(2).gt.0.05) THEN
-         HET(ind_HOI,  2) = HETIUptake( H%HOI%MW_g,   0.01_fp, 12, Input_Opt )
-         HET(ind_IONO, 2) = HETIUptake( H%IONO%MW_g,  0.02_fp, 12, Input_Opt )
-         HET(ind_IONO2,2) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 12, Input_Opt )
-      ENDIF
+!       IF (SSAlk(2).gt.0.05) THEN
+!          HET(ind_HOI,  2) = HETIUptake( H%HOI%MW_g,   0.01_fp, 12, Input_Opt )
+!          HET(ind_IONO, 2) = HETIUptake( H%IONO%MW_g,  0.02_fp, 12, Input_Opt )
+!          HET(ind_IONO2,2) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 12, Input_Opt )
+!       ENDIF
 
       ! Breakdown of iodine compounds on sea-salt
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 1       )
@@ -1322,6 +1322,16 @@ MODULE GCKPP_HETRATES
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
       HET(ind_IONO2, 6) = kIIR1Ltd( spcVec, H%IONO2%mId, H%SALCCL%mId,       &
                                     kITemp, HetMinLife )
+
+      !----------------------------------------------------------------------
+      ! IONO2 hydrolysis
+      !----------------------------------------------------------------------
+      kITemp            = HETIONO2( XDenA, TempK, CldFr, SSAlk, H )
+      kITemp = kITemp   + CloudHet( 'IONO2', CldFr, Aliq,  Aice,             &
+                                     rLiq,   rIce,  TempK, XDenA, H         )
+
+      HET(ind_IONO2, 7) = kIIR1Ltd( spcVec, H%IONO2%mId, H%H2O%mId,          &
+                                    kITemp, HetMinLife                      )
 
       ! Nullify pointers
       spcVec => NULL()
@@ -1451,6 +1461,12 @@ MODULE GCKPP_HETRATES
          if ( present(xliq) ) gammaLiq = xliq
          if ( present(xice) ) gammaIce = xice
          molmass = H%ClNO3%MW_g
+
+      case ('IONO2')
+
+         if ( present(xliq) ) gammaLiq = xliq
+         if ( present(xice) ) gammaIce = xice
+         molmass = H%IONO2%MW_g
 
       case ('HOBr')
 
@@ -6841,6 +6857,110 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTION HETBrNO3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HETIONO2
+!
+! !DESCRIPTION: Sets the hydrolysis rate for IONO2 using Johan Schmidt's
+!  updated code.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETIONO2( denAir, TK, CldFr, SSAlk, H ) RESULT( HET_IONO2 )
+!
+! !INPUT PARAMETERS:
+!
+      REAL(fp),       INTENT(IN) :: denAir     ! Density of air (#/cm3)
+      REAL(fp),       INTENT(IN) :: TK         ! Temperature (K)
+      REAL(fp),       INTENT(IN) :: CldFr      ! Cloud fraction
+      REAL(fp),       INTENT(IN) :: SSAlk(2)   ! Seasalt alkalinity
+      TYPE(HetState), POINTER    :: H          ! Hetchem species metadata
+!
+! !RETURN VALUE:
+!
+      REAL(fp)                   :: HET_IONO2  ! Hydrolysis rate
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  05 Oct 2020 - T. Sherwen apply hydrolysis calculations for BrNO3 to IONO2
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE, GAM, ab, XSQM
+
+      ! Initialize
+      HET_IONO2    = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+      GAM          = 0.0_fp
+      ab           = 0.063_fp
+      XSQM         = SQRT( H%IONO2%MW_g )
+
+      ! Calculate temperature dependent reaction uptake rate
+      ! Based on Deiber et al. (2004)
+      GAM = 0.0021_fp * TK - 0.561
+      GAM = MAX( GAM, 1.0e-20_fp )
+
+      ! Loop over aerosol types
+      DO N = 1, NAEROTYPE
+         XSTKCF = 0e+0_fp
+         ! Get the aerosol type
+         IF ( N == 8 ) THEN
+            ! sulfate aerosol
+            XSTKCF = GAM
+         ELSEIF (N == 11) THEN
+            ! Fine sea salt first
+            IF (SSAlk(1).lt.0.05) THEN
+                XSTKCF = 0.01
+            ELSE
+                XSTKCF = 0e+0_fp
+            ENDIF
+         ELSEIF ( N == 12) THEN
+            ! Now coarse sea salt
+            IF (SSAlk(2).lt.0.05) THEN
+                XSTKCF = 0.01
+            ELSE
+                XSTKCF = 0e+0_fp
+            ENDIF
+         ELSEIF ( N == 13 ) THEN
+            ! SSA/STS
+            XSTKCF = KHETI_SLA(6)
+         ELSEIF ( N == 14 ) THEN
+            ! Ice/NAT PSC
+            IF (NATSURFACE) THEN
+               XSTKCF = 0.001e+0_fp
+            ELSE
+               XSTKCF = 0.3e+0_fp
+            ENDIF
+         ELSE
+            XSTKCF = 0e+0_fp
+         ENDIF
+
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K( (1-CldFr)*XAREA(N), XRADI(N), denAir,       &
+                                 XSTKCF,             XTEMP,    XSQM         )
+         ENDIF
+
+         ! Add to overall reaction rate
+         HET_IONO2 = HET_IONO2 + ADJUSTEDRATE
+      END DO
+
+    END FUNCTION HETIONO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
