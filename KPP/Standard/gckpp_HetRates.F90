@@ -1259,21 +1259,6 @@ MODULE GCKPP_HETRATES
       HET(ind_I2O4, 2) = HETIUptake( H%I2O4%MW_g, 0.02_fp, 11, Input_Opt )
       HET(ind_I2O4, 3) = HETIUptake( H%I2O4%MW_g, 0.02_fp, 12, Input_Opt )
 
-      ! These uptake reactions require non-acidic aerosol
-      ! Fine sea salt first
-!       IF (SSAlk(1).gt.0.05) THEN
-!          HET(ind_HOI,  1) = HETIUptake( H%HOI%MW_g,   0.01_fp, 11, Input_Opt )
-!          HET(ind_IONO, 1) = HETIUptake( H%IONO%MW_g,  0.02_fp, 11, Input_Opt )
-!          HET(ind_IONO2,1) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 11, Input_Opt )
-!       ENDIF
-
-      ! Now coarse sea salt
-!       IF (SSAlk(2).gt.0.05) THEN
-!          HET(ind_HOI,  2) = HETIUptake( H%HOI%MW_g,   0.01_fp, 12, Input_Opt )
-!          HET(ind_IONO, 2) = HETIUptake( H%IONO%MW_g,  0.02_fp, 12, Input_Opt )
-!          HET(ind_IONO2,2) = HETIUptake( H%IONO2%MW_g, 0.01_fp, 12, Input_Opt )
-!       ENDIF
-
       ! Breakdown of iodine compounds on sea-salt
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 1       )
       HET(ind_HOI,  3) = kIIR1Ltd( spcVec, H%HOI%mId, H%BrSALA%mId,          &
@@ -6865,8 +6850,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: HETIONO2
 !
-! !DESCRIPTION: Sets the hydrolysis rate for IONO2 using Johan Schmidt's
-!  updated code.
+! !DESCRIPTION: Sets the hydrolysis rate for IONO2 by analogy with BrNO3
+!
 !\\
 !\\
 ! !INTERFACE:
@@ -6918,14 +6903,14 @@ MODULE GCKPP_HETRATES
             ! sulfate aerosol
             XSTKCF = GAM
          ELSEIF (N == 11) THEN
-            ! Fine sea salt first
+            ! Fine sea salt first - using gamma from Sherwenw et al. 2016
             IF (SSAlk(1).lt.0.05) THEN
                 XSTKCF = 0.01
             ELSE
                 XSTKCF = 0e+0_fp
             ENDIF
          ELSEIF ( N == 12) THEN
-            ! Now coarse sea salt
+            ! Now coarse sea salt - using gamma from Sherwenw et al. 2016
             IF (SSAlk(2).lt.0.05) THEN
                 XSTKCF = 0.01
             ELSE
