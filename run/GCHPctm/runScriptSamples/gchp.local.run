@@ -49,7 +49,7 @@ if [[ $? == 0 ]]; then
     echo '===> Run started at' `date` 2>&1 | tee -a ${log}
 
     # Start the simulation. Use 6 cores.
-    time mpirun -np ${nCores} ./geos 2>&1 | tee -a ${log}
+    time mpirun -np ${nCores} ./gchp 2>&1 | tee -a ${log}
 
     # Rename the restart (checkpoint) file for clarity and to enable reuse as
     # a restart file. MAPL cannot read in a file with the same name as the

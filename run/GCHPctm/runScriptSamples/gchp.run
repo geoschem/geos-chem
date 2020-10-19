@@ -87,7 +87,7 @@ if [[ $? == 0 ]]; then
     export OMPI_MCL_btl=openib
 
     # Start the simulation
-    time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./geos >> ${log}
+    time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
     # Rename the restart (checkpoint) file for clarity and to enable reuse as
     # a restart file. MAPL cannot read in a file with the same name as the
