@@ -102,22 +102,22 @@
   !=========================================================================
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%HplusSav(:,:,:,2)
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropHplus(:,:,:,2)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_sulfate', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     Ptr3D(:,:,LM:1:-1) = State_Chm%SulRatSav(:,:,:)
+     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropSulfate(:,:,:)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-    Ptr3D(:,:,LM:1:-1) = State_Chm%NaRatSav(:,:,:,2)
+    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropNitrate(:,:,:,2)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_bisulfate', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     Ptr3D(:,:,LM:1:-1) = State_Chm%BiSulSav(:,:,:)
+     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropBisulfate(:,:,:)
   ENDIF
   Ptr3D => NULL()
 

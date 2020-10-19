@@ -1094,7 +1094,7 @@ CONTAINS
     IDDEP  = 0
     SS_DEN = 0
 
-    ! Find drydep species in DEPSAV
+    ! Find drydep species
     IF ( Input_Opt%LDRYD ) THEN
 
        ! Loop over all species

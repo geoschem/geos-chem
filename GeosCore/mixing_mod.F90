@@ -282,7 +282,7 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
-    REAL(fp),      POINTER  :: DEPSAV       (:,:,:  )  ! IM, JM, nDryDep
+    REAL(fp),      POINTER  :: DepFreq(:,:,:  )  ! IM, JM, nDryDep
 
     ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
     LOGICAL                 :: ITS_A_CH4_SIM
@@ -316,7 +316,7 @@ CONTAINS
 
     ! Initialize pointer
     SpcInfo           => NULL()
-    DEPSAV            => State_Chm%DryDepSav
+    DepFreq           => State_Chm%DryDepFreq
 
     !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
@@ -573,9 +573,9 @@ CONTAINS
                 FRQ = 0.0_fp
 
                 ! Dry deposition frequency from drydep_mod.F90. This is
-                ! stored in DEPSAV. Units are [s-1].
+                ! stored in State_Chm%DryDepFreq. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
-                   FRQ = DEPSAV(I,J,DRYDEPID)
+                   FRQ = DepFreq(I,J,DRYDEPID)
                 ENDIF
 
                 ! Dry deposition frequency from HEMCO. HEMCO calculates
@@ -841,7 +841,7 @@ CONTAINS
     ENDIF
 
     ! Free pointers
-    DepSav => NULL()
+    DepFreq => NULL()
 
   END SUBROUTINE DO_TEND
 !EOC

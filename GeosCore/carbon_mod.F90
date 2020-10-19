@@ -1203,7 +1203,7 @@ CONTAINS
    ! Use an e-folding time of 1.15 days or a convertion rate
    ! of 1.0e-5 /sec.
    !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5
-   !    Aerosols are dry-deposited,   kd = DEPSAV (sec-1)
+   !    Aerosols are dry-deposited,   kd = dry dep freq (sec-1)
    !=================================================================
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &

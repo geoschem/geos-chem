@@ -1,4 +1,4 @@
-###############################################################################
+	###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
 ###############################################################################
@@ -535,19 +535,18 @@ COLLECTIONS: 'Restart',
   StateChm.frequency:         {FREQUENCY}
   StateChm.duration:          {DURATION}
   StateChm.mode:              'time-averaged'
-  StateChm.fields:            'Chem_pHaccumMode              ', 'GIGCchem',
-                              'Chem_pHCoarseMode             ', 'GIGCchem',
-                              'Chem_HplusAccumMode           ', 'GIGCchem',
-                              'Chem_HplusCoarseMode          ', 'GIGCchem',
-                              'Chem_WaterAccumMode           ', 'GIGCchem',
-                              'Chem_WaterCoarseMode          ', 'GIGCchem',
-                              'Chem_SulRate                  ', 'GIGCchem',
-                              'Chem_NaRateAccumMode          ', 'GIGCchem',
-                              'Chem_NaRateCoarseMode         ', 'GIGCchem',
-                              'Chem_ClRateAccumMode          ', 'GIGCchem',
-                              'Chem_ClRateCoarseMode         ', 'GIGCchem',
-                              'Chem_AcidPurSav               ', 'GIGCchem',
-                              'Chem_BiSulSav                 ', 'GIGCchem',
+  StateChm.fields:            'Chem_IsorropAeropHAccum       ', 'GIGCchem',
+                              'Chem_IsorropAeropHCoarse      ', 'GIGCchem',
+                              'Chem_IsorropHplusAccum        ', 'GIGCchem',
+                              'Chem_IsorropHplusCoarse       ', 'GIGCchem',
+                              'Chem_IsorropAeroH2OAccum      ', 'GIGCchem',
+                              'Chem_IsorropAeroH2OCoarse     ', 'GIGCchem',
+                              'Chem_IsorropSulfate           ', 'GIGCchem',
+                              'Chem_IsorropNitrateAccum      ', 'GIGCchem',
+                              'Chem_IsorropNitrateCoarse     ', 'GIGCchem',
+                              'Chem_IsorropChlorideAccum     ', 'GIGCchem',
+                              'Chem_IsorropChlorideCoarse    ', 'GIGCchem',
+                              'Chem_IsorropBisulfate         ', 'GIGCchem',
                               'Chem_pHCloud                  ', 'GIGCchem',
                               'Chem_isCloud                  ', 'GIGCchem',
                               'Chem_SSAlkAccumMode           ', 'GIGCchem',

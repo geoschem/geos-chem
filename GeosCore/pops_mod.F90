@@ -151,7 +151,7 @@ CONTAINS
     CHARACTER(LEN=512) :: ErrMsg
 
     ! Pointers
-    REAL(fp),      POINTER  :: DEPSAV(:,:,:  )
+    REAL(fp),      POINTER  :: DepFreq(:,:,:  )
 
     !=================================================================
     ! CHEMPOPS begins here!
@@ -164,7 +164,7 @@ CONTAINS
     ThisLoc  = ' -> at ChemPops (in module GeosCore/pops_mod.F90)'
 
     ! Point to columns of derived-type object fields (hplin, 12/1/18)
-    DEPSAV            => State_Chm%DryDepSav
+    DepFreq            => State_Chm%DryDepFreq
 
     !-----------------------------------------------------------------
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -265,17 +265,17 @@ CONTAINS
             dd_POPP_BCPO > 0 ) THEN
 
           ! Dry deposition active for both POP-Gas and POP-Particle;
-          ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
+          ! pass drydep frequency to CHEM_POPGP (NOTE: DepFreq has units 1/s)
           CALL CHEM_POPGP( Input_Opt,                &
                            State_Chm,                &
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC)
 
        ELSEIF ( dd_POPG      >  0 .and. &
@@ -288,9 +288,9 @@ CONTAINS
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            RC )
@@ -305,11 +305,11 @@ CONTAINS
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPG),      &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSEIF ( dd_POPG      >  0 .and. &
@@ -322,7 +322,7 @@ CONTAINS
                            State_Diag,          &
                            State_Grid,          &
                            State_Met,           &
-                           DEPSAV(:,:,dd_POPG), &
+                           DepFreq(:,:,dd_POPG), &
                            ZERO_DVEL,           &
                            ZERO_DVEL,           &
                            ZERO_DVEL,           &
@@ -340,10 +340,10 @@ CONTAINS
                            State_Grid,               &
                            State_Met,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSEIF ( dd_POPG      <= 0 .and. &
@@ -357,8 +357,8 @@ CONTAINS
                            State_Grid,               &
                            State_Met,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            RC )
@@ -376,8 +376,8 @@ CONTAINS
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSE
@@ -401,7 +401,7 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
 
     ! Nullify pointers
-    NULLIFY( DEPSAV )
+    NULLIFY( DepFreq )
 
   END SUBROUTINE CHEMPOPS
 !EOC

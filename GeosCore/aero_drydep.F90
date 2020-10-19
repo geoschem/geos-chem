@@ -99,7 +99,7 @@
     REAL(fp), POINTER  :: Spc     (:,:,:,:)
     REAL(fp), POINTER  :: BXHEIGHT(:,:,:  )
     REAL(fp), POINTER  :: T       (:,:,:  )
-    REAL(fp), POINTER  :: DEPSAV  (:,:,:  )                ! IM, JM, nDryDep
+    REAL(fp), POINTER  :: DepFreq (:,:,:  )                ! IM, JM, nDryDep
 
     ! SAVEd arrays
     INTEGER,  SAVE     :: DRYD(IBINS)
@@ -135,7 +135,7 @@
     Spc      => State_Chm%Species
     BXHEIGHT => State_Met%BXHEIGHT
     T        => State_Met%T
-    DEPSAV   => State_Chm%DryDepSav
+    DepFreq  => State_Chm%DryDepFreq
 
     ! First-time setup
     IF ( FIRST ) THEN
@@ -435,7 +435,7 @@
           ! *******************************************************************
           ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the
           ! fraction of each vertical level that is located below the PBL top
-          RKT = DEPSAV(I,J,DRYD(BIN)) * State_Met%F_UNDER_PBLTOP(I,J,L)
+          RKT = DepFreq(I,J,DRYD(BIN)) * State_Met%F_UNDER_PBLTOP(I,J,L)
           !IF (i==ii .and. j==jj .and. L==1) &
           !   print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
           IF (RKT > 0d0) THEN
@@ -493,7 +493,7 @@
        ! ***********************************************************************
        ! Dry deposit H2SO4 gas (win, 5/24/06)
        Y0 = Spc(I,J,L,id_H2SO4)
-       RKT = DEPSAV(I,J,H2SO4ID) * State_Met%F_UNDER_PBLTOP(I,J,L)
+       RKT = DepFreq(I,J,H2SO4ID) * State_Met%F_UNDER_PBLTOP(I,J,L)
        Y = Y0 * EXP(-RKT)
 
 #ifdef BPCH_DIAG
@@ -530,7 +530,7 @@
     Spc      => NULL()
     BXHEIGHT => NULL()
     T        => NULL()
-    DEPSAV   => NULL()
+    DepFreq  => NULL()
 
     ! Check that species units are still in [kg] (ewl, 8/13/15)
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN

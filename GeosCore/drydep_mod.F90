@@ -34,13 +34,13 @@ MODULE DRYDEP_MOD
   PUBLIC :: INIT_DRYDEP
   PUBLIC :: INIT_WEIGHTSS
 #if defined( MODEL_CESM )
-  PUBLIC :: UPDATE_DRYDEPSAV
+  PUBLIC :: UPDATE_DRYDEPFREQ
 #else
 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: UPDATE_DRYDEPSAV
+  PRIVATE :: UPDATE_DRYDEPFREQ
 #endif
 !
 ! !PUBLIC DATA MEMBERS:
@@ -152,9 +152,6 @@ MODULE DRYDEP_MOD
   !    NTYPE     : Max # of landtypes / grid box
   !    NPOLY     : Number of drydep polynomial coefficients
   !    NSURFTYPE : Number of Olson land types
-  !
-  !  NOTE: these grid-dependent variables are defined in State_Chm_Mod.F90
-  !    DEPSAV    : Array containing dry deposition frequencies [s-1]
   !========================================================================
 
   ! Scalars
@@ -329,14 +326,14 @@ CONTAINS
     ENDIF
 
 #if !defined( MODEL_CESM )
-    ! Call UPDATE_DRYDEPSAV to update dry deposition frequencies [s-1]
+    ! Call UPDATE_DRYDEPFREQ to update dry deposition frequencies [s-1]
     ! from dry deposition velocities [m/s].
-    CALL UPDATE_DRYDEPSAV( Input_Opt, State_Chm, State_Diag, State_Grid, &
+    CALL UPDATE_DRYDEPFREQ( Input_Opt, State_Chm, State_Diag, State_Grid, &
                            State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in call to "UPDATE_DRYDEPSAV!'
+       ErrMsg = 'Error encountered in call to "UPDATE_DRYDEPFREQ!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -354,15 +351,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: update_drydepsav
+! !IROUTINE: update_DryDepFreq
 !
-! !DESCRIPTION: Subroutine UPDATE\_DRYDEPSAV updates dry deposition 
+! !DESCRIPTION: Subroutine UPDATE\_DRYDEPFREQ updates dry deposition 
 ! frequencies from dry deposition velocities
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE UPDATE_DRYDEPSAV( Input_Opt, State_Chm, State_Diag, State_Grid, &
+  SUBROUTINE UPDATE_DRYDEPFREQ( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                State_Met, RC )
 !
 ! !USES:
@@ -411,7 +408,7 @@ CONTAINS
     TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
-    ! UPDATE_DRYDEPSAV begins here!
+    ! UPDATE_DRYDEPFREQ begins here!
     !=================================================================
 
     ! Assume success
@@ -577,7 +574,7 @@ CONTAINS
           State_Chm%DryDepVel(I,J,NDVZ) = DVZ / 100.e+0_f8
 
           ! Dry deposition frequency [1/s]
-          State_Chm%DryDepSav(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
+          State_Chm%DryDepFreq(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
           ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
@@ -602,7 +599,7 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-  END SUBROUTINE UPDATE_DRYDEPSAV
+  END SUBROUTINE UPDATE_DRYDEPFREQ
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

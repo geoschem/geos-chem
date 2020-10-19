@@ -1757,7 +1757,7 @@ CONTAINS
           !------------------------------------------------------------------
           ! Also add drydep frequencies calculated by HEMCO (e.g. from the
           ! air-sea exchange module) to DFLX.  These values are stored
-          ! in 1/s.  They are added in the same manner as the DEPSAV values
+          ! in 1/s.  They are added in the same manner as the drydep freq values
           ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
           ! (ckeller, 04/01/2014)
           !------------------------------------------------------------------
@@ -1796,7 +1796,7 @@ CONTAINS
           ! only use the lowest model layer for calculating drydep fluxes
           ! given that spc is in v/v
           dflx(I,J,N) = dflx(I,J,N) &
-                      + State_Chm%DryDepSav(I,J,ND) * spc(I,J,N)             &
+                      + State_Chm%DryDepFreq(I,J,ND) * spc(I,J,N)             &
                       /  ( AIRMW                    / ThisSpc%EmMW_g        )
 
 
@@ -1978,12 +1978,6 @@ CONTAINS
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
           ! (SOIL_DRYDEP will exit if it can't find a match.
-          !
-          ! Locate position of each tracer in DEPSAV
-          ! (get tracer id)
-          ! NOTE: trc_id was previously NN and drydep id D
-          ! was previously N. This is changed for convention consistency
-          ! within subroutine (ewl, 1/25/16)
           !-----------------------------------------------------------------
 	  IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp

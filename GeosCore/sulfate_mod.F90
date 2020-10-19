@@ -8416,7 +8416,7 @@ CONTAINS
     ENDIF
 
     !================================================================
-    ! Find drydep species in the DEPSAV array
+    ! Find drydep species
     !=================================================================
 
     ! Define flags for species ID's

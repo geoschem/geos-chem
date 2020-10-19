@@ -405,17 +405,16 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
-
-      H_PLUS = State_Chm%HplusSav(I,J,L,1)
+      H_PLUS = State_Chm%IsorropHplus(I,J,L,1)
 
       ! Sulfate concentration [M]:
-      MSO4   = State_Chm%SulRatSav(I,J,L)
+      MSO4   = State_Chm%IsorropSulfate(I,J,L)
 
       ! Nitrate concentration [M]:
+      MNO3   = State_Chm%IsorropNitrate(I,J,L,1)
 
-      MNO3   = State_Chm%NaRatSav(I,J,L,1)
       ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = State_Chm%BisulSav(I,J,L)
+      MHSO4  = State_Chm%IsorropBisulfate(I,J,L)
 
       !--------------------------------------------------------------------
       ! Aerosol Physical Properties
@@ -440,7 +439,7 @@ MODULE GCKPP_HETRATES
       AClAREA = State_Chm%AClArea(I,J,L)      !Fine SSA+SNA aerosol area [cm2/cm3]
       AClRADI = State_Chm%AClRadi(I,J,L)    !Fine SSA+SNA aerosol radius [cm]
       AClVOL  = AClArea * AClRadi / 3e+0_fp !Fine SSA+SNA aerosol volume [cm3/cm3]
-      AWATER(:) = State_Chm%WaterSav(I,J,L,:)
+      AWATER(:) = State_Chm%IsorropAeroH2O(I,J,L,:)
 
       TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
       XTEMP  = sqrt(State_Met%T(I,J,L))        ! Square root of temperature
@@ -471,7 +470,7 @@ MODULE GCKPP_HETRATES
 
       ! Retrieve cloud pH and alkalinity
       pHCloud = State_Chm%pHCloud(I,J,L)
-      pHSSA(:) = State_Chm%pHSav(I,J,L,:)
+      pHSSA(:) = State_Chm%IsorropAeropH(I,J,L,:)
       ! Since we have Alk tracers, State_Chm%SSAlk may be removed in future
       ! Here still use State_Chm%SSAlk instead of Alk tracers,
       ! to skip unit conversion. xnw 1/24/18
