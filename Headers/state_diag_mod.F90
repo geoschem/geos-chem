@@ -1014,6 +1014,14 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM25soa(:,:,:)    ! PM25 SOA
      LOGICAL                     :: Archive_PM25soa
 
+     !%%%%% Species diagnostics %%%%%
+     REAL(f4),           POINTER :: TropCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TropCol
+     LOGICAL                     :: Archive_TropCol
+
+     REAL(f4),           POINTER :: TotCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TotCol
+     LOGICAL                     :: Archive_TotCol
 #endif
 
 #ifdef MODEL_WRF
@@ -1960,6 +1968,14 @@ CONTAINS
 
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
+
+    State_Diag%TropCol                             => NULL()
+    State_Diag%Map_TropCol                         => NULL()
+    State_Diag%Archive_TropCol                     = .FALSE.
+
+    State_Diag%TotCol                              => NULL()
+    State_Diag%Map_TotCol                          => NULL()
+    State_Diag%Archive_TotCol                      = .FALSE.
 #endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -6315,6 +6331,46 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       diagID  = 'TotCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TotCol,                              &
+            archiveData    = State_Diag%Archive_TotCol,                      &
+            mapData        = State_Diag%Map_TotCol,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'TropCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TropCol,                             &
+            archiveData    = State_Diag%Archive_TropCol,                     &
+            mapData        = State_Diag%Map_TropCol,                         &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 #endif
 
        !-------------------------------------------------------------------
@@ -10004,6 +10060,18 @@ CONTAINS
                    Ptr2Data = State_Diag%CH4pseudoFlux,                      &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotCol',                                      &
+                   Ptr2Data = State_Diag%TotCol,                             &
+                   mapData  = State_Diag%Map_TotCol,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TropCol',                                     &
+                   Ptr2Data = State_Diag%TropCol,                            &
+                   mapData  = State_Diag%Map_TropCol,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
@@ -10976,6 +11044,18 @@ CONTAINS
             'Particulate matter with radii < 2.5 um, SOA'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TOTCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'total column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TROPCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'tropospheric column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN

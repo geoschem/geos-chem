@@ -238,9 +238,6 @@ MODULE Chem_GridCompMod
                                   (/ 100.0,  100.0,  100.0,  100.0 ,     &
                                       58.0,   58.0,  180.0,  180.0 ,     &
                                      180.0,  180.0,  132.0                /)
-
-  CHARACTER(LEN=15), PARAMETER :: COLLIST(8) = (/ 'NO2 ', 'O3  ', 'CH4 ', 'CO  ', &
-                                                  'BrO ', 'CH2O', 'SO2 ', 'IO  '  /)
 #endif
  
   ! Pointers to import, export and internal state data. Declare them as 
@@ -695,15 +692,6 @@ CONTAINS
 #if defined( MODEL_GEOS )
           ! Add non-advected species to internal state 
           IF ( .NOT. Found ) THEN 
-
-             ! Get long name
-             ! Spc_Info is retired in 13.0.0. Use short name temporarily.
-             !iName = TRIM(SpcName)
-             !CALL Spc_Info ( iName=iName, &
-             !                KppSpcID=-1, oDiagName = FullName, &
-             !                oFormula = Formula, &
-             !                Found=Found, Underscores = .TRUE., RC = RC )
-             !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
              FullName = TRIM(SpcName)
 
              ! Error trap for POx and LOx. Their species names in the internal
@@ -735,16 +723,6 @@ CONTAINS
              ! verbose
              if(MAPL_am_I_Root()) write(*,*)  &
                        'GCC added to internal: '//TRIM(SPFX)//TRIM(SpcName)
-
-             ! Also add an export as dry air
-             CALL MAPL_AddExportSpec(GC,                               &
-                SHORT_NAME         = TRIM(GPFX)//TRIM(SpcName)//'dry', &
-                LONG_NAME          = TRIM(FullName)//                  &
-                                     ' volume mixing ratio dry air',   &
-                UNITS              = 'mol mol-1',                      &
-                DIMS               = MAPL_DimsHorzVert,                &
-                VLOCATION          = MAPL_VLocationCenter,             &
-                                                                 __RC__ )
 #else
           IF (Found .neqv. .true.) Then
           call MAPL_AddInternalSpec(GC, &
@@ -954,144 +932,6 @@ CONTAINS
 
 !EOP
 !BOC
-
-#if defined( MODEL_GEOS )
-    ! GEOS-5 only (should handle diags elsewhere, use State vars now):
-    !-- Exports
-    DO I=1,Nadv
-       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
-       !iName = TRIM(AdvSpc(I))
-       !CALL Spc_Info ( iName=iName, &
-       !                KppSpcID=-1, oDiagName = FullName, Found=Found, &
-       !                Underscores = .FALSE., RC = RC )
-       !IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
-       FullName = TRIM(SpcName)
-
-       ! For all advected species, create placeholder export for deposition 
-       ! diagnostics. These may not be defined for all species (some species 
-       ! don't have dry or wet dep), but at this point the species metadata 
-       ! are not yet fully defined. Convective wet deposition flux
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossConv_'//TRIM(AdvSpc(I)),               & 
-          LONG_NAME          = TRIM(FullName)//' vertical integrated loss'//  &
-                               ' in convective updrafts',                     &
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       ! 3D
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossConv3D_'//TRIM(AdvSpc(I)),             &
-          LONG_NAME          = TRIM(FullName)//' loss in convective updrafts',&
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzVert,                             &
-          VLOCATION          = MAPL_VLocationCenter,                          &
-                                                                     __RC__ )
-       ! Large scale wet deposition flux
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossLS_'//TRIM(AdvSpc(I)),                 & 
-          LONG_NAME          = TRIM(FullName)//' vertical integrated loss'//  &
-                               ' in large scale precipitation',               &
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossLS3D_'//TRIM(AdvSpc(I)),               & 
-          LONG_NAME          = TRIM(FullName)//                               &
-                               ' loss in large scale precipitation',          &
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzVert,                             &
-          VLOCATION          = MAPL_VLocationCenter,                          &
-                                                                     __RC__ )
-       ! Total wet deposition flux
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossTot_'//TRIM(AdvSpc(I)),                & 
-          LONG_NAME          = TRIM(FullName)//' vertical integrated loss'//  &
-                               '_due_to_wet_scavenging',                      &
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'WetLossTot3D_'//TRIM(AdvSpc(I)),              & 
-          LONG_NAME          = TRIM(FullName)//' loss due to wet scavenging', &
-
-          UNITS              = 'kg m-2 s-1',                                  &
-          DIMS               = MAPL_DimsHorzVert,                             &
-          VLOCATION          = MAPL_VLocationCenter,                          &
-                                                                     __RC__ )
-       ! Dry deposition flux
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'DryDep_'//TRIM(AdvSpc(I)),                    & 
-          LONG_NAME          = TRIM(FullName)//' dry deposition flux',        &
-          UNITS              = 'molec cm-2 s-1',                              &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       ! Dry deposition velocity
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'DryDepVel_'//TRIM(AdvSpc(I)),                 & 
-          LONG_NAME          = TRIM(FullName)//' dry deposition velocity',    &
-          UNITS              = 'cm s-1',                                      &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-
-       ! Also create export field in v/v dry air
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = TRIM(GPFX)//TRIM(AdvSpc(I))//'dry',            &
-          LONG_NAME          = TRIM(FullName)//                               &
-                               ' volume mixing ratio dry air',                &
-          UNITS              = 'mol mol-1',                                   &
-          DIMS               = MAPL_DimsHorzVert,                             &
-          VLOCATION          = MAPL_VLocationCenter,                          &
-                                                                     __RC__ )
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = TRIM(AdvSpc(I))//'vv_2m',                      & 
-          LONG_NAME          = TRIM(FullName)//                               &
-                               ' volume mixing ratio dry air at 2m',          &
-          UNITS              = 'mol mol-1',                                   &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = TRIM(AdvSpc(I))//'vv_10m',                     & 
-          LONG_NAME          = TRIM(FullName)//                               &
-                               ' volume mixing ratio dry air at 10m',         &
-          UNITS              = 'mol mol-1',                                   &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-    ENDDO
-
-    ! Add exports for tropospheric and total column densities
-    DO I=1,SIZE(COLLIST,1)
-       SpcName = COLLIST(I)
-       ! Spc_Info is retired in 13.0.0. Use short name temporarily.
-       !iName = TRIM(SpcName)
-       !CALL Spc_Info ( iName=iName, &
-       !                KppSpcID=-1, oDiagName = FullName,         &
-       !                Found = Found, Underscores = .TRUE., RC = RC )
-       !IF ( .NOT. Found ) FullName = TRIM(SpcName)
-       FullName = TRIM(SpcName)
-
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'TOTCOL_'//TRIM(SpcName),                      & 
-          LONG_NAME          = TRIM(FullName)//' total column density',        &
-          UNITS              = '1.0e15 molec cm-2',                           &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-       CALL MAPL_AddExportSpec(GC,                                            &
-          SHORT_NAME         = 'TROPCOL_'//TRIM(SpcName),                     & 
-          LONG_NAME          = TRIM(FullName)//' tropospheric column density', &
-          UNITS              = '1.0e15 molec cm-2',                           &
-          DIMS               = MAPL_DimsHorzOnly,                             &
-          VLOCATION          = MAPL_VLocationNone,                            &
-                                                                     __RC__ )
-    ENDDO
-#endif
 
     !=======================================================================
     ! Add provider services, if any (AERO, RATS, Analysis Ox)
@@ -1466,81 +1306,6 @@ CONTAINS
                                                  __RC__ )
 #else
     CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
-#endif
-
-#if defined( MODEL_GEOS )
-    ! GEOS-5 only (should handle diags elsewhere):
-    ! Reaction coefficients & rates 
-    ! -----------------------------
-    DO I = 1, NREACT
-       WRITE(III,'(i3.3)') I
-       ShortName = 'GCC_RC_'//TRIM(III) 
-       LongName  = TRIM( ADJUSTL(EQN_NAMES(I)) )
-       call MAPL_AddExportSpec(GC,                                  &
-          SHORT_NAME         = TRIM(ShortName),                     &
-          LONG_NAME          = TRIM(LongName),                      &
-          UNITS              = 'cm3 s-1',                           &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                              __RC__ )
-
-       ! Archive reaction coefficients for NOx diagnostics
-       ! This is super hacky but not sure how else to do it without
-       ! adding really elaborated syntax... 
-       IF ( INDEX( EQN_NAMES(I), 'O3 + NO --> NO2 + O2' ) > 0 ) THEN
-          id_rc_no  = I
-       ELSEIF ( INDEX( EQN_NAMES(I), 'NO + O3 --> NO2 + O2' ) > 0 ) THEN
-          id_rc_no  = I
-       ELSEIF ( INDEX( EQN_NAMES(I), 'OH + NO2 --> HNO3' ) > 0 ) THEN
-          id_rc_no2 = I
-       ELSEIF ( INDEX( EQN_NAMES(I), 'NO2 + OH --> HNO3' ) > 0 ) THEN
-          id_rc_no2 = I
-       ENDIF
-
-       ShortName = 'GCC_RR_'//TRIM(III) 
-       LongName  = TRIM( ADJUSTL(EQN_NAMES(I)) )
-       call MAPL_AddExportSpec(GC,                                  &
-          SHORT_NAME         = TRIM(ShortName),                     &
-          LONG_NAME          = TRIM(LongName),                      &
-          UNITS              = 's-1',                               &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                              __RC__ )
-    ENDDO
-
-    ! Open FJX_j2j.dat to get reaction names. To be used as long names
-    ! in the exports below.
-    NUNIT = findFreeLUN()
-    open (NUNIT,file='FJX_j2j.dat',status='old',form='formatted')
-    read (NUNIT,'(a)') CLINE
-    JJ = 0
-
-    DO I = 1, JVN_
-       IF ( JJ <= JVN_ ) THEN
-          read (NUNIT,'(i4,1x,a50,4x,f5.3,2x,a6)') JJ,T_REACT,F_FJX,T_FJX
-       ELSE
-          JJ = JVN_ + 1
-       ENDIF
-       IF ( JJ > JVN_ ) THEN
-          LongName = 'Unknown'
-       ELSE
-          LongName = T_REACT
-       ENDIF
-       CALL CSTRIP(LongName)
-
-       WRITE(III,'(i3.3)') I
-       ShortName = 'GCC_JVAL_'//TRIM(III) 
-       call MAPL_AddExportSpec(GC,                                  &
-          SHORT_NAME         = TRIM(ShortName),                     &
-          LONG_NAME          = TRIM(LongName),                      &
-          UNITS              = 's-1',                               &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                              __RC__ )
-       ! Archive NO2 photolysis index for use in NOx diagnostics
-       IF ( TRIM(LongName) == 'NO2PHOTONNOO' ) id_jno2 = I
-    ENDDO
-    close(NUNIT)
 #endif
 
     ! OLSON
@@ -2945,8 +2710,6 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! GEOS-5 only local variables
     INTEGER                      :: LB            ! Loop indices
-    REAL                         :: DFPAR_MAX     ! Global max of DFPAR
-    REAL(fp)                     :: TS_TEND       ! tendency time step
 
     ! Initialize everything to zero (from registry file)?
     INTEGER                      :: InitZero 
@@ -2962,34 +2725,10 @@ CONTAINS
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
 
-    ! NO2 columns
-    REAL, POINTER                :: PTR_NO2(:,:,:)
-    REAL, POINTER                :: TNO2(:,:)
-    REAL, POINTER                :: SNO2(:,:)
-    REAL, POINTER                :: FNO2(:,:)
-
     ! Perturb O3
     REAL                         :: Rnd(2)
     REAL, POINTER                :: Ptr3dA(:,:,:) => NULL() 
     REAL, POINTER                :: Ptr3dB(:,:,:) => NULL()
-
-    ! NO2 export
-    REAL, POINTER                :: TROPN(:,:), STRATN(:,:)
-
-    ! Diagnose reaction rates
-    INTEGER                      :: NDIAG
-    INTEGER                      :: RRids(NREACT)
-    INTEGER                      :: JVids(JVN_)
-    CHARACTER(LEN=3)             :: III
-    CHARACTER(LEN=ESMF_MAXSTR)   :: RRName      ! Name of reaction name 
-
-    ! GCCTO3 and GCCTTO3 are the pointers to the corresponding export state fields
-    REAL, POINTER     :: PTR_GCCTO3 (:,:) => NULL()
-    REAL, POINTER     :: PTR_GCCTTO3(:,:) => NULL()
-
-    ! Lightning
-    REAL, POINTER     :: LFR(:,:) => NULL()
-
 #else
     ! GCHP only local variables
     INTEGER                      :: trcID, RST
@@ -3145,12 +2884,6 @@ CONTAINS
     ENDIF
 
 #if defined( MODEL_GEOS )
-    ! Eventually get pointers to GCCTO3 and GCCTTO3. Those fields are optional
-    ! and are only filled if defined and required.
-    CALL MAPL_GetPointer ( EXPORT, PTR_GCCTO3,   'GCCTO3', notFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT, PTR_GCCTTO3, 'GCCTTO3', notFoundOK=.TRUE., __RC__ )
-!---
-
 ! GCHP ends the (if FIRST) block and then links HEMCO state to GC objects:
 !    ENDIF
 
@@ -3240,123 +2973,6 @@ CONTAINS
        State_Met%Area_M2 = State_Grid%Area_M2
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#if defined( MODEL_GEOS )
-       ! Check if this time is before the datetime of the prev timestep, e.g.
-       ! if this is after a clock rewind
-       AFTERREWIND = .FALSE.
-       FIRSTREWIND = .FALSE.
-       IF ( nymd < pymd ) THEN
-          AFTERREWIND = .TRUE.
-       ELSEIF ( (nymd == pymd) .AND. (nhms < phms) ) THEN
-          AFTERREWIND = .TRUE.
-       ENDIF
-       
-       ! If this is after a rewind, check if it's the first rewind. In this
-       ! case, we need to re-do some first-time assignments to make sure that
-       ! we reset all variables to the initial state!
-       IF ( AFTERREWIND ) THEN
-          nnRewind = nnRewind + 1
-          IF ( nnRewind == 1 ) FIRSTREWIND = .TRUE.
-       ENDIF
-       !=======================================================================
-       ! # of reaction rates to be diagnosed
-       !=======================================================================
-       IF ( Input_Opt%NN_RxnRates < 0 ) THEN
-          NDIAG    = 0
-          RRids(:) = -999
-          DO I = 1, NREACT
-             WRITE(III,'(i3.3)') I
-             RRName = 'GCC_RR_'//TRIM(III) 
-             CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RRName), &
-                                    NotFoundOk=.TRUE., __RC__ )
-             IF ( ASSOCIATED(Ptr3D) ) THEN
-                NDIAG        = NDIAG + 1
-                RRids(NDIAG) = I
-                IF ( am_I_Root ) THEN
-                   WRITE(*,*) 'Will diagnose reaction rate ',TRIM(III),': ', &
-                              TRIM(ADJUSTL(EQN_NAMES(I)))
-                ENDIF
-             ENDIF
-          ENDDO
-          Input_Opt%NN_RxnRates = NDIAG
-          IF ( NDIAG > 0 ) THEN
-             ALLOCATE(Input_Opt%RxnRates_IDs(NDIAG))
-             Input_Opt%RxnRates_IDs(1:NDIAG) = RRids(1:NDIAG)
-             ALLOCATE(State_Diag%RxnRate(State_Grid%NX,State_Grid%NY,&
-                                          State_Grid%NZ,NDIAG))
-             State_Diag%RxnRate = 0.0
-          ENDIF
-       ENDIF
-       
-       IF ( Input_Opt%NN_RxnRconst < 0 ) THEN
-          NDIAG    = 0
-          RRids(:) = -999
-          DO I = 1, NREACT
-             ! Always archive reaction coeffs needed for diagnostics
-             IF ( I == id_rc_no .OR. I == id_rc_no2 ) THEN
-                NDIAG        = NDIAG + 1
-                RRids(NDIAG) = I
-             ELSE
-                WRITE(III,'(i3.3)') I
-                RRName = 'GCC_RC_'//TRIM(III) 
-                CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RRName),  &
-                                       NotFoundOk=.TRUE., __RC__ )
-                IF ( ASSOCIATED(Ptr3D) ) THEN
-                   NDIAG        = NDIAG + 1
-                   RRids(NDIAG) = I
-                   !IF ( am_I_Root ) THEN
-                   !   WRITE(*,*) 'Will diagnose reaction rate constant ', &
-                   !               TRIM(III),': ',TRIM(ADJUSTL(EQN_NAMES(I)))
-                   !ENDIF
-                ENDIF
-             ENDIF
-          ENDDO
-          Input_Opt%NN_RxnRconst = NDIAG
-          IF ( NDIAG > 0 ) THEN
-             ALLOCATE(Input_Opt%RxnRconst_IDs(NDIAG))
-             Input_Opt%RxnRconst_IDs(1:NDIAG) = RRids(1:NDIAG)
-             ALLOCATE(State_Diag%RxnRconst(State_Grid%NX,State_Grid%NY, &
-                                           State_Grid%NZ,NDIAG))
-             State_Diag%RxnRconst = 0.0
-          ENDIF
-       ENDIF
-       
-       IF ( Input_Opt%NN_Jvals < 0 ) THEN
-          NDIAG    = 0
-          JVids(:) = -999
-          DO I = 1, JVN_
-             ! Always archive Jvalues needed for diagnostics
-             IF ( I == id_jno2 ) THEN
-                NDIAG        = NDIAG + 1
-                JVids(NDIAG) = I
-                IF ( am_I_Root ) THEN
-                   WRITE(*,*) 'Will diagnose J-value',TRIM(III),NDIAG
-                ENDIF
-             ELSE
-                WRITE(III,'(i3.3)') I
-                RRName = 'GCC_JVAL_'//TRIM(III) 
-                CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RRName), &
-                                       NotFoundOk=.TRUE., __RC__ )
-                IF ( ASSOCIATED(Ptr3D) ) THEN
-                   NDIAG        = NDIAG + 1
-                   JVids(NDIAG) = I
-                   IF ( am_I_Root ) THEN
-                      WRITE(*,*) 'Will diagnose J-value',TRIM(III),NDIAG
-                   ENDIF
-                ENDIF
-             ENDIF
-          ENDDO
-          Input_Opt%NN_JVals = NDIAG
-          IF ( NDIAG > 0 ) THEN
-             ALLOCATE(Input_Opt%JVal_IDs(NDIAG))
-             Input_Opt%JVal_IDs(1:NDIAG) = JVids(1:NDIAG)
-             ALLOCATE(State_Diag%JValIndiv(State_Grid%NX,State_Grid%NY, &
-                                           State_Grid%NZ,NDIAG))
-             State_Diag%JValIndiv = 0.0
-          ENDIF
-       ENDIF
-#endif
-       
        !=======================================================================
        ! Prevent use of (occasional) MAPL_UNDEF tropopause pressures
        !=======================================================================
@@ -3674,7 +3290,7 @@ CONTAINS
        !=======================================================================
 #if defined( MODEL_GEOS )
        IF ( PHASE /= 1 ) THEN
-          CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
+          CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, __RC__ )
        ENDIF
 #else
        IF ( calcOzone ) THEN
@@ -4982,7 +4598,7 @@ CONTAINS
     !=======================================================================
 
     ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, __RC__ )
+    CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, __RC__ )
 
     ! O3 mass in kg/m2
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN 
@@ -5031,7 +4647,7 @@ CONTAINS
     !=======================================================================
     ! Total and tropospheric columns 
     !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, EXPORT,     &
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, &
                        INTSTATE, PLE, TROPP, __RC__ )
 
     !=======================================================================
@@ -5207,7 +4823,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, State_Diag, INTSTATE, EXPORT, PLE, TROPP, RC )
+  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -5215,11 +4831,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL                          :: am_I_Root
+    LOGICAL,          INTENT(IN)     :: am_I_Root
     TYPE(MetState),   INTENT(INOUT)  :: State_Met 
     TYPE(DgnState),   INTENT(INOUT)  :: State_Diag
     TYPE(ESMF_STATE), INTENT(INOUT)  :: INTSTATE ! Internal state
-    TYPE(ESMF_State), INTENT(INOUT)  :: Export   ! Export State
     REAL,             POINTER        :: PLE  (:,:,:)
     REAL,             POINTER        :: TROPP(:,:)  
 !                                                             
@@ -5344,25 +4959,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, EXPORT, &
+  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, &
                             INTSTATE, PLE, TROPP, RC )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnMap
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL                                 :: am_I_Root
-    TYPE(OptInput)                          :: Input_Opt 
-    TYPE(ChmState)                          :: State_Chm 
-    TYPE(ESMF_State), INTENT(INOUT), TARGET :: Export
-    TYPE(ESMF_STATE)                        :: INTSTATE 
-    REAL,     POINTER                       :: PLE  (:,:,:)
-    REAL,     POINTER                       :: TROPP(:,:  )
-!                                                             
-! !INPUT/OUTPUT PARAMETERS:                                         
-!              
-!                                                             
-! !OUTPUT PARAMETERS:                                         
-!              
-    INTEGER, INTENT(OUT), OPTIONAL   :: RC
+    LOGICAL,          INTENT(IN)            :: am_I_Root
+    TYPE(OptInput),   INTENT(INOUT)         :: Input_Opt 
+    TYPE(ChmState),   INTENT(INOUT)         :: State_Chm 
+    TYPE(DgnState),   INTENT(INOUT)         :: State_Diag
+    TYPE(ESMF_STATE), INTENT(INOUT)         :: INTSTATE 
+    REAL,             POINTER               :: PLE  (:,:,:)
+    REAL,             POINTER               :: TROPP(:,:  )
+    INTEGER,          INTENT(OUT)           :: RC
 !
 ! !REVISION HISTORY:
 !  25 Oct 2014 - C. Keller   - Initial version
@@ -5381,9 +4994,14 @@ CONTAINS
     REAL,  ALLOCATABLE           :: wgt(:,:)      ! Layer thickness weighting
                                                   !  for total ozone
     REAL                         :: MW, const
-    INTEGER                      :: I, ID, IM, JM, LM, LB, L, STATUS
+    INTEGER                      :: I, J, IM, JM, LM, LB, L, STATUS
+    INTEGER                      :: TotID, TropID
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
     CHARACTER(LEN=15)            :: ISPEC
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapTotCol  => NULL()
+    TYPE(DgnMap), POINTER :: mapTropCol => NULL()
 
     !=======================================================================
     ! CalcColumns_ begins here
@@ -5392,63 +5010,83 @@ CONTAINS
     ! Traceback handle
     Iam = 'CalcColumns_'
 
+    ! Nothing to do if not active
+    IF ( .NOT. State_Diag%Archive_TotCol .AND. &
+         .NOT. State_Diag%Archive_TropCol       ) THEN
+       RC = ESMF_SUCCESS
+       RETURN
+    ENDIF
+
     ! Grid size
     IM = SIZE(PLE,1)
     JM = SIZE(PLE,2)
     LM = SIZE(PLE,3)-1
-   
+    LB = LBOUND(PLE,3)
+  
+    ! mapping objects 
+    IF ( State_Diag%Archive_TotCol  ) THEN
+       mapTotCol  => State_Diag%Map_TotCol
+       State_Diag%TotCol(:,:,:) = 0.0
+    ENDIF
+    IF ( State_Diag%Archive_TropCol ) THEN
+       mapTropCol => State_Diag%Map_TropCol
+       State_Diag%TropCol(:,:,:) = 0.0
+    ENDIF
+
     ! Allocate local variables
     ALLOCATE(DUsLayerL(IM,JM), STAT=STATUS)
     _VERIFY(STATUS)
     ALLOCATE(wgt(IM,JM), STAT=STATUS)
     _VERIFY(STATUS)
    
-    ! Do for all species
-    DO I=1,SIZE(COLLIST,1)
+    ! Check all species
+    DO I = 1, State_Chm%nSpecies 
+      
+       ! Check if total column and/or trop. column requested for this species
+       TotID = -1
+       DO J = 1,mapTotCol%nSlots
+           IF ( mapTotCol%slot2id(J)==I ) THEN
+              TotID = J
+              EXIT
+           ENDIF
+       ENDDO
+       TropID = -1
+       DO J = 1,mapTropCol%nSlots
+           IF ( mapTropCol%slot2id(J)==I ) THEN
+              TropID = J
+              EXIT
+           ENDIF
+       ENDDO
+       IF ( (TotID<0) .AND. (TropID<0) ) CYCLE
 
-       ! For convenience
-       ISPEC = COLLIST(I)
+       ! Species info 
+       ISPEC = State_Chm%SpcData(I)%Info%Name
+       MW    = State_Chm%SpcData(I)%Info%EmMW_g 
 
-       ! Get diagnostics from export state
-       CALL MAPL_GetPointer ( EXPORT, ExpTOTCOL,  'TOTCOL_'//TRIM(ISPEC), &
-                              NotFoundOK=.TRUE., __RC__ )
-       CALL MAPL_GetPointer ( EXPORT, ExpTRPCOL, 'TROPCOL_'//TRIM(ISPEC), &
-                              NotFoundOK=.TRUE., __RC__ )
-   
-       ! Nothing to do if neither of the arrays is associated
-       IF ( .NOT. ASSOCIATED(ExpTOTCOL) .AND. .NOT. ASSOCIATED(ExpTRPCOL) ) &
-           CYCLE 
-   
        ! Get species from internal state
        CALL MAPL_GetPointer ( INTSTATE, IntSpc, 'SPC_'//TRIM(ISPEC), __RC__ )
    
-       ! Lower bound of PLE 3rd dim
-       LB = LBOUND(PLE,3)
-   
-       ! Reset values 
-       IF ( ASSOCIATED(ExpTOTCOL) ) ExpTOTCOL = 0.0
-       IF ( ASSOCIATED(ExpTRPCOL) ) ExpTRPCOL = 0.0
-   
-       ! Get molecular weight of species
-       ID = IND_(TRIM(ISPEC))
-       MW = State_Chm%SpcData(ID)%Info%EmMW_g 
-   
        ! constant 
-       !const = MAPL_AVOGAD / 1000.0 / ( MAPL_GRAV * ( MAPL_AIRMW / 1000.0 ) )
-       !const = const * MAPL_AIRMW  / MW 
        const = MAPL_AVOGAD / ( MAPL_GRAV * MW )
-    
+
        ! Calculate total and trop. column
        DO L = 1,LM
           DUsLayerL(:,:) = IntSpc(:,:,L) * ( PLE(:,:,L+LB) &
                            - PLE(:,:,L+LB-1) ) * const 
           ! rescale: molec/m2 --> molec/cm2
+          ! rescale: molec/cm2 ==> 1.0e15 molec/cm2
           DUsLayerL(:,:) = DUsLayerL(:,:) / 1.0e4 / 1.0e15
-          IF ( ASSOCIATED(ExpTOTCOL) ) ExpTOTCOL = ExpTOTCOL+DUsLayerL
-          IF ( ASSOCIATED(ExpTRPCOL) ) THEN
-             wgt  = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
-                    /(PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
-             ExpTRPCOL = ExpTRPCOL+DUsLayerL*wgt
+          ! Add to total column
+          IF ( TotID > 0 ) THEN
+             State_Diag%TotCol(:,:,TotID) = State_Diag%TotCol(:,:,TotID) &
+                                          + DUsLayerL(:,:)
+          ENDIF
+          ! Add to tropospheric column
+          IF ( TropID > 0 ) THEN
+             wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
+                 / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
+             State_Diag%TropCol(:,:,TropID) = State_Diag%TropCol(:,:,TropID) &
+                                            + DUsLayerL(:,:)*wgt(:,:)
           END IF
        END DO
     ENDDO   
