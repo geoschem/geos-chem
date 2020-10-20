@@ -179,13 +179,6 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
      INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
-#if defined( MODEL_GEOS )
-     ! For drydep
-     REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
-     REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
-     REAL(fp),          POINTER :: DryDepVel  (:,:,:  ) ! drydep velocity
-#endif
-
      !-----------------------------------------------------------------------
      ! Physical properties & indices for each species
      !-----------------------------------------------------------------------
@@ -526,13 +519,6 @@ CONTAINS
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
 
-#ifdef MODEL_GEOS
-    ! Quantities needed for GEOS-5
-    State_Chm%DryDepRa2m        => NULL()
-    State_Chm%DryDepRa10m       => NULL()
-    State_Chm%DryDepVel         => NULL()
-#endif
-
   END SUBROUTINE Zero_State_Chm
 !EOC
 !------------------------------------------------------------------------------
@@ -850,57 +836,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-#ifdef MODEL_GEOS
-    !========================================================================
-    ! Allocate and initialize aerodynamic resistance fields (GEOS-5 only)
-    !========================================================================
-    chmID = 'DryDepRa2m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepRa2m,                                  &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    chmID = 'DryDepRa10m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepRa10m,                                 &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    chmID = 'DryDepVel'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%DryDepVel,                                   &
-         nSlots     = State_Chm%nDryDep ,                                    &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !========================================================================
     ! Allocate and initialize quantities that are only relevant for the
@@ -2980,30 +2915,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#ifdef MODEL_GEOS
-    IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
-       DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 3, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepRa2m => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%DryDepRa10m ) ) THEN
-       DEALLOCATE( State_Chm%DryDepRa10m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 3, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepRa10m => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
-       DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%DryDepVel => NULL()
-    ENDIF
-
-#endif
-
     IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
        DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
@@ -3918,24 +3829,6 @@ CONTAINS
           IF ( isUnits ) Units  = 'kg m-2 s-1'
           IF ( isRank  ) Rank   = 2
           IF ( isSpc   ) perSpc = 'ADV'
-
-#ifdef MODEL_GEOS
-       CASE( 'DRYDEPRA2M' )
-          IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
-          IF ( isUnits   ) Units = 's cm-1'
-          IF ( isRank    ) Rank  = 2
-
-       CASE( 'DRYDEPRA10M' )
-          IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
-          IF ( isUnits   ) Units = 's cm-1'
-          IF ( isRank    ) Rank  = 2
-
-       CASE( 'DRYDEPVEL' )
-          IF ( isDesc    ) Desc   = 'Dry deposition velocity of species'
-          IF ( isUnits   ) Units  = 'cm s-1'
-          IF ( isRank    ) Rank   = 2
-          IF ( isSpc     ) perSpc = 'DRY'
-#endif
 
        CASE DEFAULT
           Found = .False.
