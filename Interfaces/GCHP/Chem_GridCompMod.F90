@@ -840,6 +840,51 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    ! Isorropia fields needed for heterogeneous chemistry
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropHplusFine', &
+       LONG_NAME          = 'Isorropia Hplus concentration fine mode',  &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropSulfate',  &
+       LONG_NAME          = 'Isorropia sulfate concentration', &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropNitrateFine',  &
+       LONG_NAME          = 'Isorropia Nitrate concentration fine mode', &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropBisulfate',  &
+       LONG_NAME          = 'Isorropia bisulfate concentration',  &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
     ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DELP_DRY',  &
@@ -3610,6 +3655,42 @@ CONTAINS
           ENDIF
           Ptr3d_R8 => NULL()
 
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropHplus) ) THEN
+             State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
+             State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
+             State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
+             State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. &
@@ -4556,7 +4637,7 @@ CONTAINS
     ENDIF
     Ptr2d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', &
                           notFoundOK=.TRUE., __RC__ ) 
     IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%KPPHvalue) ) THEN
@@ -4566,7 +4647,43 @@ CONTAINS
     ENDIF
     Ptr3d_R8 => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropHplus) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' , &
                           notFoundOK=.TRUE., __RC__ ) 
     IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Met%DELP_DRY) ) THEN
