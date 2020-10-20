@@ -223,7 +223,7 @@ while [ "$valid_path" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define run directoy name if not passed as argument
+# Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
@@ -285,7 +285,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
-cp -r ./runScriptSamples              ${rundir}
 mkdir ${rundir}/OutputDir
 
 # Set permissions
@@ -293,8 +292,6 @@ chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/runConfig.sh
 chmod 744 ${rundir}/archiveRun.sh
-chmod 744 ${rundir}/runScriptSamples/*
-chmod 644 ${rundir}/runScriptSamples/README
 
 # Copy species database; append APM or TOMAS species if needed
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
@@ -306,15 +303,15 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-    cp ./runScriptSamples/gchp.benchmark.run ${rundir}
+    cp ${gcdir}/run/GCHPctm/runScriptSamples/gchp.benchmark.run ${rundir}
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
 
-# Create symbolic links to data directories, restart files, and code
+# Create symbolic links to data directories, restart files, code, run scripts
 ln -s ${gchpdir}                                ${rundir}/CodeDir
+ln -s ${gcdir}/run/GCHPctm/runScriptSamples     ${rundir}/runScriptSamples
 ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDir
 ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/HcoDir
-ln -s ${GFTL}                                   ${rundir}/gFTL
 if [ "${met_name}" == "GEOSFP" ]; then
    ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
 else
@@ -480,10 +477,10 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.run input.geos input.nml
-        if [[ ${sim_name} = "fullchem" ]]; then
+	if [[ ${sim_name} = "fullchem" ]]; then
             git add *.py
-        fi
-	git add runScriptSamples/* README .gitignore
+	fi
+	git add README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
