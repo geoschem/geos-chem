@@ -262,11 +262,6 @@ MODULE Chem_GridCompMod
   REAL              :: FIXPERT       ! Fixed perturbation 
   REAL, PARAMETER   :: MAXPERT = 0.1 ! Maximum perturbation
 
-  ! For NOx diagnostics
-  INTEGER           :: id_rc_no  = -1
-  INTEGER           :: id_rc_no2 = -1
-  INTEGER           :: id_jno2   = -1
-
   ! Mie table
   TYPE(Chem_Mie)     :: geoschemMieTable(2)
   INTEGER, PARAMETER :: instanceComputational = 1
@@ -4547,14 +4542,6 @@ CONTAINS
     IM = SIZE(Q,1); JM = SIZE(Q,2); LM = SIZE(Q,3)
 
     !=======================================================================
-    ! NOx diagnostics 
-    !=======================================================================
-    IF ( IsTendTime .AND. Input_Opt%haveImpRst ) THEN 
-       CALL NOxDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                              State_Diag, IMPORT, EXPORT, IntState, __RC__ )
-    ENDIF
-
-    !=======================================================================
     ! Dry volume mixing ratios and PM2.5 diagnostics 
     !=======================================================================
     CALL CalcSpeciesDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
@@ -5313,178 +5300,6 @@ CONTAINS
 !
 !  END SUBROUTINE CalcTendencies_ 
 !!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: NOxDiagnostics_
-!
-! !DESCRIPTION: NOxDiagnostics_ computes some NOx diagnostics 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE NOxDiagnostics_( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                              State_Diag, IMPORT, EXPORT, INTSTATE, RC )
-!
-! !USES:
-!
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)            :: am_I_Root
-    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
-    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
-    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
-    TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: INTSTATE
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,             INTENT(INOUT)         :: RC       ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  05 Dec 2017 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    ! Objects
- 
-    ! Scalars
-    INTEGER                    :: STATUS
-    INTEGER                    :: I, IM, JM, LM
-    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
-
-    ! NO2 to NOx ratio & NOx lifetime
-    REAL(f4), POINTER          :: NO2toNOx(:,:,:) => NULL()
-    REAL(f4), POINTER          :: NOxtau(:,:,:)   => NULL()
-    REAL, ALLOCATABLE          :: JNO2(:,:,:)
-    REAL, ALLOCATABLE          :: O3eff(:,:,:)
-    REAL, ALLOCATABLE          :: k1O3(:,:,:), k3OH(:,:,:)
-    REAL, ALLOCATABLE          :: tmp3d(:,:,:)
-    INTEGER                    :: idJNO2, idk1, idk3
-
-    !=======================================================================
-    ! Routine starts here 
-    !=======================================================================
-
-    ! Identify this routine to MAPL
-    Iam = 'GCC::NOxDiagnostics_'
-
-    !=======================================================================
-    ! NOx diagnostics 
-    !=======================================================================
-    CALL MAPL_GetPointer( EXPORT, NO2toNOx, 'NO2toNOx', &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, NOxtau,   'NOx_tau' , &
-                          NotFoundOk=.TRUE., __RC__ )
-
-
-    IF ( State_Diag%Archive_NO2NOx .AND. ASSOCIATED(State_Diag%NO2NOx) ) &
-        NO2toNOx => State_Diag%NO2NOx(:,:,LM:1:-1)
-    IF ( State_Diag%Archive_NOxTau .AND. ASSOCIATED(State_Diag%NOxTau) ) &
-        NOxtau   => State_Diag%NOxTau(:,:,LM:1:-1)
-    IF ( ASSOCIATED(NO2toNOx) ) NO2toNOx(:,:,:) = 0.0
-    IF ( ASSOCIATED(NOxtau  ) ) NOxtau(:,:,:)   = 0.0
-
-    IF ( ASSOCIATED(NO2toNOx) .OR. ASSOCIATED(NOxtau) ) THEN
-       ! Get j-value index
-       idJNO2 = -1
-       DO I=1,Input_Opt%NN_JVals
-          IF ( Input_Opt%JVal_IDs(I) == id_jno2 ) THEN
-             idJNO2 = I
-             EXIT
-          ENDIF 
-       ENDDO
-       ! Get reaction coeffs indeces 
-       idk1 = -1
-       idk3 = -1
-       DO I=1,Input_Opt%NN_RxnRconst
-          IF ( Input_Opt%RxnRconst_IDs(I) == id_rc_no ) THEN
-             idk1 = I
-          ENDIF 
-          IF ( Input_Opt%RxnRconst_IDs(I) == id_rc_no2 ) THEN
-             idk3 = I
-          ENDIF 
-       ENDDO
-       _ASSERT( idJNO2 > 0,'idJNO2 is negative' )
-       _ASSERT( idk1   > 0,'idk1 is negative' )
-       _ASSERT( ASSOCIATED(State_Diag%O3concAfterChem),'O3concAfterChem is not associated'  )
-       _ASSERT( ASSOCIATED(State_Diag%RO2concAfterChem),'RO2concAfterChem is not associated' )
-       ! Allocate local arrays
-       IM = SIZE(State_Diag%O3concAfterChem,1)
-       JM = SIZE(State_Diag%O3concAfterChem,2)
-       LM = SIZE(State_Diag%O3concAfterChem,3)
-       ALLOCATE(JNO2(IM,JM,LM))
-       ALLOCATE(O3eff(IM,JM,LM)) 
-       ALLOCATE(k1O3(IM,JM,LM))
-       ALLOCATE(k3OH(IM,JM,LM))
-       ALLOCATE(tmp3d(IM,JM,LM))
-       JNO2  = 0.0
-       O3eff = 0.0
-       k1O3  = 0.0
-       k3OH  = 0.0
-       tmp3d = 0.0
-
-       jNO2(:,:,:)  = State_Diag%JValIndiv(:,:,LM:1:-1,idJNO2)
-       O3eff(:,:,:) = State_Diag%O3concAfterChem (:,:,LM:1:-1) + &
-                      State_Diag%RO2concAfterChem(:,:,LM:1:-1)
-       k1O3         = State_Diag%RxnRconst(:,:,LM:1:-1,idk1) &
-                    * O3eff
-
-       ! Compute NO2 to NOx ratio
-       IF ( ASSOCIATED(NO2toNOx) ) THEN
-          tmp3d    = jNO2 + k1O3
-          where ( tmp3d /= 0.0 ) 
-             NO2toNOx = k1O3 / tmp3d
-          else where
-             NO2toNOx = 0.0
-          end where 
-       ENDIF
-       ! Compute NOx chemical lifetime
-       IF ( ASSOCIATED(NOxtau) ) THEN
-          _ASSERT( idk3 > 0,'idk3 is negative' )
-          _ASSERT( ASSOCIATED(State_Diag%OHconcAfterChem),'OHconcAfterChem is negative' )
-          k3OH      = State_Diag%RxnRconst(:,:,LM:1:-1,idk3) &
-                    * State_Diag%OHconcAfterChem(:,:,LM:1:-1)
-          tmp3d = 0.0
-          where ( k1O3 /= 0.0 ) 
-             tmp3d = ( jNO2 + k1O3 ) / k1O3 
-          else where
-             tmp3d = 0.0
-          end where
-          where ( k3OH /= 0.0 )
-             NOxtau = tmp3d / k3OH
-          else where
-             NOxtau = 0.0
-          end where 
-       ENDIF
-
-       ! Cleanup
-       DEALLOCATE( jNO2, O3eff, k1O3, k3OH, tmp3d )
-    ENDIF 
-
-    IF ( ASSOCIATED(NO2toNOx) ) NO2toNOx => NULL()
-    IF ( ASSOCIATED(NOxtau  ) ) NOxtau   => NULL()
-
-    !=======================================================================
-    ! All done 
-    !=======================================================================
-
-    _RETURN(ESMF_SUCCESS)
-
-  END SUBROUTINE NOxDiagnostics_
-!EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !

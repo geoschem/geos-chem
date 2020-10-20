@@ -945,12 +945,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: O3MASS(:,:,:)
      LOGICAL                     :: Archive_O3MASS
 
-     REAL(f4),           POINTER :: NO2NOx(:,:,:)
-     LOGICAL                     :: Archive_NO2NOx
-
-     REAL(f4),           POINTER :: NOxTau(:,:,:)
-     LOGICAL                     :: Archive_NOxTau
-
      REAL(f4),           POINTER :: CHEMTOP(:,:)
      LOGICAL                     :: Archive_CHEMTOP
 
@@ -973,14 +967,6 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: KppError(:,:,:)
      LOGICAL                     :: Archive_KppError
-
-     REAL(f4),           POINTER :: JvalIndiv(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_JvalIndiv
-     LOGICAL                     :: Archive_JvalIndiv
-
-     REAL(f4),           POINTER :: RxnRconst(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_RxnRconst
-     LOGICAL                     :: Archive_RxnRconst
 
      REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3concAfterChem
@@ -1909,12 +1895,6 @@ CONTAINS
     State_Diag%GCCTTO3                             => NULL()
     State_Diag%Archive_GCCTTO3                     = .FALSE.
 
-    State_Diag%NO2NOx                              => NULL()
-    State_Diag%Archive_NO2NOx                      = .FALSE.
-
-    State_Diag%NOxTau                              => NULL()
-    State_Diag%Archive_NOxTau                      = .FALSE.
-
     State_Diag%CHEMTOP                             => NULL()
     State_Diag%Archive_CHEMTOP                     = .FALSE.
 
@@ -1932,12 +1912,6 @@ CONTAINS
 
     State_Diag%LIGHTNINGPOTENTIAL                  => NULL()
     State_Diag%Archive_LGHTPOTENTIAL               = .FALSE.
-
-    State_Diag%JvalIndiv                           => NULL()
-    State_Diag%Archive_JvalIndiv                   = .FALSE.
-
-    State_Diag%RxnRconst                           => NULL()
-    State_Diag%Archive_RxnRconst                   = .FALSE.
 
     State_Diag%O3concAfterChem                     => NULL()
     State_Diag%Archive_O3concAfterChem             = .FALSE.
@@ -2963,50 +2937,6 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%GCCTTO3,                                &
          archiveData    = State_Diag%Archive_GCCTTO3,                        &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! NO2NOx 
-    !-----------------------------------------------------------------------
-    diagID  = 'NO2NOx'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%NO2NOx,                                 &
-         archiveData    = State_Diag%Archive_NO2NOx,                         &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! NOxTau 
-    !-----------------------------------------------------------------------
-    diagID  = 'NOxTau'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%NOxTau,                                 &
-         archiveData    = State_Diag%Archive_NOxTau,                         &
          diagId         = diagId,                                            &
          RC             = RC                                                )
 
@@ -4961,10 +4891,6 @@ CONTAINS
        ! simulations) or the CH4 specialty simulation chemistry routine
        !--------------------------------------------------------------------
        diagID  = 'OHconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-#ifdef MODEL_GEOS
-       Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
-#endif
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4975,7 +4901,6 @@ CONTAINS
             Ptr2Data       = State_Diag%OHconcAfterChem,                     &
             archiveData    = State_Diag%Archive_OHconcAfterChem,             &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4986,7 +4911,6 @@ CONTAINS
 
 #ifdef MODEL_GEOS
        diagID  = 'O3concAfterChem'
-       Found = .TRUE. ! Always add - needed for NOx diagnostics
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4997,7 +4921,6 @@ CONTAINS
             Ptr2Data       = State_Diag%O3concAfterChem,                     &
             archiveData    = State_Diag%Archive_O3concAfterChem,             &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -5007,7 +4930,6 @@ CONTAINS
        ENDIF
 
        diagID  = 'RO2concAfterChem'
-       Found = .TRUE. ! Always add - needed for NOx diagnostics
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5018,7 +4940,6 @@ CONTAINS
             Ptr2Data       = State_Diag%RO2concAfterChem,                    &
             archiveData    = State_Diag%Archive_RO2concAfterChem,            &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -9971,16 +9892,6 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'NO2NOx',                                    &
-                   Ptr2Data = State_Diag%NO2NOx,                           &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'NOxTau',                                    &
-                   Ptr2Data = State_Diag%NOxTau,                           &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'CHEMTOP',                                   &
                    Ptr2Data = State_Diag%CHEMTOP,                          &
                    RC       = RC                                            )
@@ -10461,16 +10372,6 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_tropospheric_column_density'
        IF ( isUnits   ) Units = 'dobsons'
        IF ( isRank    ) Rank  = 2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'NO2NOX' ) THEN
-       IF ( isDesc    ) Desc  = 'NO2_to_NOx_ratio'
-       IF ( isUnits   ) Units = 'unitless'
-       IF ( isRank    ) Rank  = 3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
-       IF ( isDesc    ) Desc  = 'NOx_chemical_lifetime_against_OH'
-       IF ( isUnits   ) Units = 's'
-       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'CHEMTOP' ) THEN
        IF ( isDesc    ) Desc  = 'chemistry_grid_top_level'
