@@ -6171,6 +6171,8 @@ CONTAINS
        doEdges = .FALSE.
     ENDIF
 
+    doSlots = PRESENT( nSlots )
+
     IF ( PRESENT( noRegister ) ) THEN
        doRegister = ( .not. noRegister )
     ELSE
