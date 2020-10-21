@@ -922,8 +922,7 @@ CONTAINS
                                   Label="HISTORY_CONFIG:",         &
                                   Default="HISTORY.rc", __RC__ )
     CALL HistoryExports_SetServices( MAPL_am_I_Root(), HistoryConfigFile, &
-                                     GC, HistoryConfig, RC=STATUS )
-    _VERIFY(STATUS)
+                                     GC, HistoryConfig, __RC__ )
 
 !EOP
 !BOC
@@ -2025,14 +2024,6 @@ CONTAINS
        ! Get internal state field
        fieldName = TRIM(SPFX)//TRIM(Int2Spc(I)%Name)
        CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
-
-#if defined( MODEL_GEOS )
-       IF ( STATUS /= ESMF_SUCCESS ) THEN
-          ! Check that it doesn't have old tracer prefix if not found
-          fieldName = TRIM(TPFX)//TRIM(Int2Spc(I)%Name)
-          CALL ESMF_StateGet( INTSTATE, TRIM(fieldName), GcFld, RC=STATUS )
-       ENDIF 
-#endif
 
        ! This is mostly for testing 
        IF ( STATUS /= ESMF_SUCCESS ) THEN
@@ -6212,7 +6203,7 @@ CONTAINS
 
     ! Also add export for CONV_DEPTH_GCC & LFR diagnostics
     call MAPL_AddExportSpec(GC,                                    &
-               SHORT_NAME='GCD_CONV_DEPTH',                        &
+               SHORT_NAME='GCC_CONV_DEPTH',                        &
                LONG_NAME ='Convective_depth_seen_by_GEOSCHEMchem', &
                UNITS     ='m',                                     &
                DIMS      = MAPL_DimsHorzOnly,                      &
@@ -6220,7 +6211,7 @@ CONTAINS
                                                              __RC__ )
 
     call MAPL_AddExportSpec(GC,                                     &
-               SHORT_NAME='GCD_LFR',                                &
+               SHORT_NAME='GCC_LFR',                                &
                LONG_NAME ='Lightning_flash_rate_seen_GEOSCHEMchem', &
                UNITS     ='km-2 s-1',                               &
                DIMS      = MAPL_DimsHorzOnly,                       &
@@ -6335,7 +6326,7 @@ CONTAINS
 
      ! Eventually add to Export
      Ptr2D => NULL()
-     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCD_LFR', NotFoundOk=.TRUE., __RC__ )
+     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCC_LFR', NotFoundOk=.TRUE., __RC__ )
      IF ( ASSOCIATED(Ptr2D) ) Ptr2D = State_Met%FLASH_DENS
 
 !----Convective depth [m]
@@ -6396,7 +6387,7 @@ CONTAINS
 
      ! Eventually add to Export
      Ptr2D => NULL()
-     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCD_CONV_DEPTH', NotFoundOk=.TRUE., __RC__ )
+     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCC_CONV_DEPTH', NotFoundOk=.TRUE., __RC__ )
      IF ( ASSOCIATED(Ptr2D) ) Ptr2D = State_Met%CONV_DEPTH
 
   ENDIF ! Skip

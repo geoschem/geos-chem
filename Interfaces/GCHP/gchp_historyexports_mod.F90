@@ -109,12 +109,6 @@ MODULE GCHP_HistoryExports_Mod
 !
   ! Prefix of the species names in the internal state and HISTORY.rc
   CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
-
-#if defined( MODEL_GEOS )
-  ! GEOS-Chem advected species in GEOS use prefix TRC_. Use GCD_ for GEOS-only.
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: TPFX = 'TRC_'
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCD_'
-#endif
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
@@ -257,22 +251,11 @@ CONTAINS
     current => HistoryConfig%DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
 
-#if defined ( MODEL_GEOS )
-       ! Skip State_Chm%Species entries since in internal state.
-       ! Also skip GEOS-only diagnostics.
-       IF ( ( INDEX( current%name,  TRIM(TPFX) ) == 1 ) .OR.   &
-            ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) .OR.   &
-            ( INDEX( current%name,  TRIM(GPFX) ) == 1 ) ) THEN
-          current => current%next
-          CYCLE
-       ENDIF
-#else
        ! Skip State_Chm%Species entries since in internal state.
        IF ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) THEN
           current => current%next
           CYCLE
        ENDIF
-#endif
 
        ! Skip emissions diagnostics since handled by HEMCO
        IF ( INDEX( current%name,  'EMIS' ) == 1 .or. &
@@ -280,6 +263,13 @@ CONTAINS
           current => current%next
           CYCLE
        ENDIF
+
+#ifdef MODEL_GEOS
+       IF ( INDEX( current%name,  'GCC_' ) == 1 ) THEN
+          current => current%next
+          CYCLE
+       ENDIF
+#endif
 
        ! Check history exports list to see if already added (unless wildcard)
        ! TODO: consider making the call a function that returns a logical
