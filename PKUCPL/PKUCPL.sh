@@ -86,25 +86,25 @@ echo "                 GLOBAL is exchanging with $nested1 $nested2 $nested3"
 
 pushd $global_dir
 echo "  @dir: $global_dir"
-./geos > log.geos &
+./gcclassic > log.gcclassic &
 popd
 
 if [ "$count" == 1 ] || [ "$count" == 2 ] || [ "$count" == 3 ];then
 	pushd $nested1_dir
 	echo "  @dir: $nested1_dir"
-	./geos > log.geos &
+	./gcclassic > log.gcclassic &
 	popd
 fi
 if [ "$count" == 2 ] || [ "$count" == 3 ];then
 	pushd $nested2_dir
 	echo "  @dir:$nested2_dir"
-	./geos > log.geos &
+	./gcclassic > log.gcclassic &
 	popd
 fi
 if [ "$count" == 3 ];then
 	pushd $nested3_dir
 	echo "  @dir: $nested3_dir"
-	./geos > log.geos &
+	./gcclassic > log.gcclassic &
 	popd
 fi
 

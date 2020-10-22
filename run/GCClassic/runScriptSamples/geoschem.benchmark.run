@@ -20,7 +20,7 @@
 # !REMARKS:
 #  Designed to be used with the geosfp_4x5_standard run directory created
 #  by the GEOS-Chem Unit Tester. To use this script, you must first compile
-#  the GEOS-Chem code with CMake to create the geos executable.
+#  the GEOS-Chem code with CMake to create the gcclassic executable.
 #
 #  NOTES:
 #  (1) This script is customized for the Harvard "Cannon" cluster.  If you
@@ -70,7 +70,7 @@ log=$id.log
 #-------------------------------------------------
 
 # Run GEOS-Chem and pipe output to log
-srun -c $OMP_NUM_THREADS time -p ./geos >> $log
+srun -c $OMP_NUM_THREADS time -p ./gcclassic >> $log
 
 # Echo end time
 echo '===> Run ended at' `date` >> $log

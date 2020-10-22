@@ -93,7 +93,7 @@ mv CMake*.log ${archivedir}/build
 
 # Copy everything else
 echo "Copying files..."
-copyfiles geos                           ${archivedir}/bin
+copyfiles gcclassic                      ${archivedir}/bin
 copyfiles input.geos                     ${archivedir}/config
 copyfiles rundir.version                 ${archivedir}/config
 copyfiles "*.rc"                         ${archivedir}/config

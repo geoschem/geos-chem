@@ -391,7 +391,7 @@ PROGRAM GEOS_Chem
   ! No actual "compute" is performed.
   !
   ! The "dry-run" option is initialized using the command line extra
-  ! argument ./geos --dry-run
+  ! argument ./gcclassic --dry-run
   !
   ! A log file can be specified with --log FILENAME.
   ! If no log file is specified, the default logfile will be
@@ -2767,7 +2767,7 @@ CONTAINS
     WRITE( U, 100 ) '!!! You will NOT get output for this run!'
     WRITE( U, 100 ) '!!! Use this command to validate a '         // &
                     'GEOS-Chem run configuration:'
-    WRITE( U, 100 ) '!!!   ./geos --dryrun > log'
+    WRITE( U, 100 ) '!!!   ./gcclassi --dryrun > log'
     WRITE( U, 100 ) '!!!'
     WRITE( U, 100 ) '!!! REMOVE THE --dryrun ARGUMENT FROM THE '   // &
                     'COMMAND LINE'

@@ -20,7 +20,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # Run GEOS_Chem.  The "time" command will return CPU and wall times.
 # Stdout and stderr will be directed to the "GC.log" log file
 # (you can change the log file name below if you wish)
-srun -c $OMP_NUM_THREADS time -p ./geos >> GC.log
+srun -c $OMP_NUM_THREADS time -p ./gcclassic >> GC.log
 
 # Exit normally
 exit 0

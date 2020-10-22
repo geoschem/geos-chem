@@ -130,19 +130,3 @@ target_link_libraries(GeosCore
   $<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
   $<$<BOOL:${GTMM}>:Hg>				# depends on Hg iff GTMM is true
 )
-
-# Need to turn this off for new GC Classic repo. Need better way...
-#if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
-#	# Add geos executable target
-#	add_executable(geos
-#		main.F
-#	)
-#	target_link_libraries(geos
-#		PUBLIC GeosCore
-#	)
-#	set_target_properties(geos PROPERTIES
-#		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#	install(TARGETS geos
-#		RUNTIME DESTINATION ${RUNDIR}
-#	)
-#endif()
