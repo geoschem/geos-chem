@@ -217,23 +217,24 @@ CONTAINS
 !
 ! !IROUTINE: Zero_Diagnostics_StartofTimestep
 !
-! !DESCRIPTION: This routine is currently not used but is available if needed
-!   in the future for diagnostics that are summed over a timestep and must
-!   therefore be zeroed at the start of each time in the dynamic loop.
+! !DESCRIPTION: This routine sets certain diagnostic arrays to zero. This
+!  is intended for diagnostics that must be reset to zero each timestep but
+!  that do not have a clear place in the source code execution for doing this,
+!  generally because they are set in multiple places.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Zero_Diagnostics_StartofTimestep( State_Chm, State_Diag, RC )
+  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-    USE State_Chm_Mod,    ONLY : ChmState
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Diag_Mod,   ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm      ! Chemistry state obj
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
 !
 ! !INPUT AND OUTPUT PARAMETERS:
 !
@@ -252,7 +253,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: I, J, L, N
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
     !=======================================================================
@@ -265,7 +265,50 @@ CONTAINS
     ThisLoc = &
     ' -> at Zero_Diagnostics_StartofTimestep (in GeosCore/diagnostics_mod.F90)'
 
-    ! Zero diagnostics here
+    ! Mercury simulation
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepChm = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+          State_Diag%EmisHg2rivers = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+          State_Diag%EmisHg2snowToOcean = 0.0_f4
+       ENDIF
+
+      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+          State_Diag%FluxOCtoDeepOcean = 0.0_f4
+       ENDIF
+
+    ENDIF
+
+    ! Dry deposition
+    IF ( Input_Opt%LDRYD ) THEN
+       ! Initialize the DryDepMix diagnostic array for the History Component.
+       ! This will prevent leftover values from being carried over to this
+       ! timestep. (For example, if on the last iteration, the PBL height
+       ! was higher than it is now, then we will have stored drydep fluxes
+       ! up to that height, so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC

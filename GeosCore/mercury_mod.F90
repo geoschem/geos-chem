@@ -52,7 +52,6 @@ MODULE MERCURY_MOD
   PUBLIC  :: INIT_MERCURY
   PUBLIC  :: EMISSMERCURY
   PUBLIC  :: PARTITIONHG2
-  PUBLIC  :: Reset_Hg_Diags
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -6110,122 +6109,7 @@ CONTAINS
     NULLIFY( STT )
 
   END SUBROUTINE OFFLINEOCEAN_READMO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Reset_Hg_Diags
-!
-! !DESCRIPTION: Zeroes the relevant diagnostic fields of State_Diag for
-!  the Hg and tagged Hg simulations.  Some of these need to be done
-!  for example, at the start of each timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Reset_Hg_Diags( Input_Opt, State_Diag, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Diag_Mod, ONLY : DgnState
-    USE Time_Mod,       ONLY : Its_Time_For_Chem
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  NOTE: Not all netCDF diagnostic fields need to be zeroed.  Some fields
-!  of State_Diag are always
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Reset_Hg_Diags (in module GeosCore/mercury_mod.F90'
-
-    !=================================================================
-    ! Reset_Hg_Diags begins here!
-    !=================================================================
-
-    ! Exit if it's not a Hg sim
-    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       ErrMsg = 'Routine "Reset_Hg_Diags" was called, but this ' // &
-                'routine is only valid for Hg or tagHg simulations!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !--------------------------------------------------------------
-    ! Zero diagnostics in depo_mercury_mod.F90
-    !--------------------------------------------------------------
-    IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
-       State_Diag%FluxHg2HgPfromAirToSnow = 0.0_fp
-    ENDIF
-
-    ! These are called once per chemistry or emissions timestep
-    IF ( Its_Time_For_Chem() ) THEN
-
-       !--------------------------------------------------------------
-       ! Zero diagnostics in mercury_mod.F90
-       !--------------------------------------------------------------
-       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepChm = 0.0_f4
-       ENDIF
-
-       !-------------------------------------------------------------
-       ! Zero diagnostics in ocean_mercury_mod.F90
-       !-------------------------------------------------------------
-       IF ( State_Diag%Archive_EmisHg2rivers ) THEN
-          State_Diag%EmisHg2rivers = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
-          State_Diag%EmisHg2snowToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
-          State_Diag%FluxOCtoDeepOcean = 0.0_f4
-       ENDIF
-
-    ENDIF
-
-  END SUBROUTINE Reset_Hg_Diags
-!EOC
+x!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

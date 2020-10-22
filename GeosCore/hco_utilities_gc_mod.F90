@@ -1621,11 +1621,6 @@ CONTAINS
     thisLoc = &
     ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_utilities_gc_mod.F90)'
 
-    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
-    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
-
     !=======================================================================
     ! Convert units to v/v dry
     !=======================================================================

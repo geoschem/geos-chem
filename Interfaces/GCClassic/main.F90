@@ -932,21 +932,18 @@ PROGRAM GEOS_Chem
        !---------------------------------------------------------------------
        ! %%%%% HISTORY (netCDF diagnostics) %%%%%
        !
-       ! Certain Hg simulation diagnostics (e.g. deposition of Hg2
-       ! and HgP onto snow and ice) need to be zeroed out at the
-       ! start each timestep, before operations like drydep, wetdep,
-       ! and convection are executed.  Call a routine to do this.
-       ! (bmy, 10/25/18)
+       ! Certain diagnostics need to be zeroed out at the start each timestep,
+       ! before operations like drydep, wetdep, and convection are executed.
        !---------------------------------------------------------------------
-       IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
+       IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",           RC )
              CALL Timer_Start( "=> History (netCDF diags)", RC )
           ENDIF
 
-          CALL Reset_Hg_Diags( Input_Opt, State_Diag, RC )
+          CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Reset_Hg_Diags!"'
+             ErrMsg = 'Error encountered in "Zero_Diagnostics_StartOfTimestep!"'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 

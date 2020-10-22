@@ -366,6 +366,7 @@ CONTAINS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     ! Diagnostics
+    USE Diagnostics_Mod,    ONLY : Set_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
@@ -581,6 +582,9 @@ CONTAINS
     !-------------------------------------------------------------------------
     ! Pre-Run assignments
     !-------------------------------------------------------------------------
+
+    ! Zero out certain State_Diag arrays
+    CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
 
     ! Eventually initialize/reset wetdep
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
