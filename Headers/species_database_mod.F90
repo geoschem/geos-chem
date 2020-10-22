@@ -141,7 +141,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(43)
+    CHARACTER(LEN=17)           :: tags(41)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
