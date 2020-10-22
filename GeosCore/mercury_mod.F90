@@ -6109,7 +6109,7 @@ CONTAINS
     NULLIFY( STT )
 
   END SUBROUTINE OFFLINEOCEAN_READMO
-x!EOC
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
