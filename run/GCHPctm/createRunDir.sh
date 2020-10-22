@@ -476,7 +476,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run input.geos input.nml
+	git add *.rc *.sh *.yml input.geos input.nml
 	if [[ ${sim_name} = "fullchem" ]]; then
             git add *.py
 	fi
