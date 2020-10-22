@@ -366,7 +366,7 @@ CONTAINS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     ! Diagnostics
-    USE Diagnostics_Mod,    ONLY : Set_Diagnostics_StartofTimestep
+    USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
