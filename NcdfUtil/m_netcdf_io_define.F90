@@ -67,17 +67,11 @@ MODULE m_netcdf_io_define
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  Initial code.
-!  26 Sep 2013 - R. Yantosca - Add routines to save attributes of different
-!                              numerical types
-!  14 May 2014 - R. Yantosca - Add function NcBegin_Def to reopen define mode
-!  14 May 2014 - R. Yantosca - Now use F90 free formatting
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!
 ! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,9 +117,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  18 May 2018 - C. Holmes - Add support for unlimited dimensions
-!  25 Jun 2018 - R. Yantosca - Fixed typo
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,12 +189,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
-!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
-!                              only if the library has nf_def_var_deflate
-!  10 May 2017 - R. Yantosca - Bug fix: var_id needs to be INTENT(OUT),
-!                              because it's returned from NF_DEF_VAR
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,9 +280,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Sep 2013 - R. Yantosca - Renamed to NcDef_var_attributes_c and made
-!                              into a PRIVATE array so we can overload it
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,7 +335,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,6 +391,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -461,6 +447,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -516,7 +503,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -572,6 +559,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -627,6 +615,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -683,6 +672,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -738,7 +728,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -795,6 +785,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -851,6 +842,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -907,7 +899,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix: Should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -964,6 +956,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1020,6 +1013,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1070,8 +1064,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1119,8 +1112,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1170,6 +1162,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 May 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC

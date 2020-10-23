@@ -226,7 +226,7 @@ MODULE GCKPP_HETRATES
 !    https://doi.org/10.5194/acp-16-12239-2016, 2016.
 !
 ! !REVISION HISTORY:
-! Use the gitk browser to view the revision history!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,24 +261,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  01 Apr 2016 - R. Yantosca - Define many variables locally that don't
-!                              need to be in the THREADPRIVATE statements
-!  01 Apr 2016 - R. Yantosca - Remove KII_KI; we now declare that locally
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with emMW_g from species
-!                              database (emitted species g/mol)
-!  26 Jul 2017 - M. Sulprizio- Remove hardcoded molecular weights from calls to
-!                              Het* functions and use MW from species database
-!                              instead
-!  03 Jan 2018 - M. Sulprizio- Remove SCF argument. It was apparently added for
-!                              diagnostic purposes and is no longer used. Also
-!                              rename IO,SM,SC to Input_Opt,State_Met,State_Chm
-!                              for consistency with other GEOS-Chem routines.
-!  31 Jan 2018 - X. Wang     - Correct the calculations of halide concentrations
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database instead of hardcoding in halogens code
-!  17 Oct 2018 - C.D. Holmes - Added cloud heterogeneous chemistry
-!  08 Jun 2019 - X. Wang     - Remove SS debromination options
-!  01 Aug 2020 - C.D. Holmes - Bug fixes for cloud properties. Performance improvements for CloudHet
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1398,12 +1381,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  23 Aug 2018 - C. D. Holmes - Initial version
-!  17 Oct 2018 - C. D. Holmes - Re-implemented for v12.0.2
-!  08 Jun 2019 - X. Wang      - Update for halogen reactions
-!  01 Aug 2020 - C.D. Holmes  - Structural changes for better performance 
-!              (remove SELECT CASE, pass gamma & molar weight as arguments)
-!                               Revised 
-!EOP
+!  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1581,9 +1559,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1682,9 +1658,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1767,7 +1741,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
-!  04 Apr 2018 - X. Wang       - Update for Cl- simulation
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1843,7 +1817,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1895,12 +1869,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca  - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca  - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca  - Replace KII_KI with DO_EDUCT local variable
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
-!  06 Nov 2019 - R. Yantosca  - Force flexible precision with _fp
-!  28 May 2020 - X. Wang      - Merged with chlorine chemsitry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2016,10 +1985,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2119,9 +2085,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2201,9 +2165,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Define local variable for educt adjustment
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2295,13 +2257,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  02 Jan 2019 - E. McDuffie - Update for gamma for SO4-NIT-NH4 & OC aerosol
-!                              (following McDuffie et al., JGR 2018)
-!  23 Jul 2019 - C.D. Holmes - Consolidated McDuffie gamma into one function
-!  18 May 2020 - X. Wang     - Added effects of chloride
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2508,8 +2464,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!    13 Dec 2018 - E. McDuffie - Initial version
-!    23 Jul 2019 - C.D. Holmes - Consolidated into one function
+!  13 Dec 2018 - E. McDuffie - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2700,8 +2656,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!    13 Dec 2018 - E. McDuffie - Initial version
-!    28 May 2020 - X. Wang     - Merged with chlorine chemsitry
+!  13 Dec 2018 - E. McDuffie - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2757,10 +2713,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  02 Mar 2018 - M. Sulprizio- Change daytime gamma to 4.4e-3 and nighttime
-!                              gamma to 8.0e-6 based on recommendation from E.
-!                              Marais to address that SOAGX is a factor of 1.5
-!                              lower in v11-02d than in Marais et al. [2016]
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2860,6 +2813,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2946,6 +2900,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3053,6 +3008,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3162,6 +3118,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3241,6 +3198,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3318,10 +3276,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3399,10 +3354,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3480,10 +3432,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3561,10 +3510,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3642,10 +3588,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3723,10 +3666,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3805,6 +3745,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3883,6 +3824,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3961,6 +3903,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4040,6 +3983,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4120,6 +4064,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4201,6 +4146,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  12 Mar 2018 - X. Wang  - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4252,12 +4198,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  15 Jan 2018 - X. Wang     - Updated function for Cl-(p) simulation
-!  13 Dec 2018 - E. McDuffie - Update to report ClNO2 yield & N2O5 gamma
-!  18 May 2020 - X. Wang     - Merged N2O5 uptake and chlorine chemistry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4347,17 +4288,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere. Also now use the
-!                              standard N2O5 calculation to establish gamma for
-!                              sulfate, rather than relying on a fixed factor.
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
-!  13 Dec 2018 - E. McDuffie - Now report kN2O5 and SA-weighted gamma
-!  25 May 2020 - X. Wang     - Remove reporting gamma since this is only for
-!                              stratosphere
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4454,10 +4385,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4522,10 +4450,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)                   :: kISum    ! Rxn rate O3 + Br- in sea salt
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4580,6 +4505,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4658,6 +4584,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Aug 2018 - X. Wang      - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4748,6 +4675,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4804,9 +4732,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sep 2015 - J. Schmidt  - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
-!  16 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4903,6 +4829,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Nov 2018 - X. Wang   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4990,6 +4917,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  16 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5066,6 +4994,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5152,11 +5081,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  25 Jan 2018 - X. Wang     - Updated to include both Cl- and Br-
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5214,13 +5139,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)             :: kISum
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Cl- and Br- separately;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jam 2018 - X. Wang     - Updated to include Cl-(p)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5293,6 +5212,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Jun 2019 - X. Wang     - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5367,6 +5287,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5440,13 +5361,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
-!  25 Jan 2018 - X. Wang     - Move reactions on troposphere cloud to
-!                              HETClNO3_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5537,11 +5452,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  16 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  06 Jun 2018 - X. Wang - Updated to new chemistry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5642,10 +5553,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Br-, HSO3-, and SO3--;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jan 2018 - X. Wang       - Move reactions on troposphere cloud to
-!                                HetHOBr_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5736,10 +5644,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Cl-, HSO3-, and SO3--;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jan 2017 - X. Wang       - Move HOBr + Br- in troposphere cloud to
-!                                HETHOBr_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5856,7 +5761,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - X. Wang      - Initial version
-!  08 Jun 2019 - X. Wang      - Updated to new cloud process
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5987,8 +5892,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - X. Wang      - Initial version
-!  08 Jun 2018 - X. Wang      - Updated to new cloud process and merged
-!                               HETHOBr_HSO3 and HETHOBr_SO3 here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6090,6 +5994,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6149,8 +6054,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6280,6 +6184,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  05 Jul 2019 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6343,8 +6248,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6468,6 +6372,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6572,6 +6477,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  02 Jul 2019 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6636,6 +6542,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6674,6 +6581,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Oct 2013 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6729,13 +6637,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  16 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
-!  05 Jun 2019 - X. Wang - Added temperature dependence
-!  08 Jun 2019 - X. Wang - Moved cloud updake in CloudHet
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -6831,10 +6734,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6924,11 +6824,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7013,12 +6909,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7104,12 +6995,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7221,6 +7107,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Nov 2018 - X. Wang      - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7314,6 +7201,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial vesion
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7368,10 +7256,7 @@ MODULE GCKPP_HETRATES
 !  Taken from the old SMVGEAR function calcrate.F.
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  15 Jun 2017 - M. Sulprizio- Move conversion of RH from fraction to % to
-!                              SET_HET above
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7524,13 +7409,7 @@ MODULE GCKPP_HETRATES
 !       2013.
 !
 ! !REVISION HISTORY:
-!  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
-!  22 May 2013 - M. Payer    - Added option to read GAMMA_HO2 from
-!                              input.geos. Recommended value is 0.2
-!                              based on Jacob et al (2000) and Mao
-!                              et al. (2013).
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7759,6 +7638,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7896,9 +7776,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Adapted from CLD1K_BrNO3
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!  15 Oct 2018 - C.D. Holmes - Corrections for ice radius, volume, surface area
-!  01 Aug 2020 - C.D. Holmes - Vliq, Vice now cm3/cm3 units, consistent with comments and Aliq, Aice
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8082,9 +7960,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Initial version
-!  27 Feb 2018 - M. Sulprizio  - Obtain Henry's law parameters from species
-!                                database in SET_HET instead of hardcoding here
-!  01 Apr 2018 - X. Wang       - Updated to correct calculation
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8169,6 +8045,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  02 Jul 2019 - X. Wang       - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8229,6 +8106,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jul 2014 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8295,13 +8173,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  23 Feb 2000 - R. Yantosca - Initial version
-!  (1 ) Bundled into "wetscav_mod.f" (bmy, 11/8/02)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  10-Jan-2011 - H. Amos - Corrected the units on KStar298 from moles/atm
-!                          to M/atm
-!  15-May-2013 - F. Paulot - Fix R constant
-!  08 Dec 2015 - R. Yantosca - Now use functions from henry_mod.F
-!  09 Jul 2019 - X. Wang - Add pH as input
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8383,10 +8255,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  27 Feb 2011 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8450,7 +8319,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)             :: FC_RO2HO2
 !
 ! !REVISION HISTORY:
-!  24 Jul 2014 - R. Yantosca - Now inlined to calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8496,8 +8365,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  (1 ) Branching ratio calculation (tmf, 2/6/05).
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8546,13 +8414,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
 !        and Daniel Jacob circa 1989/1990.
-!  (2 ) Updated following Atkinson 1990.
-!  (3 ) Change yield from Isoprene Nitrate (ISN2) from 0.44% to 12%,
-!        according to Sprengnether et al., 2002. (amf, bmy, 1/7/02)
-!  (4 ) Eliminate obsolete code from 1/02 (bmy, 2/27/02)
-!  (5 ) Updated comment description of XCARBN (bmy, 6/26/03)
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8629,13 +8491,7 @@ MODULE GCKPP_HETRATES
 
 ! !REVISION HISTORY:
 !  01 Jul 1994 - lwh, jyl, gmg, djj - Initial version
-!  04 Apr 2003 - R. Yantosca - Updated comments, cosmetic changes
-!  07 Apr 2004 - R. Yantosca - Now return w/ default value if RADIUS is zero
-!                              (i.e. is smaller than a very small number)
-!  03 Dec 2009 - R. Yantosca - Prevent div-by-zero errors by returning the
-!                              default value if any of the args are zero
-!  03 Dec 2009 - R. Yantosca - Added ProTeX Header
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8706,12 +8562,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  17 Apr 2013 - S. D. Eastham - Initial version
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
-!                                objects via the arg list
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F)
-!  29 Jan 2016 - M. Sulprizio  - Moved this routine from ucx_mod.F to
-!                                gckpp_HetRates.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

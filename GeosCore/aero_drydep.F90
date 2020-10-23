@@ -344,7 +344,7 @@
 
                 ! Convert dust flux from [kg/s] to [#/cm2/s]
                 FLUX = ( TOT1 - TOT2 ) / DTCHEM
-                FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * &
+                FLUX = FLUX * State_Chm%SpcData(ID)%Info%MW_g * &
                        1.e-3_fp / AREA_CM2
 
                 ! Save in AD44
@@ -458,7 +458,7 @@
              ! Convert from [kg/timestep] to [molec/cm2/s]
              ! Store in AD44
              FLUX = X0(BIN,JC) - X
-             FLUX = FLUX / (State_Chm%SpcData(ID)%Info%emMW_g * &
+             FLUX = FLUX / (State_Chm%SpcData(ID)%Info%MW_g * &
                     1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
 
              IF ( JC == 1 ) THEN
@@ -508,7 +508,7 @@
           ! Convert from [kg/timestep] to [molec/cm2/s]
           ! Store in AD44
           FLUX = Y0 - Y
-          FLUX = FLUX / (State_Chm%SpcData(id_H2SO4)%Info%emMW_g * &
+          FLUX = FLUX / (State_Chm%SpcData(id_H2SO4)%Info%MW_g * &
                  1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
 
           AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX

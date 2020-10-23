@@ -66,7 +66,6 @@ MODULE GAMAP_MOD
   INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
   INTEGER,           ALLOCATABLE :: NTRAC(:)
   INTEGER,           ALLOCATABLE :: INDEX(:,:)
-  INTEGER,           ALLOCATABLE :: MOLC(:,:)
   REAL*4,            ALLOCATABLE :: MWT(:,:)
   REAL*4,            ALLOCATABLE :: SCALE(:,:)
   CHARACTER(LEN=40), ALLOCATABLE :: NAME(:,:)
@@ -336,8 +335,6 @@ CONTAINS
 125 FORMAT( '#  --      (1X   )  1-character spacer'                 )
 130 FORMAT( '# FULLNAME (A30  )  Full tracer name (up to 30 chars)'  )
 135 FORMAT( '# MOLWT    (E10.0)  Molecular weight (kg/mole)'         )
-140 FORMAT( '# C        (I3   )  For HC''s: # moles C/moles tracer;',&
-            ' otherwise set=1'                                       )
 145 FORMAT( '# TRACER   (I9   )  Tracer number (up to 9 digits)'     )
 150 FORMAT( '# SCALE    (E10.3)  Standard scale factor to convert',  &
             ' to unit given below'                                   )
@@ -358,7 +355,7 @@ CONTAINS
 
        ! Write tracers [ppbv] to "tracerinfo.dat" file
        CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
+                         SCALE(T,45), UNIT(T,45), N )
     ENDDO
 
     !-------------------------------------
@@ -386,7 +383,7 @@ CONTAINS
 
        ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
        CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
+                         SCALE_NEW,   UNIT_NEW, N )
     ENDDO
 
     !-------------------------------------
@@ -414,7 +411,7 @@ CONTAINS
 
        ! Write tracers [molec/cm2] to "tracerinfo.dat"
        CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
+                         SCALE_NEW,   UNIT_NEW, N )
     ENDDO
 
     !-------------------------------------
@@ -442,7 +439,7 @@ CONTAINS
 
        ! Write tracers [kg/s] to "tracerinfo.dat"
        CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
+                         SCALE_NEW,   UNIT_NEW, N )
     ENDDO
 
     !-------------------------------------
@@ -470,7 +467,7 @@ CONTAINS
 
        ! Write tracers [kg] to "tracerinfo.dat"
        CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
+                         SCALE_NEW,   UNIT_NEW, N )
     ENDDO
 
     !-------------------------------------
@@ -490,7 +487,7 @@ CONTAINS
           ! Write tracers to file
           DO T = 1, NTRAC(D)
              CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), &
-                               MOLC(T,D), SCALE(T,D), UNIT(T,D), INDEX(T,D) )
+                               SCALE(T,D), UNIT(T,D), INDEX(T,D) )
           ENDDO
        ENDIF
     ENDDO
@@ -510,7 +507,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
+  SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, MWT, SCALE, UNIT, N )
 !
 ! !USES:
 !
@@ -522,7 +519,6 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
     CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
     REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
-    INTEGER,          INTENT(IN) :: MOLC    ! Moles C/mole tracer (for HC's)
     INTEGER,          INTENT(IN) :: N       ! Tracer number
     REAL*4,           INTENT(IN) :: SCALE   ! GAMAP scale factor
     CHARACTER(LEN=*), INTENT(IN) :: UNIT    ! Unit string
@@ -544,7 +540,7 @@ CONTAINS
 
     ! Write one line to "tracerinfo.dat" file
     WRITE( IU_FILE, 100, IOSTAT=IOS ) &
-         ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, MOLC, N, SCALE, TRIM( UNIT )
+         ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, N, SCALE, TRIM( UNIT )
 
     ! Error check
     IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_tinfo:1' )
@@ -1042,7 +1038,7 @@ CONTAINS
 ! !IROUTINE: init_tracerinfo
 !
 ! !DESCRIPTION: Subroutine INIT\_TRACERINFO initializes the NAME, FNAME,
-!  MWT, MOLC, INDEX, MOLC, UNIT arrays which are used to define the
+!  MWT, INDEX, UNIT arrays which are used to define the
 !  "tracerinfo.dat" file.
 !\\
 !\\
@@ -1091,7 +1087,7 @@ CONTAINS
     LOGICAL                 :: DO_TIMESERIES
     CHARACTER(LEN=40)       :: NAME5, NAME6
     REAL(fp),      SAVE     :: POP_XMW
-    REAL(fp)                :: DUM, MolecRatio
+    REAL(fp)                :: DUM
     INTEGER                 :: N_Hg_CATS
     INTEGER                 :: SPC_INDEX
 
@@ -1140,17 +1136,10 @@ CONTAINS
        ! Store quantities for each tracer
        NAME (T,45) = SpcInfo%Name
        FNAME(T,45) = TRIM( NAME(T,45) ) // ' tracer'
-       MOLC (T,45) = SpcInfo%MolecRatio
        SCALE(T,45) = 1.0e+9
        INDEX(T,45) = T   !changed from N (phs, 3/19/03)
-       MWT  (T,45) = SpcInfo%emMW_g * 1.e-3_fp
-
-       ! Special handling for hydrocarbons
-       IF ( MOLC(T,45) > 1 ) THEN
-          UNIT(T,45) = 'ppbC'
-       ELSE
-          UNIT(T,45) = 'ppbv'
-       ENDIF
+       MWT  (T,45) = SpcInfo%MW_g * 1.e-3_fp
+       UNIT(T,45) = 'ppbv'
 
        ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
        IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
@@ -1203,7 +1192,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3
           SCALE(T,03) = 1e0
 
@@ -1316,7 +1304,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3
           SCALE(T,03) = 1e0
 
@@ -1428,7 +1415,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3 ! hard-coded MW
           SCALE(T,03) = 1e0
           NAME (T,03) = SpcInfo%Name
@@ -1442,7 +1428,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3  ! hard-coded MW
           SCALE(T,03) = 1e0
           NAME (T,03) = 'Snow_Hg'
@@ -1456,7 +1441,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3  ! hard-coded MW
           SCALE(T,03) = 1e0
           NAME (T,03) = 'Snow_HgN'
@@ -1471,7 +1455,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3  ! hard-coded MW
           SCALE(T,03) = 1e0
           NAME (T,03) = 'SnHg_ln'
@@ -1485,7 +1468,6 @@ CONTAINS
 
           ! Define quantities
           UNIT (T,03) = 'kg'
-          MOLC (T,03) = 1
           MWT  (T,03) = 201e-3  ! hard-coded MW
           SCALE(T,03) = 1e0
           NAME (T,03) = 'SnHgN_ln'
@@ -1505,7 +1487,6 @@ CONTAINS
 
        ! Define quantities
        UNIT (T,03) = 'kg'
-       MOLC (T,03) = 1
        MWT  (T,03) = 201e-3  ! hard-coded MW
        SCALE(T,03) = 1e0
 
@@ -3784,7 +3765,6 @@ CONTAINS
           ! Define quantities
           UNIT (T,21) = 'unitless'
           INDEX(T,21) = T + ( SPACING * 14 )
-          MOLC (T,21) = 1
           MWT  (T,21) = 0e0
           SCALE(T,21) = 1e0
 
@@ -4034,7 +4014,6 @@ CONTAINS
        FNAME(T,31) = 'Surface pressure'
        UNIT (T,31) = 'hPa'
        INDEX(T,31) = T + ( SPACING * 10 )
-       MOLC (T,31) = 1
        MWT  (T,31) = 0e0
        SCALE(T,31) = 1e0
 
@@ -4064,7 +4043,6 @@ CONTAINS
           ! Define the rest of the quantities
           FNAME(T,41) = 'PBL depth'
           INDEX(T,41) = T + ( SPACING * 27 )
-          MOLC (T,41) = 1
           MWT  (T,41) = 0e0
           SCALE(T,41) = 1e0
 
@@ -4108,7 +4086,6 @@ CONTAINS
 
           ! Define the rest of the quantities
           FNAME(T,43) = 'Chemically produced ' // TRIM( NAME(T,43) )
-          MOLC (T,43) = 1
           SCALE(T,43) = 1e0
        ENDDO
 
@@ -4133,8 +4110,7 @@ CONTAINS
              SpcInfo       => State_Chm%SpcData(T)%Info
              NAME (N,44)   = TRIM( SpcInfo%Name ) // 'df'
              FNAME(N,44)   = TRIM( SpcInfo%Name ) // ' drydep flux'
-             MWT  (N,44)   = SpcInfo%emMW_g * 1.e-3_fp
-             MOLC (N,44)   = SpcInfo%MolecRatio
+             MWT  (N,44)   = SpcInfo%MW_g * 1.e-3_fp
              SCALE(N,44)   = 1.0e0
              INDEX(N,44)   = T + ( SPACING * 36 )
              NTRAC(44)     = NTRAC(44) + 1
@@ -4152,8 +4128,7 @@ CONTAINS
              NN            = N + nDryDep  +(ICOMP-IDIAG)*IBINS
              NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'
              FNAME(NN,44)  = TRIM( SpcInfo%Name ) // ' drydep velocity'
-             MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
-             MOLC (NN,44)  = SpcInfo%MolecRatio
+             MWT  (NN,44)  = SpcInfo%MW_g * 1.e-3_fp
              UNIT (NN,44)  = 'cm/s'
              SCALE(NN,44)  = 1.0e0
              INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -4171,8 +4146,7 @@ CONTAINS
              NAME (N,44)  = TRIM( SpcInfo%Name ) // 'df'
              FNAME(N,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
              UNIT (N,44)  = 'molec/cm2/s'
-             MWT  (N,44)  = SpcInfo%emMW_g * 1.e-3_fp
-             MOLC (N,44)  = SpcInfo%MolecRatio
+             MWT  (N,44)  = SpcInfo%MW_g * 1.e-3_fp
              SCALE(N,44)  = 1.0e0
              INDEX(N,44)  = T + ( SPACING * 36 )
              NTRAC(44)    = NTRAC(44) + 1
@@ -4183,8 +4157,7 @@ CONTAINS
              NN            = N + nDryDep + (ICOMP-IDIAG)* IBINS
              NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'
              FNAME(NN,44)  = TRIM( SpcInfo%Name ) // ' drydep velocity'
-             MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
-             MOLC (NN,44)  = SpcInfo%MolecRatio
+             MWT  (NN,44)  = SpcInfo%MW_g * 1.e-3_fp
              UNIT (NN,44)  = 'cm/s'
              SCALE(NN,44)  = 1.0e0
              INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -4211,7 +4184,6 @@ CONTAINS
 
           ! Define quantities
           INDEX(T,48) = T + ( SPACING * 19 )
-          MOLC (T,48) = 1
           MWT  (T,48) = 0e0
           SCALE(T,48) = 1e0
 
@@ -4305,7 +4277,6 @@ CONTAINS
        DO T = 1, PD53
 
           ! Define quantities
-          MOLC (T,53) = 1
           MWT  (T,53) = Input_Opt%POP_XMW
           SCALE(T,53) = 1e0
 
@@ -4487,7 +4458,6 @@ CONTAINS
           NAME (T,60) = SpcInfo%Name
           FNAME(T,60) = 'Rates from ND60 TOMAS diagnostic'
           INDEX(T,60) = T + ( SPACING * 6 )
-          MOLC (T,60) = 1
           MWT  (T,60) = 1e0
           SCALE(T,60) = 1e0
        ENDDO
@@ -4518,7 +4488,6 @@ CONTAINS
           ! Define the rest of the quantities
           UNIT (T,61) = 'cm-3s-1'
           INDEX(T,61) = T + ( SPACING * 7 )
-          MOLC (T,61) = 1
           MWT  (T,61) = 1e0
           SCALE(T,61) = 1e0
        ENDDO
@@ -4537,7 +4506,6 @@ CONTAINS
           NAME (T,65) = Input_Opt%FAM_NAME( T )
           FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
           INDEX(T,65) = T + ( SPACING * 17 )
-          MOLC (T,65) = 1
           MWT  (T,65) = 0e0
           SCALE(T,65) = 1e0
 
@@ -4614,7 +4582,6 @@ CONTAINS
           ! Define the rest of the quantities
           FNAME(T,66) = 'GMAO ' // TRIM( NAME(T,66) ) // ' field'
           INDEX(T,66) = T + ( SPACING * 12 )
-          MOLC (T,66) = 1
           MWT  (T,66) = 0e0
           SCALE(T,66) = 1e0
        ENDDO
@@ -4708,7 +4675,6 @@ CONTAINS
           ! Define the rest of the quantities
           FNAME(T,67) = 'GMAO ' // TRIM( NAME(T,67) ) // ' field'
           INDEX(T,67) = T + ( SPACING * 11 )
-          MOLC (T,67) = 1
           MWT  (T,67) = 0e0
           SCALE(T,67) = 1e0
        ENDDO
@@ -4764,7 +4730,6 @@ CONTAINS
 
           ! Define the rest of the quantities
           INDEX(T,68) = T + ( SPACING * 24 )
-          MOLC (T,68) = 1
           MWT  (T,68) = 0e0
           SCALE(T,68) = 1e0
        ENDDO
@@ -4790,7 +4755,6 @@ CONTAINS
 
           ! Define quantities
           INDEX(T,72) = T + ( SPACING * 72 )
-          MOLC (T,72) = 1
           MWT  (T,72) = 0e0
           SCALE(T,72) = 1e0
 
@@ -5038,10 +5002,6 @@ CONTAINS
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
        INDEX = 0
 
-       ALLOCATE( MOLC( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )
-       MOLC = 0
-
        ALLOCATE( MWT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
        MWT = 0.0
@@ -5067,10 +5027,6 @@ CONTAINS
        ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
        INDEX = 0
-
-       ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )
-       MOLC = 0
 
        ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
@@ -5130,7 +5086,6 @@ CONTAINS
     IF ( ALLOCATED( DESCRIPT ) ) DEALLOCATE( DESCRIPT )
     IF ( ALLOCATED( FNAME    ) ) DEALLOCATE( FNAME    )
     IF ( ALLOCATED( INDEX    ) ) DEALLOCATE( INDEX    )
-    IF ( ALLOCATED( MOLC     ) ) DEALLOCATE( MOLC     )
     IF ( ALLOCATED( MWT      ) ) DEALLOCATE( MWT      )
     IF ( ALLOCATED( NAME     ) ) DEALLOCATE( NAME     )
     IF ( ALLOCATED( NTRAC    ) ) DEALLOCATE( NTRAC    )

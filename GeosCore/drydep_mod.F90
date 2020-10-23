@@ -4408,17 +4408,8 @@ CONTAINS
     ! KOA       POPs KOA parameter
     !
     ! NOTES:
-    ! (1) For XMW, we take the species emitted molecular weight
-    !      (EmMW_g * 1e-3).  Several hydrocarbons are transported
-    !      as equivalent molecules of carbon.  In this case the
-    !      EmMw_g will be 12.0.
-    ! (2) We have edited the molecular weights of some species to
-    !      match the prior code.  Some of these definitions are
-    !      inconsistent with the listed molecular weights. (e.g.
-    !      ACET is transported as 3 carbons, but we give it a
-    !      molecular weight of 58 instead of 12).  These will need
-    !      to be researched further.
-    ! (3) The deposition names of SO4s and NITs need to be in
+    ! (1) For XMW, we take the species molecular weight (MW_g * 1e-3). 
+    ! (2) The deposition names of SO4s and NITs need to be in
     !      uppercase.  Therefore, we overwrite the values from
     !      the species database with SO4S, NITS.
     !=================================================================

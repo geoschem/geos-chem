@@ -227,7 +227,7 @@ CONTAINS
           ! Otherwise just return the concentration in HNO3_sav
           IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
              ! HNO3 is in v/v (from HEMCO), convert to ug/m3
-             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%emMW_g
+             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%MW_g
              HNO3_UGM3 = HCO_HNO3(I,J,L) * State_Met%AIRDEN(I,J,L) &
                          * 1.e+9_fp / ( AIRMW / HNO3_MW_g )
           ELSE

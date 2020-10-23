@@ -438,7 +438,7 @@ CONTAINS
 #endif
 
                    ! Molecular weight for the species [g]
-                   MW_g = State_Chm%SpcData(NN)%Info%emMW_g
+                   MW_g = State_Chm%SpcData(NN)%Info%MW_g
 
                    !--------------------------------------------------------
                    ! Loss freq [s-1]
@@ -558,7 +558,7 @@ CONTAINS
 
           ! Put ozone in [v/v] for Linoz or Synoz
           Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
-                             / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
+                             / State_Chm%SpcData(id_O3)%Info%MW_g ) / AD
 
           ! Do Linoz or Synoz
           IF ( LLINOZ ) THEN
@@ -577,7 +577,7 @@ CONTAINS
 
           ! Put ozone back to [kg]
           Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
-                             / State_Chm%SpcData(id_O3)%Info%emMW_g )
+                             / State_Chm%SpcData(id_O3)%Info%MW_g )
 
        ENDIF
 
@@ -713,7 +713,7 @@ CONTAINS
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / ( AIRMW                  &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
@@ -721,7 +721,7 @@ CONTAINS
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           /  ( AIRMW                 &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
                 ENDIF
 
                 ! Special adjustment for G-C Br2,

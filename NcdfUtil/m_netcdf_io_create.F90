@@ -22,14 +22,11 @@ module m_netcdf_io_create
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  07 Nov 2011 - R. Yantosca - Also give the option to create a netCDF4 file
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!
 ! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -74,12 +71,7 @@ CONTAINS
 !  (no groups, no user-defined types)
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  07 Nov 2011 - R. Yantosca - Also give the option to create a netCDF4 file
-!                              by passing the optional WRITE_NC4 argument
-!  17 Feb 2017 - C. Holmes   - Use netCDF-4 classic model for netCDF-4 files
-!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
-!                              only if the library has nf_def_var_deflate
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -149,8 +141,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

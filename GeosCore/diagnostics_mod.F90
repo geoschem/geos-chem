@@ -184,7 +184,7 @@ CONTAINS
 
           ! Conversion factor to pptv
           ToPptv = ( AIRMW                                  /                &
-                     State_Chm%SpcData(id_Hg2)%Info%EmMW_g  *                &
+                     State_Chm%SpcData(id_Hg2)%Info%MW_g  *                  &
                      1.0e+12_fp                               )
 
           ! Save into State_diag
@@ -199,7 +199,7 @@ CONTAINS
 
           ! Conversion factor to pptv
           ToPptv = ( AIRMW                                  /                &
-                     State_Chm%SpcData(id_HgP)%Info%EmMW_g  *                &
+                     State_Chm%SpcData(id_HgP)%Info%MW_g  *                  &
                      1.0e+12_fp                               )
 
           ! Save into State_Diag

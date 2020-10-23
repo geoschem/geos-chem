@@ -483,7 +483,7 @@ CONTAINS
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
           ! Molecular weight in kg
-          MWkg = SpcInfo%emMW_g * 1.e-3_fp
+          MWkg = SpcInfo%MW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used:
           ! If specified so, apply emissions only above the PBL_TOP.

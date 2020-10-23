@@ -774,30 +774,30 @@ CONTAINS
 
                 IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
                    O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                   State_Chm%SpcData(id_O3)%Info%emMW_g
+                                   State_Chm%SpcData(id_O3)%Info%MW_g
 
                 ENDIF
 
                 IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
                    CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                   State_Chm%SpcData(id_CH4)%Info%emMW_g
+                                   State_Chm%SpcData(id_CH4)%Info%MW_g
 
                 ENDIF
 
                 N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
-                                State_Chm%SpcData(id_N2O)%Info%emMW_g
+                                State_Chm%SpcData(id_N2O)%Info%MW_g
 
                 CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
-                                  State_Chm%SpcData(id_CFC11)%Info%emMW_g
+                                  State_Chm%SpcData(id_CFC11)%Info%MW_g
 
                 CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
-                                  State_Chm%SpcData(id_CFC12)%Info%emMW_g
+                                  State_Chm%SpcData(id_CFC12)%Info%MW_g
 
                 CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
-                                  State_Chm%SpcData(id_CCL4)%Info%emMW_g
+                                  State_Chm%SpcData(id_CCL4)%Info%MW_g
 
                 CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) * AIRMW / &
-                                  State_Chm%SpcData(id_HCFC22)%Info%emMW_g
+                                  State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
              ELSE
 
@@ -807,11 +807,11 @@ CONTAINS
 
                 IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
                    O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                   State_Chm%SpcData(id_O3)%Info%emMW_g
+                                   State_Chm%SpcData(id_O3)%Info%MW_g
                 ENDIF
                 IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
                    CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                   State_Chm%SpcData(id_CH4)%Info%emMW_g
+                                   State_Chm%SpcData(id_CH4)%Info%MW_g
                 ENDIF
                 N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
 
@@ -836,25 +836,25 @@ CONTAINS
                 !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
                 !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
                 O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                State_Chm%SpcData(id_O3)%Info%emMW_g
+                                State_Chm%SpcData(id_O3)%Info%MW_g
 
                 CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                State_Chm%SpcData(id_CH4)%Info%emMW_g
+                                State_Chm%SpcData(id_CH4)%Info%MW_g
 
                 N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
-                                State_Chm%SpcData(id_N2O)%Info%emMW_g
+                                State_Chm%SpcData(id_N2O)%Info%MW_g
 
                 CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
-                                 State_Chm%SpcData(id_CFC11)%Info%emMW_g
+                                 State_Chm%SpcData(id_CFC11)%Info%MW_g
 
                 CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
-                                 State_Chm%SpcData(id_CFC12)%Info%emMW_g
+                                 State_Chm%SpcData(id_CFC12)%Info%MW_g
 
                 CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
-                                 State_Chm%SpcData(id_CCL4)%Info%emMW_g
+                                 State_Chm%SpcData(id_CCL4)%Info%MW_g
 
                 CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/ &
-                                 State_Chm%SpcData(id_HCFC22)%Info%emMW_g
+                                 State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
 
                 ! TEST IMPACT OF STRAT CHEM
@@ -892,7 +892,7 @@ CONTAINS
                 IF (FLG_FIRST_STRAT(I,J).EQ.0) THEN
                    FLG_FIRST_STRAT(I,J) = 1
                    CH4SCL(I,J) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                 State_Chm%SpcData(id_CH4)%Info%emMW_g /   &
+                                 State_Chm%SpcData(id_CH4)%Info%MW_g /     &
                                  (CH4CLIM(I,J,L)/1E9)
                 ENDIF
 

@@ -24,13 +24,11 @@ module m_netcdf_io_checks
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes to ProTeX headers
-!
 ! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -66,8 +64,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,8 +117,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,10 +178,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  03 Oct 2014 - C.Keller - Now check for int, real and character attributes
-!  20 Feb 2015 - R. Yantosca - Now use NF_ATT_INQ function, it's more robust
-!  20 Feb 2015 - R. Yantosca - Now return attribute type to calling routine
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,8 +239,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-----------------------------------------------------------------------------
 !BOC

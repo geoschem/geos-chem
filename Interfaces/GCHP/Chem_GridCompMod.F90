@@ -31,11 +31,7 @@
 !
 ! GEOS-5 only:
 ! All GEOS-Chem species are stored in the GEOSCHEMchem internal state object
-! in units of kg/kg total. Since molecular weights are missing for 
-! non-transported species (SPC_<XXX>), a value of 1g/mol is used when 
-! converting molec/cm3 to kg/kg total. Hence, the concentrations of all
-! non-transported species are in units of 'kg of species with molecular
-! weight of 1g/mol per kg air'.
+! in units of kg/kg total.
 !\\
 !\\
 ! !INTERFACE:
@@ -5702,7 +5698,7 @@ CONTAINS
    
        ! Get molecular weight of species
        ID = IND_(TRIM(ISPEC))
-       MW = State_Chm%SpcData(ID)%Info%EmMW_g 
+       MW = State_Chm%SpcData(ID)%Info%MW_g 
    
        ! constant 
        !const = MAPL_AVOGAD / 1000.0 / ( MAPL_GRAV * ( MAPL_AIRMW / 1000.0 ) )
@@ -6468,7 +6464,7 @@ CONTAINS
             ASSOCIATED(Ptr10m) ) RunMe = .TRUE.
        IF ( RunMe ) THEN
           FieldName = 'SPC_'//TRIM(SpcName)
-          MW = SpcInfo%EmMW_g
+          MW = SpcInfo%MW_g
           IF ( MW < 0.0 ) THEN
              ! Get species and set MW to 1.0. This is ok because the internal
              ! state uses a MW of 1.0 for all species
@@ -6729,8 +6725,8 @@ CONTAINS
           SpcInfo   => State_Chm%SpcData(N)%Info ! Species database
           IF ( TRIM(SpcInfo%Name) == "OH" ) THEN
              id_OH = N
-             IF ( SpcInfo%emMW_g > 0.0 ) THEN
-                MW_kg = SpcInfo%emMW_g * 1.e-3
+             IF ( SpcInfo%MW_g > 0.0 ) THEN
+                MW_kg = SpcInfo%MW_g * 1.e-3
              ELSE
                 MW_kg = 1.0 * 1.e-3
              ENDIF
@@ -6966,8 +6962,8 @@ CONTAINS
     ! Loop over all species
     DO N = 1, State_Chm%nSpecies
 
-       ! Molecular weight. Note: -1.0 for non-advected species
-       MW = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight
+       MW = State_Chm%SpcData(N)%Info%MW_g
        IF ( MW < 0.0 ) MW = 1.0
 
        ! Construct field name
@@ -7285,9 +7281,9 @@ CONTAINS
        ENDDO
        ASSERT_(N > 0)
 
-       ! Molecular weight. Note: -1.0 for non-advected species
-   !    MW = State_Chm%SpcData(I)%Info%emMW_g
-   !    IF ( MW < 0.0 ) MW = 48.0 
+       ! Molecular weight
+       !MW = State_Chm%SpcData(I)%Info%MW_g
+       !IF ( MW < 0.0 ) MW = 48.0 
    
        ! # of vertical levels of Q
        IM = SIZE(ANAO3,1)

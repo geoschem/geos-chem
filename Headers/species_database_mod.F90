@@ -141,7 +141,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(43)
+    CHARACTER(LEN=17)           :: tags(41)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -176,21 +176,47 @@ CONTAINS
     SpcCount%nHgP     = 0
 
     ! Species database tags to match
-    tags = (/"Background_VV    ", "DD_AeroDryDep    ", "DD_DustDryDep    ",  &
-             "DD_DvzAerSnow    ", "DD_DvzMinVal     ", "DD_F0            ",  &
-             "DD_Hstar         ", "DD_KOA           ", "Density          ",  &
-             "EmMW_g           ", "Formula          ", "FullName         ",  &
-             "Is_Aerosol       ", "Is_DryAlt        ", "Is_DryDep        ",  &
-             "Is_HygroGrowth   ", "Is_Gas           ", "Is_Hg0           ",  &
-             "Is_Hg2           ", "Is_HgP           ", "Is_Photolysis    ",  &
-             "Is_RadioNuclide  ", "Is_WetDep        ", "Henry_CR         ",  &
-             "Henry_K0         ", "Henry_pKa        ", "MP_SizeResAer    ",  &
-             "MP_SizeResNum    ", "MolecRatio       ", "MW_g             ",  &
-             "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",  &
-             "WD_ConvFacI2G    ", "WD_KcScaleFac_Luo", "WD_KcScaleFac    ",  &
-             "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",  &
-             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    ",  &
-             "WD_RetFactor     "                                           /)
+    tags = (/"Background_VV    ",  &
+             "DD_AeroDryDep    ",  &
+             "DD_DustDryDep    ",  &
+             "DD_DvzAerSnow    ",  &
+             "DD_DvzMinVal     ",  &
+             "DD_F0            ",  &
+             "DD_Hstar         ",  &
+             "DD_KOA           ",  &
+             "Density          ",  &
+             "Formula          ",  &
+             "FullName         ",  &
+             "Is_Aerosol       ",  &
+             "Is_DryAlt        ",  &
+             "Is_DryDep        ",  &
+             "Is_HygroGrowth   ",  &
+             "Is_Gas           ",  &
+             "Is_Hg0           ",  &
+             "Is_Hg2           ",  &
+             "Is_HgP           ",  &
+             "Is_Photolysis    ",  &
+             "Is_RadioNuclide  ",  &
+             "Is_WetDep        ",  &
+             "Henry_CR         ",  &
+             "Henry_K0         ",  &
+             "Henry_pKa        ",  &
+             "MP_SizeResAer    ",  &
+             "MP_SizeResNum    ",  &
+             "MW_g             ",  &
+             "Radius           ",  &
+             "WD_AerScavEff    ",  &
+             "WD_CoarseAer     ",  &
+             "WD_ConvFacI2G    ",  &
+             "WD_KcScaleFac_Luo",  &
+             "WD_KcScaleFac    ",  &
+             "WD_Is_H2SO4      ",  &
+             "WD_Is_HNO3       ",  &
+             "WD_Is_SO2        ",  &
+             "WD_LiqAndGas     ",  &
+             "WD_RainoutEff_Luo",  &
+             "WD_RainoutEff    ",  &
+             "WD_RetFactor     "   /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -359,11 +385,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Density = Cast_and_RoundOff( v_real )
 
-          ELSE IF ( INDEX( key, "%EmMW_g" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%EmMw_g = Cast_and_RoundOff( v_real )
-
           ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -493,12 +514,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%MP_SizeResNum = v_bool
 
-          ELSE IF ( INDEX( key, "%MolecRatio" ) > 0 ) THEN
-             v_real = ONE_R4                          ! default = 1
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%MolecRatio = Cast_and_RoundOff( v_real )
-
           ELSE IF ( INDEX( key, "%MW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -607,9 +622,10 @@ CONTAINS
 #endif
 
        !--------------------------------------------------------------------
-       ! SANITY CHECK #1
-       ! Is_Gas and Is_Aero tags cannot both be TRUE at the same time
+       ! SANITY CHECKS
        !--------------------------------------------------------------------
+
+       ! Is_Gas and Is_Aero tags cannot both be TRUE at the same time
        IF ( ThisSpc%Is_Gas .and. ThisSpc%Is_Aerosol ) THEN
           errMsg = "Is_Gas and Is_Aerosol are both TRUE for species "     // &
                    TRIM( spc ) // "!"
@@ -617,10 +633,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! SANITY CHECK #2
        ! Is_Gas and Is_Aero tags cannot both be FALSE at the same time
-       !--------------------------------------------------------------------
        IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) ) THEN
           errMsg = "Is_Gas and Is_Aerosol are both FALSE for species "    // &
                    TRIM( spc ) // "!"
@@ -628,18 +641,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! SANITY CHECK #3
-       ! If the EmMW_g tag is still undefined, then set it to MW_g
-       !--------------------------------------------------------------------
-       IF ( ThisSpc%EmMW_g < ZERO ) THEN
-          ThisSpc%EmMW_g = ThisSpc%MW_g
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! SANITY CHECK #4
        ! If the species is a gas, set all aerosol fields to missing values
-       !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
 
           SELECT CASE( TRIM( spc ) )
@@ -666,10 +668,7 @@ CONTAINS
           END SELECT
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! SANITY CHECK #5
        ! If the species is an aerosol, set all gas fields to missing values
-       !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Aerosol ) THEN
           ThisSpc%WD_ConvFacI2G = MISSING
           ThisSpc%WD_RetFactor  = MISSING

@@ -21,13 +21,11 @@ module m_Do_Err_Out
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes to ProTeX headers
-!
 ! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,11 +74,7 @@ CONTAINS
 !  NOTE: SHOULD PROPAGATE ERROR CODE TO MAIN PROGRAM LEVEL!
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  07 Mar 2017 - R. Yantosca - Now exit with error code 999, to avoid an
-!                              inadvertent error code of 0 being returned
-!  08 Nov 2017 - R. Yantosca - Now flush the buffer after writing,
-!                              to be visilble after stop (esp. w/ gfortran)
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC

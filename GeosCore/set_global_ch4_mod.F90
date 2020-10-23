@@ -165,7 +165,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Write out pseudo (implied) CH4 flux?
     PseudoFlux = ASSOCIATED(State_Diag%CH4pseudoFlux)
-    MWCH4      = State_Chm%SpcData(id_CH4)%Info%emMW_g
+    MWCH4      = State_Chm%SpcData(id_CH4)%Info%MW_g
     IF ( MWCH4 <= 0.0_fp ) MWCH4 = 16.0_fp
     DT         = GET_TS_DYN()
 #endif

@@ -745,7 +745,7 @@ CONTAINS
           ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
           FLUX     = ( TOT1 - TOT2 ) / DTCHEM
           FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW &
-                     / State_Chm%SpcData(id_SALA)%Info%emMW_g ) &
+                     / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                      * 1.e-3_fp ) / AREA_CM2
 
           ! Drydep flux in chemistry only

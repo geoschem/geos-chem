@@ -22,13 +22,12 @@ module m_netcdf_io_close
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!
+! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
-!!EOP
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
@@ -63,7 +62,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,8 +109,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
