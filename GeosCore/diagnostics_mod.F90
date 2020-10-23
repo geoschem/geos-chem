@@ -410,7 +410,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
-                               ( AIRMW / State_Chm%SpcData(N)%Info%emMW_g )
+                               ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
        ENDDO
        ENDDO
        ENDDO
