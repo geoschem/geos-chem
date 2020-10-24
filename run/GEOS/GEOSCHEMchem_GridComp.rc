@@ -108,6 +108,9 @@ INIT_ZERO:            0
 #
 ARCHIVED_CONV:        0
 
+# %%% Use MOIST module for convective transport (including washout)
+Species_friendly_to_moist: 0
+
 #
 # %%% Tuning parameter to reduce washout efficiency 
 # %%% of convective large-scale precip.

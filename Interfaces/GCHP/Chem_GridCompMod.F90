@@ -390,15 +390,10 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR)    :: ProviderName  ! Provider name
     CHARACTER(LEN=ESMF_MAXSTR)    :: LongName      ! Long name for diagnostics
     CHARACTER(LEN=ESMF_MAXSTR)    :: ShortName
-    CHARACTER(LEN=3)              :: III
-    CHARACTER(LEN=6)              :: T_FJX
-    CHARACTER(LEN=50)             :: T_REACT
-    CHARACTER(LEN=120)            :: CLINE
-    REAL(fp)                      :: F_FJX
-    INTEGER                       :: JJ, NUNIT
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
-    LOGICAL                       :: FriendDyn, FriendTurb
+    INTEGER                       :: DoIt
+    LOGICAL                       :: FriendMoist
 #endif
 
     __Iam__('SetServices')
@@ -568,6 +563,17 @@ CONTAINS
 !-- Read in species from input.geos and set FRIENDLYTO
     ! ewl TODO: This works but is not ideal. Look into how to remove it.
 
+#if defined( MODEL_GEOS )
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Species_friendly_to_moist:",&
+                                  Default = 0, &                          
+                                  __RC__ ) 
+    FriendMoist = (DoIt==1)
+    IF ( MAPL_am_I_Root() ) THEN
+       WRITE(*,*) 'GCC species friendly to MOIST: ',FriendMoist
+    ENDIF
+#endif
+
     ! Open input.geos and read a lines until hit advected species menu
     IU_GEOS = findFreeLun()
     OPEN( IU_GEOS, FILE='input.geos', STATUS='OLD', IOSTAT=IOS )
@@ -593,42 +599,12 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
           ! Define friendliness to dynamics / turbulence 
-          FriendDyn  = .TRUE.
-          FriendTurb = .TRUE.
-          IF ( N > 1 ) THEN
-             IF ( TRIM(SUBSTRS(2))=="N" .OR. TRIM(SUBSTRS(2))=="NO" ) THEN
-                FriendDyn = .FALSE.
-             ENDIF
-             IF ( N > 2 ) THEN
-                IF ( TRIM(SUBSTRS(3))=="N" .OR. TRIM(SUBSTRS(3))=="NO" ) THEN
-                   FriendTurb = .FALSE.
-                ENDIF
-             ELSE
-                FriendTurb = FriendDyn
-             ENDIF
+          MYFRIENDLIES = 'DYNAMICS:TURBULENCE'
+          IF ( FriendMoist ) THEN
+          !IF ( FriendMoist .and. trim(substrs(1))=='O3' ) THEN
+             MYFRIENDLIES = TRIM(MYFRIENDLIES)//':MOIST'
           ENDIF
-          IF (       FriendDyn .AND.       FriendTurb ) &
-                                     MYFRIENDLIES = 'DYNAMICS:TURBULENCE'
-          IF (       FriendDyn .AND. .NOT. FriendTurb ) &
-                                     MYFRIENDLIES = 'DYNAMICS'
-          IF ( .NOT. FriendDyn .AND.       FriendTurb ) &
-                                     MYFRIENDLIES = 'TURBULENCE'
-          IF ( .NOT. FriendDyn .AND. .NOT. FriendTurb ) &
-                                     MYFRIENDLIES = 'GEOSCHEMCHEM'
-
-          ! Get long name
-          ! Spc_Info is retired in 13.0.0. Use short name temporarily.
-          !iName = TRIM(SUBSTRS(1))
-          !CALL Spc_Info ( iName=iName,                  &
-          !                KppSpcID=-1,                  &
-          !                oDiagName = FullName,         &
-          !                oFormula = Formula,           &
-          !                Found=Found,                  &
-          !                Underscores = .TRUE.,         &
-          !                RC = RC )
-          !IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
           FullName = TRIM(SUBSTRS(1))
-
           call MAPL_AddInternalSpec(GC, &
                SHORT_NAME         = TRIM(SPFX)//TRIM(SUBSTRS(1)), &
                LONG_NAME          = TRIM(FullName)//                &
@@ -641,7 +617,6 @@ CONTAINS
                RC                 = RC  )
           Nadv = Nadv+1
           AdvSpc(Nadv) = TRIM(SUBSTRS(1))
-          
           ! verbose
           if(MAPL_am_I_Root()) write(*,*) &
                    'GCC added to internal: '//TRIM(SPFX)//TRIM(SUBSTRS(1)), &
@@ -664,9 +639,6 @@ CONTAINS
        ENDIF
     ENDDO
     CLOSE( IU_GEOS )
-!
-!    CALL READ_SPECIES_FROM_FILE( GC, MAPL_am_I_Root(), restartAttr, &
-!                                 AdvSpc, Nadv, SimType, RC )
 
 !-- Add all additional species in KPP (careful not to add dummy species)
     IF ( Nadv > 50 ) THEN ! Exclude specialty sims
@@ -1482,7 +1454,7 @@ CONTAINS
     TYPE(ESMF_STATE)             :: Aero
     TYPE(ESMF_FieldBundle)       :: AeroBdl 
     TYPE(ESMF_Field)             :: AeroFld
-    LOGICAL                      :: FRIENDLY
+    LOGICAL                      :: DynFriend, FRIENDLY
     CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
     REAL, POINTER                :: Ptr3D(:,:,:) => NULL()
 
@@ -1536,6 +1508,9 @@ CONTAINS
     ! Initialize GEOS-Chem Input_Opt fields to zeros or equivalent
     CALL Set_Input_Opt( MAPL_am_I_Root(), Input_Opt, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Input_Opt')
+
+    ! Root CPU?
+    am_I_Root = MAPL_am_I_Root()
 
     ! Get various parameters from the ESMF/MAPL framework
 #if defined( MODEL_GEOS )
@@ -2042,41 +2017,38 @@ CONTAINS
        ! Check friendliness of field: the field must not be friendly to 
        ! moist and/or turbulence if the corresponding GEOS-Chem switches 
        ! are turned on!
-       ! Check for friendliness to convection: only if GEOS-Chem convection
-       ! is enabled
-       IF ( Input_Opt%LCONV ) THEN
+       DynFriend=.FALSE.
+       CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToDYNAMICS", &
+                               VALUE=DynFriend, RC=STATUS )
+       IF ( STATUS==ESMF_SUCCESS .AND. DynFriend ) THEN
+          ! Check for friendliness to convection: only if GEOS-Chem convection
+          ! is enabled
           FRIENDLY=.FALSE.
           CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToMOIST", &
                                   VALUE=FRIENDLY, RC=STATUS )
-          IF ( STATUS==ESMF_SUCCESS .AND. FRIENDLY ) THEN
-             IF ( am_I_Root ) THEN
-                WRITE(*,*) ' '
-                WRITE(*,*) 'GEOS-Chem convection is turned on, but ' &
-                           // 'tracer is also'
-                WRITE(*,*) 'friendly to MOIST. Cannot do both: ',    &
-                           TRIM(Int2Spc(I)%Name)
-                WRITE(*,*) ' '
-             ENDIF
-             _ASSERT(.FALSE.,'Error in Friendly settings')
+          IF ( STATUS==ESMF_SUCCESS .AND. (FRIENDLY==Input_Opt%LCONV) ) THEN
+             WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+             WRITE(*,*) 'GEOS-Chem convection and MOIST friendly on/off ', &
+                        'at the same time', FRIENDLY, Input_Opt%LCONV,     &
+                        TRIM(Int2Spc(I)%Name)
+             WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+             _ASSERT(.FALSE.,'MOIST friendly error')
           ENDIF
-       ENDIF
-
-       ! Check for friendliness to turbulence: only if GEOS-Chem turbulence
-       ! is enabled
-       IF ( Input_Opt%LTURB ) THEN
-          FRIENDLY=.FALSE.
-          CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToTURBULENCE", &
-                                  VALUE=FRIENDLY, RC=STATUS )
-          IF ( STATUS==ESMF_SUCCESS .AND. FRIENDLY ) THEN
-             IF ( am_I_Root ) THEN
-                WRITE(*,*) ' '
-                WRITE(*,*)    &
-                   'GEOS-Chem turbulence is turned on, but tracer is also'
-                WRITE(*,*) 'friendly to TURBULENCE. Cannot do both: ', &
-                    TRIM(Int2Spc(I)%Name)
-                WRITE(*,*) ' '
+   
+          ! Check for friendliness to turbulence: only if GEOS-Chem turbulence
+          ! is enabled
+          IF ( Input_Opt%LTURB ) THEN
+             FRIENDLY=.FALSE.
+             CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToTURBULENCE", &
+                                     VALUE=FRIENDLY, RC=STATUS )
+             IF ( STATUS==ESMF_SUCCESS .AND. FRIENDLY ) THEN
+                WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+                WRITE(*,*) 'GEOS-Chem turbulence is turned on, but tracer is ',&
+                           'also friendly to TURBULENCE. Cannot do both: ',    &
+                            TRIM(Int2Spc(I)%Name)
+                WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+                _ASSERT(.FALSE.,'Error in Friendly settings')
              ENDIF
-             _ASSERT(.FALSE.,'Error in Friendly settings')
           ENDIF
        ENDIF
 #endif
@@ -2392,6 +2364,10 @@ CONTAINS
           WRITE(*,*) 'CH4 emissions are turned off - CH4 boundary conditions will be applied'
        ENDIF
     ENDIF
+
+    ! Add Henry law constants and scavenging coefficients to internal state.
+    ! These are needed by MOIST for wet scavenging (if this is enabled). 
+    CALL AddSpecInfoForMoist ( am_I_Root, GC, GeosCF, Input_Opt, State_Chm, __RC__ )
 
     !=======================================================================
     ! All done
@@ -6102,6 +6078,116 @@ CONTAINS
   END SUBROUTINE SetAnaO3_ 
 !EOC
 #if defined( MODEL_GEOS )
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AddSpecInfoForMoist 
+!
+! !DESCRIPTION: Add species info to internal state for moist 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AddSpecInfoForMoist ( am_I_Root, GC, CF, Input_Opt, State_Chm, RC )
+!
+! !USE:
+!
+   USE Species_Mod,      ONLY : MISSING_R8
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN   )         :: am_I_Root ! Root CPU? 
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
+    TYPE(ESMF_Config),   INTENT(INOUT)         :: CF        ! GEOSCHEM*.rc
+    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt ! Input Options
+    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm ! Chemistry state 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC        ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  21 Oct 2020 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(MAPL_MetaComp), POINTER     :: STATE => NULL()
+    TYPE(ESMF_STATE)                 :: Internal 
+    TYPE(ESMF_Field)                 :: Field
+    CHARACTER(LEN=ESMF_MAXSTR)       :: FieldName
+    real(ESMF_KIND_R4), dimension(4) :: HenryCoeffs 
+    REAL                             :: fscav
+    REAL(ESMF_KIND_R4)               :: hstar,dhr,ak0,dak 
+    INTEGER                          :: N, N_WD
+    TYPE(Species), POINTER           :: SpcInfo
+    
+
+    __Iam__('AddSpecInfoForMoist')
+
+    ! Starts here
+    CALL MAPL_GetObjectFromGC(GC, STATE, __RC__ )
+    CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=Internal, __RC__ ) 
+
+    ! Verbose
+    IF ( am_I_Root ) THEN
+       WRITE(*,*) 'Update wet scavenging parameter for MOIST:' 
+       WRITE(*,*) 'ID,          Name:  AerScavEff, Hstar, dHstar, Ka, dKa'
+    ENDIF
+
+    ! Loop over all species
+    !DO N_WD = 1, State_Chm%nWetDep
+    DO N = 1, State_Chm%nSpecies
+
+       !N = State_Chm%Map_WetDep(N_WD)
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Get field
+       FieldName = TRIM(SPFX)//TRIM(SpcInfo%name)
+       CALL ESMF_StateGet(Internal, FieldName, Field, __RC__ )
+
+       ! Scavenging efficiency
+       fscav = MIN(MAX(SpcInfo%WD_AerScavEff,0.0),1.0)
+       CALL ESMF_AttributeSet(Field, NAME='ScavengingFractionPerKm', VALUE=fscav, __RC__ )
+
+       ! Henry coefficients. All values default to 0.0
+       hstar = 0.0
+       dhr   = 0.0
+       ak0   = 0.0
+       dak   = 0.0
+       ! Henry law coefficient [mol/atm]
+       IF ( SpcInfo%Henry_K0  /= MISSING_R8 ) hstar = SpcInfo%Henry_K0
+       ! Temperature correction factor [K]
+       IF ( SpcInfo%Henry_CR  /= MISSING_R8 ) dhr = SpcInfo%Henry_CR
+       ! Acid dissociation constant Ka, compute from pKa
+       IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = 10.0**(-SpcInfo%Henry_pKa) 
+       ! Temperature correction for Ka, currently ignored by GEOS-Chem
+       ! nothing to do for dKa
+       HenryCoeffs(1) = hstar
+       HenryCoeffs(2) = dhr
+       HenryCoeffs(3) = ak0
+       HenryCoeffs(4) = dak
+       CALL ESMF_AttributeSet(Field, 'SetofHenryLawCts', HenryCoeffs, __RC__ )
+
+       ! Verbose
+       IF ( am_I_Root ) THEN
+          WRITE(*,100) N_WD, TRIM(SpcInfo%Name), fscav, hstar, dhr, ak0, dak 
+100       FORMAT( i3,1x,a14,': ',f3.1,4(1x,es9.2) )
+       ENDIF
+    ENDDO
+
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE AddSpecInfoForMoist 
+!EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
