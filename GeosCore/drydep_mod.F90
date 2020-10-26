@@ -576,6 +576,7 @@ CONTAINS
           ! Dry deposition frequency [1/s]
           State_Chm%DryDepFreq(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
+#if !defined( MODEL_CESM )
           ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
@@ -583,6 +584,7 @@ CONTAINS
                 State_Diag%DryDepVel(I,J,S) = DVZ
              ENDIF
           ENDIF
+#endif
           
           ! Archive dry dep velocity [cm/s] only for those species
           ! that are requested at a given altitude (e.g. 10m)
@@ -968,7 +970,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
-    TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
     TYPE(GrdState), INTENT(IN) :: State_Grid     ! Grid state object
     TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
 
@@ -992,6 +993,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics state object
 !
 ! !OUTPUT PARAMETERS:
 !
