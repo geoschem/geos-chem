@@ -8249,6 +8249,17 @@ CONTAINS
                                       State_Diag%Archive_RadAsymWL2    .or. &
                                       State_Diag%Archive_RadAsymWL3        )
 
+    State_Diag%Archive_Metrics = (                                           &
+         State_Diag%Archive_AirMassColumnFull                           .or. &
+         State_Diag%Archive_AirMassColumnTrop                           .or. &
+         State_Diag%Archive_CH4emission                                 .or. &
+         State_Diag%Archive_CH4massColumnFull                           .or. &
+         State_Diag%Archive_CH4massColumnTrop                           .or. &
+         State_Diag%Archive_LossOHbyCH4columnTrop                       .or. &
+         State_Diag%Archive_LossOHbyMCFcolumnTrop                       .or. &
+         State_Diag%Archive_OHwgtByAirMassColumnFull                    .or. &
+         State_Diag%Archive_OHwgtByAirMassColumnTrop                        )
+
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
     ! 4th dimension is column region: Full, Trop, PBL respectively
