@@ -105,17 +105,6 @@ MODULE GCHP_HistoryExports_Mod
 
   END TYPE HistoryExportObj
 !
-! !PUBLIC PARAMETERS
-!
-  ! Prefix of the species names in the internal state and HISTORY.rc
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
-
-#if defined( MODEL_GEOS )
-  ! GEOS-Chem advected species in GEOS use prefix TRC_. Use GCD_ for GEOS-only.
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: TPFX = 'TRC_'
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCD_'
-#endif
-!
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
@@ -257,32 +246,17 @@ CONTAINS
     current => HistoryConfig%DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
 
-#if defined ( MODEL_GEOS )
-       ! Skip State_Chm%Species entries since in internal state.
-       ! Also skip GEOS-only diagnostics.
-       IF ( ( INDEX( current%name,  TRIM(TPFX) ) == 1 ) .OR.   &
-            ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) .OR.   &
-            ( INDEX( current%name,  TRIM(GPFX) ) == 1 ) ) THEN
-          current => current%next
-          CYCLE
-       ENDIF
-#else
-       ! Skip State_Chm%Species entries since in internal state.
-       IF ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) THEN
-          current => current%next
-          CYCLE
-       ENDIF
-#endif
-
-       ! Skip emissions diagnostics since handled by HEMCO
-       IF ( INDEX( current%name,  'EMIS' ) == 1 .or. &
-            INDEX( current%name,  'INV'  ) == 1 ) THEN
+       ! Skip diagnostics handled by HEMCO, non-standard for GEOS,
+       ! or species in the GCHP/GEOS internal state.
+       ! See diaglist_mod.F90 for criteria for assigning diagnostic state.
+       IF ( INDEX( current%state,  'HEMCO'    ) == 1 .OR. &
+            INDEX( current%state,  'GEOS'     ) == 1 .OR. &
+            INDEX( current%state,  'INTERNAL' ) == 1 ) THEN
           current => current%next
           CYCLE
        ENDIF
 
        ! Check history exports list to see if already added (unless wildcard)
-       ! TODO: consider making the call a function that returns a logical
        IF ( .NOT. current%isWildcard ) THEN
           CALL Check_HistoryExportsList( am_I_Root, current%name,           &
                                          HistoryConfig%HistoryExportsList,  &
@@ -315,19 +289,19 @@ CONTAINS
        ELSEIF ( TRIM(current%state) == 'DIAG' ) THEN
           isDIAG = .TRUE.
           CALL Get_Metadata_State_Diag( am_I_Root, current%metadataID,     &
-                                        Found, Rc, desc=desc, units=units, &
+                                        Found, RC, desc=desc, units=units, &
                                         rank=rank, srcType=type, vloc=vloc )
-       ELSEIF ( TRIM(current%state) == 'GEOS5' ) THEN
-          ! Skip it
-          current => current%next
-          CYCLE
        ELSE
+          RC = GC_FAILURE
           ErrMsg = "Unknown state of item " // TRIM(current%name) // &
                    " in DiagList: " // TRIM(current%state)
           EXIT
        ENDIF
-       IF ( Found .eqv. .FALSE. ) THEN
-          ErrMsg = "Metadata not found for " // TRIM(current%name)
+
+       IF ( .NOT. Found ) THEN
+          RC = GC_FAILURE
+          ErrMsg = "Metadata not found for " // TRIM(current%name) // &
+                   " in state " // TRIM(current%state)
           EXIT
        ENDIF
 
@@ -373,6 +347,7 @@ CONTAINS
                                 isDiag=isDiag,                 &
                                 RC=RC )
        IF ( RC == GC_FAILURE ) THEN
+          RC = GC_FAILURE
           ErrMsg = "History export init fail for " // TRIM(current%name)
           EXIT
        ENDIF
@@ -381,6 +356,7 @@ CONTAINS
        CALL Append_HistoryExportsList( am_I_Root,     NewHistExp, &
                                        HistoryConfig, RC       )
        IF ( RC == GC_FAILURE ) THEN
+          RC = GC_FAILURE
           ErrMsg = "History export append fail for " // TRIM(current%name)
           EXIT
        ENDIF
@@ -763,9 +739,9 @@ CONTAINS
              EXIT
           ENDIF
        ELSE
+          RC = GC_FAILURE
           ErrMsg = "Problem adding export for " // TRIM(current%name) // &
                    ". Rank is only implemented for 2 or 3!"
-          RC = GC_FAILURE
           EXIT
        ENDIF
 

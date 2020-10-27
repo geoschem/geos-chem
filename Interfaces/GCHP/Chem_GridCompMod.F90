@@ -48,6 +48,7 @@ MODULE Chem_GridCompMod
   USE ESMF                                           ! ESMF library
   USE MAPL_Mod                                       ! MAPL library
   USE Charpak_Mod                                    ! String functions
+  USE DiagList_Mod                                   ! Internal state prefixes
   USE Hco_Types_Mod, ONLY : ConfigObj
   USE Input_Opt_Mod                                  ! Input Options obj
   USE GCHP_Chunk_Mod                                 ! GCHP IRF methods
