@@ -474,10 +474,10 @@ EmisXYLE_Ship      XYLE   0      10  -1   2   kg/m2/s  XYLE_emission_flux_from_s
 #=============================
 # LIGHTNOX extension
 #=============================
-LightningFlashRate_Total       -1 103 -1 -1 2 flashes/min/km2 Total_lightning_flash_rate
-LightningFlashRate_IntraCloud  -1 103 -1 -1 2 flashes/min/km2 Intra-cloud_lightning_flash_rate
-LightningFlashRate_CloudGround -1 103 -1 -1 2 flashes/min/km2 Cloud-ground_lightning_flash_rate
-ConvectiveCloudTopHeight       -1 103 -1 -1 2 level           Convective_cloud_top_height
+HcoLightningFlashRate_Total     -1 103 -1 -1 2 flashes/min/km2 Total_lightning_flash_rate
+HcoLightningFlashRate_IntraCld  -1 103 -1 -1 2 flashes/min/km2 Intra-cloud_lightning_flash_rate
+HcoLightningFlashRate_CldGround -1 103 -1 -1 2 flashes/min/km2 Cloud-ground_lightning_flash_rate
+HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_top_height
 
 ###############################################################################
 #####  INVENTORY DIAGNOSTICS, needed for benchmarking simulations only    #####
