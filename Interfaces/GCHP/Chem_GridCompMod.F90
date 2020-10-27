@@ -601,7 +601,6 @@ CONTAINS
           ! Define friendliness to dynamics / turbulence 
           MYFRIENDLIES = 'DYNAMICS:TURBULENCE'
           IF ( FriendMoist ) THEN
-          !IF ( FriendMoist .and. trim(substrs(1))=='O3' ) THEN
              MYFRIENDLIES = TRIM(MYFRIENDLIES)//':MOIST'
           ENDIF
           FullName = TRIM(SUBSTRS(1))
@@ -1455,6 +1454,7 @@ CONTAINS
     TYPE(ESMF_FieldBundle)       :: AeroBdl 
     TYPE(ESMF_Field)             :: AeroFld
     LOGICAL                      :: DynFriend, FRIENDLY
+    LOGICAL                      :: IsPresent 
     CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
     REAL, POINTER                :: Ptr3D(:,:,:) => NULL()
 
@@ -2019,14 +2019,22 @@ CONTAINS
        ! are turned on!
        DynFriend=.FALSE.
        CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToDYNAMICS", &
+                               isPresent=isPresent, RC=STATUS )
+       IF ( isPresent ) THEN
+          CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToDYNAMICS", &
                                VALUE=DynFriend, RC=STATUS )
-       IF ( STATUS==ESMF_SUCCESS .AND. DynFriend ) THEN
+       ENDIF
+       IF ( DynFriend ) THEN
           ! Check for friendliness to convection: only if GEOS-Chem convection
           ! is enabled
           FRIENDLY=.FALSE.
           CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToMOIST", &
-                                  VALUE=FRIENDLY, RC=STATUS )
-          IF ( STATUS==ESMF_SUCCESS .AND. (FRIENDLY==Input_Opt%LCONV) ) THEN
+                                  isPresent=isPresent, RC=STATUS )
+          IF ( isPresent ) THEN
+             CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToMOIST", &
+                                     VALUE=FRIENDLY, RC=STATUS )
+          ENDIF
+          IF ( FRIENDLY == Input_Opt%LCONV ) THEN
              WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
              WRITE(*,*) 'GEOS-Chem convection and MOIST friendly on/off ', &
                         'at the same time', FRIENDLY, Input_Opt%LCONV,     &
@@ -2040,8 +2048,12 @@ CONTAINS
           IF ( Input_Opt%LTURB ) THEN
              FRIENDLY=.FALSE.
              CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToTURBULENCE", &
-                                     VALUE=FRIENDLY, RC=STATUS )
-             IF ( STATUS==ESMF_SUCCESS .AND. FRIENDLY ) THEN
+                                     isPresent=isPresent, RC=STATUS )
+             IF ( isPresent ) THEN
+                CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToTURBULENCE", &
+                                        VALUE=FRIENDLY, RC=STATUS )
+             ENDIF
+             IF ( FRIENDLY ) THEN
                 WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
                 WRITE(*,*) 'GEOS-Chem turbulence is turned on, but tracer is ',&
                            'also friendly to TURBULENCE. Cannot do both: ',    &
@@ -6128,8 +6140,8 @@ CONTAINS
     REAL                             :: fscav
     REAL(ESMF_KIND_R4)               :: hstar,dhr,ak0,dak 
     INTEGER                          :: N, N_WD
+    INTEGER                          :: TurnOffSO2 
     TYPE(Species), POINTER           :: SpcInfo
-    
 
     __Iam__('AddSpecInfoForMoist')
 
@@ -6143,6 +6155,12 @@ CONTAINS
        WRITE(*,*) 'ID,          Name:  AerScavEff, Hstar, dHstar, Ka, dKa'
     ENDIF
 
+    ! Turn off SO2 washout? Defaults to yes. 
+    ! SO2  washout occurs via reaction with H2O2. This reaction
+    ! seems to be explicitly capture in the sulfur chemistry code so make sure that
+    ! SO2 is not being washed out.
+    CALL ESMF_ConfigGetAttribute( CF, TurnOffSO2, Label="TurnOff_SO2_washout:", Default=1, __RC__ )
+
     ! Loop over all species
     !DO N_WD = 1, State_Chm%nWetDep
     DO N = 1, State_Chm%nSpecies
@@ -6152,17 +6170,18 @@ CONTAINS
 
        ! Get field
        FieldName = TRIM(SPFX)//TRIM(SpcInfo%name)
-       CALL ESMF_StateGet(Internal, FieldName, Field, __RC__ )
+       CALL ESMF_StateGet(Internal, TRIM(FieldName), Field, __RC__ )
 
        ! Scavenging efficiency
        fscav = MIN(MAX(SpcInfo%WD_AerScavEff,0.0),1.0)
+       ! Don't washout SO2 if specified so
+       IF ( (TRIM(FieldName)==TRIM(SPFX)//'SO2') .AND. (TurnOffSO2==1) ) fscav = 0.0 
        CALL ESMF_AttributeSet(Field, NAME='ScavengingFractionPerKm', VALUE=fscav, __RC__ )
 
        ! Henry coefficients. All values default to 0.0
        hstar = 0.0
        dhr   = 0.0
        ak0   = 0.0
-       dak   = 0.0
        ! Henry law coefficient [mol/atm]
        IF ( SpcInfo%Henry_K0  /= MISSING_R8 ) hstar = SpcInfo%Henry_K0
        ! Temperature correction factor [K]
@@ -6170,7 +6189,14 @@ CONTAINS
        ! Acid dissociation constant Ka, compute from pKa
        IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = 10.0**(-SpcInfo%Henry_pKa) 
        ! Temperature correction for Ka, currently ignored by GEOS-Chem
-       ! nothing to do for dKa
+       dak   = 0.0
+       ! Don't washout SO2 if specified so
+       IF ( (TRIM(FieldName)==TRIM(SPFX)//'SO2') .AND. (TurnOffSO2==1) ) THEN 
+          hstar = 0.0
+          dhr   = 0.0
+          ak0   = 0.0
+       ENDIF
+       ! Pass to array
        HenryCoeffs(1) = hstar
        HenryCoeffs(2) = dhr
        HenryCoeffs(3) = ak0
