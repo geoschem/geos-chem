@@ -45,24 +45,24 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName                on/off  Species
+# ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       false
+    --> METEOROLOGY            :       false     # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       false
-# ----- GLOBAL INVENTORIES ------------------
-    --> EDGARv42_SF6           :       true
+# ----- GLOBAL INVENTORIES ------------------------------------
+    --> EDGARv42_SF6           :       true     # 1970-2008
     --> OCEAN_CH3I             :       true
-    --> CEDS                   :       true
-    --> EDGARv43               :       false
-    --> HTAP                   :       false
+    --> CEDS                   :       true     # 1970-2017
+    --> EDGARv43               :       false    # 1970-2010
+    --> HTAP                   :       false    # 2008-2010
     --> UNIFORM_CO             :       true
-# ----- NON-EMISSIONS DATA ------------------
-    --> OLSON_LANDMAP          :       false
-    --> YUAN_MODIS_LAI         :       false
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> OLSON_LANDMAP          :       false    # 1985
+    --> YUAN_MODIS_LAI         :       false    # 2005-2016
 #------------------------------------------------------------------------------
 100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
 

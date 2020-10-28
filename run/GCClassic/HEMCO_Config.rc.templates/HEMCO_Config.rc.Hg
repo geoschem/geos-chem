@@ -44,58 +44,58 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
-# ----- MAIN SWITCHES -----------------------
+# ExtNr ExtName                on/off  Species  Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true
+    --> METEOROLOGY            :       true     # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- NESTED GRID FIELDS ------------------
-    --> GC_BCs                 :       false
-# ----- REGIONAL INVENTORIES ----------------
-    --> ZHAOZHANG              :       false
-    --> CHAKRABORTY            :       false
-    --> EMISS_CONTROLS         :       false
-# ----- GLOBAL INVENTORIES ------------------
-    --> AMAP_COMB              :       false
-    --> AMAP_INDS              :       false
-    --> AMAP_INTW              :       false
-    --> WHET                   :       true
-    --> STREETS                :       false
-    --> ARTISANAL              :       false
-    --> NATURAL                :       true
-    --> SOILDIST               :       true
-    --> QFED2                  :       false
-    --> EDGAR_TOT              :       false
-    --> EDGAR_CEM              :       false
-    --> EDGAR_CHLOR            :       false
-    --> EDGAR_COMB_A           :       false
-    --> EDGAR_COMB_B           :       false
-    --> EDGAR_GLASS            :       false
-    --> EDGAR_GOLDA            :       false
-    --> EDGAR_GOLDB            :       false
-    --> EDGAR_IRO              :       false
-    --> EDGAR_NFEOTH           :       false
-    --> EDGAR_SHIP             :       false
-    --> EDGAR_TRO              :       false
-    --> EDGAR_WASTE            :       false
-# ----- NON-EMISSIONS DATA ------------------
-    --> OXIDANT_FIELDS         :       true
-    --> BrOx_GC                :       true
-    --> BrOx_GMI               :       true
-    --> JBrO                   :       true
-    --> LRED_JNO2              :       true
-    --> AERO_HG2_PARTITION     :       true
-    --> OCEAN_Hg               :       true
-    --> TOMS_SBUV_O3           :       true
+# ----- NESTED GRID FIELDS ------------------------------------
+    --> GC_BCs                 :       false    # 1980-2020
+# ----- REGIONAL INVENTORIES ----------------------------------
+    --> ZHAOZHANG              :       false    # 2010
+    --> CHAKRABORTY            :       false    # 2010
+    --> EMISS_CONTROLS         :       false    # 2010
+# ----- GLOBAL INVENTORIES ------------------------------------
+    --> AMAP_COMB              :       false    # 2010
+    --> AMAP_INDS              :       false    # 2010
+    --> AMAP_INTW              :       false    # 2010
+    --> WHET                   :       true     # 2010
+    --> STREETS                :       false    # 2015
+    --> ARTISANAL              :       false    # 1985
+    --> NATURAL                :       true     # 1985
+    --> SOILDIST               :       true     # 1985
+    --> QFED2                  :       false    # 2000-2020
+    --> EDGAR_TOT              :       false    # 1970-2012
+    --> EDGAR_CEM              :       false    # 1970-2012
+    --> EDGAR_CHLOR            :       false    # 1970-2012
+    --> EDGAR_COMB_A           :       false    # 1970-2012
+    --> EDGAR_COMB_B           :       false    # 1970-2012
+    --> EDGAR_GLASS            :       false    # 1970-2012
+    --> EDGAR_GOLDA            :       false    # 1970-2012
+    --> EDGAR_GOLDB            :       false    # 1970-2012
+    --> EDGAR_IRO              :       false    # 1970-2012
+    --> EDGAR_NFEOTH           :       false    # 1970-2012
+    --> EDGAR_SHIP             :       false    # 1970-2012
+    --> EDGAR_TRO              :       false    # 1970-2012
+    --> EDGAR_WASTE            :       false    # 1970-2012
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> OXIDANT_FIELDS         :       true     # 2007
+    --> BrOx_GC                :       true     # 2007
+    --> BrOx_GMI               :       true     # 1985
+    --> JBrO                   :       true     # 2002 
+    --> LRED_JNO2              :       true     # 2005
+    --> AERO_HG2_PARTITION     :       true     # 2007
+    --> OCEAN_Hg               :       true     # 1985,2003,2009
+    --> TOMS_SBUV_O3           :       true     # 1971-2010
     --> LHALOGENCHEM           :       true
     --> LHGAQCHEM              :       true
     --> LOHO3CHEM              :       false
     --> LRED_INPLUME           :       false
-    --> OLSON_LANDMAP          :       true
-    --> YUAN_MODIS_LAI         :       true
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------
 # NOTE: Changing these options will require a change in reduction rate in order
 #       to maintain agreement with observations. Please see wiki for details
@@ -629,11 +629,11 @@ Warnings:                    1
 #==============================================================================
 (((OCEAN_Hg
 * OCEAN_CHLA    $ROOT/CHLA/v2014-07/Chl_2003.geos.1x1.nc               CHLA    2003/1-12/1/0 C xy kg/m3 * - 1 1
-* OCEAN_CHLA_A  $ROOT/MERCURY/v2014-09/OCEAN/CHL_ocn_2009.geos.2x25.nc CHLO_A  2009/1-12/1/0 C xy 1 * - 1 1
+* OCEAN_CHLA_A  $ROOT/MERCURY/v2014-09/OCEAN/CHL_ocn_2009.geos.2x25.nc CHLO_A  2009/1-12/1/0 C xy 1     * - 1 1
 * OCEAN_EKMAN_V $ROOT/MERCURY/v2014-09/OCEAN/ekman_upvel.geos.2x25.nc  EKMAN_V 1985/1-12/1/0 C xy m/s   * - 1 1
 * OCEAN_MLD     $ROOT/MERCURY/v2014-09/OCEAN/MLD_DReqDT.geos.2x25.nc   MLD     1985/1-12/1/0 C xy m     * - 1 1
 * OCEAN_NPP     $ROOT/MERCURY/v2014-09/OCEAN/NPP_2003.geos.2x25.nc     NPP     2003/1-12/1/0 C xy kg/m2 * - 1 1
-* OCEAN_NPP_A   $ROOT/MERCURY/v2014-09/OCEAN/NPP_ocn_2009.geos.2x25.nc NPP_A   2009/1-12/1/0 C xy 1 * - 1 1
+* OCEAN_NPP_A   $ROOT/MERCURY/v2014-09/OCEAN/NPP_ocn_2009.geos.2x25.nc NPP_A   2009/1-12/1/0 C xy 1     * - 1 1
 * OCEAN_dMLD1   $ROOT/MERCURY/v2014-09/OCEAN/dMLD1_DreqDT.geos.2x25.nc dMLD1   1985/1-12/1/0 C xy cm/s  * - 1 1
 * OCEAN_dMLD2   $ROOT/MERCURY/v2014-09/OCEAN/dMLD2_DreqDT.geos.2x25.nc dMLD2   1985/1-12/1/0 C xy cm/s  * - 1 1
 )))OCEAN_Hg
@@ -642,9 +642,9 @@ Warnings:                    1
 # --- TOMS/SBUV overhead ozone columns ---
 #==============================================================================
 (((TOMS_SBUV_O3
-* TOMS_O3_COL $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_$YYYY.geos.1x1.nc       TOMS    1971-2010/1-12/1/0 C xy dobsons   * - 1 1
-* TOMS_O3_PD  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_presentday.geos.2x25.nc TOMS_PD  1985/1-12/1/0 C     xy dobsons       * - 1 1
-* TOMS_O3_LT  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_longterm.geos.2x25.nc   TOMS_LT  1985/1-12/1/0 C     xy dobsons       * - 1 1
+* TOMS_O3_COL $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_$YYYY.geos.1x1.nc       TOMS     1971-2010/1-12/1/0 C xy dobsons * - 1 1
+* TOMS_O3_PD  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_presentday.geos.2x25.nc TOMS_PD  1985/1-12/1/0      C xy dobsons * - 1 1
+* TOMS_O3_LT  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_longterm.geos.2x25.nc   TOMS_LT  1985/1-12/1/0      C xy dobsons * - 1 1
 )))TOMS_SBUV_O3
 
 )))CHEMISTRY_INPUT

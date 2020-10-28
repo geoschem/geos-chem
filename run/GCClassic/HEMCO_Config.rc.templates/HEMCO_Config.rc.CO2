@@ -44,34 +44,34 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
-# ----- MAIN SWITCHES -----------------------
+# ExtNr ExtName                on/off  Species  Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true
+    --> METEOROLOGY            :       true     # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- REGIONAL INVENTORIES ----------------
-    --> MIX                    :       false
-# ----- GLOBAL INVENTORIES ------------------
-    --> FOSSIL_ODIAC           :       true
-    --> FOSSIL_CDIAC           :       false
-    --> OCEAN_EXCH_TAKA09      :       false
-    --> OCEAN_EXCH_SCALED      :       true
-    --> BBIO_DIURNAL           :       false
-    --> BBIO_SIB3              :       true
-    --> NET_TERR_EXCH          :       true
-    --> AVIATION               :       true
-    --> CO2CORR                :       true
-# ----- SHIP EMISSIONS ----------------------
+# ----- REGIONAL INVENTORIES ----------------------------------
+    --> MIX                    :       false    # 2008-2010
+# ----- GLOBAL INVENTORIES ------------------------------------
+    --> FOSSIL_ODIAC           :       true     # 2000-2018
+    --> FOSSIL_CDIAC           :       false    # 1980-2014
+    --> OCEAN_EXCH_TAKA09      :       false    # 2000
+    --> OCEAN_EXCH_SCALED      :       true     # 2000-2013
+    --> BBIO_DIURNAL           :       false    # 1985
+    --> BBIO_SIB3              :       true     # 2006-2010
+    --> NET_TERR_EXCH          :       true     # 2000
+    --> AVIATION               :       true     # 2005
+    --> CO2CORR                :       true     # 2000-2018
+# ----- SHIP EMISSIONS ----------------------------------------
     --> SHIP                   :       true
-    --> CEDS_SHIP              :       true
-    --> ICOADS_SHIP            :       false
-# ----- NON-EMISSIONS DATA ------------------
-    --> CO2_COPROD             :       true
-    --> OLSON_LANDMAP          :       true
-    --> YUAN_MODIS_LAI         :       true
+    --> CEDS_SHIP              :       true     # 1750-2014
+    --> ICOADS_SHIP            :       false    # 2004
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> CO2_COPROD             :       true     # 2004-2009
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------
 111     GFED                   : on    CO2/CO2bb
     --> GFED4                  :       true

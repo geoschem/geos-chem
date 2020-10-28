@@ -45,41 +45,41 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
-# ----- MAIN SWITCHES -----------------------
+# ExtNr ExtName                on/off  Species   Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true
+    --> METEOROLOGY            :       true      # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- NESTED GRID FIELDS ------------------
-    --> GC_BCs                 :       false
-# ----- REGIONAL INVENTORIES ----------------
-    --> GEPA                   :       true
-    --> CanMex                 :       false
-    --> MIX                    :       false
-# ----- GLOBAL INVENTORIES ------------------
-    --> GFEI                   :       true
-    --> EDGARv432              :       true
-    --> QFED2                  :       true
-    --> JPL_WETCHARTS          :       true
-    --> SEEPS                  :       true
-    --> LAKES                  :       false
-    --> FUNG_TERMITES          :       true
-    --> FUNG_SOIL_ABSORPTION   :       false
-    --> MeMo_SOIL_ABSORPTION   :       true
-# ----- FUTURE EMISSIONS --------------------
-    --> RCP_3PD                :       false
-    --> RCP_45                 :       false
-    --> RCP_60                 :       false
-    --> RCP_85                 :       false
-# ----- NON-EMISSIONS DATA ------------------
-    --> GMI_CH4_LOSS           :       true
-    --> GLOBAL_OH              :       true
-    --> GLOBAL_CL              :       true
-    --> OLSON_LANDMAP          :       true
-    --> YUAN_MODIS_LAI         :       true
+# ----- NESTED GRID FIELDS ------------------------------------
+    --> GC_BCs                 :       false    # 1980-2020
+# ----- REGIONAL INVENTORIES ----------------------------------
+    --> GEPA                   :       true     # 2012
+    --> CanMex                 :       false    # Can:2013,Mex:2010
+    --> MIX                    :       false    # 2008
+# ----- GLOBAL INVENTORIES ------------------------------------
+    --> GFEI                   :       true     # 2012
+    --> EDGARv432              :       true     # 1970-2012
+    --> QFED2                  :       true     # 2009-2015
+    --> JPL_WETCHARTS          :       true     # 2009-2017
+    --> SEEPS                  :       true     # 2012
+    --> LAKES                  :       false    # 2009-2015
+    --> FUNG_TERMITES          :       true     # 1985
+    --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
+    --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
+# ----- FUTURE EMISSIONS --------------------------------------
+    --> RCP_3PD                :       false    # 2005-2100
+    --> RCP_45                 :       false    # 2005-2100
+    --> RCP_60                 :       false    # 2005-2100
+    --> RCP_85                 :       false    # 2005-2100
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> GMI_CH4_LOSS           :       true     # 1985
+    --> GLOBAL_OH              :       true     # 1985
+    --> GLOBAL_CL              :       true     # 2005
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------
 111     GFED                   : off   CH4
     --> GFED4                  :       true
@@ -545,13 +545,13 @@ Warnings:                    1
 * PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- I3 fields ---
-* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS       1980-2020/1-12/1-31/*           EFY xy  1  * -  1 1
-* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV       1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
-* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T        1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
+* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2020/1-12/1-31/*           EFY xy  1  * -  1 1
+* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
+* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
 
-* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS       1980-2020/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
-* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV       1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
-* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T        1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2020/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
+* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
 
 )))METEOROLOGY
 

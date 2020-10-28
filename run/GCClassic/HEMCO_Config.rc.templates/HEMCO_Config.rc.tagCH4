@@ -52,40 +52,41 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName           on/off  Species
-0       Base              : on    *
-# ----- MAIN SWITCHES -----------------------
+# ExtNr ExtName                on/off  Species   Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true
+    --> METEOROLOGY            :       true      # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- NESTED GRID FIELDS ------------------
-    --> GC_BCs                 :       false
-# ----- REGIONAL INVENTORIES ----------------
-    --> GEPA                   :       true
-    --> CanMex                 :       true
-    --> MIX                    :       false
-# ----- GLOBAL INVENTORIES ------------------
-    --> EDGARv432              :       true
-    --> QFED2                  :       true
-    --> JPL_WETCHARTS          :       true
-    --> SEEPS                  :       true
-    --> LAKES                  :       false
-    --> FUNG_TERMITES          :       true
-    --> FUNG_SOIL_ABSORPTION   :       false
-    --> MeMo_SOIL_ABSORPTION   :       true
-# ----- FUTURE EMISSIONS --------------------
-    --> RCP_3PD                :       false
-    --> RCP_45                 :       false
-    --> RCP_60                 :       false
-    --> RCP_85                 :       false
-# ----- NON-EMISSIONS DATA ------------------
-    --> GMI_CH4_LOSS           :       true
-    --> GLOBAL_OH              :       true
-    --> GLOBAL_CL              :       true
-    --> OLSON_LANDMAP          :       true
-    --> YUAN_MODIS_LAI         :       true
+# ----- NESTED GRID FIELDS ------------------------------------
+    --> GC_BCs                 :       false    # 1980-2020
+# ----- REGIONAL INVENTORIES ----------------------------------
+    --> GEPA                   :       true     # 2012
+    --> CanMex                 :       false    # Can:2013,Mex:2010
+    --> MIX                    :       false    # 2008
+# ----- GLOBAL INVENTORIES ------------------------------------
+    --> GFEI                   :       true     # 2012
+    --> EDGARv432              :       true     # 1970-2012
+    --> QFED2                  :       true     # 2009-2015
+    --> JPL_WETCHARTS          :       true     # 2009-2017
+    --> SEEPS                  :       true     # 2012
+    --> LAKES                  :       false    # 2009-2015
+    --> FUNG_TERMITES          :       true     # 1985
+    --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
+    --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
+# ----- FUTURE EMISSIONS --------------------------------------
+    --> RCP_3PD                :       false    # 2005-2100
+    --> RCP_45                 :       false    # 2005-2100
+    --> RCP_60                 :       false    # 2005-2100
+    --> RCP_85                 :       false    # 2005-2100
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> GMI_CH4_LOSS           :       true     # 1985
+    --> GLOBAL_OH              :       true     # 1985
+    --> GLOBAL_CL              :       true     # 2005
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------
 111     GFED                   : off   CH4
     --> GFED4                  :       true
@@ -379,8 +380,6 @@ Warnings:                    1
 # been found to be buggy for CH4 (same emissions on each day).
 #==============================================================================
 (((QFED2
-#0 QFED_CH4_T  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xy kg/m2/s     CH4_BBN 75 9 2
-#0 QFED_CH     $ROOT/QFED/v2018-079/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xy kg/m2/s     CH4     75 9 2
 0 QFED_CH4_T   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4_BBN -  9 2
 0 QFED_CH4     $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4     -  9 2
 )))QFED2
@@ -390,20 +389,18 @@ Warnings:                    1
 #
 # NOTES:
 # - Use either this inventory or the wetland extension -- not both!
-# - Scale JPL wetland emissions by 9% to better match values in
-#   Kirschke et al., Nature Geoscience, 6, 2013.
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4_T $ROOT/CH4/v2017-10/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.1x1.nc emi_ch4 2009-2015/1-12/1/0 C xy molec/cm2/s CH4_WTL 2 10 1
-0 JPLW_CH4   $ROOT/CH4/v2017-10/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.1x1.nc emi_ch4 2009-2015/1-12/1/0 C xy molec/cm2/s CH4     2 10 1
+0 JPLW_CH4_T $ROOT/CH4/v2020-04/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017/1-12/1/0 C xy molec/cm2/s CH4_WTL - 10 1
+0 JPLW_CH4   $ROOT/CH4/v2020-04/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017/1-12/1/0 C xy molec/cm2/s CH4     - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
-# --- Geological Seeps (Maasakkers et al., in prep) ---
+# --- Geological Seeps ---
 #==============================================================================
 (((SEEPS
-0 CH4_SEEPS_T $ROOT/CH4/v2017-10/Seeps/Maasakkers_Geological_Seeps.01x01.nc emi_ch4 2012/1/1/0 C xy molec/cm2/s CH4_SEE - 11 1
-0 CH4_SEEPS   $ROOT/CH4/v2017-10/Seeps/Maasakkers_Geological_Seeps.01x01.nc emi_ch4 2012/1/1/0 C xy molec/cm2/s CH4     - 11 1
+0 CH4_SEEPS_T $ROOT/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc emi_ch4 2012/1/1/0 C xy kg/m2/s CH4_SEE - 11 1
+0 CH4_SEEPS   $ROOT/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc emi_ch4 2012/1/1/0 C xy kg/m2/s CH4     - 11 1
 )))SEEPS
 
 #==============================================================================
@@ -656,7 +653,7 @@ Warnings:                    1
 # --- GEOS-Chem restart file ---
 #==============================================================================
 (((GC_RESTART
-* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH CYS xyz 1 * - 1 1
+* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 * TMPU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 * SPHU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 * PS1DRY         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY          $YYYY/$MM/$DD/$HH EY  xy  1 * - 1 1
@@ -682,7 +679,7 @@ Warnings:                    1
 * GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/CH4/v2017-10/Cl_Sherwen_2016b_ACP.4x5.nc          IJ_AVG_S__Cl 2005/1-12/1/0 C xyz ppbv  * - 1 1
+* GLOBAL_Cl  $ROOT/CH4/v2020-02/Cl/Cl_XuanWang_2019_ACP.4x5.nc          IJ_AVG_S__Cl 2005/1-12/1/0 C xyz ppbv  * - 1 1
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 
@@ -870,16 +867,6 @@ Warnings:                    1
 # Multiply soil absorption by -1 to get a "negative" flux.
 #==============================================================================
 1 NEGATIVE       -1.0 - - - xy 1 1
-
-#==============================================================================
-# --- JPL WetCHARTs scale factors ---
-#
-# Scale JPL wetland emissions by 9% to better match values in
-#   Kirschke et al., Nature Geoscience, 6, 2013.
-#==============================================================================
-(((JPL_WETCHARTS
-2 SCALE_WETLANDS  1.09 - - - xy 1 1
-)))JPL_WETCHARTS
 
 #==============================================================================
 # --- Seasonal scaling factors ----

@@ -44,19 +44,19 @@ Warnings:                    1
 ###############################################################################
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
-# ExtNr ExtName                on/off  Species
+# ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------
+# ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true
+    --> METEOROLOGY            :       true     # 1980-2020
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------
+# ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- NON-EMISSIONS DATA ------------------
-    --> O3_PROD_LOSS           :       true
-    --> OLSON_LANDMAP          :       true
-    --> YUAN_MODIS_LAI         :       true
-    --> OCEAN_O3_DRYDEP        :       true
+# ----- NON-EMISSIONS DATA ------------------------------------
+    --> O3_PROD_LOSS           :       true     # 2004
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2005-2016
+    --> OCEAN_O3_DRYDEP        :       true     # 1985
 
 ### END SECTION EXTENSION SWITCHES ###
 
