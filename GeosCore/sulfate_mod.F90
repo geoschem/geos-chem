@@ -8021,18 +8021,12 @@ CONTAINS
 
        ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
        ! kg/m2/s.
-#if defined( MODEL_CESM )
-       ! (T. Fritz) Temporary!
-       ALK1 = 0.0e+00_fp
-       ALK2 = 0.0e+00_fp
-#else
        !CALL GetHcoVal( id_SALA, I, J, 1, FOUND, Emis=ALK1 )
        !CALL GetHcoVal( id_SALC, I, J, 1, FOUND, Emis=ALK2 )
 
        ! kg/m2/s --> kg. Weight by fraction of PBL
        ALK1 = MAX(ALK1,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
        ALK2 = MAX(ALK2,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
-#endif
 
        ! Get number densities in # / cm3. Weight by fraction of PBL
        !IF ( ASSOCIATED(NDENS_SALA) ) THEN
