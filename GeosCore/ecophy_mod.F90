@@ -48,6 +48,10 @@
 !        assimilation techniques: the adJULES system V1.0",
 !        Geosci. Model Dev., 9, 2833–2852, 
 !        https://doi.org/10.5194/gmd-9-2833-2016, 2016.
+!  (5 ) Pacifico, F., et al., "Photosynthesis-based biogenic isoprene emission 
+!        scheme in JULES",
+!        Atmos. Chem. Phys., 11, 4371–4389, 2011
+!        https://doi.org/10.5194/acp-11-4371-2011, 2011
 !  ============================================================================
 !EOP
 !------------------------------------------------------------------------------
@@ -75,6 +79,10 @@
       ! FLUXO3_CRIT   : PFT-specific threshold for ozone uptake           [nmol m^-2 s^-1]
       ! THRESHOLD     : Threshold of relative error                       []
       ! CO2_O2_RATIO  : Ratio of diffusivity of CO2 compared to H2O       []
+      ! Leaf_density  : Specific leaf density                             [kg C m^-2 leaf]
+      ! IEF           : Isoprene Emission Factors under standard cond.    [ug C g^-1 (dry weight) hr^-1]
+      ! TEMP_st       : Standard conditions (temperature)                 [K]
+      ! PAR_st        : Standard conditions (PAR)                         []
       !---------------------------------------------------------------------------------------
       INTEGER,  PARAMETER   :: NUMPFT                 = 5 
       INTEGER,  PARAMETER   :: MAX_ITER               = 1
@@ -102,19 +110,32 @@
       REAL(fp), PARAMETER   :: D_STAR        (NUMPFT) = (/ 0.048, 0.036, 0.086, 0.046, 0.077 /)
       REAL(fp), PARAMETER   :: f0            (NUMPFT) = (/ 0.765, 0.737, 0.817, 0.765, 0.782 /)  
       REAL(fp), PARAMETER   :: CO2_O2_RATIO = 1.6
+
+      ! Parameters for photosynthesis-dependent isoprene emission
+      REAL(fp), PARAMETER   :: Leaf_density  (NUMPFT) = (/ 0.0375, 0.1000, 0.0250, 0.0500, 0.0500 /) 
+      REAL(fp), PARAMETER   :: IEF           (NUMPFT) = (/ 35.0, 12.0, 16.0, 8.0,  20.0 /)
+      REAL(fp), PARAMETER   :: Dry_fraction           = 0.4
+      REAL(fp), PARAMETER   :: TEMPK_st               = 303.15e+0_fp
+
 !
 ! MODULE VARIABLES:
 !
-      !========================================================================
+      !=========================================================================================
       ! SATU          : Soil moisture at saturation point                 [m^3 water / m^3 soil]
       ! CRIT          : Soil moisture at critical point                   [m^3 water / m^3 soil]
       ! WILT          : Soil moisture at wilting point                    [m^3 water / m^3 soil]
       ! O3dmg_opt     : Control switch for ozone damage scheme            [hi/low/off]
-      !========================================================================
+      ! A_NET_st      : Leaf photosynthesis rate under standard cond.     [mol CO2 m^-2 leaf s^-1]
+      ! RESP_st       : Leaf respiration rate under standard cond.        [mol CO2 m^-2 leaf s^-1]
+      ! CO2_IN_st     : Leaf CO2 partial pressure under standard cond.    [Pa]
+      !=========================================================================================
       REAL(fp)              :: SATU
       REAL(fp)              :: CRIT
       REAL(fp)              :: WILT
       CHARACTER(len=3)      :: O3dmg_opt 
+      REAL(fp)              :: A_NET_st      (NUMPFT)
+      REAL(fp)              :: RESP_st       (NUMPFT)
+      REAL(fp)              :: CO2_IN_st     (NUMPFT)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -136,10 +157,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ECOPHY ( am_I_Root, Input_Opt,  State_Met, &
+      SUBROUTINE DO_ECOPHY ( Input_Opt, State_Met,             &
                              State_Chm, State_Diag, RC,        &
                              I, J,      LDT, PFT,   RA, RB_O3, &
-                             PRESSU,                           &
+                             PRESSU,    Isop_from_Ecophy,      &
                              RS,        SumLAI_PFT, IUSE_PFT   )
 !
 ! !USES:
@@ -153,7 +174,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
       INTEGER,        INTENT(IN)    :: I           ! longitude index
       INTEGER,        INTENT(IN)    :: J           ! latitude index
       INTEGER,        INTENT(IN)    :: PFT         ! PFT index
@@ -176,6 +196,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
       REAL(fp),       INTENT(OUT)   :: RS          ! Bulk canopy stomatal resistance
+      REAL(fp),       INTENT(OUT)   :: Isop_from_Ecophy  ! Isoprene emission
 !
 ! !REVISION HISTORY:
 !
@@ -191,7 +212,7 @@
       !  Note: Read subroutine DO_PHOTOSYNTHESIS for descriptions of variables.
       REAL(fp)   :: TEMPK
       REAL(fp)   :: QV2M
-      REAL(fp)   :: PAR_ABSORBED
+      REAL(fp)   :: APAR
       ! REAL(fp)   :: PRESSURE
       REAL(fp)   :: CO2
       REAL(fp)   :: O2
@@ -214,6 +235,7 @@
       REAL(fp)   :: RATE_PRODUCT
       REAL(fp)   :: A_GROSS
       REAL(fp)   :: LAI
+      REAL(fp)   :: ISOP_EMIS
       INTEGER    :: IOLSON
       INTEGER    :: IUSE
 
@@ -232,24 +254,30 @@
       CALL GET_ECOPHY_INPUTS( State_Met,    State_Chm, Input_Opt,&
                               I, J, LDT,                         &
                               TEMPK,        QV2M,                &
-                              PAR_ABSORBED, CO2,                 &
+                              APAR,         CO2,                 &
                               O2,           LAI,       O3,       &
                               SOIL_WETNESS, IUSE                 &
-                              ! WILT, CRIT,   SATU                 &
                               )
 
       ! simulate plant processes
-      CALL DO_PHOTOSYNTHESIS( TEMPK,        QV2M,       RA, RB_O3,    &
-                              PAR_ABSORBED, PRESSU,     CO2,          &
-                              O2,           LAI,        O3,           &
-                              SOIL_WETNESS, PFT,                      &
-                              G_CAN_OUT,    A_CAN_OUT,  RESP_CAN_OUT, &
-                              G_LEAF_OUT,   CO2_IN,     A_NET_OUT,    &
-                              RESP_OUT,     FLUXO3_CAN, FLUXO3,       &
-                              FACTOR_O3,    BETA,       V_CMAX,       &
-                              RATE_LIGHT,   RATE_RUBISCO,             &
-                              RATE_PRODUCT, A_GROSS,    RC            &
+      CALL DO_PHOTOSYNTHESIS( LAI, PFT,     PRESSU,      APAR,         &
+                              CO2, O2,      TEMPK,       G_CAN_OUT,    &
+                              G_LEAF_OUT,   CO2_IN,      A_CAN_OUT,    &
+                              A_NET_OUT,    RESP_CAN_OUT, RESP_OUT,    &
+                              FLUXO3_CAN,   FLUXO3,      FACTOR_O3,    &
+                              BETA,         V_CMAX,      RATE_LIGHT,   &
+                              RATE_RUBISCO, RATE_PRODUCT, A_GROSS, RC, &
+                              QV2M=QV2M,    RA=RA,       RB_O3=RB_O3,  &
+                              O3=O3,        SOIL_WETNESS=SOIL_WETNESS  &
                               )
+
+      IF ( Input_Opt%LIsop_from_Ecophy ) THEN
+         ! calculate isoprene emission from photosynthesis 
+         CALL DO_ISOP_EMIS( A_CAN_OUT, RESP_CAN_OUT,  &
+                            TEMPK, CO2_IN,            &
+                            LAI, PFT,                 &
+                            ISOP_EMIS                 )
+      ENDIF
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -261,6 +289,11 @@
       ! Output bulk stomatal resistance to dry deposition module
       RS = 1.0 / G_CAN_OUT
 
+      ! Output isoprene emission rate to dry deposition module
+      ! Convert from kg C m-2 land s-1 to kg C m-2 grid s-1 
+      ! IUSE / 1000 is the the fraction of the grid for that land type
+      Isop_from_Ecophy = ISOP_EMIS * DBLE( IUSE ) / 1.e+3_fp
+
       ! Send output to State_Diag
       CALL Ecophy_Diagn( I, J,         LDT,        PFT,          &
                          IUSE,         LAI,        SumLAI_PFT,   &
@@ -269,7 +302,7 @@
                          CO2_IN,       FLUXO3_CAN,               &
                          FACTOR_O3,    BETA,       V_CMAX,       &
                          RATE_LIGHT,   RATE_RUBISCO,             &
-                         RATE_PRODUCT, A_GROSS,                  &
+                         RATE_PRODUCT, A_GROSS,    ISOP_EMIS,    &
                          State_Met,    State_Diag, RC            &
                        )
       ! Trap potential errors
@@ -295,16 +328,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PHOTOSYNTHESIS( TEMPK,        QV2M,       RA, RB_O3,    &
-                                    PAR_ABSORBED, PRESSURE,   CO2,          &
-                                    O2,           LAI,        O3,           &
-                                    SOIL_WETNESS, PFT,                      &
-                                    G_CAN_OUT,    A_CAN_OUT,  RESP_CAN_OUT, &
-                                    G_LEAF_OUT,   CO2_IN,     A_NET_OUT,    &
-                                    RESP_OUT,     FLUXO3_CAN, FLUXO3,       &
-                                    FACTOR_O3,    BETA,       V_CMAX,       &
-                                    RATE_LIGHT,   RATE_RUBISCO,             &
-                                    RATE_PRODUCT, A_GROSS,    RC            &
+      SUBROUTINE DO_PHOTOSYNTHESIS( LAI, PFT,     PRESSURE,    APAR,         &
+                                    CO2, O2,      TEMPK,       G_CAN_OUT,    &
+                                    G_LEAF_OUT,   CO2_IN,      A_CAN_OUT,    &
+                                    A_NET_OUT,    RESP_CAN_OUT, RESP_OUT,    &
+                                    FLUXO3_CAN,   FLUXO3,      FACTOR_O3,    &
+                                    BETA,         V_CMAX,      RATE_LIGHT,   &
+                                    RATE_RUBISCO, RATE_PRODUCT, A_GROSS, RC, &
+                                    V_CMAX_IN,    QV2M,        DEFICIT_Q_IN, &
+                                    RA, RB_O3,    O3,          FACTOR_O3_IN, &
+                                    SOIL_WETNESS, BETA_IN                    &
                                     )
 !
 ! !USES:
@@ -314,31 +347,56 @@
 !INPUT PARAMETERS:
 !
       !---------------------------------------------------------------------------------------
-      ! TEMPK         : Leaf temperature in Kelvin                        [K]
-      ! QV2M          : Specific humidity in canopy layer                 [kg H2O / kg air]
-      ! RA            : Aerodynamic resistance                            [s m^-1]
-      ! RB_O3         : Boundary layer resistance                         [s m^-1]
-      ! PAR_ABSORBED  : Absorbed PAR                                      [W m^-2]
+      ! LAI           : Leaf area index for the PFT                       [m^2 m^-2]
+      ! PFT           : Index for PFT                                     []
+      ! APAR          : Absorbed PAR                                      [mol photon m^-2 s^-1]
       ! PRESSURE      : Atmospheric Pressure in canopy layer              [Pa]
       ! CO2           : Ambient CO2 mole fraction                         [mol/mol air]
       ! O2            : Ambient O2 mole fraction                          [mol/mol air]
+      ! TEMPK         : Leaf temperature in Kelvin                        [K]
+      ! QV2M          : Specific humidity in canopy layer                 [kg H2O / kg air]
+      ! DEFICIT_Q_IN  : Alternative input of specific humidity deficit    [kg H2O / kg air]
+      ! V_CMAX_IN     : Alternative input of V_CMAX                       [mol CO2 m^-2 s^-1]
+      ! RA            : Aerodynamic resistance                            [s m^-1]
+      ! RB_O3         : Boundary layer resistance                         [s m^-1]
       ! O3            : Ozone mole fraction in canopy layer               [mol/mol air]
-      ! LAI           : Leaf area index for the PFT                       [m^2 m^-2]
+      ! FACTOR_O3_IN  : Alternative input of ozone damage factor          []
       ! SOIL_WETNESS  : Fraction of moisture in soil pores                []
-      ! PFT           : Index for PFT                                     []
+      ! BETA_IN       : Alternative input of soil moisture stress factor  []
       !---------------------------------------------------------------------------------------
-      REAL(fp), INTENT(IN)  :: TEMPK
-      REAL(fp), INTENT(IN)  :: QV2M
-      REAL(fp), INTENT(IN)  :: RA
-      REAL(fp), INTENT(IN)  :: RB_O3
-      REAL(fp), INTENT(IN)  :: PAR_ABSORBED
-      REAL(fp), INTENT(IN)  :: PRESSURE
-      REAL(fp), INTENT(IN)  :: CO2
-      REAL(fp), INTENT(IN)  :: O2
-      REAL(fp), INTENT(IN)  :: O3
-      REAL(fp), INTENT(IN)  :: LAI
-      REAL(fp), INTENT(IN)  :: SOIL_WETNESS
-      INTEGER,  INTENT(IN)  :: PFT
+      REAL(fp), INTENT(IN)             :: LAI
+      INTEGER,  INTENT(IN)             :: PFT
+      REAL(fp), INTENT(IN)             :: PRESSURE
+      REAL(fp), INTENT(IN)             :: APAR
+      REAL(fp), INTENT(IN)             :: CO2
+      REAL(fp), INTENT(IN)             :: O2
+      REAL(fp), INTENT(IN)             :: TEMPK
+
+      ! If V_CMAX_IN is provided, it will be used and the module will not 
+      ! calculate V_CMAX according to leaf temperature.
+      REAL(fp), INTENT(IN), OPTIONAL   :: V_CMAX_IN
+
+      ! Parameters for calculating specific humidity deficit
+      ! If DEFICIT_Q_IN is provided, it will be used and the module will not 
+      ! calculate DEFICIT_Q according to QV2M and leaf temperature.
+      REAL(fp), INTENT(IN), OPTIONAL   :: QV2M
+      REAL(fp), INTENT(IN), OPTIONAL   :: DEFICIT_Q_IN
+
+      ! Parameters for ozone damage scheme
+      ! If FACTOR_O3_IN is provided, it will be used as the ozone damage factor
+      ! and the module will not calculate FACTOR_O3 according to 
+      ! RA, RB and O3 from other modules.
+      REAL(fp), INTENT(IN), OPTIONAL   :: RA
+      REAL(fp), INTENT(IN), OPTIONAL   :: RB_O3
+      REAL(fp), INTENT(IN), OPTIONAL   :: O3
+      REAL(fp), INTENT(IN), OPTIONAL   :: FACTOR_O3_IN
+
+      ! Parameters for soil moisture stress factor
+      ! If BETA_IN is provided, it will be used as the soil moisture stress factor
+      ! and the module will not calculate BETA according to SOIL_WETNESS from 
+      ! input meteorology data.
+      REAL(fp), INTENT(IN), OPTIONAL   :: SOIL_WETNESS
+      REAL(fp), INTENT(IN), OPTIONAL   :: BETA_IN
 !
 !OUTPUT PARAMETERS:
 !
@@ -390,7 +448,6 @@
       ! TEMPC         : Leaf temperature in degree Celsius                [deg C]
       ! SPHU_SAT      : Saturation specific humidity in canopy layer      [kg H2O / kg air]
       ! DEFICIT_Q     : Specific humidity deficit at leaf surface         [kg H2O / kg air]
-      ! APAR          : Absorbed PAR                                      [mol m^-2 s^-1]
       ! CO2_AMBIENT   : Ambient CO2 partial pressure                      [Pa]
       ! O3_CONC       : Ozone concentration in canopy layer               [nmol m^-3]
       ! BIGLEAFSCALE  : Scaling with Big-leaf approach                    []
@@ -419,7 +476,6 @@
       REAL(fp)    :: TEMPC
       REAL(fp)    :: SPHU_SAT
       REAL(fp)    :: DEFICIT_Q
-      REAL(fp)    :: APAR
       REAL(fp)    :: CO2_AMBIENT
       REAL(fp)    :: O3_CONC
       REAL(fp)    :: BIGLEAFSCALE
@@ -472,7 +528,6 @@
       TEMPC          = 0.e+0_fp
       SPHU_SAT       = 0.e+0_fp
       DEFICIT_Q      = 0.e+0_fp
-      APAR           = 0.e+0_fp
       CO2_AMBIENT    = 0.e+0_fp
       O3_CONC        = 0.e+0_fp
       BIGLEAFSCALE   = 0.e+0_fp
@@ -490,30 +545,50 @@
       ErrMsg     = ''
       ThisLoc    = ' -> at DO_PHOTOSYNTHESIS (in GeosCore/ecophy_mod.F90)'
 
+      ! Calculations start.
       TEMPC          = TEMPK - 273.15e+0_fp
-      ! Calculate V_CMAX and respiration which depends on V_CMAX only
-      DENOM          = ( 1.e+0_fp + EXP( 0.3e+0_fp*( TEMPC - T_UPP(PFT) ) ) ) &
-                     * ( 1.e+0_fp + EXP( 0.3e+0_fp*( T_LOW(PFT) - TEMPC ) ) )
-      V_CMAX         = V_CMAX25(PFT) * FACTOR_Q10( 2.e+0_fp, TEMPC ) / DENOM
+      ! Calculate V_CMAX if V_CMAX_IN is not provided
+      IF ( PRESENT( V_CMAX_IN ) ) THEN
+         V_CMAX = V_CMAX_IN 
+      ELSE 
+         ! Calculate V_CMAX and respiration which depends on V_CMAX only
+         DENOM          = ( 1.e+0_fp + EXP( 0.3e+0_fp*( TEMPC - T_UPP(PFT) ) ) ) &
+                        * ( 1.e+0_fp + EXP( 0.3e+0_fp*( T_LOW(PFT) - TEMPC ) ) )
+         V_CMAX         = V_CMAX25(PFT) * FACTOR_Q10( 2.e+0_fp, TEMPC ) / DENOM
+      END IF
       RESP           = F_DARKRESP(PFT) * V_CMAX
+
       ! Calculate CO2 compensation point
       TAU            = 2.6e+3_fp * FACTOR_Q10( 0.57e+0_fp, TEMPC )    ! CO2/O2 Specificity Ratio
       CO2_GAMMA      = IS_C3_PLANT(PFT) / ( 2.e+0_fp * TAU ) &
                      * PRESSURE * O2
+
       ! Calculate canopy scaling factor
       BIGLEAFSCALE   = MAX( ( 1.e+0_fp - EXP( - K_EXTINCT(PFT) * LAI ) ) / K_EXTINCT(PFT), 0.e+0_fp )
-      ! Convert unit of absorbed PAR to mol photon m^-2 s^-1
-      APAR           = 4.6e-6_fp * PAR_ABSORBED
+
       ! Calculate CO2 partial pressure in ambient air
       CO2_AMBIENT    = PRESSURE * CO2
-      ! Calculate O3 molar concentration in canopy layer
-      O3_CONC        = O3 * PRESSURE / RSTARG / TEMPK * 1.e+9_fp
-      ! Calculate aerodynamic and boundary layer resistance for ozone damage 
-      RAB            = RA + RB_O3
 
-      ! To modify net photosynthesis rate by soil moisture stress later
-      ! Not needed to be inside the loop
-      CALL MOIST_STRESS( SOIL_WETNESS, BETA )
+      ! Calculate inputs for ozone damage scheme if FACTOR_O3_IN is not provided
+      IF ( .NOT. PRESENT( FACTOR_O3_IN ) ) THEN
+         IF ( .NOT. PRESENT( RA    ) ) RETURN
+         IF ( .NOT. PRESENT( RB_O3 ) ) RETURN
+         IF ( .NOT. PRESENT( O3    ) ) RETURN
+         ! Calculate O3 molar concentration in canopy layer
+         O3_CONC        = O3 * PRESSURE / RSTARG / TEMPK * 1.e+9_fp
+         ! Calculate aerodynamic and boundary layer resistance for ozone damage 
+         RAB            = RA + RB_O3
+      END IF
+
+      ! Calculate soil moisture stress factor if BETA_IN is not provided.
+      IF ( PRESENT( BETA_IN ) ) THEN
+         BETA = BETA_IN
+      ELSE
+         IF ( .NOT. PRESENT( SOIL_WETNESS ) ) RETURN
+         ! To modify net photosynthesis rate by soil moisture stress later
+         ! Not needed to be inside the loop
+         CALL MOIST_STRESS( SOIL_WETNESS, BETA )
+      END IF
 
       ! Iterate to find a self-consistent set of photosynthesis,
       ! stomatal conductance and leaf internal CO2 concentration
@@ -533,11 +608,19 @@
          !         the closure condition by Jacobs (1994)
          SPHU_SAT    = 0.622e+0_fp * E_SAT( TEMPC ) / PRESSURE
          G_CAN       = G_LEAF * BIGLEAFSCALE
-         DEFICIT_Q   = MAX( SPHU_SAT - QV2M, 0.e+0_fp )
+         ! Calculate specific humidity deficit if DEFICIT_Q_IN is not provided
+         ! Remark: Consider moving this out of the (potential) loop. Currently 
+         ! the total iteration of the loop is set to 1 only.
+         IF ( PRESENT( DEFICIT_Q_IN ) ) THEN
+            DEFICIT_Q = DEFICIT_Q_IN
+         ELSE 
+            IF ( .NOT. PRESENT( QV2M ) ) RETURN
+            DEFICIT_Q   = MAX( SPHU_SAT - QV2M, 0.e+0_fp )
+         END IF
          CO2_IN      = CO2_GAMMA + f0(PFT)*( 1 - DEFICIT_Q / D_STAR(PFT) ) &
                      * ( CO2_AMBIENT - CO2_GAMMA )
          IF ( BETA <= 0.e+0_fp .OR. DEFICIT_Q >= D_STAR(PFT) & 
-                               .OR. PAR_ABSORBED <= 0.e+0_fp ) THEN
+                               .OR. APAR <= 0.e+0_fp ) THEN
             ! Close stomata if the above conditions are satisfied
             A_NET_OUT   = - RESP * BETA
             RESP_OUT    = RESP
@@ -568,13 +651,10 @@
                G_LEAF_OUT  = G_LEAF_MIN(PFT)
                EXIT
             END IF
-            ! Apply ozone damage scheme by Sitch et al. (2007)
-            SELECT CASE( O3dmg_opt )
-            CASE( 'LOW', 'HI' )
-               CALL OZONE_DAMAGE ( O3_CONC,   RAB,         &
-                                   G_LEAF,    PFT,         &
-                                   FLUXO3,    FACTOR_O3,   &
-                                   O3dmg_opt, RC           )
+
+            ! Calculate ozone damage if FACTOR_O3_IN is not provided
+            IF ( PRESENT ( FACTOR_O3_IN ) ) THEN 
+               FACTOR_O3   = FACTOR_O3_IN 
                A_NET_OUT   = FACTOR_O3 * A_NET
                RESP_OUT    = FACTOR_O3 * RESP
                G_LEAF_OUT  = FACTOR_O3 * G_LEAF
@@ -586,16 +666,36 @@
                      G_LEAF_OUT  = G_LEAF_MIN(PFT)
                      EXIT
                   END IF
-            CASE( 'OFF' )
-               A_NET_OUT   = A_NET
-               RESP_OUT    = RESP
-               G_LEAF_OUT  = G_LEAF
-            CASE DEFAULT 
-               ErrMsg = 'No ozone damage option chosen. Please ' // &
-                        'choose from HI, LOW or OFF.'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN               
-            END SELECT   ! O3 damage
+            ELSE 
+               ! Apply ozone damage scheme by Sitch et al. (2007)
+               SELECT CASE( O3dmg_opt )
+               CASE( 'LOW', 'HI' )
+                  CALL OZONE_DAMAGE ( O3_CONC,   RAB,         &
+                                      G_LEAF,    PFT,         &
+                                      FLUXO3,    FACTOR_O3,   &
+                                      O3dmg_opt, RC           )
+                  A_NET_OUT   = FACTOR_O3 * A_NET
+                  RESP_OUT    = FACTOR_O3 * RESP
+                  G_LEAF_OUT  = FACTOR_O3 * G_LEAF
+                     ! Close stomata if net photosynthesis <= 0 or
+                     ! stomatal conductance is too small
+                     IF ( A_NET_OUT <= 0.e+0_fp .OR. G_LEAF_OUT <= G_LEAF_MIN(PFT) ) THEN
+                        A_NET_OUT   = - RESP * BETA
+                        RESP_OUT    = RESP
+                        G_LEAF_OUT  = G_LEAF_MIN(PFT)
+                        EXIT
+                     END IF
+               CASE( 'OFF' )
+                  A_NET_OUT   = A_NET
+                  RESP_OUT    = RESP
+                  G_LEAF_OUT  = G_LEAF
+               CASE DEFAULT 
+                  ErrMsg = 'No ozone damage option chosen. Please ' // &
+                           'choose from HI, LOW or OFF.'
+                  CALL GC_Error( ErrMsg, RC, ThisLoc )
+                  RETURN               
+               END SELECT   ! O3 damage
+            END IF   ! FACTOR_O3_IN is present 
          END IF      ! Open or closed stomata
          ! IF ( ITER >= 2 ) THEN
          ! ! calculate error from step 2 onwards
@@ -620,6 +720,92 @@
 
       ! Return to calling program
       END SUBROUTINE DO_PHOTOSYNTHESIS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_isop_emis
+!
+! !DESCRIPTION: Subroutine DO\_ISOP\_EMIS calculates the photosyntheis-
+!  dependent isoprene emission based on Pacifico et al. (2011) 
+!  Atm. Chem. Phys.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_ISOP_EMIS( A_CAN_OUT, RESP_CAN_OUT,  &
+                               TEMPK, CO2_IN,            &
+                               LAI, PFT,                 &
+                               ISOP_EMIS                 )
+!
+! !INPUT PARAMETERS: 
+!
+      !---------------------------------------------------------------------------------------
+      ! A_CAN_OUT     : Canopy net photosynthetic rate      [mol CO2 m^-2 s^-1]
+      ! RESP_CAN_OUT  : Canopy dark respiration             [mol CO2 m^-2 s^-1]
+      ! TEMPK         : Leaf temperature in Kelvin          [K]
+      ! CO2_IN        : Leaf partial pressure of CO2        [Pa]
+      ! LAI           : Leaf area index for the PFT         [m^2 m^-2]
+      ! PFT           : Index for PFT                       []
+      !---------------------------------------------------------------------------------------
+      REAL(fp), INTENT(IN)    :: A_CAN_OUT
+      REAL(fp), INTENT(IN)    :: RESP_CAN_OUT
+      REAL(fp), INTENT(IN)    :: TEMPK
+      REAL(fp), INTENT(IN)    :: CO2_IN
+      REAL(fp), INTENT(IN)    :: LAI
+      INTEGER,  INTENT(IN)    :: PFT
+!
+! !OUTPUT PARAMETERS:
+!
+      !---------------------------------------------------------------------------------------
+      ! ISOP_EMIS     : Rate of isoprene emission           [kg C m-2 land s-1]
+      !---------------------------------------------------------------------------------------
+      REAL(fp), INTENT(OUT)    :: ISOP_EMIS
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+!
+! !LOCAL VARIABLES:
+!
+      !---------------------------------------------------------------------------------------
+      ! FACTOR_CO2    : CO2 factor for online isoprene emission           [] 
+      ! FACTOR_TEMP   : Temparture factor for online isoprene emission    [] 
+      ! Dry_weight    : Dry weight of leaf per leaf area                  [g dry weight m-2 leaf]
+      !---------------------------------------------------------------------------------------
+      REAL(fp)    :: FACTOR_CO2
+      REAL(fp)    :: FACTOR_TEMP
+      REAL(fp)    :: Dry_weight
+      
+      !=================================================================
+      ! DO_ISOP_EMIS begins here!
+      !=================================================================
+      ! Initialize local variables
+      FACTOR_CO2     = 0.e+0_fp
+      FACTOR_TEMP    = 0.e+0_fp
+
+      ! Calculate CO2 and temperature factors for photosynthesis-dependent 
+      ! isoprene Emission
+      FACTOR_CO2     = CO2_IN_st(PFT) / CO2_IN 
+      FACTOR_TEMP    = MIN( 2.3e+0_fp , EXP( 0.1e+0_fp * (TEMPK - TEMPK_st) ) )
+      
+      ! Calculate dry weight of leaf per leaf area (g dry weight m-2 leaf)
+      Dry_weight     = Leaf_density(PFT) * 1.e+3_fp / Dry_fraction 
+
+      ! Calculate isoprene emission (kg C m-2 land s-1)
+      ISOP_EMIS      = IEF(PFT) * Dry_weight * 1.e-9_fp / 3.6e+3_fp  &
+                     * ( A_CAN_OUT + RESP_CAN_OUT )                  &
+                     / ( A_NET_st(PFT) + RESP_st (PFT) )             &
+                     * FACTOR_CO2 * FACTOR_TEMP   
+      ISOP_EMIS      = MAX( 0.e+0_fp, ISOP_EMIS )
+
+      ! Return to calling program
+      END SUBROUTINE DO_ISOP_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1170,7 +1356,7 @@
       !---------------------------------------------------------------------------------------
       ! TEMPK         : Temperature in Kelvin                             [K]
       ! QV2M          : Specific humidity in canopy layer                 [kg H2O / kg air]
-      ! PAR_ABSORBED  : Absorbed PAR                                      [W m^-2]
+      ! PAR_ABSORBED  : Absorbed PAR                                      [mol photon m^-2 s^-1]
       ! PRESSURE      : Atmospheric Pressure in canopy layer              [Pa]
       ! CO2           : Ambient CO2 mole fraction                         [kg / kg dry]
       ! O2            : Ambient O2 mole fraction                          [kg / kg dry]
@@ -1220,13 +1406,13 @@
       PARDR         = State_Met%PARDR( I,J )
       PARDF         = State_Met%PARDF( I,J )
       ALBD          = State_Met%ALBD ( I,J )
-      PAR_ABSORBED  = ( 1 - ALBD ) * ( PARDR + PARDF ) 
+      PAR_ABSORBED  = ( 1 - ALBD ) * ( PARDR + PARDF ) * 4.6e-6_fp
       ! ! Pressure [Pa]
       ! PRESSURE      = State_Met%SLP( I,J ) * 1.e+2_fp
       ! CO2 mole fraction [mol/mol]
       ! CO2           = State_Chm%Species( I,J,1,id_CO2 ) * AIRMW &
       !               / State_Chm%SpcData( id_CO2 )%Info%MW_g
-      CO2           = Input_Opt%CO2_conc * 1.e-6_fp
+      CO2           = Input_Opt%Ecophy_CO2 * 1.e-6_fp
       ! O2 mole fraction [mol/mol]
       O2            = State_Chm%Species( I,J,1,id_O2  ) * AIRMW &
                     / State_Chm%SpcData( id_O2  )%Info%MW_g
@@ -1274,7 +1460,7 @@
                                CO2_IN,       FLUXO3_CAN,               &
                                FACTOR_O3,    BETA,       V_CMAX,       &
                                RATE_LIGHT,   RATE_RUBISCO,             &
-                               RATE_PRODUCT, A_GROSS,                  &
+                               RATE_PRODUCT, A_GROSS,    ISOP_EMIS,    &
                                State_Met,    State_Diag, RC            &
                              )
 !
@@ -1305,6 +1491,7 @@
       REAL(fp),       INTENT(IN)    :: RATE_RUBISCO
       REAL(fp),       INTENT(IN)    :: RATE_PRODUCT
       REAL(fp),       INTENT(IN)    :: A_GROSS
+      REAL(fp),       INTENT(IN)    :: ISOP_EMIS
       Type(MetState), INTENT(IN)    :: State_Met   ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1337,78 +1524,83 @@
       ThisLoc   = ' -> at Ecophy_Diagn (in module GeosCore/ecophysiology.F90)'
 
       ! send to diagnostics outputs
-      IF ( State_Diag%Archive_EcophyIUSE_PFT     .AND. SumLAI_PFT /= 0 ) THEN
-         State_Diag%EcophyIUSE_PFT     ( I,J,PFT ) = DBLE( IUSE_PFT ) 
+      IF ( State_Diag%Archive_EcophyPFTFrac      .AND. SumLAI_PFT /= 0 ) THEN
+         State_Diag%EcophyPFTFrac      ( I,J,PFT ) = DBLE( IUSE_PFT ) 
       END IF
       IF ( State_Diag%Archive_EcophyLAI          .AND. IUSE_PFT /= 0 ) THEN
          State_Diag%EcophyLAI          ( I,J,PFT ) = SumLAI_PFT / DBLE( IUSE_PFT )
       END IF
-      IF ( State_Diag%Archive_EcophyRA           .AND. SumLAI_PFT /= 0 ) THEN
-         State_Diag%EcophyRA     ( I,J ) = RA
+      IF ( State_Diag%Archive_EcophyRa           .AND. SumLAI_PFT /= 0 ) THEN
+         State_Diag%EcophyRa     ( I,J ) = RA
       END IF
-      IF ( State_Diag%Archive_EcophyRB_O3        .AND. SumLAI_PFT /= 0 ) THEN
-         State_Diag%EcophyRB_O3  ( I,J ) = RB_O3
+      IF ( State_Diag%Archive_EcophyRbO3        .AND. SumLAI_PFT /= 0 ) THEN
+         State_Diag%EcophyRbO3  ( I,J ) = RB_O3
       END IF
       !-----------------------------------------------------------------
       ! Canopy-level diagnostics: weight by land area occupied by the PFT
       !-----------------------------------------------------------------
-      ! G_CAN is archived in drydep_mod.F instead of here.
-      IF ( State_Diag%Archive_EcophyA_CAN_OUT    .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyA_CAN_OUT    ( I,J,PFT )
-         State_Diag%EcophyA_CAN_OUT    ( I,J,PFT ) = Tmp    &
+      ! G_CAN_OUT is archived in drydep_mod.F instead of here.
+      IF ( State_Diag%Archive_EcophyACan    .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyACan    ( I,J,PFT )
+         State_Diag%EcophyACan    ( I,J,PFT ) = Tmp    &
             + A_CAN_OUT    * DBLE( IUSE ) / DBLE( IUSE_PFT )
       END IF
-      IF ( State_Diag%Archive_EcophyRESP_CAN_OUT .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyRESP_CAN_OUT ( I,J,PFT )
-         State_Diag%EcophyRESP_CAN_OUT ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyRespCan .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyRespCan ( I,J,PFT )
+         State_Diag%EcophyRespCan ( I,J,PFT ) = Tmp    &
             + RESP_CAN_OUT * DBLE( IUSE ) / DBLE( IUSE_PFT )
       END IF
-      IF ( State_Diag%Archive_EcophyFLUXO3_CAN   .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyFLUXO3_CAN   ( I,J,PFT )
-         State_Diag%EcophyFLUXO3_CAN   ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyFluxO3Can   .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyFluxO3Can   ( I,J,PFT )
+         State_Diag%EcophyFluxO3Can   ( I,J,PFT ) = Tmp    &
             + FLUXO3_CAN   * DBLE( IUSE ) / DBLE( IUSE_PFT )
+      END IF
+      IF ( State_Diag%Archive_EcophyIsopEmisPFT    .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyIsopEmisPFT    ( I,J,PFT )
+         State_Diag%EcophyIsopEmisPFT    ( I,J,PFT ) = Tmp    &
+            + ISOP_EMIS    * DBLE( IUSE ) / DBLE( IUSE_PFT )
       END IF
       !-----------------------------------------------------------------
       ! Leaf-level diagnostics: weight by leaf area
       !-----------------------------------------------------------------
-      IF ( State_Diag%Archive_EcophyCO2_IN       .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyCO2_IN       ( I,J,PFT )
-         State_Diag%EcophyCO2_IN       ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyCO2Leaf       .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyCO2Leaf       ( I,J,PFT )
+         State_Diag%EcophyCO2Leaf       ( I,J,PFT ) = Tmp    &
             + CO2_IN       * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyFACTOR_O3    .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyFACTOR_O3    ( I,J,PFT )
-         State_Diag%EcophyFACTOR_O3    ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyO3DmgFac    .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyO3DmgFac    ( I,J,PFT )
+         State_Diag%EcophyO3DmgFac    ( I,J,PFT ) = Tmp    &
             + FACTOR_O3    * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyBETA         .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyBETA         ( I,J,PFT )
-         State_Diag%EcophyBETA         ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophySoilStress   .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophySoilStress   ( I,J,PFT )
+         State_Diag%EcophySoilStress   ( I,J,PFT ) = Tmp    &
             + BETA         * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyV_CMAX       .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyV_CMAX       ( I,J,PFT )
-         State_Diag%EcophyV_CMAX       ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyVCMax       .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyVCMax       ( I,J,PFT )
+         State_Diag%EcophyVCMax       ( I,J,PFT ) = Tmp    &
             + V_CMAX       * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyRATE_LIGHT   .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyRATE_LIGHT   ( I,J,PFT )
-         State_Diag%EcophyRATE_LIGHT   ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyLightLmtRate   .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyLightLmtRate   ( I,J,PFT )
+         State_Diag%EcophyLightLmtRate   ( I,J,PFT ) = Tmp    &
             + RATE_LIGHT   * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyRATE_RUBISCO .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyRATE_RUBISCO ( I,J,PFT )
-         State_Diag%EcophyRATE_RUBISCO ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyRubisLmtRate .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyRubisLmtRate ( I,J,PFT )
+         State_Diag%EcophyRubisLmtRate ( I,J,PFT ) = Tmp    &
             + RATE_RUBISCO * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyRATE_PRODUCT .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyRATE_PRODUCT ( I,J,PFT )
-         State_Diag%EcophyRATE_PRODUCT ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyProdLmtRate .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyProdLmtRate ( I,J,PFT )
+         State_Diag%EcophyProdLmtRate ( I,J,PFT ) = Tmp    &
             + RATE_PRODUCT * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
-      IF ( State_Diag%Archive_EcophyA_GROSS      .AND. SumLAI_PFT /= 0 ) THEN
-         Tmp = State_Diag%EcophyA_GROSS      ( I,J,PFT )
-         State_Diag%EcophyA_GROSS      ( I,J,PFT ) = Tmp    &
+      IF ( State_Diag%Archive_EcophyAGrossLeaf      .AND. SumLAI_PFT /= 0 ) THEN
+         Tmp = State_Diag%EcophyAGrossLeaf      ( I,J,PFT )
+         State_Diag%EcophyAGrossLeaf      ( I,J,PFT ) = Tmp    &
             + A_GROSS      * DBLE( IUSE ) * LAI / SumLAI_PFT
       END IF
 
@@ -1423,33 +1615,24 @@
 ! !IROUTINE: init_ecophy
 !
 ! !DESCRIPTION: Subroutine INIT\_ECOPHY initializes certain variables for the
-!  GEOS-CHEM ecophysiology subroutines.
+!  GEOS-CHEM ecophysiology subroutines and calculates the photosynthesis under 
+!  standard conditions.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ECOPHY( am_I_Root, Input_Opt,     &
-                              State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_ECOPHY( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Charpak_Mod,    ONLY : To_UpperCase
       USE Input_Opt_Mod,  ONLY : OptInput
-      USE Species_Mod,    ONLY : Species
-      USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Chm_Mod,  ONLY : Ind_
-      USE State_Diag_Mod, ONLY : DgnState
 !
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1463,6 +1646,34 @@
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER  :: PFT
+      REAL(fp) :: LAI            = 1.e+0_fp
+      ! Standard conditions 
+      REAL(fp) :: PRESSURE       = 1.01325e+5_fp
+      REAL(fp) :: APAR           = 1000.e-6_fp
+      REAL(fp) :: CO2            = 370.e-6_fp
+      REAL(fp) :: O2             = 0.209e+0_fp
+      REAL(fp) :: TEMPK          = 303.15e+0_fp 
+      REAL(fp) :: DEFICIT_Q_IN   = 0.e+0_fp
+      REAL(fp) :: FACTOR_O3_IN   = 1.e+0_fp
+      REAL(fp) :: BETA_IN        = 1.e+0_fp
+      REAL(fp) :: G_CAN_OUT
+      REAL(fp) :: G_LEAF_OUT
+      REAL(fp) :: CO2_IN
+      REAL(fp) :: A_CAN_OUT
+      REAL(fp) :: A_NET_OUT
+      REAL(fp) :: RESP_CAN_OUT
+      REAL(fp) :: RESP_OUT
+      REAL(fp) :: FLUXO3_CAN
+      REAL(fp) :: FLUXO3
+      REAL(fp) :: FACTOR_O3
+      REAL(fp) :: BETA
+      REAL(fp) :: V_CMAX
+      REAL(fp) :: RATE_LIGHT
+      REAL(fp) :: RATE_RUBISCO
+      REAL(fp) :: RATE_PRODUCT
+      REAL(fp) :: A_GROSS
+
       ! Strings
       CHARACTER(LEN=255)     :: Msg, ErrMsg, ThisLoc
 
@@ -1475,6 +1686,35 @@
       O3dmg_opt = To_Uppercase( TRIM( Input_Opt%O3dmg_opt ) )
       ErrMsg    = ''
       ThisLoc   = ' -> at Init_Ecophy (in module GeosCore/ecophysiology.F90)'
+
+      IF ( Input_Opt%LIsop_from_Ecophy ) THEN
+         DO PFT = 1,5
+            ! simulate plant processes under standard conditions
+            CALL DO_PHOTOSYNTHESIS( LAI, PFT,     PRESSURE,     APAR,         &
+                                    CO2, O2,      TEMPK,        G_CAN_OUT,    &
+                                    G_LEAF_OUT,   CO2_IN,       A_CAN_OUT,    &
+                                    A_NET_OUT,    RESP_CAN_OUT, RESP_OUT,     &
+                                    FLUXO3_CAN,   FLUXO3,       FACTOR_O3,    &
+                                    BETA,         V_CMAX,       RATE_LIGHT,   &
+                                    RATE_RUBISCO, RATE_PRODUCT, A_GROSS, RC,  &
+                                    DEFICIT_Q_IN=DEFICIT_Q_IN,                &
+                                    FACTOR_O3_IN=FACTOR_O3_IN,                &
+                                    BETA_IN=BETA_IN                           &
+                                    )
+            A_NET_st    (PFT)  = A_NET_OUT
+            RESP_st     (PFT)  = RESP_OUT
+            CO2_IN_st   (PFT)  = CO2_IN
+         END DO
+         WRITE( 6, *   ) 'Ecophysiology variables under standard conditions'
+         WRITE( 6, *   ) 'A_NET_st :   Canopy Photosynthesis (mol CO2 m^-2 s^-1) '
+         WRITE( 6, *   ) 'RESP_st  :   Canopy Respiration    (mol CO2 m^-2 s^-1) '
+         WRITE( 6, *   ) 'CO2_IN_st:   Leaf CO2 Pressure     (Pa)                '
+         WRITE( 6, *   ) 'A_NET_st,      RESP_st,       CO2_IN_st                '
+         DO PFT = 1,5
+            WRITE( 6, 100 ) A_NET_st(PFT), RESP_st (PFT), CO2_IN_st(PFT)
+         END DO 
+ 100     FORMAT( ES15.4E4, 3X, ES15.4E4, 3X, ES15.4E4 )
+      END IF
 
       END SUBROUTINE INIT_ECOPHY
 !EOC

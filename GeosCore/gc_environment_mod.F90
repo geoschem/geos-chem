@@ -534,7 +534,7 @@ CONTAINS
        IF ( Input_Opt%LECOPHY ) THEN
 
           ! Initialize for ecophysiology module
-          CALL Init_Ecophy( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+          CALL Init_Ecophy( Input_Opt, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Init_Ecophy"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )

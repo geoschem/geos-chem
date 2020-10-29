@@ -3250,6 +3250,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%Ecophy_CO2
 
+    ! Turn on photosynthesis-dependent isoprene emission?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LIsop_from_Ecophy', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%LIsop_from_Ecophy
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3271,6 +3279,12 @@ CONTAINS
 
     ! Turn off ecophysiology for simulations that don't need it
     IF ( .NOT. Input_Opt%LDRYD     ) Input_Opt%LECOPHY = .FALSE.
+
+    ! Turn off ozone damage scheme for simulations that don't need it
+    IF ( .NOT. Input_Opt%LECOPHY ) Input_Opt%O3dmg_opt = 'OFF'
+
+    ! Turn off online isoprene emission scheme for simulations that don't need it
+    IF ( .NOT. Input_Opt%LECOPHY ) Input_Opt%LIsop_from_Ecophy = .FALSE.
 
     ! Set the PBL drydep flag. This determines if dry deposition is
     ! applied (and drydep frequencies are calculated) over the entire
@@ -3319,6 +3333,8 @@ CONTAINS
                             Input_Opt%O3dmg_opt
        WRITE( 6, 110     ) ' => CO2 conc. (ppmv)        : ', &
                             Input_Opt%Ecophy_CO2
+       WRITE( 6, 100     ) ' => Online isoprene emis?   : ', &
+                            Input_Opt%LIsop_from_Ecophy
     ENDIF
 
     ! FORMAT statements

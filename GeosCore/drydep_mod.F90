@@ -154,6 +154,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_MENO3, id_ETNO3
   INTEGER                        :: id_NK1
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
+  INTEGER                        :: id_ISOPND
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -538,7 +539,7 @@ CONTAINS
              ELSE IF ( FLAG(D) .eq. 3 ) THEN
 
                 ! Scale species to ISOPN
-                DVZ = DVZ * sqrt(State_Chm%SpcData(id_ISOPND)%Info%MW_g) &
+                DVZ = DVZ * sqrt(State_Chm%SpcData(id_IHN1)%Info%MW_g) &
                           / sqrt(SpcInfo%MW_g)            
 
              ENDIF
@@ -546,24 +547,24 @@ CONTAINS
              ! Output PFT-specific vd
              SELECT CASE ( PFT )
              CASE( 1 )
-                IF ( State_Diag%Archive_DryDepVel_PFT1 ) THEN
-                   State_Diag%DryDepVel_PFT1(I,J,D) = DVZ
+                IF ( State_Diag%Archive_DryDepVelPFT1 ) THEN
+                   State_Diag%DryDepVelPFT1(I,J,D) = DVZ
                 ENDIF
              CASE( 2 )
-                IF ( State_Diag%Archive_DryDepVel_PFT2 ) THEN
-                   State_Diag%DryDepVel_PFT2(I,J,D) = DVZ
+                IF ( State_Diag%Archive_DryDepVelPFT2 ) THEN
+                   State_Diag%DryDepVelPFT2(I,J,D) = DVZ
                 ENDIF
              CASE( 3 )
-                IF ( State_Diag%Archive_DryDepVel_PFT3 ) THEN
-                   State_Diag%DryDepVel_PFT3(I,J,D) = DVZ
+                IF ( State_Diag%Archive_DryDepVelPFT3 ) THEN
+                   State_Diag%DryDepVelPFT3(I,J,D) = DVZ
                 ENDIF
              CASE( 4 )
-                IF ( State_Diag%Archive_DryDepVel_PFT4 ) THEN
-                   State_Diag%DryDepVel_PFT4(I,J,D) = DVZ
+                IF ( State_Diag%Archive_DryDepVelPFT4 ) THEN
+                   State_Diag%DryDepVelPFT4(I,J,D) = DVZ
                 ENDIF
              CASE( 5 )
-                IF ( State_Diag%Archive_DryDepVel_PFT5 ) THEN
-                   State_Diag%DryDepVel_PFT5(I,J,D) = DVZ
+                IF ( State_Diag%Archive_DryDepVelPFT5 ) THEN
+                   State_Diag%DryDepVelPFT5(I,J,D) = DVZ
                 ENDIF
              CASE DEFAULT
                 ! Do nothing (ignore vd for PFT=0: non-vegetated land)
@@ -959,7 +960,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
-    TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
     TYPE(GrdState), INTENT(IN) :: State_Grid     ! Grid state object
     TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
 
@@ -983,6 +983,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1185,6 +1186,11 @@ CONTAINS
     REAL(fp)          :: VD_PFT( NUMDEP, MAXVAL(IPFT) )
     REAL(fp)          :: Tmp
 
+    ! Turn on photosynthesis-dependent isoprene emission? (Joey Lam, 28 Oct 2020)
+    LOGICAL           :: LIsop_from_Ecophy       ! Turn on online isoprene emission
+    REAL(fp), POINTER :: Isop_from_Ecophy(:,:)   ! Pointer to StateChm
+    REAL(fp)          :: Isop_PFT                ! temporary variable 
+
     ! For the species database
     INTEGER                :: SpcId
     TYPE(Species), POINTER :: SpcInfo
@@ -1227,6 +1233,12 @@ CONTAINS
 
     ! Turn on ecophysiology module? (Joey Lam, 2/26/2019)
     LECOPHY = Input_Opt%LECOPHY
+
+    ! Turn on online isoprene emission from ecophysiology module? 
+    ! (Joey Lam, 28 Oct 2020)
+    LIsop_from_Ecophy = Input_Opt%LIsop_from_Ecophy
+    Isop_from_Ecophy => State_Chm%Isop_from_Ecophy
+    Isop_from_Ecophy = 0.e+0_fp   ! Initialize value
 
     ! Size of drycoeff (ckeller, 05/19/14)
     NN = SIZE(DRYCOEFF)
@@ -1327,8 +1339,8 @@ CONTAINS
     !$OMP PRIVATE( C1X,     VK,      I,       J,      IW                ) &
     !$OMP PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP ) &
     !$OMP PRIVATE( N_SPC,   alpha,   DEPVw                              ) &
-    !$OMP+PRIVATE( SumLAI_PFT,       IUSE_PFT,        RS,   PFT         ) &
-    !$OMP+PRIVATE( id_O3,   RB_O3,   VD_PFT                             ) &
+    !$OMP PRIVATE( SumLAI_PFT,       IUSE_PFT,        RS,   PFT         ) &
+    !$OMP PRIVATE( id_O3,   RB_O3,   VD_PFT, Isop_PFT                   ) &
 #ifdef MODEL_GEOS
     !$OMP PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    ) &
 #endif
@@ -1879,17 +1891,23 @@ CONTAINS
              DAIR  = 0.2e0_f8*1.e-4_f8
              id_O3 = IND_( 'O3' )
              XMWO3 = State_Chm%SpcData( id_O3 )%Info%MW_g*1.e-3_fp
-             RB_O3 = (2.e+0_f8/CKUSTR)*
-                     (DAIR/DIFFG(TEMPK,PRESSU(I,J),XMWO3))
+             RB_O3 = (2.e+0_f8/CKUSTR)* &
+                     (DAIR/DIFFG(TEMPK,PRESSU(I,J),XMWO3)) &
                      **0.667e+0_f8
 
              ! Call from ecophysiology module to get RIX 
-             CALL DO_ECOPHY ( am_I_Root, Input_Opt,  State_Met, 
-                              State_Chm, State_Diag, RC,         
-                              I, J,      LDT, PFT,   RA, RB_O3,
-                              PRESSU(I,J),
-                              RS,        SumLAI_PFT(PFT),          
+             CALL DO_ECOPHY ( Input_Opt, State_Met,              & 
+                              State_Chm, State_Diag, RC,         &
+                              I, J,      LDT, PFT,   RA, RB_O3,  &
+                              PRESSU(I,J), Isop_PFT,             &
+                              RS,        SumLAI_PFT(PFT),        & 
                               IUSE_PFT(PFT)                     )
+             ! If we use online isoprene emission from ecophysiology
+             IF ( Input_Opt%LIsop_from_Ecophy ) THEN 
+                ! The value of Isop_PFT is in kg C m-2 grid s-1
+                ! Sum over different land types to get a grid total
+                Isop_from_Ecophy( I,J ) = Isop_from_Ecophy( I,J ) + Isop_PFT
+             END IF
              RIX = RS
           ELSE
              RIX = RI(LDT)
@@ -1921,10 +1939,10 @@ CONTAINS
 
           ! Archive stomatal conductance for ecophysiology module 
           ! (Joey Lam, 09 Apr 2019)
-          IF ( State_Diag%Archive_EcophyG_CAN_OUT .AND. PFT /= 0  &
+          IF ( State_Diag%Archive_EcophyGCan .AND. PFT /= 0  &
                .AND. IUSE_PFT(PFT) /= 0 ) THEN
-             Tmp = State_Diag%EcophyG_CAN_OUT ( I,J,PFT )
-             State_Diag%EcophyG_CAN_OUT ( I,J,PFT ) = Tmp         &
+             Tmp = State_Diag%EcophyGCan ( I,J,PFT )
+             State_Diag%EcophyGCan ( I,J,PFT ) = Tmp         &
                    + DBLE( IUSE(I,J,LDT) ) / RIX / IUSE_PFT(PFT)
           END IF
 
@@ -2892,7 +2910,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 

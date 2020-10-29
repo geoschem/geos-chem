@@ -1936,6 +1936,8 @@ contains
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
+    ! Online isoprene emission (Joey Lam, 11 Oct 2020)
+    LOGICAL            :: LIsop_from_Ecophy  
 
     ! HEMCO update
     LOGICAL            :: FND
@@ -1951,6 +1953,7 @@ contains
     LOGICAL,           SAVE :: FIRST = .TRUE.
     INTEGER,           SAVE :: id_O3
     INTEGER,           SAVE :: id_HNO3
+    INTEGER,           SAVE :: id_ISOP
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
@@ -2017,6 +2020,7 @@ contains
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
+    LIsop_from_Ecophy = Input_Opt%LIsop_from_Ecophy
 
     dtime = GET_TS_CONV() ! second
 
@@ -2028,6 +2032,7 @@ contains
        ! Get species IDs
        id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
+       id_ISOP = Ind_('ISOP')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
@@ -2145,6 +2150,16 @@ contains
           DO L = 1, TOPMIX
              CALL GetHcoVal ( NA, I, J, L, fnd, emis=emis )
              IF ( .NOT. fnd ) EXIT
+
+             ! Add an option to use simulated isoprene emission
+             ! from ecophysiology module (Joey Lam, 1 Feb 2021)
+             IF ( NA == id_ISOP ) THEN
+                State_Diag%HEMCOIsopEmis( I,J,L ) = emis
+                ! replace HEMCO values by simulated isoprene emission
+                IF ( L == 1 .AND. LIsop_from_Ecophy ) THEN               
+                   emis = State_Chm%Isop_from_Ecophy( I,J ) 
+                END IF
+             END IF
              tmpflx = tmpflx + emis
           ENDDO
           eflx(I,J,NA) = eflx(I,J,NA) + tmpflx

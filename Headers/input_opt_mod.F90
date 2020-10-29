@@ -244,6 +244,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LECOPHY
      CHARACTER(LEN=3)            :: O3dmg_opt 
      REAL(fp)                    :: Ecophy_CO2
+     LOGICAL                     :: LIsop_from_Ecophy
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -760,6 +761,7 @@ CONTAINS
     Input_Opt%LECOPHY                = .FALSE.
     Input_Opt%O3dmg_opt              = 'OFF'
     Input_Opt%Ecophy_CO2             = 390.0
+    Input_Opt%LIsop_from_Ecophy      = .FALSE.
 
     !----------------------------------------
     ! GAMAP_MENU fields

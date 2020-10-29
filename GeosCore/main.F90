@@ -980,8 +980,8 @@ PROGRAM GEOS_Chem
           ENDIF
 
           IF ( ITS_TIME_FOR_EMIS() ) THEN
-             CALL Zero_Diagnostics_StartofTimestep( am_I_Root, &
-                  State_Chm, State_Diag, RC )
+             CALL Zero_Diagnostics_StartofTimestep( State_Chm, & 
+                  State_Diag, RC )
           ENDIF
           
           IF ( Input_Opt%useTimers ) THEN
