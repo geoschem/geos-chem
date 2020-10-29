@@ -181,12 +181,24 @@ CONTAINS
 !  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
 !  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
 !  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
-!  (7)  DELP      (REAL(fp)) : Delta-P extent of grid box                 [hPa]
-!                              (Same for both moist and dry air since we
-!                              assume constant water vapor pressure
-!                              across box)
+!                              (Note that PMID_DRY and PEDGE_DRY represent local partial pressure of dry air 
+!                               (total pressure minus water vapor pressure), which is different
+!                               from the pressure that would occur in a dry hydrostatic atmosphere with the same
+!                               dry air mass distribution. The latter is needed for transport calculations
+!                               for which we have DELP_DRY. Despite similar names, DELP_DRY is fundamentally 
+!                               different from PEDGE_DRY. cdholmes 10/29/2020)
+!  (7)  DELP      (REAL(fp)) : Moist air Delta-P extent of grid box       [hPa]
+!                              (DELP is proportional to grid box moist air mass)
+!       DELP_DRY  (REAL(fp)) : Dry air Delta-P                     
+!                              (DELP_DRY is treated as proportional to grid box dry air mass,
+!                               but it is computed from dry surface pressure and Hybrid A's and B's.
+!                               This is for consistency with the assumptions about the vertical coordinate
+!                               in transport (TPCORE_FVDAS and the pressure fixer) to conserve mass. 
+!                               As a result, however, DELP_DRY is not consistent with the dry air mass 
+!                               computed from moist air mass and specific humidity, nor is it consistent
+!                               with the differences between consecutive PEDGE_DRY values. cdholmes 10/29/2020)
 !  (8)  AIRDEN    (REAL(fp)) : Mean grid box dry air density            [kg/m^3]
-!                              (defined as total dry air mass/box vol)
+!                              (defined as total dry air mass/box vol, computed from DELP_DRY (see note above))
 !  (9)  MAIRDEN   (REAL(fp)) : Mean grid box moist air density          [kg/m^3]
 !                              (defined as total moist air mass/box vol)
 !  (10) AD        (REAL(fp)) : Total dry air mass in grid box             [kg]
