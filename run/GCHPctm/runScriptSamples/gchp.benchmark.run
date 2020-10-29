@@ -36,8 +36,8 @@ if [[ -e cap_restart ]]; then
    rm cap_restart
 fi
 
-# Sync all config files with settings in runConfig.sh                           
-./runConfig.sh > ${log}
+# Sync all config files with settings in runConfig.sh
+source runConfig.sh > ${log}
 if [[ $? == 0 ]]; then
 
     # Source your environment file. This requires first setting the gchp.env

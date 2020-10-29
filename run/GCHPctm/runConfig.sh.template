@@ -664,5 +664,4 @@ if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
 
-exit 0
 

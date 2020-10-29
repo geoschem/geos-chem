@@ -128,7 +128,7 @@ fi
 echo " "
 echo "Settings from runConfig.sh: "
 echo " "
-source ./runConfig.sh
+source runConfig.sh
 
 # Use the last run's output restart file as the input restart file if
 # cap_restart exists (meaning there was a previous run). Note that unlike
@@ -168,7 +168,7 @@ if [[ $? == 0 ]]; then
 
    # Run the simulation
    # SLURM_NTASKS is #SBATCH -n and SLURM_NNODES is #SBATCH -N above
-   time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./geos
+   time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp
 
    # Echo end date
    echo '===> Run ended at' `date`
