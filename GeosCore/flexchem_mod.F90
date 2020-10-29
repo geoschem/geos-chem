@@ -593,7 +593,8 @@ CONTAINS
     !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC                        )&
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
-    !$OMP SCHEDULE ( DYNAMIC,  1                                            )
+    !$OMP SCHEDULE ( DYNAMIC,  1                                            )&
+    !$OMP COLLAPSE ( 2 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
