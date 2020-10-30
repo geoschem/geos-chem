@@ -412,6 +412,7 @@ MODULE Input_Opt_Mod
 #if defined( MODEL_CESM )
      LOGICAL                     :: onlineAlbedo       = .TRUE. ! Use albedo from land model
      LOGICAL                     :: onlineLandTypes    = .TRUE. ! Use land types from land model
+     LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
      LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
 #endif
      !----------------------------------------

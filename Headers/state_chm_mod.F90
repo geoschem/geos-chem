@@ -216,6 +216,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
      REAL(fp),          POINTER :: H2O2AfterChem(:,:,:) ! H2O2, SO2 [v/v]
      REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
+     REAL(fp),          POINTER :: OMOC           (:,:) ! OM:OC Ratio [unitless]
      REAL(fp),          POINTER :: OMOC_POA       (:,:) ! OM:OC Ratio (OCFPOA) [unitless]
      REAL(fp),          POINTER :: OMOC_OPOA      (:,:) ! OM:OC Ratio (OCFOPOA) [unitless]
      REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
@@ -470,6 +471,7 @@ CONTAINS
     State_Chm%AeroH2O           => NULL()
     State_Chm%GammaN2O5         => NULL()
     State_Chm%SSAlk             => NULL()
+    State_Chm%OMOC              => NULL()
     State_Chm%OMOC_POA          => NULL()
     State_Chm%OMOC_OPOA         => NULL()
     State_Chm%DryDepNitrogen    => NULL()
@@ -1074,6 +1076,21 @@ CONTAINS
        !---------------------------------------------------------------------
        ! OM:OC Ratios
        !---------------------------------------------------------------------
+       chmId = 'OMOC'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%OMOC,                                     &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        chmId = 'OMOCpoa'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -2790,6 +2807,13 @@ CONTAINS
        State_Chm%GammaN2O5 => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%OMOC ) ) THEN
+       DEALLOCATE( State_Chm%OMOC, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OMOC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OMOC => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%OMOC_POA ) ) THEN
        DEALLOCATE( State_Chm%OMOC_POA, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%OMOC_POA', 2, RC )
@@ -3660,6 +3684,11 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'H-value for Rosenbrock solver'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+
+       CASE ( 'OMOC' )
+          IF ( isDesc  ) Desc  = 'OM:OC ratio as read by HEMCO (from /aerosol_mod.F90)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
 
        CASE ( 'OMOCPOA' )
           IF ( isDesc  ) Desc  = 'OM:OC ratio for POA (from /aerosol_mod.F90)'

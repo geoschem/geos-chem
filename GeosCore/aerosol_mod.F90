@@ -248,9 +248,6 @@ CONTAINS
     REAL(fp), POINTER   :: PMID(:,:,:)
     REAL(fp), POINTER   :: T(:,:,:)
 
-    ! Arrays
-    REAL(fp), ALLOCATABLE :: OMOC(:,:)
-
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
 
@@ -340,21 +337,20 @@ CONTAINS
     ENDIF
 
 
-    ALLOCATE( OMOC(State_Grid%NX, State_Grid%NY), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F: OMOC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 #if !defined( MODEL_CESM )
-    CALL HCO_EvalFld( HcoState, Trim(FieldName), OMOC, RC, FOUND=FND )
+    CALL HCO_EvalFld( HcoState, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
-    FND = .False.
+    FND = .True.
+    RC  = GC_SUCCESS
 #endif
 
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
        ! Set OM/OC using spatially and seasonally varying data from
        ! Philip et al. (2014)
-       OCFPOA(:,:)  = OMOC(:,:) ! OM/OC for POA
-       OCFOPOA(:,:) = OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+       OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA
+       OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
 
     ELSE
 
@@ -1005,9 +1001,6 @@ CONTAINS
                      'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
     ENDIF
-
-    ! Deallocate local array
-    IF ( ALLOCATED( OMOC ) ) DEALLOCATE ( OMOC, STAT=RC )
 
     ! Free pointers
     Spc    => NULL()
