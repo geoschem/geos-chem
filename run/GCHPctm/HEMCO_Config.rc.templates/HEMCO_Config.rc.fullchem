@@ -451,7 +451,7 @@ Warnings:                    1
 0 NEI11_SURFACE_pFe    -                                                                       -        -                  -  -   -        pFe  26/219/255/1007/69     1 50
 0 NEI11_SURFACE_C2H4   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          ETH      2006-2013/1-12/1/0 RF xy  kgC/m2/s C2H4 26/213/254/1007/44     1 50
 0 NEI11_SURFACE_C2H6   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          ETHA     2006-2013/1-12/1/0 RF xy  kgC/m2/s C2H6 26/217/254/1007/45     1 50
-0 NEI11_SURFACE_ALD2   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          ALD2     2006-2013/1-12/1/0 RF xy  kgC/m2/s ALD2 26/213/254/1007/42     1 50
+0 NEI11_SURFACE_ALD2   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          ALD2     2006-2013/1-12/1/0 RF xy  kgC/m2/s ALD2 26/213/254/1007/41     1 50
 0 NEI11_SURFACE_BCPI   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          PEC      2006-2013/1-12/1/0 RF xy  kg/m2/s  BCPI 26/221/256/1007/70     1 50
 0 NEI11_SURFACE_BCPO   -                                                                       -        -                  -  -   -        BCPO 26/221/256/1007/71     1 50
 0 NEI11_SURFACE_OCPI   $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          POC      2006-2013/1-12/1/0 RF xy  kg/m2/s  OCPI 26/222/257/1007/72     1 50
@@ -2048,13 +2048,13 @@ Warnings:                    1
 )))CEDS_SHIP
 
 (((NEI2011_SHIP_HOURLY
-102 NEI11_C3MARINE_NO  $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO     2006-2013/1-12/1-31/*  C xy kg/m2/s  NO   251/1007 10 50
-102 NEI11_C3MARINE_NO2 $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO2    2006-2013/1-12/1-31/*  C xy kg/m2/s  NO2  251/1007 10 50
+102 NEI11_C3MARINE_NO  $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO     2006-2013/1-12/1-31/*  RF xy kg/m2/s  NO   251/1007 10 50
+102 NEI11_C3MARINE_NO2 $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO2    2006-2013/1-12/1-31/*  RF xy kg/m2/s  NO2  251/1007 10 50
 )))NEI2011_SHIP_HOURLY
 
 (((NEI2011_SHIP_MONMEAN
-102 NEI11_C3MARINE_NO  $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_c3marine.nc NO  2006-2013/1-12/1/0 C xy kg/m2/s  NO   251/1007 10 50
-102 NEI11_C3MARINE_NO2 $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_c3marine.nc NO2 2006-2013/1-12/1/0 C xy kg/m2/s  NO2  251/1007 10 50
+102 NEI11_C3MARINE_NO  $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_c3marine.nc NO  2006-2013/1-12/1/0 RF xy kg/m2/s  NO   251/1007 10 50
+102 NEI11_C3MARINE_NO2 $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_c3marine.nc NO2 2006-2013/1-12/1/0 RF xy kg/m2/s  NO2  251/1007 10 50
 )))NEI2011_SHIP_MONMEAN
 
 )))ParaNOx
@@ -2097,9 +2097,6 @@ Warnings:                    1
 # --- AEIC aircraft emissions ---
 #
 # ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
-#
-# IMPORTANT NOTE: Set units attribute of HC variable to 'kg/m2/s'. This avoids
-#                 any mass conversion by HEMCO.
 #==============================================================================
 (((AEIC
 0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115 20 1
@@ -2401,13 +2398,13 @@ Warnings:                    1
 # --- Seawater concentrations for oceanic emissions (Extension 101) ---
 #==============================================================================
 (((SeaFlux
-#101 CH3I_SEAWATER  $ROOT/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc               CH3I_OCEAN 1985/1-12/1/0 C xy kg/m3 CH3I  - 1 1
-101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc                  DMS_OCEAN  1985/1-12/1/0 C xy kg/m3 DMS   - 1 1
-101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc         ACET       2005/1/1/0    C xy kg/m3 ACET  - 1 1
-101 ALD2_SEAWATER   $ROOT/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc           ALD2       2006/1-12/1/0 C xy kg/m3 ALD2  - 1 1
-101 MENO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         MENO3      2006/1-12/1/0 C xy kg/m3 MENO3 - 1 1
-101 ETNO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         ETNO3      2006/1-12/1/0 C xy kg/m3 ETNO3 - 1 1
-101 MOH_SEAWATER    $ROOT/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc MOH        2005/1/1/0    C xy kgC/m3 MOH  - 1 1
+#101 CH3I_SEAWATER  $ROOT/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc               CH3I_OCEAN 1985/1-12/1/0 C xy kg/m3  CH3I  -  1 1
+101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc                  DMS_OCEAN  1985/1-12/1/0 C xy kg/m3  DMS   -  1 1
+101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc         ACET       2005/1/1/0    C xy kgC/m3 ACET  40 1 1
+101 ALD2_SEAWATER   $ROOT/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc           ALD2       2006/1-12/1/0 C xy kgC/m3 ALD2  41 1 1
+101 MENO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         MENO3      2006/1-12/1/0 C xy kg/m3  MENO3 -  1 1
+101 ETNO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         ETNO3      2006/1-12/1/0 C xy kg/m3  ETNO3 -  1 1
+101 MOH_SEAWATER    $ROOT/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc MOH        2005/1/1/0    C xy kg/m3  MOH   -  1 1
 )))SeaFlux
 
 #==============================================================================
@@ -3675,23 +3672,24 @@ Warnings:                    1
 #==============================================================================
 
 # Units carbon to species conversions
-40 CtoACET 1.613611 - - - xy unitless 1
-41 CtoALD2 1.835833 - - - xy unitless 1
-42 CtoALK4 1.126357 - - - xy unitless 1
-43 CtoBENZ 1.085000 - - - xy unitless 1
-44 CtoC2H4 1.168750 - - - xy unitless 1
-45 CtoC2H6 1.253333 - - - xy unitless 1
-46 CtoC3H8 1.225278 - - - xy unitless 1
-47 CtoEOH  1.920000 - - - xy unitless 1
-48 CtoMEK  1.502292 - - - xy unitless 1
-49 CtoPRPE 1.169167 - - - xy unitless 1
-55 CtoTOLU 1.097024 - - - xy unitless 1
-56 CtoXYLE 1.106042 - - - xy unitless 1
-59 CtoC2H2 1.085000 - - - xy unitless 1
-61 CtoISOP 1.135500 - - - xy unitless 1
-62 CtoMTPA 1.135500 - - - xy unitless 1
-64 CtoMBOX 1.435500 - - - xy unitless 1
-67 CtoSESQ 1.135560 - - - xy unitless 1
+# Factor = # carbon atoms * MW carbon) / MW species
+40 CtoACET MATH:58.09/(3.0*12.0)   - - - xy unitless 1
+41 CtoALD2 MATH:44.06/(2.0*12.0)   - - - xy unitless 1
+42 CtoALK4 MATH:58.12/(4.3*12.0)   - - - xy unitless 1
+43 CtoBENZ MATH:78.12/(6.0*12.0)   - - - xy unitless 1
+44 CtoC2H4 MATH:28.05/(2.0*12.0)   - - - xy unitless 1
+45 CtoC2H6 MATH:30.08/(2.0*12.0)   - - - xy unitless 1
+46 CtoC3H8 MATH:46.08/(3.0*12.0)   - - - xy unitless 1
+47 CtoEOH  MATH:46.06/(2.0*12.0)   - - - xy unitless 1
+48 CtoMEK  MATH:72.11/(4.0*12.0)   - - - xy unitless 1
+49 CtoPRPE MATH:42.09/(3.0*12.0)   - - - xy unitless 1
+55 CtoTOLU MATH:92.15/(7.0*12.0)   - - - xy unitless 1
+56 CtoXYLE MATH:106.18/(8.0*12.0)  - - - xy unitless 1
+59 CtoC2H2 MATH:26.04/(2.0*12.0)   - - - xy unitless 1
+61 CtoISOP MATH:68.13/(5.0*12.0)   - - - xy unitless 1
+62 CtoMTPA MATH:136.26/(10.0*12.0) - - - xy unitless 1
+64 CtoMBOX MATH:86.13/(5.0*12.0)   - - - xy unitless 1
+67 CtoSESQ MATH:204.4/(15.0*12.0)  - - - xy unitless 1
 
 # VOC speciations
 (((RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85
