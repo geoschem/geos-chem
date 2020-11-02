@@ -184,12 +184,12 @@ Species name            : SO4D4"
     #-----------------------------
     # Marine POA settings
     #-----------------------------
-    if [[ ${sim_extra_option} = "marinePOA" ]]; then
+    if [[ "x${sim_extra_option}" == "xmarinePOA" ]]; then
         replace_colon_sep_val "SeaSalt"                 on HEMCO_Config.rc
         replace_colon_sep_val " => MARINE ORG AEROSOLS" T  input.geos
 
         # Add marine POA species to input.geos
-        prev_line"Species name            : MONITU"
+        prev_line="Species name            : MONITU"
         new_line="\Species name            : MOPI\n\
 Species name            : MOPO"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos

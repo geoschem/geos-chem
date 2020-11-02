@@ -614,7 +614,7 @@ fi
 # Modify input files for nested-grid simulations
 if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
-    if [[ "x${domain_name}" = "xNA" ]]; then
+    if [[ "x${domain_name}" == "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
 	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
     fi
@@ -632,6 +632,8 @@ if [[ ${sim_name} =~ "POPs" ]]; then
     sed -i -e "s|{POPs_HSTAR}|${POP_HSTAR}|"           input.geos
     sed -i -e "s|{POPs_DEL_H}|${POP_DEL_H}|"           input.geos
     sed -i -e "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         input.geos
+    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
     sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
     sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Diagn.rc
 fi
