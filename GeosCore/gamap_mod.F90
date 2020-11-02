@@ -318,7 +318,6 @@ CONTAINS
     WRITE( IU_FILE,  125  )
     WRITE( IU_FILE,  130  )
     WRITE( IU_FILE,  135  )
-    WRITE( IU_FILE,  140  )
     WRITE( IU_FILE,  145  )
     WRITE( IU_FILE,  150  )
     WRITE( IU_FILE,  125  )
@@ -340,135 +339,135 @@ CONTAINS
             ' to unit given below'                                   )
 155 FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-    !-------------------------------------
-    ! 0: Tracers [ppbv]
-    !-------------------------------------
-
-    ! Write separator line
-    CALL WRITE_SEPARATOR( IU_FILE, 0 )
-
-    ! Loop over tracers
-    DO T = 1, NTRAC(45)
-
-       ! GAMAP tracer number
-       N = ( SPACING * 0 ) + T
-
-       ! Write tracers [ppbv] to "tracerinfo.dat" file
-       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         SCALE(T,45), UNIT(T,45), N )
-    ENDDO
-
-    !-------------------------------------
-    ! SPACING*1: Tracers [molec/cm2/s]
-    !-------------------------------------
-
-    ! Write separator line
-    CALL WRITE_SEPARATOR( IU_FILE, 100 )
-
-    ! Loop over tracers
-    DO T = 1, NTRAC(45)
-
-       ! GAMAP tracer number
-       N = ( SPACING * 1 ) + T
-
-       ! New scale
-       SCALE_NEW = 1.0e0
-
-       ! New unit
-       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-          UNIT_NEW = 'atoms C/cm2/s'
-       ELSE
-          UNIT_NEW = 'molec/cm2/s'
-       ENDIF
-
-       ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
-       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         SCALE_NEW,   UNIT_NEW, N )
-    ENDDO
-
-    !-------------------------------------
-    ! SPACING*2: Tracers [molec/cm2]
-    !-------------------------------------
-
-    ! Write separator line
-    CALL WRITE_SEPARATOR( IU_FILE, 200 )
-
-    ! Loop over tracers
-    DO T = 1, NTRAC(45)
-
-       ! GAMAP tracer number
-       N = ( SPACING * 2 ) + T
-
-       ! New scale
-       SCALE_NEW = 1.0e0
-
-       ! New unit
-       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-          UNIT_NEW = 'atoms C/cm2'
-       ELSE
-          UNIT_NEW = 'molec/cm2'
-       ENDIF
-
-       ! Write tracers [molec/cm2] to "tracerinfo.dat"
-       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         SCALE_NEW,   UNIT_NEW, N )
-    ENDDO
-
-    !-------------------------------------
-    ! SPACING*3: Tracers [kg/s]
-    !-------------------------------------
-
-    ! Write separator line
-    CALL WRITE_SEPARATOR( IU_FILE, 300 )
-
-    ! Loop over tracers
-    DO T = 1, NTRAC(45)
-
-       ! GAMAP tracer number
-       N = ( SPACING * 3 ) + T
-
-       ! New scale
-       SCALE_NEW = 1.0e0
-
-       ! New unit
-       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-          UNIT_NEW = 'kg C/s'
-       ELSE
-          UNIT_NEW = 'kg/s'
-       ENDIF
-
-       ! Write tracers [kg/s] to "tracerinfo.dat"
-       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         SCALE_NEW,   UNIT_NEW, N )
-    ENDDO
-
-    !-------------------------------------
-    ! SPACING*4: Tracers [kg]
-    !-------------------------------------
-
-    ! Write separator line
-    CALL WRITE_SEPARATOR( IU_FILE, 400 )
-
-    ! Loop over tracers
-    DO T = 1, NTRAC(45)
-
-       ! GAMAP tracer number
-       N = ( SPACING * 4 ) + T
-
-       ! New scale
-       SCALE_NEW = 1.0e0
-
-       ! New unit
-       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-          UNIT_NEW = 'kg C'
-       ELSE
-          UNIT_NEW = 'kg'
-       ENDIF
-
-       ! Write tracers [kg] to "tracerinfo.dat"
-       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-                         SCALE_NEW,   UNIT_NEW, N )
-    ENDDO
+!    !-------------------------------------
+!    ! 0: Tracers [ppbv]
+!    !-------------------------------------
+!
+!    ! Write separator line
+!    CALL WRITE_SEPARATOR( IU_FILE, 0 )
+!
+!    ! Loop over tracers
+!    DO T = 1, NTRAC(45)
+!
+!       ! GAMAP tracer number
+!       N = ( SPACING * 0 ) + T
+!
+!       ! Write tracers [ppbv] to "tracerinfo.dat" file
+!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+!                         SCALE(T,45), UNIT(T,45), N )
+!    ENDDO
+!
+!    !-------------------------------------
+!    ! SPACING*1: Tracers [molec/cm2/s]
+!    !-------------------------------------
+!
+!    ! Write separator line
+!    CALL WRITE_SEPARATOR( IU_FILE, 100 )
+!
+!    ! Loop over tracers
+!    DO T = 1, NTRAC(45)
+!
+!       ! GAMAP tracer number
+!       N = ( SPACING * 1 ) + T
+!
+!       ! New scale
+!       SCALE_NEW = 1.0e0
+!
+!       ! New unit
+!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+!          UNIT_NEW = 'atoms C/cm2/s'
+!       ELSE
+!          UNIT_NEW = 'molec/cm2/s'
+!       ENDIF
+!
+!       ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
+!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+!                         SCALE_NEW,   UNIT_NEW, N )
+!    ENDDO
+!
+!    !-------------------------------------
+!    ! SPACING*2: Tracers [molec/cm2]
+!    !-------------------------------------
+!
+!    ! Write separator line
+!    CALL WRITE_SEPARATOR( IU_FILE, 200 )
+!
+!    ! Loop over tracers
+!    DO T = 1, NTRAC(45)
+!
+!       ! GAMAP tracer number
+!       N = ( SPACING * 2 ) + T
+!
+!       ! New scale
+!       SCALE_NEW = 1.0e0
+!
+!       ! New unit
+!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+!          UNIT_NEW = 'atoms C/cm2'
+!       ELSE
+!          UNIT_NEW = 'molec/cm2'
+!       ENDIF
+!
+!       ! Write tracers [molec/cm2] to "tracerinfo.dat"
+!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+!                         SCALE_NEW,   UNIT_NEW, N )
+!    ENDDO
+!
+!    !-------------------------------------
+!    ! SPACING*3: Tracers [kg/s]
+!    !-------------------------------------
+!
+!    ! Write separator line
+!    CALL WRITE_SEPARATOR( IU_FILE, 300 )
+!
+!    ! Loop over tracers
+!    DO T = 1, NTRAC(45)
+!
+!       ! GAMAP tracer number
+!       N = ( SPACING * 3 ) + T
+!
+!       ! New scale
+!       SCALE_NEW = 1.0e0
+!
+!       ! New unit
+!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+!          UNIT_NEW = 'kg C/s'
+!       ELSE
+!          UNIT_NEW = 'kg/s'
+!       ENDIF
+!
+!       ! Write tracers [kg/s] to "tracerinfo.dat"
+!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+!                         SCALE_NEW,   UNIT_NEW, N )
+!    ENDDO
+!
+!    !-------------------------------------
+!    ! SPACING*4: Tracers [kg]
+!    !-------------------------------------
+!
+!    ! Write separator line
+!    CALL WRITE_SEPARATOR( IU_FILE, 400 )
+!
+!    ! Loop over tracers
+!    DO T = 1, NTRAC(45)
+!
+!       ! GAMAP tracer number
+!       N = ( SPACING * 4 ) + T
+!
+!       ! New scale
+!       SCALE_NEW = 1.0e0
+!
+!       ! New unit
+!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+!          UNIT_NEW = 'kg C'
+!       ELSE
+!          UNIT_NEW = 'kg'
+!       ENDIF
+!
+!       ! Write tracers [kg] to "tracerinfo.dat"
+!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+!                         SCALE_NEW,   UNIT_NEW, N )
+!    ENDDO
 
     !-------------------------------------
     ! All other diagnostics
