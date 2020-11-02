@@ -176,7 +176,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
-	    printf "  1. TOASS with 40 bins\n"
+	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option

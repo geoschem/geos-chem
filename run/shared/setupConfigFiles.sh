@@ -1,11 +1,26 @@
 #!/bin/bash
 
-# setupConfigFiles.sh: Utility function to update config file settings
-# when creating a run directory.
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
 #
-# Initial version: M. Sulprizio, 6/24/2020
+# !MODULE: setupConfigFiles.sh
+#
+# !DESCRIPTION: Defines utility functions to update configuration file
+#  settings when creating a run directory.
+#\\
+#\\
+# !REVISION HISTORY:
+#  Initial version: M. Sulprizio, 6/24/2020
+#  See the subsequent Git history with the gitk browser!
+#EOP
+#------------------------------------------------------------------------------
+#BOC
 
+#=============================================================================
 #### Define function to replace values in config files
+#=============================================================================
 replace_colon_sep_val() {
     KEY=$1
     VALUE=$2
@@ -17,18 +32,22 @@ replace_colon_sep_val() {
     sed -i -e "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE}
 }
 
+#============================================================================
 #### Define function to remove line(s) in config files
+#============================================================================
 remove_text() {
     VALUE=$1
     FILE=$2
     sed -i -e "/${VALUE}/d" ${FILE}
 }
 
+#============================================================================
 #### Define function to update config file default settings based on
-# simulation selected. All settings changed in this function are common
-# between GEOS-Chem Classic and GCHP.
-#
-# Argument: Extra option for full-chemistry simulation (string)
+#### simulation selected. All settings changed in this function are common
+#### between GEOS-Chem Classic and GCHP.
+####
+#### Argument: Extra option for full-chemistry simulation (string)
+#============================================================================
 set_common_settings() {
 
     # Check that simulation option is passed
@@ -47,10 +66,10 @@ set_common_settings() {
         fi
     done
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Benchmark settings
-    #-----------------------------
-    if [[ ${sim_extra_option} = "benchmark" ]]; then
+    #------------------------------------------------------------------------
+    if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
         replace_colon_sep_val "--> OFFLINE_DUST"        false HEMCO_Config.rc
         replace_colon_sep_val "--> OFFLINE_BIOGENICVOC" false HEMCO_Config.rc
         replace_colon_sep_val "--> OFFLINE_SEASALT"     false HEMCO_Config.rc
@@ -72,19 +91,19 @@ set_common_settings() {
         sed -i -e "s|#'|'|"                              HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Standard settings
-    #-----------------------------
-    if [[ ${sim_extra_option} = none ]]; then
+    #------------------------------------------------------------------------
+    if [[ "x${sim_extra_option}" == "xnone" ]]; then
 	sed -i -e 's/@//' HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Complex SOA settings
-    #-----------------------------
-    if [[ ${sim_extra_option} = "benchmark"   ]] || \
-       [[ ${sim_extra_option} =~ "complexSOA" ]] || \
-       [[ ${sim_extra_option} = "APM" ]]; then
+    #------------------------------------------------------------------------
+    if [[ "x${sim_extra_option}" == "xbenchmark" ]] || \
+       [[ ${sim_extra_option}    =~ "complexSOA" ]] || \
+       [[ "x${sim_extra_option}" == "xAPM"       ]]; then
 
         # Turn on complex SOA option in input.geos
         replace_colon_sep_val "Online COMPLEX SOA" T input.geos
@@ -114,23 +133,22 @@ Species name            : TSOG3"
 	sed -i -e 's/@//' HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Semivolatile POA settings
-    #-----------------------------
+    #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ]]; then
 
         # Turn on semivolatile POA option in input.geos
         replace_colon_sep_val "=> Semivolatile POA?" T input.geos
 
+	# Remove non-SVPOA species from input.geos
+        remove_text "Species name            : OCPI" input.geos
+        remove_text "Species name            : OCPO" input.geos
+
         # Add semivolatile POA species in input.geos
         prev_line="Species name            : N2O5"
         new_line="\Species name            : NAP"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
-
-        line="Species name            : OCPI"
-        remove_text $line input.geos
-        line="Species name            : OCPO"
-        remove_text $line input.geos
 
         prev_line="Species name            : OIO"
         new_line="\Species name            : OPOA1\n\
@@ -149,14 +167,14 @@ Species name            : POG2"
 	sed -i -e 's/@//' HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Acid uptake settings
-    #-----------------------------
+    #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xaciduptake" ]]; then
         replace_colon_sep_val "DustAlk" on HEMCO_Config.rc
         replace_colon_sep_val "=> Acidic uptake ?" T input.geos
 
-        # Add acid uptake species in input.geos
+        # Add DSTAL* species after DST4
         prev_line="Species name            : DST4"
         new_line="\Species name            : DSTAL1\n\
 Species name            : DSTAL2\n\
@@ -164,6 +182,8 @@ Species name            : DSTAL3\n\
 Species name            : DSTAL4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
+	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
+	# but avoids double-adding these species after NIT and NITs.
         prev_line="Species name            : NITs"
         new_line="\Species name            : NITD1\n\
 Species name            : NITD2\n\
@@ -171,6 +191,8 @@ Species name            : NITD3\n\
 Species name            : NITD4"
         sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
+	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
+	# but avoids double-adding these species after SO4 and SO4s.
         prev_line="Species name            : SO4s"
         new_line="\Species name            : SO4D1\n\
 Species name            : SO4D2\n\
@@ -181,9 +203,9 @@ Species name            : SO4D4"
 	sed -i -e 's/@//' HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # Marine POA settings
-    #-----------------------------
+    #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xmarinePOA" ]]; then
         replace_colon_sep_val "SeaSalt"                 on HEMCO_Config.rc
         replace_colon_sep_val " => MARINE ORG AEROSOLS" T  input.geos
@@ -197,9 +219,9 @@ Species name            : MOPO"
 	sed -i -e "s|@||"                      HISTORY.rc
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # RRTMG settings
-    #-----------------------------
+    #------------------------------------------------------------------------
     if [[ ${sim_extra_option} = "RRTMG" ]]; then
 
         replace_colon_sep_val "Turn on RRTMG?"       T input.geos
@@ -216,9 +238,9 @@ Species name            : MOPO"
         printf "\nwhat you need.\n"
     fi
 
-    #-----------------------------
+    #------------------------------------------------------------------------
     # TOMAS settings
-    #-----------------------------
+    #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
         replace_colon_sep_val "Use non-local PBL?"       F    input.geos
         replace_colon_sep_val "Use linear. strat. chem?" F    input.geos
@@ -744,3 +766,4 @@ Species name            : APMSPBIN40"
 	sed -i -e 's/@//' HISTORY.rc
     fi
 }
+#EOC
