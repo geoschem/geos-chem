@@ -117,7 +117,7 @@ sim_extra_option=none
 
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
-    
+
     printf "${thinline}Choose chemistry domain:${thinline}"
     printf "  1. Troposphere + stratosphere (Recommended)\n"
     printf "  2. Troposphere only\n"
@@ -134,7 +134,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	  printf "Invalid chemistry domain option. Try again.\n"
 	fi
     done
-    
+
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -251,9 +251,9 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	    valid_pops=0
 	    printf "Invalid POPs type. Try again.\n"
 	fi
-	sim_name="${sim_name}_${pops_spc}"
     done
-
+    # Use the POPs species to set the extra option
+    sim_extra_option=${POP_SPC}
 fi
 
 #-----------------------------------------------------------------
@@ -358,28 +358,28 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	    nested_sim="T"
 	    buffer_zone="3  3  3  3"
 	    if [[ ${domain_num} = "2" ]]; then
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range=" 60.0 150.0"
 		    lat_range="-11.0  55.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range=" 70.0 140.0"
 		    lat_range=" 15.0  55.0"
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
 		domain_name="EU"
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range="-30.0 50.0"
 		    lat_range=" 30.0 70.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-15.0  40.0"
 		    lat_range=" 32.75 61.25"
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
 		domain_name="NA"
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range="-140.0 -40.0"
 		    lat_range="  10.0  70.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-130.0  -60.0"
 		    lat_range="   9.75  60.0"
 		fi
@@ -463,6 +463,7 @@ fi
 # Ask user for a new run directory name if specified one exists
 #-----------------------------------------------------------------
 rundir=${rundir_path}/${rundir_name}
+
 valid_rundir=0
 while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
@@ -496,7 +497,7 @@ cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-if [[ ${sim_name} == "fullchem" || ${sim_name} == "CH4" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -580,23 +581,23 @@ printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
 
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
-if [[ ${sim_extra_option} = "benchmark" ]]; then
+if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
-if [[ ${sim_extra_option} = "TOMAS" ]]; then
+if [[ "x${sim_extra_option}" == "xTOMAS" ]]; then
     replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
     replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
 fi
 
 # Modify input files for troposphere-only chemistry grids
-if [[ ${chemgrid} = "trop_only" ]]; then
+if [[ "x${chemgrid}" == "xtrop_only" ]]; then
     replace_colon_sep_val "=> Set init. strat. H2O"  F input.geos
     replace_colon_sep_val "Settle strat. aerosols"   F input.geos
     replace_colon_sep_val "Online PSC AEROSOLS"      F input.geos
@@ -611,9 +612,9 @@ if [[ ${chemgrid} = "trop_only" ]]; then
 fi
 
 # Modify input files for nested-grid simulations
-if [[ ${nested_sim} = "T" ]]; then
+if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
-    if [[ ${domain_name} = "NA" ]]; then
+    if [[ "x${domain_name}" = "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
 	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
     fi
@@ -638,7 +639,7 @@ fi
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     # Use restart file saved out from latest 1-year benchmark
     sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
 elif [[ ${sim_name} = "TransportTracers" ]]; then
