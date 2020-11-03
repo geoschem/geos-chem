@@ -303,7 +303,7 @@ Species name            : ECOB6\n\
 Species name            : ECOB7\n\
 Species name            : ECOB8\n\
 Species name            : ECOB9\n\
-Species name            : ECOB1\n\
+Species name            : ECOB10\n\
 Species name            : ECOB11\n\
 Species name            : ECOB12\n\
 Species name            : ECOB13\n\
@@ -415,7 +415,7 @@ Species name            : NK39\n\
 Species name            : NK40"
     	sed -i -e "/${prev_line}/a ${new_line}" input.geos
 
-    prev_line="Species name            : SF15"
+	prev_line="Species name            : SF15"
     	new_line="\Species name            : SF16\n\
 Species name            : SF17\n\
 Species name            : SF18\n\
