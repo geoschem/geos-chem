@@ -1,6 +1,3 @@
-HEMCO/.git/
-HEMCO/.github/
-HEMCO/.gitignore
 *.[oax]
 *.mod
 *.MOD
@@ -9,7 +6,6 @@ HEMCO/.gitignore
 *.bak
 *.patch
 *.diff
-gcclassic
 diffs
 bak
 misc
