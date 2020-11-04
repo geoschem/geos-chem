@@ -6916,6 +6916,9 @@ MODULE GCKPP_HETRATES
                ELSE
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
+            ELSEIF (N.eq.1) THEN
+               XSTKCF = 2.0e-2_fp  ! DST1 (surrogate for Al2O3)
+                                     ! From Molina et al., doi10.1029.97GL01560, 1997.
             ENDIF
          ENDIF
 

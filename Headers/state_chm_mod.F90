@@ -2809,7 +2809,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREASULF' )
-          IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for tropospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
