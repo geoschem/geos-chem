@@ -54,19 +54,19 @@ NUM_TESTS=$(count_rundirs ${ROOT})
 RESULTS=${ROOT}/logs/results.log
 
 # Print header to results log file
-print_to_log "${LINE}"                                       ${RESULTS}
-print_to_log "GEOS-Chem Integration Test Results"            ${RESULTS}
-print_to_log ""                                              ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"       ${RESULTS}
-print_to_log "Number of tests to be performed: ${NUM_TESTS}" ${RESULTS}
-print_to_log "${LINE}"                                       ${RESULTS}
+print_to_log "${LINE}"                                          ${RESULTS}
+print_to_log "GEOS-Chem Integration Test Results"               ${RESULTS}
+print_to_log ""                                                 ${RESULTS}
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"          ${RESULTS}
+print_to_log "Number of tests: ${NUM_TESTS} x 2 (compile, run)" ${RESULTS}
+print_to_log "${LINE}"                                          ${RESULTS}
 
 #============================================================================
 # Configure and compile code in each GEOS_Chem run directory
 #============================================================================
-print_to_log " "                            ${RESULTS}
-print_to_log "Compiliation tests:"          ${RESULTS}
-print_to_log "----------------------------" ${RESULTS}
+print_to_log " "                   ${RESULTS}
+print_to_log "Compiliation tests:" ${RESULTS}
+print_to_log "${LINELC}"           ${RESULTS}
 
 # Loop over rundirs and compile code
 for RUNDIR in *; do
@@ -79,9 +79,9 @@ done
 #============================================================================
 # Run the GEOS-Chem executable in each GEOS-Chem run directory
 #============================================================================
-print_to_log " "                            ${RESULTS}
-print_to_log "Execution tests:"             ${RESULTS}
-print_to_log "----------------------------" ${RESULTS}
+print_to_log " "                 ${RESULTS}
+print_to_log "Execution tests:"  ${RESULTS}
+print_to_log "${LINELC}"         ${RESULTS}
 
 # Loop over rundirs and run GEOS-Chem
 for RUNDIR in *; do
@@ -104,7 +104,7 @@ RUN_FAILED=$(count_matches_in_log "${RUN_FAIL_STR}" ${RESULTS})
 # Print summary to log
 print_to_log " "                                        ${RESULTS}
 print_to_log "Summary of test results:"                 ${RESULTS}
-print_to_log "----------------------------"             ${RESULTS}
+print_to_log "${LINELC}"                                ${RESULTS}
 print_to_log "Complilation tests passed: ${CMP_PASSED}" ${RESULTS}
 print_to_log "Complilation tests failed: ${CMP_FAILED}" ${RESULTS}
 print_to_log "Execution    tests passed: ${RUN_PASSED}" ${RESULTS}
@@ -132,6 +132,7 @@ unset ROOT
 # Free imported global variables
 unset FILL
 unset LINE
+unset LINELC
 unset SED_INPUT_GEOS_1
 unset SED_INPUT_GEOS_2
 unset SED_HISTORY_RC

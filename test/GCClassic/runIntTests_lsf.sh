@@ -7,14 +7,14 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: runIntTests_slurm.sh
+# !MODULE: runIntTests_lsf.sh
 #
 # !DESCRIPTION: Runs integration tests on the various GEOS-Chem Classic
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  bsub runIntTests_slurm.sh
+#  bsub runIntTests_lsf.sh
 #
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
@@ -44,12 +44,12 @@ NUM_TESTS=$(count_rundirs ${ROOT})
 RESULTS=${ROOT}/logs/results.log
 
 # Print header to results log file
-print_to_log "${LINE}"                                       ${RESULTS}
-print_to_log "GEOS-Chem Integration Test Results"            ${RESULTS}
-print_to_log ""                                              ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"       ${RESULTS}
-print_to_log "Number of tests to be performed: ${NUM_TESTS}" ${RESULTS}
-print_to_log "${LINE}"                                       ${RESULTS}
+print_to_log "${LINE}"                                          ${RESULTS}
+print_to_log "GEOS-Chem Integration Test Results"               ${RESULTS}
+print_to_log ""                                                 ${RESULTS}
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"          ${RESULTS}
+print_to_log "Number of tests: ${NUM_TESTS} x 2 (compile, run)" ${RESULTS}
+print_to_log "${LINE}"                                          ${RESULTS}
 
 #============================================================================
 # Configure and compile code in each GEOS_Chem run directory
