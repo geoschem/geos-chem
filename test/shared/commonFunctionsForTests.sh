@@ -18,10 +18,16 @@
 #BOC
 
 # Global variables
-LINE="\n====================================================\n"
+FILL='.............................................'
+LINE='===================================================='
+LINELC='----------------------------------------------------'
 SED_INPUT_GEOS_1="s/20190801 000000/20190701 002000/"
 SED_INPUT_GEOS_2="s/20190201 000000/20190101 002000/"
 SED_HISTORY_RC="s/00000100 000000/00000000 002000/"
+CMP_PASS_STR="Configure & Build......PASS"
+CMP_FAIL_STR="Configure & Build......FAIL"
+RUN_PASS_STR="Execute Simulation.....PASS"
+RUN_FAIL_STR="Execute Simulation.....FAIL"
 
 
 function absolute_path() {
@@ -31,6 +37,33 @@ function absolute_path() {
     # 1st argument = relative path
     #========================================================================
     printf "$(cd "$(dirname "${1}")"; pwd -P)/$(basename "${1}")"
+}
+
+
+function count_rundirs() {
+    #========================================================================
+    # Returns the number of run directories in the root folder.
+    #
+    # 1st argument: Root directory containing several GC run directories
+    #========================================================================
+    root=${1}
+    this_dir=$(pwd -P)
+
+    # Count run directories
+    cd ${root}
+    declare -i x=0
+    for rundir in *; do
+	if [[ -d ${rundir} && "x${rundir}" != "xlogs" ]]; then
+	    let x++
+	fi
+    done
+    cd ${this_dir}
+
+    # Cleanup and quit
+    echo $x
+    unset count
+    unset root
+    unset this_dir
 }
 
 
@@ -98,6 +131,29 @@ function cleanup_files() {
 }
 
 
+function print_to_log() {
+    #========================================================================
+    # Prints a message (single line) to a log file
+    #
+    # 1st argument: Message to be printed
+    # 2nd argument: Log file where message will be sent
+    #========================================================================
+    printf "%s\n" "${1}" >> ${2} 2>&1
+}
+
+
+function count_matches_in_log() {
+    #========================================================================
+    # Computes the number of times a string is found in a log file.
+    #
+    # 1st argument: Search string
+    # 2nd argument: Log file
+    #========================================================================
+    matches=$(grep "${1}" ${2} | wc -l)
+    echo "${matches}"
+}
+
+
 function config_and_build() {
     #========================================================================
     # Configures and compiles GEOS-Chem for build_type=RELEASE
@@ -105,40 +161,58 @@ function config_and_build() {
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GEOS-Chem run directory name
     # 3rd argument = Log file where stderr and stdout will be redirected
+    # 4th argument = (OPTIONAL) Log file where results will be printed
     #========================================================================
+
+    # Local variables
     root=${1}
     rundir=${2}
     log=${3}
+    results=${4}
+    passMsg="$rundir${FILL:${#rundir}}.....${CMP_PASS_STR}"
+    failMsg="$rundir${FILL:${#rundir}}.....${CMP_FAIL_STR}"
 
-    # Echo information
-    printf "${LINE}Now compiling ${rundir}${LINE}" >> ${log} 2>&1
-
+    #---------------------
     # Code configuration
+    #---------------------
     cd ${rundir}/build
     cmake ../CodeDir >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
-	msg="Configuration of code in ${rundir} halted with error!\n"
-	printf ${msg} >> ${log} 2>&1
-	exit 100
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_log "${failMsg}" ${results}
+	fi
+	return 1
     fi
 
+    #---------------------
     # Code compilation
+    #---------------------
     make -j install >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
-	msg="Compilation of code in ${rundir} halted with error!\n"
-	printf ${msg} >> ${log} 2>&1
-	exit 110
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_log "${failMsg}" ${results}
+	fi
+	return 1
     fi
+
+    #---------------------
+    # Cleanup & quit
+    #---------------------
+
+    # If we have gotten this far, the run passed,
+    # so update the results log file accordingly
+    print_to_log "${passMsg}" ${results}
 
     # Switch back to the root directory
     cd ${root}
 
     # Free variables
+    unset failMsg
     unset log
+    unset passMsg
+    unset results
     unset root
     unset rundir
-
-    return 0
 }
 
 
@@ -148,32 +222,47 @@ function run_gcclassic() {
     #
     # 1st argument = root folder for tests (w/ many rundirs etc)
     # 2nd argument = GEOS-Chem run directory name
-    # Configures and compiles GEOS-Chem for build_type=RELEASE
+    # 3rd argument = Log file where stderr and stdout will be redirected
+    # 4th argument = (OPTIONAL) Log file where results will be printed
     #========================================================================
+
+    # Local variables
     root=${1}
     rundir=${2}
     log=${3}
+    results=${4}
+    passMsg="$rundir${FILL:${#rundir}}.....${RUN_PASS_STR}"
+    failMsg="$rundir${FILL:${#rundir}}.....${RUN_FAIL_STR}"
 
     # Switch to the run directory
     cd ${root}/${rundir}
 
-    # Echo information
-    printf "${LINE}Now running GCClassic in ${rundir}${LINE}" >> ${log} 2>&1
-
+    #--------------------------------
     # Test if the executable exists
+    #--------------------------------
     if [[ !(-f ./gcclassic) ]]; then
-	msg="The ./gcclassic executable was not found in ${rundir}!\n"
-	printf ${msg} >> ${log} 2>&1
-	exit 200
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_logs "${failMsg}" ${results}
+	fi
+	return 1
     fi
 
     # Run the code
     ./gcclassic >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
-	msg="Program execution in ${rundir} halted with error!\n"
-	printf ${msg} >> ${log} 2>&1
-	exit 210
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_logs "${failMsg}" ${results}
+	fi
+	return 1
     fi
+
+    #--------------------------------
+    # Cleanup & quit
+    #--------------------------------
+
+    # If we have gotten this far, the run passed,
+    # so update the results log file accordingly
+    print_to_log "${passMsg}" ${results}
 
     # Switch back to the root directory for next iteration
     cd ${root}
@@ -182,6 +271,5 @@ function run_gcclassic() {
     unset log
     unset root
     unset rundir
-
-    return 0
+    unset results
 }

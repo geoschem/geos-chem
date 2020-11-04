@@ -101,15 +101,6 @@ cd ${RUN_DIR}
 # Create individual run directories: 4x5 - MERRA2 - 72L
 #=============================================================================
 
-DIR="merra2_4x5_benchmark"
-create_rundir "1\n1\n2\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_complexSOA"
-create_rundir "1\n1\n3\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_complexSOA+SVPOA"
-create_rundir "1\n1\n3\n2\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
-
 DIR="merra2_4x5_CH4"
 create_rundir "3\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
 
@@ -117,29 +108,38 @@ create_rundir "3\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
 #DIR="merra2_4x5_CO2"
 #create_rundir "4\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
 
+DIR="merra2_4x5_fullchem"
+create_rundir "1\n1\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+aciduptake"
+create_rundir "1\n1\n5\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+APM"
+create_rundir "1\n1\n7\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+benchmark"
+create_rundir "1\n1\n2\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+complexSOA"
+create_rundir "1\n1\n3\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+complexSOA+SVPOA"
+create_rundir "1\n1\n3\n2\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+marinePOA"
+create_rundir "1\n1\n4\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+RRTMG"
+create_rundir "1\n1\n8\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_4x5_fullchem+TOMAS15"
+create_rundir "1\n1\n6\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+
 DIR="merra2_4x5_Hg"
 create_rundir "5\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
 
 DIR="merra2_4x5_POPs_BaP"
 create_rundir "6\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard"
-create_rundir "1\n1\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard+aciduptake"
-create_rundir "1\n1\n5\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard+APM"
-create_rundir "1\n1\n7\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard+marinePOA"
-create_rundir "1\n1\n4\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard+RRTMG"
-create_rundir "1\n1\n8\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_4x5_standard+TOMAS15"
-create_rundir "1\n1\n6\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
 
 DIR="merra2_4x5_tagCH4"
 create_rundir "7\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
@@ -170,6 +170,7 @@ unset LOG
 unset DIR
 
 # Cleanup variables from commonFunctionsForTests.sh
+unset LINE
 unset SED_INPUT_GEOS_1
 unset SED_INPUT_GEOS_2
 unset SED_HISTORY_RC
