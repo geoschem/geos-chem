@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 #------------------------------------------------------------------------------
@@ -18,16 +19,16 @@
 #BOC
 
 # Global variables
-FILL='.............................................'
-LINE='===================================================='
-LINELC='----------------------------------------------------'
+FILL=$(printf '.%.0s' {1..44})
+SEP_MAJOR=$(printf '=%.0s' {1..78})
+SEP_MINOR=$(printf '\055%.0s' {1..78})
 SED_INPUT_GEOS_1="s/20190801 000000/20190701 002000/"
 SED_INPUT_GEOS_2="s/20190201 000000/20190101 002000/"
 SED_HISTORY_RC="s/00000100 000000/00000000 002000/"
 CMP_PASS_STR="Configure & Build......PASS"
 CMP_FAIL_STR="Configure & Build......FAIL"
-RUN_PASS_STR="Execute Simulation.....PASS"
-RUN_FAIL_STR="Execute Simulation.....FAIL"
+EXE_PASS_STR="Execute Simulation.....PASS"
+EXE_FAIL_STR="Execute Simulation.....FAIL"
 
 
 function absolute_path() {
@@ -121,13 +122,15 @@ function cleanup_files() {
     #
     # 1st argument = root folder for tests (w/ many rundirs etc)
     #========================================================================
-    printf "Removing leftover run directories and scripts:\n"
-    for file in ${1}/*; do
-	path=$(absolute_path ${file})
-	printf " ... ${path}\n";
-	rm -rf ${path}
-    done
-    unset path
+    if [[ "x${1}" != "x" ]]; then
+	printf "Removing leftover run directories and scripts:\n"
+	for file in ${1}/*; do
+	    path=$(absolute_path ${file})
+	    printf " ... ${path}\n";
+	    rm -rf ${path}
+	done
+	unset path
+    fi
 }
 
 
@@ -231,8 +234,8 @@ function run_gcclassic() {
     rundir=${2}
     log=${3}
     results=${4}
-    passMsg="$rundir${FILL:${#rundir}}.....${RUN_PASS_STR}"
-    failMsg="$rundir${FILL:${#rundir}}.....${RUN_FAIL_STR}"
+    passMsg="$rundir${FILL:${#rundir}}.....${EXE_PASS_STR}"
+    failMsg="$rundir${FILL:${#rundir}}.....${EXE_FAIL_STR}"
 
     # Switch to the run directory
     cd ${root}/${rundir}

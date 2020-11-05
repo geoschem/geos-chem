@@ -2,9 +2,9 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-12:00
+#SBATCH -t 0-18:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=16000
+#SBATCH --mem=30000
 #SBATCH --mail-type=END
 
 #------------------------------------------------------------------------------
@@ -12,14 +12,14 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: runIntTests_slurm.sh
+# !MODULE: intTestExecute_slurm.sh
 #
-# !DESCRIPTION: Runs integration tests on the various GEOS-Chem Classic
+# !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  sbatch runIntTests_slurm.sh
+#  sbatch intTestExecute_slurm.sh
 #
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
@@ -51,43 +51,40 @@ NUM_TESTS=$(count_rundirs ${ROOT})
 #============================================================================
 
 # Results logfile name
-RESULTS=${ROOT}/logs/results.log
+RESULTS=${ROOT}/logs/results.execute.log
+rm -f ${RESULTS}
 
 # Print header to results log file
-print_to_log "${LINE}"                                          ${RESULTS}
-print_to_log "GEOS-Chem Integration Test Results"               ${RESULTS}
-print_to_log ""                                                 ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"          ${RESULTS}
-print_to_log "Number of tests: ${NUM_TESTS} x 2 (compile, run)" ${RESULTS}
-print_to_log "${LINE}"                                          ${RESULTS}
-
-#============================================================================
-# Configure and compile code in each GEOS_Chem run directory
-#============================================================================
-print_to_log " "                   ${RESULTS}
-print_to_log "Compiliation tests:" ${RESULTS}
-print_to_log "${LINELC}"           ${RESULTS}
-
-# Loop over rundirs and compile code
-for RUNDIR in *; do
-    if [[ -d ${RUNDIR} && "x${RUNDIR}" != "xlogs" ]]; then
-	LOG=${ROOT}/logs/compile.${RUNDIR}.log
-	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
-    fi
-done
+print_to_log "${SEP_MAJOR}"                              ${RESULTS}
+print_to_log "GEOS-Chem Classic: Execution Test Results" ${RESULTS}
+print_to_log ""                                          ${RESULTS}
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${RESULTS}
+print_to_log "Number of execution tests: ${NUM_TESTS}"   ${RESULTS}
+print_to_log "${SEP_MAJOR}"                              ${RESULTS}
 
 #============================================================================
 # Run the GEOS-Chem executable in each GEOS-Chem run directory
 #============================================================================
 print_to_log " "                 ${RESULTS}
 print_to_log "Execution tests:"  ${RESULTS}
-print_to_log "${LINELC}"         ${RESULTS}
+print_to_log "${SEP_MINOR}"      ${RESULTS}
 
 # Loop over rundirs and run GEOS-Chem
+# Keep track of the number of tests that passed & failed
+let PASSED=0
+let FAILED=0
+let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
     if [[ -d ${RUNDIR} && "x${RUNDIR}" != "xlogs" ]]; then
-	LOG=${ROOT}/logs/run.${RUNDIR}.log
+	LOG=${ROOT}/logs/execute.${RUNDIR}.log
 	run_gcclassic ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
+	if [[ $? -eq 0 ]]; then
+	    let PASSED++
+	else
+	    let FAILED++
+	fi
+	let REMAIN--
+	echo $REMAIN
     fi
 done
 
@@ -95,28 +92,20 @@ done
 # Check the number of simulations that have passed
 #============================================================================
 
-# Look for matches
-CMP_PASSED=$(count_matches_in_log "${CMP_PASS_STR}" ${RESULTS})
-CMP_FAILED=$(count_matches_in_log "${CMP_FAIL_STR}" ${RESULTS})
-RUN_PASSED=$(count_matches_in_log "${RUN_PASS_STR}" ${RESULTS})
-RUN_FAILED=$(count_matches_in_log "${RUN_FAIL_STR}" ${RESULTS})
-
 # Print summary to log
-print_to_log " "                                        ${RESULTS}
-print_to_log "Summary of test results:"                 ${RESULTS}
-print_to_log "${LINELC}"                                ${RESULTS}
-print_to_log "Complilation tests passed: ${CMP_PASSED}" ${RESULTS}
-print_to_log "Complilation tests failed: ${CMP_FAILED}" ${RESULTS}
-print_to_log "Execution    tests passed: ${RUN_PASSED}" ${RESULTS}
-print_to_log "Execution    tests failed: ${RUN_FAILED}" ${RESULTS}
+print_to_log " "                                            ${RESULTS}
+print_to_log "Summary of test results:"                     ${RESULTS}
+print_to_log "${SEP_MINOR}"                                 ${RESULTS}
+print_to_log "Execution tests passed: ${PASSED}"            ${RESULTS}
+print_to_log "Execution tests failed: ${FAILED}"            ${RESULTS}
+print_to_log "Execution tests not yet completed: ${REMAIN}" ${RESULTS}
 
 # Check if all tests passed
-if [[ "x${CMP_PASSED}" == "x${NUM_TESTS}" ]] && \
-   [[ "x${RUN_PASSED}" == "x${NUM_TESTS}" ]]; then
-    print_to_log ""                             ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
-    print_to_log "%%%  All tests passed!   %%%" ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
+if [[ "x${PASSED}" == "x${NUM_TESTS}" ]]; then
+    print_to_log ""                                         ${RESULTS}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${RESULTS}
+    print_to_log "%%%  All execution tests passed!  %%%"    ${RESULTS}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${RESULTS}
 fi
 
 #============================================================================

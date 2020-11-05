@@ -30,13 +30,8 @@
 #=============================================================================
 if [[ "x${1}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
-    exit
+    exit 1
 fi
-
-# Echo header
-printf "====================================\n"
-printf "Creating GEOS-Chem Integration Tests\n"
-printf "====================================\n\n"
 
 #=============================================================================
 # Global variable and function definitions
@@ -73,6 +68,11 @@ ROOT=$(absolute_path ${ROOT})
 # Log file
 LOG=${ROOT}/logs/createIntTests.log
 
+# Echo header
+printf "${SEP_MAJOR}\n"
+printf "Creating GEOS-Chem Classic Integration Tests\n"
+printf "${SEP_MAJOR}\n"
+
 #=============================================================================
 # Initial setup of integration test directory
 #=============================================================================
@@ -82,7 +82,7 @@ cleanup_files ${ROOT}
 
 # Copying the run scripts to the root test folder
 printf "\nCopying run scripts to: ${ROOT}\n"
-cp ${TEST_DIR}/runIntTests*.sh ${ROOT}
+cp ${TEST_DIR}/intTest*.sh ${ROOT}
 cp ${TEST_DIR}/commonFunctionsForTests.sh ${ROOT}
 
 # Create log directory
@@ -106,6 +106,13 @@ create_rundir "3\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"          ${ROOT} ${DIR} ${LOG}
 
 DIR="merra2_4x5_fullchem"
 create_rundir "1\n1\n1\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
+# DEBUG: Exit after creating a couple of rundirs
+# if the 2nd argument is passed and not a null string
+if [[ "x${2}" != "x" ]]; then
+    cd ${TEST_DIR}
+    exit 0
+fi
 
 DIR="merra2_4x5_fullchem+aciduptake"
 create_rundir "1\n1\n5\n1\n1\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
@@ -315,9 +322,15 @@ unset RUN_DIR
 unset LOG
 unset DIR
 
-# Cleanup variables from commonFunctionsForTests.sh
-unset LINE
+# Free imported variables
+unset FILL
+unset SEP_MAJOR
+unset SEP_MINOR
 unset SED_INPUT_GEOS_1
 unset SED_INPUT_GEOS_2
 unset SED_HISTORY_RC
+unset CMP_PASS_STR
+unset CMP_FAIL_STR
+unset EXE_PASS_STR
+unset EXE_FAIL_STR
 #EOC
