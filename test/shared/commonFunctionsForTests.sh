@@ -24,7 +24,14 @@ SEP_MAJOR=$(printf '=%.0s' {1..78})
 SEP_MINOR=$(printf '\055%.0s' {1..78})
 SED_INPUT_GEOS_1="s/20190801 000000/20190701 002000/"
 SED_INPUT_GEOS_2="s/20190201 000000/20190101 002000/"
-SED_HISTORY_RC="s/00000100 000000/00000000 002000/"
+SED_INPUT_GEOS_3="s/20160101 000000/20190101 010000/"
+SED_INPUT_GEOS_4="s/20160201 000000/20190101 010000/"
+SED_HISTORY_RC_1="s/00000100 000000/00000000 002000/"
+SED_HISTORY_RC_2="s/7440000/010000/"
+SED_RUN_CONFIG_1="s/20190201 000000/20190101 010000/"
+SED_RUN_CONFIG_2="s/00000100 000000/00000000 010000/"
+SED_RUN_CONFIG_3="s/7440000/010000/"
+SED_RUN_CONFIG_4="s/1680000/010000/"
 CMP_PASS_STR="Configure & Build......PASS"
 CMP_FAIL_STR="Configure & Build......FAIL"
 EXE_PASS_STR="Execute Simulation.....PASS"
@@ -62,9 +69,6 @@ function count_rundirs() {
 
     # Cleanup and quit
     echo $x
-    unset count
-    unset root
-    unset this_dir
 }
 
 
@@ -78,14 +82,31 @@ function update_config_files() {
     root=${1}
     rundir=${2}
 
-    # Replace text
+    # Replace text in input.geos
     sed -i -e "${SED_INPUT_GEOS_1}" ${root}/${rundir}/input.geos
     sed -i -e "${SED_INPUT_GEOS_2}" ${root}/${rundir}/input.geos
-    sed -i -e "${SED_HISTORY_RC}" ${root}/${rundir}/HISTORY.rc
+    sed -i -e "${SED_INPUT_GEOS_3}" ${root}/${rundir}/input.geos
+    sed -i -e "${SED_INPUT_GEOS_4}" ${root}/${rundir}/input.geos
+    sed -i -e "${SED_HISTORY_RC_1}" ${root}/${rundir}/HISTORY.rc
+    sed -i -e "${SED_HISTORY_RC_2}" ${root}/${rundir}/HISTORY.rc
 
-    # Free variables
-    unset root
-    unset rundir
+    # For GCHP only
+    if [[ -f ${root}/${rundir}/runConfig.sh ]]; then
+
+	# Replace text in run.config.sh
+	sed -i -e "${SED_RUN_CONFIG_1}" ${root}/${rundir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_2}" ${root}/${rundir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_3}" ${root}/${rundir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_4}" ${root}/${rundir}/runConfig.sh
+
+	# Copy the run scripts
+	cp ${root}/${rundir}/runScriptSamples/*.sh ${root}/${rundir}
+
+	# Create a build folder if it doesn't exist
+	if [[ ! -d ${root}/${rundir}/build ]]; then
+	    mkdir ${root}/${rundir}/build
+	fi
+    fi
 }
 
 
@@ -107,14 +128,7 @@ function create_rundir() {
     printf " ... ${root}/${rundir}\n"
     printf ${cmd} | ./createRunDir.sh >> ${log} 2>&1
     update_config_files ${root} ${rundir}
-
-    # Free variables
-    unset cmd
-    unset log
-    unset root
-    unset rundir
 }
-
 
 function cleanup_files() {
     #========================================================================
@@ -175,10 +189,20 @@ function config_and_build() {
     passMsg="$rundir${FILL:${#rundir}}.....${CMP_PASS_STR}"
     failMsg="$rundir${FILL:${#rundir}}.....${CMP_FAIL_STR}"
 
-    #---------------------
+    # Change to the run directory
+    cd ${rundir}
+
+    #----------------------------------
+    # For GCHP: load environment file
+    #----------------------------------
+    if [[ -f gchp.env ]]; then
+	. gchp.env
+    fi
+
+    #----------------------------------
     # Code configuration
-    #---------------------
-    cd ${rundir}/build
+    #----------------------------------
+    cd build
     cmake ../CodeDir >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
@@ -187,9 +211,9 @@ function config_and_build() {
 	return 1
     fi
 
-    #---------------------
+    #-----------------------------------
     # Code compilation
-    #---------------------
+    #-----------------------------------
     make -j install >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
@@ -208,14 +232,6 @@ function config_and_build() {
 
     # Switch back to the root directory
     cd ${root}
-
-    # Free variables
-    unset failMsg
-    unset log
-    unset passMsg
-    unset results
-    unset root
-    unset rundir
 }
 
 
@@ -269,10 +285,4 @@ function run_gcclassic() {
 
     # Switch back to the root directory for next iteration
     cd ${root}
-
-    # Free variables
-    unset log
-    unset root
-    unset rundir
-    unset results
 }
