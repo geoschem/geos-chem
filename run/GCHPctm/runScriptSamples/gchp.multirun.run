@@ -125,6 +125,13 @@ if [ ${Monthly_Diag} = "1" ]; then
    sed -i "s|common_dur\=.*|common_dur\=\"${hrs_str}0000\"|"   ./runConfig.sh
 fi
 
+# Init strat H2O should be enabled only for first run
+if [ -e cap_restart ]; then
+   sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=F|" ./runConfig.sh
+else
+   sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=T|" ./runConfig.sh
+fi
+
 echo " "
 echo "Settings from runConfig.sh: "
 echo " "
@@ -173,6 +180,9 @@ if [[ $? == 0 ]]; then
    # Echo end date
    echo '===> Run ended at' `date`
 fi
+
+# Set init strat H2O back to default to avoid issues with later use of rundir
+sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=T|" ./runConfig.sh
 
 # Check that cap_restart exists. If it does not, cancel all remaining jobs
 if [ -f cap_restart ]; then    
