@@ -102,7 +102,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  5. Acid uptake on dust\n"
     printf "  6. TOMAS\n"
     printf "  7. APM\n"
-    printf "  8. RRTMG\n"
+    printf "  8. Standard w/ RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
@@ -153,6 +153,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
+            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -162,7 +163,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
    sim_extra_option=none
-
 fi 
 
 #-----------------------------------------------------------------
