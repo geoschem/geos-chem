@@ -1363,6 +1363,646 @@ CONTAINS
              WD_CoarseAer  = T
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
+             
+             
+! #----------------------------------------------------
+! #   jxu add metal species (Nov 9, 2020)                          
+! #----------------------------------------------------
+
+   CASE('FE_F1')
+   
+            KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+   
+          
+              Fullname   = 'tracer:Fe_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 55.8_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('AL_F1')
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Al_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 27.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('TI_F1') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Ti_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 47.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MG_F1') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Mg_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 24.3_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('K_F1') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:K_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 39.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('SI_F1') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Si_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 28.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CA_F1') 
+  
+               KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+        
+              Fullname   = 'tracer:Ca_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 40.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MN_F1') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Mn_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 54.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('AS_F1') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:As_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 74.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CD_F1') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Cd_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 112.4_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('PB_F1') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Pb_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 207.2_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('NI_F1') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Ni_fine1'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2500.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 58.7_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('FE_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Fe_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 55.8_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('AL_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Al_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 27.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('TI_F2') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Ti_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 47.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MG_F2') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Mg_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 24.3_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('K_F2') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:K_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 39.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('SI_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Si_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 28.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CA_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Ca_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 40.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MN_F2') 
+          
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+              Fullname   = 'tracer:Mn_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 54.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('AS_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:As_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 74.9_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CD_F2') 
+          
+               KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+            Fullname   = 'tracer:Cd_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 112.4_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('PB_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Pb_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 207.2_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('NI_F2') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Ni_fine2'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 58.7_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MG_C3') 
+          
+               KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+            Fullname   = 'tracer:Mg_coarse3'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 24.3_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('K_C3') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:K_coarse3'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 39.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CA_C3') 
+          
+               KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+            Fullname   = 'tracer:Ca_coarse3'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 40.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('MG_C4') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:Mg_coarse4'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 24.3_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('K_C4') 
+          
+              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             Fullname   = 'tracer:K_coarse4'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 39.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+              
+          
+  CASE('CA_C4') 
+          
+               KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /) ! jxu, remove metal as dust, 2017/06/07
+            RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+            Fullname   = 'tracer:Ca_coarse4'
+              Is_Gas        = F
+              DD_DustDryDep = T
+              Is_Drydep     = T
+              DD_F0         = 0.0_fp
+              DD_Hstar_Old  = 0.0_fp
+              WD_AerScavEff = 1.0_fp
+              Is_Wetdep     = T
+              Density       = 2650.0_fp
+              Radius        = 0.0_fp
+              MW_g          = 40.1_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+             
+! #----------------------------------------------------
+! #   End of metal species (Nov 9, 2020)                          
+! #----------------------------------------------------
+
 
           CASE( 'EOH' )
              FullName      = 'Ethanol'
