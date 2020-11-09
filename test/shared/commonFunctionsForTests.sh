@@ -40,13 +40,63 @@ EXE_FAIL_STR="Execute Simulation.....FAIL"
 
 function absolute_path() {
     #========================================================================
-    # Function to return the absolute path from a relative path
+    # Returns the absolute path from a relative path
     #
     # 1st argument = relative path
     #========================================================================
     printf "$(cd "$(dirname "${1}")"; pwd -P)/$(basename "${1}")"
 }
 
+
+function is_valid_rundir() {
+    #========================================================================
+    # Function that tests if a file is a valid GEOS-Chem run directory
+    #
+    # 1st argument: File or directory to be tested
+    #========================================================================
+    if [[ -d ${1} ]]; then
+	if [[ -f ${1}/input.geos && -f ${1}/HEMCO_Config.rc ]]; then
+	    echo "TRUE"
+	    return
+	fi
+    fi
+    echo "FALSE"
+}
+
+
+function is_gchpctm_rundir() {
+    #========================================================================
+    # Function that tests if a run directory is a GCHPctm run directory
+    #
+    # 1st argument: Directory to be tested
+    #========================================================================
+    expr=$(is_valid_rundir ${1})
+    if [[ "x${expr}" == "xTRUE" ]]; then
+	if [[ -f ${1}/CAP.rc ]]; then
+	    echo "TRUE"
+	    return
+	fi
+    fi
+    echo "FALSE"
+}
+
+
+function get_builddir() {
+    #========================================================================
+    # Returns the build directory for the integration tests.
+    #
+    # 1st argument: Integration tests root path
+    # 2nd argument: 
+    #========================================================================
+    root=${1}
+    runDir=${2}
+    expr=$(is_gchpctm_rundir ${root}/${runDir})
+    if [[ "x${expr}" == "xTRUE" ]]; then
+	echo "${root}/build"
+    else
+	echo "${root}/${runDir}/build"
+    fi
+}
 
 function count_rundirs() {
     #========================================================================
@@ -55,17 +105,18 @@ function count_rundirs() {
     # 1st argument: Root directory containing several GC run directories
     #========================================================================
     root=${1}
-    this_dir=$(pwd -P)
+    thisDir=$(pwd -P)
 
     # Count run directories
     cd ${root}
     declare -i x=0
     for rundir in *; do
-	if [[ -d ${rundir} && "x${rundir}" != "xlogs" ]]; then
+	expr=$(is_valid_rundir ${rundir})
+	if [[ "x${expr}" == "xTRUE" ]]; then
 	    let x++
 	fi
     done
-    cd ${this_dir}
+    cd ${thisDir}
 
     # Cleanup and quit
     echo $x
@@ -80,32 +131,34 @@ function update_config_files() {
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
     root=${1}
-    rundir=${2}
-
+    runDir=${2}    
+    buildDir=$(get_builddir ${root} ${runDir})
+    
     # Replace text in input.geos
-    sed -i -e "${SED_INPUT_GEOS_1}" ${root}/${rundir}/input.geos
-    sed -i -e "${SED_INPUT_GEOS_2}" ${root}/${rundir}/input.geos
-    sed -i -e "${SED_INPUT_GEOS_3}" ${root}/${rundir}/input.geos
-    sed -i -e "${SED_INPUT_GEOS_4}" ${root}/${rundir}/input.geos
-    sed -i -e "${SED_HISTORY_RC_1}" ${root}/${rundir}/HISTORY.rc
-    sed -i -e "${SED_HISTORY_RC_2}" ${root}/${rundir}/HISTORY.rc
+    sed -i -e "${SED_INPUT_GEOS_1}" ${root}/${runDir}/input.geos
+    sed -i -e "${SED_INPUT_GEOS_2}" ${root}/${runDir}/input.geos
+    sed -i -e "${SED_INPUT_GEOS_3}" ${root}/${runDir}/input.geos
+    sed -i -e "${SED_INPUT_GEOS_4}" ${root}/${runDir}/input.geos
+    sed -i -e "${SED_HISTORY_RC_1}" ${root}/${runDir}/HISTORY.rc
+    sed -i -e "${SED_HISTORY_RC_2}" ${root}/${runDir}/HISTORY.rc
 
-    # For GCHP only
-    if [[ -f ${root}/${rundir}/runConfig.sh ]]; then
-
+    # For GCHPctm only
+    expr=$(is_gchpctm_rundir "${root}/${runDir}")
+    if [[ "x${expr}" == "xTRUE" ]]; then
+	
 	# Replace text in run.config.sh
-	sed -i -e "${SED_RUN_CONFIG_1}" ${root}/${rundir}/runConfig.sh
-	sed -i -e "${SED_RUN_CONFIG_2}" ${root}/${rundir}/runConfig.sh
-	sed -i -e "${SED_RUN_CONFIG_3}" ${root}/${rundir}/runConfig.sh
-	sed -i -e "${SED_RUN_CONFIG_4}" ${root}/${rundir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_1}" ${root}/${runDir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_2}" ${root}/${runDir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_3}" ${root}/${runDir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_4}" ${root}/${runDir}/runConfig.sh
 
 	# Copy the run scripts
-	cp ${root}/${rundir}/runScriptSamples/*.sh ${root}/${rundir}
+	cp ${root}/${runDir}/runScriptSamples/*.sh ${root}/${runDir}
+    fi
 
-	# Create a build folder if it doesn't exist
-	if [[ ! -d ${root}/${rundir}/build ]]; then
-	    mkdir ${root}/${rundir}/build
-	fi
+    # Create the build directory if it is not there
+    if [[ ! -d ${buildDir} ]]; then
+	mkdir -p ${buildDir}
     fi
 }
 
@@ -121,14 +174,15 @@ function create_rundir() {
     #========================================================================
     cmd=${1}
     root=$(absolute_path ${2})
-    rundir=${3}
+    runDir=${3}
     log=${4}
 
     # Create run dir for a short simulation
-    printf " ... ${root}/${rundir}\n"
+    printf " ... ${root}/${runDir}\n"
     printf ${cmd} | ./createRunDir.sh >> ${log} 2>&1
-    update_config_files ${root} ${rundir}
+    update_config_files ${root} ${runDir}
 }
+
 
 function cleanup_files() {
     #========================================================================
@@ -139,11 +193,15 @@ function cleanup_files() {
     if [[ "x${1}" != "x" ]]; then
 	printf "Removing leftover run directories and scripts:\n"
 	for file in ${1}/*; do
-	    path=$(absolute_path ${file})
-	    printf " ... ${path}\n";
-	    rm -rf ${path}
+	    if [[ -h ${file} ]]; then
+		unlink ${file}
+	    else
+		path=$(absolute_path ${file})
+		printf " ... ${path}\n";
+		rm -rf ${path}
+		unset path
+	    fi
 	done
-	unset path
     fi
 }
 
@@ -173,7 +231,8 @@ function count_matches_in_log() {
 
 function config_and_build() {
     #========================================================================
-    # Configures and compiles GEOS-Chem for build_type=RELEASE
+    # Configures and compiles GEOS-Chem (Classic or GCHPctm) for
+    # CMAKE_BUILD_TYPE=Release.  This is the "out-of-the-box" setting.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GEOS-Chem run directory name
@@ -181,29 +240,37 @@ function config_and_build() {
     # 4th argument = (OPTIONAL) Log file where results will be printed
     #========================================================================
 
-    # Local variables
-    root=${1}
-    rundir=${2}
+    # Arguments
+    root=$(absolute_path ${1})
+    runDir=${2}
     log=${3}
     results=${4}
-    passMsg="$rundir${FILL:${#rundir}}.....${CMP_PASS_STR}"
-    failMsg="$rundir${FILL:${#rundir}}.....${CMP_FAIL_STR}"
 
+    # Local variables
+    codeDir=${root}/CodeDir
+    buildDir=$(get_builddir ${root} ${runDir})
+    passMsg="$runDir${FILL:${#runDir}}.....${CMP_PASS_STR}"
+    failMsg="$runDir${FILL:${#runDir}}.....${CMP_FAIL_STR}"
+
+    # Test if the rundir is for GCHPctm
+    is_gchp=$(is_gchpctm_rundir ${root}/${runDir})
+    
     # Change to the run directory
-    cd ${rundir}
+    cd ${runDir}
 
     #----------------------------------
     # For GCHP: load environment file
+    # and determine the build dir
     #----------------------------------
-    if [[ -f gchp.env ]]; then
+    if [[ "x${is_gchp}" == "xTRUE" ]]; then
 	. gchp.env
     fi
 
     #----------------------------------
     # Code configuration
     #----------------------------------
-    cd build
-    cmake ../CodeDir >> ${log} 2>&1
+    cd ${buildDir}
+    cmake ${codeDir} >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}
@@ -214,7 +281,7 @@ function config_and_build() {
     #-----------------------------------
     # Code compilation
     #-----------------------------------
-    make -j install >> ${log} 2>&1
+    make -j install -DRUNDIR=${root}/${runDir} >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}

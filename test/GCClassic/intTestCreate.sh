@@ -80,10 +80,13 @@ printf "${SEP_MAJOR}\n"
 # Remove run directories in the test folder
 cleanup_files ${ROOT}
 
-# Copying the run scripts to the root test folder
+# Copying the run scripts to the Integration Test root folder
 printf "\nCopying run scripts to: ${ROOT}\n"
 cp ${TEST_DIR}/intTest*.sh ${ROOT}
 cp ${TEST_DIR}/commonFunctionsForTests.sh ${ROOT}
+
+# Create a symbolic link to the code from the Integration Test root folder
+ln -s ${SUPER_PROJECT_DIR} ${ROOT}/CodeDir
 
 # Create log directory
 if [[ !(-d ${ROOT}/logs) ]]; then

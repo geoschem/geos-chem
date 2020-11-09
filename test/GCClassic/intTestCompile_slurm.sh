@@ -75,7 +75,8 @@ let PASSED=0
 let FAILED=0
 let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
-    if [[ -d ${RUNDIR} && "x${RUNDIR}" != "xlogs" ]]; then
+    EXPR=$(is_valid_rundir ${ROOT}/${RUNDIR})
+    if [[ "x${EXPR}" == "xTRUE" ]]; then
 	LOG=${ROOT}/logs/compile.${RUNDIR}.log
 	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
 	if [[ $? -eq 0 ]]; then
