@@ -75,9 +75,9 @@ let PASSED=0
 let FAILED=0
 let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
-    EXPR=$(is_valid_rundir ${ROOT}/${RUNDIR})
+    EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
     if [[ "x${EXPR}" == "xTRUE" ]]; then
-	LOG=${ROOT}/logs/compile.${RUNDIR}.log
+	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
 	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
 	if [[ $? -eq 0 ]]; then
 	    let PASSED++

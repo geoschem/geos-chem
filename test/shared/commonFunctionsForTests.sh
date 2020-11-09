@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 #------------------------------------------------------------------------------
@@ -86,7 +85,7 @@ function get_builddir() {
     # Returns the build directory for the integration tests.
     #
     # 1st argument: Integration tests root path
-    # 2nd argument: 
+    # 2nd argument: GEOS-Chem run directory
     #========================================================================
     root=${1}
     runDir=${2}
@@ -131,9 +130,9 @@ function update_config_files() {
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
     root=${1}
-    runDir=${2}    
+    runDir=${2}
     buildDir=$(get_builddir ${root} ${runDir})
-    
+
     # Replace text in input.geos
     sed -i -e "${SED_INPUT_GEOS_1}" ${root}/${runDir}/input.geos
     sed -i -e "${SED_INPUT_GEOS_2}" ${root}/${runDir}/input.geos
@@ -145,7 +144,7 @@ function update_config_files() {
     # For GCHPctm only
     expr=$(is_gchpctm_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	
+
 	# Replace text in run.config.sh
 	sed -i -e "${SED_RUN_CONFIG_1}" ${root}/${runDir}/runConfig.sh
 	sed -i -e "${SED_RUN_CONFIG_2}" ${root}/${runDir}/runConfig.sh
@@ -217,18 +216,6 @@ function print_to_log() {
 }
 
 
-function count_matches_in_log() {
-    #========================================================================
-    # Computes the number of times a string is found in a log file.
-    #
-    # 1st argument: Search string
-    # 2nd argument: Log file
-    #========================================================================
-    matches=$(grep "${1}" ${2} | wc -l)
-    echo "${matches}"
-}
-
-
 function config_and_build() {
     #========================================================================
     # Configures and compiles GEOS-Chem (Classic or GCHPctm) for
@@ -254,15 +241,13 @@ function config_and_build() {
 
     # Test if the rundir is for GCHPctm
     is_gchp=$(is_gchpctm_rundir ${root}/${runDir})
-    
-    # Change to the run directory
-    cd ${runDir}
 
     #----------------------------------
     # For GCHP: load environment file
     # and determine the build dir
     #----------------------------------
     if [[ "x${is_gchp}" == "xTRUE" ]]; then
+	cd ${runDir}
 	. gchp.env
     fi
 
@@ -281,7 +266,7 @@ function config_and_build() {
     #-----------------------------------
     # Code compilation
     #-----------------------------------
-    make -j install -DRUNDIR=${root}/${runDir} >> ${log} 2>&1
+    make -j install >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}
@@ -289,9 +274,17 @@ function config_and_build() {
 	return 1
     fi
 
-    #---------------------
+    #-----------------------------------
+    # Copy executable (if necessary)
+    #-----------------------------------
+    cd ${root}/${runDir}
+    if [[ ! -f ./gcclassic ]]; then
+	cp ${buildDir}/../gcclassic ${root}/${runDir}
+    fi
+
+    #-----------------------------------
     # Cleanup & quit
-    #---------------------
+    #-----------------------------------
 
     # If we have gotten this far, the run passed,
     # so update the results log file accordingly
