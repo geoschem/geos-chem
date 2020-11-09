@@ -51,7 +51,7 @@ NUM_TESTS=$(count_rundirs ${ROOT})
 #============================================================================
 
 # Results logfile name
-RESULTS=${ROOT}/logs/results.compile.log
+RESULTS="${ROOT}/logs/results.compile.log"
 rm -f ${RESULTS}
 
 # Print header to results log file
@@ -77,7 +77,7 @@ let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
     EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
     if [[ "x${EXPR}" == "xTRUE" ]]; then
-	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
+	LOG="${ROOT}/logs/compile.${RUNDIR}.log"q
 	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
 	if [[ $? -eq 0 ]]; then
 	    let PASSED++
