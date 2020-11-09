@@ -1,4 +1,4 @@
-README for test/GCHPctm (GEOS-Chem integration test directory)
+README for test/GCClassic (GEOS-Chem integration test directory)
 09 Nov 2020
 GEOS-Chem Support Team
 geos-chem-support@g.harvard.edu
@@ -7,8 +7,8 @@ geos-chem-support@g.harvard.edu
 Overview:
 ---------
 
-This directory contains scripts to submit automated GCHPctm integration tests,
-which will test the following process:
+This directory contains scripts to submit automated GCClassic integration
+tests, which will test the following process:
 
 1. GCHPctm run directory creation
 2. GCHPctm code configuration and compilation
@@ -33,7 +33,7 @@ Running integration tests with the SLURM scheduler:
 ---------------------------------------------------
 Execute the following commands at the Unix prompt:
 
-  cd test/GCHPctm
+  cd test/GCClassic
   ./intTest_slurm.sh /path/to/int/test/dir GCHP-ENVIRONMENT-FILE
 
 
@@ -41,7 +41,7 @@ Running integration tests with the LSF scheduler:
 --------------------------------------------------
 Execute the following commands at the Unix prompt:
 
-  cd test/GCHPctm
+  cd test/GCClassic
   ./intTest_lsf.sh /path/to/int/test/dir GCHP-ENVIRONMENT-FILE
 
 

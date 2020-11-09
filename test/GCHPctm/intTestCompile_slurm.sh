@@ -51,7 +51,7 @@ NUM_TESTS=$(count_rundirs ${ROOT})
 #============================================================================
 
 # Results logfile name
-RESULTS=${ROOT}/logs/results.compile.log
+RESULTS="${ROOT}/logs/results.compile.log"
 rm -f ${RESULTS}
 
 # Print header to results log file
@@ -75,8 +75,10 @@ let PASSED=0
 let FAILED=0
 let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
-    if [[ -d ${RUNDIR} && "x${RUNDIR}" != "xlogs" ]]; then
-	LOG=${ROOT}/logs/compile.${RUNDIR}.log
+    EXPR=$(is_gchpctm_rundir "${ROOT}/${RUNDIR}")
+    echo "${ROOT}/${RUNDIR}: $EXPR"
+    if [[ "x${EXPR}" == "xTRUE" ]]; then
+	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
 	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
 	if [[ $? -eq 0 ]]; then
 	    let PASSED++
@@ -84,6 +86,9 @@ for RUNDIR in *; do
 	    let FAILED++
 	fi
 	let REMAIN--
+
+	# NOTE: Need to submit the run script for GCHP
+	# in each rundir as a separate SLURM job
     fi
 done
 

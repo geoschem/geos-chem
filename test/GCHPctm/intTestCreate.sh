@@ -60,7 +60,7 @@ cd ../..
 GEOS_CHEM_DIR=$(pwd -P)
 
 # GCClassic superproject directory
-cd ../../
+cd ../../../..
 SUPER_PROJECT_DIR=$(pwd -P)
 cd ${SUPER_PROJECT_DIR}
 
@@ -92,6 +92,9 @@ cleanup_files ${ROOT}
 printf "\nCopying run scripts to: ${ROOT}\n"
 cp ${TEST_DIR}/intTest*.sh ${ROOT}
 cp ${TEST_DIR}/commonFunctionsForTests.sh ${ROOT}
+
+# Create a symbolic link to the code from the Integration Test root folder
+ln -s ${SUPER_PROJECT_DIR} ${ROOT}/CodeDir
 
 # Create log directory
 if [[ !(-d ${ROOT}/logs) ]]; then
