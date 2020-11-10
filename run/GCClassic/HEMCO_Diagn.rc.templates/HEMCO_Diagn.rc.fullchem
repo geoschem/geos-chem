@@ -41,13 +41,13 @@ EmisACET_Ocean     ACET   101    -1  -1   2   kg/m2/s  ACET_emission_flux_from_o
 ###############################################################################
 #####  ALD2 emissions                                                     #####
 ###############################################################################
-EmisALD2_Total     ALD2   -1     -1  -1   3   kg/m2/s  ALD2_emission_flux_from_all_sectors
-EmisALD2_Anthro    ALD2   0      1   -1   3   kg/m2/s  ALD2_emission_flux_from_anthropogenic
-EmisALD2_BioBurn   ALD2   111    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_biomass_burning
-EmisALD2_Biogenic  ALD2   0      4   -1   2   kg/m2/s  ALD2_emission_flux_from_biogenic_sources
-EmisALD2_Ocean     ALD2   101    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_ocean
-EmisALD2_PlantDecay ALD2  0      3   -1   2   kg/m2/s  ALD2_emission_flux_from_decaying_plants
-EmisALD2_Ship      ALD2   0      10  -1   2   kg/m2/s  ALD2_emission_flux_from_ships
+EmisALD2_Total      ALD2   -1     -1  -1   3   kg/m2/s  ALD2_emission_flux_from_all_sectors
+EmisALD2_Anthro     ALD2   0      1   -1   3   kg/m2/s  ALD2_emission_flux_from_anthropogenic
+EmisALD2_BioBurn    ALD2   111    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_biomass_burning
+EmisALD2_Biogenic   ALD2   0      4   -1   2   kg/m2/s  ALD2_emission_flux_from_biogenic_sources
+EmisALD2_Ocean      ALD2   101    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_ocean
+EmisALD2_PlantDecay ALD2   0      3   -1   2   kg/m2/s  ALD2_emission_flux_from_decaying_plants
+EmisALD2_Ship       ALD2   0      10  -1   2   kg/m2/s  ALD2_emission_flux_from_ships
 
 ###############################################################################
 #####  ALK4 emissions                                                     #####

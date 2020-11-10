@@ -61,6 +61,9 @@ set_common_settings() {
         sed -i -e "s|NO     0      3 |NO     104    -1|" HEMCO_Diagn.rc
         sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc
         sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc
+        sed -i -e "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc
+        sed -i -e "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc
+        sed -i -e "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc
         sed -i -e "s|#Inv|Inv|"                          HEMCO_Diagn.rc
 
 	# Turn @ into # characters for the benchmark simulation,
