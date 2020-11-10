@@ -311,6 +311,22 @@ DIR="geosfp_4x5_TransportTracers"
 create_rundir "10\n2\n1\n1\n${ROOT}\n${DIR}\nn\n"         ${ROOT} ${DIR} ${LOG}
 
 #=============================================================================
+# Nested-grid simulations
+#=============================================================================
+
+DIR="merra2_05x0625_CH4_na_47L"
+create_rundir "3\n1\n3\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
+
+DIR="geosfp_025x03125_CH4_na_47L"
+create_rundir "3\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
+
+DIR="merra2_05x0625_fullchem_as_47L"
+create_rundir "1\n2\n1\n1\n3\n2\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+
+DIR="geosfp_025x03125_fullchem_na_47L"
+create_rundir "1\n2\n1\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+
+#=============================================================================
 # Cleanup and quit
 #=============================================================================
 
