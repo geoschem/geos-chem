@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#### Liam: Add LSF tags here
+#### Liam: Add LSF tags here!
 
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -14,7 +14,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  bsub intTestExecute_slurm.sh
+#  sbatch intTestExecute_lsf.sh
 #
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
@@ -70,17 +70,55 @@ let PASSED=0
 let FAILED=0
 let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
+
+    # Do the following if for only valid GEOS-Chem run dirs
     EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
     if [[ "x${EXPR}" == "xTRUE" ]]; then
+
+	# Define log file
 	LOG="${ROOT}/logs/execute.${RUNDIR}.log"
-	run_gcclassic ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
-	if [[ $? -eq 0 ]]; then
-	    let PASSED++
+	rm -f ${LOG}
+
+	# Messages for execution pass & fail
+	PASSMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_PASS_STR}"
+	FAILMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_FAIL_STR}"
+
+	# Test if executable is present
+	if [[ -f ${ROOT}/${RUNDIR}/gcclassic ]]; then
+
+	    # Change to this run directory; remove leftover log file
+	    cd ${ROOT}/${RUNDIR}
+
+	    # Run the code if the executable is present.  Then update the
+	    # pass/fail counters and write a message to the results log file.
+	    ./gcclassic >> ${LOG} 2>&1
+	    if [[ $? -eq 0 ]]; then
+		let PASSED++
+		if [[ "x${RESULTS}" != "x" ]]; then
+		    print_to_log "${PASSMSG}" ${RESULTS}
+		fi
+	    else
+		let FAILED++
+		if [[ "x${RESULTS}" != "x" ]]; then
+		    print_to_log "${FAILMSG}" ${RESULTS}
+		fi
+	    fi
+
+	    # Change to root directory for next iteration
+	    cd ${ROOT}
+
 	else
+
+	    # If the executable is missing, update the "fail" counter
+	    # and write the "failed" message to the results log file.
 	    let FAILED++
+	    if [[ "x${RESULTS}" != "x" ]]; then
+		print_to_log "${FAILMSG}" ${results}
+	    fi
 	fi
+
+	# Decrement the count of remaining tests
 	let REMAIN--
-	echo $REMAIN
     fi
 done
 
@@ -109,8 +147,13 @@ fi
 #============================================================================
 
 # Free local variables
+unset FAILED
+unset FAILMSG
 unset LOG
 unset NUM_TESTS
+unset PASSED
+unset PASSMSG
+unset REMAIN
 unset RESULTS
 unset ROOT
 
@@ -123,6 +166,6 @@ unset SED_INPUT_GEOS_2
 unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
-unset RUN_PASS_STR
-unset RUN_FAIL_STR
+unset EXE_PASS_STR
+unset EXE_FAIL_STR
 #EOC

@@ -70,9 +70,17 @@ let PASSED=0
 let FAILED=0
 let REMAIN=${NUM_TESTS}
 for RUNDIR in *; do
+
+    # Do the following only for valid GEOS-Chem run dirs
     EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
     if [[ "x${EXPR}" == "xTRUE" ]]; then
+
+	# Define log file
 	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
+	rm -f ${LOG}
+
+	# Configure and build GEOS-Chem source code
+	# and increment pass/fail/remain counters
 	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
 	if [[ $? -eq 0 ]]; then
 	    let PASSED++
