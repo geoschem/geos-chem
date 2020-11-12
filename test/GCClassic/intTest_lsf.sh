@@ -14,7 +14,7 @@
 #\\
 # !CALLING SEQUENCE:
 #  ./intTests_lsf.sh /integration/test/root/folder ENV-FILE          or
-#  ./intTests_lsf.sh /integration/test/root/folder ENV-FILE debug=1
+#  ./intTests_lsf.sh /integration/test/root/folder ENV-FILE short=1
 #
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
@@ -41,8 +41,8 @@ if [[ "x${ENV_FILE}" == "x" ]]; then
     exit
 fi
 
-# 2nd argument: Debug?
-DEBUG=${3}
+# 3rd argument: Run a short integration test (for development)?
+SHORT=${3}
 
 # Current directory
 THIS_DIR=$(pwd -P)
@@ -52,7 +52,7 @@ THIS_DIR=$(pwd -P)
 #=============================================================================
 
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${DEBUG}
+./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${SHORT}
 
 # Change to the integration test root folder
 if [[ -d ${INT_TEST_ROOT} ]]; then
@@ -92,10 +92,10 @@ echo "Compilation tests submitted as LSF job ${CMP_ID}"
 echo "Execution   tests submitted as LSF job ${EXE_ID}"
 
 # Free local variables
-unset DEBUG
 unset ENV_FILE
 unset INT_TEST_ROOT
 unset JOBID
 unset OUTPUT
+unset SHORT
 unset THIS_DIR
 #EOC

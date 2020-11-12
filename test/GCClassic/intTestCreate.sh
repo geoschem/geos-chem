@@ -12,8 +12,8 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestCreate.sh /path/to/integration/test/root/folder    # All tests
-#  ./intTestCreate.sh /path/to/integration/test/root/folder 1  # debug, 2 tests
+#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE           or
+#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE short=1
 #
 # !REMARKS:
 #  Right now we pass values to the existing ./createRunDir.sh,
@@ -48,9 +48,9 @@ if [[ ! -f ${ENV_FILE} ]]; then
     exit 1
 fi
 
-# Debug switch
-DEBUG=${3}
-    
+# Run a short integration test?
+SHORT=${3}
+
 #=============================================================================
 # Global variable and function definitions
 #=============================================================================
@@ -128,15 +128,15 @@ create_rundir "3\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"          ${ROOT} ${DIR} ${LOG}
 DIR="merra2_2x25_CO2"
 create_rundir "4\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"          ${ROOT} ${DIR} ${LOG}
 
+DIR="merra2_2x25_fullchem"
+create_rundir "1\n1\n1\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
+
 # DEBUG: Exit after creating a couple of rundirs
 # if the 2nd argument is passed and not a null string
-if [[ "x${DEBUG}" != "x" ]]; then
+if [[ "x${SHORT}" != "x" ]]; then
     cd ${TEST_DIR}
     exit 0
 fi
-
-DIR="merra2_2x25_fullchem"
-create_rundir "1\n1\n1\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
 
 DIR="merra2_2x25_fullchem+aciduptake"
 create_rundir "1\n1\n5\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"    ${ROOT} ${DIR} ${LOG}
@@ -329,7 +329,7 @@ create_rundir "10\n2\n1\n1\n${ROOT}\n${DIR}\nn\n"         ${ROOT} ${DIR} ${LOG}
 
 # Comment these out for now (bmy, 11/12/20)
 ##=============================================================================
-## Nested-grid simulations 
+## Nested-grid simulations
 ##=============================================================================
 #
 #DIR="merra2_05x0625_CH4_na_47L"
