@@ -639,6 +639,20 @@ if [[ ${sim_name} =~ "POPs" ]]; then
 fi
 
 #--------------------------------------------------------------------
+# Change timesteps for nested-grid simulations
+# Transport should be 300s (5min); chemistry should be 600s (10min)
+#--------------------------------------------------------------------
+if [[ "x${domain_name}" == "xAS"     ]] || \
+   [[ "x${domain_name}" == "xEU"     ]] || \
+   [[ "x${domain_name}" == "xNA"     ]] || \
+   [[ "x${domain_name}" == "xcustom" ]]; then 
+    cmd='s|\[sec\]: 600|\[sec\]: 300|'
+    sed -i -e "$cmd" input.geos
+    cmd='s|\[sec\]: 1200|\[sec\]: 600|'
+    sed -i -e "$cmd" input.geos
+fi
+ 
+#--------------------------------------------------------------------
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
 if [[ "x${sim_name}" == "xfullchem" ]]; then
