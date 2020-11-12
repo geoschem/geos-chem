@@ -1,5 +1,5 @@
 README for test/GCHPctm (GEOS-Chem integration test directory)
-09 Nov 2020
+10 Nov 2020
 GEOS-Chem Support Team
 geos-chem-support@g.harvard.edu
 ===============================================================================
@@ -7,8 +7,8 @@ geos-chem-support@g.harvard.edu
 Overview:
 ---------
 
-This directory contains scripts to submit automated GCHPctm integration tests,
-which will test the following process:
+This directory contains scripts to submit automated GCHPctm integration
+tests, which will test the following process:
 
 1. GCHPctm run directory creation
 2. GCHPctm code configuration and compilation
@@ -20,31 +20,40 @@ rather than end users.
 
 Files:
 ------
-intTest_slurm.sh        : Driver script to set up GCHPctm integration test
-intTestCreate.sh        : Script to create GCHPctm run directories
-intTestCompile_slurm.sh : Script to compile GCHPctm
-intTestExecute_slurm.sh : Script to run GCHPctm 
-gchp_benchmark.slurm.sh : Run script for GCHPctm benchmark simulation (SLURM)
-gchp.lsf.sh*            : Run script for other GCHPctm simulations (LSF)
-gchp.slurm.sh*          : Run script for other GCHPctm simulations (SLURM)
+
+# For LSF scheduler
+intTest_lsf.sh             : Driver script to run GCHPctm integration test
+intTestCompile_lsf.sh      : Script to compile GCHPctm
+intTestExecute_lsf.sh      : Script to run GCHPctm 
+
+# For SLURM scheduler
+intTest_slurm.sh           : Driver script to run GCHPctm integration test
+intTestCompile_slurm.sh    : Script to compile GCHPctm
+intTestExecute_slurm.sh    : Script to run GCHPctm 
+
+# For both LSF and SLURM schedulers
+commonFunctionsForTests.sh : Bash script with reusable functions 
+intTestCreate.sh           : Script to create GCHPctm run directories
 
 
-Running integration tests with the SLURM scheduler:
----------------------------------------------------
+Running integration tests:
+--------------------------
 Execute the following commands at the Unix prompt:
 
-  cd test/GCHPctm
-  ./intTest_slurm.sh /path/to/int/test/dir GCHP-ENVIRONMENT-FILE
+    With the SLURM scheduler:
+    -------------------------
+    cd test/GCHPctm
+    ./intTest_slurm.sh /path/to/int/test/dir GCHPCTM-ENV-FILE
+
+    With the LSF scheduler:
+    -----------------------
+    cd test/GCHPctm
+    ./intTest_lsf.sh /path/to/int/test/dir GCHPCTM-ENV-FILE
 
 
-Running integration tests with the LSF scheduler:
---------------------------------------------------
-Execute the following commands at the Unix prompt:
+where GCHPCTM-ENV-FILE is the shell script that loads relevant software
+modules and defines other parameters.
 
-  cd test/GCHPctm
-  ./intTest_lsf.sh /path/to/int/test/dir GCHP-ENVIRONMENT-FILE
-
-
-
-
-
+NOTE: For debugging you can add an optional third parameter debug=1,
+which will run integration tests for 2 run directories.  This is useful
+for development & debugging.

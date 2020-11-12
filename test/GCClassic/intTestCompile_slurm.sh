@@ -32,15 +32,16 @@
 # Global variable and function definitions
 #============================================================================
 
-# Set the number of OpenMP threads to what we requested in SLURM
-if [[ "x$SLURM_CPUS_PER_TASK" != "x" ]]; then
-    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-fi
-
 # Get the long path of this folder
 ROOT=`pwd -P`
 
-# Load common functions
+# Load base computational environment
+. ~/.bashrc
+
+# Load software modules and OpenMP settings
+. ${ROOT}/gcclassic_env.sh
+
+# Load common functions for tests
 . ${ROOT}/commonFunctionsForTests.sh
 
 # Count the number of tests to be done = number of run directories

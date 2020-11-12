@@ -13,7 +13,8 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTests_slurm.sh
+#  ./intTests_slurm.sh /integration/test/root/folder ENV-FILE          or
+#  ./intTests_slurm.sh /integration/test/root/folder ENV-FILE debug=1
 #
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
@@ -33,8 +34,15 @@ if [[ "x${INT_TEST_ROOT}" == "x" ]]; then
     exit
 fi
 
-# 2nd argument: Debug?
-DEBUG=${2}
+# 2nd argument: Environment file
+ENV_FILE=${2}
+if [[ "x${ENV_FILE}" == "x" ]]; then
+    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
+    exit
+fi
+
+# 3rd argument: Debug?
+DEBUG=${3}
 
 # Current directory
 THIS_DIR=$(pwd -P)
@@ -44,7 +52,7 @@ THIS_DIR=$(pwd -P)
 #=============================================================================
 
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh ${INT_TEST_ROOT} ${DEBUG}
+./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${DEBUG}
 
 # Change to the integration test root folder
 if [[ -d ${INT_TEST_ROOT} ]]; then
@@ -80,6 +88,7 @@ echo "Execution   tests submitted as SLURM job ${EXE_ID}"
 
 # Free local variables
 unset DEBUG
+unset ENV_FILE
 unset INT_TEST_ROOT
 unset JOBID
 unset OUTPUT

@@ -27,22 +27,33 @@
 #BOC
 
 #=============================================================================
-# Check arguments
+# Arguments
 #=============================================================================
-if [[ "x${1}" == "x" ]]; then
+
+# Integration test root folder
+ROOT=${1}
+if [[ "x${ROOT}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
 
+# Environment file
+ENV_FILE=${2}
+if [[ "x${ENV_FILE}" == "x" ]]; then
+    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
+    exit 1
+fi
+if [[ ! -f ${ENV_FILE} ]]; then
+    echo "ERROR: The enviroment file is not a valid file!"
+    exit 1
+fi
+
+# Debug switch
+DEBUG=${3}
+    
 #=============================================================================
 # Global variable and function definitions
 #=============================================================================
-
-# Integration test root folder (create if it doesn't exist)
-ROOT=${1}
-if [[ !(-d ${ROOT}) ]]; then
-    mkdir -p ${ROOT}
-fi
 
 # Current directory
 TEST_DIR=$(pwd -P)
@@ -78,11 +89,17 @@ printf "${SEP_MAJOR}\n"
 # Initial setup of integration test directory
 #=============================================================================
 
+# Create integration test root folder if it doesn't exist
+if [[ ! -d ${ROOT} ]]; then
+    mkdir -p ${ROOT}
+fi
+
 # Remove run directories in the test folder
 cleanup_files ${ROOT}
 
 # Copying the run scripts to the Integration Test root folder
 printf "\nCopying run scripts to: ${ROOT}\n"
+cp ${ENV_FILE} ${ROOT}/gcclassic_env.sh
 cp ${TEST_DIR}/intTest*.sh ${ROOT}
 cp ${TEST_DIR}/commonFunctionsForTests.sh ${ROOT}
 
@@ -113,7 +130,7 @@ create_rundir "4\n1\n2\n1\n${ROOT}\n${DIR}\nn\n"          ${ROOT} ${DIR} ${LOG}
 
 # DEBUG: Exit after creating a couple of rundirs
 # if the 2nd argument is passed and not a null string
-if [[ "x${2}" != "x" ]]; then
+if [[ "x${DEBUG}" != "x" ]]; then
     cd ${TEST_DIR}
     exit 0
 fi
@@ -310,21 +327,22 @@ create_rundir "9\n2\n1\n1\n${ROOT}\n${DIR}\nn\n"          ${ROOT} ${DIR} ${LOG}
 DIR="geosfp_4x5_TransportTracers"
 create_rundir "10\n2\n1\n1\n${ROOT}\n${DIR}\nn\n"         ${ROOT} ${DIR} ${LOG}
 
-#=============================================================================
-# Nested-grid simulations
-#=============================================================================
-
-DIR="merra2_05x0625_CH4_na_47L"
-create_rundir "3\n1\n3\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
-
-DIR="geosfp_025x03125_CH4_na_47L"
-create_rundir "3\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
-
-DIR="merra2_05x0625_fullchem_as_47L"
-create_rundir "1\n2\n1\n1\n3\n2\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
-
-DIR="geosfp_025x03125_fullchem_na_47L"
-create_rundir "1\n2\n1\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+# Comment these out for now (bmy, 11/12/20)
+##=============================================================================
+## Nested-grid simulations 
+##=============================================================================
+#
+#DIR="merra2_05x0625_CH4_na_47L"
+#create_rundir "3\n1\n3\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
+#
+#DIR="geosfp_025x03125_CH4_na_47L"
+#create_rundir "3\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n"       ${ROOT} ${DIR} ${LOG}
+#
+#DIR="merra2_05x0625_fullchem_as_47L"
+#create_rundir "1\n2\n1\n1\n3\n2\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
+#
+#DIR="geosfp_025x03125_fullchem_na_47L"
+#create_rundir "1\n2\n1\n2\n4\n4\n2\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
 
 #=============================================================================
 # Cleanup and quit

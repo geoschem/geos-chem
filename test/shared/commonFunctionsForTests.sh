@@ -219,7 +219,7 @@ function print_to_log() {
 function config_and_build() {
     #========================================================================
     # Configures and compiles GEOS-Chem (Classic or GCHPctm) for
-    # CMAKE_BUILD_TYPE=Release.  This is the "out-of-the-box" setting.
+    # CMAKE_BUILD_TYPE=Debug.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GEOS-Chem run directory name
@@ -252,10 +252,10 @@ function config_and_build() {
     fi
 
     #----------------------------------
-    # Code configuration
+    # Code configuration, for debug
     #----------------------------------
     cd ${buildDir}
-    cmake ${codeDir} >> ${log} 2>&1
+    cmake ${codeDir} -DCMAKE_BUILD_TYPE=Debug >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}
