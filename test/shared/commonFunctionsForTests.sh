@@ -235,25 +235,26 @@ function config_and_build() {
 
     # Local variables
     codeDir=${root}/CodeDir
-    buildDir=$(get_builddir ${root} ${runDir})
-    passMsg="$runDir${FILL:${#runDir}}.....${CMP_PASS_STR}"
-    failMsg="$runDir${FILL:${#runDir}}.....${CMP_FAIL_STR}"
 
-    # Test if the rundir is for GCHPctm
-    is_gchp=$(is_gchpctm_rundir ${root}/${runDir})
-
-    #----------------------------------
-    # For GCHP: load environment file
-    # and determine the build dir
-    #----------------------------------
-    if [[ "x${is_gchp}" == "xTRUE" ]]; then
-	cd ${runDir}
-	. gchp.env
+    #---------------------------------------
+    # Define vars for GCHPctm or GCCLassic
+    # GCHP only: load env file
+    #---------------------------------------
+    if [[ "x${rundir}" == "xnone" ]]; then
+	. ${root}/gchp.env
+	buildDir=${root}/build
+	tmp="GCHP build sequence"
+	passMsg="GCHP build sequence{FILL:${#tmp}}.....${CMP_PASS_STR}"
+	failMsg="GCHP build sequence{FILL:${#tmp}}.....${CMP_FAIL_STR}"
+    else
+	buildDir=${root}/${runDir}/build
+	passMsg="$runDir${FILL:${#runDir}}.....${CMP_PASS_STR}"
+	failMsg="$runDir${FILL:${#runDir}}.....${CMP_FAIL_STR}"
     fi
 
-    #----------------------------------
+    #---------------------------------------
     # Code configuration, for debug
-    #----------------------------------
+    #---------------------------------------
     cd ${buildDir}
     cmake ${codeDir} -DCMAKE_BUILD_TYPE=Debug >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
@@ -263,9 +264,9 @@ function config_and_build() {
 	return 1
     fi
 
-    #-----------------------------------
+    #----------------------------------------
     # Code compilation
-    #-----------------------------------
+    #----------------------------------------
     make -j install >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
@@ -274,17 +275,9 @@ function config_and_build() {
 	return 1
     fi
 
-    #-----------------------------------
-    # Copy executable (if necessary)
-    #-----------------------------------
-    cd ${root}/${runDir}
-    if [[ ! -f ./gcclassic ]]; then
-	cp ${buildDir}/../gcclassic ${root}/${runDir}
-    fi
-
-    #-----------------------------------
+    #----------------------------------------
     # Cleanup & quit
-    #-----------------------------------
+    #----------------------------------------
 
     # If we have gotten this far, the run passed,
     # so update the results log file accordingly

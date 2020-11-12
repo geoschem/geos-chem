@@ -89,6 +89,12 @@ for RUNDIR in *; do
 	PASSMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_PASS_STR}"
 	FAILMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_FAIL_STR}"
 
+	# Copy the executable if it does not exist in the run directory
+	if [[ ! -f ${ROOT}/${RUNDIR}/gcclassic ]]; then
+	    BUILDDIR=$(get_builddir ${ROOT} ${RUNDIR})
+	    cp -f ${BUILDDIR}/../gcclassic ${ROOT}/${RUNDIR}/gcclassic
+	fi
+
 	# Test if executable is present
 	if [[ -f ${ROOT}/${RUNDIR}/gcclassic ]]; then
 
@@ -153,6 +159,7 @@ fi
 #============================================================================
 
 # Free local variables
+unset BUILDDIR
 unset FAILED
 unset FAILMSG
 unset LOG
