@@ -120,7 +120,9 @@ endif()
 # Dependencies
 target_link_libraries(GeosCore
   PUBLIC
-  Transport ObsPack HCOI_Shared History Isorropia
+  Transport ObsPack History Isorropia
+  
+  $<LINK_ONLY:HCOI_Shared>  #  link only to avoid gathering the rest of the TURs
 
   # Add dependency on the correct KPP library
   $<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
