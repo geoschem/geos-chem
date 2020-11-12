@@ -151,10 +151,11 @@ EmisCH3I_Ocean     CH3I   0     1    -1   2   kg/m2/s  CH3I_emission_flux_from_o
 ###############################################################################
 #####  CH4 emissions                                                      #####
 ###############################################################################
-EmisCH4_Total      CH4    -1     -1  -1   3   kg/m2/s  CH4_emission_flux_from_all_sectors
-EmisCH4_Anthro     CH4    0      1   -1   3   kg/m2/s  CH4_emission_flux_from_anthropogenic
-EmisCH4_BioBurn    CH4    0      5   -1   2   kg/m2/s  CH4_emission_flux_from_biomass_burning
-EmisCH4_Ship       CH4    0      10  -1   2   kg/m2/s  CH4_emission_flux_from_ships
+# Zero for now, so comment out
+#EmisCH4_Total      CH4    -1     -1  -1   3   kg/m2/s  CH4_emission_flux_from_all_sectors
+#EmisCH4_Anthro     CH4    0      1   -1   3   kg/m2/s  CH4_emission_flux_from_anthropogenic
+#EmisCH4_BioBurn    CH4    0      5   -1   2   kg/m2/s  CH4_emission_flux_from_biomass_burning
+#EmisCH4_Ship       CH4    0      10  -1   2   kg/m2/s  CH4_emission_flux_from_ships
 
 ###############################################################################
 #####  CHBr3 emissions                                                    #####
@@ -223,8 +224,9 @@ EmisGLYC_Anthro    GLYC   0      1   -1   3   kg/m2/s  GLYC_emission_flux_from_a
 ###############################################################################
 #####  GLYX emissions                                                     #####
 ###############################################################################
-EmisGLYX_Total     GLYX   -1     -1  -1   3   kg/m2/s  GLYX_emission_flux_from_all_sectors
-EmisGLYX_Anthro    GLYX   0      1   -1   3   kg/m2/s  GLYX_emission_flux_from_anthropogenic
+# Zero for now, so comment out
+#EmisGLYX_Total     GLYX   -1     -1  -1   3   kg/m2/s  GLYX_emission_flux_from_all_sectors
+#EmisGLYX_Anthro    GLYX   0      1   -1   3   kg/m2/s  GLYX_emission_flux_from_anthropogenic
 
 ###############################################################################
 #####  HCOOH sources                                                      #####
@@ -278,8 +280,9 @@ EmisMENO3_Ocean    MENO3  101    -1  -1   2   kg/m2/s  MENO3_emission_flux_from_
 ###############################################################################
 #####  MGLY emissions                                                     #####
 ###############################################################################
-EmisMGLY_Total     MGLY   -1     -1  -1   3   kg/m2/s  MGLY_emission_flux_from_all_sectors
-EmisMGLY_Anthro    MGLY   0      1   -1   3   kg/m2/s  MGLY_emission_flux_from_anthropogenic
+# Zero for now, so comment out
+#EmisMGLY_Total     MGLY   -1     -1  -1   3   kg/m2/s  MGLY_emission_flux_from_all_sectors
+#EmisMGLY_Anthro    MGLY   0      1   -1   3   kg/m2/s  MGLY_emission_flux_from_anthropogenic
 
 ###############################################################################
 #####  MOH emissions                                                      #####
@@ -407,15 +410,14 @@ EmisRCHO_Anthro    RCHO   0      1   -1   3   kg/m2/s  RCHO_emission_flux_from_a
 ###############################################################################
 #####  Sea salt emissions                                                 #####
 ###############################################################################
-EmisBr2_Natural    Br2    107    -1  -1   2   kg/m2/s  Br2_emission_flux_from_natural_sources
-EmisBrSALA_Natural BrSALA 107    -1  -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
-EmisBrSALC_Natural BrSALC 107    -1  -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
-EmisSALA_Natural   SALA   107    -1  -1   2   kg/m2/s  SALA_emission_flux_from_natural_sources
-EmisSALC_Natural   SALC   107    -1  -1   2   kg/m2/s  SALC_emission_flux_from_natural_sources
-EmisSALAAL_Natural SALAAL 107    -1  -1   2   kg/m2/s  SALAAL_emission_flux_from_natural_sources
-EmisSALACL_Natural SALACL 107    -1  -1   2   kg/m2/s  SALACL_emission_flux_from_natural_sources
-EmisSALCAL_Natural SALCAL 107    -1  -1   2   kg/m2/s  SALCAL_emission_flux_from_natural_sources
-EmisSALCCL_Natural SALCCL 107    -1  -1   2   kg/m2/s  SALCCL_emission_flux_from_natural_sources
+EmisSALA_Natural     SALA  0      3   -1   2   kg/m2/s  SALA_emission_flux_from_natural_sources
+EmisBrSALA_Natural BrSALA  0      3   -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
+EmisSALAAL_Natural SALAAL  0      3   -1   2   kg/m2/s  SALAAL_emission_flux_from_natural_sources
+EmisSALACL_Natural SALACL  0      3   -1   2   kg/m2/s  SALACL_emission_flux_from_natural_sources
+EmisSALC_Natural     SALC  0      3   -1   2   kg/m2/s  SALC_emission_flux_from_natural_sources
+EmisBrSALC_Natural BrSALC  0      3   -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
+EmisSALCAL_Natural SALCAL  0      3   -1   2   kg/m2/s  SALCAL_emission_flux_from_natural_sources
+EmisSALCCL_Natural SALCCL  0      3   -1   2   kg/m2/s  SALCCL_emission_flux_from_natural_sources
 
 ###############################################################################
 #####  SO2 emissions                                                      #####

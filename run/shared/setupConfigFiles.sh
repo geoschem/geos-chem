@@ -58,12 +58,16 @@ set_common_settings() {
         sed -i -e "s|DustDead               : off|DustDead               : on |" HEMCO_Config.rc
         sed -i -e "s|SoilNOx                : off|SoilNOx                : on |" HEMCO_Config.rc
         sed -i -e "s|SeaSalt                : off|SeaSalt                : on |" HEMCO_Config.rc
-        sed -i -e "s|NO     0      3 |NO     104    -1|" HEMCO_Diagn.rc
-        sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc
-        sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc
-        sed -i -e "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc
-        sed -i -e "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc
-        sed -i -e "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc
+        sed -i -e "s|NO     0      3 |NO     104    -1|" HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
+	sed -i -e "s|SALA  0      3 |SALA  107    -1|"   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
+	sed -i -e "s|SALC  0      3 |SALC  107    -1|"   HEMCO_Diagn.rc   #   "   "
+	sed -i -e "s|AL  0      3 |AL  107    -1|"       HEMCO_Diagn.rc   #   "   "
+	sed -i -e "s|CL  0      3 |CL  107    -1|"       HEMCO_Diagn.rc   #   "   "
+        sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
+        sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108) 
+        sed -i -e "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
+        sed -i -e "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
+        sed -i -e "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
         sed -i -e "s|#Inv|Inv|"                          HEMCO_Diagn.rc
 
 	# Turn @ into # characters for the benchmark simulation,
