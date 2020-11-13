@@ -80,23 +80,6 @@ function is_gchpctm_rundir() {
 }
 
 
-function get_builddir() {
-    #========================================================================
-    # Returns the build directory for the integration tests.
-    #
-    # 1st argument: Integration tests root path
-    # 2nd argument: GEOS-Chem run directory
-    #========================================================================
-    root=${1}
-    runDir=${2}
-    expr=$(is_gchpctm_rundir ${root}/${runDir})
-    if [[ "x${expr}" == "xTRUE" ]]; then
-	echo "${root}/build"
-    else
-	echo "${root}/${runDir}/build"
-    fi
-}
-
 function count_rundirs() {
     #========================================================================
     # Returns the number of run directories in the root folder.
@@ -131,7 +114,6 @@ function update_config_files() {
     #========================================================================
     root=${1}
     runDir=${2}
-    buildDir=$(get_builddir ${root} ${runDir})
 
     # Replace text in input.geos
     sed -i -e "${SED_INPUT_GEOS_1}" ${root}/${runDir}/input.geos
@@ -153,11 +135,6 @@ function update_config_files() {
 
 	# Copy the run scripts
 	cp ${root}/${runDir}/runScriptSamples/*.sh ${root}/${runDir}
-    fi
-
-    # Create the build directory if it is not there
-    if [[ ! -d ${buildDir} ]]; then
-	mkdir -p ${buildDir}
     fi
 }
 
@@ -216,56 +193,148 @@ function print_to_log() {
 }
 
 
-function config_and_build() {
+function gcclassic_exe_name() {
+    #========================================================================
+    # Returns the executable name given a directory name
+    #
+    # 1st argument: Directory name
+    #========================================================================
+
+    # Turn on case-insensitivity
+    shopt -s nocasematch
+
+    # Default executable name
+    exeFileName="gcclassic"
+    
+    # Append a suffix to the executable file name for specific directories
+    for suffix in apm bpch rrtmg tomas; do
+	if [[ ${1} =~ ${suffix} ]]; then
+	    exeFileName+=".${suffix}"
+	    break
+	fi
+    done
+
+    # Turn off case-insensitivity
+    shopt -u nocasematch
+
+    # Return
+    echo "${exeFileName}"
+}
+
+
+function gcclassic_config_options() {
+    #========================================================================
+    # Returns the GCClassic configuration options given a directory name
+    #
+    # 1st argument: Directory name
+    #========================================================================
+
+    # Arguments
+    dir=${1}
+    
+    # Local variables
+    exeFileName=$(gcclassic_exe_name ${dir})
+    if [[ "x${2}" != "x" ]]; then
+	options="${2} "
+    else
+	options=""
+    fi
+
+    # Turn on case-insensitivity
+    shopt -s nocasematch
+
+    # Pick the proper build options
+    if [[ ${dir} =~ "apm" ]]; then
+	options+=" -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "bpch" ]]; then
+	options+=" -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "rrtmg" ]]; then
+	options+=" -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "tomas" ]]; then
+	options+=" -DTOMAS15=y -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    fi
+    
+    # Turn off case-insensitivity
+    shopt -u nocasematch
+
+    # Return
+    echo "${options}"
+}
+
+
+function gcclassic_compiletest_name() {
+    #========================================================================
+    # Returns the GCClassic configuration options given a directory name
+    #
+    # 1st argument: Directory name
+    #========================================================================
+
+    # Arguments
+    dir=${1}
+
+    # Turn on case-insensitivity
+    shopt -s nocasematch
+
+    # Pick the proper build options
+    if [[ ${dir} =~ "apm" ]]; then
+	result="GCClassic with APM"
+    elif [[ ${dir} =~ "bpch" ]]; then
+	result="GCClassic with BPCH diagnostics"
+    elif [[ ${dir} =~ "rrtmg" ]]; then
+	result="GCClassic with RRTMG"
+    elif [[ ${dir} =~ "tomas" ]]; then
+	result="GCClassic with TOMAS1"
+    else
+	result="GCClassic"
+    fi
+    
+    # Turn off case-insensitivity
+    shopt -u nocasematch
+
+    # Return
+    echo "${result}"
+}
+
+
+function build_gcclassic() {
     #========================================================================
     # Configures and compiles GEOS-Chem (Classic or GCHPctm) for
     # CMAKE_BUILD_TYPE=Debug.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GEOS-Chem run directory name
+    # 2nd argument = GEOS_Chem Classic build directory
     # 3rd argument = Log file where stderr and stdout will be redirected
     # 4th argument = (OPTIONAL) Log file where results will be printed
     #========================================================================
 
     # Arguments
     root=$(absolute_path ${1})
-    runDir=${2}
+    buildDir=${2}
     log=${3}
     results=${4}
+    baseOptions=${5}
 
     # Local variables
     codeDir=${root}/CodeDir
+    configOptions=$(gcclassic_config_options ${buildDir} ${baseOptions})
+    message=$(gcclassic_compiletest_name ${buildDir})
+    passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
+    failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 
     #---------------------------------------
-    # Define vars for GCHPctm or GCCLassic
-    # GCHP only: load env file
-    #---------------------------------------
-    if [[ "x${rundir}" == "xnone" ]]; then
-	. ${root}/gchp.env
-	buildDir=${root}/build
-	tmp="GCHP build sequence"
-	passMsg="GCHP build sequence{FILL:${#tmp}}.....${CMP_PASS_STR}"
-	failMsg="GCHP build sequence{FILL:${#tmp}}.....${CMP_FAIL_STR}"
-    else
-	buildDir=${root}/${runDir}/build
-	passMsg="$runDir${FILL:${#runDir}}.....${CMP_PASS_STR}"
-	failMsg="$runDir${FILL:${#runDir}}.....${CMP_FAIL_STR}"
-    fi
-
-    #---------------------------------------
-    # Code configuration, for debug
+    # Code configuration
     #---------------------------------------
     cd ${buildDir}
-    cmake ${codeDir} -DCMAKE_BUILD_TYPE=Debug >> ${log} 2>&1
+    cmake ${codeDir} ${configOptions} >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}
 	fi
 	return 1
     fi
-
+    
     #----------------------------------------
-    # Code compilation
+    # Code compilation and installation
     #----------------------------------------
     make -j install >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then

@@ -33,104 +33,114 @@
 #============================================================================
 
 # Get the long path of this folder
-ROOT=`pwd -P`
+root=`pwd -P`
 
-# Load base computational environment
-. ~/.bashrc
-
-# Load software modules and OpenMP settings
-. ${ROOT}/gcclassic_env.sh
+# In SLURM: Load software environment and OpenMP settings
+# Otherwise (e.g. for testing) use a small number of OpenMP threads
+if [[ "x${SLURM_JOBID}" == "x" ]]; then
+    export OMP_NUM_THREADS=6
+else
+    . ~/.bashrc
+    . ${root}/gcclassic_env.sh
+fi
 
 # Load common functions for tests
-. ${ROOT}/commonFunctionsForTests.sh
+. ${root}/commonFunctionsForTests.sh
 
 # Count the number of tests to be done = number of run directories
-NUM_TESTS=$(count_rundirs ${ROOT})
+numTests=$(count_rundirs ${root})
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-RESULTS="${ROOT}/logs/results.execute.log"
-rm -f ${RESULTS}
+results="${root}/logs/results.execute.log"
+rm -f ${results}
 
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                              ${RESULTS}
-print_to_log "GEOS-Chem Classic: Execution Test Results" ${RESULTS}
-print_to_log ""                                          ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${RESULTS}
-print_to_log "Number of execution tests: ${NUM_TESTS}"   ${RESULTS}
-print_to_log "${SEP_MAJOR}"                              ${RESULTS}
+print_to_log "${SEP_MAJOR}"                              ${results}
+print_to_log "GEOS-Chem Classic: Execution Test Results" ${results}
+print_to_log ""                                          ${results}
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${results}
+print_to_log "NumbER of execution tests: ${NUM_TESTS}"   ${results}
+print_to_log "${SEP_MAJOR}"                              ${results}
 
 #============================================================================
 # Run the GEOS-Chem executable in each GEOS-Chem run directory
 #============================================================================
-print_to_log " "                 ${RESULTS}
-print_to_log "Execution tests:"  ${RESULTS}
-print_to_log "${SEP_MINOR}"      ${RESULTS}
+print_to_log " "                 ${results}
+print_to_log "Execution tests:"  ${results}
+print_to_log "${SEP_MINOR}"      ${results}
+
+# Keep track of the number of tests that passed & failed
+let passed=0
+let failed=0
+let remain=${numTests}
 
 # Loop over rundirs and run GEOS-Chem
-# Keep track of the number of tests that passed & failed
-let PASSED=0
-let FAILED=0
-let REMAIN=${NUM_TESTS}
-for RUNDIR in *; do
+for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
-    if [[ "x${EXPR}" == "xTRUE" ]]; then
+    expr=$(is_valid_rundir "${root}/${rundir}")
+    if [[ "x${expr}" == "xTRUE" ]]; then
 
 	# Define log file
-	LOG="${ROOT}/logs/execute.${RUNDIR}.log"
+	log="${root}/logs/execute.${rundir}.log"
 	rm -f ${LOG}
 
 	# Messages for execution pass & fail
-	PASSMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_PASS_STR}"
-	FAILMSG="$RUNDIR${FILL:${#RUNDIR}}.....${EXE_FAIL_STR}"
+	passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
+	failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
-	# Copy the executable if it does not exist in the run directory
-	if [[ ! -f ${ROOT}/${RUNDIR}/gcclassic ]]; then
-	    BUILDDIR=$(get_builddir ${ROOT} ${RUNDIR})
-	    cp -f ${BUILDDIR}/../gcclassic ${ROOT}/${RUNDIR}/gcclassic
-	fi
+	# Get the executable file corresponding to this run directory
+	exeFile=$(gcclassic_exe_name ${runDir})
 
-	# Test if executable is present
-	if [[ -f ${ROOT}/${RUNDIR}/gcclassic ]]; then
+	# Test if the executable exists
+	if [[ -f ${root}/build/${exeFile} ]]; then
 
+	    #----------------------------------------------------------------
+	    # If the executable file exists, we can do the test
+	    #----------------------------------------------------------------
+	    
 	    # Change to this run directory; remove leftover log file
-	    cd ${ROOT}/${RUNDIR}
+	    cd ${root}/${runDir}
 
+	    # Copy the executable file here
+	    cp -f ${root}/build${exeFile} .
+   
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
-	    ./gcclassic >> ${LOG} 2>&1
+	    ./${exeFile} >> ${log} 2>&1
 	    if [[ $? -eq 0 ]]; then
-		let PASSED++
-		if [[ "x${RESULTS}" != "x" ]]; then
-		    print_to_log "${PASSMSG}" ${RESULTS}
+		let passed++
+		if [[ "x${results}" != "x" ]]; then
+		    print_to_log "${passMsg}" ${results}
 		fi
 	    else
-		let FAILED++
-		if [[ "x${RESULTS}" != "x" ]]; then
-		    print_to_log "${FAILMSG}" ${RESULTS}
+		let failed++
+		if [[ "x${results}" != "x" ]]; then
+		    print_to_log "${failMsg}" ${results}
 		fi
 	    fi
-
+	    
 	    # Change to root directory for next iteration
-	    cd ${ROOT}
-
+	    cd ${root}
+	    
 	else
 
+  	    #----------------------------------------------------------------
 	    # If the executable is missing, update the "fail" counter
 	    # and write the "failed" message to the results log file.
-	    let FAILED++
-	    if [[ "x${RESULTS}" != "x" ]]; then
-		print_to_log "${FAILMSG}" ${results}
+	    #----------------------------------------------------------------
+	    let failed++
+	    if [[ "x${results}" != "x" ]]; then
+		print_to_log "${failMsg}" ${results}
 	    fi
 	fi
-
+	
 	# Decrement the count of remaining tests
-	let REMAIN--
+	let remain--
     fi
 done
 
@@ -139,19 +149,19 @@ done
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                            ${RESULTS}
-print_to_log "Summary of test results:"                     ${RESULTS}
-print_to_log "${SEP_MINOR}"                                 ${RESULTS}
-print_to_log "Execution tests passed: ${PASSED}"            ${RESULTS}
-print_to_log "Execution tests failed: ${FAILED}"            ${RESULTS}
-print_to_log "Execution tests not yet completed: ${REMAIN}" ${RESULTS}
+print_to_log " "                                            ${results}
+print_to_log "Summary of test results:"                     ${results}
+print_to_log "${SEP_MINOR}"                                 ${results}
+print_to_log "Execution tests passed: ${passed}"            ${results}
+print_to_log "Execution tests failed: ${failed}"            ${results}
+print_to_log "Execution tests not yet completed: ${remain}" ${results}
 
 # Check if all tests passed
-if [[ "x${PASSED}" == "x${NUM_TESTS}" ]]; then
-    print_to_log ""                                         ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${RESULTS}
-    print_to_log "%%%  All execution tests passed!  %%%"    ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${RESULTS}
+if [[ "x${passed}" == "x${numTests}" ]]; then
+    print_to_log ""                                         ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
+    print_to_log "%%%  All execution tests passed!  %%%"    ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
 fi
 
 #============================================================================
@@ -159,16 +169,16 @@ fi
 #============================================================================
 
 # Free local variables
-unset BUILDDIR
-unset FAILED
-unset FAILMSG
-unset LOG
-unset NUM_TESTS
-unset PASSED
-unset PASSMSG
-unset REMAIN
-unset RESULTS
-unset ROOT
+unset exeFile
+unset failed
+unset failmsg
+unset log
+unset numTests
+unset passed
+unset passMsg
+unset remain
+unset results
+unset root
 
 # Free imported global variables
 unset FILL
@@ -179,6 +189,6 @@ unset SED_INPUT_GEOS_2
 unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
-unset RUN_PASS_STR
-unset RUN_FAIL_STR
+unset EXE_PASS_STR
+unset EXE_FAIL_STR
 #EOC

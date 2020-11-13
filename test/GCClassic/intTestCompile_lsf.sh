@@ -28,68 +28,72 @@
 #============================================================================
 
 # Get the long path of this folder
-ROOT=`pwd -P`
+root=`pwd -P`
 
-# Load base computational environment
+# Load computational environment and OpenMP settings
 . ~/.bashrc
-
-# Load software modules and OpenMP settings
-. ${ROOT}/gcclassic_env.sh
+. ${root}/gcclassic_env.sh
 
 # Load common functions for tests
-. ${ROOT}/commonFunctionsForTests.sh
+. ${root}/commonFunctionsForTests.sh
 
 # Count the number of tests to be done = number of run directories
-NUM_TESTS=$(count_rundirs ${ROOT})
+numTests=$(ls -1 "${root}/build" | wc -l)
+
+# All integration tests will use debugging features
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DINSTALLCOPY_FORCE=${root}/exe_files"
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-RESULTS="${ROOT}/logs/results.compile.log"
-rm -f ${RESULTS}
+results="${root}/logs/results.compile.log"
+rm -f ${results}
 
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                                ${RESULTS}
-print_to_log "GEOS-Chem Classic: Compilation Test Results" ${RESULTS}
-print_to_log ""                                            ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     ${RESULTS}
-print_to_log "Number of compilation tests: ${NUM_TESTS}"   ${RESULTS}
-print_to_log "${SEP_MAJOR}"                                ${RESULTS}
+print_to_log "${SEP_MAJOR}"                                ${results}
+print_to_log "GEOS-Chem Classic: Compilation Test Results" ${results}
+print_to_log ""                                            ${results}
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     ${results}
+print_to_log "Number of compilation tests: ${NUM_TESTS}"   ${results}
+print_to_log "${SEP_MAJOR}"                                ${results}
 
 #============================================================================
 # Configure and compile code in each GEOS_Chem run directory
 #============================================================================
-print_to_log " "                   ${RESULTS}
-print_to_log "Compiliation tests:" ${RESULTS}
-print_to_log "${SEP_MINOR}"        ${RESULTS}
+print_to_log " "                   ${results}
+print_to_log "Compiliation tests:" ${results}
+print_to_log "${SEP_MINOR}"        ${results}
 
-# Loop over rundirs and compile code
+# Change to the top-level build directory
+cd ${root}
+
 # Keep track of the number of tests that passed & failed
-let PASSED=0
-let FAILED=0
-let REMAIN=${NUM_TESTS}
-for RUNDIR in *; do
+let passed=0
+let failed=0
+let remain=${numTests}
 
-    # Do the following only for valid GEOS-Chem run dirs
-    EXPR=$(is_valid_rundir "${ROOT}/${RUNDIR}")
-    if [[ "x${EXPR}" == "xTRUE" ]]; then
+# Loop over build directories
+for dir in default apm bpch rrtmg tomas; do
 
-	# Define log file
-	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
-	rm -f ${LOG}
+    # Define build directory
+    buildDir="${root}/build/${dir}"
+    
+    # Define log file
+    log="${root}/logs/compile.${dir}].log"
+    rm -f ${log}
 
-	# Configure and build GEOS-Chem source code
-	# and increment pass/fail/remain counters
-	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
-	if [[ $? -eq 0 ]]; then
-	    let PASSED++
-	else
-	    let FAILED++
-	fi
-	let REMAIN--
+    # Configure and build GEOS-Chem source code
+    # and increment pass/fail/remain counters
+    build_gcclassic ${root} ${buildDir} ${log} ${results} ${baseOptions}
+    if [[ $? -eq 0 ]]; then
+	let passed++
+    else
+	let failed++
     fi
+    let remain--
+
 done
 
 #============================================================================
@@ -97,19 +101,19 @@ done
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                           ${RESULTS}
-print_to_log "Summary of compilation test results:"        ${RESULTS}
-print_to_log "${SEP_MINOR}"                                ${RESULTS}
-print_to_log "Complilation tests passed:        ${PASSED}" ${RESULTS}
-print_to_log "Complilation tests failed:        ${FAILED}" ${RESULTS}
-print_to_log "Complilation tests not completed: ${REMAIN}" ${RESULTS}
+print_to_log " "                                           ${results}
+print_to_log "Summary of compilation test results:"        ${results}
+print_to_log "${SEP_MINOR}"                                ${results}
+print_to_log "Complilation tests passed:        ${passed}" ${results}
+print_to_log "Complilation tests failed:        ${failed}" ${results}
+print_to_log "Complilation tests not completed: ${remain}" ${results}
 
 # Check if all tests passed
-if [[ "x${PASSED}" == "x${NUM_TESTS}" ]]; then
-    print_to_log ""                                        ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
-    print_to_log "%%%  All compilation tests passed!  %%%" ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
+if [[ "x${passed}" == "x${numTests}" ]]; then
+    print_to_log ""                                        ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
+    print_to_log "%%%  All compilation tests passed!  %%%" ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
 fi
 
 #============================================================================
@@ -117,13 +121,15 @@ fi
 #============================================================================
 
 # Free local variables
-unset FAILED
-unset LOG
-unset NUM_TESTS
-unset PASSED
-unset REMAIN
-unset RESULTS
-unset ROOT
+unset baseOptions
+unset failed
+unset dir
+unset log
+unset numTests
+unset passed
+unset remain
+unset results
+unset root
 
 # Free imported variables
 unset FILL
