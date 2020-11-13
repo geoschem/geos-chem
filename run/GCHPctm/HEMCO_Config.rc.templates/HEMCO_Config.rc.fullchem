@@ -2699,8 +2699,8 @@ Warnings:                    1
 #                                                    --Lee Murray (16 Jan 2019)
 #==============================================================================
 (((LightNOx
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-11/$MET/$YYYY/$MM/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM_$DD.nc4  LDENS 1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-11/$MET/$YYYY/$MM/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM_$DD.nc4  CTH   1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 )))LightNOx
 
 )))METEOROLOGY
