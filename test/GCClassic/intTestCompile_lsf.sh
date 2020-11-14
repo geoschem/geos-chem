@@ -41,7 +41,7 @@ root=`pwd -P`
 numTests=$(ls -1 "${root}/build" | wc -l)
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DINSTALLCOPY_FORCE=${root}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DIGNORE_RUNDIR=y -DINSTALLCOPY=${root}/exe_files"
 
 #============================================================================
 # Initialize results logfile
@@ -81,7 +81,7 @@ for dir in default apm bpch rrtmg tomas; do
     buildDir="${root}/build/${dir}"
     
     # Define log file
-    log="${root}/logs/compile.${dir}].log"
+    log="${root}/logs/compile.${dir}.log"
     rm -f ${log}
 
     # Configure and build GEOS-Chem source code

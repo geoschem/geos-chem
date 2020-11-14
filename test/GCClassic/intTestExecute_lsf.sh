@@ -77,11 +77,11 @@ let remain=${numTests}
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${root}/${rundir}")
+    expr=$(is_valid_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
 	# Define log file
-	log="${root}/logs/execute.${rundir}.log"
+	log="${root}/logs/execute.${runDir}.log"
 	rm -f ${LOG}
 
 	# Messages for execution pass & fail
@@ -92,7 +92,7 @@ for runDir in *; do
 	exeFile=$(gcclassic_exe_name ${runDir})
 
 	# Test if the executable exists
-	if [[ -f ${root}/build/${exeFile} ]]; then
+	if [[ -f ${root}/exe_files/${exeFile} ]]; then
 
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
@@ -102,7 +102,7 @@ for runDir in *; do
 	    cd ${root}/${runDir}
 
 	    # Copy the executable file here
-	    cp -f ${root}/build/${exeFile} .
+	    cp -f ${root}/exe_files/${exeFile} .
    
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.

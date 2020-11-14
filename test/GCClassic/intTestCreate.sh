@@ -44,6 +44,7 @@ if [[ "x${envFile}" == "x" ]]; then
     exit 1
 fi
 if [[ ! -f ${envFile} ]]; then
+
     echo "ERROR: The enviroment file is not a valid file!"
     exit 1
 fi
@@ -94,13 +95,16 @@ if [[ ! -d ${root} ]]; then
     mkdir -p ${root}
 fi
 
-# Remove everything in the test folder
+# Remove everything in the test folde r
 cleanup_files ${root}
 
-# Make the build directories and directory for the executables
+# Make the directory for the executables
+# Add an empty input.geos file so that CMake thinks it's a rundir
 printf "\nCreating new build and executable directories:\n"
 echo " ... ${root}/exe_files"
 mkdir -p ${root}/exe_files
+
+# Make the build directories
 if [[ ! -d ${root}/build ]]; then
     for dir in apm bpch default rrtmg tomas; do
 	echo " ... ${root}/build/${dir}"
@@ -265,8 +269,8 @@ create_rundir "1\n1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="merra2_4x5_fullchem+RRTMG"
 create_rundir "1\n1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
-dir="merra2_4x5_fullchem+TOMAS15"
-create_rundir "1\n1\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+#dir="merra2_4x5_fullchem+TOMAS15"
+#create_rundir "1\n2\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="merra2_4x5_Hg"
 create_rundir "5\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
@@ -317,8 +321,8 @@ create_rundir "1\n1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="geosfp_4x5_fullchem+RRTMG"
 create_rundir "1\n1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
-dir="geosfp_4x5_fullchem+TOMAS15"
-create_rundir "1\n1\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+#dir="geosfp_4x5_fullchem+TOMAS15"
+#create_rundir "1\n2\n6\n1\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="geosfp_4x5_Hg"
 create_rundir "5\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}

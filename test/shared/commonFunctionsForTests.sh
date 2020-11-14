@@ -207,7 +207,8 @@ function gcclassic_exe_name() {
     exeFileName="gcclassic"
     
     # Append a suffix to the executable file name for specific directories
-    for suffix in apm bpch rrtmg tomas; do
+    #for suffix in apm bpch rrtmg tomas; do
+    for suffix in apm bpch rrtmg; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -231,27 +232,25 @@ function gcclassic_config_options() {
 
     # Arguments
     dir=${1}
+    baseOptions=${2}
     
     # Local variables
     exeFileName=$(gcclassic_exe_name ${dir})
-    if [[ "x${2}" != "x" ]]; then
-	options="${2} "
-    else
-	options=""
-    fi
 
     # Turn on case-insensitivity
     shopt -s nocasematch
 
     # Pick the proper build options
     if [[ ${dir} =~ "apm" ]]; then
-	options+=" -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
+	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "bpch" ]]; then
-	options+=" -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+	options="${baseOptions} -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
-	options+=" -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
+	options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas" ]]; then
-	options+=" -DTOMAS15=y -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+	options="{$baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    else
+	options="${baseOptions}"
     fi
     
     # Turn off case-insensitivity
@@ -283,7 +282,7 @@ function gcclassic_compiletest_name() {
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	result="GCClassic with RRTMG"
     elif [[ ${dir} =~ "tomas" ]]; then
-	result="GCClassic with TOMAS1"
+	result="GCClassic with TOMAS15"
     else
 	result="GCClassic"
     fi
@@ -316,8 +315,8 @@ function build_gcclassic() {
 
     # Local variables
     codeDir=${root}/CodeDir
-    configOptions=$(gcclassic_config_options ${buildDir} ${baseOptions})
-    message=$(gcclassic_compiletest_name ${buildDir})
+    configOptions=$(gcclassic_config_options ${buildDir} "${baseOptions}")
+    message=$(gcclassic_compiletest_name "${buildDir}")
     passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
     failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 

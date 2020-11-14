@@ -51,7 +51,7 @@ fi
 numTests=$(ls -1 "${root}/build" | wc -l)
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DINSTALLCOPY_FORCE=${root}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DIGNORE_RUNDIR=y -DINSTALLCOPY=${root}/exe_files"
 
 #============================================================================
 # Initialize results logfile
@@ -85,18 +85,19 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in default apm bpch rrtmg tomas; do
+#for dir in default apm bpch rrtmg tomas; do
+for dir in default apm bpch rrtmg; do
 
     # Define build directory
     buildDir="${root}/build/${dir}"
     
     # Define log file
-    log="${root}/logs/compile.${dir}].log"
+    log="${root}/logs/compile.${dir}.log"
     rm -f ${log}
 
     # Configure and build GEOS-Chem source code
     # and increment pass/fail/remain counters
-    build_gcclassic ${root} ${buildDir} ${log} ${results} ${baseOptions}
+    build_gcclassic ${root} ${buildDir} ${log} ${results} "${baseOptions}"
     if [[ $? -eq 0 ]]; then
 	let passed++
     else
