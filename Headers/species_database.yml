@@ -48,6 +48,7 @@ AERI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 ALD2:
   DD_F0: 1.0
   DD_Hstar: 1.1e+1
@@ -84,6 +85,7 @@ ASOA_PROP: &ASOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 ASOA1:
   << : *ASOAproperties
 ASOA2:
@@ -150,7 +152,7 @@ BCPI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.5]
 BCPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -167,6 +169,7 @@ BCPO:
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_KcScaleFac_Luo: [1.0, 1.0, 0.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.5, 0.05, 0.0]
 Be_PROP: &Beproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -179,6 +182,7 @@ Be_PROP: &Beproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 Be10:
   << : *Beproperties
   Formula: Be10
@@ -283,6 +287,7 @@ SALA_PROP: &SALAproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 BrSALA:
   << : *SALAproperties
   Formula: Br
@@ -302,6 +307,7 @@ SALC_PROP: &SALCproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 BrSALC:
   << : *SALCproperties
   Formula: Br
@@ -799,6 +805,7 @@ DST1_PROP: &DST1properties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 DST2_PROP: &DST2properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -814,6 +821,7 @@ DST2_PROP: &DST2properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 DST3_PROP: &DST3properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -829,6 +837,7 @@ DST3_PROP: &DST3properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 DST4_PROP: &DST4properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -844,6 +853,7 @@ DST4_PROP: &DST4properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 DST1:
   << : *DST1properties
   FullName: Dust aerosol, Reff = 0.7 microns
@@ -1322,6 +1332,7 @@ HgP_PROP: &HgPproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 1.0]
 HgP:
   << : *HgPproperties
   FullName: Particulate mercury
@@ -1477,7 +1488,7 @@ HNO3:
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_KcScaleFac_Luo: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-  WD_RainoutEff_Luo: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 HNO4:
   Background_VV: 4.0e-15
   Formula: HNO4
@@ -1995,6 +2006,7 @@ INDIOL:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 INO:
   Formula: INO
   FullName: Nitrosyl iodide
@@ -2060,6 +2072,7 @@ IONITA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 IONO:
   DD_F0: 0.0
   DD_Hstar: 3.0e-1
@@ -2244,6 +2257,7 @@ LVOCOA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
@@ -2450,6 +2464,7 @@ MONITA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 MONITS:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -2493,6 +2508,7 @@ MOPI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 MOPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -2560,6 +2576,7 @@ MSA:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 MTPA:
   DD_F0: 0.0
   DD_Hstar: 4.9e-2
@@ -2724,14 +2741,13 @@ NAP:
   Is_Gas: true
   MW_g: 128.18
 NH3:
-  DD_DvzAerSnow: 0.03
-  DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 2.0e+4
   Formula: NH3
   FullName: Ammonia
-  Henry_CR: 4100.0
-  Henry_K0: 3.3e+6
+  Henry_CR: 4200.0
+  Henry_K0: 59.78175
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2755,6 +2771,7 @@ NH4:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NHEmis90dayTracer:
   FullName: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
   Is_Advected: true
@@ -2775,6 +2792,7 @@ NIT:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NITD1:
   << : *DST1properties
   FullName: Nitrate on dust, Reff = 0.7 microns
@@ -2940,7 +2958,7 @@ OCPI:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_KcScaleFac_Luo: [0.5, 0.25, 0.5]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.5]
 OCPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -2999,6 +3017,7 @@ OPOA1:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 OPOA2:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3011,6 +3030,7 @@ OPOA2:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 OPOG1:
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
@@ -3071,6 +3091,7 @@ Pb210_PROP: &Pbproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 Pb210:
   << : *Pbproperties
   FullName: Lead-210 isotope
@@ -3093,6 +3114,7 @@ pFe:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
@@ -3223,6 +3245,7 @@ POPPBCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3236,6 +3259,7 @@ POPPBCPI_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3249,6 +3273,7 @@ POPPBCPI_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3262,6 +3287,7 @@ POPPBCPO_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPBCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3275,6 +3301,7 @@ POPPBCPO_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPBCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3288,6 +3315,7 @@ POPPBCPO_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPOCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3301,6 +3329,7 @@ POPPOCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3314,6 +3343,7 @@ POPPOCPI_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3327,6 +3357,7 @@ POPPOCPI_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3675,12 +3706,13 @@ SHEmis90dayTracer:
   Is_Gas: true
   MW_g: 1.0
 SO2:
-  DD_DvzAerSnow: 0.03
-  DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
   Formula: SO2
   FullName: Sulfur dioxide
+  Henry_CR: 3100.0
+  Henry_K0: 1.22
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3690,6 +3722,10 @@ SO2:
   WD_Is_SO2: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
+  WD_RetFactor: 5.0e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 6.17395e-1
 SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
@@ -3708,6 +3744,7 @@ SO4:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 SO4D1:
   << : *DST1properties
   FullName: Sulfate on dust, Reff = 0.7 microns
@@ -3758,6 +3795,7 @@ SOAGX:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 SOAIE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3772,6 +3810,7 @@ SOAIE:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 SOAP:
   FullName: SOA Precursor - lumped species for simplified SOA parameterization
   Is_Advected: true
@@ -3790,6 +3829,7 @@ SOAS:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 TOLU:
   EmMW_g: 12.0
   Formula: C7H8
@@ -3816,6 +3856,7 @@ TSOA_PROP: &TSOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 TSOA0:
   << : *TSOAproperties
 TSOA1:
