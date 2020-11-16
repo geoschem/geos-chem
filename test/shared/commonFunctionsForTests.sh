@@ -205,10 +205,9 @@ function gcclassic_exe_name() {
 
     # Default executable name
     exeFileName="gcclassic"
-    
+
     # Append a suffix to the executable file name for specific directories
-    #for suffix in apm bpch rrtmg tomas; do
-    for suffix in apm bpch rrtmg; do
+    for suffix in apm bpch rrtmg tomas; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -233,7 +232,7 @@ function gcclassic_config_options() {
     # Arguments
     dir=${1}
     baseOptions=${2}
-    
+
     # Local variables
     exeFileName=$(gcclassic_exe_name ${dir})
 
@@ -248,11 +247,11 @@ function gcclassic_config_options() {
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas" ]]; then
-	options="{$baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+	options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
     else
 	options="${baseOptions}"
     fi
-    
+
     # Turn off case-insensitivity
     shopt -u nocasematch
 
@@ -286,7 +285,7 @@ function gcclassic_compiletest_name() {
     else
 	result="GCClassic"
     fi
-    
+
     # Turn off case-insensitivity
     shopt -u nocasematch
 
@@ -331,7 +330,7 @@ function build_gcclassic() {
 	fi
 	return 1
     fi
-    
+
     #----------------------------------------
     # Code compilation and installation
     #----------------------------------------

@@ -269,8 +269,8 @@ create_rundir "1\n1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="merra2_4x5_fullchem+RRTMG"
 create_rundir "1\n1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
-#dir="merra2_4x5_fullchem+TOMAS15"
-#create_rundir "1\n2\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+dir="merra2_4x5_fullchem+TOMAS15"
+create_rundir "1\n2\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="merra2_4x5_Hg"
 create_rundir "5\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
@@ -321,8 +321,8 @@ create_rundir "1\n1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="geosfp_4x5_fullchem+RRTMG"
 create_rundir "1\n1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
-#dir="geosfp_4x5_fullchem+TOMAS15"
-#create_rundir "1\n2\n6\n1\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+dir="geosfp_4x5_fullchem+TOMAS15"
+create_rundir "1\n2\n6\n1\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="geosfp_4x5_Hg"
 create_rundir "5\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
