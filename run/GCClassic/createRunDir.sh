@@ -510,11 +510,14 @@ chmod 744 ${rundir}/archiveRun.sh
 chmod 744 ${rundir}/runScriptSamples/*
 
 # Copy species database; append APM or TOMAS species if needed
+# Also copy APM input files to the run directory
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cp ${gcdir}/run/shared/apm_tmp.dat ${rundir}/apm_tmp.dat
+    cp ${gcdir}/run/shared/input.apm   ${rundir}/input.apm
 fi
 
 # If benchmark simulation, put run script in directory
