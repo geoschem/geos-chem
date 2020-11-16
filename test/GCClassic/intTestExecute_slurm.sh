@@ -63,7 +63,7 @@ print_to_log "${SEP_MAJOR}"                              ${results}
 print_to_log "GEOS-Chem Classic: Execution Test Results" ${results}
 print_to_log ""                                          ${results}
 print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${results}
-print_to_log "Number of execution tests: ${NUM_TESTS}"   ${results}
+print_to_log "Number of execution tests: ${numTests}"    ${results}
 print_to_log "${SEP_MAJOR}"                              ${results}
 
 #============================================================================
