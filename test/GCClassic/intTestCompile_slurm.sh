@@ -51,7 +51,7 @@ fi
 numTests=$(ls -1 "${root}/build" | wc -l)
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DIGNORE_RUNDIR=y -DINSTALLCOPY=${root}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR="" -DINSTALLCOPY=${root}/exe_files"
 
 #============================================================================
 # Initialize results logfile

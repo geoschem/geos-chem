@@ -2,7 +2,7 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-18:00
+#SBATCH -t 0-05:00
 #SBATCH -p huce_cascade
 #SBATCH --mem=60000
 #SBATCH --mail-type=END
@@ -63,7 +63,7 @@ print_to_log "${SEP_MAJOR}"                              ${results}
 print_to_log "GEOS-Chem Classic: Execution Test Results" ${results}
 print_to_log ""                                          ${results}
 print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${results}
-print_to_log "NumbER of execution tests: ${NUM_TESTS}"   ${results}
+print_to_log "Number of execution tests: ${NUM_TESTS}"   ${results}
 print_to_log "${SEP_MAJOR}"                              ${results}
 
 #============================================================================
