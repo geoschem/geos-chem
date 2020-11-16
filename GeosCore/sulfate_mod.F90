@@ -2435,6 +2435,11 @@ CONTAINS
     REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
+#ifdef LUO_WETDEP
+    REAL(fp), POINTER     :: pHRain(:,:,:)
+    REAL(fp), POINTER     :: QQpHRain(:,:,:)
+    REAL(fp), POINTER     :: QQRain(:,:,:)
+#endif
 
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2466,6 +2471,11 @@ CONTAINS
     pHCloud     => State_Chm%pHCloud
     QLxpHCloud  => State_Chm%QLxpHCloud
     isCloud     => State_Chm%isCloud ! jmm 3/1/19
+#ifdef LUO_WETDEP
+    pHRain      => State_Chm%pHRain
+    QQpHRain    => State_Chm%QQpHRain
+    QQRain      => State_Chm%QQRain
+#endif
     SSAlk       => State_Chm%SSAlk
     H2O2s       => State_Chm%H2O2AfterChem
     SO2s        => State_Chm%SO2AfterChem
@@ -2474,13 +2484,17 @@ CONTAINS
     pHCloud(:,:,:) = 0.0e+0_fp
     isCloud(:,:,:) = 0.0e+0_fp
     QLxpHCloud(:,:,:) = 0.0e+0_fp
+#ifdef LUO_WETDEP
+    pHRain(:,:,:)   = 5.6e+0_fp
+    QQpHRain(:,:,:) = 0.0e+0_fp
+    QQRain(:,:,:)   = 0.0e+0_fp
+#endif
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM   = GET_TS_CHEM()
 
 #ifdef LUO_WETDEP
     ! For Luo et al wetdep scheme
-    State_Chm%PSO4s = 0.0_fp
     Is_QQ3D         = ASSOCIATED( State_Chm%QQ3D )
 #endif
 
@@ -2821,6 +2835,14 @@ CONTAINS
        ELSE
           LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
        ENDIF
+
+       IF( LWC > 0.d0 ) THEN
+         FC = FC * LWC / ( LWC + &
+              MAX(0.d0,State_Met%QI(I,J,L))* &
+              State_Met%AIRDEN(I,J,L) * 1e-3_fp)
+       ELSE
+         LWC = 0.d0
+       ENDIF
 #else
        ! Default scheme
        LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
@@ -2863,7 +2885,11 @@ CONTAINS
        ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
        IF ( ( FC     > 1.e-4_fp   )  .AND. &
             ( SO2_ss > MINDAT )  .AND. &
+#ifdef LUO_WETDEP
+            ( TK     > 237.0  )  .AND. &
+#else
             ( TK     > 258.0  )  .AND. &
+#endif
             ( LWC    > 0.e+0_fp   ) ) THEN
           !===========================================================
           ! NOTE...Sulfate production from aquatic reactions of SO2
@@ -2943,20 +2969,49 @@ CONTAINS
 	  ! Get sulfate concentration and convert from [v/v] to
           ! [moles/liter]
 	  ! Use a cloud scavenging ratio of 0.7
+#ifdef LUO_WETDEP
+          IF(Is_QQ3D)THEN
+          SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
+                     (1.D0-State_Chm%KRATE(I,J,L)) / ( AIRMW * LWC )
+          ELSE
+          SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
+                     0.7e+0_fp / ( AIRMW * LWC )
+          ENDIF
+#else
           SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
                      0.7e+0_fp / ( AIRMW * LWC ) +                 &  
                      Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L)  &
                      / ( AIRMW * LWC)
+#endif
 
           ! Get total ammonia (NH3 + NH4+) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NH4+
+#ifdef LUO_WETDEP
+          IF(Is_QQ3D)THEN
+          TNH3     = ( Spc(I,J,L,id_NH4) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
+                     Spc(I,J,L,id_NH3)
+          ELSE
           TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + Spc(I,J,L,id_NH3)
+          ENDIF
+#else
+          TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + Spc(I,J,L,id_NH3)
+#endif
 
           ! Get total chloride (SALACL + HCL) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7
+#ifdef LUO_WETDEP
+          IF(Is_QQ3D)THEN
+          CL  = ( Spc(I,J,L,id_SALACL) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
+               Spc(I,J,L,id_SALCCL)  + Spc(I,J,L,id_HCL)
+          ELSE
           CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
                Spc(I,J,L,id_SALCCL)  + Spc(I,J,L,id_HCL)
-          
+          ENDIF
+#else
+          CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
+               Spc(I,J,L,id_SALCCL)  + Spc(I,J,L,id_HCL)
+#endif
+
           ! Get total formic acid concentration [v/v]
           ! jmm (12/3/18)
           ! no cloud scavenging because gases?
@@ -2972,12 +3027,30 @@ CONTAINS
           ! NVC is calculated to balance initial Cl- + alkalinity in
           ! seas salt. Note that we should not consider SO4ss here.
           ! Use a cloud scavenging ratio of 0.7 for fine aerosols
+#ifdef LUO_WETDEP
+          IF(Is_QQ3D)THEN
+          TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *   &
+                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *     &
+                      (1.D0-State_Chm%KRATE(I,J,L)) / ( AIRMW * LWC )  +       &
+                      Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) * &
+                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )       &
+                      / ( AIRMW * LWC )
+          ELSE
+          TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *   &
+                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *     &
+                      0.7e+0_fp / ( AIRMW * LWC )  +                 &
+                      Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) * &
+                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )       &
+                      / ( AIRMW * LWC )
+          ENDIF
+#else
           TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *   &
                       ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *     &
                       0.7e+0_fp / ( AIRMW * LWC )  +                 &
                       Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) * &
                       ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )       & 
                       / ( AIRMW * LWC )
+#endif
           
           ! Get total dust cation concentration [mol/L]
           ! Use a cloud scavenging ratio of 1 for dust
@@ -2995,12 +3068,31 @@ CONTAINS
           !
           ! Get dust concentrations [v/v -> ng/m3]
           
+#ifdef LUO_WETDEP
+          IF(Is_QQ3D)THEN
+          DUST = ( Spc(I,J,L,id_DST1)*(1.D0-State_Chm%KRATE(I,J,L)) +         &
+                       Spc(I,J,L,id_DST2) +       &
+                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
+                       1.e+12_fp * State_Met%AD(I,J,L)             &
+                       / ( AIRMW                                   &
+                         / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
+                       / State_Met%AIRVOL(I,J,L)
+          ELSE
+          DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
+                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
+                       1.e+12_fp * State_Met%AD(I,J,L)             &
+                       / ( AIRMW                                   &
+                         / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
+                       / State_Met%AIRVOL(I,J,L)
+          ENDIF
+#else
           DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
                        Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                        1.e+12_fp * State_Met%AD(I,J,L)             &
                        / ( AIRMW                                   &
                          / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
                        / State_Met%AIRVOL(I,J,L)                   
+#endif
           
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
           !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
@@ -3011,9 +3103,19 @@ CONTAINS
           ! Get total nitrate (HNO3 + NIT) concentrations [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NIT
           IF ( IS_FULLCHEM ) THEN
+#ifdef LUO_WETDEP
+             IF(Is_QQ3D)THEN
+             TNO3 = ( Spc(I,J,L,id_HNO3) + Spc(I,J,L,id_NIT) + &
+                  Spc(I,J,L,id_NITs) ) * (1.D0-State_Chm%KRATE(I,J,L))
+             ELSE
+             TNO3 = ( Spc(I,J,L,id_HNO3) + Spc(I,J,L,id_NIT) + &
+                  Spc(I,J,L,id_NITs) ) * 0.7e+0_fp
+             ENDIF
+#else
              TNO3 = Spc(I,J,L,id_HNO3) +             &
                   (Spc(I,J,L,id_NIT) * 0.7e+0_fp ) + &
                   Spc(I,J,L,id_NITs)
+#endif
              GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
           ELSE IF ( IS_OFFLINE ) THEN
              TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
@@ -3668,16 +3770,6 @@ CONTAINS
        ! Add L5S (qjc, 11/04/16)
        PSO4_SO2(I,J,L) = L1 + L2S + L3S + L4S + L5S + PSO4E + SR + L6S
 
-#ifdef LUO_WETDEP
-       ! Luo et al scheme: archive PSO4s
-       IF ( (PSO4_SO2(I,J,L) + Spc(I,J,L,id_SO4) ) > 1.0e-30_fp ) THEN
-          State_Chm%PSO4s(I,J,L) = L2S + L3S + L4S + L5S + SR
-          State_Chm%PSO4s(I,J,L) = State_Chm%PSO4s(I,J,L) &
-                                   / (PSO4_SO2(I,J,L)+Spc(I,J,L,id_SO4))
-       ELSE
-          State_Chm%PSO4s(I,J,L) = 0.0_fp
-       ENDIF
-#endif
        ! Production of sulfate on sea salt
        PSO4_ss (I,J,L) = PSO4F
 
@@ -3806,6 +3898,21 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
+#ifdef LUO_WETDEP
+       IF(SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))>1.D-30&
+          .AND.Is_QQ3D)THEN
+         pHRain(I,J,L) = SUM(pHCloud(I,J,L:)*State_Chm%QQ3D(I,J,L:)*&
+                             State_Met%BXHEIGHT(I,J,L:))/&
+                         SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))
+         QQpHRain(I,J,L) = SUM(pHCloud(I,J,L:)*State_Chm%QQ3D(I,J,L:)*&
+                               State_Met%BXHEIGHT(I,J,L:))
+         QQRain(I,J,L) = SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))
+       ELSE
+         pHRain(I,J,L) = 5.6D0
+         QQpHRain(I,J,L) = 0.D0
+         QQRain(I,J,L) = 0.D0
+       ENDIF
+#endif
 
     ENDDO
     ENDDO
@@ -3819,6 +3926,11 @@ CONTAINS
     SSAlk   => NULL()
     H2O2s   => NULL()
     SO2s    => NULL()
+#ifdef LUO_WETDEP
+    pHRain  => NULL()
+    QQpHRain => NULL()
+    QQRain  => NULL()
+#endif
 
   END SUBROUTINE CHEM_SO2
 !EOC
@@ -4948,7 +5060,11 @@ CONTAINS
 
     ! Non-volatile aerosol concentration [M]
     ! For now sulfate is the only non-volatile species
+#ifdef LUO_WETDEP
+    D = (1.5e+0_fp*SO4nss) - TNA - (2.e+0_fp*TDCA)
+#else
     D = (2.e+0_fp*SO4nss) - TNA - (2.e+0_fp*TDCA)
+#endif
 
     ! Temperature dependent water equilibrium constant
     Kw_T = Kw*exp(DhrKw*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
@@ -5923,9 +6039,15 @@ CONTAINS
 !
     ! NH3 dissociation contants
     REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
+#ifdef LUO_WETDEP
+    REAL(fp),  PARAMETER  :: Hnh3 = 59.8
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.
+    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
+#else
     REAL(fp),  PARAMETER  :: Hnh3 = 60.
     REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
     REAL(fp),  PARAMETER  :: DhrKa1 = -450.
+#endif
 
     ! Variables
     REAL(fp)              :: Hnh3_T, Ka1_T
@@ -5995,9 +6117,15 @@ CONTAINS
 !
       ! NH3 dissociation contants
       REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
+#ifdef LUO_WETDEP
+    REAL(fp),  PARAMETER  :: Hnh3 = 59.8
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.
+    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
+#else
       REAL(fp),  PARAMETER  :: Hnh3 = 60.
       REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
       REAL(fp),  PARAMETER  :: DhrKa1 = -450.
+#endif
 
       ! Variables
       REAL(fp)              :: Hnh3_T, Ka1_T

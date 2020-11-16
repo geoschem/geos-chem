@@ -152,6 +152,9 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_MENO3, id_ETNO3
   INTEGER                        :: id_NK1
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
+#ifdef LUO_WETDEP
+  INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
+#endif
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -418,6 +421,13 @@ CONTAINS
                 ! (cf. the GOCART model).  NOTE: In practice this will
                 ! only apply to the species SO2, SO4, MSA, NH3, NH4, NIT.
                 DVZ = MAX( DVZ, DBLE( SpcInfo%DD_DvzMinVal(1) ) )
+#ifdef LUO_WETDEP
+                IF ( DBLE( SpcInfo%DD_DvzMinVal(1) ) > 0.0_fp ) THEN
+                IF ( TC0(I,J) < 253.0_fp ) THEN
+                   DVZ = DBLE( SpcInfo%DD_DvzMinVal(1) )
+                ENDIF
+                ENDIF
+#endif
 
              ENDIF
 
@@ -1045,6 +1055,12 @@ CONTAINS
 
     ! for corr O3, krt,11/2017
     REAL(f8) :: RA_Alt, DUMMY2_Alt, DUMMY4_Alt, Z0OBK_Alt
+#ifdef LUO_WETDEP
+      REAL(f8) :: HSTAR3D(State_Grid%NX,State_Grid%NY,NUMDEP) ! Henry's law constant
+      REAL(f8) :: TEMPAQ(State_Grid%NX,State_Grid%NY) ! TEMP for AQ
+      REAL(f8) :: Hplus(State_Grid%NX,State_Grid%NY) ! Hplus for AQ
+      REAL(f8) :: HCSO2,HCH2O2,HCNH3,Ks1,Ks2
+#endif
 
 #ifdef TOMAS
     ! For TOMAS aerosol (win, 7/15/09)
@@ -1084,6 +1100,9 @@ CONTAINS
     INTEGER,  POINTER :: ILAND(:,:,:)
     INTEGER,  POINTER :: IUSE(:,:,:)
     REAL(fp), POINTER :: XLAI(:,:,:)
+#ifdef LUO_WETDEP
+    REAL(fp), POINTER :: LWI(:,:)
+#endif
 
     ! For making sure that all inputs to BIOFIT are of the same type
     REAL(fp)          :: XLAI_FP
@@ -1133,6 +1152,9 @@ CONTAINS
     ILAND   => State_Met%ILAND
     IUSE    => State_Met%IUSE
     XLAI    => State_Met%XLAI
+#ifdef LUO_WETDEP
+    LWI     => State_Met%LWI
+#endif
     SpcInfo => NULL()
 
     ! Is this a POPs simmulation?
@@ -1192,6 +1214,88 @@ CONTAINS
 
     ! Initialize DVEL
     DVEL = 0.0e+0_f8
+#ifdef LUO_WETDEP
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       IF(LWI(I,J)==2.or.LSNOW(I,J))THEN
+         Hplus(I,J) = 10.0**(-5.4)
+       ELSE IF(LWI(I,J)==1)THEN
+         Hplus(I,J) = 10.0**(-7.0)
+       ELSE
+         Hplus(I,J) = 10.0**(-8.2)
+       ENDIF
+       TEMPAQ(I,J)=MAX(253.D0,TEMP(I,J))
+
+    ENDDO
+    ENDDO
+
+    DO K = 1,NUMDEP
+
+       ! Get information about this species from the database
+       SpcId   =  NTRAIND(K)
+
+       IF(SpcId == id_SO2)THEN
+
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+
+            ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
+            HCSO2  = 1.22e+0_fp * EXP( 10.55e+0_fp * ( 298.15e+0_fp &
+                   / TEMPAQ(I,J) - 1.e+0_fp) )
+
+            Ks1 = 1.30e-2_fp * EXP( 6.75e+0_fp * ( 298.15e+0_fp &
+                / TEMPAQ(I,J) - 1.e+0_fp ) )
+
+            Ks2 = 6.31e-8_fp * EXP( 5.05e+0_fp * ( 298.15e+0_fp &
+                / TEMPAQ(I,J) - 1.e+0_fp ) )
+
+            HSTAR3D(I,J,K)=HCSO2*(1.e+0_fp+Ks1/Hplus(I,J)+Ks1*Ks2 &
+                          /(Hplus(I,J)*Hplus(I,J)))
+
+         ENDDO
+         ENDDO
+
+       ELSE IF(SpcId == id_H2O2)THEN
+
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+            Ks1 = 2.20e-12_fp * EXP( -12.52e+0_fp * ( 298.15e+0_fp &
+                / TEMPAQ(I,J) - 1.e+0_fp ) )
+
+            HCH2O2 = 8.3e+4_fp * EXP( 24.82e+0_fp * (298.15e+0_fp &
+                   / TEMPAQ(I,J) - 1.e+0_fp) )
+            HSTAR3D(I,J,K)=HCH2O2*(1.e+0_fp+(Ks1/Hplus(I,J)))
+         ENDDO
+         ENDDO
+
+       ELSE IF(SpcId == id_NH3)THEN
+
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+            HCNH3 = 59.8e+0_fp*exp(4200._fp*((1.e+0_fp/TEMPAQ(I,J)) &
+                  - (1.e+0_fp/298.15e+0_fp)))
+            Ks1 = 1.0e-14_fp*exp(-6710.e+0_fp*((1.e+0_fp/TEMPAQ(I,J)) &
+                - (1.e+0_fp/298.15e+0_fp)))
+            Ks2 = 1.7e-5_fp*exp(-4325.e+0_fp*((1.e+0_fp/TEMPAQ(I,J)) &
+                - (1.e+0_fp/298.15e+0_fp)))
+
+            HSTAR3D(I,J,K)=HCNH3*(1.e+0_fp+((Ks2*Hplus(I,J))/Ks1))
+         ENDDO
+         ENDDO
+
+       ELSE
+
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+            HSTAR3D(I,J,K)=HSTAR(K)
+         ENDDO
+         ENDDO
+
+       ENDIF
+
+      ENDDO
+#endif
 
     !***********************************************************************
     !*
@@ -1463,12 +1567,22 @@ CONTAINS
 
                 !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                 XMWH2O = H2OMW * 1.e-3_f8
+#ifdef LUO_WETDEP
+                RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
+                     DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
+                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0(K))
+#else
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
                      + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+#endif
                 RLUXX = 1.e+12_f8
                 IF (RLU(LDT).LT.9999.e+0_f8) &
+#ifdef LUO_WETDEP
+                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0(K))
+#else
                      RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
+#endif
 
                 ! If POPs simulation, scale cuticular resistances with octanol-
                 ! air partition coefficient (Koa) instead of HSTAR 
@@ -1486,10 +1600,17 @@ CONTAINS
                 !* corresponding minimum resistance is 50 s m-1. This correction
                 !* was introduced by J.Y. Liang on 7/9/95.
                 !*
+#ifdef LUO_WETDEP
+                RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
+                       F0(K)/RGSO(LDT))
+                RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
+                       F0(K)/RCLO(LDT))
+#else
                 RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) + &
                        F0(K)/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) + &
                        F0(K)/RCLO(LDT))
+#endif
                 !*
                 !** Get the bulk surface resistance of the canopy, RSURFC, from
                 !** the network of resistances in parallel and in series (Fig. 1
@@ -4119,6 +4240,11 @@ CONTAINS
     id_HNO3   = IND_('HNO3'  )
     id_PAN    = IND_('PAN'   )
     id_IHN1   = IND_('IHN1'  )
+#ifdef LUO_WETDEP
+    id_H2O2   = IND_('H2O2'  )
+    id_SO2    = IND_('SO2'   )
+    id_NH3    = IND_('NH3'   )
+#endif
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species
