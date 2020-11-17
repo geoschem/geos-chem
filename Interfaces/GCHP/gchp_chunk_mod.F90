@@ -346,7 +346,9 @@ CONTAINS
     USE HCO_Utilities_GC_Mod
 
     ! Specialized subroutines
-    USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : AirQnt
+    USE Calc_Met_Mod,       ONLY : Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : Set_Met_AgeOfAir
     USE Calc_Met_Mod,       ONLY : GCHP_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
@@ -654,6 +656,9 @@ CONTAINS
                                   State_Grid     = State_Grid, &
                                   State_Met      = State_Met,  &
                                   RC             = RC         )
+
+    ! Update age of air
+    CALL Set_Met_AgeOfAir( State_Grid, State_Met )
 
     ! Call PBL quantities. Those are always needed
     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
