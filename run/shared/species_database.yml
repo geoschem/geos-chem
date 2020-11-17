@@ -628,6 +628,12 @@ ClOO:
   Henry_K0: 1.0
   Henry_CR: 3500.0
   MW_g: 67.45
+CLOCK:
+  Background_VV: 0.0
+  FullName: Clock tracer for diagnosing age of air
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 1.0
 CO2_PROP: &CO2properties
   Formula: CO2
   Is_Gas: true

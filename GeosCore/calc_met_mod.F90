@@ -29,7 +29,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: GET_OBK
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
-  PUBLIC  :: Set_Met_AgeOfAir
+  PUBLIC  :: Set_Clock_Tracer
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
   PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
@@ -1433,30 +1433,31 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_met_ageofair
+! !IROUTINE: set_clock_tracer
 !
-! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
+! !DESCRIPTION: Subroutine Set\_Clock_Tracer adds the time step (in seconds)
 !  to every grid box every time step with a total sink at the surface every
 !  time step to reproduce GMI tracer mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Met_AgeOfAir( State_Grid, State_Met )
+  SUBROUTINE Set_Clock_Tracer( State_Chm, State_Grid )
 !
 ! !USES:
 !
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(MetState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -1468,14 +1469,23 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER        :: I, J, L
+    INTEGER,  SAVE :: id_CLOCK
     REAL(fp), SAVE :: TimeStep
 
     !=================================================================
-    ! SET_MET_AGEOFAIR begins here!
+    ! SET_CLOCK_TRACER begins here!
     !=================================================================
 
-    ! Get timestep [s]
-    TimeStep = GET_TS_DYN()
+    IF ( FIRST ) THEN
+       ! Define species ID's  on the first call
+       id_CLOCK  = Ind_( 'CLOCK' )
+
+       ! Get timestep [s]
+       TimeStep = GET_TS_DYN()
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+    ENDIF
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -1486,10 +1496,11 @@ CONTAINS
 
        IF ( L == 1 ) THEN
           ! Set the surface to a sink
-          State_Met%AgeOfAir(I,J,L) = 0
+          State_Chm%Species(I,J,L,id_CLOCK) = 0.0_fp
        ELSE
           ! Otherwise add time step [s]
-          State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + TimeStep
+          State_Chm%Species(I,J,L,id_CLOCK) = State_Chm%Species(I,J,L,id_CLOCK)&
+                                              + TimeStep
        ENDIF
 
     ENDDO
@@ -1497,6 +1508,6 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-  END SUBROUTINE Set_Met_AgeOfAir
+  END SUBROUTINE Set_Clock_Tracer
 !EOC
 END MODULE CALC_MET_MOD

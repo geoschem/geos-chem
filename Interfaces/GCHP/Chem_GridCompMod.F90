@@ -882,18 +882,6 @@ CONTAINS
                                                    RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! age of air used to diagnose transport
-    call MAPL_AddInternalSpec(GC, &
-       SHORT_NAME         = 'AgeOfAir',  &
-       LONG_NAME          = 'Age of air',  &
-       UNITS              = 's', &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationCenter,    &
-       PRECISION          = ESMF_KIND_R8, &
-       FRIENDLYTO         = trim(COMP_NAME),    &
-                                                      RC=STATUS  )
-    _VERIFY(STATUS)
-
     ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DELP_DRY',  &
@@ -3700,15 +3688,6 @@ CONTAINS
           ENDIF
           Ptr3d_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'AgeOfAir' ,     &
-                                notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-               ASSOCIATED(State_Met%AgeOfAir) ) THEN
-             State_Met%AgeOfAir(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d_R8 => NULL()
-
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. &
@@ -4698,15 +4677,6 @@ CONTAINS
          ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
        Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
                  State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'AgeOfAir' , &
-                          notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-         ASSOCIATED(State_Met%AgeOfAir) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Met%AgeOfAir(:,:,1:State_Grid%NZ)
     ENDIF
     Ptr3d_R8 => NULL()
 

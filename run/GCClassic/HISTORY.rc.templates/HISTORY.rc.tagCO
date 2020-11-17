@@ -57,7 +57,6 @@ COLLECTIONS: 'Restart',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ', 'GIGCchem',
-                              'Met_AgeOfAir                   ', 'GIGCchem',
                               'Met_DELPDRY                    ', 'GIGCchem',
                               'Met_PS1WET                     ', 'GIGCchem',
                               'Met_PS1DRY                     ', 'GIGCchem',
