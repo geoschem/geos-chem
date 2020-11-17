@@ -1,4 +1,4 @@
-	###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
 ###############################################################################
@@ -45,7 +45,6 @@ COLLECTIONS: 'Restart',
              ##'RRTMG',
              #'StateChm',
              #'StateMet',
-             #'Transport',
              #'WetLossConv',
              #'WetLossLS',
              ##'BoundaryConditions',
@@ -76,6 +75,7 @@ COLLECTIONS: 'Restart',
                               'Chem_WetDepNitrogen            ', 'GIGCchem',
                               'Chem_KPPHvalue                 ', 'GIGCchem',
                               'Chem_StatePSC                  ', 'GIGCchem',
+                              'Met_AgeOfAir                   ', 'GIGCchem',
                               'Met_DELPDRY                    ', 'GIGCchem',
                               'Met_PS1WET                     ', 'GIGCchem',
                               'Met_PS1DRY                     ', 'GIGCchem',
@@ -653,20 +653,6 @@ COLLECTIONS: 'Restart',
                               'Met_V10M                      ', 'GIGCchem',
                               'Met_Z0                        ', 'GIGCchem',
                               'FracOfTimeInTrop              ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE Transport COLLECTION %%%%%
-#
-# Diagnostics for evaluating transport, including age of air [s]
-#
-# Available for all simulations
-#==============================================================================
-  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  Transport.format:           'CFIO',
-  Transport.frequency:        'End',
-  Transport.duration:         'End',
-  Transport.mode:             'instantaneous'
-  Transport.fields:           'Met_AgeOfAir                  ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE WetLossConv COLLECTION %%%%%
