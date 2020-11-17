@@ -425,16 +425,21 @@ while [ "${valid_lev}" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define path where directoy will be created
+# Ask user to define path where directory will be created
 #-----------------------------------------------------------------
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read rundir_path
-    if [[ ${rundir_path} = "q" ]]; then
+    read -e rundir_path
+    if [[ "x${rundir_path}" == "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
-    elif [[ ! -d ${rundir_path} ]]; then
+    fi
+    if [[ "${rundir_path}" =~ '~' ]]; then
+       rundir_path="${rundir_path/#\~/$HOME}"
+       echo "Expanding to: ${rundir_path}"
+    fi
+    if [[ ! -d ${rundir_path} ]]; then
         printf "\nERROR: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
 	valid_path=1
@@ -442,11 +447,12 @@ while [ "$valid_path" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define run directoy name if not passed as argument
+# Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
-    printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
-    read rundir_name
+    printf "${thinline}Enter run directory name, or press return to use default:\n"
+    printf "(This will be a subfolder of the path you entered above.)${thinline}"
+    read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gc_${grid_res}_${sim_name}
@@ -648,13 +654,13 @@ fi
 if [[ "x${domain_name}" == "xAS"     ]] || \
    [[ "x${domain_name}" == "xEU"     ]] || \
    [[ "x${domain_name}" == "xNA"     ]] || \
-   [[ "x${domain_name}" == "xcustom" ]]; then 
+   [[ "x${domain_name}" == "xcustom" ]]; then
     cmd='s|\[sec\]: 600|\[sec\]: 300|'
     sed -i -e "$cmd" input.geos
     cmd='s|\[sec\]: 1200|\[sec\]: 600|'
     sed -i -e "$cmd" input.geos
 fi
- 
+
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
