@@ -598,7 +598,7 @@ CONTAINS
     CHARACTER(LEN=255)      :: chmId,      thisLoc
 
     ! String arrays
-    CHARACTER(LEN=31)       :: fieldId(NDUST+NAER)
+    CHARACTER(LEN=31)       :: fieldId(14)
 
     ! Objects
     TYPE(SpcIndCt)          :: SpcCount
