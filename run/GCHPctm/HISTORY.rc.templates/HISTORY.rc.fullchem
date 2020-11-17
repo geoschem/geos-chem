@@ -71,6 +71,7 @@ COLLECTIONS: #'AerosolMass',
              'SpeciesConc',
              #'StateChm',
              #'StateMet',
+             @#'StratBM',
              @#'WetLossConv',
              @#'WetLossLS',
 ::
@@ -5277,6 +5278,26 @@ COLLECTIONS: #'AerosolMass',
                       #'Met_Z0              ', 'GCHPchem',
                       #'FracOfTimeInTrop    ', 'GCHPchem',
 ::
+@#==============================================================================
+@# %%%%% THE StratBM COLLECTION %%%%%
+@#
+@# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
+@#
+@# Available for full-chemistry simulations
+@#==============================================================================
+@  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
+@  StratBM.format:         'CFIO',
+@  StratBM.frequency:      00000000 010000
+@  StratBM.duration:       00000001 000000
+@  StratBM.mode:           'time-averaged'
+@  StratBM.fields:         'SpeciesConc_NO2                   ', 'GIGCchem',
+@                          'SpeciesConc_O3                    ', 'GIGCchem',
+@                          'SpeciesConc_ClO                   ', 'GIGCchem',
+@                          'Met_PSC2WET                       ', 'GIGCchem',
+@                          'Met_BXHEIGHT                      ', 'GIGCchem',
+@                          'Met_AIRDEN                        ', 'GIGCchem',
+@                          'Met_AD                            ', 'GIGCchem',
+@::
 @#=============================================================================
 @# %%%%% THE WetLossConv COLLECTION %%%%%
 @#

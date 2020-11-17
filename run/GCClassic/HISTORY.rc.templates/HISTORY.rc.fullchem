@@ -1,4 +1,4 @@
-	###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
 ###############################################################################
@@ -45,7 +45,7 @@ COLLECTIONS: 'Restart',
              ##'RRTMG',
              #'StateChm',
              #'StateMet',
-             #'Transport',
+             ##'StratBM',
              #'WetLossConv',
              #'WetLossLS',
              ##'BoundaryConditions',
@@ -76,6 +76,7 @@ COLLECTIONS: 'Restart',
                               'Chem_WetDepNitrogen            ', 'GIGCchem',
                               'Chem_KPPHvalue                 ', 'GIGCchem',
                               'Chem_StatePSC                  ', 'GIGCchem',
+                              'Met_AgeOfAir                   ', 'GIGCchem',
                               'Met_DELPDRY                    ', 'GIGCchem',
                               'Met_PS1WET                     ', 'GIGCchem',
                               'Met_PS1DRY                     ', 'GIGCchem',
@@ -655,18 +656,24 @@ COLLECTIONS: 'Restart',
                               'FracOfTimeInTrop              ', 'GIGCchem',
 ::
 #==============================================================================
-# %%%%% THE Transport COLLECTION %%%%%
+# %%%%% THE StratBM COLLECTION %%%%%
 #
-# Diagnostics for evaluating transport, including age of air [s]
+# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
 #
-# Available for all simulations
+# Available for full-chemistry simulations
 #==============================================================================
-  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  Transport.format:           'CFIO',
-  Transport.frequency:        'End',
-  Transport.duration:         'End',
-  Transport.mode:             'instantaneous'
-  Transport.fields:           'Met_AgeOfAir                  ', 'GIGCchem',
+  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StratBM.format:         'CFIO',
+  StratBM.frequency:      00000000 010000
+  StratBM.duration:       00000001 000000
+  StratBM.mode:           'time-averaged'
+  StratBM.fields:         'SpeciesConc_NO2                   ', 'GIGCchem',
+                          'SpeciesConc_O3                    ', 'GIGCchem',
+                          'SpeciesConc_ClO                   ', 'GIGCchem',
+                          'Met_PSC2WET                       ', 'GIGCchem',
+                          'Met_BXHEIGHT                      ', 'GIGCchem',
+                          'Met_AIRDEN                        ', 'GIGCchem',
+                          'Met_AD                            ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE WetLossConv COLLECTION %%%%%
