@@ -140,6 +140,12 @@ Species name            : TSOG3"
 	sed -i -e 's/@//' HISTORY.rc
     fi
 
+    # For complexSOA only, remove SOAP and SOAS species from input.geos
+    if [[ ${sim_extra_option} =~ "complexSOA" ]]; then
+	remove_text "Species name            : SOAP" input.geos
+	remove_text "Species name            : SOAS" input.geos
+    fi
+
     #------------------------------------------------------------------------
     # Semivolatile POA settings
     #------------------------------------------------------------------------
