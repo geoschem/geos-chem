@@ -170,7 +170,7 @@ function cleanup_files() {
 
 	# Give user a chance to avoid removing files
 	printf "\nRemoving files and directories in ${1}:\n"
-	printf "If this is OK, type 'yes to proceed or 'no' to quit'\n"
+	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
 	read answer
 	if [[ ! ${answer} =~ [Yy][Ee][Ss] ]]; then
 	    printf "Exiting..."
@@ -178,6 +178,7 @@ function cleanup_files() {
 	fi
 
 	# Remove files and unlink links
+	printf "Removing ...\n"
 	for file in ${1}/*; do
 	    if [[ -h ${file} ]]; then
 		unlink ${file}
@@ -336,6 +337,66 @@ function build_gcclassic() {
     #---------------------------------------
     cd ${buildDir}
     cmake ${codeDir} ${configOptions} >> ${log} 2>&1
+    if [[ $? -ne 0 ]]; then
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_log "${failMsg}" ${results}
+	fi
+	return 1
+    fi
+
+    #----------------------------------------
+    # Code compilation and installation
+    #----------------------------------------
+    make -j install >> ${log} 2>&1
+    if [[ $? -ne 0 ]]; then
+	if [[ "x${results}" != "x" ]]; then
+	    print_to_log "${failMsg}" ${results}
+	fi
+	return 1
+    fi
+
+    #----------------------------------------
+    # Cleanup & quit
+    #----------------------------------------
+
+    # If we have gotten this far, the run passed,
+    # so update the results log file accordingly
+    print_to_log "${passMsg}" ${results}
+
+    # Switch back to the root directory
+    cd ${root}
+}
+
+
+function build_gchpctm() {
+    #========================================================================
+    # Configures and compiles GCHPctm.
+    #
+    # 1st argument = Root folder for tests (w/ many rundirs etc)
+    # 2nd argument = GEOS_Chem Classic build directory
+    # 3rd argument = Log file where stderr and stdout will be redirected
+    # 4th argument = Log file where results will be printed
+    # 5th argument = Compilation options
+    #========================================================================
+
+    # Arguments
+    root=$(absolute_path ${1})
+    buildDir=${2}
+    log=${3}
+    results=${4}
+    options=${5}
+
+    # Local variables
+    codeDir=${root}/CodeDir
+    message="GCHPctm"
+    passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
+    failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
+
+    #---------------------------------------
+    # Code configuration
+    #---------------------------------------
+    cd ${buildDir}
+    cmake ${codeDir} ${options} >> ${log} 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" ${results}

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 6
 #SBATCH -N 1
 #SBATCH -t 0-01:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=30000
+#SBATCH --mem=6000
 #SBATCH --mail-type=END
 
 #------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 #
 # !MODULE: intTestCompile_slurm.sh
 #
-# !DESCRIPTION: Runs compilation tests on various GEOS-Chem Classic
+# !DESCRIPTION: Runs compilation tests on various GCHPctm
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
@@ -29,87 +29,94 @@
 #BOC
 
 #============================================================================
-# Global variable and function definitions
+# Variable and function definitions
 #============================================================================
 
-# Set the number of OpenMP threads to what we requested in SLURM
-if [[ "x$SLURM_CPUS_PER_TASK" != "x" ]]; then
-    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+# Get the long path of this folder
+root=$(pwd -P)
+
+# Load computational environment and OpenMP settings
+# if we are in a SLURM environment
+if [[ "x${SLURM_JOBID}" != "x" ]]; then
+    . ~/.bashrc
+    . ${root}/gchp.env
 fi
 
-# Get the long path of this folder
-ROOT=`pwd -P`
+# Load common functions for tests
+. ${root}/commonFunctionsForTests.sh
 
-# Load common functions
-. ${ROOT}/commonFunctionsForTests.sh
+# Count the number of tests to be done = 1
+# (We don't have to recompile GCHP to change resolutions)
+numTests=1
 
-# Count the number of tests to be done = number of run directories
-NUM_TESTS=$(count_rundirs ${ROOT})
+# Logfile for compilation output
+log="${root}/logs/compile.GCHPctm.log"
+rm -f ${log}
+
+# Results logfile name
+results="${root}/logs/results.compile.log"
+rm -f ${results}
+
+# Build and installation directory for CMake
+buildDir="${root}/build"
+installDir="${root}/exe_files"
+
+# CMake configuration options for GCHPctm
+options="-DCMAKE_BUILD_TYPE=Debug"
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
-# Results logfile name
-RESULTS="${ROOT}/logs/results.compile.log"
-rm -f ${RESULTS}
-
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                              ${RESULTS}
-print_to_log "GCHPctm: Compilation Test Results"         ${RESULTS}
-print_to_log ""                                          ${RESULTS}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"   ${RESULTS}
-print_to_log "Number of compilation tests: ${NUM_TESTS}" ${RESULTS}
-print_to_log "${SEP_MAJOR}"                              ${RESULTS}
+print_to_log "${SEP_MAJOR}"                             ${results}
+print_to_log "GCHPctm: Compilation Test Results"        ${results}
+print_to_log ""                                         ${results}
+print_to_log "Number of compilation tests: ${numTests}" ${results}
+print_to_log "${SEP_MAJOR}"                             ${results}
 
 #============================================================================
 # Configure and compile code in each GEOS_Chem run directory
 #============================================================================
-print_to_log " "                   ${RESULTS}
-print_to_log "Compiliation tests:" ${RESULTS}
-print_to_log "${SEP_MINOR}"        ${RESULTS}
+print_to_log " "                   ${results}
+print_to_log "Compiliation tests:" ${results}
+print_to_log "${SEP_MINOR}"        ${results}
 
-# Loop over rundirs and compile code
+# Change to the top-level build directory
+cd ${root}
+
 # Keep track of the number of tests that passed & failed
-let PASSED=0
-let FAILED=0
-let REMAIN=${NUM_TESTS}
-for RUNDIR in *; do
-    EXPR=$(is_gchpctm_rundir "${ROOT}/${RUNDIR}")
-    echo "${ROOT}/${RUNDIR}: $EXPR"
-    if [[ "x${EXPR}" == "xTRUE" ]]; then
-	LOG="${ROOT}/logs/compile.${RUNDIR}.log"
-	config_and_build ${ROOT} ${RUNDIR} ${LOG} ${RESULTS}
-	if [[ $? -eq 0 ]]; then
-	    let PASSED++
-	else
-	    let FAILED++
-	fi
-	let REMAIN--
+let passed=0
+let failed=0
+let remain=${numTests}
 
-	# NOTE: Need to submit the run script for GCHP
-	# in each rundir as a separate SLURM job
-    fi
-done
+# Build GCHPctm
+build_gchpctm ${root} ${buildDir} ${log} ${results} "${options}"
+if [[ $? -eq 0 ]]; then
+    let passed++
+else
+    let failed++
+fi
+let remain--
 
 #============================================================================
 # Check the number of simulations that have passed
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                           ${RESULTS}
-print_to_log "Summary of compilation test results:"        ${RESULTS}
-print_to_log "${SEP_MINOR}"                                ${RESULTS}
-print_to_log "Complilation tests passed:        ${PASSED}" ${RESULTS}
-print_to_log "Complilation tests failed:        ${FAILED}" ${RESULTS}
-print_to_log "Complilation tests not completed: ${REMAIN}" ${RESULTS}
+print_to_log " "                                           ${results}
+print_to_log "Summary of compilation test results:"        ${results}
+print_to_log "${SEP_MINOR}"                                ${results}
+print_to_log "Complilation tests passed:        ${passed}" ${results}
+print_to_log "Complilation tests failed:        ${failed}" ${results}
+print_to_log "Complilation tests not completed: ${remain}" ${results}
 
 # Check if all tests passed
-if [[ "x${PASSED}" == "x${NUM_TESTS}" ]]; then
-    print_to_log ""                                        ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
-    print_to_log "%%%  All compilation tests passed!  %%%" ${RESULTS}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${RESULTS}
+if [[ "x${passed}" == "x${numTests}" ]]; then
+    print_to_log ""                                        ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
+    print_to_log "%%%  All compilation tests passed!  %%%" ${results}
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
 fi
 
 #============================================================================
@@ -117,13 +124,15 @@ fi
 #============================================================================
 
 # Free local variables
-unset FAILED
-unset LOG
-unset NUM_TESTS
-unset PASSED
-unset REMAIN
-unset RESULTS
-unset ROOT
+unset failed
+unset dir
+unset log
+unset numTests
+unset options
+unset passed
+unset remain
+unset results
+unset root
 
 # Free imported variables
 unset FILL

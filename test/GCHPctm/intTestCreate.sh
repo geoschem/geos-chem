@@ -1,22 +1,21 @@
 #!/bin/bash
 
 #------------------------------------------------------------------------------
-#                  GEOS-Chem Global Chemical Transport Model                  !
-#------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: createIntTests.sh
+# !MODULE: intTestCreate.sh
 #
 # !DESCRIPTION: Creates integration test run directories in a user-specified
 #  root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./createIntTests /path/to/integration/test/root/folder
+#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE           or
+#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE short=1
 #
 # !REMARKS:
 #  Right now we pass values to the existing ./createRunDir.sh,
-#  but will implement a more elegant solution later.#
+#  but will implement a more elegant solution later.
 #
 # !REVISION HISTORY:
 #  09 Oct 2020 - R. Yantosca - Initial version
@@ -26,55 +25,58 @@
 #BOC
 
 #=============================================================================
-# Check arguments
+# Arguments
 #=============================================================================
-if [[ "x${1}" == "x" ]]; then
+
+# Integration test root folder
+root=${1}
+if [[ "x${root}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
 
-if [[ "x${2}" == "x" ]]; then
-    echo "ERROR: The environment file has not been specified!"
+# Environment file
+envFile=${2}
+if [[ "x${envFile}" == "x" ]]; then
+    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
     exit 1
 fi
+if [[ ! -f ${envFile} ]]; then
+    echo "ERROR: The enviroment file is not a valid file!"
+    exit 1
+fi
+
+# Run a short integration test?
+short=${3}
 
 #=============================================================================
 # Global variable and function definitions
 #=============================================================================
 
-# Integration test root folder (create if it doesn't exist)
-ROOT=${1}
-if [[ !(-d ${ROOT}) ]]; then
-    mkdir -p ${ROOT}
-fi
-
-# Environment file
-ENV_FILE=${2}
-
 # Current directory
-TEST_DIR=$(pwd -P)
-cd ${TEST_DIR}
+testDir=$(pwd -P)
+cd ${testDir}
 
 # Top-level GEOS-Chem directory
 cd ../..
-GEOS_CHEM_DIR=$(pwd -P)
+geosChemDir=$(pwd -P)
 
 # GCClassic superproject directory
 cd ../../../..
-SUPER_PROJECT_DIR=$(pwd -P)
-cd ${SUPER_PROJECT_DIR}
+superProjectDir=$(pwd -P)
+cd ${superProjectDir}
 
 # Directory where the run creation scripts are found
-RUN_DIR=${GEOS_CHEM_DIR}/run/GCHPctm
+runDir=${geosChemDir}/run/GCHPctm
 
 # Load file with utility functions to setup configuration files
-. ${GEOS_CHEM_DIR}/test/shared/commonFunctionsForTests.sh
+. ${geosChemDir}/test/shared/commonFunctionsForTests.sh
 
 # Get the absolute path of the root folder
-ROOT=$(absolute_path ${ROOT})
+root=$(absolute_path ${root})
 
 # Log file
-LOG=${ROOT}/logs/createIntTests.log
+log=${root}/logs/createIntTests.log
 
 # Echo header
 printf "${SEP_MAJOR}\n"
@@ -85,54 +87,67 @@ printf "${SEP_MAJOR}\n"
 # Initial setup of integration test directory
 #=============================================================================
 
+# Create integration test root folder if it doesn't exist
+if [[ ! -d ${root} ]]; then
+    mkdir -p ${root}
+fi
+
 # Remove run directories in the test folder
-cleanup_files ${ROOT}
+cleanup_files ${root}
+
+# Make the build directory
+printf "\nCreating new build and directories:\n"
+if [[ ! -d ${root}/build ]]; then
+    echo " ... ${root}/build/"
+    mkdir -p ${root}/build/
+fi
 
 # Copying the run scripts to the root test folder
-printf "\nCopying run scripts to: ${ROOT}\n"
-cp ${TEST_DIR}/intTest*.sh ${ROOT}
-cp ${TEST_DIR}/commonFunctionsForTests.sh ${ROOT}
+printf "\nCopying run scripts to: ${root}\n"
+cp ${envFile} ${root}/gchp.env
+cp ${testDir}/intTest*.sh ${root}
+cp ${testDir}/commonFunctionsForTests.sh ${root}
 
 # Create a symbolic link to the code from the Integration Test root folder
-ln -s ${SUPER_PROJECT_DIR} ${ROOT}/CodeDir
+ln -s ${superProjectDir} ${root}/CodeDir
 
 # Create log directory
-if [[ !(-d ${ROOT}/logs) ]]; then
-    printf "\nCreating log directory: ${ROOT}/logs\n"
-    mkdir ${ROOT}/logs
+if [[ !(-d ${root}/logs) ]]; then
+    printf "\nCreating log directory: ${root}/logs\n"
+    mkdir ${root}/logs
 fi
 
 # Change to the directory where we will create the rundirs
 printf "\nCreating new run directories:\n"
 
 # Switch to folder where rundir creation scripts live
-cd ${RUN_DIR}
+cd ${runDir}
 
 #=============================================================================
 # Create individual run directories
 #=============================================================================
 
-DIR="merra2_TransportTracers"
-create_rundir "2\n1\n${ROOT}\n${DIR}\nn\n" ${ROOT} ${DIR} ${LOG}
-cp ${ENV_FILE} ${ROOT}/${DIR}/gchp.env
-cp ${TEST_DIR}/gchp.slurm.sh ${ROOT}/${DIR}/gchp.slurm.sh
-cp ${TEST_DIR}/gchp.lsf.sh   ${ROOT}/${DIR}/gchp.lsf.sh
+dir="gchp_TransportTracers_merra2_c24"
+create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
 
 # Switch back to the present directory
-cd ${TEST_DIR}
+cd ${testDir}
 
 # Free local variables
-unset ROOT
-unset TEST_DIR
-unset GEOS_CHEM_DIR
-unset SUPER_PROJECT_DIR
-unset RUN_DIR
-unset LOG
-unset DIR
+unset root
+unset testDir
+unset geosChemDir
+unset superProjectDir
+unset runDir
+unset log
+unset dir
 
 # Free imported variables
 unset FILL

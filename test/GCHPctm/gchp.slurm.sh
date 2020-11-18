@@ -20,7 +20,12 @@
 # Type 'man sbatch' at the command prompt to browse documentation.
 
 # Define GEOS-Chem log file
-log="gchp.log"
+# If the LOG environment variable has been exported to SLURM, use that
+if [[ "x${LOG}" == "x" ]]; then
+    log="gchp.log"
+else
+    log="${LOG}"
+fi
 
 # Make sure GCHP output restart file does not exist with the original name
 # used by MAPL. Its present will cause GCHP run to fail. The output restart

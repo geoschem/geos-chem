@@ -5,9 +5,9 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTests_slurm.sh
+# !MODULE: intTest_slurm.sh
 #
-# !DESCRIPTION: Runs integration tests on the various GEOS-Chem Classic
+# !DESCRIPTION: Runs integration tests on the various GCHPctm
 #  run directories (using the SLURM scheduler).  Compilation tests and
 #  execution tests are submitted as separate SLURM jobs, using dependencies.
 #\\
@@ -27,28 +27,44 @@
 #=============================================================================
 
 # 1st argument: Root directory for integration tests
-if [[ "x${1}" == "x" ]]; then
+INT_TEST_ROOT=${1}
+if [[ "x${INT_TEST_ROOT}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit
 fi
 
-# 2nd argument: GCHP environment file
-if [[ "x${2}" == "x" ]]; then
-    echo "ERROR: The environment file has not been specified!"
-    exit 1
+# 2nd argument: Environment file
+ENV_FILE=${2}
+if [[ "x${ENV_FILE}" == "x" ]]; then
+    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
+    exit
 fi
 
-# Local variables
-INT_TEST_ROOT=${1}
-ENV_FILE=${2}
+# 3rd argument: Run a short integration test (for development)?
+SHORT=${3}
+
+#=============================================================================
+# Load file with utility functions to setup configuration files
+#=============================================================================
+
+# Current directory
 THIS_DIR=$(pwd -P)
+
+# Load common functions
+. ${THIS_DIR}/commonFunctionsForTests.sh
 
 #=============================================================================
 # Create integration test directories in the root folder
 #=============================================================================
 
+# Convert integration test root folder to an absolute path
+INT_TEST_ROOT=$(absolute_path ${INT_TEST_ROOT})
+if [[ $? -ne 0 ]]; then
+   exit 0
+fi
+
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE}
+./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${SHORT}
 
 # Change to the integration test root folder
 if [[ -d ${INT_TEST_ROOT} ]]; then
@@ -80,7 +96,7 @@ cd ${THIS_DIR}
 #=============================================================================
 echo ""
 echo "Compilation tests submitted as SLURM job ${CMP_ID}"
-#echo "Execution   tests submitted as SLURM job ${EXE_ID}"
+echo "Execution   tests submitted as SLURM job ${EXE_ID}"
 
 # Free local variables
 unset DEBUG
