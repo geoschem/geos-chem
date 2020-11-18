@@ -83,7 +83,7 @@ log=${root}/logs/createIntTests.log
 
 # Echo header
 printf "${SEP_MAJOR}\n"
-printf "Creating GEOS-Chem Classic Integration Tests\n"
+printf "Creating GCClassic Integration Tests\n"
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
