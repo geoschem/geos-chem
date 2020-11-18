@@ -111,7 +111,7 @@ for runDir in *; do
 
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
-	    ./${exeFile} >> ${log} 2>&1
+	    srun -c ${OMP_NUM_THREADS} ./${exeFile} >> ${log} 2>&1
 	    if [[ $? -eq 0 ]]; then
 		let passed++
 		if [[ "x${results}" != "x" ]]; then
