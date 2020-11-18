@@ -1457,7 +1457,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -1468,6 +1468,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL,  SAVE :: FIRST = .TRUE.
     INTEGER        :: I, J, L
     INTEGER,  SAVE :: id_CLOCK
     REAL(fp), SAVE :: TimeStep
