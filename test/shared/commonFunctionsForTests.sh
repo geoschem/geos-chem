@@ -167,14 +167,26 @@ function cleanup_files() {
     # 1st argument = root folder for tests (w/ many rundirs etc)
     #========================================================================
     if [[ "x${1}" != "x" ]]; then
-	printf "Removing leftover run directories and scripts:\n"
+
+	# Give user a chance to avoid removing files
+	printf "\nRemoving files and directories in ${1}:\n"
+	printf "If this is OK, type 'yes to proceed or 'no' to quit'\n"
+	read answer
+	if [[ ! ${answer} =~ [Yy][Ee][Ss] ]]; then
+	    printf "Exiting..."
+	    return 1
+	fi
+
+	# Remove files and unlink links
 	for file in ${1}/*; do
 	    if [[ -h ${file} ]]; then
 		unlink ${file}
 	    else
 		path=$(absolute_path ${file})
-		printf " ... ${path}\n";
-		rm -rf ${path}
+		if [[ -e ${path} ]]; then
+		    printf " ... ${path}\n";
+		    rm -rf ${path}
+		fi
 		unset path
 	    fi
 	done

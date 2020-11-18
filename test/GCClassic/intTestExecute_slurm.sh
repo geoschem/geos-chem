@@ -2,7 +2,7 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-05:00
+#SBATCH -t 0-16:00
 #SBATCH -p huce_cascade
 #SBATCH --mem=60000
 #SBATCH --mail-type=END
@@ -102,13 +102,13 @@ for runDir in *; do
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
 	    #----------------------------------------------------------------
-	    
+
 	    # Change to this run directory; remove leftover log file
 	    cd ${root}/${runDir}
 
 	    # Copy the executable file here
 	    cp -f ${root}/exe_files/${exeFile} .
-   
+
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
 	    ./${exeFile} >> ${log} 2>&1
@@ -123,10 +123,10 @@ for runDir in *; do
 		    print_to_log "${failMsg}" ${results}
 		fi
 	    fi
-	    
+
 	    # Change to root directory for next iteration
 	    cd ${root}
-	    
+
 	else
 
   	    #----------------------------------------------------------------
@@ -138,7 +138,7 @@ for runDir in *; do
 		print_to_log "${failMsg}" ${results}
 	    fi
 	fi
-	
+
 	# Decrement the count of remaining tests
 	let remain--
     fi

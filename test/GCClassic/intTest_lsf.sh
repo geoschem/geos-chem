@@ -53,6 +53,9 @@ THIS_DIR=$(pwd -P)
 
 # Create GEOS-Chem run directories in the integration test root folder
 ./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${SHORT}
+if [[ $? -ne 0 ]]; then
+   exit 0
+fi
 
 # Change to the integration test root folder
 if [[ -d ${INT_TEST_ROOT} ]]; then
