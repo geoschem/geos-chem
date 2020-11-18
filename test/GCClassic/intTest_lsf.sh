@@ -44,12 +44,22 @@ fi
 # 3rd argument: Run a short integration test (for development)?
 SHORT=${3}
 
+#=============================================================================
+# Load file with utility functions to setup configuration files
+#=============================================================================
+
 # Current directory
 THIS_DIR=$(pwd -P)
+
+# Load common functions
+. ${THIS_DIR}/commonFunctionsForTests.sh
 
 #=============================================================================
 # Create integration test directories in the root folder
 #=============================================================================
+
+# Convert integration test root folder to an absolute path
+INT_TEST_ROOT=$(absolute_path ${INT_TEST_ROOT})
 
 # Create GEOS-Chem run directories in the integration test root folder
 ./intTestCreate.sh ${INT_TEST_ROOT} ${ENV_FILE} ${SHORT}
@@ -101,4 +111,16 @@ unset JOBID
 unset OUTPUT
 unset SHORT
 unset THIS_DIR
+
+# Free imported variables
+unset FILL
+unset SEP_MAJOR
+unset SEP_MINOR
+unset SED_INPUT_GEOS_1
+unset SED_INPUT_GEOS_2
+unset SED_HISTORY_RC
+unset CMP_PASS_STR
+unset CMP_FAIL_STR
+unset EXE_PASS_STR
+unset EXE_FAIL_STR
 #EOC

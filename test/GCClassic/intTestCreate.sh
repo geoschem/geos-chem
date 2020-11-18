@@ -165,7 +165,7 @@ create_rundir "1\n1\n2\n1\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="gc_2x25_fullchem_complexSOA_merra2"
 create_rundir "1\n1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
-dir="gc_4x5_fullchem_complexSOA_SVPOA_merra2"
+dir="gc_2x25_fullchem_complexSOA_SVPOA_merra2"
 create_rundir "1\n1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_marinePOA_merra2"
@@ -174,7 +174,7 @@ create_rundir "1\n1\n4\n1\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="gc_2x25_Hg_merra2"
 create_rundir "5\n1\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
-dir="gc_4x5_POPs_BaP_merra2"
+dir="gc_2x25_POPs_BaP_merra2"
 create_rundir "6\n1\n1\n2\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_2x25_tagCH4_merra2"
@@ -214,7 +214,7 @@ create_rundir "1\n1\n2\n2\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="gc_2x25_fullchem_complexSOA_geosfp"
 create_rundir "1\n1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
-dir="gc_2x25_fullchem_complexSOA+SVPOA_geosfp"
+dir="gc_2x25_fullchem_complexSOA_SVPOA_geosfp"
 create_rundir "1\n1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_marinePOA_geosfp"
@@ -336,7 +336,7 @@ create_rundir "7\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_4x5_tagCO_geosfp"
 create_rundir "8\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
-dir="gc_geosfp_4x5_tagO3_geosfp"
+dir="gc_4x5_tagO3_geosfp"
 create_rundir "9\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_TransportTracers_geosfp"
