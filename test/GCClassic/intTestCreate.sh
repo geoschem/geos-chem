@@ -17,7 +17,7 @@
 #
 # !REMARKS:
 #  Right now we pass values to the existing ./createRunDir.sh,
-#  but will implement a more elegant solution later.#
+#  but will implement a more elegant solution later.
 #
 # !REVISION HISTORY:
 #  09 Oct 2020 - R. Yantosca - Initial version
@@ -114,9 +114,9 @@ fi
 
 # Copying the run scripts to the Integration Test root folder
 printf "\nCopying run scripts to: ${root}\n"
-cp ${envFile} ${root}/gcclassic_env.sh
-cp ${testDir}/intTest*.sh ${root}
-cp ${testDir}/commonFunctionsForTests.sh ${root}
+cp -f ${envFile} ${root}/gcclassic_env.sh
+cp -f ${testDir}/intTest*.sh ${root}
+cp -f ${testDir}/commonFunctionsForTests.sh ${root}
 
 # Create a symbolic link to the code from the Integration Test root folder
 ln -s ${superProjectDir} ${root}/CodeDir

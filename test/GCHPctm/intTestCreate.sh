@@ -104,9 +104,9 @@ fi
 
 # Copying the run scripts to the root test folder
 printf "\nCopying run scripts to: ${root}\n"
-cp ${envFile} ${root}/gchp.env
-cp ${testDir}/intTest*.sh ${root}
-cp ${testDir}/commonFunctionsForTests.sh ${root}
+cp -f ${envFile} ${root}/gchp.env
+cp -f ${testDir}/intTest*.sh ${root}
+cp -f ${testDir}/commonFunctionsForTests.sh ${root}
 
 # Create a symbolic link to the code from the Integration Test root folder
 ln -s ${superProjectDir} ${root}/CodeDir

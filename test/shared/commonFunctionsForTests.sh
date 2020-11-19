@@ -21,16 +21,19 @@
 FILL=$(printf '.%.0s' {1..44})
 SEP_MAJOR=$(printf '=%.0s' {1..78})
 SEP_MINOR=$(printf '\055%.0s' {1..78})
-SED_INPUT_GEOS_1="s/20190801 000000/20190701 002000/"
-SED_INPUT_GEOS_2="s/20190201 000000/20190101 002000/"
-SED_INPUT_GEOS_3="s/20160101 000000/20190101 010000/"
-SED_INPUT_GEOS_4="s/20160201 000000/20190101 010000/"
+SED_INPUT_GEOS_1="s/End   YYYYMMDD, hhmmss  : 20190801 000000/End   YYYYMMDD, hhmmss  : 20190701 002000/"
+SED_INPUT_GEOS_2="s/End   YYYYMMDD, hhmmss  : 20190201 000000/End   YYYYMMDD, hhmmss  : 20190101 002000/"
+SED_INPUT_GEOS_3="s/Start YYYYMMDD, hhmmss  : 20160101 000000/Start YYYYMMDD, hhmmss  : 20190101 000000/"
+SED_INPUT_GEOS_4="s/End   YYYYMMDD, hhmmss  : 20160201 000000/End   YYYYMMDD, hhmmss  : 20190101 010000/"
+SED_INPUT_GEOS_5="s/End   YYYYMMDD, hhmmss  : 20160101 010000/End   YYYYMMDD, hhmmss  : 20190101 010000/"
 SED_HISTORY_RC_1="s/00000100 000000/00000000 002000/"
 SED_HISTORY_RC_2="s/7440000/010000/"
-SED_RUN_CONFIG_1="s/20190201 000000/20190101 010000/"
-SED_RUN_CONFIG_2="s/00000100 000000/00000000 010000/"
-SED_RUN_CONFIG_3="s/7440000/010000/"
-SED_RUN_CONFIG_4="s/1680000/010000/"
+SED_RUN_CONFIG_1="s/20160101 000000/20190101 000000/"
+SED_RUN_CONFIG_2="s/20160201 000000/20190101 010000/"
+SED_RUN_CONFIG_3="s/20190201 000000/20190101 010000/"
+SED_RUN_CONFIG_4="s/00000100 000000/00000000 010000/"
+SED_RUN_CONFIG_5="s/7440000/010000/"
+SED_RUN_CONFIG_6="s/1680000/010000/"
 CMP_PASS_STR="Configure & Build......PASS"
 CMP_FAIL_STR="Configure & Build......FAIL"
 EXE_PASS_STR="Execute Simulation.....PASS"
@@ -120,6 +123,7 @@ function update_config_files() {
     sed -i -e "${SED_INPUT_GEOS_2}" ${root}/${runDir}/input.geos
     sed -i -e "${SED_INPUT_GEOS_3}" ${root}/${runDir}/input.geos
     sed -i -e "${SED_INPUT_GEOS_4}" ${root}/${runDir}/input.geos
+    sed -i -e "${SED_INPUT_GEOS_5}" ${root}/${runDir}/input.geos
     sed -i -e "${SED_HISTORY_RC_1}" ${root}/${runDir}/HISTORY.rc
     sed -i -e "${SED_HISTORY_RC_2}" ${root}/${runDir}/HISTORY.rc
 
@@ -132,6 +136,8 @@ function update_config_files() {
 	sed -i -e "${SED_RUN_CONFIG_2}" ${root}/${runDir}/runConfig.sh
 	sed -i -e "${SED_RUN_CONFIG_3}" ${root}/${runDir}/runConfig.sh
 	sed -i -e "${SED_RUN_CONFIG_4}" ${root}/${runDir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_5}" ${root}/${runDir}/runConfig.sh
+	sed -i -e "${SED_RUN_CONFIG_6}" ${root}/${runDir}/runConfig.sh
 
 	# Copy the run scripts
 	cp ${root}/${runDir}/runScriptSamples/*.sh ${root}/${runDir}
