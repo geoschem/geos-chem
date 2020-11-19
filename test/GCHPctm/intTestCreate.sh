@@ -159,6 +159,36 @@ cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 # Benchmark run directories
 #=============================================================================
 
+dir="gchp_fullchem_standard_merra2_c24"
+create_rundir "1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+sed -i -e "s/CS_RES=48/CS_RES=24/" ${root}/${dir}/runConfig.sh
+
+dir="gchp_fullchem_benchmark_geosfp_c24"
+create_rundir "1\n1\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+sed -i -e "s/CS_RES=48/CS_RES=24/" ${root}/${dir}/runConfig.sh
+
+dir="gchp_fullchem_standard_merra2_c48"
+create_rundir "1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+
+dir="gchp_fullchem_benchmark_geosfp_c48"
+create_rundir "1\n1\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+
+#=============================================================================
+# Benchmark run directories
+#=============================================================================
+
 dir="gchp_fullchem_benchmark_merra2_c48"
 create_rundir "1\n2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
