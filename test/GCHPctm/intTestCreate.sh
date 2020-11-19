@@ -1,12 +1,14 @@
 #!/bin/bash
 
 #------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
 #BOP
 #
 # !MODULE: intTestCreate.sh
 #
-# !DESCRIPTION: Creates integration test run directories in a user-specified
-#  root folder, and copies a run script there.
+# !DESCRIPTION: Creates GCHPctm integration test run directories in a
+#  user-specified root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
@@ -124,11 +126,47 @@ printf "\nCreating new run directories:\n"
 cd ${runDir}
 
 #=============================================================================
-# Create individual run directories
+# TransportTracers run directories
 #=============================================================================
 
 dir="gchp_TransportTracers_merra2_c24"
 create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+sed -i -e "s/CS_RES=48/CS_RES=24/" ${root}/${dir}/runConfig.sh
+
+dir="gchp_TransportTracers_geosfp_c24"
+create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+sed -i -e "s/CS_RES=48/CS_RES=24/" ${root}/${dir}/runConfig.sh
+
+dir="gchp_TransportTracers_merra2_c48"
+create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+
+dir="gchp_TransportTracers_geosfp_c48"
+create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+
+#=============================================================================
+# Benchmark run directories
+#=============================================================================
+
+dir="gchp_fullchem_benchmark_merra2_c48"
+create_rundir "1\n2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+
+dir="gchp_fullchem_benchmark_geosfp_c48"
+create_rundir "1\n2\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh

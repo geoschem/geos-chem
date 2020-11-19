@@ -117,6 +117,17 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
     print_to_log "%%%  All compilation tests passed!  %%%" ${results}
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
+
+    # If the compilation was successful, then submit
+    # the GCHPctm run script with SLURM job dependencies
+    jobId="none"
+    for runDir in *; do
+	expr=$(is_gchpctm_rundir "${root}/${runDir}")
+	if [[ "x${expr}" == "xTRUE" ]]; then
+	    jobId=$(submit_gchpctm_slurm_job ${root} ${runDir} ${jobId})
+	    echo "${runDir} submitted as job ${jobId}"
+	fi
+    done
 fi
 
 #============================================================================

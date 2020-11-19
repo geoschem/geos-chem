@@ -81,13 +81,6 @@ OUTPUT=$(sbatch intTestCompile_slurm.sh)
 OUTPUT=($OUTPUT)
 CMP_ID=${OUTPUT[3]}
 
-#=============================================================================
-# Submit execution tests script as a job dependency
-#=============================================================================
-#OUTPUT=$(sbatch --dependency=afterok:${CMP_ID} intTestExecute_slurm.sh)
-#OUTPUT=($OUTPUT)
-#EXE_ID=${OUTPUT[3]}
-
 # Change back to this directory
 cd ${THIS_DIR}
 
@@ -96,7 +89,6 @@ cd ${THIS_DIR}
 #=============================================================================
 echo ""
 echo "Compilation tests submitted as SLURM job ${CMP_ID}"
-echo "Execution   tests submitted as SLURM job ${EXE_ID}"
 
 # Free local variables
 unset DEBUG

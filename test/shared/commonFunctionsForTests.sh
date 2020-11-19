@@ -432,3 +432,65 @@ function build_gchpctm() {
     # Switch back to the root directory
     cd ${root}
 }
+
+
+function submit_gchpctm_slurm_job() {
+    #========================================================================
+    # Submits a GCHPctm SLURM job script for the execution test phase.
+    # Subsequent jobs are submitted as SLURM job dependencies.
+    #
+    # 1st argument = Root folder for tests (w/ many rundirs etc)
+    # 2nd argument = GCHPctm run directory name
+    # 3rd argument = Id from the previous SLURM job
+    #========================================================================
+
+    # Arguments
+    root=${1}
+    runDir=${2}
+    jobId=${3}
+
+    # Change to the run directory
+    cd ${root}/${runDir}
+
+    # Remove any leftover files in the run dir
+    # (similar to createRunDir.sh, but do not ask user to confirm)
+    rm -f cap_restart
+    rm -f gcchem*
+    rm -f *.rcx
+    rm -f *~
+    rm -f gchp.log
+    rm -f HEMCO.log
+    rm -f PET*.log
+    rm -f multirun.log
+    rm -f GC*.log
+    rm -f log.dryrun*
+    rm -f logfile.000000.out
+    rm -f slurm-*
+    rm -f 1
+    rm -f EGRESS
+    rm -f core.*
+    rm -f ./OutputDir/*.nc*
+
+    # Copy the executable here
+    cp ${root}/build/bin/gchp .
+
+    # Redirect the log file
+    log="${root}/logs/execute.${runDir}.log"
+
+    # Submit jobs (except the first) as a SLURM dependency
+    if [[ "x${jobId}" == "xnone" ]]; then
+	output=$(sbatch --export=ALL gchp.slurm.sh)
+	output=($output)
+	jobId=${output[3]}
+    else
+	output=$(sbatch --export=ALL --dependency=afterok:${jobId} gchp.slurm.sh)
+	output=(${output})
+	jobId=${output[3]}
+    fi
+
+    # Change to the root folder
+    cd ${root}
+
+    # Return the jobId for the next iteration
+    echo "${jobId}"
+}

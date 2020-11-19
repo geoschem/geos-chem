@@ -5,7 +5,7 @@
 #SBATCH -t 0-0:10
 #SBATCH -p huce_cascade
 #SBATCH --mem=110000
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type=END
 
 # Resource request tips: 
 #  (1) Use #SBATCH -n 6 to request 6 cores total across all nodes
@@ -19,13 +19,12 @@
 # See SLURM documentation for descriptions of all possible settings.
 # Type 'man sbatch' at the command prompt to browse documentation.
 
-# Define GEOS-Chem log file
-# If the LOG environment variable has been exported to SLURM, use that
-if [[ "x${LOG}" == "x" ]]; then
-    log="gchp.log"
-else
-    log="${LOG}"
-fi
+# Define GEOS-Chem log file (and remove any prior log file)
+thisDir=$(pwd -P)
+root=$(dirname ${thisDir})
+runDir=$(basename ${thisDir})
+log="${root}/logs/execute.${runDir}.log"
+rm -f ${log}
 
 # Make sure GCHP output restart file does not exist with the original name
 # used by MAPL. Its present will cause GCHP run to fail. The output restart
