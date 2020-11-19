@@ -74,8 +74,8 @@ for path in logs/execute*; do
     runDir="${runDir#*.}"
     
     # Create sucess and failure messages
-    passMsg="$runDir${FILL:${#runDir}}.....${CMP_PASS_STR}"
-    failMsg="$runDir${FILL:${#runDir}}.....${CMP_FAIL_STR}"
+    passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
+    failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
     # Look for the text ----EXTDATA, which shows up
     # at the end of a successful GCHPctm job
