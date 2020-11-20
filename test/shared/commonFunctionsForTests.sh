@@ -483,7 +483,7 @@ function submit_gchpctm_slurm_job() {
 	output=($output)
 	jobId=${output[3]}
     else
-	output=$(sbatch --export=ALL --dependency=afterok:${jobId} gchp.slurm.sh)
+	output=$(sbatch --export=ALL --dependency=afterany:${jobId} gchp.slurm.sh)
 	output=(${output})
 	jobId=${output[3]}
     fi

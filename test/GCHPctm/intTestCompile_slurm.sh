@@ -125,7 +125,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
 	expr=$(is_gchpctm_rundir "${root}/${runDir}")
 	if [[ "x${expr}" == "xTRUE" ]]; then
 	    jobId=$(submit_gchpctm_slurm_job ${root} ${runDir} ${jobId})
-	    echo "${runDir} submitted as job ${jobId}"
+	    print_to_log "${runDir} submitted as job ${jobId}" ${log}
 	fi
     done
 fi
