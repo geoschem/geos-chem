@@ -527,11 +527,11 @@ if [[ ${STRETCH_GRID} == "ON" ]]; then
     uncomment_line target_lat                    input.nml
     uncomment_line target_lon                    input.nml
     replace_val GCHP.STRETCH_FACTOR ${STRETCH_FACTOR}  GCHP.rc
-    replace_val stretch_fac,        ${STRETCH_FACTOR}, input.nml =
+    replace_val stretch_fac         ${STRETCH_FACTOR}, input.nml =
     replace_val GCHP.TARGET_LAT     ${TARGET_LAT}      GCHP.rc
-    replace_val target_lat,         ${TARGET_LAT},     input.nml =
+    replace_val target_lat          ${TARGET_LAT},     input.nml =
     replace_val GCHP.TARGET_LON     ${TARGET_LON}      GCHP.rc
-    replace_val target_lon,         ${TARGET_LON}/     input.nml =
+    replace_val target_lon          ${TARGET_LON}/     input.nml =
 elif [[ ${STRETCH_GRID} == "OFF" ]]; then
     comment_line GCHP.STRETCH_FACTOR             GCHP.rc
     comment_line GCHP.TARGET_LAT                 GCHP.rc
