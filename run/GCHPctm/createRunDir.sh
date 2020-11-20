@@ -50,8 +50,9 @@ fi
 if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
-    while [ "$valid_path" -eq 0 ]; do
-	read extdata
+    while [ "$valid_path" -eq 0 ]
+    do
+	read -e extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -210,8 +211,20 @@ done
 #-----------------------------------------------------------------
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
-while [ "$valid_path" -eq 0 ]; do
-    read rundir_path
+while [ "$valid_path" -eq 0 ]
+do
+    read -e rundir_path
+    # If this is just a new directory within an existing one,
+    # give the user the option to proceed
+    if [[ ! -d ${rundir_path} ]]; then
+        if [[ -d $( dirname ${rundir_path} ) ]]; then
+            printf "\nWarning: ${rundir_path} does not exist, but the parent directory does.\nWould you like to make this directory? (y/n)\n"
+            read mk_rundir
+            if [[ ${mk_rundir} == "y" ]]; then
+                mkdir $rundir_path
+            fi
+        fi
+    fi
     if [[ ${rundir_path} = "q" ]]; then
 	printf "\nExiting.\n"
 	exit 1
