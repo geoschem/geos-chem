@@ -223,11 +223,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
-     ! Age of air for diagnosing transport
-     !----------------------------------------------------------------------
-     INTEGER,  POINTER :: AgeOfAir      (:,:,:) ! Age of air [s]
-
-     !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG          (:,:  ) ! # of landtypes in box (I,J)
@@ -473,7 +468,6 @@ CONTAINS
     State_Met%AIRVOL         => NULL()
     State_Met%DP_DRY_PREV    => NULL()
     State_Met%SPHU_PREV      => NULL()
-    State_Met%AgeOfAir       => NULL()
     State_Met%IREG           => NULL()
     State_Met%ILAND          => NULL()
     State_Met%IUSE           => NULL()
@@ -1932,24 +1926,6 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%AD,                                          &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Age of Air [s]
-    !------------------------------------------------------------------------
-    metId = 'AgeOfAir'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%AgeOfAir,                                    &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4329,17 +4305,6 @@ CONTAINS
 #endif
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%AgeOfAir ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%AgeOfAir => NULL()
-#else
-       DEALLOCATE( State_Met%AgeOfAir, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%AgeOfAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%AgeOfAir => NULL()
-#endif
-    ENDIF
-
     !=======================================================================
     ! Fields for querying which vertical regime a grid box is in
     ! or if it is near local solar noon at a grid box
@@ -5247,15 +5212,6 @@ CONTAINS
           IF ( isUnits ) Units  = 'm2 m-2'
           IF ( isRank  ) Rank   = 2
           IF ( isQnt   ) perQnt = 'OLSON'
-
-      !----------------------------------------------------------------------
-      ! Age of air for diagnosing transport-
-      !----------------------------------------------------------------------
-       CASE ( 'AGEOFAIR' )
-          IF ( isDesc  ) Desc  = 'Age of air'
-          IF ( isUnits ) Units = 's'
-          IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationCenter
 
 !       CASE ( 'INCHEMGRID' )
 !          IF ( isDesc  ) Desc  = 'Is each grid box in the chemistry grid?'

@@ -348,7 +348,7 @@ CONTAINS
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt
     USE Calc_Met_Mod,       ONLY : Set_Dry_Surface_Pressure
-    USE Calc_Met_Mod,       ONLY : Set_Met_AgeOfAir
+    USE Calc_Met_Mod,       ONLY : Set_Clock_Tracer
     USE Calc_Met_Mod,       ONLY : GCHP_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
@@ -657,8 +657,10 @@ CONTAINS
                                   State_Met      = State_Met,  &
                                   RC             = RC         )
 
-    ! Update age of air
-    CALL Set_Met_AgeOfAir( State_Grid, State_Met )
+    ! Update clock tracer if relevant
+    IF (  IND_('CLOCK','A') > 0 ) THEN
+       CALL Set_Clock_Tracer( State_Chm, State_Grid )
+    ENDIF
 
     ! Call PBL quantities. Those are always needed
     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )

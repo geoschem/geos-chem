@@ -227,8 +227,8 @@ PROGRAM GEOS_Chem
   INTEGER                  :: DAY,           DAY_OF_YEAR
   INTEGER                  :: NYMD,          NYMDb,       NHMS
   INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
-  INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-  INTEGER                  :: id_H2O,        id_CH4,      SECOND
+  INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE,  SECOND
+  INTEGER                  :: id_H2O,        id_CH4,      id_CLOCK
 
   ! Reals
   REAL(f8)                 :: TAU,           TAUb
@@ -586,8 +586,9 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
      ! Define advected species ID flags for use below
-     id_H2O   = Ind_('H2O', 'A')
-     id_CH4   = Ind_('CH4', 'A')
+     id_H2O   = Ind_('H2O',   'A')
+     id_CH4   = Ind_('CH4',   'A')
+     id_CLOCK = Ind_('CLOCK', 'A')
 
      !-----------------------------------------------------------------------
      ! OBSPACK Diagnostics: Get information from the species
@@ -1380,9 +1381,9 @@ PROGRAM GEOS_Chem
 
        ENDIF
 
-       ! Update age of air (skip if running in dry-run mode)
-       IF ( notDryRun ) THEN
-          CALL Set_Met_AgeOfAir( State_Grid, State_Met )
+       ! Update clock tracer (skip if running in dry-run mode)
+       IF ( notDryRun .and. id_CLOCK > 0 ) THEN
+          CALL Set_Clock_Tracer( State_Chm, State_Grid )
        ENDIF
 
        !=====================================================================
