@@ -83,7 +83,6 @@ MODULE Vdiff_Mod
   INTEGER               :: nspcmix           ! # of species for mixing
   INTEGER               :: plev              ! # of levels
   INTEGER               :: plevp             ! # of level edges
-  LOGICAL               :: Do_ND44 = .FALSE. ! Use ND44 bpch (for TOMAS)?
   INTEGER               :: ntopfl            ! top level to which vertical 
                                              !  diffusion is applied.
   INTEGER               :: npbl              ! max # of levels in pbl
@@ -1652,14 +1651,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     qmincg = 0.0_fp
 
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    ! Set a flag to denote we should archive ND44 bpch diagnostic
-    ! NOTE: this will only be valid if BPCH_DIAG=y
-    Do_ND44 = ( ND44 > 0 )
-#endif
-#endif
-
   END SUBROUTINE Init_Vdiff
 !EOC
 !------------------------------------------------------------------------------
@@ -1847,10 +1838,7 @@ CONTAINS
 !      INTENT(INOUT).  This is because VDIFF will modify the specific
 !      humidity field. (bmy, 11/21/12)
 !                                                                            .
-!  (2) VDIFF also archives drydep fluxes to the soil NOx emissions module
-!      (by calling routine SOIL_DRYDEP) and to the ND44 diagnostic.
-!                                                                            .
-!  (3) As of July 2016, we assume that all of the advected species are listed
+!  (2) As of July 2016, we assume that all of the advected species are listed
 !      first in the species database.  This is the easiest way to pass a slab
 !      to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
 
@@ -2097,14 +2085,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    !=======================================================================
-    ! These are only needed if GEOS-Chem is compiled for TOMAS
-    !=======================================================================
-    USE CMN_DIAG_MOD,       ONLY : ND44
-#endif
-#endif
 
     IMPLICIT NONE
 !

@@ -50,8 +50,9 @@ fi
 if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
-    while [ "$valid_path" -eq 0 ]; do
-	read extdata
+    while [ "$valid_path" -eq 0 ]
+    do
+	read -e extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -93,7 +94,7 @@ sim_extra_option=none
 
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
-    
+
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -163,7 +164,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
    sim_extra_option=none
-fi 
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
@@ -211,11 +212,38 @@ done
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read rundir_path
-    if [[ ${rundir_path} = "q" ]]; then
+    read -e rundir_path
+
+    # Test for quitting
+    if [[ "x${rundir_path}" = "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
-    elif [[ ! -d ${rundir_path} ]]; then
+    fi
+
+    # Replace ~ with the user's home directory
+    # NOTE: This is a safe algorithm.
+    if [[ "${rundir_path}" =~ '~' ]]; then
+       rundir_path="${rundir_path/#\~/$HOME}"
+       echo "Expanding to: ${rundir_path}"
+    fi
+
+    # If this is just a new directory within an existing one,
+    # give the user the option to proceed
+    if [[ ! -d ${rundir_path} ]]; then
+        if [[ -d $(dirname ${rundir_path} ) ]]; then
+            printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
+            read mk_rundir
+            if [[ "x${mk_rundir}" == "xy" ]]; then
+                mkdir $rundir_path
+	    elif [[ "x${mk_rundir}" == "xq" ]]; then
+		printf "\nExiting.\n"
+		exit 1
+            fi
+        fi
+    fi
+
+    # Ask user to supply a new path again
+    if [[ ! -d ${rundir_path} ]]; then
         printf "\nERROR: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
 	valid_path=1
@@ -226,8 +254,9 @@ done
 # Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
-    printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
-    read rundir_name
+    printf "${thinline}Enter run directory name, or press return to use default:\n"
+    printf "(This will be a subfolder of the path you entered above.)${thinline}"
+    read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gchp_${sim_name}

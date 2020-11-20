@@ -133,7 +133,7 @@ CONTAINS
     USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
 #ifdef BPCH_DIAG
->    USE TOMAS_MOD,            ONLY : H2SO4_RATE
+    USE TOMAS_MOD,            ONLY : H2SO4_RATE
 #endif
 #endif
 !
