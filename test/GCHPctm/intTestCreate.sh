@@ -94,6 +94,10 @@ if [[ ! -d ${root} ]]; then
     mkdir -p ${root}
 fi
 
+# Get the absolute path of the root folder again;
+# now that the folder exists
+root=$(absolute_path ${root})
+
 # Remove run directories in the test folder
 cleanup_files ${root}
 

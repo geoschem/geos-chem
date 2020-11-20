@@ -46,7 +46,12 @@ function absolute_path() {
     #
     # 1st argument = relative path
     #========================================================================
-    printf "$(cd "$(dirname "${1}")"; pwd -P)/$(basename "${1}")"
+    if [[ -d ${1} ]]; then
+	absPath=$(readlink -f "${1}")   # If directory exists, use readlink
+    else
+	absPath="${1/#\~/$HOME}"        # Otherwise, replace ~ with $HOME
+    fi
+    echo "${absPath}"
 }
 
 

@@ -95,6 +95,10 @@ if [[ ! -d ${root} ]]; then
     mkdir -p ${root}
 fi
 
+# Get the absolute path of the root folder again;
+# now that the folder exists
+root=$(absolute_path ${root})
+
 # Remove everything in the test folde r
 cleanup_files ${root}
 
@@ -136,6 +140,13 @@ cd ${runDir}
 #=============================================================================
 # Create individual run directories: 2x25 - MERRA2 - 72L
 #=============================================================================
+
+if [[ -d ${root} ]]; then
+    extra="y\n"
+else
+    extra=""
+fi
+echo ${extra}
 
 dir="gc_2x25_CH4_merra2"
 create_rundir "3\n1\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
