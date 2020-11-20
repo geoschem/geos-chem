@@ -11,9 +11,9 @@
 # run files (*.run, *.env, runConfig.sh), and restarts (only gcchem*). 
 # Files are stored in subdirectories within the archive directory.
 #
-# Clean the run directory after archiving with 'make cleanup_output' prior to
-# rerunning and archiving a new set of run outputs. Otherwise previous run files
-# will be copied to new run archives.
+# NOTE: Clean the run directory AFTER archiving with './cleanupRunDir.sh'
+# if you plan on doing another run. Otherwise previous run files will also
+# be archived if this script is called again.
 
 # Initial version: Lizzie Lundgren - 7/12/2018
 
@@ -74,35 +74,38 @@ copyfiles () {
 # Make Archive directory
 echo "Archiving files to directory $1"
 mkdir -p ${archivedir}
-mkdir -p ${archivedir}/diagnostics
-mkdir -p ${archivedir}/plots
-mkdir -p ${archivedir}/logs
-mkdir -p ${archivedir}/config
-mkdir -p ${archivedir}/restart
-mkdir -p ${archivedir}/checkpoints
+mkdir -p ${archivedir}/OutputDir
+mkdir -p ${archivedir}/BenchmarkResults
+mkdir -p ${archivedir}/Logs
+mkdir -p ${archivedir}/Config
+mkdir -p ${archivedir}/Restarts
+mkdir -p ${archivedir}/Checkpoints
+mkdir -p ${archivedir}/Build
 
 # Move large files rather than copy (except initial restart)
 echo "Moving files and directories..."
-movefiles "Plots"     ${archivedir}/plots
-movefiles "OutputDir" ${archivedir}/diagnostics FILLER
+movefiles "BenchmarkResults" ${archivedir}/BenchmarkResults
+movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
-copyfiles input.geos      ${archivedir}/config
-copyfiles "*.rc"          ${archivedir}/config
-copyfiles runConfig.sh    ${archivedir}/config
-copyfiles "*.run"         ${archivedir}/config
-copyfiles "*.env"         ${archivedir}/config
-copyfiles "*.multirun.sh" ${archivedir}/config
-copyfiles "*.log"         ${archivedir}/logs
-copyfiles "slurm-*"       ${archivedir}/logs
-copyfiles "gcchem_*"      ${archivedir}/checkpoints
-copyfiles cap_restart     ${archivedir}/checkpoints
+copyfiles input.geos           ${archivedir}/Config
+copyfiles rundir.version       ${archivedir}/Config
+copyfiles "*.rc"               ${archivedir}/Config
+copyfiles runConfig.sh         ${archivedir}/Config
+copyfiles "*.run"              ${archivedir}/Config
+copyfiles "*.multirun.sh"      ${archivedir}/Config
+copyfiles "*.env"              ${archivedir}/Config
+copyfiles "*.log"              ${archivedir}/Logs
+copyfiles "slurm-*"            ${archivedir}/Logs
+copyfiles "gcchem_*"           ${archivedir}/Checkpoints
+copyfiles cap_restart          ${archivedir}/Checkpoints
+copyfiles "build_info/*"       ${archivedir}/Build
 
 # Special handling for copying initial restart (retrieve filename from config)
 x=$(grep "GCHPchem_INTERNAL_RESTART_FILE:" GCHP.rc)
 rst=${x:37}
-copyfiles $rst          ${archivedir}/restart
+copyfiles $rst          ${archivedir}/Restarts
 
 printf "Complete!\n"
 

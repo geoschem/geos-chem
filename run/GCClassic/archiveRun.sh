@@ -11,7 +11,7 @@
 # run files (*.run), and restarts (GEOSChem.Restart.*, HEMCO_restart.*). 
 # Files are stored in subdirectories within the archive directory.
 #
-# NOTE: Clean the run directory AFTER archiving with './cleanup_output/sh'
+# NOTE: Clean the run directory AFTER archiving with './cleanupRunDir.sh'
 # if you plan on doing another run. Otherwise previous run files will also
 # be archived if this script is called again.
 
@@ -72,37 +72,30 @@ copyfiles () {
 # Make Archive directory
 echo "Archiving files to directory $1"
 mkdir -p ${archivedir}
-mkdir -p ${archivedir}/diagnostics
-mkdir -p ${archivedir}/plots
-mkdir -p ${archivedir}/logs
-mkdir -p ${archivedir}/config
-mkdir -p ${archivedir}/restarts
-mkdir -p ${archivedir}/build
-mkdir -p ${archivedir}/bin
+mkdir -p ${archivedir}/OutputDir
+mkdir -p ${archivedir}/BenchmarkResults
+mkdir -p ${archivedir}/Logs
+mkdir -p ${archivedir}/Config
+mkdir -p ${archivedir}/Restarts
+mkdir -p ${archivedir}/Build
 
 # Move large files rather than copy (except initial restart)
 echo "Moving files and directories..."
-movefiles "Plots"     ${archivedir}/plots
-movefiles "OutputDir" ${archivedir}/diagnostics FILLER
-
-# Copy some of the cmake logs
-cp build/*Properties.txt .
-mv *Properties.txt    ${archivedir}/build
-cp build/CMakeFiles/CMake*.log .
-mv CMake*.log ${archivedir}/build
+movefiles "BenchmarkResults" ${archivedir}/BenchmarkResults
+movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
-copyfiles gcclassic                      ${archivedir}/bin
-copyfiles input.geos                     ${archivedir}/config
-copyfiles rundir.version                 ${archivedir}/config
-copyfiles "*.rc"                         ${archivedir}/config
-copyfiles "*.run"                        ${archivedir}/config
-copyfiles "*.env"                        ${archivedir}/config
-copyfiles "*.log"                        ${archivedir}/logs
-copyfiles "slurm-*"                      ${archivedir}/logs
-copyfiles "GEOSChem.Restart.*"           ${archivedir}/restarts
-copyfiles "HEMCO_restart.*"              ${archivedir}/restarts
+copyfiles input.geos           ${archivedir}/Config
+copyfiles rundir.version       ${archivedir}/Config
+copyfiles "*.rc"               ${archivedir}/Config
+copyfiles "*.run"              ${archivedir}/Config
+copyfiles "*.env"              ${archivedir}/Config
+copyfiles "*.log"              ${archivedir}/Logs
+copyfiles "slurm-*"            ${archivedir}/Logs
+copyfiles "GEOSChem.Restart.*" ${archivedir}/Restarts
+copyfiles "HEMCO_restart.*"    ${archivedir}/Restarts
+copyfiles "build_info/*"       ${archivedir}/Build
 
 printf "Complete!\n"
 
