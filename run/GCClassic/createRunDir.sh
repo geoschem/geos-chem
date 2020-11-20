@@ -431,25 +431,36 @@ printf "${thinline}Enter path where the run directory will be created:${thinline
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
     read -e rundir_path
-    # If this is just a new directory within an existing one,
-    # give the user the option to proceed
-    if [[ ! -d ${rundir_path} ]]; then
-        if [[ -d $( dirname ${rundir_path} ) ]]; then
-            printf "\nWarning: ${rundir_path} does not exist, but the parent directory does.\nWould you like to make this directory? (y/n)\n"
-            read mk_rundir
-            if [[ ${mk_rundir} == "y" ]]; then
-                mkdir $rundir_path
-            fi
-        fi
-    fi
+
+    # Test for quitting
     if [[ "x${rundir_path}" == "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
     fi
+
+    # Replace ~ with the user's home directory
+    # NOTE: This is a safe algorithm.
     if [[ "${rundir_path}" =~ '~' ]]; then
        rundir_path="${rundir_path/#\~/$HOME}"
        echo "Expanding to: ${rundir_path}"
     fi
+
+    # If this is just a new directory within an existing one,
+    # give the user the option to proceed
+    if [[ ! -d ${rundir_path} ]]; then
+        if [[ -d $(dirname ${rundir_path} ) ]]; then
+            printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
+            read mk_rundir
+            if [[ "x${mk_rundir}" == "xy" ]]; then
+                mkdir $rundir_path
+	    elif [[ "x${mk_rundir}" == "xq" ]]; then
+		printf "\nExiting.\n"
+		exit 1
+            fi
+        fi
+    fi
+
+    # Ask user to supply a new path again
     if [[ ! -d ${rundir_path} ]]; then
         printf "\nERROR: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
