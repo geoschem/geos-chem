@@ -8,7 +8,7 @@
 # !MODULE: intTestResults.sh
 #
 # !DESCRIPTION: Displays results from the execution phase of the
-#  GCHPctm integration tests.
+#  GCHP integration tests.
 #\\
 #\\
 # !CALLING SEQUENCE:
@@ -45,7 +45,7 @@ rm -f ${results}
 
 # Print header to results log file
 print_to_log "${SEP_MAJOR}"                             ${results}
-print_to_log "GCHPctm: Execution Test Results"          ${results}
+print_to_log "GCHP: Execution Test Results"          ${results}
 print_to_log ""                                         ${results}
 print_to_log "Number of execution tests: ${numTests}"   ${results}
 print_to_log "${SEP_MAJOR}"                             ${results}
@@ -78,7 +78,7 @@ for path in logs/execute*; do
     failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
     # Look for the text ----EXTDATA, which shows up
-    # at the end of a successful GCHPctm job
+    # at the end of a successful GCHP job
     grep -e ----EXTDATA ${path} > /dev/null
     if [[ $? -eq 0 ]]; then
         let passed++

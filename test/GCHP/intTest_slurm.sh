@@ -7,7 +7,7 @@
 #
 # !MODULE: intTest_slurm.sh
 #
-# !DESCRIPTION: Runs integration tests on the various GCHPctm
+# !DESCRIPTION: Runs integration tests on the various GCHP
 #  run directories (using the SLURM scheduler).  Compilation tests and
 #  execution tests are submitted as separate SLURM jobs, using dependencies.
 #\\

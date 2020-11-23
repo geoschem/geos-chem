@@ -14,7 +14,7 @@
 #
 # !MODULE: intTestCompile_slurm.sh
 #
-# !DESCRIPTION: Runs compilation tests on various GCHPctm
+# !DESCRIPTION: Runs compilation tests on various GCHP
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
@@ -50,7 +50,7 @@ fi
 numTests=1
 
 # Logfile for compilation output
-log="${root}/logs/compile.GCHPctm.log"
+log="${root}/logs/compile.GCHP.log"
 rm -f ${log}
 
 # Results logfile name
@@ -61,7 +61,7 @@ rm -f ${results}
 buildDir="${root}/build"
 installDir="${root}/exe_files"
 
-# CMake configuration options for GCHPctm
+# CMake configuration options for GCHP
 options="-DCMAKE_BUILD_TYPE=Debug"
 
 #============================================================================
@@ -70,7 +70,7 @@ options="-DCMAKE_BUILD_TYPE=Debug"
 
 # Print header to results log file
 print_to_log "${SEP_MAJOR}"                             ${results}
-print_to_log "GCHPctm: Compilation Test Results"        ${results}
+print_to_log "GCHP: Compilation Test Results"        ${results}
 print_to_log ""                                         ${results}
 print_to_log "Number of compilation tests: ${numTests}" ${results}
 print_to_log "${SEP_MAJOR}"                             ${results}
@@ -90,8 +90,8 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
-# Build GCHPctm
-build_gchpctm ${root} ${buildDir} ${log} ${results} "${options}"
+# Build GCHP
+build_gchp ${root} ${buildDir} ${log} ${results} "${options}"
 if [[ $? -eq 0 ]]; then
     let passed++
 else
@@ -119,12 +119,12 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
 
     # If the compilation was successful, then submit
-    # the GCHPctm run script with SLURM job dependencies
+    # the GCHP run script with SLURM job dependencies
     jobId="none"
     for runDir in *; do
-	expr=$(is_gchpctm_rundir "${root}/${runDir}")
+	expr=$(is_gchp_rundir "${root}/${runDir}")
 	if [[ "x${expr}" == "xTRUE" ]]; then
-	    jobId=$(submit_gchpctm_slurm_job ${root} ${runDir} ${jobId})
+	    jobId=$(submit_gchp_slurm_job ${root} ${runDir} ${jobId})
 	    print_to_log "${runDir} submitted as job ${jobId}" ${log}
 	fi
     done

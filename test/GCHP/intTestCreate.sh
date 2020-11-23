@@ -7,7 +7,7 @@
 #
 # !MODULE: intTestCreate.sh
 #
-# !DESCRIPTION: Creates GCHPctm integration test run directories in a
+# !DESCRIPTION: Creates GCHP integration test run directories in a
 #  user-specified root folder, and copies a run script there.
 #\\
 #\\
@@ -69,7 +69,7 @@ superProjectDir=$(pwd -P)
 cd ${superProjectDir}
 
 # Directory where the run creation scripts are found
-runDir=${geosChemDir}/run/GCHPctm
+runDir=${geosChemDir}/run/GCHP
 
 # Load file with utility functions to setup configuration files
 . ${geosChemDir}/test/shared/commonFunctionsForTests.sh
@@ -82,7 +82,7 @@ log=${root}/logs/createIntTests.log
 
 # Echo header
 printf "${SEP_MAJOR}\n"
-printf "Creating GCHPctm Integration Tests\n"
+printf "Creating GCHP Integration Tests\n"
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
