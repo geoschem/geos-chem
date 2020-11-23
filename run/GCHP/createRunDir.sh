@@ -332,13 +332,13 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-    cp ${gcdir}/run/GCHPctm/runScriptSamples/gchp.benchmark.run ${rundir}
+    cp ${gcdir}/run/GCHP/runScriptSamples/gchp.benchmark.run ${rundir}
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
 
 # Create symbolic links to data directories, restart files, code, run scripts
 ln -s ${gchpdir}                                ${rundir}/CodeDir
-ln -s ${gcdir}/run/GCHPctm/runScriptSamples     ${rundir}/runScriptSamples
+ln -s ${gcdir}/run/GCHP/runScriptSamples        ${rundir}/runScriptSamples
 ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDir
 ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/HcoDir
 if [ "${met_name}" == "GEOSFP" ]; then
