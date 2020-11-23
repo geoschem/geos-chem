@@ -31,9 +31,8 @@ root=$(pwd -P)
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
 
-# Count the number of tests to be done = 1
-# (We don't have to recompile GCHP to change resolutions)
-numTests=$(ls -1 ${root}/logs/execute* | wc -l)
+# Number of execution tests = number of run directories
+numTests=$(count_rundirs ${root})
 
 # Results logfile name
 results="${root}/logs/results.execute.log"
