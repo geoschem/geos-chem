@@ -47,17 +47,18 @@ MODULE State_Chm_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local pointer to
-                                                     ! StateChm%SpcData for
-                                                     ! availability to IND_
+  TYPE(SpcPtr), PRIVATE, POINTER   :: SpcDataLocal(:)  ! Local pointer to
+                                                       ! StateChm%SpcData for
+                                                       ! availability to IND_
+  TYPE(SpcIndCt)                   :: SpcCount
 
-  TYPE(dictionary_t), PRIVATE    :: SpcDictLocal     ! Private copy of the
-                                                     ! Fortran Hash table for
-                                                     ! availability to IND_
+  TYPE(dictionary_t), PRIVATE      :: SpcDictLocal     ! Private copy of the
+                                                       ! Fortran Hash table for
+                                                       ! availability to IND_
 
 
-  INTEGER, PRIVATE               :: nChmState = 0    ! # chemistry states,
-                                                     ! this CPU
+  INTEGER, PRIVATE                 :: nChmState = 0    ! # chemistry states,
+                                                       ! this CPU
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -601,7 +602,6 @@ CONTAINS
     CHARACTER(LEN=31)       :: fieldId(14)
 
     ! Objects
-    TYPE(SpcIndCt)          :: SpcCount
     TYPE(Species),  POINTER :: ThisSpc
     INTEGER,        POINTER :: CheckIds(:)
     REAL(fp),       POINTER :: Ptr2data(:,:,:)
