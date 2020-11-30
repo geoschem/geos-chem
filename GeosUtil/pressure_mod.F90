@@ -868,16 +868,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Accept_External_Pedge( State_Met, RC )
+  SUBROUTINE Accept_External_Pedge( State_Met, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -893,10 +895,26 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L
 
     ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
     ! State_Met object, which were obtained from the external GCM
-    EXTERNAL_PEDGE = State_Met%PEDGE
+
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L ) 
+    DO I = 1, State_Grid%NX
+    DO J = 1, State_Grid%NY
+    DO L = 1, State_Grid%NZ+1
+
+       EXTERNAL_PEDGE(I,J,L) = State_Met%PEDGE(I,J,L)
+
+    ENDDO
+    ENDDO
+    ENDDO
 
     ! Return successfully
     RC             = GC_SUCCESS
