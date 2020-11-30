@@ -67,9 +67,6 @@ MODULE m_netcdf_io_define
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REMARKS:
-!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
-!
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
@@ -218,8 +215,12 @@ CONTAINS
     ! NOTE: We need to block this out with an #ifdef because some
     ! netCDF installations might lack the nf_def_var_deflate function
     ! which would cause a compile-time error. (bmy, 3/1/17)
+    !
+    ! ALSO NOTE: Newer versions of netCDF balk when you try to compress
+    ! a scalar variable.  This generates an annoying warning message.
+    ! To avoid this, only compress array variables. (bmy, 11/30/20)
     !=====================================================================
-    if (present(Compress)) then
+    if (present(Compress) .and. ndims > 0) then
 
        if (Compress) then
 
@@ -334,7 +335,6 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -390,7 +390,6 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -446,7 +445,6 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  20 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -502,7 +500,6 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -558,7 +555,6 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -614,7 +610,6 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  20 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -671,7 +666,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -727,7 +721,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -784,7 +777,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -841,7 +833,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -898,7 +889,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -955,7 +945,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -1012,7 +1001,6 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
@@ -1161,7 +1149,6 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  14 May 2014 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
