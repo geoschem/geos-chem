@@ -21,11 +21,11 @@ mv gckpp_Precision.F90 PRECISION
 rm *F90
 rm *o
 kpp gckpp.kpp
-if [[ ! -e gckpp_Rates.f90 ]]; then
-  echo "KPP failure! Aborting."
+for a in $(ls *.f90); do mv -v $a ${a%.f90}.F90; done
+if [[ ! -e gckpp_Rates.F90 ]]; then
+  echo "KPP failed to build gckpp_Rates.F90! Aborting."
   exit 1
 fi
-for a in $(ls *.f90); do mv -v $a ${a%.f90}.F90; done
 mv HETCODE gckpp_HetRates.F90
 mv INTEGRATOR gckpp_Integrator.F90
 mv PRECISION gckpp_Precision.F90

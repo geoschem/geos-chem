@@ -815,22 +815,6 @@ CONTAINS
        ENDIF
 
        !====================================================================
-       ! Get rates for heterogeneous chemistry
-       !====================================================================
-       IF ( DO_HETCHEM ) THEN
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Het chem rates", RC, &
-                               InLoop=.TRUE., ThreadNum=Thread )
-          ENDIF
-
-          CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "  -> Het chem rates", RC, &
-                             InLoop=.TRUE., ThreadNum=Thread )
-          ENDIF
-       ENDIF
-
-       !====================================================================
        ! Initialize species concentrations
        !====================================================================
 
@@ -864,6 +848,22 @@ CONTAINS
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
           ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
           C(ind_H2O) = H2O
+       ENDIF
+
+       !====================================================================
+       ! Get rates for heterogeneous chemistry
+       !====================================================================
+       IF ( DO_HETCHEM ) THEN
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "  -> Het chem rates", RC, &
+                               InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
+
+          CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "  -> Het chem rates", RC, &
+                             InLoop=.TRUE., ThreadNum=Thread )
+          ENDIF
        ENDIF
 
        !==================================================================
