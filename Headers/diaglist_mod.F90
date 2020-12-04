@@ -624,6 +624,11 @@ CONTAINS
                 nameAllCaps(1:3) == 'INV'  .OR. &
                 nameAllCaps(1:3) == 'HCO') THEN
           state = 'HEMCO'
+#ifdef ADJOINT
+       ! Emissions scaling factor sensitivites are included in HISTORY.rc in GCHP only
+       ELSEIF ( nameAllCaps(1:6) == 'SFEMIS' ) THEN
+          state = 'HEMCO'
+#endif
 #ifdef MODEL_GEOS
        ! GEOS might have custom diagnostics outside of the standard states
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
