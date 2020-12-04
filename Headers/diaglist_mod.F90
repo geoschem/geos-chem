@@ -610,6 +610,11 @@ CONTAINS
        ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
           state = 'EMISSIONS'
+#ifdef ADJOINT
+       ! Emissions scaling factor sensitivites are included in HISTORY.rc in GCHP only
+       ELSEIF ( nameAllCaps(1:6) == 'SFEMIS' ) THEN
+          state = 'EMISSIONS'
+#endif
 #ifdef MODEL_GEOS
        ! GEOS uses a different internal state prefix than GCHP and
        ! and also can have custom diagnostics

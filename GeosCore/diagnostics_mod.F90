@@ -28,6 +28,9 @@ MODULE Diagnostics_mod
   PUBLIC :: Zero_Diagnostics_StartofTimestep
   PUBLIC :: Compute_Column_Mass
   PUBLIC :: Compute_Budget_Diagnostics
+#ifdef ADJOINT
+  PUBLIC :: Set_SpcAdj_Diagnostic
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -149,6 +152,26 @@ CONTAINS
        RETURN
     ENDIF
 
+#ifdef ADJOINT
+    !-----------------------------------------------------------------------
+    ! Set species concentration diagnostic in units specified in state_diag_mod
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_SpeciesAdj ) THEN
+       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+          write(*,*) 'Before diagnostic ',  &
+               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
+       ENDIF
+       CALL Set_SpcAdj_Diagnostic( 'SpeciesAdj', State_Diag%SpeciesAdj, &
+                                   Input_Opt,  State_Chm, State_Grid,   &
+                                   State_Met,  RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting species adoint diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
+#endif
     !-----------------------------------------------------------------------
     ! Set total dry deposition flux
     !-----------------------------------------------------------------------
@@ -433,6 +456,138 @@ CONTAINS
 
   END SUBROUTINE Set_SpcConc_Diagnostic
 !EOC
+#ifdef ADJOINT
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_SpcAdj_Diagnostic
+!
+! !DESCRIPTION: Subroutine Set_SpcAdj\_Diagnostic sets the passed species
+!  adjoint diagnostic array stored in State_Diag to the instantaneous
+!  State_Chm%SpeciesAdj values converted to the diagnostic unit stored in 
+!  the State_Diag metadata.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_SpcAdj_Diagnostic( DiagMetadataID, Ptr2Data, Input_Opt, &
+                                    State_Chm, State_Grid, State_Met, RC ) 
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState, Get_Metadata_State_Diag
+    USE State_Grid_Mod, ONLY : GrdState
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
+    TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm         ! Chemistry state obj
+    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC      ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  15 Dec 2019 - C. Lee - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
+    LOGICAL            :: Found
+    INTEGER            :: I, J, L, N
+
+    !====================================================================
+    ! Set_SpcAdj_Diagnostic begins here!
+    !====================================================================
+
+    ! Assume success
+    RC      =  GC_SUCCESS
+    Found   = .FALSE.
+    ThisLoc = ' -> Set_SpcAdj_Diagnostic ' // ModLoc
+
+    ! Exit if species concentration is not a diagnostics in HISTORY.rc
+    IF ( ASSOCIATED( Ptr2Data ) ) THEN
+
+       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' .or. &
+            TRIM( DiagMetadataID ) == 'SpeciesBC' ) THEN
+
+          ! For GEOS-Chem restart and BC collections force units to v/v dry
+          Units = 'v/v dry'
+
+       ELSE
+
+          ! Retrieve the units of the diagnostic from the metadata
+          CALL Get_Metadata_State_Diag( Input_Opt%amIRoot,     &
+                                        TRIM(DiagMetadataID),  &
+                                        Found, RC, Units=Units )
+
+          ! Allow for alternate format of units
+          IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
+          IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
+          IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
+          IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
+
+       ENDIF
+
+       ! Convert State_Chm%Species unit to diagnostic units
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
+                               Units, RC, OrigUnit=OrigUnit )
+       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+          write(*,*) 'After Convert_Spc_Units to ',  trim(units), &
+               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
+       ENDIF       
+       ! Copy species concentrations to diagnostic array
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          Ptr2Data(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
+       ENDDO
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Convert State_Chm%Species back to original unit
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit, RC )
+
+       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+          write(*,*) 'After Convert_Spc_Units back to ', trim(origunit),   &
+               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
+       ENDIF       
+       
+       ! Error handling
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error converting species units for archiving diagnostics'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Set_SpcAdj_Diagnostic
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

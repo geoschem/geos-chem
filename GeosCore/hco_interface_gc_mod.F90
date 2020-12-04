@@ -422,10 +422,25 @@ CONTAINS
     ! Set misc. parameter
     !=======================================================================
 
+#ifdef ADJOINT
+    if ( Input_Opt%amIRoot ) WRITE(*,*) 'Setting isAdjoint to ', Input_Opt%is_adjoint
+    HcoState%isAdjoint = Input_opt%is_adjoint
+!    if ( .not. HcoState%isAdjoint ) THEN
+#endif
     ! Emission, chemistry and dynamics timestep in seconds
     HcoState%TS_EMIS = GET_TS_EMIS()
     HcoState%TS_CHEM = GET_TS_CHEM()
     HcoState%TS_DYN  = GET_TS_DYN()
+! #ifdef ADJOINT
+!     else
+!     ! Emission, chemistry and dynamics timestep in seconds
+!     HcoState%TS_EMIS = -GET_TS_EMIS()
+!     HcoState%TS_CHEM = -GET_TS_CHEM()
+!     HcoState%TS_DYN  = -GET_TS_DYN()
+!     ! Look into whether we want to change the sign in the body of GET_TS_*()
+!     endif
+! #endif
+
 
     ! Is this an ESMF simulation or not?
     ! The ESMF flag must be set before calling HCO_Init because the
@@ -1177,6 +1192,7 @@ CONTAINS
 
     USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
     USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
+    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1247,7 +1263,7 @@ CONTAINS
     ! Write diagnostics
     !-----------------------------------------------------------------------
     CALL HcoDiagn_Write( HcoState, RESTART, HMRC )
-
+    IF ( Mapl_am_i_root() ) WRITE(*,*) "Back from HcoDiagn_Write, RC = ", HMRC
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC

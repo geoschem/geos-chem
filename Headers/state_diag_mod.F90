@@ -74,6 +74,16 @@ MODULE State_Diag_Mod
      REAL(f4), POINTER :: FracOfTimeInTrop(:,:,:)
      LOGICAL :: Archive_FracOfTimeInTrop
 
+#ifdef ADJOINT
+     ! Concentrations
+     REAL(f8),  POINTER :: SpeciesAdj      (:,:,:,:) ! Spc Conc for diag output
+     LOGICAL :: Archive_SpeciesAdj
+
+     ! Concentrations
+     REAL(f8),  POINTER :: ScaleICsAdj     (:,:,:,:) ! Spc Conc for diag output
+     LOGICAL :: Archive_ScaleICsAdj
+#endif
+
      ! Budget diagnostics
      REAL(f8),  POINTER :: BudgetEmisDryDepFull     (:,:,:)
      REAL(f8),  POINTER :: BudgetEmisDryDepTrop     (:,:,:)
@@ -787,6 +797,15 @@ CONTAINS
     State_Diag%SpeciesConc                         => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
 
+#ifdef ADJOINT
+    ! Species concentration diagnostics
+    State_Diag%SpeciesAdj                          => NULL()
+    State_Diag%Archive_SpeciesAdj                  = .FALSE.
+    ! Species concentration diagnostics
+    State_Diag%ScaleICsAdj                         => NULL()
+    State_Diag%Archive_ScaleICsAdj                 = .FALSE.
+#endif
+
     ! Budget diagnostics
     State_Diag%BudgetEmisDryDepFull                => NULL()
     State_Diag%BudgetEmisDryDepTrop                => NULL()
@@ -1420,6 +1439,25 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+#ifdef ADJOINT
+    !------------------------------------------------------------------------
+    ! Species Concentration
+    !------------------------------------------------------------------------
+    arrayID = 'State_Diag%SpeciesAdj'
+    diagID  = 'SpeciesAdj'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%SpeciesAdj( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesAdj = 0.0_f8
+       State_Diag%Archive_SpeciesAdj = .TRUE.
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesAdj ,   &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
@@ -6621,6 +6659,15 @@ CONTAINS
        State_Diag%FracOfTimeInTrop => NULL()
     ENDIF
 
+#ifdef ADJOINT
+    IF ( ASSOCIATED( State_Diag%SpeciesAdj  ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesAdj, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesAdj', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesAdj => NULL()
+    ENDIF
+#endif
+
     IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
        DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
@@ -8328,6 +8375,15 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Fraction of time spent in the troposphere'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
+
+#ifdef ADJOINT
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESADJ' ) THEN
+       IF ( isDesc    ) Desc  = 'Adjoint of species'
+       IF ( isUnits   ) Units = 'mol mol-1 dry' ! This should be (cost function)-1 but I will have to look into how to do that
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isType    ) Type  = KINDVAL_F8
+#endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
