@@ -206,7 +206,7 @@ WetLossLS_mode=${common_mode}
 # on gcgrid do not contain HEMCO variables which will have the same effect
 # as turning the HEMCO restart file option off in GC classic. However, all 
 # output restart files will contain HEMCO restart variables for your next run.
-INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
+INITIAL_RESTART=gcchem_internal_restart.20140901_0600z.nc4
 
 # You can specify a custom initial restart file here to overwrite:
 # INITIAL_RESTART=your_restart_filename_here
@@ -390,7 +390,7 @@ abs() {
 }
 
 #### Give error if chem timestep is < dynamic timestep
-if [[ ${ChemEmiss_Timestep_sec} -lt ${TransConv_Timestep_sec} ]]; then
+if [[ $( abs "$ChemEmiss_Timestep_sec" ) -lt $( abs "$TransConv_Timestep_sec" ) ]]; then
     echo "ERROR: chemistry timestep must be >= dynamic timestep. Update values in runConfig.sh."
     exit 1
 fi
@@ -524,10 +524,10 @@ replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
 echo "Removing adjoint history collections"
-sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
-sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
-replace_val SFEmissions.backwards 0 HISTORY.rc
-sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
+sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'Adjoint',/" HISTORY.rc
+sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'SFEmissions',/" HISTORY.rc
+replace_val SFEmissions.backwards 1 HISTORY.rc
+sed -i -e "s/^[ \t]*#\([ \t]*SFEmis.*\)$/\1/" HEMCO_Diagn.rc
 
 ####  set cubed-sphere resolution and related grid variables
 echo " "
@@ -577,7 +577,7 @@ echo "Initial reestart file:"
 replace_val GCHPchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
 
 ### adjoint model phase
-replace_val MODEL_PHASE "FORWARD" GCHP.rc
+replace_val MODEL_PHASE "ADJOINT" GCHP.rc
 
 #### Set simulation start and end datetimes based on input.geos
 echo " "
@@ -585,7 +585,7 @@ echo "Simulation start, end, duration:"
 replace_val BEG_DATE  "${Start_Time}" CAP.rc
 replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
-replace_val REVERSE_TIME "0"          CAP.rc
+replace_val REVERSE_TIME "1"          CAP.rc
 
 #### Set frequency of writing restart files
 # Set to a very large number if turned off
