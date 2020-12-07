@@ -217,6 +217,10 @@ cp ./gitignore                 ${rundir}/.gitignore
 cp ./GCHP.rc.template          ${rundir}/GCHP.rc
 cp ./CAP.rc.template           ${rundir}/CAP.rc
 cp ./runConfig.sh.template     ${rundir}/runConfig.sh
+# Only copy adjoint for CO2 simulation (for now)
+if [ "${sim_name}" == "CO2" ]; then
+    cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
+fi
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./ExtData.rc.templates/ExtData.rc.${sim_type}            ${rundir}/ExtData.rc

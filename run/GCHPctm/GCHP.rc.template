@@ -36,7 +36,7 @@ DYNAMICS_DT: 600
 SOLARAvrg: 0
 IRRADAvrg: 0
 
-GCHPchem_REFERENCE_TIME: 121000
+GCHPchem_REFERENCE_TIME: 001000
 
 # Print Resource Parameters (0: Non-Default values, 1: ALL values)
 #-----------------------------------------------------------------
@@ -59,8 +59,8 @@ BKG_FREQUENCY: 0
 #                             Can exceed 24 hours (e.g. 1680000 for 7 days)
 # Record ref date (YYYYMMDD): Reference date; set to before sim start date
 # Record ref time (HHMMSS)  : Reference time 
-RECORD_FREQUENCY: 1680000 
-RECORD_REF_DATE: 20000101
+RECORD_FREQUENCY: 100000000 
+RECORD_REF_DATE: 20140901
 RECORD_REF_TIME: 000000
 
 # Chemistry/AEROSOL Model Restart Files
@@ -94,3 +94,8 @@ STDOUT_LOGLUN:        700
 # %%% Memory debug print level (integer 0 to 3; 0=none, 3=highest)
 #
 MEMORY_DEBUG_LEVEL:   0
+
+#
+# %%% Adjoint variables
+#
+MODEL_PHASE: ADJOINT

@@ -57,6 +57,7 @@ COLLECTIONS: 'Emissions',
              'CloudConvFlux',
              'LevelEdgeDiags',      
              'SpeciesConc',
+	     #'Adjoint',
              'StateMet_avg',      
              'StateMet_inst',      
 ::
@@ -148,6 +149,16 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.mode:       'time-averaged'
   SpeciesConc.fields:     'SpeciesConc_CO2                     ', 'GCHPchem',
   			  'SpeciesConc_PassiveTracer           ', 'GCHPchem',
+::
+#===================================================================
+# Species concentrations (per advected species) - time-averaged values
+  Adjoint.template:   '%y4%m2%d2.nc4',
+  Adjoint.format:     'CFIO',
+  Adjoint.frequency:  240000
+  Adjoint.duration:   240000
+  Adjoint.mode:       'instantaneous'
+  Adjoint.backwards:  1
+  Adjoint.fields:     'SpeciesAdj_CO2                  ', 'GCHPchem',
 ::
 #==============================================================================
   StateMet_avg.template:      '%y4%m2%d2_%h2%n2z.nc4',
