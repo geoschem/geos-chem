@@ -26,6 +26,17 @@ Chem/emis timestep [sec]: 1200
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : O3
 Species name            : O3Strat
+Species name            : O3ut
+Species name            : O3mt
+Species name            : O3row
+Species name            : O3pcbl
+Species name            : O3nabl
+Species name            : O3atbl
+Species name            : O3eubl
+Species name            : O3afbl
+Species name            : O3asbl
+Species name            : O3init
+Species name            : O3usa
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T

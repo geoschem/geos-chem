@@ -524,7 +524,13 @@ cp ./gitignore                              ${rundir}/.gitignore
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+
+# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
+# so skip copying it unless the file exists (bmy, 12/11/20)
+if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
+fi
+
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py

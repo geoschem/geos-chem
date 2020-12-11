@@ -2870,39 +2870,39 @@ O3:
   Background_VV: 2.0e-8
   FullName: Ozone
   Is_DryAlt: true
-O3AFBL:
+O3afbl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the African boundary layer
-O3ASBL:
+O3asbl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the Asian boundary layer
-O3ATBL:
+O3atbl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the Atlantic Ocean boundary layer
-O3EUBL:
+O3eubl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the European boundary layer
-O3INIT:
+O3init:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone from the initial condition
-O3MT:
+O3mt:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the middle troposphere
-O3NABL:
+O3nabl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the North America boundary layer
-O3PCBL:
+O3pcbl:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the Pacific Ocean boundary layer
-O3ROW:
+O3row:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the rest of the world
@@ -2910,11 +2910,11 @@ O3Strat:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the stratosphere
-O3USA:
+O3usa:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced over the United States in PBL
-O3UT:
+O3ut:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the upper troposphere
