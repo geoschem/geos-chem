@@ -2391,7 +2391,7 @@ CONTAINS
     REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM
     REAL(fp)              :: ALK,    ALK1,    ALK2,    SO2_ss
     REAL(fp)              :: AlkA,   AlkC
-    REAL(fp)              :: Kt1,    Kt2,     AREASS1, AREASS2
+    REAL(fp)              :: Kt1,    Kt2
     REAL(fp)              :: PSO4E,  PSO4F,   Kt1N,    Kt2N
     REAL(fp)              :: XX, Kt1L, Kt2L
     REAL(fp)              :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
@@ -2439,9 +2439,6 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER     :: Spc(:,:,:,:)
-    REAL(fp), POINTER     :: pHCloud(:,:,:)
-    REAL(fp), POINTER     :: QLxpHCloud(:,:,:) !jmm 3/7/19
-    REAL(fp), POINTER     :: isCloud(:,:,:) ! jmm 3/1/19
     REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
@@ -2462,31 +2459,22 @@ CONTAINS
     IF ( id_H2O2 < 0 .or. id_SO2 < 0  ) RETURN
 
     ! Assume success
-    RC          = GC_SUCCESS
-    ErrMsg      = ''
-    ThisLoc     = ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F90)'
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F90)'
 
-    ! Copy fields from INPUT_OPT to local variables for use below
-    IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-    IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
-    LDSTUP      = Input_Opt%LDSTUP
-
-    ! Point to chemical species array [v/v dry]
-    Spc         => State_Chm%Species
-    pHCloud     => State_Chm%pHCloud
-    QLxpHCloud  => State_Chm%QLxpHCloud
-    isCloud     => State_Chm%isCloud ! jmm 3/1/19
-    SSAlk       => State_Chm%SSAlk
-    H2O2s       => State_Chm%H2O2AfterChem
-    SO2s        => State_Chm%SO2AfterChem
-
-    ! Reset cloud pH for safety
-    pHCloud(:,:,:) = 0.0e+0_fp
-    isCloud(:,:,:) = 0.0e+0_fp
-    QLxpHCloud(:,:,:) = 0.0e+0_fp
-
-    ! DTCHEM is the chemistry timestep in seconds
-    DTCHEM   = GET_TS_CHEM()
+    ! Initialize
+    IS_FULLCHEM          =  Input_Opt%ITS_A_FULLCHEM_SIM
+    IS_OFFLINE           =  Input_Opt%ITS_AN_AEROSOL_SIM
+    LDSTUP               =  Input_Opt%LDSTUP
+    Spc                  => State_Chm%Species
+    SSAlk                => State_Chm%SSAlk
+    H2O2s                => State_Chm%H2O2AfterChem
+    SO2s                 => State_Chm%SO2AfterChem
+    State_Chm%isCloud    =  0.0_fp
+    State_Chm%pHCloud    =  0.0_fp
+    State_Chm%QLxpHCloud =  0.0_fp
+    DTCHEM               =  GET_TS_CHEM()  ! Timestep [s]
 
 #ifdef LUO_WETDEP
     ! For Luo et al wetdep scheme
@@ -2546,32 +2534,41 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! NOTE: The parallelization problem in KPP is likely here
-    ! because we get slightly different values of phCloud!
     ! Loop over chemistry grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  ) &
-    !$OMP PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC ) &
-    !$OMP PRIVATE( KaqH2O2, KaqO3, ALK, ALK1, ALK2                         ) &
-    !$OMP PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          ) &
-    !$OMP PRIVATE( PSO4E, PSO4F, XX, Kt1L, Kt2L, TNA, TFA, TAA             ) &
-    !$OMP PRIVATE( HPLUS, SO4nss, TNH3,TNO3,CL,GNO3, ANIT,   LSTOT, ALKdst ) &
-    !$OMP PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  ) &
-    !$OMP PRIVATE( BULK,  SIZE_RES,     RC, AlkA, AlkC                     ) &
-    !$OMP PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) &
-    !$OMP PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) &
-    !$OMP PRIVATE( IBIN, PSO4d_tot, PH2SO4d_tot, PNITd_tot, ALKA_d         ) &
-    !$OMP PRIVATE( L5, L5S, SRo3, SRhobr                                   ) &
-    !$OMP PRIVATE( L3_1, L3S_1,KaqO3_1, L5_1, L5S_1,HSO3aq,SO3aq           ) &
-    !$OMP PRIVATE( SO4H1_vv, SO4H2_vv, LSTOT0, SO2_ss0, rSIV,fupdateHOBr_0 ) &
-    !$OMP PRIVATE( HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0, TMP          ) &
-    !$OMP PRIVATE( L4,    L4S,     KaqO2,  DUST, Mn_ant, Mn_nat, Mn_tot    ) &
-    !$OMP PRIVATE( Fe_ant, Fe_nat, Fe_tot, Fe_d, Mn_d,   FeIII,  MnII      ) &
-    !$OMP PRIVATE( Fe_d_ant, Fe_d_nat                                      ) &
-    !$OMP PRIVATE( HCHOCl, KHOCl, f_srhocl, HOCl0, L6, L6S, L6S_1          ) &!XW
-    !$OMP PRIVATE( SRhocl, L6_1, SO4H3_vv, SO4H4_vv, fupdateHOCl_0         ) &!xw
-    !$OMP SCHEDULE( DYNAMIC )
+    ! NOTE: Bob Yantosca verified that these !$OMP PRIVATE statements
+    ! are correct (12/11/20).  Make sure you add variables to the !$OMP
+    ! PRIVATE declaration if they are (1) Scalar variables; (2) Pointers
+    ! to other variables; (3) Arrays that have less than (I,J,L) scope.
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,             L,         SO20,     H2O20      )&
+    !$OMP PRIVATE( O3,       PATM,          TK,        K0,       M          )&
+    !$OMP PRIVATE( KK,       F1,            RK1,       RK2,      RK         )&
+    !$OMP PRIVATE( RKT,      SO2_cd,        L1,        Ld,       L2         )&
+    !$OMP PRIVATE( L2S,      L3,            L3S,       FC,       LWC        )&
+    !$OMP PRIVATE( KaqH2O2,  KaqO3,         ALK,       ALK1,     ALK2       )&
+    !$OMP PRIVATE( Kt1,      Kt2,           SO2_ss,    Kt1N,     Kt2N       )&
+    !$OMP PRIVATE( PSO4E,    PSO4F,         XX,        Kt1L,     Kt2L       )&
+    !$OMP PRIVATE( TFA,      TAA,           TDCA,      HPLUS,    SO4nss     )&
+    !$OMP PRIVATE( TNH3,     TNO3,          CL,        GNO3,     ANIT       )&
+    !$OMP PRIVATE( LSTOT,    ALKdst,        ALKds,     ALKss,    NH3        )&
+    !$OMP PRIVATE( SSCvv,    aSO4,          SO2_sr,    SR,       TANIT      )&
+    !$OMP PRIVATE( BULK,     SIZE_RES,      RC,        AlkA,     AlkC       )&
+    !$OMP PRIVATE( ALK_d,    KTS,           KTN,       PSO4_d,   PH2SO4_d   )&
+    !$OMP PRIVATE( PNIT_d,   SO2_gas,       KTH,       H2SO4_cd, H2SO4_gas  )&
+    !$OMP PRIVATE( Ki,       PH2SO4d_tot,   PSO4d_tot, IBIN,     PNITd_tot  )&
+    !$OMP PRIVATE( ALKA_d,   L5,            L5S,       SRo3,     SRhobr     )&
+    !$OMP PRIVATE( L3_1,     L3S_1,         KaqO3_1,   L5_1,     L5S_1      )&
+    !$OMP PRIVATE( HSO3aq,   SO3aq,         SO4H1_vv,  SO4H2_vv, LSTOT0     )&
+    !$OMP PRIVATE( SO2_ss0,  rSIV,          L6S_1,     HCO3,     HCHOBr     )&
+    !$OMP PRIVATE( KO3,      KHOBr,         f_srhobr,  HOBr0,    TMP        )&
+    !$OMP PRIVATE( L4,       L4S,           DUST,      Mn_ant,   Mn_nat     )&
+    !$OMP PRIVATE( Mn_tot,   Fe_ant,        Fe_nat,    Fe_tot,   Fe_d       )&
+    !$OMP PRIVATE( Mn_d,     FeIII,         MnII,      Fe_d_ant, Fe_d_nat   )&
+    !$OMP PRIVATE( HCHOCl,   KHOCl,         f_srhocl,  HOCl0,    L6         )&
+    !$OMP PRIVATE( L6S,      fupdateHOBr_0, SRhocl,    L6_1,     SO4H3_vv   )&
+    !$OMP PRIVATE( SO4H4_vv, fupdateHOCl_0, KaqO2,     TNA                  )&
+    !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -2712,13 +2709,12 @@ CONTAINS
 
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
-          CALL SEASALT_CHEM( I,         J,          L,          &
-                             ALK1,      ALK2,       SO2_cd,     &
-                             Kt1,       Kt2,        Kt1N,       &
-                             Kt2N, Kt1L, Kt2L, SO2_ss, PSO4E,   &
-                             PSO4F,     AlkA,       AlkC,       &
-                             Input_Opt,  State_Met, State_Chm,  &
-                             State_Diag, FullRun,   RC )
+          CALL SEASALT_CHEM( I,          J,          L,         ALK1,        &
+                             ALK2,       SO2_cd,     Kt1,       Kt2,         &
+                             Kt1N,       Kt2N,       Kt1L,      Kt2L,        &
+                             SO2_ss,     PSO4E,      PSO4F,     AlkA,        &
+                             AlkC,       Input_Opt,  State_Met, State_Chm,   &
+                             State_Diag, FullRun,    RC                     )
 
        ELSE
 
@@ -2779,12 +2775,11 @@ CONTAINS
              ! HNO3 -> nitrate within the dust aerosol
 
              !tdf Call DUST_CHEM using updated SO2_ss after sea salt chemistry
-             CALL DUST_CHEM( I,         J,         L,            &
-                             ALK_d,     SO2_ss,    H2SO4_cd,     &
-                             KTS,       KTN,       KTH,          &
-                             SO2_gas,   H2SO4_gas, PSO4_d,       &
-                             PH2SO4_d,  PNIT_d,    ALKA_d,       &
-                             Input_Opt, State_Met, State_Chm, RC )
+             CALL DUST_CHEM( I,         J,         L,         ALK_d,         &
+                             SO2_ss,    H2SO4_cd,  KTS,       KTN,           &
+                             KTH,       SO2_gas,   H2SO4_gas, PSO4_d,        &
+                             PH2SO4_d,  PNIT_d,    ALKA_d,    Input_Opt,     &
+                             State_Met, State_Chm, RC                       )
 
              ! tdf "SO2_ss" is SO2 mixing ratio remaining after interaction
              ! with dust
@@ -3035,16 +3030,14 @@ CONTAINS
           ENDIF
 
           ! Calculate cloud pH
-            CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL, TNA, TDCA, &
-                             TFA, TAA, TK,                             &
-                             PATM,   LWC,  HPLUS_45, HPLUS )
+          CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL,  TNA,      TDCA,   &
+                          TFA,    TAA,  TK,   PATM,   LWC, HPLUS_45, HPLUS  )
 
-          ! Store the cloud pH
-          pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
-          QLxpHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS) * &
-               State_Met%QL(I,J,L) !jmm 3/7/19
-
-          isCloud(I,J,L) = 1.0e+0_fp ! jmm 3/1/19
+          ! Store the cloud pH quantities
+          State_Chm%isCloud(I,J,L)    =  1.0_fp
+          State_Chm%pHCloud(I,J,L)    = -1.0_fp * log10(HPLUS)
+          State_Chm%QLxpHCloud(I,J,L) = State_Chm%pHCloud(I,J,L)             &
+                                      * State_Met%QL(I,J,L)
 
           IF ( Input_Opt%LMETALCATSO2 ) THEN
 
@@ -3826,8 +3819,6 @@ CONTAINS
 
     ! Free pointers
     Spc     => NULL()
-    pHCloud => NULL()
-    isCloud => NULL()
     SSAlk   => NULL()
     H2O2s   => NULL()
     SO2s    => NULL()
