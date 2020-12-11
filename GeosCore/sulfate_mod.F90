@@ -410,7 +410,7 @@ CONTAINS
     PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
 
-    !================================================================= 
+    !=================================================================
     ! Call individual chemistry routines for sulfate/aerosol tracers
     !=================================================================
 
@@ -579,7 +579,7 @@ CONTAINS
        !-----------------------
        CALL CHEM_SO2( Input_Opt, State_Chm, State_Diag, State_Grid, &
                       State_Met, .TRUE.,    RC )
-       
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Chem_SO2"!'
@@ -858,7 +858,7 @@ CONTAINS
 #ifdef BPCH_DIAG
     USE CMN_DIAG_MOD             ! ND13 (for now)
     USE DIAG_MOD,             ONLY : AD59_SULF,     AD59_NUMB
-#endif                        
+#endif
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Grid_Mod,       ONLY : GrdState
@@ -1146,7 +1146,7 @@ CONTAINS
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
                 NDIST(K) = TC1(I,J,L,K)
-                !sfarina - what are the chances aerosol water and ammonium 
+                !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
                    !set existing mass of each component
@@ -1659,7 +1659,7 @@ CONTAINS
           ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
           ! which produces slip correction factore with small error
           ! compared to the above with less computation.
-          !===========================================================  
+          !===========================================================
 
           ! Slip correction factor (as function of P*dp)
           Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp * &
@@ -1852,8 +1852,8 @@ CONTAINS
 !  R4:    DMS + X   ->   SO2 + ...
 !         assume to be at the rate of DMS+OH and DMS+NO3 combined.
 !                                                                             .
-!  The production of SO2 and MSA here, PSO2_DMS and PMSA_DMS, are saved    
-!  for use in CHEM_SO2 and CHEM_MSA subroutines as a source term.  They    
+!  The production of SO2 and MSA here, PSO2_DMS and PMSA_DMS, are saved
+!  for use in CHEM_SO2 and CHEM_MSA subroutines as a source term.  They
 !  are in unit of [v/v/timestep].
 !
 ! !REVISION HISTORY:
@@ -1869,8 +1869,8 @@ CONTAINS
     REAL(fp), PARAMETER :: B  = 0.25e+0_fp
 
     ! From D4: only 0.8 efficiency, also some goes to DMSO and lost.
-    ! So we assume 0.75 efficiency for DMS addtion channel to form     
-    ! products.                                                        
+    ! So we assume 0.75 efficiency for DMS addtion channel to form
+    ! products.
     REAL(fp), PARAMETER :: EFF = 1e+0_fp
 !
 ! !LOCAL VARIABLES:
@@ -1902,7 +1902,7 @@ CONTAINS
 
     ! Set location for error messages
     ThisLoc  = ' -> at CHEM_DMS (in module GeosCore/sulfate_mod.F90)'
-    
+
     ! Copy fields from INPUT_OPT to local variables for use below
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
@@ -1954,11 +1954,11 @@ CONTAINS
        ! to zero.  We don't have to relax to the monthly mean
        ! concentration every 3 hours (as for HNO3) since NO3 has a
        ! very short lifetime. (rjp, bmy, 12/16/02)
-       !==============================================================       
-       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN       
+       !==============================================================
+       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
           ! NO3 goes to zero during the day
           XNO3 = 0e+0_fp
-       ELSE       
+       ELSE
           ! At night: Get global offline NO3 [v/v] and convert to [molec/cm3]
           XNO3 = GLOBAL_NO3(I,J,L) * State_Met%AIRDEN(I,J,L) * 1.0e-3_fp &
                                    * AVO / AIRMW
@@ -2258,7 +2258,7 @@ CONTAINS
           PHOTJ = 0e+0_fp
        ENDIF
 
-       ! Compute loss fraction from OH, photolysis, drydep [unitless].  
+       ! Compute loss fraction from OH, photolysis, drydep [unitless].
        ALPHA = 1.e+0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
@@ -2296,14 +2296,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO2( Input_Opt, State_Chm,  State_Diag, State_Grid, & 
+  SUBROUTINE CHEM_SO2( Input_Opt, State_Chm,  State_Diag, State_Grid, &
                        State_Met, FullRun,    RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod,         ONLY : NDSTBIN
     USE DUST_MOD,             ONLY : GET_DUST_ALK      ! tdf 04/08/08
-    USE ErrCode_Mod           
+    USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
@@ -2344,9 +2344,9 @@ CONTAINS
 !  (1 ) SO2 production:
 !       DMS + OH, DMS + NO3 (saved in CHEM_DMS)
 !                                                                             .
-!  (2 ) SO2 loss:                                                         
-!       (a) SO2 + OH  -> SO4                                               
-!       (b) SO2       -> drydep                                             
+!  (2 ) SO2 loss:
+!       (a) SO2 + OH  -> SO4
+!       (b) SO2       -> drydep
 !       (c) SO2 + H2O2 or O3 (aq) -> SO4
 !                                                                             .
 !  (3 ) SO2 = SO2_0 * exp(-bt) +  PSO2_DMS/bt * [1-exp(-bt)]
@@ -2355,12 +2355,12 @@ CONTAINS
 !       deposition rate of SO2, PSO2_DMS is SO2 production from DMS in
 !       MixingRatio/timestep.
 !                                                                             .
-!  If there is cloud in the gridbox (fraction = fc), then the aqueous      
-!  phase chemistry also takes place in cloud. The amount of SO2 oxidized   
-!  by H2O2 in cloud is limited by the available H2O2; the rest may be      
-!  oxidized due to additional chemistry, e.g, reaction with O3 or O2       
-!  (catalyzed by trace metal).                                             
-!                                                                          
+!  If there is cloud in the gridbox (fraction = fc), then the aqueous
+!  phase chemistry also takes place in cloud. The amount of SO2 oxidized
+!  by H2O2 in cloud is limited by the available H2O2; the rest may be
+!  oxidized due to additional chemistry, e.g, reaction with O3 or O2
+!  (catalyzed by trace metal).
+!
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -2440,7 +2440,7 @@ CONTAINS
     ! Pointers
     REAL(fp), POINTER     :: Spc(:,:,:,:)
     REAL(fp), POINTER     :: pHCloud(:,:,:)
-    REAL(fp), POINTER     :: QLxpHCloud(:,:,:) !jmm 3/7/19  
+    REAL(fp), POINTER     :: QLxpHCloud(:,:,:) !jmm 3/7/19
     REAL(fp), POINTER     :: isCloud(:,:,:) ! jmm 3/1/19
     REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
@@ -2546,6 +2546,8 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! NOTE: The parallelization problem in KPP is likely here
+    ! because we get slightly different values of phCloud!
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -2954,7 +2956,7 @@ CONTAINS
           ! [moles/liter]
 	  ! Use a cloud scavenging ratio of 0.7
           SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
-                     0.7e+0_fp / ( AIRMW * LWC ) +                 &  
+                     0.7e+0_fp / ( AIRMW * LWC ) +                 &
                      Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L)  &
                      / ( AIRMW * LWC)
 
@@ -2966,17 +2968,17 @@ CONTAINS
           ! Use a cloud scavenging ratio of 0.7
           CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
                Spc(I,J,L,id_SALCCL)  + Spc(I,J,L,id_HCL)
-          
+
           ! Get total formic acid concentration [v/v]
           ! jmm (12/3/18)
           ! no cloud scavenging because gases?
           TFA     = Spc(I,J,L,id_HCOOH)
-          
+
           ! Get total acetic acid concentration [v/v]
           ! jmm (12/3/18)
           ! no cloud scavenging b/c gases?
           TAA     = Spc(I,J,L,id_ACTA)
-          
+
           ! Get total sea salt NVC concentration expressed as NA+ equivalents
           ! and convert from [v/v] to [moles/liter]
           ! NVC is calculated to balance initial Cl- + alkalinity in
@@ -2986,9 +2988,9 @@ CONTAINS
                       ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *     &
                       0.7e+0_fp / ( AIRMW * LWC )  +                 &
                       Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) * &
-                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )       & 
+                      ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )       &
                       / ( AIRMW * LWC )
-          
+
           ! Get total dust cation concentration [mol/L]
           ! Use a cloud scavenging ratio of 1 for dust
           ! to be consistent for how it was calculated for
@@ -3004,20 +3006,20 @@ CONTAINS
           ! jmm (12/3/18)
           !
           ! Get dust concentrations [v/v -> ng/m3]
-          
+
           DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
                        Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                        1.e+12_fp * State_Met%AD(I,J,L)             &
                        / ( AIRMW                                   &
                          / State_Chm%SpcData(id_DST1)%Info%MW_g )&
-                       / State_Met%AIRVOL(I,J,L)                   
-          
+                       / State_Met%AIRVOL(I,J,L)
+
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
           !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
           !     (Engelbrecht et al., 2016)
           !     1e-12_fp from m3->L & ng->g
           TDCA     = DUST * 2.22e-15_fp / LWC
-          
+
           ! Get total nitrate (HNO3 + NIT) concentrations [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NIT
           IF ( IS_FULLCHEM ) THEN
@@ -3169,7 +3171,7 @@ CONTAINS
 
              ! NOTE from Jintai Lin (4/28/10):
              ! However, in the case of a negative XX, L2S should be
-             ! approximated as SO2_ss, instead of H2O20. In other words, 
+             ! approximated as SO2_ss, instead of H2O20. In other words,
              ! L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / ( (SO2_ss*L2) - H2O20 )
              ! reaches different limits when XX reaches positive infinity
              ! and negative infinity.
@@ -3559,7 +3561,7 @@ CONTAINS
              HCO3   = 1.13e-2_fp * EXP( 8.51e+0_fp * &
                       ( 298.15e+0_fp / TK - 1.e+0_fp ) )
              HCHOBr = 1.3e+3_fp
-             HCHOCl = 6.6e+2_fp               
+             HCHOCl = 6.6e+2_fp
 
              ! Rate coefficient (M-1 s-1)
              KO3   = 7.32e+14_fp * EXP( -4.03e+3_fp / TK ) ! for O3+SO3
@@ -4054,30 +4056,30 @@ CONTAINS
     !-----------
     ! HCl
     !-----------
-    
+
     ! Available flux of HCl to accum sea salt aerosols [v/v/timestep]
     L7A = EXP( - Kt1L * DTCHEM )
     F_HCl_A = HCl_vv * ( 1.e+0_fp - L7A )
     F_HCl_A = MAX( F_HCl_A, 1.0e-32_fp )
-    
+
     ! Convert to [eq/timestep]
     ! Remove species molecular weight from equation (bmy, 2/10/17)
     L_FLUX_A = ( F_HCl_A * AD(I,J,L) / AIRMW ) * 1000.0_fp
-    
+
     ! Available flux of HCl to coarse sea salt aerosols
     ! [v/v/timestep]
     L7C = EXP( - Kt2L * DTCHEM )
     F_HCl_C = HCl_vv * ( 1.e+0_fp - L7C )
     F_HCl_C = MAX( F_HCl_C, 1.0e-32_fp )
-    
+
     ! convert to [eq/timestep]
     ! Remove species molecular weight from equation (bmy, 2/10/17)
     L_FLUX_C = ( F_HCl_C * AD(I,J,L) / AIRMW ) * 1000.0_fp
-    
+
     ! Total flux of HCl
     F_HCl  = F_HCl_A  + F_HCl_C ![v/v/timestep]
     L_FLUX = L_FLUX_A + L_FLUX_C ![eq/timestep]
-    
+
     !-----------
     ! Acid
     !-----------
@@ -4978,68 +4980,68 @@ CONTAINS
        ENDIF
 
        nHPLUS = 10.e+0_fp**(-ipH)
-       
+
        ! Get f(x) terms
        fHCO3  = kCO21 ( PRES, T, LWC, nHPLUS )
-       
+
        fCO3 = kCO22 ( PRES, T, LWC, nHPLUS )
-       
+
        fHSO3  = kSO21 ( PRES, T, LWC, nHPLUS, SO2 )
-       
+
        fSO3 = kSO22 ( PRES, T, LWC, nHPLUS, SO2 )
-       
+
        fHNO3 = kHNO3 ( PRES, T, LWC, nHPLUS, TNO3 )
-       
+
        fNH4  = kNH3  ( PRES, T, LWC, nHPLUS, TNH3, Kw_T )
-       
+
        ! include HCl in cloud pH calculations, xnw 10/17/17
        fHCl  = kHCl  ( PRES, T, LWC, nHPLUS, CL  )
-       
+
        fFA   = kFA   ( PRES, T, LWC, nHPLUS, TFA ) ! jmm 12/3/18
-       
+
        fAA   = kAA   ( PRES, T, LWC, nHPLUS, TAA ) ! jmm 12/3/18
-       
+
        ! Get f'(x) terms
        dHCO3  = dkCO21 ( PRES, T, LWC, nHPLUS )
-       
+
        dCO3 = dkCO22 ( PRES, T, LWC, nHPLUS )
-       
+
        dHSO3  = dkSO21 ( PRES, T, LWC, nHPLUS, SO2 )
-       
+
        dSO3 = dkSO22 ( PRES, T, LWC, nHPLUS, SO2 )
-       
+
        dHNO3 = dkHNO3 ( PRES, T, LWC, nHPLUS, TNO3 )
-       
+
        dNH4  = dkNH3  ( PRES, T, LWC, nHPLUS, TNH3, Kw_T )
-       
+
        dHCl = dkHCl ( PRES, T, LWC, nHPLUS, CL )
-       
+
        dFA   = dkFA   ( PRES, T, LWC, nHPLUS, TFA ) ! jmm 12/3/18
-       
+
        dAA   = dkAA   ( PRES, T, LWC, nHPLUS, TAA ) ! jmm 12/3/18
        ! Calculate [Ca2+] in equilibrium with CaCO3(s)
        CALL CaCO3_PRECIP ( PRES, T, nHPLUS, fCa, dCa )
-       
+
        ! if [Ca2+] in equilibrium with CacO3(s) is greater than total [Ca2+]
        ! then all Ca is dissolved else [Ca2+] varies with [H+]
        IF ( fCa .ge. TDCA ) THEN
           ! Non-volatile aerosol concentration [M]
           D = (2.e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
-          
+
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * &
                fCO3 + fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - fNH4 + &
                fHCl + fFA + fAA
-          
+
           ! Define f'(x)
           df = - 1.d0 - Kw/nHPLUS/nHPLUS + dHCO3 + 2.e+0_fp * &
                dCO3 + dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 + &
                dHCl + dFA + dAA
-          
+
        ELSE
           ! Non-volatile aerosol concentration [M]
           D = (2.e+0_fp * SO4nss) - TNA
-          
+
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * fCO3 + &
                fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - fNH4 + &
@@ -5049,21 +5051,21 @@ CONTAINS
                dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 + &
                dHCl + dFA + dAA - 2.e+0_fp * dCa
        ENDIF
-       
+
        ! Apply Newton's method
        nnHPLUS = nHPLUS - f/df
-       
+
        ! Set minimum [H+] = 1.d-14 (pH = 14)
        nnHPLUS = MAX(nnHPLUS,1.0e-14_fp)
-       
+
        ! Set maximum [H+] = 1.d-1 (pH = 1)
        nnHPLUS = MIN(nnHPLUS,1.0e-1_fp)
-       
+
        ! If solution does not converge after 50 iterations
        ! average last 2 pH calculations
        IF (count > 50) THEN
           newpH = ((-log10(nnHPLUS)) + (-log10(nHPLUS))) / 2.0e+0_fp
-          
+
           IF (IT_IS_NAN( newpH )) THEN
              write(6,*) 'newpH = ', newpH
              write(6,*) 'nnHPLUS = ', nnHPLUS
@@ -5074,7 +5076,7 @@ CONTAINS
           EXIT
        ELSE
           newpH = -log10(nnHPLUS)
-          
+
           IF (IT_IS_NAN( newpH )) THEN
              write(6,*) 'newpH = ', newpH
              write(6,*) 'nnHPLUS = ', nnHPLUS
@@ -5084,9 +5086,9 @@ CONTAINS
        ENDIF
 
     ENDDO
-    
+
     HPLUS = 10.0e+0_fp**(-newpH)
-    
+
   END SUBROUTINE GET_HPLUS
 
 !EOC
@@ -5509,7 +5511,7 @@ CONTAINS
       KSO2p  = Ks1_T * Hso2_T * SO2 * P * ( Ks1_T * Ks2_T * Hso2_T *  &
            0.08205e+0_fp * T * LWC - Hso2_T * 0.08205e+0_fp * T *     &
            LWC * HPLUS * HPLUS - HPLUS * HPLUS) / (Ks1_T * Ks2_T *    &
-           Hso2_T * 0.08205e+0_fp * T * LWC + Ks1_T * Hso2_T *        & 
+           Hso2_T * 0.08205e+0_fp * T * LWC + Ks1_T * Hso2_T *        &
            0.08205e+0_fp * T * LWC * HPLUS + Hso2_T * 0.08205e+0_fp * &
            T * LWC * HPLUS * HPLUS + HPLUS * HPLUS)**2
 
@@ -5896,7 +5898,7 @@ CONTAINS
       kHClp = -1.0e+0_fp * Kcl_T * Hcl_T * Cl * P *          &
            ( 1.0e+0_fp + Hcl_T * 0.08205e+0_fp * T * LWC ) / &
            ( Kcl_T * Hcl_T * 0.08205e+0_fp * T * LWC +       &
-           Hcl_T * 0.08205e+0_fp * T * LWC * HPLUS +         & 
+           Hcl_T * 0.08205e+0_fp * T * LWC * HPLUS +         &
            HPLUS )**2
 
       END FUNCTION dkHCl
@@ -6067,7 +6069,7 @@ CONTAINS
 !                              K-1, is
 !                              1.986x10^-3, not 0.04. (Qianjie Chen)
 !  03 Dec 2018 - J. Moch     - Modified for formic acid (HCOOH). Values
-!                              taken from Sienfeld and Pandis. Made it 
+!                              taken from Sienfeld and Pandis. Made it
 !                              to output is [FA]
 !  01 May 2020 - V. Shah     - Use correct equilibrium constants
 !EOP
@@ -6176,7 +6178,7 @@ CONTAINS
       kFAp = -1.0e+0_fp * Kfa_T * HFA_T * FA * P *           &
            ( 1.0e+0_fp + HFA_T * 0.08205e+0_fp * T * LWC ) / &
            ( Kfa_T * HFA_T * 0.08205e+0_fp * T * LWC +       &
-           HFA_T * 0.08205e+0_fp * T * LWC * HPLUS +         & 
+           HFA_T * 0.08205e+0_fp * T * LWC * HPLUS +         &
            HPLUS )**2
 
       END FUNCTION dkFA
@@ -7163,8 +7165,8 @@ CONTAINS
 !
 ! !IROUTINE: chem_so4_aq
 !
-! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous 
-!  chemistry of SO2 and distribute onto the size-resolved aerosol number and 
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and
 !  sulfate mass as a part of the TOMAS aerosol microphysics module
 !  (win, 1/25/10)
 !\\
@@ -7565,7 +7567,7 @@ CONTAINS
 ! !USES:
 
 #ifdef BPCH_DIAG
-        USE CMN_DIAG_MOD 
+        USE CMN_DIAG_MOD
 #endif
 
       USE CMN_SIZE_MOD
@@ -7614,7 +7616,7 @@ CONTAINS
       ! Point to chemical species array [v/v dry]
       Spc      => State_Chm%Species
 
-      !$OMP PARALLEL DO          & 
+      !$OMP PARALLEL DO          &
       !$OMP DEFAULT( SHARED )    &
       !$OMP PRIVATE( I, J, L)    &
       !$OMP SCHEDULE( DYNAMIC, 1 )
@@ -7700,7 +7702,7 @@ CONTAINS
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
           OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) &
                          * State_Met%AIRDEN(I,J,L) * 1e+3_fp * AVO &
-                         / AIRMW 
+                         / AIRMW
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF
@@ -7839,7 +7841,7 @@ CONTAINS
              !===========================================================
              ! The cosine of the solar zenith angle (SZA) is given by:
              !
-             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
              !
              ! where LAT = the latitude angle,
              !       DEC = the solar declination angle,
@@ -8428,7 +8430,7 @@ CONTAINS
     id_H2O2  = Ind_('H2O2'     )
     id_HNO3  = Ind_('HNO3'     )
     id_HOBr  = Ind_('HOBr'     )
-    id_HOCl  = Ind_('HOCl'     )  
+    id_HOCl  = Ind_('HOCl'     )
     id_LET   = Ind_('LET'      )
     id_MSA   = Ind_('MSA'      )
     id_NH3   = Ind_('NH3'      )

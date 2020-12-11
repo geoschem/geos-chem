@@ -14,20 +14,20 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-  USE CMN_FJX_MOD,        ONLY : NDUST
-  USE CMN_FJX_MOD,        ONLY : NAER
-  USE ERROR_MOD,          ONLY : ERROR_STOP
-  USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-  USE ERROR_MOD,          ONLY : IS_SAFE_DIV, SAFE_DIV
-  USE gckpp_Precision
-  USE gckpp_Parameters
-  USE gckpp_Global
-  USE State_Chm_Mod,      ONLY : ChmState
-  USE State_Chm_Mod,      ONLY : HetState
-  USE State_Chm_Mod,      ONLY : Ind_
-  USE State_Met_Mod,      ONLY : MetState
-  USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
+  USE CMN_FJX_MOD,      ONLY : NDUST
+  USE CMN_FJX_MOD,      ONLY : NAER
+  USE Error_Mod,        ONLY : ERROR_STOP
+  USE Error_Mod,        ONLY : GEOS_CHEM_STOP
+  USE Error_Mod,        ONLY : IS_SAFE_DIV, SAFE_DIV
+  USE GcKpp_Global
+  USE GcKpp_Precision
+  USE GcKpp_Parameters  
+  USE State_Chm_Mod,    ONLY : ChmState 
+  USE State_Chm_Mod,    ONLY : HetState
+  USE State_Chm_Mod,    ONLY : Ind_
+  USE State_Met_Mod,    ONLY : MetState
+  USE Input_Opt_Mod,    ONLY : OptInput
+  USE PhysConstants,    ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -134,11 +134,9 @@ MODULE GCKPP_HETRATES
 ! !PRIVATE DATA MEMBERS:
 !
   ! Scalars
-  REAL(fp) :: SPC_SALA
   REAL(fp) :: HSO3conc_Cld, SO3conc_Cld, fupdateHOBr, fupdateHOCl
   REAL(fp) :: nitConc_SALA, nitConc_SALC
 
-!$OMP THREADPRIVATE( SPC_SALA )
 !$OMP THREADPRIVATE( HSO3conc_Cld, SO3conc_Cld, fupdateHOBr       )
 !$OMP THREADPRIVATE( fupdateHOCl, nitConc_SALA, nitConc_SALC      )
 
@@ -230,10 +228,6 @@ MODULE GCKPP_HETRATES
       ! Scalars
       LOGICAL                :: SAFEDIV
       INTEGER                :: IND
-      REAL(fp)               :: ADJUSTEDRATE, CONSEXP,  DUMMY,    HBr_RTEMP
-      REAL(fp)               :: HOBr_RTEMP,   QICE,     QLIQ,     SPC_BrNO3
-      REAL(fp)               :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
-      REAL(fp)               :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
       REAL(fp)               :: conc1, conc2
 
       ! SAVEd scalars
@@ -247,9 +241,6 @@ MODULE GCKPP_HETRATES
       ! Cloud parameters
       REAL(fp)               :: rLiq, ALiq, VLiq, CLDFr
       REAL(fp)               :: rIce, AIce, VIce
-
-      ! Volume of air (cm3)
-      REAL(fp)               :: VAir
 
       ! New bromine/chlorine chemistry
       REAL(fp)               :: hConc_Sul
@@ -271,7 +262,6 @@ MODULE GCKPP_HETRATES
       REAL(fp)               :: gammaLiq, gammaIce
 
       ! Pointers and objects
-      REAL(fp),       POINTER :: spcVec(:)
       TYPE(HetState), POINTER :: H
 
       !====================================================================
@@ -279,111 +269,11 @@ MODULE GCKPP_HETRATES
       !====================================================================
 
       ! Zero scalars and arrays
-      ADJUSTEDRATE  = 0.0_fp
-      CONSEXP       = 0.0_fp
-      DUMMY         = 0.0_fp
-      HBr_RTEMP     = 0.0_fp
-      HOBr_RTEMP    = 0.0_fp
-      KHETI_SLA     = 0.0_fp
-      NAEROTYPE     = State_Chm%nAeroType
-      QICE          = 0.0_fp
-      QLIQ          = 0.0_fp
-      VPRESH2O      = 0.0_fp
+      ! NOTE: we now get several quantities from gckpp_Global
       HetTemp       = 0.0_fp
-      OMOC_POA      = State_Chm%OMOC_POA(I,J)
-      OMOC_OPOA     = State_Chm%OMOC_OPOA(I,J)
-      id_SALA       = Ind_('SALA')
-
-      ! Initialize logicals
-      SAFEDIV       = .FALSE.
-      PSCBOX        = .FALSE.
-      STRATBOX      = .FALSE.
-      NATSURFACE    = .FALSE.
-
-      ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-      IF ( Input_Opt%LUCX ) THEN
-         KHETI_SLA  = State_Chm%KHETI_SLA(I,J,L,:)
-      ENDIF
-
-      ! Point to the chemical species array [molec/cm3]
-      spcVec        => State_Chm%Species(I,J,L,:)
 
       ! Point to the HetInfo objec
       H             => State_Chm%HetInfo
-
-      !--------------------------------------------------------------------
-      ! Calculate RH [%]
-      ! Not clear why this calc is slightly different than State_Met%RH
-      !--------------------------------------------------------------------
-      RELHUM        = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-      CONSEXP       = 17.2693882e+0_fp * (State_Met%T(I,J,L) - 273.16e+0_fp) /&
-                      (State_Met%T(I,J,L) - 35.86e+0_fp)
-      VPRESH2O      = CONSVAP * EXP(CONSEXP) / State_Met%T(I,J,L)
-      RELHUM        = RELHUM / VPRESH2O
-      RELHUM        = RELHUM * 100e+0_fp
-
-      !--------------------------------------------------------------------
-      ! Get species concentrations [molec/cm3]
-      !--------------------------------------------------------------------
-      SPC_SALA = State_Chm%Species(I,J,L,id_SALA)
-
-      !--------------------------------------------------------------------
-      ! Get fields required for epoxide uptake hydrolysis (EPOXUPTK)
-      ! These values are saved in isorropiaII_mod.F
-      !--------------------------------------------------------------------
-      ! Proton activity [unitless] and H+ concentration [M]
-      ! (assumed equivalent - for now):
-      H_PLUS = State_Chm%IsorropHplus(I,J,L,1)
-
-      ! Sulfate concentration [M]:
-      MSO4   = State_Chm%IsorropSulfate(I,J,L)
-
-      ! Nitrate concentration [M]:
-      MNO3   = State_Chm%IsorropNitrate(I,J,L,1)
-
-      ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = State_Chm%IsorropBisulfate(I,J,L)
-
-      !--------------------------------------------------------------------
-      ! Aerosol Physical Properties
-      !--------------------------------------------------------------------
-
-      ! Aerosol specific surface area, cm2(aerosol)/cm3(air)
-      XAREA(1:State_Chm%nAeroType) = State_Chm%AeroArea(I,J,L,:)
-
-      ! Aerosol effective radius, cm
-      XRADI(1:State_Chm%nAeroType) = State_Chm%AeroRadi(I,J,L,:)
-
-      ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-      XVOL(1:State_Chm%nAeroType)  = XAREA(1:State_Chm%nAeroType)              &
-                                   * XRADI(1:State_Chm%nAeroType) / 3e+0_fp
-
-      ! Aerosol water content, cm3(H2O)/cm3(air) [note: AeroH2O has units g/m3]
-      XH2O(1:State_Chm%nAeroType)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
-
-      !--------------------------------------------------------------------
-      ! Get fields from State_Met, State_Chm, and Input_Opt
-      !--------------------------------------------------------------------
-      AClAREA = State_Chm%AClArea(I,J,L)      !Fine SSA+SNA aerosol area [cm2/cm3]
-      AClRADI = State_Chm%AClRadi(I,J,L)    !Fine SSA+SNA aerosol radius [cm]
-      AClVOL  = AClArea * AClRadi / 3e+0_fp !Fine SSA+SNA aerosol volume [cm3/cm3]
-      AWATER(:) = State_Chm%IsorropAeroH2O(I,J,L,:)
-      XTEMP  = SQRT( TEMP )                    ! Square root of temperature
-      XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
-      SUNCOS = State_Met%SUNCOSmid(I,J)        ! COS(SZA),midpt of chem timestep
-      VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
-      QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
-      QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
-
-      GAMMA_HO2 = Input_Opt%GAMMA_HO2
-
-      !--------------------------------------------------------------------
-      ! UCX-based mechanisms: Check surface type of PSCs (SDE 04/17/13)
-      !--------------------------------------------------------------------
-      IF ( Input_Opt%LUCX ) THEN
-         CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
-                         Input_Opt, State_Met, State_Chm )
-      ENDIF
 
       !--------------------------------------------------------------------
       !  Calculate parameters for cloud halogen chemistry
@@ -391,12 +281,11 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
 
       ! Get cloud physical parameters
-      CALL Cld_Params( I,     J,     L,     XDenA,     VAir,                 &
-                       Temp,  QLiq,  QIce,  State_Met, rLiq,                 &
-                       ALiq,  VLiq,  rIce,  AIce,      VIce, CLDFr          )
+      CALL Cld_Params( I,     J,     L,    State_Met, rLiq, ALiq,          &
+                       VLiq,  rIce,  AIce, VIce,      CLDFr          )
 
       ! Retrieve cloud pH and alkalinity
-      pHCloud = State_Chm%pHCloud(I,J,L)
+      pHCloud  = State_Chm%pHCloud(I,J,L)
       pHSSA(:) = State_Chm%IsorropAeropH(I,J,L,:)
 
       ! Since we have Alk tracers, State_Chm%SSAlk may be removed in future
@@ -576,7 +465,6 @@ MODULE GCKPP_HETRATES
                                     H%BrNO3%MW_g, gammaLiq, gammaIce        )
 
       HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), kITemp        )
-
       kITemp            = HETClNO3( XDenA,       Temp, clConc_SALA,         &
                                     brConc_SALA, CldFr, H                   )
 
@@ -596,6 +484,30 @@ MODULE GCKPP_HETRATES
       ! HOBr + HBr (update: XW 2019-06-08)
       !----------------------------------------------------------------------
       kITemp = HETHOBr_HBr( H%HOBr%MW_g, 0.0_fp, Input_Opt                  )
+      if ( i==23 .and. j==34 .and. L==1 ) then
+         print*, '%%%%% kitemp 1     : ', kitemp
+         print*, '%%%%% phCloud      : ', phCloud
+         print*, '%%%%% xdena        : ', XDenA
+         print*, '%%%%% rliq         : ', rLiq
+         print*, '%%%%% rice         : ', rIce
+         print*, '%%%%% aliq         : ', aliq
+         print*, '%%%%% vair         : ', vair
+         print*, '%%%%% temp         : ', temp
+         print*, '%%%%% cldfr        : ', cldfr
+         print*, '%%%%% hconc_sul    : ', hconc_sul
+         print*, '%%%%% hconc_lcl    : ', hconc_lcl
+         print*, '%%%%% hconc_icl    : ', hconc_icl
+         print*, '%%%%% clconc_clda  : ', clconc_clda
+         print*, '%%%%% clconc_cldc  : ', clconc_cldc
+         print*, '%%%%% clconc_cldg  : ', clconc_cldg
+         print*, '%%%%% brconc_clda  : ', brconc_clda
+         print*, '%%%%% brconc_cldc  : ', brconc_cldc
+         print*, '%%%%% brconc_cldg  : ', brconc_cldg
+         print*, '%%%%% hso3conc_cld : ', hso3conc_cld
+         print*, '%%%%% so3conc_cld  : ', so3conc_cld
+         print*, '%%%%% hno3_th      : ', hno3_th
+         print*, '%%%%% hcl_th       : ', hcl_th
+      endif
 
       kITemp = kITemp                                                        &
              + HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
@@ -606,6 +518,11 @@ MODULE GCKPP_HETRATES
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hno3_th,     hcl_th,               &
                              hbr_th,      6,           H                    )
+      if ( i==23 .and. j==34 .and. L==1 ) then
+         print*, '%%%%% kitemp 2     : ', kitemp
+         print*, '%%%%% C(ind_HOBr)  : ', C(ind_HOBr)
+         print*, '%%%%% C(ind_HOBr)  : ', C(ind_HBr)
+      endif
 
       HET(ind_HOBr,  1) = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), kITemp         )
 
@@ -617,7 +534,7 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             Temp,       CldFr,        hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -865,8 +782,7 @@ MODULE GCKPP_HETRATES
                              SO3conc_Cld, hcl_th,      3,                    &
                              H                                              )
 
-      HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%HCl%mId,          &
-                                    kITemp,                       )
+      HET(ind_HOCl,  1) = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), kITemp         )
 
       kiTemp            = HETHOCl_HBr( H%HOCl%MW_g, 0E+0_fp, Input_Opt      )
 
@@ -890,8 +806,7 @@ MODULE GCKPP_HETRATES
                            SSAlk(1),    Temp,   hConc_SSA,                   &
                            clConc_SALA, H                                   )
 
-      HET(ind_HOCl,  3) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%SALACL%mId,       &
-                                    kITemp,                       )
+      HET(ind_HOCl,  3) = kIIR1Ltd( C(ind_HOCl), C(ind_SALACL), kITemp      )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
@@ -971,9 +886,9 @@ MODULE GCKPP_HETRATES
                             2,           H                                  )
 
       kITemp = kITemp                                                        &
-             + HETO3_SS( XDenA,            xRadi(12), (1-CldFr)*xArea(12),   &
-                         SSAlk(2),         Temp,      brConc_SALC,           &
-                         spcVec(H%O3%mId), H                                )
+             + HETO3_SS( XDenA,          xRadi(12), (1-CldFr)*xArea(12),     &
+                         SSAlk(2),       Temp,      brConc_SALC,             &
+                         C(ind_O3),      H                                  )
 
       HET(ind_O3,    3) = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), kITemp        )
 
@@ -1045,8 +960,7 @@ MODULE GCKPP_HETRATES
                          clConc_SALA, brConc_SALA, 1,                        &
                           H                                                 )
 
-      HET(ind_ClNO2, 1) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL),             &
-                                    kITemp,                       )
+      HET(ind_ClNO2, 1) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL), kITemp     )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
@@ -1161,7 +1075,7 @@ MODULE GCKPP_HETRATES
       HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), kITemp        )
 
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 3       )
-      HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_H%SALACL), kITemp      )
+      HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), kITemp      )
 
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 4       )
       HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), kITemp        )
@@ -1182,17 +1096,18 @@ MODULE GCKPP_HETRATES
       HET(ind_IONO2, 3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), kITemp     )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 2    )
-      HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), kITemp,    )
+      HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), kITemp     )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
-      HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), kITemp,    )
+      HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), kITemp     )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
       HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), kITemp     )
 
       ! Nullify pointers
-      spcVec => NULL()
       H      => NULL()
+
+#include "/local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem/print_het.H"
 
     END SUBROUTINE SET_HET
 !EOC
@@ -1407,21 +1322,21 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION kIIR1Ltd( concGas, concEduct, kISource, minLife ) RESULT( kII )
+    FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
 !
 ! !INPUT PARAMETERS:
 !
       ! Rate coefficients
-      REAL(fp), INTENT(IN)           :: concGas
-      REAL(fp), INTENT(IN)           :: concEduct
-      REAL(fp), INTENT(IN)           :: kISource
-      REAL(fp), INTENT(IN), OPTIONAL :: minLife
-!
-! !RETURN VALUE:
-!
-      REAL(fp)                       :: kII
+      REAL(f8), INTENT(IN) :: concGas
+      REAL(f8), INTENT(IN) :: concEduct
+      REAL(dp), INTENT(IN) :: kISource
+!                          
+! !RETURN VALUE:           
+!                          
+      REAL(dp)             :: kII
 !
 ! !REMARKS:
+!  Uses HetMinLife and HetMinRate constants from gckpp_Global.F90
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1431,154 +1346,58 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: kIGas, kIEduct, concGas, concEduct
-      REAL(fp) :: lifeA, lifeB, kIMult
-
+      REAL(dp) :: kIGas, kIEduct, lifeA, lifeB
 
       ! Copy kI as calculated assuming no limitation
-      kIGas = kISource
-      kIEduct = 0.0e+0_fp
-      kII = 0.0e+0_fp
+      kIGas   = kISource
+      kIEduct = 0.0_dp
+      kII     = 0.0_dp
 
-      IF (concEduct.lt.100.0e+0_fp) THEN
-         kIGas = 0.0e+0_fp
-         kIEduct = 0.0e+0_fp
-         kII = 0.0e+0_fp
+      IF ( concEduct < 100.0_dp ) THEN
+         kIGas   = 0.0_dp
+         kIEduct = 0.0_dp
+         kII     = 0.0_dp
       ELSE
          ! Safe division here is probably overkill - may remove this
-         IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-            kIEduct = kIGas*concGas/concEduct
-            kII = kIGas/concEduct
+         IF ( Is_Safe_Div( concGas*kIGas, concEduct ) ) THEN
+            kIEduct = kIGas *concGas / concEduct
+            kII     = kIGas          / concEduct
          ELSE
-            kIGas = 0.0e+0_fp
-            kIEduct = 0.0e+0_fp
-            kII = 0.0e+0_fp
+            kIGas   = 0.0_dp
+            kIEduct = 0.0_dp
+            kII     = 0.0_dp
          ENDIF
       ENDIF
 
       ! Enforce a minimum lifetime?
-      IF (PRESENT(minLife)) THEN
-         IF ((kIGas.gt.0.0e+0_fp).and.(minLife.gt.0.0e+0_fp)) THEN
-            ! Calculate lifetime of each reactant against removal
-            lifeA = Safe_Div(1.0e+0_fp,kIGas,0.0e+0_fp)
-            lifeB = Safe_Div(1.0e+0_fp,kIEduct,0.0e+0_fp)
-            ! Check if either lifetime is "too short"
-            IF ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) THEN
-               IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-                  kIGas = 1.0e+0_fp/minLife
-                  kII = kIGas/concEduct
-               ELSE
-                  kIGas = 0.0e+0_fp
-                  kII = 0.0e+0_fp
-               ENDIF
-            ELSEIF (lifeB.lt.minLife) THEN
-               IF (Is_Safe_Div(concEduct*kIEduct,concGas)) THEN
-                  kIEduct = 1.0e+0_fp/minLife
-                  kII = kIEduct/concGas
-               ELSE
-                  kIEduct = 0.0e+0_fp
-                  kII = 0.0e+0_fp
-               ENDIF
+      IF ( kIGas > 0.0_dp ) THEN
+
+         ! Calculate lifetime of each reactant against removal
+         lifeA = Safe_Div( 1.0_dp, kIGas,   0.0_dp )
+         lifeB = Safe_Div( 1.0_dp, kIEduct, 0.0_dp )
+
+         ! Check if either lifetime is "too short"
+         IF ( ( lifeA < lifeB ) .and. ( lifeA < HetMinLife ) ) THEN
+            IF ( Is_Safe_Div( concGas*kIGas, concEduct) ) THEN
+               kIGas = HetMinRate
+               kII   = kIGas  / concEduct
+            ELSE
+               kIGas = 0.0_dp
+               kII   = 0.0_dp
+            ENDIF
+         ELSE IF ( lifeB < HetMinLife ) THEN
+            IF ( Is_Safe_Div( concEduct*kIEduct, concGas ) ) THEN
+               kIEduct = HetMinRate
+               kII     = kIEduct / concGas
+            ELSE
+               kIEduct = 0.0_dp
+               kII     = 0.0_dp
             ENDIF
          ENDIF
       ENDIF
 
     END FUNCTION kIIR1Ltd
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: kiir1ltd
-!!
-!! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!    FUNCTION kIIR1Ltd( spcVec, indGas, indEduct, kISource, minLife ) &
-!       RESULT( kII )
-!!
-!! !INPUT PARAMETERS:
-!!
-!      ! Rate coefficients
-!      REAL(fp), INTENT(IN)           :: spcVec(:)
-!      INTEGER,  INTENT(IN)           :: indGas
-!      INTEGER,  INTENT(IN)           :: indEduct
-!      REAL(fp), INTENT(IN)           :: kISource
-!      REAL(fp), INTENT(IN), OPTIONAL :: minLife
-!!
-!! !RETURN VALUE:
-!!
-!      REAL(fp)                       :: kII
-!!
-!! !REMARKS:
-!!
-!! !REVISION HISTORY:
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL(fp) :: kIGas, kIEduct, concGas, concEduct
-!      REAL(fp) :: lifeA, lifeB, kIMult
-!
-!      concGas = spcVec(indGas)
-!      concEduct = spcVec(indEduct)
-!
-!      ! Copy kI as calculated assuming no limitation
-!      kIGas = kISource
-!      kIEduct = 0.0e+0_fp
-!      kII = 0.0e+0_fp
-!
-!      IF (concEduct.lt.100.0e+0_fp) THEN
-!         kIGas = 0.0e+0_fp
-!         kIEduct = 0.0e+0_fp
-!         kII = 0.0e+0_fp
-!      ELSE
-!         ! Safe division here is probably overkill - may remove this
-!         IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-!            kIEduct = kIGas*concGas/concEduct
-!            kII = kIGas/concEduct
-!         ELSE
-!            kIGas = 0.0e+0_fp
-!            kIEduct = 0.0e+0_fp
-!            kII = 0.0e+0_fp
-!         ENDIF
-!      ENDIF
-!
-!      ! Enforce a minimum lifetime?
-!      IF (PRESENT(minLife)) THEN
-!         IF ((kIGas.gt.0.0e+0_fp).and.(minLife.gt.0.0e+0_fp)) THEN
-!            ! Calculate lifetime of each reactant against removal
-!            lifeA = Safe_Div(1.0e+0_fp,kIGas,0.0e+0_fp)
-!            lifeB = Safe_Div(1.0e+0_fp,kIEduct,0.0e+0_fp)
-!            ! Check if either lifetime is "too short"
-!            IF ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) THEN
-!               IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-!                  kIGas = 1.0e+0_fp/minLife
-!                  kII = kIGas/concEduct
-!               ELSE
-!                  kIGas = 0.0e+0_fp
-!                  kII = 0.0e+0_fp
-!               ENDIF
-!            ELSEIF (lifeB.lt.minLife) THEN
-!               IF (Is_Safe_Div(concEduct*kIEduct,concGas)) THEN
-!                  kIEduct = 1.0e+0_fp/minLife
-!                  kII = kIEduct/concGas
-!               ELSE
-!                  kIEduct = 0.0e+0_fp
-!                  kII = 0.0e+0_fp
-!               ENDIF
-!            ENDIF
-!         ENDIF
-!      ENDIF
-!
-!    END FUNCTION kIIR1Ltd
-!!EOC
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -7694,14 +7513,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE CLD_PARAMS( I,      J,      L,    DENAIR,            &
-                           VAir,   T,      QL,   QI,     State_Met, &
-                           rLiq,   ALiq,   VLiq, &
-                           rIce,   AIce,   VIce, CLDFr )
-
+    SUBROUTINE CLD_PARAMS( I,    J,    L,    State_Met, rLiq,                &
+                           ALiq, VLiq, rIce, AIce,      VIce, CLDFr         )
 !
 ! !USES:
 !
+      USE GcKpp_Global,  ONLY : DENAIR => XDENA
+      USE GcKpp_Global,  ONLY : T      => TEMP
+      USE GcKpp_Global,  ONLY : QI     => QIce
+      USE GcKpp_Global,  ONLY : QL     => QLiq
+      USE GcKpp_Global,  ONLY : Vair
       USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -7709,10 +7530,6 @@ MODULE GCKPP_HETRATES
       INTEGER,        INTENT(IN)  :: I         ! Longitude index
       INTEGER,        INTENT(IN)  :: J         ! Latitude  index
       INTEGER,        INTENT(IN)  :: L         ! Altitude  index
-      REAL(fp),       INTENT(IN)  :: DENAIR    ! Density of air [#/cm3]
-      REAL(fp),       INTENT(IN)  :: VAir      ! Volume of air [cm3]
-      REAL(fp),       INTENT(IN)  :: T         ! Temperature [K]
-      REAL(fp),       INTENT(IN)  :: QL, QI    ! Cloud water mixing ratio [kg/kg]
       TYPE(MetState), INTENT(IN)  :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:

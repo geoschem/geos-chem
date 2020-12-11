@@ -12,9 +12,9 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Rates.f90
-! Time                 : Fri Aug 14 12:21:03 2020
-! Working directory    : /n/home05/msulprizio/GC/GCC_13.0.0/src/GEOS-Chem/KPP/fullchem
+! File                 : gckpp_Rates.F90
+! Time                 : Thu Dec 10 15:43:38 2020
+! Working directory    : /local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -210,8 +210,7 @@ CONTAINS
      K1 = 4.3E-1_dp*(TEMP/298.0_dp)**(-8)
      K0 = K0*NUMDEN
      K1 = K0/K1
-     K2 = (K0/(1.0_dp+K1))*   &
-          4.1E-1_dp**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
+     K2 = (K0/(1.0_dp+K1)) * 4.1E-1_dp**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
      K3 = DBLE(C0)/(K2+DBLE(C0))
      K4 = DBLE(A0)*(DBLE(X0)-TEMP*DBLE(Y0))
      GC_ALK = K4 * EXP(DBLE(B0)/TEMP) * K3
@@ -219,76 +218,73 @@ CONTAINS
   END FUNCTION GC_ALK
    
   REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)
-  REAL*8 J, H2O, TEMP, NUMDEN
-  REAL*8 K1, K2, K3
-  REAL*8 N2, O2
+    REAL*8 J, H2O, TEMP, NUMDEN
+    REAL*8 K1, K2, K3
+    REAL*8 N2, O2
 
-  N2=0.79d0
-  O2=0.21d0
+    N2=0.79d0
+    O2=0.21d0
 
-  K1=1.63d-10*exp(60d0/TEMP)
-  K2=2.15d-11*exp(110d0/TEMP)
-  K3=3.30d-11*exp(55d0/TEMP)
-
-  OH_O1D=J*K1*H2O/(K1*H2O+K2*N2*NUMDEN+K3*O2*NUMDEN)
+    K1=1.63d-10*exp(60d0/TEMP)
+    K2=2.15d-11*exp(110d0/TEMP)
+    K3=3.30d-11*exp(55d0/TEMP)
+    
+    OH_O1D=J*K1*H2O/(K1*H2O+K2*N2*NUMDEN+K3*O2*NUMDEN)
   END FUNCTION OH_O1D
 
   REAL(kind=dp) FUNCTION HO2_H2O(H2O,TEMP)
-  REAL*8 TEMP, H2O
-  HO2_H2O=1+1.4D-21*H2O*EXP(2200/TEMP)
+    REAL*8 TEMP, H2O
+    HO2_H2O=1+1.4D-21*H2O*EXP(2200/TEMP)
   END FUNCTION HO2_H2O
 
-
   REAL(kind=dp) FUNCTION GCARR( A0,B0,C0 )
-      REAL A0,B0,C0 
-      GCARR =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
+    ! Arrhenius function
+    REAL A0,B0,C0 
+    GCARR =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
   END FUNCTION GCARR    
 
   REAL(kind=dp) FUNCTION GC_HO2HO2( A0,B0,C0,A1,B1,C1 )
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_HO2HO2 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
-                   EXP(2200.E+0_dp/TEMP))
-  END FUNCTION GC_HO2HO2
-  
-  REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
-! Temperature Dependent Branching Ratio
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_TBRANCH = R0/(1.D0+R1)
-
-  END FUNCTION GC_TBRANCH
-
-  REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
-! Carbon Dependence of RO2+HO2
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_RO2HO2 = R0*(1E0-EXP(-0.245E0*R1))
-
-  END FUNCTION GC_RO2HO2
-
-  REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
-! DMS+OH+O2
     REAL A0,B0,C0,A1,B1,C1
     REAL(kind=dp) :: R0,R1
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-!    GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
+
+    GC_HO2HO2 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
+         EXP(2200.E+0_dp/TEMP))
+  END FUNCTION GC_HO2HO2
+  
+  REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
+    ! Temperature Dependent Branching Ratio
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) :: R0,R1
+    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
+    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+
+    GC_TBRANCH = R0/(1.D0+R1)
+  END FUNCTION GC_TBRANCH
+
+  REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
+    ! Carbon Dependence of RO2+HO2
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) :: R0,R1
+    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
+    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+    GC_RO2HO2 = R0*(1E0-EXP(-0.245E0*R1))
+  END FUNCTION GC_RO2HO2
+
+  REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
+    ! DMS+OH+O2
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) :: R0,R1
+    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
+    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+    !GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
     GC_DMSOH = (R0*NUMDEN*0.2095e0_dp)/(1e0_dp+R1*0.2095e0_dp)
-    
   END FUNCTION GC_DMSOH
 
   REAL(kind=dp) FUNCTION GC_GLYXNO3( A0,B0,C0 )
-! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
+    ! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) 
+    ! --- HO2+2*CO branch of GLYX+OH/NO3
     REAL A0,B0,C0
     REAL(kind=dp) R0
     REAL(kind=dp) O2
@@ -300,7 +296,7 @@ CONTAINS
   END FUNCTION GC_GLYXNO3
 
   REAL(kind=dp) FUNCTION GC_OHHNO3( A0,B0,C0,A1,B1,C1,A2,B2,C2 )
-! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
+    ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
     REAL A0,B0,C0,A1,B1,C1,A2,B2,C2
     REAL(kind=dp) R0,R1,R2
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
@@ -311,24 +307,22 @@ CONTAINS
   END FUNCTION GC_OHHNO3
 
   REAL(kind=dp) FUNCTION GC_GLYCOHA( A0,B0,C0 )
-! 
+    ! 
     REAL A0,B0,C0,R0,GLYC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
     IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
     GC_GLYCOHA=R0*GLYC_FRAC
-
   END FUNCTION GC_GLYCOHA
 
   REAL(kind=dp) FUNCTION GC_GLYCOHB( A0,B0,C0 )
-! 
+    ! 
     REAL A0,B0,C0
     REAL(kind=dp) :: R0,GLYC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
     IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
     GC_GLYCOHB=R0*(1e0_dp-GLYC_FRAC)
-    
   END FUNCTION GC_GLYCOHB
 
   REAL(kind=dp) FUNCTION GC_HACOHA( A0,B0,C0 )
@@ -339,22 +333,19 @@ CONTAINS
     HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
     IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
     GC_HACOHA=R0*HAC_FRAC
-
   END FUNCTION GC_HACOHA
 
   REAL(kind=dp) FUNCTION GC_HACOHB( A0,B0,C0 )
-! 
+    ! 
     REAL A0,B0,C0
     REAL(kind=dp) :: R0,HAC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
     IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
     GC_HACOHB=R0*(1.E0_dp-HAC_FRAC)
-    
   END FUNCTION GC_HACOHB
 
   REAL(kind=dp) FUNCTION GC_OHCO( A0,B0,C0 )
-
     REAL A0,B0,C0,R0
     REAL KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
     REAL KCO1,KCO2,KCO
@@ -376,8 +367,7 @@ CONTAINS
     FEXP2=1.E+0_dp/(1.E+0_dp+BLOG2*BLOG2)
     KCO2=KLO2*0.6**FEXP2/(1.e+0_dp+XYRAT2)
     KCO=KCO1+KCO2
-    GC_OHCO=KCO
-    
+    GC_OHCO=KCO 
   END FUNCTION GC_OHCO
 
   REAL(kind=dp) FUNCTION GC_RO2NO( B,A0,B0,C0,A1,B1,C1 )
@@ -424,99 +414,99 @@ CONTAINS
   END FUNCTION GC_RO2NO
 
   REAL(kind=dp) FUNCTION GCJPL3( k0_300, n, ki_300, m)
-!  Functions given in JPL Booklet
-      REAL k0_300, n, ki_300,m
-      REAL k0, ki
+    !  Functions given in JPL Booklet
+    REAL k0_300, n, ki_300,m
+    REAL k0, ki
+    
+    k0=k0_300*((TEMP/300.d0)**(-n))
+    ki=ki_300*((TEMP/300.d0)**(-m))
 
-      k0=k0_300*((TEMP/300.d0)**(-n))
-      ki=ki_300*((TEMP/300.d0)**(-m))
-
-!      GCJPL3=(k0*NUMDEN)/(1+k0*NUMDEN/ki)*0.6** &
-!	((1+((LOG10(k0*NUMDEN/ki))**2d0)**-1.0d0))
-      GCJPL3=(k0/(1.d0+k0/(ki/NUMDEN)))*0.6** &
-        ((1+((log10(k0/(ki/NUMDEN)))**2d0)**1.0e0))
-      GCJPL3=GCJPL3*NUMDEN
+    !      GCJPL3=(k0*NUMDEN)/(1+k0*NUMDEN/ki)*0.6** &
+    !	((1+((LOG10(k0*NUMDEN/ki))**2d0)**-1.0d0))
+    GCJPL3=(k0/(1.d0+k0/(ki/NUMDEN)))*0.6** &
+         ((1+((log10(k0/(ki/NUMDEN)))**2d0)**1.0e0))
+    GCJPL3=GCJPL3*NUMDEN
   END FUNCTION GCJPL3
   
   REAL(kind=dp) FUNCTION GCJPLEQ( A0,B0,C0,A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2 )
- ! Function calculates the rate constant of the forward reaction
- ! calculates the equilibrium constant 
- ! Find the backwards reaction by K=kforward/kbackwards
-       REAL A0,B0,C0,A1,B1,C1
-       REAL(kind=dp) :: R0,R1
-       REAL, OPTIONAL :: A2,B2,C2,FV,FCT1,FCT2 !If a P-dependent rxn
-
-       ! Calculate Backwards reaction
-       R0 = GCARR( A0,B0,C0 )
-
-       ! Calculate forwards reaction
-       IF (present(A2)) THEN ! P-dependent
-          IF (present(B2) .and. present(C2) .and. present(FV) &
-                          .and. present(FCT1) .and. present(FCT2)) THEN
-	     R1 = GCJPLPR( A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2)
-          ELSE ! Missing params!
-	     write(*,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'
-	     write(*,'(a)') 'GCJPLEQ: Returning zero'
-	     GCJPLEQ = 0.E0
-	     RETURN
-	  ENDIF
-       ELSE
-          R1 = gcarr( A1,B1,C1 ) !Std. Arrhenius eqn.
+    ! Function calculates the rate constant of the forward reaction
+    ! calculates the equilibrium constant 
+    ! Find the backwards reaction by K=kforward/kbackwards
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) :: R0,R1
+    REAL, OPTIONAL :: A2,B2,C2,FV,FCT1,FCT2 !If a P-dependent rxn
+    
+    ! Calculate Backwards reaction
+    R0 = GCARR( A0,B0,C0 )
+    
+    ! Calculate forwards reaction
+    IF (present(A2)) THEN ! P-dependent
+       IF (present(B2) .and. present(C2) .and. present(FV) &
+            .and. present(FCT1) .and. present(FCT2)) THEN
+          R1 = GCJPLPR( A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2)
+       ELSE 
+          ! Missing params
+          write(*,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'
+          write(*,'(a)') 'GCJPLEQ: Returning zero'
+          GCJPLEQ = 0.E0
+          RETURN
        ENDIF
+    ELSE
+       R1 = gcarr( A1,B1,C1 ) !Std. Arrhenius eqn.
+    ENDIF
 
-       GCJPLEQ=R1/R0
+    GCJPLEQ=R1/R0
   END FUNCTION GCJPLEQ
  
   REAL(kind=dp) FUNCTION GCJPLPR(A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2)
-! * PRESSURE-DEPENDENT EFFECTS 
-! * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE
-! * COEFFICIENTS.
-! A0 B0, & C0 are the Arrhenius parameters for the lower-limit
-! rate. A1, B1 & C1 are the upper-limit parameters.
-! FV is the falloff curve paramter, (SEE ATKINSON ET. AL (1992)
-! J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6 
-! 
-       REAL A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2
-       REAL FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
-       
-       RLOW  = GCARR( A0,B0,C0 )*NUMDEN
-       RHIGH = GCARR( A1,B1,C1 )
+    ! * PRESSURE-DEPENDENT EFFECTS 
+    ! * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE
+    ! * COEFFICIENTS.
+    ! A0 B0, & C0 are the Arrhenius parameters for the lower-limit
+    ! rate. A1, B1 & C1 are the upper-limit parameters.
+    ! FV is the falloff curve paramter, (SEE ATKINSON ET. AL (1992)
+    ! J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6 
+    ! 
+    REAL A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2
+    REAL FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
+    
+    RLOW  = GCARR( A0,B0,C0 )*NUMDEN
+    RHIGH = GCARR( A1,B1,C1 )
 
-       IF     (FCT2.NE.0.) THEN	
-             FCT            = EXP(-TEMP / FCT1) + EXP(-FCT2 / TEMP) 
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT) 
-       ELSEIF (FCT1.NE.0.) THEN 
-             FCT            = EXP(-TEMP / FCT1)
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)  
-       ELSE
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FV**FEXP/(1e+0_dp+XYRAT)
-       ENDIF
-       
-
+    IF (FCT2.NE.0.) THEN	
+       FCT            = EXP(-TEMP / FCT1) + EXP(-FCT2 / TEMP) 
+       XYRAT          = RLOW/RHIGH
+       BLOG           = LOG10(XYRAT)
+       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
+       GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT) 
+    ELSEIF (FCT1.NE.0.) THEN 
+       FCT            = EXP(-TEMP / FCT1)
+       XYRAT          = RLOW/RHIGH
+       BLOG           = LOG10(XYRAT)
+       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
+       GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)  
+    ELSE
+       XYRAT          = RLOW/RHIGH
+       BLOG           = LOG10(XYRAT)
+       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
+       GCJPLPR        = RLOW*FV**FEXP/(1e+0_dp+XYRAT)
+    ENDIF
+    
   END FUNCTION GCJPLPR
 
   REAL(kind=dp) FUNCTION GCIUPAC3(ko_300,n,ki_300,m,Fc) 
-! Function calcualtes the rate constant of 3 body reaction using IUPAC 
-! methology
-  REAL ko_300,n,ki_300,m,Fc
-  REAL ko, ki, F, NN
-
-  ko=ko_300*((TEMP/300.e0)**n)*NUMDEN
-  ki=ki_300*((TEMP/300.e0)**m)
-
-  NN=0.75-1.27*LOG10(Fc)
-  F=10.0**(LOG10(Fc)/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
-
-  GCIUPAC3=ko/(1+ko/ki)*F
+    ! Function calcualtes the rate constant of 3 body reaction using IUPAC 
+    ! methology
+    REAL ko_300,n,ki_300,m,Fc
+    REAL ko, ki, F, NN
+    
+    ko=ko_300*((TEMP/300.e0)**n)*NUMDEN
+    ki=ki_300*((TEMP/300.e0)**m)
+    
+    NN=0.75-1.27*LOG10(Fc)
+    F=10.0**(LOG10(Fc)/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
+    
+    GCIUPAC3=ko/(1+ko/ki)*F
   END FUNCTION GCIUPAC3
 
 

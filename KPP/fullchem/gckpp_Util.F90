@@ -12,9 +12,9 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 !
-! File                 : gckpp_Util.f90
-! Time                 : Fri Aug 14 12:21:03 2020
-! Working directory    : /n/home05/msulprizio/GC/GCC_13.0.0/src/GEOS-Chem/KPP/fullchem
+! File                 : gckpp_Util.F90
+! Time                 : Thu Dec 10 15:43:38 2020
+! Working directory    : /local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 !
@@ -754,7 +754,7 @@ END SUBROUTINE GetMass
 ! Get_OHreactivity - returns the OH reactivity
 ! The OH reactivity is defined as the inverse of its lifetime.
 ! This routine was auto-generated using script OHreact_parser.py.
-! Generated on 2020-08-14
+! Generated on 2020-12-10
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
