@@ -754,25 +754,25 @@ CONTAINS
        !===========================================================
        CASE DEFAULT
 
+          ! Loop over all species
+          ! match w/ species as read from disk
+          DO M = 1, State_Chm%nSpecies
+
+             ! Get info about this species from the species database
+             SpcInfo => State_Chm%SpcData(M)%Info
+
+             IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
+                PVAR(N) = M
+                EXIT
+             ENDIF
+
+             ! Free pointer
+             SpcInfo => NULL()
+
+          ENDDO
+
           ! Skip if not full-chemistry
           IF ( IS_FULLCHEM ) THEN
-
-             ! Loop over all species
-             ! match w/ species as read from disk
-             DO M = 1, State_Chm%nSpecies
-
-                ! Get info about this species from the species database
-                SpcInfo => State_Chm%SpcData(M)%Info
-
-                IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
-                   PVAR(N) = M
-                   EXIT
-                ENDIF
-
-                ! Free pointer
-                SpcInfo => NULL()
-
-             ENDDO
 
              ! Special flag for RO2 species
              IF ( TRIM( LINE ) == 'RO2' ) PVAR(N) = 999
@@ -782,16 +782,16 @@ CONTAINS
 
              ! Special flag for NOy species FP
              IF ( TRIM( LINE ) == 'NOy' ) PVAR(N) = 997
+          ENDIF
 
-             ! Error check
-             IF ( PVAR(N) == 0 ) THEN
-                IF ( Input_Opt%amIRoot ) THEN
-                   WRITE( 6, '(a)' ) 'ERROR: invalid species!'
-                   WRITE( 6, 110   ) TRIM( LINE )
-110                FORMAT( 'Species ', a, ' not found!' )
-                   WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
-                   CALL GEOS_CHEM_STOP
-                ENDIF
+          ! Error check
+          IF ( PVAR(N) == 0 ) THEN
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE( 6, '(a)' ) 'ERROR: invalid species!'
+                WRITE( 6, 110   ) TRIM( LINE )
+110             FORMAT( 'Species ', a, ' not found!' )
+                WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
+                CALL GEOS_CHEM_STOP
              ENDIF
           ENDIF
 
@@ -1025,10 +1025,12 @@ CONTAINS
             TRIM(NAME) .EQ. 'Twgc'   .OR. & ! NOAA Tower
             TRIM(NAME) .EQ. 'Twkt' ) THEN   ! NOAA Tower
           ! Change units
+          ! NOTE: PHIS is now in units of [m], so we don't need to
+          ! divide by g0 again (see issue geoschem/geos-chem #531)
           L_ALT = 0
           IJ = GET_IJ( LON, LAT, State_Grid )
           DO L = 1, State_Grid%NZ
-             MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0 &
+             MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))                         &
                         + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
              IF ( (L_ALT .EQ. 0)  .AND. (MOD_ELEV .GT. PRES) ) THEN
                 L_ALT = L
@@ -1143,7 +1145,7 @@ CONTAINS
               'MVKOHOO', 'R4O2',     'R4N1',     'R4N2',             &
               'C4HVP1',  'C4HVP2',                                   &
               'BRO2',    'TRO2',     'XRO2',     'NRO2',             &
-              'NICO3',   'NIO2',     'PYPO2',    'RCO3')            
+              'NICO3',   'NIO2',     'PYPO2',    'RCO3')
           NPRO2       = NPRO2 + 1
           PRO2(NPRO2) = M
 
@@ -1878,7 +1880,7 @@ CONTAINS
              CASE ( 2006 )
                 ! Remove MISSING flag
                 VARI(V) = 0e+0_fp
-                 
+
                 IF ( .not. LINTERP ) THEN
                    DO ISPC = 1, NDUST
                       VARI(V) = VARI(V) + ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
@@ -1913,7 +1915,7 @@ CONTAINS
                 N = PVAR(V) - 3000
 
                 IF ( .not. LINTERP ) THEN
-                   DO LL = L, State_Grid%NZ 
+                   DO LL = L, State_Grid%NZ
                       ! Skip non-tropospheric boxes
                       IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
                       ! Accumulate
