@@ -121,8 +121,10 @@ if [ ${Monthly_Diag} = "1" ]; then
       fi
    dpm=(744 $feb_hrs 744 720 744 720 744 744 720 744 720 744)
    hrs_str=${dpm[$((mo_str-1))]}
-   sed -i "s|common_freq\=.*|common_freq\=\"${hrs_str}0000\"|" ./runConfig.sh
-   sed -i "s|common_dur\=.*|common_dur\=\"${hrs_str}0000\"|"   ./runConfig.sh
+   sed -i "s|timeAvg_freq\=.*|timeAvg_freq\=\"${hrs_str}0000\"|" ./runConfig.sh
+   sed -i "s|timeAvg_dur\=.*|timeAvg_dur\=\"${hrs_str}0000\"|"   ./runConfig.sh
+   sed -i "s|inst_freq\=.*|inst_freq\=\"${hrs_str}0000\"|"       ./runConfig.sh
+   sed -i "s|inst_dur\=.*|inst_dur\=\"${hrs_str}0000\"|"         ./runConfig.sh
 fi
 
 # Init strat H2O should be enabled only for first run

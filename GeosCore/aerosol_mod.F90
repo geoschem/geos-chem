@@ -970,7 +970,7 @@ CONTAINS
 
        ! PM2.5 sea salt
        IF ( State_Diag%Archive_PM25ss  ) THEN
-          State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * ORG_GROWTH  ) &
+          State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * SSA_GROWTH  ) &
                                    * ( 1013.25_fp  / PMID(I,J,L) ) &
                                    * ( T(I,J,L)    / 298.0_fp    ) &
                                    * 1.0e+9_fp
