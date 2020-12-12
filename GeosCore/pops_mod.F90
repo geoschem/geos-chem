@@ -108,8 +108,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : DEBUG_MSG
-    USE HCO_Interface_Mod,  ONLY : GetHcoDiagn
-    USE HCO_Interface_Mod,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -152,7 +151,7 @@ CONTAINS
     CHARACTER(LEN=512) :: ErrMsg
 
     ! Pointers
-    REAL(fp),      POINTER  :: DEPSAV(:,:,:  )
+    REAL(fp),      POINTER  :: DepFreq(:,:,:  )
 
     !=================================================================
     ! CHEMPOPS begins here!
@@ -165,7 +164,7 @@ CONTAINS
     ThisLoc  = ' -> at ChemPops (in module GeosCore/pops_mod.F90)'
 
     ! Point to columns of derived-type object fields (hplin, 12/1/18)
-    DEPSAV            => State_Chm%DryDepSav
+    DepFreq            => State_Chm%DryDepFreq
 
     !-----------------------------------------------------------------
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -266,17 +265,17 @@ CONTAINS
             dd_POPP_BCPO > 0 ) THEN
 
           ! Dry deposition active for both POP-Gas and POP-Particle;
-          ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
+          ! pass drydep frequency to CHEM_POPGP (NOTE: DepFreq has units 1/s)
           CALL CHEM_POPGP( Input_Opt,                &
                            State_Chm,                &
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC)
 
        ELSEIF ( dd_POPG      >  0 .and. &
@@ -289,9 +288,9 @@ CONTAINS
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            RC )
@@ -306,11 +305,11 @@ CONTAINS
                            State_Diag,               &
                            State_Grid,               &
                            State_Met,                &
-                           DEPSAV(:,:,dd_POPG),      &
+                           DepFreq(:,:,dd_POPG),      &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSEIF ( dd_POPG      >  0 .and. &
@@ -323,7 +322,7 @@ CONTAINS
                            State_Diag,          &
                            State_Grid,          &
                            State_Met,           &
-                           DEPSAV(:,:,dd_POPG), &
+                           DepFreq(:,:,dd_POPG), &
                            ZERO_DVEL,           &
                            ZERO_DVEL,           &
                            ZERO_DVEL,           &
@@ -341,10 +340,10 @@ CONTAINS
                            State_Grid,               &
                            State_Met,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSEIF ( dd_POPG      <= 0 .and. &
@@ -358,8 +357,8 @@ CONTAINS
                            State_Grid,               &
                            State_Met,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_OCPO), &
-                           DEPSAV(:,:,dd_POPP_OCPI), &
+                           DepFreq(:,:,dd_POPP_OCPO), &
+                           DepFreq(:,:,dd_POPP_OCPI), &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            RC )
@@ -377,8 +376,8 @@ CONTAINS
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
                            ZERO_DVEL,                &
-                           DEPSAV(:,:,dd_POPP_BCPO), &
-                           DEPSAV(:,:,dd_POPP_BCPI), &
+                           DepFreq(:,:,dd_POPP_BCPO), &
+                           DepFreq(:,:,dd_POPP_BCPI), &
                            RC )
 
        ELSE
@@ -402,7 +401,7 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
 
     ! Nullify pointers
-    NULLIFY( DEPSAV )
+    NULLIFY( DepFreq )
 
   END SUBROUTINE CHEMPOPS
 !EOC
@@ -1467,8 +1466,8 @@ CONTAINS
 
              ! Amt of POPG lost to drydep [molec/cm2/s]
              DEP_DRY_FLXG = DEP_POPG_DRY * AVO &
-                            / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                            / ( AREA_CM2 * DTCHEM         )
+                            / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                            / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPG) = &
@@ -1488,8 +1487,8 @@ CONTAINS
 
              ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPOCPO) = &
@@ -1509,8 +1508,8 @@ CONTAINS
 
              ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPOCPI) = &
@@ -1530,8 +1529,8 @@ CONTAINS
 
              ! Amt of POPPBCPO lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPBCPO) = &
@@ -1551,8 +1550,8 @@ CONTAINS
 
              ! Amt of POPPBCPI lost to drydep [molec/cm2/s]
              DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * AVO &
-                                 / ( 1.e-3_fp * ThisSpc%EmMW_g ) &
-                                 / ( AREA_CM2 * DTCHEM         )
+                                 / ( 1.e-3_fp * ThisSpc%MW_g ) &
+                                 / ( AREA_CM2 * DTCHEM       )
 
              ! Save into State_Diag%DryDepChm
              State_Diag%DryDepChm(I,J,id_POPPBCPI) = &

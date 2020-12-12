@@ -1,2 +1,0 @@
-All example run scripts assume SLURM except gchp.sge.run and gchp.local.run.
-Use gchp.local.run to run interactively, independent of a job scheduler.

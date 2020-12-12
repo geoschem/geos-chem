@@ -81,8 +81,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
     USE State_Met_Mod,      ONLY : MetState

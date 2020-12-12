@@ -5,7 +5,7 @@ End   YYYYMMDD, hhmmss  : 20160701 010000
 Run directory           : ./
 Root data directory     : /discover/nobackup/cakelle2/data
 Met field               : geosfp
-Simulation name         : benchmark
+Simulation name         : fullchem
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
@@ -245,7 +245,6 @@ Turn on PBL Mixing?     : F
  => Use non-local PBL?  : F
 ------------------------+------------------------------------------------------
 %%% EMISSIONS MENU %%%  :
-Turn on emissions?      : T
 HEMCO Input file        : HEMCO_Config.rc
 Switches for UCX        :---
  => Use CH4 emissions?  : F
@@ -301,7 +300,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : /discover/nobackup/ewlundgr/data/ExtData/CHEM_INPUTS/FAST_JX/v2020-02/
+FAST-JX directory       : /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2020-02/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550

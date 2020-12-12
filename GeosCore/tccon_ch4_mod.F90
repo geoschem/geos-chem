@@ -14,10 +14,12 @@ MODULE TCCON_CH4_MOD
 !
 ! !USES:
 !
+#if !defined( MODEL_CESM )
   USE m_netcdf_io_open       ! netCDF open
   USE m_netcdf_io_get_dimlen ! netCDF dimension queries
   USE m_netcdf_io_read       ! netCDF data reads
   USE m_netcdf_io_close      ! netCDF close
+#endif
   USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
@@ -81,6 +83,7 @@ MODULE TCCON_CH4_MOD
 
 CONTAINS
 !EOC
+#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -455,6 +458,7 @@ CONTAINS
 
   END SUBROUTINE READ_TCC_CH4_OBS
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -607,7 +611,12 @@ CONTAINS
 
        ! Read the TCC CH4 file for this month
        YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
+#if defined( MODEL_CESM )
+       print*, "DIE HERE IN TCOON_CH4_MOD! DEAL WITH READ_TCC_CH4_OBS"
+       CALL EXIT(1)
+#else
        CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
+#endif
 
        IF ( FIRST ) FIRST = .FALSE.
 
@@ -744,7 +753,7 @@ CONTAINS
        ! Get species concentrations
        ! Convert from [kg/box] --> [v/v]
        GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / &
-                          State_Chm%SpcData(id_CH4)%Info%emMW_g )
+                          State_Chm%SpcData(id_CH4)%Info%MW_g )
 
        GC_H2O_NATIVE(:) = State_Met%AVGW(I,J,:)
 

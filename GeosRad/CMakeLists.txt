@@ -67,13 +67,13 @@ add_library(GeosRad STATIC EXCLUDE_FROM_ALL
 	rrtmg_sw_vrtqdr.F90
 	test_arr_mult.F90
 )
-target_link_libraries(GeosRad
-	PUBLIC GEOSChemBuildProperties
-)
+if(NOT GC_EXTERNAL_CONFIG)
+        target_link_libraries(GeosRad
+		PUBLIC GEOSChemBuildProperties
+	)
+endif()
 target_compile_options(GeosRad 
 	PRIVATE 
-		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
-		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
-        -O1 -override-limits
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8 -O1 -qoverride-limits>
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8 -O1 -override-limits -fno-range-check>
 )
-

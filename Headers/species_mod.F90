@@ -25,7 +25,7 @@ MODULE Species_Mod
   PUBLIC :: SpcData_Init
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Print
-
+!
 ! !PUBLIC TYPES:
 !
   !=========================================================================
@@ -42,6 +42,7 @@ MODULE Species_Mod
      INTEGER :: nKppFix  ! # of fixed KPP species
      INTEGER :: nKppSpc  ! # of species in KPP matrix
      INTEGER :: nPhotol  ! # of photolysis species
+     INTEGER :: nRadNucl ! # of radionuclide species
      INTEGER :: nWetDep  ! # of wet-deposited species
      INTEGER :: nHg0     ! # of Hg0 tracers
      INTEGER :: nHg2     ! # of Hg2 tracers
@@ -73,6 +74,7 @@ MODULE Species_Mod
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
      INTEGER            :: KppSpcId         ! KPP species index
      INTEGER            :: PhotolId         ! Photolysis index
+     INTEGER            :: RadNuclId        ! Radionuclide index
      INTEGER            :: WetDepId         ! Wet deposition index
 
      ! Names
@@ -92,13 +94,12 @@ MODULE Species_Mod
      LOGICAL            :: Is_FixedChem     ! Is it a fixed chemical species?
      LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
+     LOGICAL            :: Is_RadioNuclide  ! Is it a radionuclide species?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
-     REAL(fp)           :: EmMW_g           ! Emitted molecular weight [g/mol]
-     REAL(fp)           :: MolecRatio       ! Mol carbon / mol species [1    ]
 
      ! Default background concentration
      REAL(fp)           :: BackgroundVV     ! Background conc [v/v]
@@ -175,14 +176,6 @@ MODULE Species_Mod
   !=========================================================================
   REAL(fp), PARAMETER, PUBLIC :: MISSING_VV  = 1.0e-20_fp ! Missing spc conc
 !
-! !REMARKS:
-! (1) The emission molecular weight is the molecular weight of the emitted
-!      compound. This value is only different to MW_g if the emitted compound
-!      does not correspond to the transported species, e.g. if emissions are
-!      in kg C4H10 but the corresponding species is transported as mass Carbon.
-! (2) MolecRatio is the ratio between # of species molecules per emitted
-!      molecule, e.g. 4 if emissions are kg C4H10 but model species are kg C.
-!
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -241,6 +234,9 @@ CONTAINS
     !=====================================================================
     ! SpcData_Init begins here!
     !=====================================================================
+
+    ! Assume success
+    RC = GC_SUCCESS
 
     ! Check if already allocated
     IF ( ASSOCIATED( SpcData ) ) THEN
@@ -355,73 +351,73 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Boolean/Logical
-    Spc%DD_AeroDryDep  = MISSING_BOOL
-    Spc%DD_DustDryDep  = MISSING_BOOL
-    Spc%Is_ActiveChem  = MISSING_BOOL
-    Spc%Is_Advected    = MISSING_BOOL
-    Spc%Is_Aerosol     = MISSING_BOOL
-    Spc%Is_DryAlt      = MISSING_BOOL
-    Spc%Is_DryDep      = MISSING_BOOL
-    Spc%Is_FixedChem   = MISSING_BOOL
-    Spc%Is_Gas         = MISSING_BOOL
-    Spc%Is_Hg0         = MISSING_BOOL
-    Spc%Is_Hg2         = MISSING_BOOL
-    Spc%Is_HgP         = MISSING_BOOL
-    Spc%Is_HygroGrowth = MISSING_BOOL
-    Spc%Is_InRestart   = MISSING_BOOL
-    Spc%Is_Kpp         = MISSING_BOOL
-    Spc%Is_Photolysis  = MISSING_BOOL
-    Spc%Is_WetDep      = MISSING_BOOL
-    Spc%MP_SizeResAer  = MISSING_BOOL
-    Spc%MP_SizeResNum  = MISSING_BOOL
-    Spc%WD_CoarseAer   = MISSING_BOOL
-    Spc%WD_Is_H2SO4    = MISSING_BOOL
-    Spc%WD_Is_HNO3     = MISSING_BOOL
-    Spc%WD_Is_SO2      = MISSING_BOOL
-    Spc%WD_LiqAndGas   = MISSING_BOOL
+    Spc%DD_AeroDryDep   = MISSING_BOOL
+    Spc%DD_DustDryDep   = MISSING_BOOL
+    Spc%Is_ActiveChem   = MISSING_BOOL
+    Spc%Is_Advected     = MISSING_BOOL
+    Spc%Is_Aerosol      = MISSING_BOOL
+    Spc%Is_DryAlt       = MISSING_BOOL
+    Spc%Is_DryDep       = MISSING_BOOL
+    Spc%Is_FixedChem    = MISSING_BOOL
+    Spc%Is_Gas          = MISSING_BOOL
+    Spc%Is_Hg0          = MISSING_BOOL
+    Spc%Is_Hg2          = MISSING_BOOL
+    Spc%Is_HgP          = MISSING_BOOL
+    Spc%Is_HygroGrowth  = MISSING_BOOL
+    Spc%Is_InRestart    = MISSING_BOOL
+    Spc%Is_Kpp          = MISSING_BOOL
+    Spc%Is_Photolysis   = MISSING_BOOL
+    Spc%Is_RadioNuclide = MISSING_BOOL
+    Spc%Is_WetDep       = MISSING_BOOL
+    Spc%MP_SizeResAer   = MISSING_BOOL
+    Spc%MP_SizeResNum   = MISSING_BOOL
+    Spc%WD_CoarseAer    = MISSING_BOOL
+    Spc%WD_Is_H2SO4     = MISSING_BOOL
+    Spc%WD_Is_HNO3      = MISSING_BOOL
+    Spc%WD_Is_SO2       = MISSING_BOOL
+    Spc%WD_LiqAndGas    = MISSING_BOOL
 
     ! Integers
-    Spc%AdvectId       = MISSING_INT
-    Spc%AerosolId      = MISSING_INT
-    Spc%DryAltId       = MISSING_INT
-    Spc%DryDepId       = MISSING_INT
-    Spc%GasSpcId       = MISSING_INT
-    Spc%Hg_Cat         = MISSING_INT
-    Spc%HygGrthId      = MISSING_INT
-    Spc%KppFixId       = MISSING_INT
-    Spc%KppSpcId       = MISSING_INT
-    Spc%KppVarId       = MISSING_INT
-    Spc%ModelId        = MISSING_INT
-    Spc%PhotolId       = MISSING_INT
-    Spc%WetDepId       = MISSING_INT
+    Spc%AdvectId        = MISSING_INT
+    Spc%AerosolId       = MISSING_INT
+    Spc%DryAltId        = MISSING_INT
+    Spc%DryDepId        = MISSING_INT
+    Spc%GasSpcId        = MISSING_INT
+    Spc%Hg_Cat          = MISSING_INT
+    Spc%HygGrthId       = MISSING_INT
+    Spc%KppFixId        = MISSING_INT
+    Spc%KppSpcId        = MISSING_INT
+    Spc%KppVarId        = MISSING_INT
+    Spc%ModelId         = MISSING_INT
+    Spc%PhotolId        = MISSING_INT
+    Spc%RadNuclId       = MISSING_INT
+    Spc%WetDepId        = MISSING_INT
 
     ! Reals (floating precision)
-    Spc%BackgroundVV   = MISSING
-    Spc%DD_DvzAerSnow  = MISSING
-    Spc%DD_DvzMinVal   = MISSING
-    Spc%DD_F0          = MISSING
-    Spc%DD_KOA         = MISSING
-    Spc%DD_Hstar       = MISSING
-    Spc%Density        = MISSING
-    Spc%EmMW_g         = MISSING
-    Spc%MW_g           = MISSING
-    Spc%MolecRatio     = MISSING
-    Spc%Radius         = MISSING
-    Spc%WD_AerScavEff  = MISSING
-    Spc%WD_ConvFacI2G  = MISSING
-    Spc%WD_KcScaleFac  = MISSING
-    Spc%WD_RainoutEff  = MISSING
-    Spc%WD_RetFactor   = MISSING
+    Spc%BackgroundVV    = MISSING
+    Spc%DD_DvzAerSnow   = MISSING
+    Spc%DD_DvzMinVal    = MISSING
+    Spc%DD_F0           = MISSING
+    Spc%DD_KOA          = MISSING
+    Spc%DD_Hstar        = MISSING
+    Spc%Density         = MISSING
+    Spc%MW_g            = MISSING
+    Spc%Radius          = MISSING
+    Spc%WD_AerScavEff   = MISSING
+    Spc%WD_ConvFacI2G   = MISSING
+    Spc%WD_KcScaleFac   = MISSING
+    Spc%WD_RainoutEff   = MISSING
+    Spc%WD_RetFactor    = MISSING
 
     ! Reals (8-byte precision)
-    Spc%Henry_CR       = MISSING_R8
-    Spc%Henry_K0       = MISSING_R8
-    Spc%Henry_PKA      = MISSING_R8
+    Spc%Henry_CR        = MISSING_R8
+    Spc%Henry_K0        = MISSING_R8
+    Spc%Henry_PKA       = MISSING_R8
 
     ! Strings
-    Spc%Formula        = MISSING_STR
-    Spc%FullName       = MISSING_STR
-    Spc%Name           = MISSING_STR
+    Spc%Formula         = MISSING_STR
+    Spc%FullName        = MISSING_STR
+    Spc%Name            = MISSING_STR
 
    END SUBROUTINE Spc_Zero
 !BOC
@@ -477,12 +473,13 @@ CONTAINS
        WRITE( 6, 110 )       "FullName       ",  TRIM( ThisSpc%FullName )
        WRITE( 6, 110 )       "Formula        ",  TRIM( ThisSpc%Formula  )
        WRITE( 6, 121 )       "MW_g           ",  ThisSpc%MW_g
-       WRITE( 6, 121 )       "EmMW_g         ",  ThisSpc%EmMW_g
-       WRITE( 6, 121 )       "MolecRatio     ",  ThisSpc%MolecRatio
        IF ( ThisSpc%Is_Gas ) THEN
           WRITE( 6, "(a)" )  "Gas or aerosol  : GAS"
        ELSE IF ( ThisSpc%Is_Aerosol ) THEN
           WRITE( 6, "(a)" )  "Gas or aerosol  : AEROSOL"
+       ENDIF
+       IF ( ThisSpc%Is_RadioNuclide ) THEN
+          WRITE( 6, "(a)" )  "Radionuclide?   : YES"
        ENDIF
 
        !--------------------------------------------------------------------

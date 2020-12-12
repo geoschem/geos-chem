@@ -1,6 +1,5 @@
 #------------------------------------------------------------------------------
-#     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+!             GEOS-Chem Global Chemical Transport Model                       !
 #------------------------------------------------------------------------------
 #
 # !DESCRIPTION: Resource file for the GEOSCHEMchem Gridded Component.
@@ -169,3 +168,32 @@ ANAO3L3: 72
 ANAO3L4: 72
 ANAO3FR: 0.2
 Use_PCHEM_O3: 0
+
+#
+# NOx lightning met inputs
+#
+# Input source for flash rates: If set to 'LFR' or 'LFR_GCC', the corresponding MOIST export is used. If set to any other
+# name, will search for that name in the import state. For instance, set it to 'LFR_OFFLINE' and then define an import via
+# ExtData to use LFR values from a file. Default is LFR_GCC. All values expected in [flashes km-2 s-1].
+#
+LIGHTNING_FLASH_RATE_SOURCE: LFR_GCC
+#
+# Input source for convective height: If set to 'CNV_MFC', will compute the convective height from convective mass fluxes
+# (default). If set to 'BYNCY', will compute it from the buoyancy and convective fraction. For all other cases, will look
+# for the field in import and use that as is. For instance, set it to 'CCTH_OFFLINE' and define an import via ExtData to
+# use values from an external file. If read from file, the values must be in [m].
+#
+LIGHTNING_CONVECTIVE_TOP_SOURCE: CNV_MFC
+#
+
+# Turn off heterogenous reactions in stratosphere?
+# If true, the following heterogeneous reactions are disabled (in the stratosphere):
+# ClNO3(g) + HBr(l,s) --> BrCl + HNO3
+# BrNO3(g) + HCl(l,s) --> BrCl + HNO3
+# HOCl(g) + HBr(l,s) --> BrCl + H2O
+TurnOffHetRates: 1
+
+#
+# Enable Bry and Cly family transport
+#
+Bry_Cly_Family_Transport: 1

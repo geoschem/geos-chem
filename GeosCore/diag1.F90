@@ -28,7 +28,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Grid_Mod,     ONLY : GrdState
   USE State_Met_Mod,      ONLY : MetState
-  USE HCO_INTERFACE_MOD,  ONLY : HcoState
+  USE HCO_State_GC_Mod,   ONLY : HcoState
 
   IMPLICIT NONE
 !
@@ -61,17 +61,17 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 ! !LOCAL VARIABLES:
 !
   ! Scalars
-  INTEGER       :: I,          J,          K
-  INTEGER       :: L,          N,          NA
-  REAL(fp)      :: EmMW_g,     P0,         Spc_VV
+  INTEGER       :: I,        J,          K
+  INTEGER       :: L,        N,          NA
+  REAL(fp)      :: MW_g,     P0,         Spc_VV
 
   ! SAVEd scalars
   LOGICAL, SAVE :: FIRST   = .TRUE.
   LOGICAL, SAVE :: Do_ND03 = .FALSE.
   INTEGER, SAVE :: id_Hg2  = -1
   INTEGER, SAVE :: id_HgP  = -1
-  REAL(fp),SAVE :: EmMW_g_Hg2 = -1.0_fp
-  REAL(fp),SAVE :: EmMW_g_HgP = -1.0_fp
+  REAL(fp),SAVE :: MW_g_Hg2 = -1.0_fp
+  REAL(fp),SAVE :: MW_g_HgP = -1.0_fp
 
   !=================================================================
   ! DIAG1 begins here!
@@ -94,12 +94,12 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
      ! Pre-save the molecular weight of Hg2 [g]
      IF ( id_Hg2 > 0 ) THEN
-        EmMW_g_Hg2 = State_Chm%SpcData(id_Hg2)%Info%EmMW_g
+        MW_g_Hg2 = State_Chm%SpcData(id_Hg2)%Info%MW_g
      ENDIF
 
      ! Pre-save the molecuar weight of HgP [s]
      IF ( id_HgP > 0 ) THEN
-        EmMW_g_HgP = State_Chm%SpcData(id_HgP)%Info%EmMW_g
+        MW_g_HgP = State_Chm%SpcData(id_HgP)%Info%MW_g
      ENDIF
 
      ! Reset first-time flag
@@ -115,14 +115,14 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
      ! Loop over advected species
      !$OMP PARALLEL DO &
-     !$OMP DEFAULT( SHARED                             ) &
-     !$OMP PRIVATE( I, J, L, N, NA, EmMw_g, P0, Spc_VV ) &
+     !$OMP DEFAULT( SHARED                           ) &
+     !$OMP PRIVATE( I, J, L, N, NA, Mw_g, P0, Spc_VV ) &
      !$OMP SCHEDULE( DYNAMIC, 4                        )
      DO NA = 1, State_Chm%nAdvect
 
         ! Initialize
-        N      = State_Chm%Map_Advect(NA)          ! Species ID #
-        EmMW_g = State_Chm%SpcData(N)%Info%EmMW_g  ! Emitted MW (g)
+        N    = State_Chm%Map_Advect(NA)        ! Species ID #
+        MW_g = State_Chm%SpcData(N)%Info%MW_g  ! Molecular weight (g)
 
         ! Loop over grid boxes
         DO L = 1, State_Grid%NZ
@@ -144,7 +144,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
               IF ( id_Hg2 > 0 ) THEN
                  AD03_RGM(I,J,L) = AD03_RGM(I,J,L) &
                                  + State_Chm%Species(I,J,L,id_Hg2) &
-                                 * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
+                                 * ( AIRMW / MW_g_Hg2 * 1e+12_fp )
               ENDIF
 
               !--------------------------------------------------------
@@ -153,7 +153,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
               IF ( id_HgP > 0 ) THEN
                  AD03_PBM(I,J,L) = AD03_PBM(I,J,L) &
                                  + State_Chm%Species(I,J,L,id_HgP) &
-                                 * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
+                                 * ( AIRMW / MW_g_HgP * 1e+12_fp )
               ENDIF
            ENDIF
         ENDDO

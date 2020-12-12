@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Contains routines to create a netCDF file for each GEOS-Chem
 !  diagnostic collection (as specified by each HISTORY CONTAINER in the
-!  master collection list located within in history_mod.F90).
+!  main collection list located within in history_mod.F90).
 !\\
 !\\
 ! !INTERFACE:
@@ -238,9 +238,9 @@ CONTAINS
     TYPE(MetaHistItem), POINTER :: Current
     TYPE(MetaHistItem), POINTER :: IndexVarList
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
+    !========================================================================
     RC           =  GC_SUCCESS
     RC2          =  GC_SUCCESS
     Current      => NULL()
@@ -260,40 +260,40 @@ CONTAINS
     ! want to create a new file instead of appending to an open file).
     isRestart = ( INDEX( To_UpperCase(TRIM(Container%Name)), 'RESTART' ) > 0 )
 
-    !=======================================================================
+    !========================================================================
     ! Create the netCDF file with global attributes (or append)
     ! Do not exit netCDF define mode just yet
-    !=======================================================================
+    !========================================================================
     IF ( .not. Container%IsFileOpen ) THEN
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Compute reference date and time fields in the HISTORY CONTAINER
        ! These are needed to compute the time stamps for each data field
        ! that is written to the netCDF file.  Also resets the current
        ! time slice index.
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
 
        ! Reset the current time slice index
        Container%CurrTimeSlice = 0
 
        IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
 
-          !-----------------------------------------------------------------
+          !------------------------------------------------------------------
           ! %%% TIME-AVERAGED COLLECTIONS %%%
-          !-----------------------------------------------------------------
+          !------------------------------------------------------------------
 
           ! REFERENCE TIMESTAMP:
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
           Container%ReferenceJsec = Container%CurrentJsec                    &
                                   - Container%FileWriteIvalSec
-         
+
        ELSE
 
-          !-----------------------------------------------------------------
+          !------------------------------------------------------------------
           ! %%% INSTANTANEOUS COLLECTIONS %%%
-          !-----------------------------------------------------------------
-          
+          !------------------------------------------------------------------
+
           ! REFERENCE TIMESTAMP: Use the date/time when the file is created.
           Container%ReferenceJsec = Container%CurrentJsec
 
@@ -396,29 +396,29 @@ CONTAINS
                           LonId          = Container%xDimId,                 &
                           KeepDefMode    = .TRUE.,                           &
                           Varct          = VarCt                            )
-          
+
        ENDIF
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Denote that the file has been created and is open
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        Container%IsFileOpen = .TRUE.
-          
+
     ENDIF
 
     ! Format strings for use above
 100 FORMAT( '     - Creating file for ',  a, '; reference = ',i8.8,1x,i6.6 )
 110 FORMAT( '        with filename = ', a                                  )
 
-    !=======================================================================
+    !========================================================================
     ! Define all of the Create the netCDF file with global attributes
     ! Skip if we are appending to an existing file
-    !=======================================================================
+    !========================================================================
     IF ( .not. Container%IsFileDefined ) THEN
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Define the index variables
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
 
        ! Define the linked list of index variables (IndexVarList) that
        ! have the same dimension subsets as the current container
@@ -455,7 +455,7 @@ CONTAINS
                                VarFormula   = VarFormula                    )
 
           ! Set a flag for the precision of the data
-          IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
+          IF ( Current%Item%Output_KindVal == KINDVAL_F4 ) THEN
              DataType = 4
           ELSE
              DataType = 8
@@ -491,9 +491,9 @@ CONTAINS
        ! Free pointers
        Current => NULL()
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Then define each HISTORY ITEM belonging to this collection
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
 
        ! Set CURRENT to the first node in the list of HISTORY ITEMS
        Current => Container%HistItems
@@ -516,23 +516,32 @@ CONTAINS
              VarUnits = Container%Spc_Units
           ENDIF
 
-          ! Define each HISTORY ITEM in this collection
-          ! as a variable in the netCDF file
-          CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
-                           Compress     = .TRUE.,                            &
-                           fId          = Container%FileId,                  &
-                           DataType     = 4,                                 &
-                           VarName      = Current%Item%Name,                 &
-                           VarCt        = Current%Item%NcVarId,              &
-                           timeId       = Current%Item%NcTDimId,             &
-                           levId        = Current%Item%NcZDimId,             &
-                           iLevId       = Current%Item%NcIDimId,             &
-                           latId        = Current%Item%NcYDimId,             &
-                           lonId        = Current%Item%NcXDimId,             &
-                           VarLongName  = Current%Item%LongName,             &
-                           VarUnit      = VarUnits,                          &
-                           MissingValue = Current%Item%MissingValue,         &
-                           AvgMethod    = Current%Item%AvgMethod            )
+          ! Set a flag for the precision of the data
+          IF ( Current%Item%Output_KindVal == KINDVAL_F4 ) THEN
+             DataType = 4
+          ELSE
+             DataType = 8
+          ENDIF
+
+          !---------------------------------------------------------------
+          ! Define a HISTORY ITEM in this collection as a 4-byte real
+          ! or 8-byte real data variable for the netCDF file output
+          !---------------------------------------------------------------
+          CALL Nc_Var_Def( DefMode      = .TRUE.,                         &
+                           Compress     = .TRUE.,                         &
+                           fId          = Container%FileId,               &
+                           DataType     = DataType,                       &
+                           VarName      = Current%Item%Name,              &
+                           VarCt        = Current%Item%NcVarId,           &
+                           timeId       = Current%Item%NcTDimId,          &
+                           levId        = Current%Item%NcZDimId,          &
+                           iLevId       = Current%Item%NcIDimId,          &
+                           latId        = Current%Item%NcYDimId,          &
+                           lonId        = Current%Item%NcXDimId,          &
+                           VarLongName  = Current%Item%LongName,          &
+                           VarUnit      = VarUnits,                       &
+                          !MissingValue = Current%Item%MissingValue,      &
+                           AvgMethod    = Current%Item%AvgMethod         )
 
 #if defined( NC_HAS_COMPRESSION )
           ! Turn on netCDF chunking for this HISTORY ITEM
@@ -567,9 +576,9 @@ CONTAINS
        ! Free pointers
        Current => NULL()
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Write the index variable data
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
 
        ! Close definition section
        CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
@@ -612,9 +621,9 @@ CONTAINS
        ! Free pointers
        Current => NULL()
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! We can now consider this collection to have been "defined"
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        Container%IsFileDefined = .TRUE.
 
        CALL IndexVarList_Destroy( IndexVarList, RC )
@@ -646,12 +655,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistItem_Mod,       ONLY : HistItem
-    USE HistContainer_Mod,  ONLY : HistContainer
+    USE HistItem_Mod,        ONLY : HistItem
+    USE HistContainer_Mod,   ONLY : HistContainer
     USE History_Util_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE M_Netcdf_Io_Write,  ONLY : NcWr
-    USE MetaHistItem_Mod,   ONLY : MetaHistItem
+    USE Input_Opt_Mod,       ONLY : OptInput
+    USE M_Netcdf_Io_Write,   ONLY : NcWr
+    USE MetaHistItem_Mod,    ONLY : MetaHistItem
+    USE Registry_Params_Mod, ONLY : KINDVAL_F4
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -680,6 +691,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                     :: output4Bytes
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
 
@@ -691,30 +703,33 @@ CONTAINS
     INTEGER                     :: St2d(2),          Ct2d(2)
     INTEGER                     :: St3d(3),          Ct3d(3)
     INTEGER                     :: St4d(4),          Ct4d(4)
-    REAL(f4),       ALLOCATABLE :: NcData_1d(:    )
-    REAL(f4),       ALLOCATABLE :: NcData_2d(:,:  )
-    REAL(f4),       ALLOCATABLE :: NcData_3d(:,:,:)
-    REAL(f8)                    :: NcTimeVal(1    )
+    REAL(f4),       ALLOCATABLE :: NcData_1d4(:    )
+    REAL(f4),       ALLOCATABLE :: NcData_2d4(:,:  )
+    REAL(f4),       ALLOCATABLE :: NcData_3d4(:,:,:)
+    REAL(f8),       ALLOCATABLE :: NcData_1d8(:    )
+    REAL(f8),       ALLOCATABLE :: NcData_2d8(:,:  )
+    REAL(f8),       ALLOCATABLE :: NcData_3d8(:,:,:)
+    REAL(f8)                    :: NcTimeVal (1    )
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
     TYPE(HistItem),     POINTER :: Item
 
-    !=======================================================================
+    !========================================================================
     ! Make sure the netCDF file is open and defined
-    !=======================================================================
-    IF ( ( .not. Container%IsFileOpen   )    .and.                          &
+    !========================================================================
+    IF ( ( .not. Container%IsFileOpen   )    .and.                           &
          ( .not. Container%IsFileDefined ) ) THEN
        RC     = GC_FAILURE
-       ErrMsg = 'NetCDF file is not open or defined for collection: ' // &
+       ErrMsg = 'NetCDF file is not open or defined for collection: '     // &
                  TRIM( Container%Name )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
+    !========================================================================
     RC        =  GC_SUCCESS
     Dim1      =  UNDEFINED_INT
     Dim2      =  UNDEFINED_INT
@@ -726,16 +741,16 @@ CONTAINS
     ThisLoc   =  &
          ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
 
-    !=======================================================================
+    !========================================================================
     ! Compute time elapsed since the reference time
-    !=======================================================================
+    !========================================================================
 
     ! Increment the time index for the netCDF file
     Container%CurrTimeSlice = Container%CurrTimeSlice + 1
 
-    !=======================================================================
+    !========================================================================
     ! Compute the time stamp value for the current time slice
-    !=======================================================================
+    !========================================================================
 
     ! Compute the elapsed time in seconds since the file creation
     CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,         &
@@ -758,9 +773,9 @@ CONTAINS
 110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Write the time stamp to the netCDF File
-    !=======================================================================
+    !========================================================================
 
     ! netCDF start and count arrays
     St1d      = (/ Container%CurrTimeSlice /)
@@ -772,9 +787,9 @@ CONTAINS
     ! Write the time stamp to the file
     CALL NcWr( NcTimeVal, NcFileId, 'time', St1d, Ct1d )
 
-    !=======================================================================
+    !========================================================================
     ! Loop over all of the HISTORY ITEMS belonging to this collection
-    !=======================================================================
+    !========================================================================
 
     ! Set CURRENT to the first entry in the list of HISTORY ITEMS
     Current => Container%HistItems
@@ -785,23 +800,27 @@ CONTAINS
        ! Point to the HISTORY ITEM object in this entry
        Item => Current%Item
 
-       !--------------------------------------------------------------------
+       ! Does this HISTORY ITEM request output as 4-byte reals?
+       ! If not, we will assume output will be 8-byte reals.
+       output4Bytes = ( Item%Output_KindVal == KINDVAL_F4 )
+
+       !---------------------------------------------------------------------
        ! For instantaneous diagnostic quantities:
-       ! (1) Copy the Item's data array to the 4-byte local array
+       ! (1) Copy the Item's data array to the 4-byte or 8-byte local array
        ! (2) Zero the Item's data array
        ! (3) Zero the Item's update counter
        !
        ! For time-averaged diagnostic quantities:
        ! (1) Divide the Item's data array by the number diagnostic updates
-       ! (2) Copy the Item's data array to the 4-byte local array
+       ! (2) Copy the Item's data array to the 4-byte or 8-byte local array
        ! (3) Zero the Item's data array
        ! (4) Zero the Item's update counter
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        SELECT CASE( Item%SpaceDim )
 
-          !------------
+          !------------------------------------------------------------------
           ! 3-D data
-          !------------
+          !------------------------------------------------------------------
           CASE( 3 )
 
              ! Get dimensions of data
@@ -809,53 +828,92 @@ CONTAINS
              Dim2 = SIZE( Item%Data_3d, 2 )
              Dim3 = SIZE( Item%Data_3d, 3 )
 
-             ! Allocate the REAL*4 output array
-             ALLOCATE( NcData_3d( Dim1, Dim2, Dim3 ), STAT=RC )
-
-             ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                NcData_3d     = Item%Data_3d
-                Item%Data_3d  = 0.0_f8
-                Item%nUpdates = 0
+             ! Allocate the 4-byte or 8-byte output array
+             IF ( output4bytes ) THEN
+                ALLOCATE( NcData_3d4( Dim1, Dim2, Dim3 ), STAT=RC )
              ELSE
-                Item%Data_3d  = Item%Data_3d / Item%nUpdates
-                NcData_3d     = Item%Data_3d
+                ALLOCATE( NcData_3d8( Dim1, Dim2, Dim3 ), STAT=RC )
+             ENDIF
+
+             ! Copy or average the data and store in a 4-byte or 8-byte array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+
+                !%%% Instantaneous output %%%
+                IF ( output4Bytes ) THEN
+                   NcData_3d4 = Item%Data_3d
+                ELSE
+                   NcData_3d8 = Item%Data_3d
+                ENDIF
                 Item%Data_3d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
+
+             ELSE
+
+                !%%% Time-averaged output %%%
+                Item%Data_3d  = Item%Data_3d / Item%nUpdates
+                IF ( output4Bytes ) THEN
+                   NcData_3d4 = Item%Data_3d
+                ELSE
+                   NcData_3d8 = Item%Data_3d
+                ENDIF
+                Item%Data_3d  = 0.0_f8
+                Item%nUpdates = 0.0_f8
+
              ENDIF
 
              ! Compute start and count fields
              St4d = (/ 1,    1,    1,    Container%CurrTimeSlice /)
              Ct4d = (/ Dim1, Dim2, Dim3, 1                       /)
 
-             ! Write data to disk
-             CALL NcWr( NcData_3d, NcFileId, Item%Name, St4d, Ct4d )
+             ! Write data to disk and deallocate output array
+             IF ( output4bytes ) THEN
+                CALL NcWr( NcData_3d4, NcFileId, Item%Name, St4d, Ct4d )
+                DEALLOCATE( NcData_3d4, STAT=RC )
+             ELSE
+                CALL NcWr( NcData_3d8, NcFileId, Item%Name, St4d, Ct4d )
+                DEALLOCATE( NcData_3d8, STAT=RC )
+             ENDIF
 
-             ! Deallocate output array
-             DEALLOCATE( NcData_3d, STAT=RC )
-
-          !------------
+          !------------------------------------------------------------------
           ! 2-D data
-          !------------
+          !------------------------------------------------------------------
           CASE( 2 )
 
              ! Get dimensions of data
              Dim1 = SIZE( Item%Data_2d, 1 )
              Dim2 = SIZE( Item%Data_2d, 2 )
 
-             ! Allocate the REAL*4 output array
-             ALLOCATE( NcData_2d( Dim1, Dim2 ), STAT=RC )
-
-             ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                NcData_2d     = Item%Data_2d
-                Item%Data_2d  = 0.0_f8
-                Item%nUpdates = 0
+             ! Allocate the 4-byte or 8-byte output array
+             IF ( output4bytes ) THEN
+                ALLOCATE( NcData_2d4( Dim1, Dim2 ), STAT=RC )
              ELSE
-                Item%Data_2d  = Item%Data_2d / Item%nUpdates
-                NcData_2d     = Item%Data_2d
+                ALLOCATE( NcData_2d8( Dim1, Dim2 ), STAT=RC )
+             ENDIF
+
+             ! Copy or average the data and store in a 4-byte or 8-byte array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+
+                !%%% Instantaneous output %%%
+                IF ( output4bytes ) THEN
+                   NcData_2d4 = Item%Data_2d
+                ELSE
+                   NcData_2d8 = Item%Data_2d
+                ENDIF
                 Item%Data_2d  = 0.0_f8
-                Item%nUpdates = 0
+                Item%nUpdates = 0.0_f8
+
+             ELSE
+
+                !%%% Time-averaged output %%%
+                Item%Data_2d  = Item%Data_2d / Item%nUpdates
+                IF ( output4bytes ) THEN
+                   NcData_2d4 = Item%Data_2d
+                ELSE
+                   NcData_2d8 = Item%Data_2d
+                ENDIF
+                Item%Data_2d  = 0.0_f8
+                Item%nUpdates = 0.0_f8
+
              ENDIF
 
              ! Compute start and count fields
@@ -863,50 +921,73 @@ CONTAINS
              Ct3d = (/ Dim1, Dim2, 1                       /)
 
              ! Write data to disk
-             CALL NcWr( NcData_2d, NcFileId, Item%Name, St3d, Ct3d )
+             IF ( output4bytes ) THEN
+                CALL NcWr( NcData_2d4, NcFileId, Item%Name, St3d, Ct3d )
+                DEALLOCATE( NcData_2d4, STAT=RC )
+             ELSE
+                CALL NcWr( NcData_2d8, NcFileId, Item%Name, St3d, Ct3d )
+                DEALLOCATE( NcData_2d8, STAT=RC )
+             ENDIF
 
-             ! Deallocate output array
-             DEALLOCATE( NcData_2d, STAT=RC )
-
-          !------------
+          !------------------------------------------------------------------
           ! 1-D data
-          !------------
+          !------------------------------------------------------------------
           CASE( 1 )
 
              ! Get dimensions of data
              Dim1 = SIZE( Item%Data_1d, 1 )
 
-             ! Allocate the REAL*4 output array
-             ALLOCATE( NcData_1d( Dim1 ), STAT=RC )
-
-             ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                NcData_1d     = Item%Data_1d
-                Item%Data_1d  = 0.0_f8
-                Item%nUpdates = 0
+             ! Allocate the 4-byte or 8-byte output array
+             IF ( output4bytes ) THEN
+                ALLOCATE( NcData_1d4( Dim1 ), STAT=RC )
              ELSE
-                Item%Data_1d  = Item%Data_1d / Item%nUpdates
-                NcData_1d     = Item%Data_1d
-                Item%Data_1d  = 0.0_f8
-                Item%nUpdates = 0
+                ALLOCATE( NcData_1d8( Dim1 ), STAT=RC )
              ENDIF
 
+             ! Copy or average the data and store in a 4-byte or 8-byte array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+
+                !%%% Instantaneous output %%%
+                IF ( output4bytes ) THEN
+                   NcData_1d4 = Item%Data_1d
+                ELSE
+                   NcData_1d8 = Item%Data_1d
+                ENDIF
+                Item%Data_1d  = 0.0_f8
+                Item%nUpdates = 0.0_f8
+
+             ELSE
+
+                ! %%% Time-averaged output %%%
+                Item%Data_1d  = Item%Data_1d / Item%nUpdates
+                IF ( output4bytes ) THEN
+                   NcData_1d4 = Item%Data_1d
+                ELSE
+                   NcData_1d8 = Item%Data_1d
+                ENDIF
+                Item%Data_1d  = 0.0_f8
+                Item%nUpdates = 0.0_f8
+
+             ENDIF
 
              ! Compute start and count fields
              St2d = (/ 1,    Container%CurrTimeSlice /)
              Ct2d = (/ Dim1, 1                       /)
 
              ! Write data to disk
-             CALL NcWr( NcData_1d, NcFileId, Item%Name, St2d, Ct2d )
-
-             ! Deallocate output array
-             DEALLOCATE( NcData_1d, STAT=RC )
+             IF ( output4bytes ) THEN
+                CALL NcWr( NcData_1d4, NcFileId, Item%Name, St2d, Ct2d )
+                DEALLOCATE( NcData_1d4, STAT=RC )
+             ELSE
+                CALL NcWr( NcData_1d8, NcFileId, Item%Name, St2d, Ct2d )
+                DEALLOCATE( NcData_1d8, STAT=RC )
+             ENDIF
 
        END SELECT
 
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Go to next entry in the list of HISTORY ITEMS
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
        Current => Current%Next
        Item    => NULL()
     ENDDO
@@ -973,18 +1054,18 @@ CONTAINS
     CHARACTER(LEN=2) :: HourStr,       MinuteStr,  SecondStr
     CHARACTER(LEN=4) :: YearStr
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
+    !========================================================================
     IF ( PRESENT( MAPL_Style ) ) THEN
        Is_Mapl_Style = MAPL_Style
     ELSE
        Is_Mapl_Style = .FALSE.
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Split the date and time into individal variables
-    !=======================================================================
+    !========================================================================
 
     ! Extract year/month/day and hour/minute/seconds from the time
     CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
@@ -998,9 +1079,9 @@ CONTAINS
     WRITE( MinuteStr, '(i2.2)' ) Minute
     WRITE( SecondStr, '(i2.2)' ) Second
 
-    !=======================================================================
+    !========================================================================
     ! Replace the date and time tokens in the string
-    !=======================================================================
+    !========================================================================
 
     IF ( Is_Mapl_Style ) THEN
 
@@ -1104,9 +1185,9 @@ CONTAINS
     CHARACTER(LEN=255) :: TmpAxis,        TmpCalendar,  TmpStdName
     CHARACTER(LEN=255) :: TmpPositive,    TmpUnits,     TmpFormula
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
+    !========================================================================
     TmpAxis         = ''
     TmpCalendar     = ''
     TmpPositive     = ''
@@ -1137,9 +1218,9 @@ CONTAINS
        IsOnLevelEdges = .FALSE.
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Return relevant dim ID's and metadata for the HISTORY ITEM
-    !=======================================================================
+    !========================================================================
     SELECT CASE( TRIM( Item%Name ) )
 
        ! lon
@@ -1337,7 +1418,8 @@ CONTAINS
     ! Scalars
     LOGICAL                  :: OnLevelEdges
     INTEGER                  :: N
-    INTEGER                  :: KindVal
+    INTEGER                  :: Output_KindVal
+    INTEGER                  :: Source_KindVal
     INTEGER                  :: Rank
     INTEGER                  :: nILev
     INTEGER                  :: nLev
@@ -1367,26 +1449,27 @@ CONTAINS
     ! Objects
     TYPE(HistItem),  POINTER :: Item
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
-    RC           =  GC_SUCCESS
-    Description  =  ''
-    Dimensions   =  0
-    KindVal      =  0
-    Rank         =  0
-    Units        =  ''
-    ErrMsg       =  ''
-    ThisLoc      =  &
-                ' -> at History_Netcdf_Init (in History/history_mod.F90)'
+    !========================================================================
+    RC             =  GC_SUCCESS
+    Description    =  ''
+    Dimensions     =  0
+    Source_KindVal =  0
+    Output_KindVal =  0
+    Rank           =  0
+    Units          =  ''
+    ErrMsg         =  ''
+    ThisLoc        =  &
+         ' -> at History_Netcdf_Init (in History/history_mod.F90)'
     Ptr0d_8      => NULL()
     Ptr1d_8      => NULL()
     Ptr2d_4      => NULL()
 
-    !=======================================================================
+    !========================================================================
     ! Define the names that will be used to create the HISTORY ITEMS
     ! for fields to be used as netCDF metadata
-    !=======================================================================
+    !========================================================================
 
     ! Fields saved in the Registry object in GeosUtil/grid_registry_mod.F90
     RegistryName(1 ) = 'GRID_AREA'
@@ -1427,9 +1510,9 @@ CONTAINS
     ItemDimName(10)  = 'z'
     ItemDimName(11)  = 't'
 
-    !=======================================================================
+    !========================================================================
     ! Pick the dimensions of the lev and ilev variables properly
-    !=======================================================================
+    !========================================================================
 
     ! Get the number of levels (nLev) and level interfaces (nIlev)
     CALL Get_Number_Of_Levels( Container, nLev, nIlev )
@@ -1440,27 +1523,28 @@ CONTAINS
     Subset_Zc = (/ Container%Z0, nLev         /)
     Subset_Ze = (/ Container%Z0, nILev        /)
 
-    !=======================================================================
+    !========================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
     ! of grid_registry_mod.F90 and add them to a METAHISTORY ITEM list
-    !=======================================================================
+    !========================================================================
     DO N = 1, SIZE( RegistryName )
 
        !---------------------------------------------------------------------
        ! Look up one of the index fields from gc_grid_mod.F90
        !---------------------------------------------------------------------
-       CALL Lookup_Grid( Input_Opt    = Input_Opt,                           &
-                         Variable     = RegistryName(N),                     &
-                         Description  = Description,                         &
-                         Dimensions   = Dimensions,                          &
-                         KindVal      = KindVal,                             &
-                         Rank         = Rank,                                &
-                         Units        = Units,                               &
-                         OnLevelEdges = OnLevelEdges,                        &
-                         Ptr0d_8      = Ptr0d_8,                             &
-                         Ptr1d_8      = Ptr1d_8,                             &
-                         Ptr2d_4      = Ptr2d_4,                             &
-                         RC           = RC                                  )
+       CALL Lookup_Grid( Input_Opt      = Input_Opt,                         &
+                         Variable       = RegistryName(N),                   &
+                         Description    = Description,                       &
+                         Dimensions     = Dimensions,                        &
+                         Source_KindVal = Source_KindVal,                    &
+                         Output_KindVal = Output_KindVal,                    &
+                         Rank           = Rank,                              &
+                         Units          = Units,                             &
+                         OnLevelEdges   = OnLevelEdges,                      &
+                         Ptr0d_8        = Ptr0d_8,                           &
+                         Ptr1d_8        = Ptr1d_8,                           &
+                         Ptr2d_4        = Ptr2d_4,                           &
+                         RC             = RC                                )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1496,7 +1580,8 @@ CONTAINS
                              Subset_X       = Subset_X,                      &
                              Subset_Y       = Subset_Y,                      &
                              Subset_Z       = Subset_Z,                      &
-                             Source_KindVal = KindVal,                       &
+                             Source_KindVal = Source_KindVal,                &
+                             Output_KindVal = Output_KindVal,                &
                              Source_0d_8    = Ptr0d_8,                       &
                              Source_1d_8    = Ptr1d_8,                       &
                              Source_2d_4    = Ptr2d_4,                       &
@@ -1573,16 +1658,16 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    !=======================================================================
+    !========================================================================
     ! Initialize
-    !=======================================================================
+    !========================================================================
     RC      = GC_SUCCESS
     ErrMsg  =  ''
     ThisLoc =  ' -> at MetaHistItem_Destroy (in History/metahistitem_mod.F90)'
 
-    !=======================================================================
+    !========================================================================
     ! Destroy the METAHISTORY ITEM list of index variables for netCDF
-    !=======================================================================
+    !========================================================================
     CALL MetaHistItem_Destroy( IndexVarList, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot deallocate the "IndexVarList" META HISTORY ITEM!'
@@ -1627,14 +1712,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    !=======================================================================
+    !========================================================================
     ! Pick the dimensions of the lev and ilev variables properly
     ! so that we can use that for writing to then netCDF files.
     !
     ! If the vertical dimension (Container%NZ) is undefined, then
     ! this indicates that there is only 2-D data in the collection.
     ! Thus, there will be 1 level (the surface) and 2 level edges.
-    !=======================================================================
+    !========================================================================
     IF ( Container%OnLevelEdges ) THEN
        nILev = MAX( Container%NZ, 2 )
        nLev  = nILev - 1

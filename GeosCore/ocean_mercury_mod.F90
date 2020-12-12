@@ -253,7 +253,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : SET_Hg2_DIAG
 #endif
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
@@ -568,7 +568,7 @@ CONTAINS
   END SUBROUTINE READ_HG2_PARTITIONING
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -744,7 +744,7 @@ CONTAINS
 #endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1031,7 +1031,7 @@ CONTAINS
     ENDIF
 
     ! Molecular weight of Hg (applicable to all tagged tracers)
-    MHg = State_Chm%SpcData(1)%Info%emMW_g * 1e-3_fpp
+    MHg = State_Chm%SpcData(1)%Info%MW_g * 1e-3_fpp
 
     ! Get current month
     THISMONTH = GET_MONTH()
@@ -2182,7 +2182,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
@@ -2522,7 +2522,7 @@ CONTAINS
     FRAC_O     = State_Met%FROCEAN(I,J)
 
     ! Molecular weight of Hg (valid for all tagged tracers)
-    MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%emMW_g * 1e-3_fpp
+    MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%MW_g * 1e-3_fpp
 
     ! Test if MLD increased
     IF ( MLDnew > MLDold ) THEN

@@ -35,7 +35,6 @@ MODULE GC_Environment_Mod
   PUBLIC  :: GC_Init_StateObj
   PUBLIC  :: GC_Init_Grid
   PUBLIC  :: GC_Init_Extra
-  PUBLIC  :: GC_Init_Regridding
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -207,12 +206,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, &
-                               State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE GC_Init_StateObj( Diag_List, TaggedDiag_List, Input_Opt,   &
+                               State_Chm, State_Diag,      State_Grid,  &
+                               State_Met, RC                           )
 !
 ! !USES:
 !
     USE DiagList_Mod
+    USE TaggedDiagList_Mod
     USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
@@ -223,19 +224,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    TYPE(GrdState), INTENT(INOUT) :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    TYPE(GrdState),      INTENT(INOUT) :: State_Grid  ! Grid State object
+    TYPE(MetState),      INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,             INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  Need to add better error checking, currently we just return upon error.
@@ -275,12 +277,13 @@ CONTAINS
     !=======================================================================
     ! Initialize the Diagnostics State object
     !=======================================================================
-    CALL Init_State_Diag( Input_Opt  = Input_Opt,   &  ! Input Options
-                          State_Chm  = State_Chm,   &  ! Chemistry State
-                          State_Grid = State_Grid,  &  ! Grid State
-                          Diag_List  = Diag_List,   &  ! Diagnostic list obj
-                          State_Diag = State_Diag,  &  ! Diagnostics State
-                          RC         = RC          )   ! Success or failure
+    CALL Init_State_Diag( Input_Opt       = Input_Opt,                      &  
+                          State_Chm       = State_Chm,                      &  
+                          State_Grid      = State_Grid,                     &  
+                          Diag_List       = Diag_List,                      &  
+                          TaggedDiag_List = TaggedDiag_List,                &
+                          State_Diag      = State_Diag,                     &  
+                          RC              = RC                             )   
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -420,7 +423,6 @@ CONTAINS
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-    USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
     USE Dust_Mod,           ONLY : Init_Dust
@@ -434,6 +436,7 @@ CONTAINS
     USE Mercury_Mod,        ONLY : Init_Mercury
     USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
     USE POPs_Mod,           ONLY : Init_POPs
+    USE Pressure_Mod,       ONLY : Init_Pressure
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -441,7 +444,7 @@ CONTAINS
     USE Sulfate_Mod,        ONLY : Init_Sulfate
     USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
-    USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
+    USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
     USE Diag03_Mod,         ONLY : Init_Diag03
@@ -513,6 +516,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! Initialize the hybrid pressure module.  Define Ap and Bp.
+    !=======================================================================
+    CALL Init_Pressure( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_Pressure"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
     ! Call setup routines for drydep
     !=======================================================================
     IF ( Input_Opt%LDRYD ) THEN
@@ -525,15 +538,15 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Exit for dry-run simulations
-       IF ( Input_Opt%DryRun ) RETURN
-
        ! Print extra info message for Hg simulation
        IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT ) THEN
           WRITE ( 6, 120 )
           WRITE ( 6, 121 )
        ENDIF
     ENDIF
+
+    ! Exit for dry-run simulations
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! FORMAT strings
 120 FORMAT( /, 'All tagged Hg2 species have the same dep velocity '          &
@@ -568,15 +581,17 @@ CONTAINS
     !=================================================================
 
     !-----------------------------------------------------------------
-    ! Call SET_VDIFF_VALUES so that we can pass several values from
+    ! Call Init_VDIFF so that we can pass several values from
     ! Input_Opt to the vdiff_mod.F90. This has to be called
     ! after the input.geos file has been read from disk.
     !-----------------------------------------------------------------
-    CALL Set_Vdiff_Values( Input_Opt, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Set_Vdiff_Values"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
+       CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Vdiff"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -702,9 +717,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
-
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS
@@ -795,7 +807,7 @@ CONTAINS
        CALL Init_Diag53( State_Grid )
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if defined( MODEL_CLASSIC )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
@@ -812,99 +824,6 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
   END SUBROUTINE GC_Init_Extra
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gc_init_regridding
-!
-! !DESCRIPTION: Internal subroutine GC\_INIT\_REGRIDDING passes several
-!  variables to regrid\_a2a\_mod.F90, where they are locally shadowed.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GC_Init_Regridding( Input_Opt, State_Grid, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE GC_Grid_Mod
-    USE Regrid_A2A_Mod
-    USE State_Grid_Mod,     ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  This routine is a wrapper for Init_Map_A2A in regrid_a2a_mod.F90.
-!  Passing variables via Init_Map_A2A helps us to remove dependencies on
-!  other GEOS-Chem routines from regrid_a2a_mod.F90.  This in turn
-!  facilitates the implementation of the HEMCO emissions package.
-!
-! !REVISION HISTORY:
-!  15 Jul 2014 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: I, J
-    CHARACTER(LEN=255) :: DIR
-
-    ! Arrays
-    REAL(fp)           :: LONEDG(State_Grid%NX+1)  ! W longitude edges [deg]
-    REAL(fp)           :: LATSIN(State_Grid%NY+1)  ! SIN(Lat edges)    [1  ]
-    REAL(fp)           :: AREAS (State_Grid%NX, State_Grid%NY)  ! Surface Areas
-                                                                !  [m2 ]
-
-    !================================================================
-    ! GC_Init_Regridding begins here!
-    !================================================================
-
-    ! Assume success
-    RC  = GC_SUCCESS
-
-    ! Exit if this is a dry-run
-    IF ( Input_Opt%DryRun ) RETURN
-
-    ! Directory where netCDF ifles are found
-    DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
-
-    ! Initialize longitudes [deg]
-    DO I = 1, State_Grid%NX+1
-       LONEDG(I) = State_Grid%XEdge(I,1)
-    ENDDO
-
-    ! Initialize sines of latitude [1]
-    DO J = 1, State_Grid%NY+1
-       LATSIN(J) = State_Grid%YSIN(1,J)
-    ENDDO
-
-    ! Initialize surface areas [m2]
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-       AREAS(I,J) = State_Grid%Area_M2(I,J)
-    ENDDO
-    ENDDO
-
-    ! Pass to regrid_a2a_mod.F90, where these will be shadowed locally
-    CALL Init_Map_A2A( State_Grid%NX, State_Grid%NY, LONEDG, LATSIN, &
-                       AREAS,         DIR )
-
-  END SUBROUTINE GC_Init_Regridding
 !EOC
 #ifdef TOMAS
 !------------------------------------------------------------------------------

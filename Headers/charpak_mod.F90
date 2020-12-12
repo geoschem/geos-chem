@@ -34,6 +34,7 @@ MODULE Charpak_Mod
   PUBLIC  :: TranUc
   PUBLIC  :: Txtext
   PUBLIC  :: WordWrapPrint
+  PUBLIC  :: Unique
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -980,5 +981,77 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE WordWrapPrint
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Unique
+!
+! !DESCRIPTION: Returns only the unique values in a vector of strings.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Unique( vec, vec_unique )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),              INTENT(IN)    :: vec(:)
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT) :: vec_unique(:)
+!
+! !AUTHOR:
+!  Jacob Williams (jacob@degenerateconic.com)
+!  Source code at: http://degenerateconic.com/unique/
+!  Modified for string handling by Bob Yantosca
+!
+! !REVISION HISTORY:
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    integer :: i,num
+    logical,dimension(size(vec)) :: mask
+
+    mask = .false.
+
+    ! Loop over all elements
+    do i = 1, SIZE( vec )
+
+       ! Assume that all valid array elements are located
+       ! contiguously  Exit upon the encountering the
+       ! first null character. (bmy, 7/23/19)
+       IF ( LEN_TRIM( vec(I) ) == 0 ) EXIT
+
+       !count the number of occurrences of this element:
+       num = count( vec(i)==vec )
+
+       if (num==1) then
+          !there is only one, flag it:
+          mask(i) = .true.
+       else
+          !flag this value only if it hasn't already been flagged:
+          if (.not. any(vec(i)==vec .and. mask) ) mask(i) = .true.
+       end if
+
+    end do
+
+    !return only flagged elements:
+    IF ( ALLOCATED(  vec_unique ) ) DEALLOCATE( vec_unique )
+    ALLOCATE( vec_unique(count(mask)) )
+    vec_unique = PACK( vec, mask )
+
+    !if you also need it sorted, then do so.
+    ! For example, with slatec routine:
+    !call ISORT (vec_unique, [0], size(vec_unique), 1)
+
+  END SUBROUTINE Unique
 !EOC
 END MODULE CharPak_Mod

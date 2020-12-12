@@ -9,14 +9,10 @@ HEMCO/.gitignore
 *.bak
 *.patch
 *.diff
-geos
-geostomas
-geosapm
+gcclassic
 diffs
 bak
 misc
-test
-GIGC
 *.pp.*
 *.pdb
 *.inst.*

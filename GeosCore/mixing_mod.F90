@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11,18 +11,17 @@
 !\\
 ! !INTERFACE:
 !
-MODULE MIXING_MOD
+MODULE Mixing_Mod
 !
 ! !USES:
 !
-  USE PRECISION_MOD
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: INIT_MIXING
   PUBLIC :: DO_MIXING
   PUBLIC :: DO_TEND
 !
@@ -32,136 +31,10 @@ MODULE MIXING_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_mixing
-!
-! !DESCRIPTION: Subroutine INIT\_MIXING initialized the pbl mixing wrapper
-! module.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE INIT_MIXING ( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,   ONLY : OptInput
-    USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
-    USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
-    USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Diag_Mod,  ONLY : DgnState
-    USE State_Grid_Mod,  ONLY : GrdState
-    USE State_Met_Mod,   ONLY : MetState
-    USE VDIFF_MOD,       ONLY : DO_PBL_MIX_2
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm   ! Chemistry State
-    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag  ! Diagnostics State
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met   ! Meteorology State
-    INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
-!
-! !REMARKS
-!  (A) While all dry deposition rates are calculated either in
-!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still
-!      computed in the dust/seasalt modules.
-!
-! !REVISION HISTORY:
-!  04 Mar 2015 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! INIT_MIXING begins here!
-    !=======================================================================
-
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
-
-    !-----------------------------------------------------------------------
-    ! Initialize PBL mixing scheme
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%LNLPBL ) THEN
-
-       ! Initialize non-local PBL mixing scheme
-       CALL DO_PBL_MIX_2( .FALSE.,    Input_Opt,  State_Chm, &
-                          State_Diag, State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ELSE
-
-       ! Initialize full PBL mixing scheme
-       CALL DO_PBL_MIX( .FALSE.,    Input_Opt, State_Chm,  &
-                        State_Diag, State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
-    !-----------------------------------------------------------------------
-    ! Compute the various PBL quantities with the initial met fields.
-    ! This is needed so that HEMCO won't be passed a zero PBL height
-    ! (bmy, 10/26/16)
-    !
-    ! In ESMF mode this routine should not be called during the init
-    ! stage: the required met quantities are not yet defined.
-    ! (ckeller, 11/23/16)
-    !
-    ! In GC-WRF, which uses the same entry-point as the GEOS-5 GCM, the
-    ! required met quantities are also not defined until GIGC_Chunk_Run,
-    ! so also skip this here (hplin, 8/9/18)
-    !-----------------------------------------------------------------------
-    CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
-  END SUBROUTINE INIT_MIXING
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -172,19 +45,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING( Input_Opt,  State_Chm, State_Diag, &
+  SUBROUTINE Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_MOd,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE Pbl_Mix_Mod,    ONLY : Do_Full_Pbl_Mixing
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Vdiff_Mod,      ONLY : Do_Vdiff
 !
 ! !INPUT PARAMETERS:
 !
@@ -245,16 +118,12 @@ CONTAINS
        ! it is now, then we will have stored drydep fluxes up to that height,
        ! so we need to zero these out.)
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_DryDepMix .or.  &
-            State_Diag%Archive_DryDep        ) THEN
-          State_Diag%DryDepMix = 0.0_f4
-       ENDIF
 
        ! Non-local mixing
-       CALL DO_PBL_MIX_2( Input_Opt%LTURB, Input_Opt,  State_Chm, &
-                          State_Diag,      State_Grid, State_Met, RC )
+       CALL Do_Vdiff( Input_Opt,  State_Chm, State_Diag,                     &
+                      State_Grid, State_Met, RC                             )
 
-       ! Trap potential error
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountred in "DO_PBL_MIX_2"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -299,19 +168,9 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
-       ! Initialize the diagnostic array for the History Component. This
-       ! will prevent leftover values from being carried over to this
-       ! timestep. (For example, if on the last iteration, the PBL height
-       ! was higher than it is now, then we will have stored drydep fluxes
-       ! up to that height, so we need to zero these out.)
-       IF ( State_Diag%Archive_DryDepMix .or.  &
-            State_Diag%Archive_DryDep        ) THEN
-          State_Diag%DryDepMix = 0.0_f4
-       ENDIF
-
        ! Full PBL mixing
-       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt,  State_Chm, &
-                        State_Diag,      State_Grid, State_Met, RC )
+       CALL Do_Full_Pbl_Mixing( Input_Opt,  State_Chm, State_Diag,            &
+                                State_Grid, State_Met, RC                    )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -325,7 +184,7 @@ CONTAINS
   END SUBROUTINE DO_MIXING
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -342,22 +201,23 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
+    USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PhysConstants,      ONLY : AVO
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : AVO
+    USE Species_Mod,          ONLY : Species
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -383,7 +243,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect
+    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
     INTEGER                 :: DRYDEPID
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
@@ -392,6 +252,7 @@ CONTAINS
     LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
+    REAL(f8)                :: DT_Tend
     CHARACTER(LEN=63)       :: OrigUnit
     CHARACTER(LEN=255)      :: MSG
 
@@ -411,7 +272,7 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
-    REAL(fp),      POINTER  :: DEPSAV       (:,:,:  )  ! IM, JM, nDryDep
+    REAL(fp),      POINTER  :: DepFreq(:,:,:  )  ! IM, JM, nDryDep
 
     ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
     LOGICAL                 :: ITS_A_CH4_SIM
@@ -419,6 +280,7 @@ CONTAINS
                                                          State_Grid%NY, &
                                                          State_Grid%NZ)
 
+    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
@@ -444,21 +306,32 @@ CONTAINS
 
     ! Initialize pointer
     SpcInfo           => NULL()
-    DEPSAV            => State_Chm%DryDepSav
+    DepFreq           => State_Chm%DryDepFreq
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
-       ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                               &
-                                 State_Chm, State_Grid, State_Met,        &
-                                 State_Chm%Map_Advect,                    &
-                                 State_Diag%Archive_BudgetEmisDryDepFull, &
-                                 State_Diag%Archive_BudgetEmisDryDepTrop, &
-                                 State_Diag%Archive_BudgetEmisDryDepPBL,  &
-                                 State_Diag%BudgetMass1,                  &
-                                 RC )
+
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
+            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
+            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -519,9 +392,9 @@ CONTAINS
        ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
        !  (ckeller, 4/10/2015)
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
+          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_O3_DEPOSITION_FLUX', &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
+          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_HNO3_DEPOSITION_FLUX',&
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
        ENDIF
        FIRST = .FALSE.
@@ -544,7 +417,8 @@ CONTAINS
 !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
 !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
 !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
-!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           )
+!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           ) &
+!$OMP PRIVATE( S                                                          )
     DO NA = 1, nAdvect
 
        ! Get the species ID from the advected species ID
@@ -572,7 +446,7 @@ CONTAINS
           ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
-             CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
+             CALL GetHcoValDep ( N, 1, 1, 1, DryDepSpec, TMP )
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
@@ -586,7 +460,7 @@ CONTAINS
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
-          CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
+          CALL GetHcoValEmis ( N, 1, 1, 1, EmisSpec, TMP )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
@@ -609,7 +483,7 @@ CONTAINS
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
           ! Molecular weight in kg
-          MWkg = SpcInfo%emMW_g * 1.e-3_fp
+          MWkg = SpcInfo%MW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used:
           ! If specified so, apply emissions only above the PBL_TOP.
@@ -689,16 +563,16 @@ CONTAINS
                 FRQ = 0.0_fp
 
                 ! Dry deposition frequency from drydep_mod.F90. This is
-                ! stored in DEPSAV. Units are [s-1].
+                ! stored in State_Chm%DryDepFreq. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
-                   FRQ = DEPSAV(I,J,DRYDEPID)
+                   FRQ = DepFreq(I,J,DRYDEPID)
                 ENDIF
 
                 ! Dry deposition frequency from HEMCO. HEMCO calculates
                 ! dry deposition frequencies for air-sea exchange and
                 ! from ship NOx plume parameterization (PARANOx). The
                 ! units are [s-1].
-                CALL GetHcoVal ( N, I, J, 1, FND, dep=TMP )
+                CALL GetHcoValDep ( N, I, J, 1, FND, TMP )
 
                 ! Add to dry dep frequency from drydep_mod.F90
                 IF ( FND ) FRQ = FRQ + TMP
@@ -786,10 +660,13 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( ( State_Diag%Archive_DryDepMix .or.        &
-                          State_Diag%Archive_DryDep        ) .and. &
-                          DryDepID > 0 ) THEN
-                      State_Diag%DryDepMix(I,J,DryDepId) = Flux
+                   IF ( ( State_Diag%Archive_DryDepMix .or.                  &
+                          State_Diag%Archive_DryDep        )   .and.         &
+                          DryDepID > 0                       ) THEN
+                      S = State_Diag%Map_DryDepMix%id2slot(DryDepID)
+                      IF ( S > 0 ) THEN
+                         State_Diag%DryDepMix(I,J,S) = Flux
+                      ENDIF
                    ENDIF
 
                 ENDIF ! apply drydep
@@ -802,7 +679,7 @@ CONTAINS
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
+                CALL GetHcoValEmis ( N, I, J, L, FND, TMP )
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -834,7 +711,7 @@ CONTAINS
 
                       ! Get soil absorption from HEMCO. Units are [kg/m2/s].
                       ! CH4_SAB is species #15
-                      CALL GetHcoVal ( 15, I, J, L, FND, emis=TMP )
+                      CALL GetHcoValEmis ( 15, I, J, L, FND, TMP )
 
                       ! Remove soil absorption from total CH4 emissions
                       IF ( FND ) THEN
@@ -917,31 +794,35 @@ CONTAINS
        RETURN
     ENDIF
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
-       ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                                   &
-                                 State_Chm, State_Grid, State_Met,            &
-                                 State_Chm%Map_Advect,                        &
-                                 State_Diag%Archive_BudgetEmisDryDepFull,     &
-                                 State_Diag%Archive_BudgetEmisDryDepTrop,     &
-                                 State_Diag%Archive_BudgetEmisDryDepPBL,      &
-                                 State_Diag%BudgetMass2,                      &
-                                 RC )
-       CALL Compute_Budget_Diagnostics( State_Grid,                           &
-                                     State_Chm%Map_Advect,                    &
-                                     TS,                                      &
-                                     State_Diag%Archive_BudgetEmisDryDepFull, &
-                                     State_Diag%Archive_BudgetEmisDryDepTrop, &
-                                     State_Diag%Archive_BudgetEmisDryDepPBL,  &
-                                     State_Diag%BudgetEmisDryDepFull,         &
-                                     State_Diag%BudgetEmisDryDepTrop,         &
-                                     State_Diag%BudgetEmisDryDepPBL,          &
-                                     State_Diag%BudgetMass1,                  &
-                                     State_Diag%BudgetMass2,                  &
-                                     RC )
+
+       ! Timestep for diagnostics [s]
+       DT_Tend = DBLE( TS )
+
+       ! Compute change in column masses (after emis/dryd - before emis/dryd)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetEmisDryDepFull,           &
+            diagFull    = State_Diag%BudgetEmisDryDepFull,                   &
+            mapDataFull = State_Diag%Map_BudgetEmisDryDepFull,               &
+            isTrop      = State_Diag%Archive_BudgetEmisDryDepTrop,           &
+            diagTrop    = State_Diag%BudgetEmisDryDepTrop,                   &
+            mapDataTrop = State_Diag%Map_BudgetEmisDryDepTrop,               &
+            isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
+            diagPBL     = State_Diag%BudgetEmisDryDepPBL,                    &
+            mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Tend,                                           &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -949,8 +830,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-  ! Nullify pointers
-  NULLIFY( DEPSAV )
+    ! Free pointers
+    DepFreq => NULL()
 
   END SUBROUTINE DO_TEND
 !EOC

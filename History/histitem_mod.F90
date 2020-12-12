@@ -53,29 +53,30 @@ MODULE HistItem_Mod
      INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
-     REAL(f4)           :: AddOffset             ! Offset and scale factor
-     REAL(f4)           :: ScaleFactor           !  for packed data
-     REAL(f4)           :: MissingValue          ! Missing value
+     REAL(f4)           :: AddOffset4            ! Offset and scale factor
+     REAL(f4)           :: ScaleFactor4          !  for packed data (4-byte)
+     REAL(f4)           :: MissingValue4         ! Missing value (4-byte)
+     REAL(f8)           :: AddOffset8            ! Offset and scale factor
+     REAL(f8)           :: ScaleFactor8          !  for packed data (8-byte)
+     REAL(f8)           :: MissingValue8         ! Missing value (8-byte)
      CHARACTER(LEN=255) :: AvgMethod             ! Averaging method
 
      !----------------------------------------------------------------------
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
      !----------------------------------------------------------------------
      INTEGER            :: Source_KindVal        ! Identifies the source type
+     INTEGER            :: Output_KindVal        ! Identifies the output type
 
      REAL(f8), POINTER  :: Source_0d_8           ! Ptr to 0D 8-byte    data
 
-     REAL(fp), POINTER  :: Source_1d  (:    )    ! Ptr to 1D flex-prec data
      REAL(f8), POINTER  :: Source_1d_8(:    )    ! Ptr to 1D 8-byte    data
      REAL(f4), POINTER  :: Source_1d_4(:    )    ! Ptr to 1D 4-byte    data
      INTEGER,  POINTER  :: Source_1d_I(:    )    ! Ptr to 1D integer   data
 
-     REAL(fp), POINTER  :: Source_2d  (:,:  )    ! Ptr to 2D flex-prec data
      REAL(f8), POINTER  :: Source_2d_8(:,:  )    ! Ptr to 2D 8-byte    data
      REAL(f4), POINTER  :: Source_2d_4(:,:  )    ! Ptr to 2D 4-byte    data
      INTEGER,  POINTER  :: Source_2d_I(:,:  )    ! Ptr to 2D integer   data
 
-     REAL(fp), POINTER  :: Source_3d  (:,:,:)    ! Ptr to 3D flex-prec data
      REAL(f8), POINTER  :: Source_3d_8(:,:,:)    ! Ptr to 3D 8-byte    data
      REAL(f4), POINTER  :: Source_3d_4(:,:,:)    ! Ptr to 3D 4-byte    data
      INTEGER,  POINTER  :: Source_3d_I(:,:,:)    ! Ptr to 3D integer   data
@@ -129,24 +130,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Create( Input_Opt,    Item,           Id,              &
-                              ContainerId,  Name,           RC,              &
-                              LongName,     Units,          SpaceDim,        &
-                              OnLevelEdges, AddOffset,      MissingValue,    &
-                              ScaleFactor,  Source_KindVal, Operation,       &
-                              DimNames,     Dimensions,     Subset_X,        &
-                              Subset_Y,     Subset_Z,       Source_0d_8,     &
-                              Source_1d,    Source_1d_8,    Source_1d_4,     &
-                              Source_1d_I,  Source_2d,      Source_2d_8,     &
-                              Source_2d_4,  Source_2d_I,    Source_3d,       &
-                              Source_3d_8,  Source_3d_4,    Source_3d_I     )
+  SUBROUTINE HistItem_Create( Input_Opt,     Item,           Id,             &
+                              ContainerId,   Name,           RC,             &
+                              LongName,      Units,          SpaceDim,       &
+                              OnLevelEdges,  AddOffset4,     MissingValue4,  &
+                              ScaleFactor4,  AddOffset8,     ScaleFactor8,   &
+                              MissingValue8, Source_KindVal, Output_KindVal, &
+                              Operation,     DimNames,       Dimensions,     &
+                              Subset_X,      Subset_Y,       Subset_Z,       &
+                              Source_0d_8,   Source_1d_8,    Source_1d_4,    &
+                              Source_1d_I,   Source_2d_8,    Source_2d_4,    &
+                              Source_2d_I,   Source_3d_8,    Source_3d_4,    &
+                              Source_3d_I                                   )
 !
 ! !USES:
 !
   USE CharPak_Mod,         ONLY : TranLc
   USE ErrCode_Mod
   USE History_Util_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
+  USE Input_Opt_Mod,       ONLY : OptInput
   USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -167,9 +169,12 @@ CONTAINS
     LOGICAL,           OPTIONAL    :: OnLevelEdges       ! =T if data defined
                                                          !  on level edges;
                                                          ! =F if on centers
-    REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant
-    REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for
-    REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
+    REAL(f4),          OPTIONAL    :: AddOffset4         ! COARDS-compliant
+    REAL(f4),          OPTIONAL    :: MissingValue4      !  attributes for
+    REAL(f4),          OPTIONAL    :: ScaleFactor4       !  netCDF output
+    REAL(f4),          OPTIONAL    :: AddOffset8         ! COARDS-compliant
+    REAL(f4),          OPTIONAL    :: MissingValue8      !  attributes for
+    REAL(f4),          OPTIONAL    :: ScaleFactor8       !  netCDF output
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
                                                          !  0=copy  from source
                                                          !  1=accum from source
@@ -178,17 +183,15 @@ CONTAINS
                                                          !  ("yz", "z", etc.)
 
     ! Optional pointers to data targets
-    INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
-    REAL(fp), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
-    REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
-    REAL(fp), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
+    INTEGER,           OPTIONAL    :: Source_KindVal     ! Kind of source data
+    INTEGER,           OPTIONAL    :: Output_KindVal     ! Type of output data
+    REAL(f8), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
+    REAL(f8), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
-    REAL(fp), POINTER, OPTIONAL    :: Source_2d  (:,:  ) ! 2D flex-prec data
     REAL(f8), POINTER, OPTIONAL    :: Source_2d_8(:,:  ) ! 2D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_2d_4(:,:  ) ! 2D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_2d_I(:,:  ) ! 2D integer   data
-    REAL(fp), POINTER, OPTIONAL    :: Source_3d  (:,:,:) ! 3D flex-prec data
     REAL(f8), POINTER, OPTIONAL    :: Source_3d_8(:,:,:) ! 3D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_3d_4(:,:,:) ! 3D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_3d_I(:,:,:) ! 3D integer   data
@@ -218,11 +221,11 @@ CONTAINS
     ! Scalars
     LOGICAL            :: Is_DimNames
     LOGICAL            :: Is_0d_8
-    LOGICAL            :: Is_1d,      Is_1d_8,  Is_1d_4,  Is_1d_I
-    LOGICAL            :: Is_2d,      Is_2d_8,  Is_2d_4,  Is_2d_I
-    LOGICAL            :: Is_3d,      Is_3d_8,  Is_3d_4,  Is_3d_I
-    INTEGER            :: X0,         X1,       Y0,       Y1
-    INTEGER            :: Z0,         Z1,       N
+    LOGICAL            :: Is_1d_8,     Is_1d_4,  Is_1d_I
+    LOGICAL            :: Is_2d_8,     Is_2d_4,  Is_2d_I
+    LOGICAL            :: Is_3d_8,     Is_3d_4,  Is_3d_I
+    INTEGER            :: X0,          X1,       Y0,       Y1
+    INTEGER            :: Z0,          Z1,       N
 
     ! Arrays
     INTEGER            :: Dims(3)
@@ -255,30 +258,24 @@ CONTAINS
 
     ! Determine if the optional source pointers are passed
     Is_0d_8          =  PRESENT( Source_0d_8 )
-    Is_1d            =  PRESENT( Source_1d   )
     Is_1d_8          =  PRESENT( Source_1d_8 )
     Is_1d_4          =  PRESENT( Source_1d_4 )
     Is_1d_I          =  PRESENT( Source_1d_I )
-    Is_2d            =  PRESENT( Source_2d   )
     Is_2d_8          =  PRESENT( Source_2d_8 )
     Is_2d_4          =  PRESENT( Source_2d_4 )
     Is_2d_I          =  PRESENT( Source_2d_I )
-    Is_3d            =  PRESENT( Source_3d   )
     Is_3d_8          =  PRESENT( Source_3d_8 )
     Is_3d_4          =  PRESENT( Source_3d_4 )
     Is_3d_I          =  PRESENT( Source_3d_I )
 
     ! Zero optional source pointers
     IF ( Is_0d_8 ) Item%Source_0d_8 => NULL()
-    IF ( Is_1d   ) Item%Source_1d   => NULL()
     IF ( Is_1d_8 ) Item%Source_1d_8 => NULL()
     IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
     IF ( Is_1d_I ) Item%Source_1d_I => NULL()
-    IF ( Is_2d   ) Item%Source_2d   => NULL()
     IF ( Is_2d_8 ) Item%Source_2d_8 => NULL()
     IF ( Is_2d_4 ) Item%Source_2d_4 => NULL()
     IF ( Is_2d_I ) Item%Source_2d_I => NULL()
-    IF ( Is_3d   ) Item%Source_3d   => NULL()
     IF ( Is_3d_8 ) Item%Source_3d_8 => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
@@ -290,6 +287,10 @@ CONTAINS
     Y1 = UNDEFINED_INT
     Z1 = UNDEFINED_INT
     Z1 = UNDEFINED_INT
+
+    ! Zero the number of updates (won't get set until History_Update)
+    ! in order to prevent uninitialized values from causing side-effects.
+    Item%nUpdates = 0.0_f8
 
     !========================================================================
     ! Required inputs, handle these first
@@ -360,7 +361,7 @@ CONTAINS
     Item%NcXDimId = UNDEFINED_INT
     Item%NcYDimId = UNDEFINED_INT
     Item%NcZDimId = UNDEFINED_INT
-    ITem%NcIDimId = UNDEFINED_INT
+    Item%NcIDimId = UNDEFINED_INT
     Item%NcTdimId = UNDEFINED_INT
     Item%NcVarId  = UNDEFINED_INT
 
@@ -378,30 +379,57 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! Add_Offset
+    ! Add_Offset - 4 bytes
     !--------------------------------------------
-    IF ( PRESENT( AddOffset ) ) THEN
-       Item%AddOffset = AddOffset
+    IF ( PRESENT( AddOffset4 ) ) THEN
+       Item%AddOffset4 = AddOffset4
     ELSE
-       Item%AddOffset = 0.0_f4
+       Item%AddOffset4 = 0.0_f4
     ENDIF
 
     !--------------------------------------------
-    ! MissingValue
+    ! Add_Offset - 8 bytes
     !--------------------------------------------
-    IF ( PRESENT( MissingValue ) ) THEN
-       Item%MissingValue = MissingValue
+    IF ( PRESENT( AddOffset8 ) ) THEN
+       Item%AddOffset8 = AddOffset8
     ELSE
-       Item%MissingValue = UNDEFINED
+       Item%AddOffset8 = 0.0_f8
     ENDIF
 
     !--------------------------------------------
-    ! Scale_Factor
+    ! MissingValue - 4 bytes
     !--------------------------------------------
-    IF ( PRESENT( ScaleFactor ) ) THEN
-       Item%ScaleFactor = ScaleFactor
+    IF ( PRESENT( MissingValue4 ) ) THEN
+       Item%MissingValue4 = MissingValue4
     ELSE
-       Item%ScaleFactor = 1.0_f4
+       Item%MissingValue4 = UNDEFINED
+    ENDIF
+
+    !--------------------------------------------
+    ! MissingValue - 8 bytes
+    !--------------------------------------------
+    IF ( PRESENT( MissingValue8 ) ) THEN
+       Item%MissingValue8 = MissingValue8
+    ELSE
+       Item%MissingValue8 = UNDEFINED_DBL
+    ENDIF
+
+    !--------------------------------------------
+    ! Scale_Factor - 4 bytes
+    !--------------------------------------------
+    IF ( PRESENT( ScaleFactor4 ) ) THEN
+       Item%ScaleFactor4 = ScaleFactor4
+    ELSE
+       Item%ScaleFactor4 = 1.0_f4
+    ENDIF
+
+    !--------------------------------------------
+    ! Scale_Factor - 8 bytes
+    !--------------------------------------------
+    IF ( PRESENT( ScaleFactor4 ) ) THEN
+       Item%ScaleFactor8 = ScaleFactor8
+    ELSE
+       Item%ScaleFactor8 = 1.0_f8
     ENDIF
 
     !--------------------------------------------
@@ -414,12 +442,13 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! Source_KindVal
+    ! Output_KindVal (assume 4-byte output
+    ! if not otherwise explicitly stated)
     !--------------------------------------------
-    IF ( PRESENT( Source_KindVal ) ) THEN
-       Item%Source_KindVal = Source_KindVal
+    IF ( PRESENT( Output_KindVal ) ) THEN
+       Item%Output_KindVal = Output_KindVal
     ELSE
-       Item%Source_KindVal = KINDVAL_FP
+       Item%Output_KindVal = KINDVAL_F4
     ENDIF
 
     !--------------------------------------------
@@ -502,15 +531,7 @@ CONTAINS
           Y0 = Subset_Y(1); Y1 = Subset_Y(2)
           Z0 = Subset_Z(1); Z1 = Subset_Z(2)
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_3d   ) THEN
-                Item%Source_3d => Source_3d(X0:X1, Y0:Y1, Z0:Z1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d(X0:X1, Y0:Y1, Z0:Z1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_3d_8 ) THEN
                 Item%Source_3d_8 => Source_3d_8(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
@@ -543,15 +564,7 @@ CONTAINS
           X0 = Subset_X(1); X1 = Subset_X(2)
           Y0 = Subset_Y(1); Y1 = Subset_Y(2)
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_2d   ) THEN
-                Item%Source_2d => Source_2d(X0:X1, Y0:Y1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d(X0:X1, Y0:Y1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_2d_8 ) THEN
                 Item%Source_2d_8 => Source_2d_8(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
@@ -592,15 +605,7 @@ CONTAINS
                 X0 = 1;           X1 = 1
           END SELECT
 
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_1d   ) THEN
-                Item%Source_1d   => Source_1d(X0:X1)
-                DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d(X0:X1), N )
-                ENDDO
-                GOTO 99
-             ENDIF
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_1d_8 ) THEN
                 Item%Source_1d_8 => Source_1d_8(X0:X1)
                 DO N = 1, Item%SpaceDim
@@ -854,9 +859,12 @@ CONTAINS
           PRINT*, 'Long_Name      : ', TRIM( Item%LongName )
           PRINT*, 'Units          : ', TRIM( Item%Units    )
           PRINT*, 'OnLevelEdges   : ', Item%OnLevelEdges
-          PRINT*, 'Add_Offset     : ', Item%AddOffset
-          PRINT*, 'Missing_Value  : ', Item%MissingValue
-          PRINT*, 'Scale_Factor   : ', Item%ScaleFactor
+          PRINT*, 'AddOffset4     : ', Item%AddOffset4
+          PRINT*, 'AddOffset8     : ', Item%AddOffset8
+          PRINT*, 'MissingValue4  : ', Item%MissingValue4
+          PRINT*, 'MissingValue8  : ', Item%MissingValue8
+          PRINT*, 'ScaleFactor4   : ', Item%ScaleFactor4
+          PRINT*, 'ScaleFactor8   : ', Item%ScaleFactor8
           PRINT*, ''
           PRINT*, 'Id             : ', Item%ID
           PRINT*, 'CollectionId   : ', Item%ContainerId
@@ -959,15 +967,12 @@ CONTAINS
     ! Nullify fields that are just pointing to other objects
     !======================================================================
     Item%Source_0d_8 => NULL()
-    Item%Source_1d   => NULL()
     Item%Source_1d_8 => NULL()
     Item%Source_1d_4 => NULL()
     Item%Source_1d_I => NULL()
-    Item%Source_2d   => NULL()
     Item%Source_2d_8 => NULL()
     Item%Source_2d_4 => NULL()
     Item%Source_2d_I => NULL()
-    Item%Source_3d   => NULL()
     Item%Source_3d_8 => NULL()
     Item%Source_3d_4 => NULL()
     Item%Source_3d_I => NULL()

@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -46,7 +46,7 @@ MODULE Emissions_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -64,7 +64,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCOI_GC_Main_Mod,   ONLY : HCoi_GC_Init
+    USE HCO_Interface_GC_Mod, ONLY : HCoi_GC_Init
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -126,7 +126,7 @@ CONTAINS
   END SUBROUTINE Emissions_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -147,7 +147,7 @@ CONTAINS
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Precision_Mod
     USE State_Chm_Mod,      ONLY : ChmState
@@ -326,7 +326,7 @@ CONTAINS
    END SUBROUTINE EMISSIONS_RUN
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -343,7 +343,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCOI_GC_Main_Mod, ONLY : HCOI_GC_Final
+    USE HCO_Interface_GC_Mod, ONLY : HCOI_GC_Final
 !
 ! !INPUT PARAMETERS:
 !
@@ -384,7 +384,7 @@ CONTAINS
   END SUBROUTINE Emissions_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

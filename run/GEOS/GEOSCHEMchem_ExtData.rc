@@ -1,3 +1,4 @@
+
 Ext_AllowExtrap: .true.
 DEBUG_LEVEL: 1
 #
@@ -505,8 +506,9 @@ QFED_CH4_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    bi
 DMS_SEAWATER    'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    DMS_OCEAN         /discover/nobackup/cakelle2/data/OCEAN/DMS_lana.geos.1x1.esmf.nc
 ACET_SEAWATER   'kg/m3'         N    Y -  		    none     none    ACET	       /discover/nobackup/cakelle2/data/OCEAN/ACET_seawater.generic.1x1.esmf.nc
 ALD2_SEAWATER   'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    ALD2              /discover/nobackup/cakelle2/data/OCEAN/ALD2_seawater.geos.2x25.esmf.nc
-MENO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    MENO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
-ETNO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    ETNO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+MENO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    MENO3             /discover/nobackup/ewlundgr/data/ExtData/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ETNO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    ETNO3             /discover/nobackup/ewlundgr/data/ExtData/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+MOH_SEAWATER kgC/m3 N Y - none none MOH /discover/nobackup/ewlundgr/data/ExtData/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc
 
 #==============================================================================
 # --- Soil NOx emissions (Extension 104) ---
@@ -676,31 +678,34 @@ NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SF
 # --- Surface VMR (SfcVMR) ---
 #==============================================================================
 
-# Previously used in GEOS, pre-12.7.0:
-#SfcVMR_CH3Cl       'ppbv'       N   N -                      none     none    CH3Cl           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
-#SfcVMR_CH2Cl2      'ppbv'       N   N -                      none     none    CH2Cl2          /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
-#SfcVMR_CHCl3       'ppbv'       N   N -                      none     none    CHCl3           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
+SfcVMR_CH3Cl  ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl  /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CH2Cl2 ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2 /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CHCl3  ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3  /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CH3Br  ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br  /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_%y4.nc
+#
+SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CFC115   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC115   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CFC11    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC11    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_H2402    v/v  N Y F%y4-%m2-01T00:00:00 none none C2BR2F4  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+#
+SfcVMR_OCS ppbv N Y - none none OCS /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
+SfcVMR_H2  ppbv N Y - none none H2  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
 
-# New in 12.7.0:
-SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC115   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC115   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC11    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC11    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_OCS      ppbv N Y -                    none none OCS      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
-SfcVMR_H2       ppbv N Y -                    none none H2       /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
+#==============================================================================
+# --- Oceanic ozone deposition ---
+#==============================================================================
+surf_salinity  1 N Y - none none s_mn                  /discover/nobackup/ewlundgr/data/ExtData/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
+surf_iodide    1 N Y - none none Ensemble_Monthly_mean /discover/nobackup/ewlundgr/data/ExtData/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
 
 ###############################################################################
 ###
@@ -742,10 +747,14 @@ HTAP_MONTHLY_SO2_INDUSTRY    '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /
 HTAP_MONTHLY_SO2_ENERGY      '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_ENERGY_2010.generic.01x01.monthly_scal.nc
 HTAP_MONTHLY_SO2_RESIDENTIAL '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_RESIDENTIAL_2010.generic.01x01.monthly_scal.nc
 
+# Lightning inputs - example files for reading them from an offline source 
+LFR_OFFLINE            'km-2s-1' Y N 2017-%m2-01T00:00:00 none none LDENS /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
+CCTH_OFFLINE                 'm' Y N 2017-%m2-01T00:00:00 none none CTH   /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
+
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-# Not used in GEOS
+EDGAR_TODNOX 1 N Y F2000-01-01T%h2:00:00 none none NOXscale /discover/nobackup/ewlundgr/data/ExtData/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
 
 #==============================================================================
 # --- Seasonal scale factors ---

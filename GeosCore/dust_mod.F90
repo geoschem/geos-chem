@@ -92,7 +92,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Diag_Mod,     ONLY : DgnState
 #ifdef APM
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
     USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
@@ -402,7 +402,7 @@ CONTAINS
 
     ! Dust settling timestep [s]
     DT_SETTL = GET_TS_CHEM()
-    
+
     ! Save initial dust mass
     DO BIN = 1, IBINS
 
@@ -453,16 +453,16 @@ CONTAINS
 
              ! Convert flux from [kg/s] to [molec/cm2/s]
              FLUXD = FLUXD + DIF / DT_SETTL * AVO / &
-                     ( 1.e-3_fp * ThisSpc%emMW_g ) / AREA_CM2
+                     ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
 
 
              FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) / &
                      DT_SETTL * AVO / &
-                     ( 1.e-3_fp * ThisSpc%emMW_g ) / AREA_CM2
+                     ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
           ENDDO
 
 #ifdef BPCH_DIAG
-          !=========================================================== 
+          !===========================================================
           !  Dry deposition diagnostic [#/cm2/s] (bpch)
           !===========================================================
           IF ( ND44 > 0 ) THEN
@@ -703,7 +703,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                :: I,        J,     L
-    INTEGER                :: N,        NA,    ND
+    INTEGER                :: N,        NA,    ND,   S
     REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
     REAL(fp)               :: REFF,     DEN,   CONST
     REAL(fp)               :: NUM,      LAMDA, FLUX
@@ -760,13 +760,13 @@ CONTAINS
     !$OMP PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    ) &
     !$OMP PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  ) &
     !$OMP PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  ) &
-    !$OMP PRIVATE( NA,    ThisSpc,  ND                             )
+    !$OMP PRIVATE( NA,    ThisSpc,  ND,   S                        )
 
     ! Loop over only the advected dust species
     DO NA = Ind0, Ind1
 
        ! Look up this species in the species database
-       ! NOTE: The advected species are listed first in the master
+       ! NOTE: The advected species are listed first in the main
        ! species list, so it's OK to use the advected species ID
        ! to query the Species Database (bmy, 3/16/17)
        ThisSpc => State_Chm%SpcData(NA)%Info
@@ -884,11 +884,14 @@ CONTAINS
 
              ! Convert dust flux from [kg/s] to [molec/cm2/s]
              FLUX = ( TOT1 - TOT2 ) / DT_SETTL
-             FLUX = FLUX * AVO * ( AIRMW / ThisSpc%emMw_g    ) / &
+             FLUX = FLUX * AVO * ( AIRMW / ThisSpc%Mw_g    ) / &
                     ( AIRMW * 1.e-3_fp ) / AREA_CM2
 
              ! Drydep flux in chemistry only
-             State_Diag%DryDepChm(I,J,ND) = FLUX
+             S = State_Diag%Map_DryDepChm%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepChm(I,J,S) = FLUX
+             ENDIF
           ENDIF
        ENDDO
        ENDDO
@@ -1198,30 +1201,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: LINTERP
-    INTEGER            :: I, J, L, N, NOUT, W
-    INTEGER            :: IWV, IIWV, NWVS, IDST
-    REAL(fp)           :: MSDENS(NDUST), XTAU
+    ! Scalars
+    LOGICAL           :: LINTERP
+    INTEGER           :: I,       J,       L,       N
+    INTEGER           :: NOUT,    S,       W,       IWV
+    INTEGER           :: IIWV,    NWVS,    IDST,    IWV1
+    INTEGER           :: IWV2
+    REAL(fp)          :: XTAU,    XRH,     CRITRH,  ACOEF
+    REAL(fp)          :: BCOEF,   LOGTERM
 
-    ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
-    ! (tmf, 3/6/09)
-    REAL(fp)           :: XRH
-    REAL(fp)           :: CRITRH      ! Critical RH [%], above which
-                                      !  heteorogeneous chem takes place
-
-    INTEGER            :: IWV1,  IWV2
-    REAL(fp)           :: ACOEF, BCOEF, LOGTERM
+    ! Arrays
+    LOGICAL           :: LINTERPARR(Input_Opt%NWVSELECT)
+    REAL(fp)          :: MSDENS(NDUST)
+    REAL(fp)          :: tempOD(State_Grid%NX,State_Grid%NY,               &
+                                State_Grid%NZ,NDUST,         3)
 
     ! Pointers
-    REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: TAREA(:,:,:,:)
-    REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: WTAREA(:,:,:,:)
-
-    ! For diagnostics
-    REAL(fp)            :: tempOD(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ,NDUST,3)
-    LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
+    REAL(fp), POINTER :: ERADIUS(:,:,:,:)
+    REAL(fp), POINTER :: TAREA(:,:,:,:)
+    REAL(fp), POINTER :: WERADIUS(:,:,:,:)
+    REAL(fp), POINTER :: WTAREA(:,:,:,:)
 
     !=================================================================
     ! RDUST_ONLINE begins here!
@@ -1246,13 +1245,13 @@ CONTAINS
     ENDIF
 
     ! Dust density
-    MSDENS(1) = 2500.0e+0_fp
-    MSDENS(2) = 2500.0e+0_fp
-    MSDENS(3) = 2500.0e+0_fp
-    MSDENS(4) = 2500.0e+0_fp
-    MSDENS(5) = 2650.0e+0_fp
-    MSDENS(6) = 2650.0e+0_fp
-    MSDENS(7) = 2650.0e+0_fp
+    MSDENS(1) = 2500.0_fp
+    MSDENS(2) = 2500.0_fp
+    MSDENS(3) = 2500.0_fp
+    MSDENS(4) = 2500.0_fp
+    MSDENS(5) = 2650.0_fp
+    MSDENS(6) = 2650.0_fp
+    MSDENS(7) = 2650.0_fp
 
     ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
     CRITRH = 35.0e+0_fp   ! [%]
@@ -1418,7 +1417,7 @@ CONTAINS
        ! Loop over dust bins, # of wavelengths, and all grid cells
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP, S )
        DO W = 1, Input_Opt%NWVSELECT
        DO N = 1, NDUST
        DO L = 1, State_Grid%MaxChemLev
@@ -1448,15 +1447,25 @@ CONTAINS
           ! Set size-resolved dust optical depth diagnostic
           !---------------------------------------------------
           IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
-             State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
-          ENDIF
-          IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
-             State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
-          ENDIF
-          IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
-             State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
+             S = State_Diag%Map_AODDustWL1%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL1(I,J,L,S) = tempOD(I,J,L,N,1)
+             ENDIF
           ENDIF
 
+          IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
+             S = State_Diag%Map_AODDustWL2%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL2(I,J,L,S) = tempOD(I,J,L,N,2)
+             ENDIF
+          ENDIF
+
+          IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
+             S = State_Diag%Map_AODDustWL3%id2slot(N)
+             IF ( S > 0 ) THEN
+                State_Diag%AODDustWL3(I,J,L,S) = tempOD(I,J,L,N,3)
+             ENDIF
+          ENDIF
 
        ENDDO ! longitude
        ENDDO ! latitude
@@ -1508,7 +1517,7 @@ CONTAINS
   END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1642,10 +1651,10 @@ CONTAINS
     TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
     ! Get MWs from species database
-    MW_DST1 = State_Chm%SpcData(id_DST1)%Info%emMW_g
-    MW_DST2 = State_Chm%SpcData(id_DST2)%Info%emMW_g
-    MW_DST3 = State_Chm%SpcData(id_DST3)%Info%emMW_g
-    MW_DST4 = State_Chm%SpcData(id_DST4)%Info%emMW_g
+    MW_DST1 = State_Chm%SpcData(id_DST1)%Info%MW_g
+    MW_DST2 = State_Chm%SpcData(id_DST2)%Info%MW_g
+    MW_DST3 = State_Chm%SpcData(id_DST3)%Info%MW_g
+    MW_DST4 = State_Chm%SpcData(id_DST4)%Info%MW_g
 
     ! Zero variables
     DO IBIN = 1, NDSTBIN
@@ -1759,7 +1768,7 @@ CONTAINS
                     DF_AREA_d(1)         + &
                     DF_AREA_d(2)         + &
                     DF_AREA_d(3)         + &
-                    DF_AREA_d(4) 
+                    DF_AREA_d(4)
 
     ! tdf Total Dust Alkalinity
     ALK = ALK_d(1) + ALK_d(2) + ALK_d(3) + ALK_d(4)  ! [v/v]

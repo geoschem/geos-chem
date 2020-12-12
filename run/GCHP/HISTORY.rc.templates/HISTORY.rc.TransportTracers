@@ -1,0 +1,513 @@
+EXPID:  OutputDir/GCHP
+EXPDSC: GEOS-Chem_devel
+CoresPerNode: 6
+VERSION: 1
+
+#==============================================================================
+# Define grid labels
+#
+# Define output grids different from the native cubed sphere in this section.
+# Each diagnostics collection is output on the native resolution global cubed
+# sphere grid unless a different grid defined here is set for that collection
+# in the collections section of this file.
+#
+# See the examples below for defining different types of grid at different
+# resolutions.
+#
+# See the collections section later on in this file for instructions on
+# using an alternative grid for output.
+#==============================================================================
+GRID_LABELS: PE24x144-CF
+             PC360x181-DC
+             REGIONAL1x1
+    ::
+
+    # Example of cubed-sphere grid at c24 resolution
+    PE24x144-CF.GRID_TYPE: Cubed-Sphere
+    PE24x144-CF.IM_WORLD: 24
+    PE24x144-CF.JM_WORLD: 144
+    PE24x144-CF.LM: 72
+
+    # Example of lat-lon global grid at 1x1 resolution
+    PC360x181-DC.GRID_TYPE: LatLon
+    PC360x181-DC.IM_WORLD: 360
+    PC360x181-DC.JM_WORLD: 181
+    PC360x181-DC.POLE: PC
+    PC360x181-DC.DATELINE: DC
+    PC360x181-DC.LM: 72
+
+    # Example of lat-lon regional grid at 1x1 resolution
+    REGIONAL1x1.GRID_TYPE: LatLon
+    REGIONAL1x1.IM_WORLD: 80
+    REGIONAL1x1.JM_WORLD: 40
+    REGIONAL1x1.POLE: XY
+    REGIONAL1x1.DATELINE: XY
+    REGIONAL1x1.LON_RANGE:   0 80
+    REGIONAL1x1.LAT_RANGE: -30 10
+    REGIONAL1x1.LM: 72
+
+#==============================================================================
+# Declare collection names
+#
+# You can disable collections by commenting out with #
+#==============================================================================
+COLLECTIONS: 'Emissions',
+             'Budget',
+             'CloudConvFlux',
+             'DryDep',
+             'LevelEdgeDiags',      
+             'RadioNuclide',
+             'SpeciesConc',
+             'StateMet',
+             'WetLossConv',
+             'WetLossLS',
+::
+#==============================================================================
+# Define collections
+#
+# The rest of this file consists of collection definitions.
+# Above collections whose declarations are commented out will be ignored.
+# You can skip individual diagnostics by commenting out their names.
+#
+# WARNING: Frequency, duration, and mode will be over-written with
+# settings in runConfig.sh. Edit settings in that file. You can execute the
+# script to update this file and then inspect results before submitting a
+# run. Collection names are hard-coded in that file; if you add more
+# collections then you must also add them there for auto-update, or manually
+# change settings for the new collection in this file.
+#
+# NOTES:
+#    (1) Template keyword defines suffix of output filename, appended to
+#        '{EXPID}.{collection}.'. See top of this file for EXPID definition.
+#
+#    (2) Frequency keyword sets frequency of data in each output file
+#
+#    (3) Duration keyword sets frequency of output file
+#  
+#    (4) Mode keyword may be 'time-averaged' or 'instantaneous'
+#
+#    (5) See the GRID_LABELS sections above for details about output grids
+#
+#    (6) To output data on a grid other than native res global cubed sphere
+#        include the 'grid_label' field. For example, 
+#
+#           SpeciesConc.grid_label:   REGIONAL1x1
+#
+#    (7) If you are outputting on a lat/lon grid, be sure to specify
+#        conservative regridding. Otherwise regridding will be bi-linear.
+#
+#           SpeciesConc.conservative: 1
+#
+#    (8) To output a reduced set of levels, use the levels keyword, e.g.:
+#
+#           SpeciesConc.levels: 1 2 3
+#
+#==============================================================================
+# Emissions (see HEMCO_Diagn.rc for additional config settings)
+  Emissions.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  Emissions.format:    'CFIO',
+  Emissions.frequency: 010000
+  Emissions.duration:  010000
+  Emissions.mode:      'time-averaged'
+  Emissions.fields:    'EmisRn_Soil                 ', 'GCHPchem',
+                       'EmisBe7_Cosmic              ', 'GCHPchem',
+                       'EmisBe7Strat_Cosmic         ', 'GCHPchem',
+                       'EmisBe10_Cosmic             ', 'GCHPchem',
+                       'EmisBe10Strat_Cosmic        ', 'GCHPchem',
+                       'EmisSF6Tracer               ', 'GCHPchem',
+                       'EmisCH3ITracer              ', 'GCHPchem',
+                       'EmisCOAnthroEmis25dayTracer ', 'GCHPchem',
+                       'EmisCOAnthroEmis50dayTracer ', 'GCHPchem',
+                       'EmisCOUniformEmis25dayTracer', 'GCHPchem',
+::
+#==============================================================================
+# Budget defined as species kg/s in the column (full, troposphere, or PBL) 
+# due to a single component (e.g. chemistry); default = ozone only; add more 
+# species as needed to the example below (advected only)
+  Budget.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.format:    'CFIO',
+  Budget.frequency: 010000
+  Budget.duration:  010000
+  Budget.mode:      'time-averaged'
+  Budget.fields:    'BudgetChemistryFull_Rn222                    ', 'GCHPchem',
+                    'BudgetChemistryFull_Pb210                    ', 'GCHPchem',
+                    'BudgetChemistryFull_Pb210Strat               ', 'GCHPchem',
+                    'BudgetChemistryFull_Be7                      ', 'GCHPchem',
+                    'BudgetChemistryFull_Be7Strat                 ', 'GCHPchem',
+                    'BudgetChemistryFull_Be10                     ', 'GCHPchem',
+                    'BudgetChemistryFull_Be10Strat                ', 'GCHPchem',
+                    'BudgetChemistryFull_PassiveTracer            ', 'GCHPchem',
+                    'BudgetChemistryFull_SF6Tracer                ', 'GCHPchem',
+                    'BudgetChemistryFull_CH3ITracer               ', 'GCHPchem',
+		    'BudgetChemistryFull_COAnthroEmis25dayTracer  ', 'GCHPchem',
+		    'BudgetChemistryFull_COAnthroEmis50dayTracer  ', 'GCHPchem',
+		    'BudgetChemistryFull_COUniformEmis25dayTracer ', 'GCHPchem',
+                    'BudgetChemistryTrop_Rn222                    ', 'GCHPchem',
+                    'BudgetChemistryTrop_Pb210                    ', 'GCHPchem',
+                    'BudgetChemistryTrop_Pb210Strat               ', 'GCHPchem',
+                    'BudgetChemistryTrop_Be7                      ', 'GCHPchem',
+                    'BudgetChemistryTrop_Be7Strat                 ', 'GCHPchem',
+                    'BudgetChemistryTrop_Be10                     ', 'GCHPchem',
+                    'BudgetChemistryTrop_Be10Strat                ', 'GCHPchem',
+                    'BudgetChemistryTrop_PassiveTracer            ', 'GCHPchem',
+                    'BudgetChemistryTrop_SF6Tracer                ', 'GCHPchem',
+                    'BudgetChemistryTrop_CH3ITracer               ', 'GCHPchem',
+		    'BudgetChemistryTrop_COAnthroEmis25dayTracer  ', 'GCHPchem',
+		    'BudgetChemistryTrop_COAnthroEmis50dayTracer  ', 'GCHPchem',
+		    'BudgetChemistryTrop_COUniformEmis25dayTracer ', 'GCHPchem',
+                    'BudgetChemistryPBL_Rn222                     ', 'GCHPchem',
+                    'BudgetChemistryPBL_Pb210                     ', 'GCHPchem',
+                    'BudgetChemistryPBL_Pb210Strat                ', 'GCHPchem',
+                    'BudgetChemistryPBL_Be7                       ', 'GCHPchem',
+                    'BudgetChemistryPBL_Be7Strat                  ', 'GCHPchem',
+                    'BudgetChemistryPBL_Be10                      ', 'GCHPchem',
+                    'BudgetChemistryPBL_Be10Strat                 ', 'GCHPchem',
+                    'BudgetChemistryPBL_PassiveTracer             ', 'GCHPchem',
+                    'BudgetChemistryPBL_SF6Tracer                 ', 'GCHPchem',
+                    'BudgetChemistryPBL_CH3ITracer                ', 'GCHPchem',
+		    'BudgetChemistryPBL_COAnthroEmis25dayTracer   ', 'GCHPchem',
+		    'BudgetChemistryPBL_COAnthroEmis50dayTracer   ', 'GCHPchem',
+		    'BudgetChemistryPBL_COUniformEmis25dayTracer  ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Rn222                   ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Pb210                   ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Pb210Strat              ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Be7                     ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Be7Strat                ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Be10                    ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_Be10Strat               ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_PassiveTracer           ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_SF6Tracer               ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_CH3ITracer              ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_COAnthroEmis25dayTracer ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_COAnthroEmis50dayTracer ', 'GCHPchem',
+                    'BudgetEmisDryDepFull_COUniformEmis25dayTracer', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Rn222                   ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Pb210                   ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Pb210Strat              ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Be7                     ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Be7Strat                ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Be10                    ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_Be10Strat               ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_PassiveTracer           ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_SF6Tracer               ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_CH3ITracer              ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_COAnthroEmis25dayTracer ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_COAnthroEmis50dayTracer ', 'GCHPchem',
+                    'BudgetEmisDryDepTrop_COUniformEmis25dayTracer', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Rn222                    ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Pb210                    ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Pb210Strat               ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Be7                      ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Be7Strat                 ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Be10                     ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_Be10Strat                ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_PassiveTracer            ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_SF6Tracer                ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_CH3ITracer               ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_COAnthroEmis25dayTracer  ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_COAnthroEmis50dayTracer  ', 'GCHPchem',
+                    'BudgetEmisDryDepPBL_COUniformEmis25dayTracer ', 'GCHPchem',
+                    'BudgetMixingFull_Rn222                       ', 'GCHPchem',
+                    'BudgetMixingFull_Pb210                       ', 'GCHPchem',
+                    'BudgetMixingFull_Pb210Strat                  ', 'GCHPchem',
+                    'BudgetMixingFull_Be7                         ', 'GCHPchem',
+                    'BudgetMixingFull_Be7Strat                    ', 'GCHPchem',
+                    'BudgetMixingFull_Be10                        ', 'GCHPchem',
+                    'BudgetMixingFull_Be10Strat                   ', 'GCHPchem',
+                    'BudgetMixingFull_PassiveTracer               ', 'GCHPchem',
+                    'BudgetMixingFull_SF6Tracer                   ', 'GCHPchem',
+                    'BudgetMixingFull_CH3ITracer                  ', 'GCHPchem',
+                    'BudgetMixingFull_COAnthroEmis25dayTracer     ', 'GCHPchem',
+                    'BudgetMixingFull_COAnthroEmis50dayTracer     ', 'GCHPchem',
+                    'BudgetMixingFull_COUniformEmis25dayTracer    ', 'GCHPchem',
+                    'BudgetMixingTrop_Rn222                       ', 'GCHPchem',
+                    'BudgetMixingTrop_Pb210                       ', 'GCHPchem',
+                    'BudgetMixingTrop_Pb210Strat                  ', 'GCHPchem',
+                    'BudgetMixingTrop_Be7                         ', 'GCHPchem',
+                    'BudgetMixingTrop_Be7Strat                    ', 'GCHPchem',
+                    'BudgetMixingTrop_Be10                        ', 'GCHPchem',
+                    'BudgetMixingTrop_Be10Strat                   ', 'GCHPchem',
+                    'BudgetMixingTrop_PassiveTracer               ', 'GCHPchem',
+                    'BudgetMixingTrop_SF6Tracer                   ', 'GCHPchem',
+                    'BudgetMixingTrop_CH3ITracer                  ', 'GCHPchem',
+                    'BudgetMixingTrop_COAnthroEmis25dayTracer     ', 'GCHPchem',
+                    'BudgetMixingTrop_COAnthroEmis50dayTracer     ', 'GCHPchem',
+                    'BudgetMixingTrop_COUniformEmis25dayTracer    ', 'GCHPchem',
+                    'BudgetMixingPBL_Rn222                        ', 'GCHPchem',
+                    'BudgetMixingPBL_Pb210                        ', 'GCHPchem',
+                    'BudgetMixingPBL_Pb210Strat                   ', 'GCHPchem',
+                    'BudgetMixingPBL_Be7                          ', 'GCHPchem',
+                    'BudgetMixingPBL_Be7Strat                     ', 'GCHPchem',
+                    'BudgetMixingPBL_Be10                         ', 'GCHPchem',
+                    'BudgetMixingPBL_Be10Strat                    ', 'GCHPchem',
+                    'BudgetMixingPBL_PassiveTracer                ', 'GCHPchem',
+                    'BudgetMixingPBL_SF6Tracer                    ', 'GCHPchem',
+                    'BudgetMixingPBL_CH3ITracer                   ', 'GCHPchem',
+                    'BudgetMixingPBL_COAnthroEmis25dayTracer      ', 'GCHPchem',
+                    'BudgetMixingPBL_COAnthroEmis50dayTracer      ', 'GCHPchem',
+                    'BudgetMixingPBL_COUniformEmis25dayTracer     ', 'GCHPchem',
+                    'BudgetConvectionFull_Rn222                   ', 'GCHPchem',
+                    'BudgetConvectionFull_Pb210                   ', 'GCHPchem',
+                    'BudgetConvectionFull_Pb210Strat              ', 'GCHPchem',
+                    'BudgetConvectionFull_Be7                     ', 'GCHPchem',
+                    'BudgetConvectionFull_Be7Strat                ', 'GCHPchem',
+                    'BudgetConvectionFull_Be10                    ', 'GCHPchem',
+                    'BudgetConvectionFull_Be10Strat               ', 'GCHPchem',
+                    'BudgetConvectionFull_PassiveTracer           ', 'GCHPchem',
+                    'BudgetConvectionFull_SF6Tracer               ', 'GCHPchem',
+                    'BudgetConvectionFull_CH3ITracer              ', 'GCHPchem',
+                    'BudgetConvectionFull_COAnthroEmis25dayTracer ', 'GCHPchem',
+                    'BudgetConvectionFull_COAnthroEmis50dayTracer ', 'GCHPchem',
+                    'BudgetConvectionFull_COUniformEmis25dayTracer', 'GCHPchem',
+                    'BudgetConvectionTrop_Rn222                   ', 'GCHPchem',
+                    'BudgetConvectionTrop_Pb210                   ', 'GCHPchem',
+                    'BudgetConvectionTrop_Pb210Strat              ', 'GCHPchem',
+                    'BudgetConvectionTrop_Be7                     ', 'GCHPchem',
+                    'BudgetConvectionTrop_Be7Strat                ', 'GCHPchem',
+                    'BudgetConvectionTrop_Be10                    ', 'GCHPchem',
+                    'BudgetConvectionTrop_Be10Strat               ', 'GCHPchem',
+                    'BudgetConvectionTrop_PassiveTracer           ', 'GCHPchem',
+                    'BudgetConvectionTrop_CH3ITracer              ', 'GCHPchem',
+                    'BudgetConvectionTrop_SF6Tracer               ', 'GCHPchem',
+                    'BudgetConvectionTrop_COAnthroEmis50dayTracer ', 'GCHPchem',
+                    'BudgetConvectionTrop_COAnthroEmis25dayTracer ', 'GCHPchem',
+                    'BudgetConvectionTrop_COUniformEmis25dayTracer', 'GCHPchem',
+                    'BudgetConvectionPBL_Rn222                    ', 'GCHPchem',
+                    'BudgetConvectionPBL_Pb210                    ', 'GCHPchem',
+                    'BudgetConvectionPBL_Pb210Strat               ', 'GCHPchem',
+                    'BudgetConvectionPBL_Be7                      ', 'GCHPchem',
+                    'BudgetConvectionPBL_Be7Strat                 ', 'GCHPchem',
+                    'BudgetConvectionPBL_Be10                     ', 'GCHPchem',
+                    'BudgetConvectionPBL_Be10Strat                ', 'GCHPchem',
+                    'BudgetConvectionPBL_PassiveTracer            ', 'GCHPchem',
+                    'BudgetConvectionPBL_SF6Tracer                ', 'GCHPchem',
+                    'BudgetConvectionPBL_CH3ITracer               ', 'GCHPchem',
+                    'BudgetConvectionPBL_COAnthroEmis25dayTracer  ', 'GCHPchem',
+                    'BudgetConvectionPBL_COAnthroEmis50dayTracer  ', 'GCHPchem',
+                    'BudgetConvectionPBL_COUniformEmis25dayTracer ', 'GCHPchem',
+                    'BudgetWetDepFull_Pb210                       ', 'GCHPchem',
+                    'BudgetWetDepFull_Pb210Strat                  ', 'GCHPchem',
+                    'BudgetWetDepFull_Be7                         ', 'GCHPchem',
+                    'BudgetWetDepFull_Be7Strat                    ', 'GCHPchem',
+                    'BudgetWetDepFull_Be10                        ', 'GCHPchem',
+                    'BudgetWetDepFull_Be10Strat                   ', 'GCHPchem',
+                    'BudgetWetDepTrop_Pb210                       ', 'GCHPchem',
+                    'BudgetWetDepTrop_Pb210Strat                  ', 'GCHPchem',
+                    'BudgetWetDepTrop_Be7                         ', 'GCHPchem',
+                    'BudgetWetDepTrop_Be7Strat                    ', 'GCHPchem',
+                    'BudgetWetDepTrop_Be10                        ', 'GCHPchem',
+                    'BudgetWetDepTrop_Be10Strat                   ', 'GCHPchem',
+                    'BudgetWetDepPBL_Pb210                        ', 'GCHPchem',
+                    'BudgetWetDepPBL_Pb210Strat                   ', 'GCHPchem',
+                    'BudgetWetDepPBL_Be7                          ', 'GCHPchem',
+                    'BudgetWetDepPBL_Be7Strat                     ', 'GCHPchem',
+                    'BudgetWetDepPBL_Be10                         ', 'GCHPchem',
+                    'BudgetWetDepPBL_Be10Strat                    ', 'GCHPchem',
+::					     
+#===============================================================================
+  CloudConvFlux.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.format:    'CFIO',
+  CloudConvFlux.frequency: 010000
+  CloudConvFlux.duration:  010000
+  CloudConvFlux.mode:      'time-averaged'
+  CloudConvFlux.fields:    'CloudConvFlux_Rn222                   ', 'GCHPchem',
+                           'CloudConvFlux_Pb210                   ', 'GCHPchem',
+                           'CloudConvFlux_Pb210Strat              ', 'GCHPchem',
+                           'CloudConvFlux_Be7                     ', 'GCHPchem',
+                           'CloudConvFlux_Be7Strat                ', 'GCHPchem',
+                           'CloudConvFlux_Be10                    ', 'GCHPchem',
+                           'CloudConvFlux_Be10Strat               ', 'GCHPchem',
+                           'CloudConvFlux_PassiveTracer           ', 'GCHPchem',
+                           'CloudConvFlux_SF6Tracer               ', 'GCHPchem',
+                           'CloudConvFlux_CH3ITracer              ', 'GCHPchem',
+                           'CloudConvFlux_COAnthroEmis25dayTracer ', 'GCHPchem',
+                           'CloudConvFlux_COAnthroEmis50dayTracer ', 'GCHPchem',
+                           'CloudConvFlux_COUniformEmis25dayTracer', 'GCHPchem',
+::
+#==============================================================================
+  DryDep.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  DryDep.format:           'CFIO',
+  DryDep.frequency:        010000
+  DryDep.duration:         010000
+  DryDep.mode:             'time-averaged'
+  DryDep.fields:           'DryDep_Pb210          ', 'GCHPchem',
+                           'DryDep_Pb210Strat     ', 'GCHPchem',
+                           'DryDep_Be7            ', 'GCHPchem',
+                           'DryDep_Be7Strat       ', 'GCHPchem',
+                           'DryDep_Be10           ', 'GCHPchem',
+                           'DryDep_Be10Strat      ', 'GCHPchem',
+                           'DryDepVel_Pb210       ', 'GCHPchem',
+                           'DryDepVel_Pb210Strat  ', 'GCHPchem',
+                           'DryDepVel_Be7         ', 'GCHPchem',
+                           'DryDepVel_Be7Strat    ', 'GCHPchem',
+                           'DryDepVel_Be10        ', 'GCHPchem',
+                           'DryDepVel_Be10Strat   ', 'GCHPchem',
+::
+#==============================================================================
+  LevelEdgeDiags.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.format:    'CFIO',
+  LevelEdgeDiags.frequency: 010000
+  LevelEdgeDiags.duration:  010000
+  LevelEdgeDiags.mode:      'time-averaged'
+  LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GCHPchem',
+                            'Met_PEDGE          ', 'GCHPchem',
+                            'Met_PEDGEDRY       ', 'GCHPchem',
+                            'Met_PFICU          ', 'GCHPchem',
+                            'Met_PFILSAN        ', 'GCHPchem',
+                            'Met_PFLCU          ', 'GCHPchem',
+                            'Met_PFLLSAN        ', 'GCHPchem',
+::
+#==============================================================================
+  RadioNuclide.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  RadioNuclide.format:      'CFIO',
+  RadioNuclide.frequency:   010000
+  RadioNuclide.duration:    010000
+  RadioNuclide.mode:        'time-averaged'
+  RadioNuclide.fields:      'PbFromRnDecay           ', 'GCHPchem',  
+                            'RadDecay_Rn222          ', 'GCHPchem',
+                            'RadDecay_Pb210          ', 'GCHPchem',
+                            'RadDecay_Pb210Strat     ', 'GCHPchem',
+                            'RadDecay_Be7            ', 'GCHPchem',
+                            'RadDecay_Be7Strat       ', 'GCHPchem',
+                            'RadDecay_Be10           ', 'GCHPchem',
+                            'RadDecay_Be10Strat      ', 'GCHPchem',
+::
+#==============================================================================
+  SpeciesConc.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:       'CFIO',
+  SpeciesConc.frequency:    010000
+  SpeciesConc.duration:     010000
+  SpeciesConc.mode:         'time-averaged'
+  SpeciesConc.fields:       'SpeciesConc_Rn222                   ', 'GCHPchem',
+                            'SpeciesConc_Pb210                   ', 'GCHPchem',
+                            'SpeciesConc_Pb210Strat              ', 'GCHPchem',
+                            'SpeciesConc_Be7                     ', 'GCHPchem',
+                            'SpeciesConc_Be7Strat                ', 'GCHPchem',
+                            'SpeciesConc_Be10                    ', 'GCHPchem',
+                            'SpeciesConc_Be10Strat               ', 'GCHPchem',
+                            'SpeciesConc_PassiveTracer           ', 'GCHPchem',
+                            'SpeciesConc_SF6Tracer               ', 'GCHPchem',
+                            'SpeciesConc_CH3ITracer              ', 'GCHPchem',
+                            'SpeciesConc_COAnthroEmis25dayTracer ', 'GCHPchem',
+                            'SpeciesConc_COAnthroEmis50dayTracer ', 'GCHPchem',
+                            'SpeciesConc_COUniformEmis25dayTracer', 'GCHPchem',
+::
+#==============================================================================
+  StateMet.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  StateMet.format:          'CFIO',
+  StateMet.frequency:       010000
+  StateMet.duration:        010000
+  StateMet.mode:            'time-averaged'
+  StateMet.fields:          'Met_AD             ', 'GCHPchem',
+                            'Met_AIRDEN         ', 'GCHPchem',
+                            'Met_AIRVOL         ', 'GCHPchem',
+                            'Met_ALBD           ', 'GCHPchem',
+                            'Met_AREAM2         ', 'GCHPchem',
+                            'Met_AVGW           ', 'GCHPchem',
+                            'Met_BXHEIGHT       ', 'GCHPchem',
+                            'Met_ChemGridLev    ', 'GCHPchem',
+                            'Met_CLDF           ', 'GCHPchem',
+                            'Met_CLDFRC         ', 'GCHPchem',
+                            'Met_CLDTOPS        ', 'GCHPchem',
+                            'Met_DELP           ', 'GCHPchem',
+                            'Met_DQRCU          ', 'GCHPchem',
+                            'Met_DQRLSAN        ', 'GCHPchem',
+                            'Met_DTRAIN         ', 'GCHPchem',
+                            'Met_EFLUX          ', 'GCHPchem',
+                            'Met_FRCLND         ', 'GCHPchem',
+                            'Met_FRLAKE         ', 'GCHPchem',
+                            'Met_FRLAND         ', 'GCHPchem',
+                            'Met_FRLANDIC       ', 'GCHPchem',
+                            'Met_FROCEAN        ', 'GCHPchem',
+                            'Met_FRSEAICE       ', 'GCHPchem',
+                            'Met_FRSNO          ', 'GCHPchem',
+                            'Met_GWETROOT       ', 'GCHPchem',
+                            'Met_GWETTOP        ', 'GCHPchem',
+                            'Met_HFLUX          ', 'GCHPchem',
+                            'Met_LAI            ', 'GCHPchem',
+                            'Met_LWI            ', 'GCHPchem',
+                            'Met_PARDR          ', 'GCHPchem',
+                            'Met_PARDF          ', 'GCHPchem',
+                            'Met_PBLTOPL        ', 'GCHPchem',
+                            'Met_PBLH           ', 'GCHPchem',
+                            'Met_PHIS           ', 'GCHPchem',
+                            'Met_PMID           ', 'GCHPchem',
+                            'Met_PMIDDRY        ', 'GCHPchem',
+                            'Met_PRECANV        ', 'GCHPchem',
+                            'Met_PRECCON        ', 'GCHPchem',
+                            'Met_PRECLSC        ', 'GCHPchem',
+                            'Met_PRECTOT        ', 'GCHPchem',
+                            'Met_PS1DRY         ', 'GCHPchem',
+                            'Met_PS1WET         ', 'GCHPchem',
+                            'Met_PS2DRY         ', 'GCHPchem',
+                            'Met_PS2WET         ', 'GCHPchem',
+                            'Met_PSC2WET        ', 'GCHPchem',
+                            'Met_PSC2DRY        ', 'GCHPchem',
+                            'Met_QI             ', 'GCHPchem',
+                            'Met_QL             ', 'GCHPchem',
+                            'Met_OMEGA          ', 'GCHPchem',
+                            'Met_OPTD           ', 'GCHPchem',
+                            'Met_REEVAPCN       ', 'GCHPchem',
+                            'Met_REEVAPLS       ', 'GCHPchem',
+                            'Met_SLP            ', 'GCHPchem',
+                            'Met_SNODP          ', 'GCHPchem',
+                            'Met_SNOMAS         ', 'GCHPchem',
+                            'Met_SPHU           ', 'GCHPchem',
+                            'Met_SPHU1          ', 'GCHPchem',
+                            'Met_SPHU2          ', 'GCHPchem',
+                            'Met_SUNCOS         ', 'GCHPchem',
+                            'Met_SUNCOSmid      ', 'GCHPchem',
+                            'Met_SWGDN          ', 'GCHPchem',
+                            'Met_T              ', 'GCHPchem',
+                            'Met_TAUCLI         ', 'GCHPchem',
+                            'Met_TAUCLW         ', 'GCHPchem',
+                            'Met_THETA          ', 'GCHPchem',
+                            'Met_TMPU1          ', 'GCHPchem',
+                            'Met_TMPU2          ', 'GCHPchem',
+                            'Met_TO3            ', 'GCHPchem',
+                            'Met_TropHt         ', 'GCHPchem',
+                            'Met_TropLev        ', 'GCHPchem',
+                            'Met_TropP          ', 'GCHPchem',
+                            'Met_TS             ', 'GCHPchem',
+                            'Met_TSKIN          ', 'GCHPchem',
+                            'Met_TV             ', 'GCHPchem',
+                            'Met_U              ', 'GCHPchem',
+                            'Met_U10M           ', 'GCHPchem',
+                            'Met_USTAR          ', 'GCHPchem',
+                            'Met_UVALBEDO       ', 'GCHPchem',
+                            'Met_V              ', 'GCHPchem',
+                            'Met_V10M           ', 'GCHPchem',
+                            'Met_Z0             ', 'GCHPchem',
+::
+#==============================================================================
+  WetLossConv.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossConv.format:       'CFIO',
+  WetLossConv.frequency:    010000
+  WetLossConv.duration:     010000
+  WetLossConv.mode:         'time-averaged'
+  WetLossConv.fields:       'WetLossConv_Pb210           ', 'GCHPchem',
+                            'WetLossConv_Pb210Strat      ', 'GCHPchem',
+                            'WetLossConv_Be7             ', 'GCHPchem',
+                            'WetLossConv_Be7Strat        ', 'GCHPchem',
+                            'WetLossConv_Be10            ', 'GCHPchem',
+                            'WetLossConv_Be10Strat       ', 'GCHPchem',
+                            'WetLossConvFrac_Pb210       ', 'GCHPchem',
+                            'WetLossConvFrac_Pb210Strat  ', 'GCHPchem',
+                            'WetLossConvFrac_Be7         ', 'GCHPchem',
+                            'WetLossConvFrac_Be7Strat    ', 'GCHPchem',
+                            'WetLossConvFrac_Be10        ', 'GCHPchem',
+                            'WetLossConvFrac_Be10Strat   ', 'GCHPchem',
+::
+#==============================================================================
+  WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossLS.format:         'CFIO',
+  WetLossLS.frequency:      010000
+  WetLossLS.duration:       010000
+  WetLossLS.mode:           'time-averaged'
+  WetLossLS.fields:         'WetLossLS_Pb210      ', 'GCHPchem',
+                            'WetLossLS_Pb210Strat ', 'GCHPchem',
+                            'WetLossLS_Be7        ', 'GCHPchem',
+                            'WetLossLS_Be7Strat   ', 'GCHPchem',
+                            'WetLossLS_Be10       ', 'GCHPchem',
+                            'WetLossLS_Be10Strat  ', 'GCHPchem',
+::

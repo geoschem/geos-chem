@@ -14616,13 +14616,13 @@
 	write(lun) maerocoag, maerchem, maeroptical
 	write(lun) msectional, maerosolincw
 
-	write(lun) nsize_aer(itype), ntot_mastercomp_aer
+	write(lun) nsize_aer(itype), ntot_maincomp_aer
 
-	do icomp = 1, ntot_mastercomp_aer
+	do icomp = 1, ntot_maincomp_aer
 	    write(lun)   &
-      		name_mastercomp_aer(icomp)
+      		name_maincomp_aer(icomp)
 	    write(lun)   &
-      		dens_mastercomp_aer(icomp),     mw_mastercomp_aer(icomp)
+      		dens_maincomp_aer(icomp),     mw_maincomp_aer(icomp)
 	end do
 
 	do isize = 1, nsize_aer(itype)
@@ -14633,7 +14633,7 @@
 		numptr_aer(isize,itype,iphase),   &
       		mprognum_aer(isize,itype,iphase)
 	    write(lun)   &
-      	      ( mastercompptr_aer(l,itype),   &
+      	      ( maincompptr_aer(l,itype),   &
 		massptr_aer(l,isize,itype,iphase),   &
       		l=1,ncomp_plustracer_aer(itype) )
 	    write(lun)   &

@@ -1,8 +1,0 @@
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOS
-! !SECTION: Diagnostic modules
-! !DESCRIPTION: These modules contain routines to archive various diagnostic quantities (concentrations, emissions, chemical production and loss, etc.)xfrom GEOS-Chem.
-!EOS
-!------------------------------------------------------------------------------m

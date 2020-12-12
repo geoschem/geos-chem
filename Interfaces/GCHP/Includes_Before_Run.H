@@ -1,7 +1,6 @@
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -33,7 +32,6 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRCLND              = FRLAND                     ! 1
   State_Met%FRLAND              = FRLAND                     ! 1
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
@@ -60,10 +58,10 @@
   State_Met%SNOMAS              = SNOMAS                     ! kg/m2
   State_Met%SUNCOS              = zenith                     ! unitless
   State_Met%SUNCOSmid           = zenith                     ! 1
-  State_Met%U                   = ULL                        ! m/s
+  State_Met%U                   = UA                         ! m/s
   State_Met%U10M                = U10M                       ! m/s
   State_Met%USTAR               = USTAR                      ! m/s
-  State_Met%V                   = VLL                        ! m/s
+  State_Met%V                   = VA                         ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
 
@@ -106,7 +104,7 @@
   ! Convert Pa -> hPa
   State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
 
-  ! These will be set based on PS1_WET and PS2_WET in gigc_chunk_mod.F90
+  ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
   State_Met%PS1_DRY(:,:) = 0.0d0 
   State_Met%PS2_DRY(:,:) = 0.0d0
 

@@ -41,7 +41,7 @@ target_link_libraries(Hg
 )
 
 
-if("gtmm" IN_LIST GCCLASSIC_EXE_TARGETS)
+if(${GTMM})
     add_executable(gtmm
         GTMM.F90
     )

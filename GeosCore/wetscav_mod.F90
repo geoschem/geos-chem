@@ -115,7 +115,6 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE ErrCode_Mod
     USE Error_Mod,       ONLY : Debug_MSG
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -153,16 +152,16 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                 :: prtDebug
-    INTEGER                 :: I, J, L
+    INTEGER                 :: TS_Dyn
+    REAL(f8)                :: DT_Dyn
 
     ! Strings
-    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)      :: errMsg
+    CHARACTER(LEN=255)      :: thisLoc
 
-    REAL(fp)                :: DT_Dyn
-
-    !=================================================================
+    !========================================================================
     ! Initialize
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
@@ -179,26 +178,42 @@ CONTAINS
     ! Only print output on the root CPU
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    !----------------------------------------------------------
-    ! Wet deposition budget diagnostics - Part 1 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! WetDep budget diagnostics - Part 1 of 2
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetWetDep ) THEN
-       ! Get initial column masses
-       CALL Compute_Column_Mass( Input_Opt,                           &
-                                 State_Chm,                           &
-                                 State_Grid,                          &
-                                 State_Met,                           &
-                                 State_Chm%Map_WetDep,                &
-                                 State_Diag%Archive_BudgetWetDepFull, &
-                                 State_Diag%Archive_BudgetWetDepTrop, &
-                                 State_Diag%Archive_BudgetWetDepPBL,  &
-                                 State_Diag%BudgetMass1,              &
-                                 RC )
+
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetWetDepFull,               &
+            diagFull    = NULL(),                                            &
+            mapDataFull = State_Diag%Map_BudgetWetDepFull,                   &
+            isTrop      = State_Diag%Archive_BudgetWetDepTrop,               &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = State_Diag%Map_BudgetWetDepTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            isWetDep    = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'WetDep budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Only do wet deposition for large-scale + anvil precip
-    !=================================================================
+    !========================================================================
 
     !------------------------------------------
     ! Zero diagnostic arrays in State_Diag
@@ -206,9 +221,10 @@ CONTAINS
     !
     ! *FracLs diagnostics might need work...
     !------------------------------------------
-    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
-    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
-    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
+!### Comment out these diagnostics for now (bmy, 6/2/20)
+!###    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
+!###    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
+!###    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
     IF ( State_Diag%Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
 
     !------------------------------------------
@@ -253,36 +269,39 @@ CONTAINS
     ! Debug print
     IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Wet deposition budget diagnostics - Part 2 of 2
-    !----------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_BudgetWetDep ) THEN
-       ! Get final masses and compute diagnostics
-       CALL Compute_Column_Mass( Input_Opt,                           &
-                                 State_Chm,                           &
-                                 State_Grid,                          &
-                                 State_Met,                           &
-                                 State_Chm%Map_WetDep,                &
-                                 State_Diag%Archive_BudgetWetDepFull, &
-                                 State_Diag%Archive_BudgetWetDepTrop, &
-                                 State_Diag%Archive_BudgetWetDepPBL,  &
-                                 State_Diag%BudgetMass2,              &
-                                 RC )
-       DT_Dyn = Get_Ts_Dyn()
-       CALL Compute_Budget_Diagnostics( State_Grid,                   &
-                                 State_Chm%Map_WetDep,                &
-                                 DT_Dyn,                              &
-                                 State_Diag%Archive_BudgetWetDepFull, &
-                                 State_Diag%Archive_BudgetWetDepTrop, &
-                                 State_Diag%Archive_BudgetWetDepPBL,  &
-                                 State_Diag%BudgetWetDepFull,         &
-                                 State_Diag%BudgetWetDepTrop,         &
-                                 State_Diag%BudgetWetDepPBL,          &
-                                 State_Diag%BudgetMass1,              &
-                                 State_Diag%BudgetMass2,              &
-                                 RC )
+
+       ! Timestep  for diagnostics [s]
+       TS_Dyn = Get_Ts_Dyn()
+       DT_Dyn = DBLE( TS_Dyn )
+
+       ! Compute change in column masses (after wetdep - before wetdep)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetWetDepFull,               &
+            diagFull    = State_Diag%BudgetWetDepFull,                       &
+            mapDataFull = State_Diag%Map_BudgetWetDepFull,                   &
+            isTrop      = State_Diag%Archive_BudgetWetDepTrop,               &
+            diagTrop    = State_Diag%BudgetWetDepTrop,                       &
+            mapDataTrop = State_Diag%Map_BudgetWetDepTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
+            diagPBL     = State_Diag%BudgetWetDepPBL,                        &
+            mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Dyn,                                            &
+            isWetDep    = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Wetdep budget diagnostics error 2'
+          ErrMsg = 'WetDep budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -3470,7 +3489,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N,        NW
+    INTEGER            :: N,        NW,      S
     REAL(fp)           :: RAINFRAC, WETLOSS
 
     ! Strings
@@ -3510,19 +3529,20 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
-                                        F_Rainout
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +  &
+!###                                        F_Rainout
+!###    ENDIF
 
     !-----------------------------------------------------------------
     ! Loop over all wet deposition species
     !-----------------------------------------------------------------
     DO NW = 1, State_Chm%nWetDep
 
-       ! Get the wetdep ID from the species ID
+       ! Get the species ID from the wetdep ID
        N = State_Chm%Map_WetDep(NW)
 
        ! Call subroutine RAINOUT to comptue the fraction
@@ -3608,17 +3628,21 @@ CONTAINS
        !     Here we add the component from rainout.
        !--------------------------------------------------------------------
 
-       ! Units: [1]
-       IF ( State_Diag%Archive_RainFracLs .and. &
-            F_Rainout > 0.0_fp ) THEN
-          State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
-       ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###       ! Units: [1]
+!###       IF ( State_Diag%Archive_RainFracLs .and. &
+!###            F_Rainout > 0.0_fp ) THEN
+!###          State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
+!###       ENDIF
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-       IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) +  &
-                                           ( WetLoss / DT ) *                &
-                                           State_Grid%Area_M2(I,J)
+       IF ( State_Diag%Archive_WetLossLS ) THEN
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLs(I,J,L,S) =                                 &
+             State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -3807,7 +3831,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: KIN,       DO_REEVAP
-    INTEGER            :: N,         NW
+    INTEGER            :: N,         NW,          S
     REAL(fp)           :: ALPHA,     ALPHA2,      GAINED,   LOST
     REAL(fp)           :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
     REAL(fp)           :: TK,        TF
@@ -3850,12 +3874,13 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
-                                        F_Washout
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +  &
+!###                                        F_Washout
+!###    ENDIF
 
     ! air temperature [K]
     TK  = State_Met%T(I,J,L)
@@ -4065,10 +4090,11 @@ CONTAINS
           ! Here we only handle the soluble aerosol species
           !-----------------------------------------------------------------
 
-          ! Units: [1]
-          IF ( State_Diag%Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
-             State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
-          ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###          ! Units: [1]
+!###          IF ( State_Diag%Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
+!###             State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
+!###          ENDIF
 
        !====================================================================
        ! Washout of non-aerosol species
@@ -4116,10 +4142,11 @@ CONTAINS
           ! accounted for in the equations above.
           !-----------------------------------------------------------------
 
-          ! Units: [1]
-          IF ( State_Diag%Archive_WashFracLS ) THEN
-             State_Diag%WashFracLS(I,J,L,NW) = WashFrac
-          ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###          ! Units: [1]
+!###          IF ( State_Diag%Archive_WashFracLS ) THEN
+!###             State_Diag%WashFracLS(I,J,L,NW) = WashFrac
+!###          ENDIF
 
        ENDIF
 
@@ -4133,10 +4160,13 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-       IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) +  &
-                                           ( WetLoss / DT ) *                &
-                                           State_Grid%Area_M2(I,J)
+       IF ( State_Diag%Archive_WetLossLS ) THEN
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLS(I,J,L,S) =                                 &
+             State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
+                                           *  State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -4256,7 +4286,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, NW
+    INTEGER            :: N, NW, S
     REAL(fp)           :: WETLOSS
 
     ! Strings
@@ -4388,9 +4418,12 @@ CONTAINS
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
-                                           State_Grid%Area_M2(I,J)
+          S = State_Diag%Map_WetLossLs%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLs(I,J,L,S) =                                 &
+             State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s
@@ -4517,7 +4550,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: KIN
-    INTEGER            :: N,        NW
+    INTEGER            :: N,        NW,      S
     REAL(fp)           :: WASHFRAC, WETLOSS, TMP, TK
 
     ! Strings
@@ -4551,11 +4584,12 @@ CONTAINS
     ! for both GEOS-FP and MERRA-2 meteorology.
     !-----------------------------------------------------------------------
 
-    ! NOTE: This diagnostic may need some work
-    ! Units: [1]
-    IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + F
-    ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###    ! NOTE: This diagnostic may need some work
+!###    ! Units: [1]
+!###    IF ( State_Diag%Archive_PrecipFracLS ) THEN
+!###       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + F
+!###    ENDIF
 
     ! air temperature [K]
     TK = State_Met%T(I,J,L)
@@ -4618,19 +4652,20 @@ CONTAINS
        ! Archive the fraction of soluble species lost to washout
        ! in large-scale precipitation (WashFracLS)
        !--------------------------------------------------------------
-       IF ( State_Diag%Archive_WashFracLS ) THEN
-
-          ! Only divide WASHFRAC by F for aerosols, since
-          ! for non-aerosols this is already accounted for
-          IF ( KIN ) THEN
-             Tmp = WashFrac / F
-          ELSE
-             TMP = WashFrac
-          ENDIF
-
-          ! Units: [1]
-          State_Diag%WashFracLS(I,J,L,NW) = Tmp
-       ENDIF
+!### Comment out this diagnostic for now (bmy, 6/2/20)
+!###       IF ( State_Diag%Archive_WashFracLS ) THEN
+!###
+!###          ! Only divide WASHFRAC by F for aerosols, since
+!###          ! for non-aerosols this is already accounted for
+!###          IF ( KIN ) THEN
+!###             Tmp = WashFrac / F
+!###          ELSE
+!###             TMP = WashFrac
+!###          ENDIF
+!###
+!###          ! Units: [1]
+!###          State_Diag%WashFracLS(I,J,L,NW) = Tmp
+!###       ENDIF
 
        !--------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
@@ -4643,9 +4678,12 @@ CONTAINS
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLS ) THEN
-          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
-                                           State_Grid%Area_M2(I,J)
+          S = State_Diag%Map_WetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%WetLossLS(I,J,L,S) =                                 &
+             State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
        ENDIF
 
        ! Archive wet loss in kg/m2/s (check source code for this routine - ewl )
@@ -5113,7 +5151,7 @@ CONTAINS
           WRITE( 6, 100 ) N_WD, &
                           TRIM( SpcInfo%Name ), &
                           N, &
-                          SpcInfo%EmMW_g, &
+                          SpcInfo%MW_g, &
                           K0, CR, pKA
 100       FORMAT( i3,3x,a14,3x,i3,3x,f6.1,3(1x,a9) )
 
@@ -5320,7 +5358,7 @@ CONTAINS
        IF ( ( id_H2O2 > 0 ) .AND. &
             ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
           State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2) &
-               * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
+               * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%MW_g )
        ENDIF
 
        ! Set SO2s to the initial SO2 from the species array, so that we will
@@ -5331,7 +5369,7 @@ CONTAINS
        IF ( ( id_SO2 > 0 ) .AND. &
             ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
           State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2) &
-               * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
+               * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%MW_g )
        ENDIF
 
        ! Reset first-time flag

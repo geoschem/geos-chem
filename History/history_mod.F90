@@ -638,7 +638,7 @@ CONTAINS
        Description    =  ''
        ErrMsg         =  ''
        Contact        =  &
-         'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
+         'GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)'
        Reference      =  'www.geos-chem.org; wiki.geos-chem.org'
        ThisLoc        =  &
          ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
@@ -1674,7 +1674,7 @@ CONTAINS
 
           !=================================================================
           ! Add this HISTORY CONTAINER object (i.e. this collection) into
-          ! the METAHISTORY OBJECT (i.e. the master list of collections).
+          ! the METAHISTORY OBJECT (i.e. the main list of collections).
           !=================================================================
           CALL MetaHistContainer_AddNew( Input_Opt   = Input_Opt,            &
                                          Node        = CollectionList,       &
@@ -1891,7 +1891,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: OnLevelEdges
-    INTEGER                      :: KindVal
+    INTEGER                      :: Source_KindVal
+    INTEGER                      :: Output_KindVal
     INTEGER                      :: Rank
     INTEGER                      :: NX, X0, X1
     INTEGER                      :: NY, Y0, Y1
@@ -1937,34 +1938,37 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC          =  GC_SUCCESS
-    Description =  ''
-    Dimensions  =  0
-    KindVal     =  0
-    Rank        =  0
-    Units       =  ''
-    ErrMsg      =  ''
-    ThisLoc     =  &
-                ' -> History_AddItemToCollection (in History/history_mod.F90)'
-    ItemNameUC  = To_UpperCase( ItemName )
-    StateMetUC  = State_Met%State // '_'   ! State_Met%State is uppercase
-    StateChmUC  = State_Chm%State // '_'   ! State_Chm%State is uppercase
-    Ptr0d       => NULL()
-    Ptr0d_8     => NULL()
-    Ptr0d_4     => NULL()
-    Ptr0d_I     => NULL()
-    Ptr1d       => NULL()
-    Ptr1d_8     => NULL()
-    Ptr1d_4     => NULL()
-    Ptr1d_I     => NULL()
-    Ptr2d       => NULL()
-    Ptr2d_8     => NULL()
-    Ptr2d_4     => NULL()
-    Ptr2d_I     => NULL()
-    Ptr3d       => NULL()
-    Ptr3d_8     => NULL()
-    Ptr3d_4     => NULL()
-    Ptr3d_I     => NULL()
+    RC             =  GC_SUCCESS
+    Description    =  ''
+    Dimensions     =  0
+    Source_KindVal =  0
+    Output_KindVal =  0
+    Rank           =  0
+    Units          =  ''
+    ErrMsg         =  ''
+    ThisLoc        =  &
+         ' -> History_AddItemToCollection (in History/history_mod.F90)'
+    ItemNameUC     = To_UpperCase( ItemName )
+    StateMetUC     = State_Met%State // '_'   ! State_Met%State is uppercase
+    StateChmUC     = State_Chm%State // '_'   ! State_Chm%State is uppercase
+
+    ! Free pointers
+    Ptr0d    => NULL()
+    Ptr0d_8  => NULL()
+    Ptr0d_4  => NULL()
+    Ptr0d_I  => NULL()
+    Ptr1d    => NULL()
+    Ptr1d_8  => NULL()
+    Ptr1d_4  => NULL()
+    Ptr1d_I  => NULL()
+    Ptr2d    => NULL()
+    Ptr2d_8  => NULL()
+    Ptr2d_4  => NULL()
+    Ptr2d_I  => NULL()
+    Ptr3d    => NULL()
+    Ptr3d_8  => NULL()
+    Ptr3d_4  => NULL()
+    Ptr3d_I  => NULL()
 
     !=======================================================================
     ! For each HISTORY ITEM, find the matching entry in the relevant
@@ -1976,34 +1980,31 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemistry State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
-                             Registry     = State_Chm%Registry,              &
-                             RegDict      = State_Chm%RegDict,               &
-                             State        = State_Chm%State,                 &
-                             Variable     = ItemName,                        &
-                             Description  = Description,                     &
-                             Dimensions   = Dimensions,                      &
-                             KindVal      = KindVal,                         &
-                             Rank         = Rank,                            &
-                             Units        = Units,                           &
-                             OnLevelEdges = OnLevelEdges,                    &
-                             Ptr0d        = Ptr0d,                           &
-                             Ptr1d        = Ptr1d,                           &
-                             Ptr2d        = Ptr2d,                           &
-                             Ptr3d        = Ptr3d,                           &
-                             Ptr0d_8      = Ptr0d_8,                         &
-                             Ptr1d_8      = Ptr1d_8,                         &
-                             Ptr2d_8      = Ptr2d_8,                         &
-                             Ptr3d_8      = Ptr3d_8,                         &
-                             Ptr0d_4      = Ptr0d_4,                         &
-                             Ptr1d_4      = Ptr1d_4,                         &
-                             Ptr2d_4      = Ptr2d_4,                         &
-                             Ptr3d_4      = Ptr3d_4,                         &
-                             Ptr0d_I      = Ptr0d_I,                         &
-                             Ptr1d_I      = Ptr1d_I,                         &
-                             Ptr2d_I      = Ptr2d_I,                         &
-                             Ptr3d_I      = Ptr3d_I,                         &
-                             RC           = RC                                 )
+       CALL Registry_Lookup( am_I_Root      = Input_Opt%amIRoot,             &
+                             Registry       = State_Chm%Registry,            &
+                             RegDict        = State_Chm%RegDict,             &
+                             State          = State_Chm%State,               &
+                             Variable       = ItemName,                      &
+                             Description    = Description,                   &
+                             Dimensions     = Dimensions,                    &
+                             Source_KindVal = Source_KindVal,                &
+                             Output_KindVal = Output_KindVal,                &
+                             Rank           = Rank,                          &
+                             Units          = Units,                         &
+                             OnLevelEdges   = OnLevelEdges,                  &
+                             Ptr0d_8        = Ptr0d_8,                       &
+                             Ptr1d_8        = Ptr1d_8,                       &
+                             Ptr2d_8        = Ptr2d_8,                       &
+                             Ptr3d_8        = Ptr3d_8,                       &
+                             Ptr0d_4        = Ptr0d_4,                       &
+                             Ptr1d_4        = Ptr1d_4,                       &
+                             Ptr2d_4        = Ptr2d_4,                       &
+                             Ptr3d_4        = Ptr3d_4,                       &
+                             Ptr0d_I        = Ptr0d_I,                       &
+                             Ptr1d_I        = Ptr1d_I,                       &
+                             Ptr2d_I        = Ptr2d_I,                       &
+                             Ptr3d_I        = Ptr3d_I,                       &
+                             RC             = RC                            )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2018,34 +2019,31 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
-                             Registry     = State_Met%Registry,              &
-                             RegDict      = State_Met%RegDict,               &
-                             State        = State_Met%State,                 &
-                             Variable     = ItemName,                        &
-                             Description  = Description,                     &
-                             Dimensions   = Dimensions,                      &
-                             KindVal      = KindVal,                         &
-                             Rank         = Rank,                            &
-                             Units        = Units,                           &
-                             OnLevelEdges = OnLevelEdges,                    &
-                             Ptr0d        = Ptr0d,                           &
-                             Ptr1d        = Ptr1d,                           &
-                             Ptr2d        = Ptr2d,                           &
-                             Ptr3d        = Ptr3d,                           &
-                             Ptr0d_8      = Ptr0d_8,                         &
-                             Ptr1d_8      = Ptr1d_8,                         &
-                             Ptr2d_8      = Ptr2d_8,                         &
-                             Ptr3d_8      = Ptr3d_8,                         &
-                             Ptr0d_4      = Ptr0d_4,                         &
-                             Ptr1d_4      = Ptr1d_4,                         &
-                             Ptr2d_4      = Ptr2d_4,                         &
-                             Ptr3d_4      = Ptr3d_4,                         &
-                             Ptr0d_I      = Ptr0d_I,                         &
-                             Ptr1d_I      = Ptr1d_I,                         &
-                             Ptr2d_I      = Ptr2d_I,                         &
-                             Ptr3d_I      = Ptr3d_I,                         &
-                             RC           = RC                                 )
+       CALL Registry_Lookup( am_I_Root      = Input_Opt%amIRoot,             &
+                             Registry       = State_Met%Registry,            &
+                             RegDict        = State_Met%RegDict,             &
+                             State          = State_Met%State,               &
+                             Variable       = ItemName,                      &
+                             Description    = Description,                   &
+                             Dimensions     = Dimensions,                    &
+                             Source_KindVal = Source_KindVal,                &
+                             Output_KindVal = Output_KindVal,                &
+                             Rank           = Rank,                          &
+                             Units          = Units,                         &
+                             OnLevelEdges   = OnLevelEdges,                  &
+                             Ptr0d_8        = Ptr0d_8,                       &
+                             Ptr1d_8        = Ptr1d_8,                       &
+                             Ptr2d_8        = Ptr2d_8,                       &
+                             Ptr3d_8        = Ptr3d_8,                       &
+                             Ptr0d_4        = Ptr0d_4,                       &
+                             Ptr1d_4        = Ptr1d_4,                       &
+                             Ptr2d_4        = Ptr2d_4,                       &
+                             Ptr3d_4        = Ptr3d_4,                       &
+                             Ptr0d_I        = Ptr0d_I,                       &
+                             Ptr1d_I        = Ptr1d_I,                       &
+                             Ptr2d_I        = Ptr2d_I,                       &
+                             Ptr3d_I        = Ptr3d_I,                       &
+                             RC             = RC                            )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2060,34 +2058,31 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
-                             Registry     = State_Diag%Registry,             &
-                             RegDict      = State_Diag%RegDict,              &
-                             State        = State_Diag%State,                &
-                             Variable     = ItemName,                        &
-                             Description  = Description,                     &
-                             Dimensions   = Dimensions,                      &
-                             KindVal      = KindVal,                         &
-                             Rank         = Rank,                            &
-                             Units        = Units,                           &
-                             OnLevelEdges = OnLevelEdges,                    &
-                             Ptr0d        = Ptr0d,                           &
-                             Ptr1d        = Ptr1d,                           &
-                             Ptr2d        = Ptr2d,                           &
-                             Ptr3d        = Ptr3d,                           &
-                             Ptr0d_8      = Ptr0d_8,                         &
-                             Ptr1d_8      = Ptr1d_8,                         &
-                             Ptr2d_8      = Ptr2d_8,                         &
-                             Ptr3d_8      = Ptr3d_8,                         &
-                             Ptr0d_4      = Ptr0d_4,                         &
-                             Ptr1d_4      = Ptr1d_4,                         &
-                             Ptr2d_4      = Ptr2d_4,                         &
-                             Ptr3d_4      = Ptr3d_4,                         &
-                             Ptr0d_I      = Ptr0d_I,                         &
-                             Ptr1d_I      = Ptr1d_I,                         &
-                             Ptr2d_I      = Ptr2d_I,                         &
-                             Ptr3d_I      = Ptr3d_I,                         &
-                             RC           = RC                                 )
+       CALL Registry_Lookup( am_I_Root      = Input_Opt%amIRoot,             &
+                             Registry       = State_Diag%Registry,           &
+                             RegDict        = State_Diag%RegDict,            &
+                             State          = State_Diag%State,              &
+                             Variable       = ItemName,                      &
+                             Description    = Description,                   &
+                             Dimensions     = Dimensions,                    &
+                             Source_KindVal = Source_KindVal,                &
+                             Output_KindVal = Output_KindVal,                &
+                             Rank           = Rank,                          &
+                             Units          = Units,                         &
+                             OnLevelEdges   = OnLevelEdges,                  &
+                             Ptr0d_8        = Ptr0d_8,                       &
+                             Ptr1d_8        = Ptr1d_8,                       &
+                             Ptr2d_8        = Ptr2d_8,                       &
+                             Ptr3d_8        = Ptr3d_8,                       &
+                             Ptr0d_4        = Ptr0d_4,                       &
+                             Ptr1d_4        = Ptr1d_4,                       &
+                             Ptr2d_4        = Ptr2d_4,                       &
+                             Ptr3d_4        = Ptr3d_4,                       &
+                             Ptr0d_I        = Ptr0d_I,                       &
+                             Ptr1d_I        = Ptr1d_I,                       &
+                             Ptr2d_I        = Ptr2d_I,                       &
+                             Ptr3d_I        = Ptr3d_I,                       &
+                             RC             = RC                            )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2187,7 +2182,7 @@ CONTAINS
     ! corresponding to the given diagnostic quantity, use that to create
     ! a HISTORY ITEM object for that diagnostic quantity.
     !=======================================================================
-    CALL HistItem_Create( Input_Opt      = Input_Opt,                       &
+    CALL HistItem_Create( Input_Opt      = Input_Opt,                        &
                           Item           = Item,                             &
                           Id             = ItemCount,                        &
                           ContainerId    = CollectionId,                     &
@@ -2200,17 +2195,15 @@ CONTAINS
                           Subset_X       = Subset_X,                         &
                           Subset_Y       = Subset_Y,                         &
                           Subset_Z       = Subset_Z,                         &
-                          Source_KindVal = KindVal,                          &
+                          Source_KindVal = Source_KindVal,                   &
+                          Output_KindVal = Output_KindVal,                   &
                           Source_0d_8    = Ptr0d_8,                          &
-                          Source_1d      = Ptr1d,                            &
                           Source_1d_8    = Ptr1d_8,                          &
                           Source_1d_4    = Ptr1d_4,                          &
                           Source_1d_I    = Ptr1d_I,                          &
-                          Source_2d      = Ptr2d,                            &
                           Source_2d_8    = Ptr2d_8,                          &
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
-                          Source_3d      = Ptr3d,                            &
                           Source_3d_8    = Ptr3d_8,                          &
                           Source_3d_4    = Ptr3d_4,                          &
                           Source_3d_I    = Ptr3d_I,                          &
@@ -2404,10 +2397,10 @@ CONTAINS
     ThisLoc    =  ' -> at History_SetTime (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -2514,12 +2507,12 @@ CONTAINS
     ThisLoc    =  ' -> at History_Update (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list, and
     ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
     ! Update each HISTORY ITEM if it is the proper time.
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -2573,19 +2566,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 3 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Source_3d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d = Item%Source_3d_8
@@ -2624,19 +2606,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 2 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Source_2d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_8
@@ -2675,19 +2646,8 @@ CONTAINS
              !--------------------------------------------------------------
              CASE( 1 )
 
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Source_1d
-                      Item%nUpdates = 1.0_f8
-                   ELSE
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d
-                      Item%nUpdates = Item%nUpdates + 1.0_f8
-                   ENDIF
-
                 ! 8-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_8
@@ -2867,11 +2827,11 @@ CONTAINS
     ThisLoc    =  ' -> at History_Write (in History/history_mod.F90)'
 
     !=======================================================================
-    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! Loop through each DIAGNOSTIC COLLECTION in the main list, and
     ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
     !=======================================================================
 
-    ! Point to the first COLLECTION in the master collection list
+    ! Point to the first COLLECTION in the main collection list
     Collection => CollectionList
 
     ! As long as this current COLLECTION is valid ...
@@ -3117,7 +3077,7 @@ CONTAINS
 ! !IROUTINE: History_Close_AllFiles
 !
 ! !DESCRIPTION: Closes the netCDF file described by each HISTORY CONTAINER
-!  object in the master list of diagnostic collections.
+!  object in the main list of diagnostic collections.
 !\\
 !\\
 ! !INTERFACE:

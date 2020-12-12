@@ -25,8 +25,7 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 )
 target_link_libraries(Headers
 	PUBLIC
-	$<$<STREQUAL:${MECH},SOA_SVPOA>:KPPFirstPass_SOA_SVPOA>
-	$<$<STREQUAL:${MECH},Standard>:KPPFirstPass_Standard>
-	$<$<STREQUAL:${MECH},Tropchem>:KPPFirstPass_Tropchem>
+	$<$<STREQUAL:${MECH},fullchem>:KPPFirstPass_fullchem>
+	$<$<STREQUAL:${MECH},custom>:KPPFirstPass_custom>
 )
 

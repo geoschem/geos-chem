@@ -1,0 +1,59 @@
+README for test/GCHPctm (GEOS-Chem integration test directory)
+10 Nov 2020
+GEOS-Chem Support Team
+geos-chem-support@g.harvard.edu
+===============================================================================
+
+Overview:
+---------
+
+This directory contains scripts to submit automated GCHPctm integration
+tests, which will test the following process:
+
+1. GCHPctm run directory creation
+2. GCHPctm code configuration and compilation
+3. GCHPctm execution
+
+Integration tests are mostly intended to be run by GEOS-Chem developers,
+rather than end users.
+
+
+Files:
+------
+
+# For LSF scheduler
+intTest_lsf.sh             : Driver script to run GCHPctm integration test
+intTestCompile_lsf.sh      : Script to compile GCHPctm
+intTestExecute_lsf.sh      : Script to run GCHPctm 
+
+# For SLURM scheduler
+intTest_slurm.sh           : Driver script to run GCHPctm integration test
+intTestCompile_slurm.sh    : Script to compile GCHPctm
+intTestExecute_slurm.sh    : Script to run GCHPctm 
+
+# For both LSF and SLURM schedulers
+commonFunctionsForTests.sh : Bash script with reusable functions 
+intTestCreate.sh           : Script to create GCHPctm run directories
+
+
+Running integration tests:
+--------------------------
+Execute the following commands at the Unix prompt:
+
+    With the SLURM scheduler:
+    -------------------------
+    cd test/GCHPctm
+    ./intTest_slurm.sh /path/to/int/test/dir GCHPCTM-ENV-FILE
+
+    With the LSF scheduler:
+    -----------------------
+    cd test/GCHPctm
+    ./intTest_lsf.sh /path/to/int/test/dir GCHPCTM-ENV-FILE
+
+
+where GCHPCTM-ENV-FILE is the shell script that loads relevant software
+modules and defines other parameters.
+
+NOTE: For debugging you can add an optional third parameter debug=1,
+which will run integration tests for 2 run directories.  This is useful
+for development & debugging.

@@ -21,7 +21,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
   USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
-  USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
   USE DUST_MOD,                ONLY : CLEANUP_DUST
   USE ErrCode_Mod
@@ -37,12 +36,10 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
   USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
   USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
-  USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
   USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
   USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
   USE POPs_Mod,                ONLY : Cleanup_POPs
   USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
-  USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
   USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
@@ -51,6 +48,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE UCX_MOD,                 ONLY : CLEANUP_UCX
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
+  USE VDiff_Mod,               ONLY : Cleanup_Vdiff
 #ifdef BPCH_DIAG
   USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
   USE DIAG_MOD,                ONLY : CLEANUP_DIAG
@@ -61,9 +59,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
+#ifdef MODEL_CLASSIC
   USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
   USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-#if !defined( ESMF_ ) && !defined( MODEL_ )
   USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
 #ifdef RRTMG
@@ -77,7 +75,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input options
   TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
   LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error?
-
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -144,12 +141,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_AEROSOL()
   CALL CLEANUP_CARBON()
   CALL CLEANUP_CO2()
-  CALL CLEANUP_DIAG_OH()
   CALL CLEANUP_DRYDEP()
   CALL CLEANUP_DUST()
   CALL CLEANUP_ISORROPIAII()
-  CALL CLEANUP_MAP_A2A()
-  CALL CLEANUP_PBL_MIX()
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()
   CALL CLEANUP_SEASALT()
@@ -177,11 +171,13 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
+#if defined( MODEL_CLASSIC )
   IF ( State_Grid%NestedGrid ) THEN
      CALL EXIT_TPCORE_WINDOW()
   ELSE
      CALL EXIT_TPCORE()
   ENDIF
+#endif
 
   ! Cleanup Tagged CO code
   CALL CLEANUP_TAGGED_CO( RC )
@@ -225,11 +221,14 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
+  CALL CleanUp_Vdiff( RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_Vdiff"!'
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+     RETURN
+  ENDIF
+
 #ifdef BPCH_DIAG
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with BPCH_DIAG=y
-  !=====================================================================
   CALL CLEANUP_DIAG()
   CALL CLEANUP_DIAG03()
   CALL CLEANUP_DIAG51()
@@ -244,10 +243,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #endif
 
 #ifdef RRTMG
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with RRTMG=y
-  !=====================================================================
   CALL Cleanup_RRTMG_Rad_Transfer( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
@@ -257,18 +252,10 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #endif
 
 #ifdef TOMAS
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with TOMAS{12|15|30|40}=y
-  !=====================================================================
   CALL CLEANUP_TOMAS()
 #endif
 
-#if !defined( ESMF_ ) && !defined( MODEL_ )
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled for GCHP, or for external ESMs.
-  !=====================================================================
+#if defined( MODEL_CLASSIC )
   CALL CLEANUP_TRANSPORT()
 #endif
 

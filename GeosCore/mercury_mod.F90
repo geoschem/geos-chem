@@ -52,7 +52,6 @@ MODULE MERCURY_MOD
   PUBLIC  :: INIT_MERCURY
   PUBLIC  :: EMISSMERCURY
   PUBLIC  :: PARTITIONHG2
-  PUBLIC  :: Reset_Hg_Diags
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -330,7 +329,7 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -449,7 +448,7 @@ CONTAINS
     LOGICAL            :: LGTMM
     LOGICAL            :: LNLPBL
     LOGICAL            :: prtDebug
-    INTEGER            :: NA, nAdvect
+    INTEGER            :: NA, nAdvect, S
     INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
     REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
     REAL(fp)           :: C_OH, C_O3, C_BR, C_BRO, C_HOCL
@@ -737,7 +736,7 @@ CONTAINS
     !$OMP PRIVATE( GROSS_OX_BR2, GROSS_OX_BRBRO, GROSS_OX_BRHO2 )  &
     !$OMP PRIVATE( GROSS_OX_BRNO2, GROSS_OX_BRCLO, GROSS_OX_BROH ) &
     !$OMP PRIVATE( GROSS_RED, NET_OX )                             &
-    !$OMP PRIVATE( AREA_CM2,  DEP_DRY_FLX )                        &
+    !$OMP PRIVATE( AREA_CM2,  DEP_DRY_FLX, S                     ) &
     !$OMP PRIVATE( F_HG0_DEP, Hg_Cat,      Kstar,       TPL )
     !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
     !%%%% Putting this loop in the correct order causes differences in the %%%%
@@ -1306,12 +1305,15 @@ CONTAINS
 
                 ! Amt of Hg(0) lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                               DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,S) =                             &
+                   State_Diag%DryDepChm(I,J,S) + DEP_DRY_FLX
+                ENDIF
              ENDIF
 
              ! Archive Hg(II) drydep flux [molec/cm2/s]
@@ -1323,12 +1325,15 @@ CONTAINS
 
                 ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                                DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,S) =                             &
+                   State_Diag%DryDepChm(I,J,S) + DEP_DRY_FLX
+                ENDIF
              ENDIF
 
              ! Archive Hg(0) drydep flux [molec/cm2/s]
@@ -1340,12 +1345,15 @@ CONTAINS
 
                 ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
-                State_Diag%DryDepChm(I,J,NN) = State_Diag%DryDepChm(I,J,NN) + &
-                                               DEP_DRY_FLX
+                S = State_Diag%Map_DryDepChm%id2slot(NN)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepChm(I,J,NN) =                            &
+                   State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+                ENDIF
              ENDIF
           ENDIF
 
@@ -3486,7 +3494,7 @@ CONTAINS
        ENDIF
 
        ! Land Hg0 emissions [kg/s]
-       IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+       IF ( State_Diag%Archive_EmisHg0land ) THEN
           State_Diag%EmisHg0land(I,J) = EHg0_ln(I,J,1)
        ENDIF
 
@@ -4010,10 +4018,10 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE Input_Opt_Mod,        ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4112,7 +4120,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG0_ANTHRO'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4123,7 +4131,7 @@ CONTAINS
 
        ! Artisanal emissions
        DgnName = 'HG0_ARTISANAL'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4139,7 +4147,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG2_ANTHRO'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4152,7 +4160,7 @@ CONTAINS
 
     ! Natural emissions
     DgnName = 'HG0_NATURAL'
-    CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5677,7 +5685,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
@@ -5784,7 +5792,7 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
@@ -6101,121 +6109,6 @@ CONTAINS
     NULLIFY( STT )
 
   END SUBROUTINE OFFLINEOCEAN_READMO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Reset_Hg_Diags
-!
-! !DESCRIPTION: Zeroes the relevant diagnostic fields of State_Diag for
-!  the Hg and tagged Hg simulations.  Some of these need to be done
-!  for example, at the start of each timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Reset_Hg_Diags( Input_Opt, State_Diag, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Diag_Mod, ONLY : DgnState
-    USE Time_Mod,       ONLY : Its_Time_For_Chem
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  NOTE: Not all netCDF diagnostic fields need to be zeroed.  Some fields
-!  of State_Diag are always
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Reset_Hg_Diags (in module GeosCore/mercury_mod.F90'
-
-    !=================================================================
-    ! Reset_Hg_Diags begins here!
-    !=================================================================
-
-    ! Exit if it's not a Hg sim
-    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       ErrMsg = 'Routine "Reset_Hg_Diags" was called, but this ' // &
-                'routine is only valid for Hg or tagHg simulations!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !--------------------------------------------------------------
-    ! Zero diagnostics in depo_mercury_mod.F90
-    !--------------------------------------------------------------
-    IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
-       State_Diag%FluxHg2HgPfromAirToSnow = 0.0_fp
-    ENDIF
-
-    ! These are called once per chemistry or emissions timestep
-    IF ( Its_Time_For_Chem() ) THEN
-
-       !--------------------------------------------------------------
-       ! Zero diagnostics in mercury_mod.F90
-       !--------------------------------------------------------------
-       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepChm = 0.0_f4
-       ENDIF
-
-       !-------------------------------------------------------------
-       ! Zero diagnostics in ocean_mercury_mod.F90
-       !-------------------------------------------------------------
-       IF ( State_Diag%Archive_EmisHg2rivers ) THEN
-          State_Diag%EmisHg2rivers = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
-          State_Diag%EmisHg2snowToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
-          State_Diag%FluxOCtoDeepOcean = 0.0_f4
-       ENDIF
-
-    ENDIF
-
-  END SUBROUTINE Reset_Hg_Diags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6864,7 +6757,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_ExtList_Mod,   ONLY : GetExtOpt
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Grid_Mod,    ONLY : GrdState

@@ -52,8 +52,9 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE HCO_Error_Mod
     USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState, Ind_
     USE State_Diag_Mod,    ONLY : DgnState
@@ -164,7 +165,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Write out pseudo (implied) CH4 flux?
     PseudoFlux = ASSOCIATED(State_Diag%CH4pseudoFlux)
-    MWCH4      = State_Chm%SpcData(id_CH4)%Info%emMW_g
+    MWCH4      = State_Chm%SpcData(id_CH4)%Info%MW_g
     IF ( MWCH4 <= 0.0_fp ) MWCH4 = 16.0_fp
     DT         = GET_TS_DYN()
 #endif

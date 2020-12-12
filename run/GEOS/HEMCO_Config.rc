@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#                  Harvard-NASA Emissions Component (HEMCO)                   !
+#                  Harmonized Emissions Component (HEMCO)                     !
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -64,7 +64,7 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species
 0       Base                   : on    *
-# ----- MASTER SWITCHES ---------------------
+# ----- MAIN SWITCHES -----------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       false
     --> CHEMISTRY_INPUT        :       true
@@ -641,42 +641,42 @@ Warnings:                    1
 # ==> GEOS-Chem CTM uses QFED2 (v2.5r1) instead
 #==============================================================================
 (((QFED
-0 QFED_ACET_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ACET 75/311    8 1
-0 QFED_ACET_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ACET 75/312    8 1
-0 QFED_ALD2_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ALD2 75/311    8 1
-0 QFED_ALD2_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ALD2 75/312    8 1
-0 QFED_ALK4_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ALK4 75/311    8 1
-0 QFED_ALK4_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ALK4 75/312    8 1
-0 QFED_BCPI_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s BCPI 70/75/311 8 1
+0 QFED_ACET_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ACET 75/311    8 1
+0 QFED_ACET_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ACET 75/312    8 1
+0 QFED_ALD2_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ALD2 75/311    8 1
+0 QFED_ALD2_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ALD2 75/312    8 1
+0 QFED_ALK4_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s ALK4 75/311    8 1
+0 QFED_ALK4_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s ALK4 75/312    8 1
+0 QFED_BCPI_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s BCPI 70/75/311 8 1
 0 QFED_BCPO_SFC  -                                                                 -       -                     - -             -         BCPO 71/75/311 8 1
-0 QFED_BCPI_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s BCPI 70/75/312 8 1
+0 QFED_BCPI_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s BCPI 70/75/312 8 1
 0 QFED_BCPO_FT   -                                                                 -       -                     - -             -         BCPO 71/75/312 8 1
-0 QFED_OCPI_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s OCPI 72/75/311 8 1
+0 QFED_OCPI_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s OCPI 72/75/311 8 1
 0 QFED_OCPO_SFC  -                                                                 -       -                     - -             -         OCPO 73/75/311 8 1
-0 QFED_OCPI_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s OCPI 72/75/312 8 1
+0 QFED_OCPI_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s OCPI 72/75/312 8 1
 0 QFED_OCPO_FT   -                                                                 -       -                     - -             -         OCPO 73/75/312 8 1
-0 QFED_C2H6_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s C2H6 75/311    8 1
-0 QFED_C2H6_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s C2H6 75/312    8 1
-0 QFED_C3H8_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s C3H8 75/311    8 1
-0 QFED_C3H8_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s C3H8 75/312    8 1
-0 QFED_CH2O_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CH2O 75/311    8 1
-0 QFED_CH2O_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CH2O 75/312    8 1
-0 QFED_CO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311 8 1
+0 QFED_C2H6_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s C2H6 75/311    8 1
+0 QFED_C2H6_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s C2H6 75/312    8 1
+0 QFED_C3H8_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s C3H8 75/311    8 1
+0 QFED_C3H8_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s C3H8 75/312    8 1
+0 QFED_CH2O_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CH2O 75/311    8 1
+0 QFED_CH2O_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CH2O 75/312    8 1
+0 QFED_CO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311 8 1
 0 QFED_SOAP_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311 8 1
 0 QFED_NAP_SFC   -                                                                 -       -                     - -             -         NAP  54/75/282/311 8 1
-0 QFED_CO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312 8 1
+0 QFED_CO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312 8 1
 0 QFED_SOAP_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312 8 1
 0 QFED_NAP_FT    -                                                                 -       -                     - -             -         NAP  54/75/282/312 8 1
-0 QFED_MEK_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s MEK  75/311    8 1
-0 QFED_MEK_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s MEK  75/312    8 1
-0 QFED_NH3_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NH3  75/311    8 1
-0 QFED_NH3_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312    8 1
-0 QFED_NO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311    8 1
-0 QFED_NO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312    8 1
-0 QFED_SO2_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311    8 1
-0 QFED_SO2_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s SO2  75/312    8 1
-0 QFED_C3H6_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311    8 1
-0 QFED_C3H6_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2013/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312    8 1
+0 QFED_MEK_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s MEK  75/311    8 1
+0 QFED_MEK_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s MEK  75/312    8 1
+0 QFED_NH3_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NH3  75/311    8 1
+0 QFED_NH3_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312    8 1
+0 QFED_NO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311    8 1
+0 QFED_NO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312    8 1
+0 QFED_SO2_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311    8 1
+0 QFED_SO2_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s SO2  75/312    8 1
+0 QFED_C3H6_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311    8 1
+0 QFED_C3H6_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312    8 1
 )))QFED
 
 #==============================================================================
@@ -690,31 +690,31 @@ Warnings:                    1
 # ==> The entry for GFAS differs from the entry for GEOS-Chem CTM
 #==============================================================================
 (((GFAS
-0 GFAS_CO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO   75    8 1
-0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 8 1
-0 GFAS_NO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc noxfire       2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NO   75    8 1
-0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75 8 1
-0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75 8 1
-0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75 8 1
-0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75 8 1
-0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75    8 1
-0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75    8 1
-0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75    8 1
-0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75    8 1
-0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75    8 1
-0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75    8 1
-0 GFAS_ALK4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkanesfire 2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALK4 75    8 1
-0 GFAS_PRPE1 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkenesfire 2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75    8 1
-0 GFAS_PRPE2 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75    8 1
-0 GFAS_C2H6  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H6 75    8 1
-0 GFAS_C3H8  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h8fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C3H8 75    8 1
-0 GFAS_CH2O  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch2ofire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH2O 75    8 1
-0 GFAS_C2H4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H4 75    8 1
-0 GFAS_ISOP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c5h8fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ISOP 75    8 1
-0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75    8 1
-0 GFAS_TOLU  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c7h8fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s TOLU 75    8 1
-0 GFAS_BENZ  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c6h6fire      2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BENZ 75    8 1
-0 GFAS_XYLE  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c8h10fire     2003-2019/1-12/1-31/0 C xyL=1:scal300 kg/m2/s XYLE 75    8 1
+0 GFAS_CO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO   75    8 1
+0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 8 1
+0 GFAS_NO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc noxfire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NO   75    8 1
+0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75 8 1
+0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75 8 1
+0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75 8 1
+0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75 8 1
+0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75    8 1
+0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75    8 1
+0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75    8 1
+0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75    8 1
+0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75    8 1
+0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75    8 1
+0 GFAS_ALK4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkanesfire 2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALK4 75    8 1
+0 GFAS_PRPE1 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkenesfire 2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75    8 1
+0 GFAS_PRPE2 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75    8 1
+0 GFAS_C2H6  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H6 75    8 1
+0 GFAS_C3H8  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C3H8 75    8 1
+0 GFAS_CH2O  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch2ofire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH2O 75    8 1
+0 GFAS_C2H4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H4 75    8 1
+0 GFAS_ISOP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c5h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ISOP 75    8 1
+0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75    8 1
+0 GFAS_TOLU  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c7h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s TOLU 75    8 1
+0 GFAS_BENZ  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c6h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BENZ 75    8 1
+0 GFAS_XYLE  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c8h10fire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s XYLE 75    8 1
 )))GFAS
 
 #==============================================================================
@@ -1717,7 +1717,7 @@ Warnings:                    1
 # --- GFAS scale factors ---
 #==============================================================================
 (((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2019/1-12/1-31/0 C xy m 1
+300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2020/1-12/1-31/0 C xy m 1
 )))GFAS
 
 #==============================================================================

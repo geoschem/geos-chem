@@ -79,7 +79,7 @@ MODULE QFYAML_Mod
 ! !DEFINED PARAMETERS:
 !
   ! The precision kind-parameter (4-byte)
-  INTEGER, PARAMETER :: yp                    = KIND( 0.0e0 )
+  INTEGER, PARAMETER :: yp                    = KIND( 0.0_4 )
 
   ! Success/failure return codes
   INTEGER, PARAMETER :: QFYAML_Success        =  0

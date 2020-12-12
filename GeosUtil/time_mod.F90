@@ -2737,27 +2737,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: M, TMOD, TS
-
-    !=================================================================
-    ! ITS_TIME_FOR_RT begins here!
-    !=================================================================
-
-    ! Get half a time step value
-    M = TS_RAD/2
-
-    ! Elapsed time in this radiation step
-    TMOD =  MOD( ELAPSED_SEC, TS_RAD )
-
-    ! Smallest time step
-    TS = TS_DYN
-
-    ! It's time for radiation, when the current time is greater than
-    ! half step and the previous time was less.
-    FLAG = ( TMOD >= M ) .and. ( TMOD-TS < M )
+    ! Is it time for radiation?
+    FLAG = ( MOD( ELAPSED_SEC, TS_RAD ) == 0 )
 
   END FUNCTION ITS_TIME_FOR_RT
 !EOC

@@ -388,7 +388,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL                  :: PrtDebug
-    INTEGER                  :: I,      J,     L,        ND
+    INTEGER                  :: I,      J,     L,        S
     REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
     REAL(fp)                 :: P,      DP,    PDP,      TEMP
     REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
@@ -540,15 +540,15 @@ CONTAINS
     !FAC1 = C1 * ( RUM**C2 )
     !FAC2 = C3 * ( RUM**C4 )
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
+    !$OMP PARALLEL DO                                                    &
+    !$OMP DEFAULT( SHARED                                              ) &
     !$OMP PRIVATE( I,        J,     L,     VTS,             P          ) &
     !$OMP PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO        ) &
     !$OMP PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       ) &
     !$OMP PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       ) &
     !$OMP PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT ) &
-    !$OMP PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ND         ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       S          ) &
+    !$OMP SCHEDULE( DYNAMIC                                            )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -745,14 +745,14 @@ CONTAINS
           ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
           FLUX     = ( TOT1 - TOT2 ) / DTCHEM
           FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW &
-                     / State_Chm%SpcData(id_SALA)%Info%emMW_g ) &
+                     / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                      * 1.e-3_fp ) / AREA_CM2
 
-          ! Drydep index
-          ND = IDDEP(N)
-
           ! Drydep flux in chemistry only
-          State_Diag%DryDepChm(I,J,ND) = FLUX
+          S = State_Diag%Map_DryDepChm%id2slot(idDep(N))
+          IF ( S > 0 ) THEN
+             State_Diag%DryDepChm(I,J,S) = FLUX
+          ENDIF
        ENDIF
 
     ENDDO ! I
@@ -1094,7 +1094,7 @@ CONTAINS
     IDDEP  = 0
     SS_DEN = 0
 
-    ! Find drydep species in DEPSAV
+    ! Find drydep species
     IF ( Input_Opt%LDRYD ) THEN
 
        ! Loop over all species

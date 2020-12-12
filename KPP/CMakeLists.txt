@@ -1,3 +1,7 @@
-add_subdirectory(Standard)
-add_subdirectory(Tropchem)
-add_subdirectory(SOA_SVPOA)
+if("${MECH}" STREQUAL fullchem)
+	add_subdirectory(fullchem)
+endif()
+if("${MECH}" STREQUAL custom)
+	add_subdirectory(custom)
+endif()
+

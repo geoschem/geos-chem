@@ -62,7 +62,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW
@@ -227,7 +227,7 @@ CONTAINS
           ! Otherwise just return the concentration in HNO3_sav
           IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
              ! HNO3 is in v/v (from HEMCO), convert to ug/m3
-             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%emMW_g
+             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%MW_g
              HNO3_UGM3 = HCO_HNO3(I,J,L) * State_Met%AIRDEN(I,J,L) &
                          * 1.e+9_fp / ( AIRMW / HNO3_MW_g )
           ELSE

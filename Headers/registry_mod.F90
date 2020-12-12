@@ -57,19 +57,12 @@ MODULE Registry_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)   :: Description      ! Longer description
      REAL(fp)             :: MemoryInKb       ! Memory use in Kb
-     INTEGER              :: KindVal          ! Numerical KIND value
+     INTEGER              :: Source_KindVal   ! Numerical KIND value of data
+     INTEGER              :: Output_KindVal   ! Numerical KIND value for output
      INTEGER              :: Rank             ! Dimensions of data
      CHARACTER(LEN=255)   :: Units            ! Units of data
      CHARACTER(LEN=3)     :: DimNames         ! e.g. "xyz", "yz", "y", "t"
      LOGICAL              :: OnLevelEdges     ! Is data on level edges (T/F)?
-
-     !----------------------------------------------------------------------
-     ! Pointers to floating point data (flexible precision)
-     !----------------------------------------------------------------------
-     REAL(fp), POINTER    :: Ptr0d            ! For 0D flex-prec data
-     REAL(fp), POINTER    :: Ptr1d  (:    )   ! For 1D flex-prec data
-     REAL(fp), POINTER    :: Ptr2d  (:,:  )   ! For 2D flex-prec data
-     REAL(fp), POINTER    :: Ptr3d  (:,:,:)   ! For 3D flex-prec data
 
      !----------------------------------------------------------------------
      ! Pointers to floating point data (8-byte precision)
@@ -136,14 +129,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_AddField( Input_Opt, Registry,  State,                 &
-                                Variable,  RC,        Description,           &
-                                Units,     DimNames,  OnLevelEdges,          &
-                                Data0d,    Data1d,    Data2d,                &
-                                Data3d,    Data0d_8,  Data1d_8,              &
-                                Data2d_8,  Data3d_8,  Data0d_4,              &
-                                Data1d_4,  Data2d_4,  Data3d_4,              &
-                                Data0d_I,  Data1d_I,  Data2d_I,              &
+  SUBROUTINE Registry_AddField( Input_Opt,      Registry,  State,            &
+                                Variable,       RC,        Description,      &
+                                Units,          DimNames,  OnLevelEdges,     &
+                                Output_KindVal, Data0d_8,  Data1d_8,         &
+                                Data2d_8,       Data3d_8,  Data0d_4,         &
+                                Data1d_4,       Data2d_4,  Data3d_4,         &
+                                Data0d_I,       Data1d_I,  Data2d_I,         &
                                 Data3d_I                                    )
 !
 ! !USES:
@@ -163,12 +155,8 @@ CONTAINS
     CHARACTER(LEN=*),  OPTIONAL         :: DimNames        ! "xyz", "xy", "t"
     LOGICAL,           OPTIONAL         :: OnLevelEdges    ! Set =T if data
                                                            !  is on level edges
-
-    ! Floating-point data targets (flexible precision)
-    REAL(fp),          OPTIONAL, TARGET :: Data0d          ! 0D flex-prec data
-    REAL(fp),          OPTIONAL, TARGET :: Data1d  (:    ) ! 1D flex_prec data
-    REAL(fp),          OPTIONAL, TARGET :: Data2d  (:,:  ) ! 2D flex-prec data
-    REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data
+    INTEGER,           OPTIONAL         :: Output_KindVal  ! Type of data
+                                                           !  to be saved out
 
     ! Floating-point data targets (8-byte precision)
     REAL(f8),          OPTIONAL, TARGET :: Data0d_8        ! 0D flex-prec data
@@ -213,6 +201,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                :: IsOnLevelEdges
+    LOGICAL                :: IsOutputKindVal
     REAL(fp)               :: KbPerElement
 
     ! Strings
@@ -241,9 +230,16 @@ CONTAINS
     TmpUnits       = ''
 
     ! Save optional arguments in shadow variables, if passed
-    IF ( PRESENT( Description  ) ) TmpDescription = Description
-    IF ( PRESENT( Units        ) ) TmpUnits       = Units
-    IF ( PRESENT( OnLevelEdges ) ) IsOnLevelEdges = OnLevelEdges
+    IF ( PRESENT( Description    ) ) TmpDescription  = Description
+    IF ( PRESENT( Units          ) ) TmpUnits        = Units
+    IF ( PRESENT( OnLevelEdges   ) ) IsOnLevelEdges  = OnLevelEdges
+
+    ! Set a logical to indicate if Output_Kindval is passed
+    IF ( PRESENT( Output_KindVal ) ) THEN
+       IsOutputKindVal = .TRUE.
+    ELSE
+       isOutputKindVal = .FALSE.
+    ENDIF
 
     !=======================================================================
     ! Allocate the REGISTRY ITEM object, which will hold metadata about
@@ -266,10 +262,6 @@ CONTAINS
     Item%OnLevelEdges  =  IsOnLevelEdges
 
     ! Nullify pointers to data etc.
-    Item%Ptr0d         => NULL()
-    Item%Ptr1d         => NULL()
-    Item%Ptr2d         => NULL()
-    Item%Ptr3d         => NULL()
     Item%Ptr0d_8       => NULL()
     Item%Ptr1d_8       => NULL()
     Item%Ptr2d_8       => NULL()
@@ -288,100 +280,76 @@ CONTAINS
     ! set the rank appropriately and point to the data.
     ! Also compute the size of the array in bytes.
     !
-    ! Assign pointers of the REGISTRY ITEM to flex-precision data targets
-    !-----------------------------------------------------------------------
-    IF ( PRESENT( Data3d  ) ) THEN
-       Item%Rank       =  3
-       Item%Ptr3d      => Data3d
-       Item%MemoryInKb =  KbPerElement * SIZE( Data3d  )
-       Item%KindVal    =  KINDVAL_FP
-    ELSE IF ( PRESENT( Data2d  ) ) THEN
-       Item%Rank       =  2
-       Item%Ptr2d      => Data2d
-       Item%MemoryInKb =  KbPerElement * SIZE( Data2d  )
-       Item%KindVal    =  KINDVAL_FP
-    ELSE IF ( PRESENT( Data1d  ) ) THEN
-       Item%Rank       =  1
-       Item%Ptr1d      => Data1d
-       Item%MemoryInKb =  KbPerElement * SIZE( Data1d  )
-       Item%KindVal    =  KINDVAL_FP
-    ELSE IF ( PRESENT( Data0d  ) ) THEN
-       Item%Rank       =  0
-       Item%Ptr0d      => Data0d
-       Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KINDVAL_FP
-
-    !-----------------------------------------------------------------------
     ! Assign pointers to 8-byte real data targets
     !-----------------------------------------------------------------------
-    ELSE IF ( PRESENT( Data3d_8 ) ) THEN
-       Item%Rank       =  3
-       Item%Ptr3d_8    => Data3d_8
-       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_8 )
-       Item%KindVal    =  KINDVAL_F8
+    IF ( PRESENT( Data3d_8 ) ) THEN
+       Item%Rank           =  3
+       Item%Ptr3d_8        => Data3d_8
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data3d_8 )
+       Item%Source_KindVal =  KINDVAL_F8
     ELSE IF ( PRESENT( Data2d_8 ) ) THEN
-       Item%Rank       =  2
-       Item%Ptr2d_8    => Data2d_8
-       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_8  )
-       Item%KindVal    =  KINDVAL_F8
+       Item%Rank           =  2
+       Item%Ptr2d_8        => Data2d_8
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data2d_8  )
+       Item%Source_KindVal =  KINDVAL_F8
     ELSE IF ( PRESENT( Data1d_8 ) ) THEN
-       Item%Rank       =  1
-       Item%Ptr1d_8    => Data1d_8
-       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_8  )
-       Item%KindVal    =  KINDVAL_F8
+       Item%Rank           =  1
+       Item%Ptr1d_8        => Data1d_8
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data1d_8  )
+       Item%Source_KindVal =  KINDVAL_F8
     ELSE IF ( PRESENT( Data0d_8 ) ) THEN
-       Item%Rank       =  0
-       Item%Ptr0d_8    => Data0d_8
-       Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KINDVAL_F8
+       Item%Rank           =  0
+       Item%Ptr0d_8        => Data0d_8
+       Item%MemoryInKb     =  KbPerElement
+       Item%Source_KindVal =  KINDVAL_F8
 
     !-----------------------------------------------------------------------
     ! Assign pointers to 4-byte real data targets
     !-----------------------------------------------------------------------
     ELSE IF ( PRESENT( Data3d_4 ) ) THEN
-       Item%Rank       =  3
-       Item%Ptr3d_4    => Data3d_4
-       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_4 )
-       Item%KindVal    =  KINDVAL_F4
+       Item%Rank           =  3
+       Item%Ptr3d_4        => Data3d_4
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data3d_4 )
+       Item%Source_KindVal =  KINDVAL_F4
     ELSE IF ( PRESENT( Data2d_4 ) ) THEN
-       Item%Rank       =  2
-       Item%Ptr2d_4    => Data2d_4
-       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_4 )
-       Item%KindVal    =  KINDVAL_F4
+       Item%Rank           =  2
+       Item%Ptr2d_4        => Data2d_4
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data2d_4 )
+       Item%Source_KindVal =  KINDVAL_F4
     ELSE IF ( PRESENT( Data1d_4 ) ) THEN
-       Item%Rank       =  1
-       Item%Ptr1d_4    => Data1d_4
-       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_4 )
-       Item%KindVal    =  KINDVAL_F4
+       Item%Rank           =  1
+       Item%Ptr1d_4        => Data1d_4
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data1d_4 )
+       Item%Source_KindVal =  KINDVAL_F4
     ELSE IF ( PRESENT( Data0d_4 ) ) THEN
-       Item%Rank       =  0
-       Item%Ptr0d_4    => Data0d_4
-       Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KINDVAL_F4
+       Item%Rank           =  0
+       Item%Ptr0d_4        => Data0d_4
+       Item%MemoryInKb     =  KbPerElement
+       Item%Source_KindVal =  KINDVAL_F4
 
     !-----------------------------------------------------------------------
     ! Assign pointers to integer data targets
     !-----------------------------------------------------------------------
     ELSE IF ( PRESENT( Data3d_I ) ) THEN
-       Item%Rank       =  3
-       Item%Ptr3d_I    => Data3d_I
-       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_I )
-       Item%KindVal    =  KINDVAL_I4
+       Item%Rank           =  3
+       Item%Ptr3d_I        => Data3d_I
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data3d_I )
+       Item%Source_KindVal =  KINDVAL_I4
     ELSE IF ( PRESENT( Data2d_I ) ) THEN
-       Item%Rank       =  2
-       Item%Ptr2d_I    => Data2d_I
-       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_I )
-       Item%KindVal    =  KINDVAL_I4
+       Item%Rank           =  2
+       Item%Ptr2d_I        => Data2d_I
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data2d_I )
+       Item%Source_KindVal =  KINDVAL_I4
     ELSE IF ( PRESENT( Data1d_I  ) ) THEN
-       Item%Rank       =  1
-       Item%Ptr1d_I    => Data1d_I
-       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_I )
-       Item%KindVal    =  KINDVAL_I4
+       Item%Rank           =  1
+       Item%Ptr1d_I        => Data1d_I
+       Item%MemoryInKb     =  KbPerElement * SIZE( Data1d_I )
+       Item%Source_KindVal =  KINDVAL_I4
     ELSE IF ( PRESENT( Data0d_I  ) ) THEN
-       Item%Rank       =  0
-       Item%Ptr0d_I    => Data0d_I
-       Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KINDVAL_I4
+       Item%Rank           =  0
+       Item%Ptr0d_I        => Data0d_I
+       Item%MemoryInKb     =  KbPerElement
+       Item%Source_KindVal =  KINDVAL_I4
 
     !-----------------------------------------------------------------------
     ! Exit with error message if no data target is passed
@@ -390,6 +358,17 @@ CONTAINS
        ErrMsg = 'Need to specify a data source!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set Output_Kindval, which will determine the KIND of data that this
+    ! ITEM will be saved to disk with (e.g, INTEGER, REAL*4 or REAL*8).
+    ! If not passed, assume we will save data to netCDF as REAL*4.
+    !-----------------------------------------------------------------------
+    IF ( isOutputKindVal ) THEN
+       Item%Output_KindVal = Output_KindVal
+    ELSE
+       Item%Output_Kindval = KINDVAL_F4
     ENDIF
 
     !=======================================================================
@@ -442,16 +421,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Lookup( am_I_Root,    Registry,     RegDict,           &
-                              State,        Variable,     RC,                &
-                              Description,  Dimensions,   KindVal,           &
-                              MemoryInKb,   OnLevelEdges, Rank,              &
-                              Units,        DimNames,     Ptr0d,             &
-                              Ptr1d,        Ptr2d,        Ptr3d,             &
-                              Ptr0d_8,      Ptr1d_8,      Ptr2d_8,           &
-                              Ptr3d_8,      Ptr0d_4,      Ptr1d_4,           &
-                              Ptr2d_4,      Ptr3d_4,      Ptr0d_I,           &
-                              Ptr1d_I,      Ptr2d_I,      Ptr3d_I           )
+  SUBROUTINE Registry_Lookup( am_I_Root,      Registry,   RegDict,           &
+                              State,          Variable,   RC,                &
+                              Description,    Dimensions, Source_KindVal,    &
+                              Output_KindVal, MemoryInKb, OnLevelEdges,      &
+                              Rank,           Units,      DimNames,          &
+                              Ptr0d_8,        Ptr1d_8,    Ptr2d_8,           &
+                              Ptr3d_8,        Ptr0d_4,    Ptr1d_4,           &
+                              Ptr2d_4,        Ptr3d_4,    Ptr0d_I,           &
+                              Ptr1d_I,        Ptr2d_I,    Ptr3d_I           )
 !
 ! !USES:
 !
@@ -474,7 +452,8 @@ CONTAINS
 
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL :: Description       ! Description of data
-    INTEGER,             OPTIONAL :: KindVal           ! Numerical KIND value
+    INTEGER,             OPTIONAL :: Source_KindVal    ! KIND value of data
+    INTEGER,             OPTIONAL :: Output_KindVal    ! KIND value for output
     REAL(fp),            OPTIONAL :: MemoryInKb        ! Memory usage
     INTEGER,             OPTIONAL :: Rank              ! Size of data
     INTEGER,             OPTIONAL :: Dimensions(3)     ! Dimensions of data
@@ -482,12 +461,6 @@ CONTAINS
     CHARACTER(LEN=3),    OPTIONAL :: DimNames          ! "xyz", "xz", "t" etc.
     LOGICAL,             OPTIONAL :: OnLevelEdges      ! Is the data defined
                                                        !  on level edges (T/F)
-
-    ! Floating-point data pointers (flex-precision)
-    REAL(fp),   POINTER, OPTIONAL :: Ptr0d             ! 0D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr1d  (:    )    ! 1D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )    ! 2D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr3d  (:,:,:)    ! 3D flex-prec data
 
     ! Floating-point data pointers (4-byte precision)
     REAL(f8),   POINTER, OPTIONAL :: Ptr0d_8           ! 0D 8-byte data
@@ -523,23 +496,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                    :: Is_OnLevelEdges, Found
-    LOGICAL                    :: Is_Description,  Is_Dimensions, Is_KindVal
-    LOGICAL                    :: Is_MemoryInKb,   Is_Rank,       Is_Units
-    LOGICAL                    :: Is_0d,           Is_0d_8
-    LOGICAL                    :: Is_0d_4,         Is_0d_I
-    LOGICAL                    :: Is_1d,           Is_1d_8
-    LOGICAL                    :: Is_1d_4,         Is_1d_I
-    LOGICAL                    :: Is_2d,           Is_2d_8
-    LOGICAL                    :: Is_2d_4,         Is_2d_I
-    LOGICAL                    :: Is_3d,           Is_3d_8
-    LOGICAL                    :: Is_3d_4,         Is_3d_I
-    INTEGER                    :: FullHash,        ItemHash,      N
+    LOGICAL                    :: Found,          Is_OnLevelEdges
+    LOGICAL                    :: Is_Description, Is_Dimensions
+    LOGICAL                    :: Is_SrcKindVal,  Is_OutKindVal
+    LOGICAL                    :: Is_MemoryInKb,  Is_Rank
+    LOGICAL                    :: Is_Units
+    LOGICAL                    :: Is_0d_8,        Is_0d_4,        Is_0d_I
+    LOGICAL                    :: Is_1d_8,        Is_1d_4,        Is_1d_I
+    LOGICAL                    :: Is_2d_8,        Is_2d_4,        Is_2d_I
+    LOGICAL                    :: Is_3d_8,        Is_3d_4,        Is_3d_I
+    INTEGER                    :: FullHash,       ItemHash
+    INTEGER                    :: N
 
     ! Strings
     CHARACTER(LEN=5)           :: TmpState
-    CHARACTER(LEN=67)          :: FullName,        ItemName
-    CHARACTER(LEN=255)         :: ErrMsg,          ThisLoc
+    CHARACTER(LEN=67)          :: FullName,       ItemName
+    CHARACTER(LEN=255)         :: ErrMsg,         ThisLoc
     CHARACTER(LEN=255)         :: VariableUC
 
     ! Objects
@@ -583,55 +555,46 @@ CONTAINS
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
 
-    ! Floating-point (flex-precision) data pointers
-    Is_0d           =  PRESENT( Ptr0d        )
-    Is_1d           =  PRESENT( Ptr1d        )
-    Is_2d           =  PRESENT( Ptr2d        )
-    Is_3d           =  PRESENT( Ptr3d        )
-
     ! Floating-point (8-byte) data pointers
-    Is_0d_8         =  PRESENT( Ptr0d_8      )
-    Is_1d_8         =  PRESENT( Ptr1d_8      )
-    Is_2d_8         =  PRESENT( Ptr2d_8      )
-    Is_3d_8         =  PRESENT( Ptr3d_8      )
+    Is_0d_8         =  PRESENT( Ptr0d_8        )
+    Is_1d_8         =  PRESENT( Ptr1d_8        )
+    Is_2d_8         =  PRESENT( Ptr2d_8        )
+    Is_3d_8         =  PRESENT( Ptr3d_8        )
 
     ! Floating-point (4-byte) data pointers
-    Is_0d_4         =  PRESENT( Ptr0d_4      )
-    Is_1d_4         =  PRESENT( Ptr1d_4      )
-    Is_2d_4         =  PRESENT( Ptr2d_4      )
-    Is_3d_4         =  PRESENT( Ptr3d_4      )
+    Is_0d_4         =  PRESENT( Ptr0d_4        )
+    Is_1d_4         =  PRESENT( Ptr1d_4        )
+    Is_2d_4         =  PRESENT( Ptr2d_4        )
+    Is_3d_4         =  PRESENT( Ptr3d_4        )
 
     ! Integer data pointers
-    Is_0d_I         =  PRESENT( Ptr0d_I      )
-    Is_1d_I         =  PRESENT( Ptr1d_I      )
-    Is_2d_I         =  PRESENT( Ptr2d_I      )
-    Is_3d_I         =  PRESENT( Ptr3d_I      )
+    Is_0d_I         =  PRESENT( Ptr0d_I        )
+    Is_1d_I         =  PRESENT( Ptr1d_I        )
+    Is_2d_I         =  PRESENT( Ptr2d_I        )
+    Is_3d_I         =  PRESENT( Ptr3d_I        )
 
     ! Metadata
-    Is_Description  =  PRESENT( Description  )
-    Is_Dimensions   =  PRESENT( Dimensions   )
-    Is_KindVal      =  PRESENT( KindVal      )
-    Is_MemoryInKb   =  PRESENT( MemoryInKb   )
-    Is_Rank         =  PRESENT( Rank         )
-    Is_Units        =  PRESENT( Units        )
-    Is_OnLevelEdges =  PRESENT( OnLevelEdges )
+    Is_Description  =  PRESENT( Description    )
+    Is_Dimensions   =  PRESENT( Dimensions     )
+    Is_SrcKindVal   =  PRESENT( Source_KindVal )
+    Is_OutKindVal   =  PRESENT( Output_KindVal )
+    Is_MemoryInKb   =  PRESENT( MemoryInKb     )
+    Is_Rank         =  PRESENT( Rank           )
+    Is_Units        =  PRESENT( Units          )
+    Is_OnLevelEdges =  PRESENT( OnLevelEdges   )
 
     !=======================================================================
     ! Nullify all optional pointer arguments that are passed
     !=======================================================================
-    If ( Is_0d   ) Ptr0d   => NULL()
     IF ( Is_0d_8 ) Ptr0d_8 => NULL()
     IF ( Is_0d_4 ) Ptr0d_4 => NULL()
     IF ( Is_0d_I ) Ptr0d_I => NULL()
-    IF ( Is_1d   ) Ptr1d   => NULL()
     IF ( Is_1d_8 ) Ptr1d_8 => NULL()
     IF ( Is_1d_4 ) Ptr1d_4 => NULL()
     IF ( Is_1d_I ) Ptr1d_I => NULL()
-    IF ( Is_2d   ) Ptr2d   => NULL()
     IF ( Is_2d_8 ) Ptr2d_8 => NULL()
     IF ( Is_2d_4 ) Ptr2d_4 => NULL()
     IF ( Is_2d_I ) Ptr2d_I => NULL()
-    IF ( Is_3d   ) Ptr3d   => NULL()
     IF ( Is_3d_8 ) Ptr3d_8 => NULL()
     IF ( Is_3d_4 ) Ptr3d_4 => NULL()
     IF ( Is_3d_I ) Ptr3d_I => NULL()
@@ -653,30 +616,20 @@ CONTAINS
        IF ( FullHash == ItemHash .and. ItemHash > 0 ) THEN
 
           ! Return rank, units and memory usage, etc. if found
-          IF ( Is_Description  ) Description  = Current%Item%Description
-          IF ( Is_KindVal      ) KindVal      = Current%Item%KindVal
-          IF ( Is_MemoryInKb   ) MemoryInKb   = Current%Item%MemoryInKb
-          IF ( Is_Rank         ) Rank         = Current%Item%Rank
-          IF ( Is_Units        ) Units        = Current%Item%Units
-          If ( Is_OnLevelEdges ) OnLevelEdges = Current%Item%OnLevelEdges
+          IF ( Is_Description  ) Description    = Current%Item%Description
+          IF ( Is_SrcKindVal   ) Source_KindVal = Current%Item%Source_KindVal
+          IF ( Is_OutKindVal   ) Output_KindVal = Current%Item%Output_KindVal
+          IF ( Is_MemoryInKb   ) MemoryInKb     = Current%Item%MemoryInKb
+          IF ( Is_Rank         ) Rank           = Current%Item%Rank
+          IF ( Is_Units        ) Units          = Current%Item%Units
+          If ( Is_OnLevelEdges ) OnLevelEdges   = Current%Item%OnLevelEdges
 
           ! Then return a pointer to the field
           SELECT CASE( Current%Item%Rank )
 
              ! Return the appropriate 3D DATA POINTER (and dimensions)
              CASE( 3 )
-                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
-                   IF ( Is_3d ) THEN
-                      Ptr3d => Current%Item%Ptr3d
-                      Found =  .TRUE.
-                      IF ( Is_Dimensions ) THEN
-                         DO N = 1, Current%Item%Rank
-                            Dimensions(N) = SIZE( Ptr3d, N )
-                         ENDDO
-                      ENDIF
-                   ENDIF
-                   EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                IF ( Current%Item%Source_KindVal == KINDVAL_F8 ) THEN
                    IF ( Is_3d_8 ) THEN
                       Ptr3d_8 => Current%Item%Ptr3d_8
                       Found   =  .TRUE.
@@ -687,7 +640,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
                    IF ( Is_3d_4 ) THEN
                       Ptr3d_4 => Current%Item%Ptr3d_4
                       Found   =  .TRUE.
@@ -698,7 +651,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_I4 ) THEN
                    IF ( Is_3d_I ) THEN
                       Ptr3d_I => Current%Item%Ptr3d_I
                       Found   =  .TRUE.
@@ -713,18 +666,7 @@ CONTAINS
 
              ! Return the appropriate 2D DATA POINTER (and dimensions)
              CASE( 2 )
-                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
-                   IF ( Is_2d ) THEN
-                      Ptr2d => Current%Item%Ptr2d
-                      Found =  .TRUE.
-                      IF ( Is_Dimensions ) THEN
-                         DO N = 1, Current%Item%Rank
-                            Dimensions(N) = SIZE( Ptr2d, N )
-                         ENDDO
-                      ENDIF
-                   ENDIF
-                   EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                IF ( Current%Item%Source_KindVal == KINDVAL_F8 ) THEN
                    IF ( Is_2d_8 ) THEN
                       Ptr2d_8 => Current%Item%Ptr2d_8
                       Found   =  .TRUE.
@@ -735,7 +677,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
                    IF ( Is_2d_4 ) THEN
                       Ptr2d_4 => Current%Item%Ptr2d_4
                       Found   =  .TRUE.
@@ -746,7 +688,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_I4 ) THEN
                    IF ( Is_2d_I ) THEN
                       Ptr2d_I => Current%Item%Ptr2d_I
                       Found =    .TRUE.
@@ -761,18 +703,7 @@ CONTAINS
 
              ! Return the appropriate 1D DATA POINTER (and dimensions)
              CASE( 1 )
-                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
-                   IF ( Is_1d ) THEN
-                      Ptr1d => Current%Item%Ptr1d
-                      Found =  .TRUE.
-                      IF ( Is_Dimensions ) THEN
-                         DO N = 1, Current%Item%Rank
-                            Dimensions(N) = SIZE( Ptr1d, N )
-                         ENDDO
-                      ENDIF
-                   ENDIF
-                   EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                IF ( Current%Item%Source_KindVal == KINDVAL_F8 ) THEN
                    IF ( Is_1d_8 ) THEN
                       Ptr1d_8 => Current%Item%Ptr1d_8
                       Found   =  .TRUE.
@@ -783,7 +714,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
                    IF ( Is_1d_4 ) THEN
                       Ptr1d_4 => Current%Item%Ptr1d_4
                       Found   =  .TRUE.
@@ -794,7 +725,7 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_I4 ) THEN
                    IF ( Is_1d_I ) THEN
                       Ptr1d_I => Current%Item%Ptr1d_I
                       Found   =  .TRUE.
@@ -809,28 +740,21 @@ CONTAINS
 
              ! Return the appropriate 0D DATA POINTER (and dimensions)
              CASE( 0 )
-                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
-                   IF ( Is_0d ) THEN
-                      Ptr0d => Current%Item%Ptr0d
-                      Found =   .TRUE.
-                      IF ( Is_Dimensions ) Dimensions = 0
-                   ENDIF
-                   EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                IF ( Current%Item%Source_KindVal == KINDVAL_F8 ) THEN
                    IF ( Is_0d_8 ) THEN
                       Ptr0d_8 => Current%Item%Ptr0d_8
                       Found   =  .TRUE.
                       IF ( Is_Dimensions ) Dimensions = 0
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
                    IF ( Is_0d_4 ) THEN
                       Ptr0d_4 => Current%Item%Ptr0d_4
                       Found   =  .TRUE.
                       IF ( Is_Dimensions ) Dimensions = 0
                    ENDIF
                    EXIT
-                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                ELSE IF ( Current%Item%Source_KindVal == KINDVAL_I4 ) THEN
                    IF ( Is_0d_I ) THEN
                       Ptr0d_I => Current%Item%Ptr0d_I
                       Found   =  .TRUE.
@@ -994,7 +918,8 @@ CONTAINS
              PRINT*, 'Description  : ', TRIM( Item%Description )
              PRINT*, 'Units        : ', TRIM( Item%Units       )
              PRINT*, 'Dim Names    : ', TRIM( Item%DimNames    )
-             PRINT*, 'KIND value   : ', Item%KindVal
+             PRINT*, 'Source KIND  : ', Item%Source_KindVal
+             PRINT*, 'Output KIND  : ', Item%Output_KindVal
              PRINT*, 'Memory (Kb)  : ', Item%MemoryInKb
              PRINT*, 'Rank of data : ', Item%Rank, '(', Item%DimNames, ')'
              PRINT*, 'On Edges?    : ', Item%OnLevelEdges
@@ -1003,17 +928,8 @@ CONTAINS
              ! 3D data
              !--------------
 
-             ! Flexible precision
-             IF ( ASSOCIATED( Item%Ptr3d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d      )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d      )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d      )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d,   1 ),        &
-                                           SIZE  ( Item%Ptr3d,   2 ),        &
-                                           SIZE  ( Item%Ptr3d  , 3 )
-
              ! 8-byte
-             ELSE IF ( ASSOCIATED( Item%Ptr3d_8 ) ) THEN
+             IF ( ASSOCIATED( Item%Ptr3d_8 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_8    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_8    )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_8    )
@@ -1042,14 +958,6 @@ CONTAINS
              ! 2D data
              !--------------
 
-             ! Flexible precision
-             ELSE IF ( ASSOCIATED( Item%Ptr2d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d      )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d      )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d      )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ),        &
-                                           SIZE  ( Item%Ptr2d, 2   )
-
              ! 8-byte
              ELSE IF ( ASSOCIATED( Item%Ptr2d_8 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_8    )
@@ -1077,13 +985,6 @@ CONTAINS
              ! 1D data
              !--------------
 
-             ! Flexible precision
-             ELSE IF ( ASSOCIATED( Item%Ptr1d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d      )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d      )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d      )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d      )
-
              ! 8-byte
              ELSE IF ( ASSOCIATED( Item%Ptr1d_8 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d_8    )
@@ -1108,10 +1009,6 @@ CONTAINS
              !--------------
              ! 0D data
              !--------------
-
-             ! Flexible precision
-             ELSE IF ( ASSOCIATED( Item%Ptr0d ) ) THEN
-                PRINT*, 'Value        : ', Item%Ptr0d
 
              ! 8-byte precision
              ELSE IF ( ASSOCIATED( Item%Ptr0d_8 ) ) THEN
@@ -1219,7 +1116,7 @@ CONTAINS
        current => current%next
     ENDDO
     current => NULL()
-    
+
     ! Initialize the lookup table
     CALL RegDict%Init( nDiags )
 
@@ -1646,12 +1543,6 @@ CONTAINS
 
        ! Set the CURRENT pointer to the current METAREGISTRY ITEM
        Current => Node
-
-       ! Free flexible-precision data pointers in this REGISTRY ITEM
-       Current%Item%Ptr0d   => NULL()
-       Current%Item%Ptr1d   => NULL()
-       Current%Item%Ptr2d   => NULL()
-       Current%Item%Ptr3d   => NULL()
 
        ! Free 8-byte data pointers in this REGISTRY ITEM
        Current%Item%Ptr0d_8 => NULL()

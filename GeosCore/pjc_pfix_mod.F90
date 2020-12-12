@@ -1362,7 +1362,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    ! Set to F if called on Master; set to T if called by Slaves
+    ! Set to T if called on root core or F if called by secondary cores
     ! (NOTE: this doesn't seem to be used!)
     LOGICAL, INTENT(IN)    :: do_reduction
 
@@ -1555,7 +1555,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    ! Set to T if called on Master; set to F if called by Slaves
+    ! Set to T if called on root core or F if called by secondary cores
     ! (NOTE: This does not seem to be used!)
     LOGICAL :: do_reduction
 

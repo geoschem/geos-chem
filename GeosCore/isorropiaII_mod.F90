@@ -121,7 +121,7 @@ CONTAINS
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE ERROR_MOD,            ONLY : ERROR_STOP
     USE ERROR_MOD,            ONLY : SAFE_DIV
-    USE HCO_INTERFACE_MOD,    ONLY : HcoState
+    USE HCO_State_GC_Mod,     ONLY : HcoState
     USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AIRMW, PI
@@ -261,13 +261,12 @@ CONTAINS
 
     ! Zero State_Chm arrays to avoid leftover values from hanging
     ! around between calls -- especially up near the tropopause
-    State_Chm%pHSav      = 0.0_fp
-    State_Chm%HplusSav   = 0.0_fp
-    State_Chm%WaterSav   = 0.0_fp
-    State_Chm%SulratSav  = 0.0_fp
-    State_Chm%NaRatSav   = 0.0_fp
-    State_Chm%BisulSav   = 0.0_fp
-    State_Chm%AcidPurSav = 0.0_fp
+    State_Chm%IsorropAeropH    = 0.0_fp
+    State_Chm%IsorropHplus     = 0.0_fp
+    State_Chm%IsorropAeroH2O   = 0.0_fp
+    State_Chm%IsorropSulfate   = 0.0_fp
+    State_Chm%IsorropNitrate   = 0.0_fp
+    State_Chm%IsorropBisulfate = 0.0_fp
 
     ! First-time initialization
     IF ( FIRST ) THEN
@@ -862,15 +861,15 @@ CONTAINS
        IF ( AERLIQ(8) < 1e-18_fp ) THEN
           ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
           ! We force HPLUSTEMP to 1d20 (hotp, ccc, 12/18/09)
-          ! Force pHSav to 20e0 (X. Wang, 6/27/19)
+          ! Force IsorropAeropH to 20e0 (X. Wang, 6/27/19)
           !HPLUSTEMP       = 1e+20_fp
           HPLUSTEMP       = 1e-30_fp
           SULFTEMP        = 1e-30_fp
           BISULTEMP       = 1e-30_fp
           NITRTEMP        = 1e-30_fp
           CLTEMP          = 1e-30_fp
-          !State_Chm%pHSav(I,J,L,N) = -999e+0_fp
-          State_Chm%pHSav(I,J,L,N) = 20e+0_fp
+          !State_Chm%IsorropAeropH(I,J,L,N) = -999e+0_fp
+          State_Chm%IsorropAeropH(I,J,L,N) = 20e+0_fp
        ELSE
           HPLUSTEMP    = AERLIQ(1) / AERLIQ(8) *1e+3_fp/18e+0_fp
           SULFTEMP     = AERLIQ(5) / AERLIQ(8) *1e+3_fp/18e+0_fp
@@ -879,17 +878,17 @@ CONTAINS
           CLTEMP       = AERLIQ(4) / AERLIQ(8) *1e+3_fp/18e+0_fp
           
           ! Use SAFELOG10 to prevent NAN
-          State_Chm%pHSav(I,J,L,N)=-1e+0_fp*SAFELOG10(HPLUSTEMP)
+          State_Chm%IsorropAeropH(I,J,L,N)=-1e+0_fp*SAFELOG10(HPLUSTEMP)
        ENDIF
        
        ! Additional Info
-       State_Chm%HplusSav(I,J,L,N)  = MAX(HPLUSTEMP, 1e-30_fp)
-       State_Chm%WaterSav(I,J,L,N)  = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
-       State_Chm%NaRatSav(I,J,L,N)  = MAX(NITRTEMP, 1e-30_fp)
-       State_Chm%ClRatSav(I,J,L,N)  = MAX(CLTEMP, 1e-30_fp)
+       State_Chm%IsorropHplus(I,J,L,N)  = MAX(HPLUSTEMP, 1e-30_fp)
+       State_Chm%IsorropAeroH2O(I,J,L,N)  = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
+       State_Chm%IsorropNitrate(I,J,L,N)  = MAX(NITRTEMP, 1e-30_fp)
+       State_Chm%IsorropChloride(I,J,L,N)  = MAX(CLTEMP, 1e-30_fp)
        IF (N==1) THEN
-          State_Chm%SulratSav(I,J,L) = MAX(SULFTEMP, 1e-30_fp)
-          State_Chm%BisulSav(I,J,L)  = MAX(BISULTEMP, 1e-30_fp)
+          State_Chm%IsorropSulfate(I,J,L) = MAX(SULFTEMP, 1e-30_fp)
+          State_Chm%IsorropBisulfate(I,J,L)  = MAX(BISULTEMP, 1e-30_fp)
           State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
           
           NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         + &
@@ -900,10 +899,6 @@ CONTAINS
                          Spc(I,J,L,id_NIT)  / 62e+0_fp         + &
                          HNO3_DEN           / 63e+0_fp         + &
                          Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
-
-          ! Value if DEN_SAV and NUM_SAV too small.
-          State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV,DEN_SAV, &
-                                                 0e+0_fp, 999e+0_fp)
        ENDIF
 
 

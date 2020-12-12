@@ -29,9 +29,9 @@ MODULE CALC_MET_MOD
   PUBLIC  :: GET_OBK
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
-  PUBLIC  :: Set_Met_AgeOfAir
+  PUBLIC  :: Set_Clock_Tracer
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
-  PUBLIC  :: GIGC_Cap_Tropopause_Prs
+  PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
 !
 ! !REVISION HISTORY:
@@ -282,7 +282,6 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-
        ! Land: LWI=1 and ALBEDO less than 69.5%
        State_Met%IsLand(I,J) = ( NINT( State_Met%LWI(I,J) ) == 1 .and. &
                                State_Met%ALBD(I,J)  <  0.695e+0_fp )
@@ -294,6 +293,9 @@ CONTAINS
        ! Ice: LWI=2 or ALBEDO > 69.5%
        State_Met%IsIce(I,J) = ( NINT( State_Met%LWI(I,J) ) == 2 .or. &
                               State_Met%ALBD(I,J)  >= 0.695e+0_fp )
+
+       ! Snow covered: ALBEDO > 40%
+       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  > 0.40e+0_fp )
 
     ENDDO
     ENDDO
@@ -873,13 +875,13 @@ CONTAINS
 !EOC
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_cap_tropopause_prs
+! !IROUTINE: gchp_cap_tropopause_prs
 !
-! !DESCRIPTION: Subroutine GIGC\_CAP\_TROPOPAUSE\_PRS caps the tropopause
+! !DESCRIPTION: Subroutine GCHP\_CAP\_TROPOPAUSE\_PRS caps the tropopause
 !  pressure in polar latitudes to 200 hPa, so that we don't end up doing
 !  troposheric chemistry too high over the poles.  This is done in the
 !  standalone GEOS-Chem, and we also need to apply this when running
@@ -888,7 +890,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Cap_Tropopause_Prs( Input_Opt, State_Grid, State_Met, RC )
+  SUBROUTINE GCHP_Cap_Tropopause_Prs( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -962,7 +964,7 @@ CONTAINS
     ENDDO
     ENDDO
 
-  END SUBROUTINE GIGC_Cap_Tropopause_Prs
+  END SUBROUTINE GCHP_Cap_Tropopause_Prs
 !EOC
 #endif
 !------------------------------------------------------------------------------
@@ -1431,30 +1433,31 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_met_ageofair
+! !IROUTINE: set_clock_tracer
 !
-! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
+! !DESCRIPTION: Subroutine Set\_Clock_Tracer adds the time step (in seconds)
 !  to every grid box every time step with a total sink at the surface every
 !  time step to reproduce GMI tracer mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Met_AgeOfAir( State_Grid, State_Met )
+  SUBROUTINE Set_Clock_Tracer( State_Chm, State_Grid )
 !
 ! !USES:
 !
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -1465,15 +1468,25 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL,  SAVE :: FIRST = .TRUE.
     INTEGER        :: I, J, L
+    INTEGER,  SAVE :: id_CLOCK
     REAL(fp), SAVE :: TimeStep
 
     !=================================================================
-    ! SET_MET_AGEOFAIR begins here!
+    ! SET_CLOCK_TRACER begins here!
     !=================================================================
 
-    ! Get timestep [s]
-    TimeStep = GET_TS_DYN()
+    IF ( FIRST ) THEN
+       ! Define species ID's  on the first call
+       id_CLOCK  = Ind_( 'CLOCK' )
+
+       ! Get timestep [s]
+       TimeStep = GET_TS_DYN()
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+    ENDIF
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -1484,10 +1497,11 @@ CONTAINS
 
        IF ( L == 1 ) THEN
           ! Set the surface to a sink
-          State_Met%AgeOfAir(I,J,L) = 0
+          State_Chm%Species(I,J,L,id_CLOCK) = 0.0_fp
        ELSE
           ! Otherwise add time step [s]
-          State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + TimeStep
+          State_Chm%Species(I,J,L,id_CLOCK) = State_Chm%Species(I,J,L,id_CLOCK)&
+                                              + TimeStep
        ENDIF
 
     ENDDO
@@ -1495,6 +1509,6 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-  END SUBROUTINE Set_Met_AgeOfAir
+  END SUBROUTINE Set_Clock_Tracer
 !EOC
 END MODULE CALC_MET_MOD

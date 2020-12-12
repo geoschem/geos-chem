@@ -1,0 +1,46 @@
+BC_LIFEAPM,OC_LIFEAPM,FHB,FHO,D0CONV
+10.0,10.0,0.2,0.5,10.0
+IFNOBCOCFF  (1=yes, 0=no, 2=noBCFF only)
+0
+IFCOAT, IFCOATBC (1=yes, 0=no)
+1, 1
+IFALBMODIS (1=yes, 0=no)
+0
+IFAEROCOMOUT
+0
+IFCURRENT
+1
+IFRADF, IFOPT (1=yes, 0=no; 2=OPT without AOD simulation)
+0, 1
+Z_R1,Z_SIGMA1,Z_R2,Z_SIGMA2 (BCOC size distribution parameters, Z_R in m)
+4.0d-8,1.8,7.5d-8,1.8
+DENBC (density of BC in kg/m3)
+1800.0
+SEASCHEM (1=Clarke; 2=Gong)
+2
+FSALTSCAL (only when SEASCHEM=2, 4x5-->2.5 and 2x2.5 -->1.7), IFSSTSCALE (1=add sst scale factor)
+1.5, 1
+IFAMINEUP, AGAMA, ERATIO, OXRATE
+1, 0.01, 202.316, 3.58d-11
+IFATHN (=1 yes; =0 no), NUCLAMINE (=1, MMA; =2, DMA; =3, TMA; =4, MMA+DMA+TMA)
+0, 2
+IFCDNPDF, IFNEWCOD (0=geos COD; 2= online COD)
+0, 0
+IFNEWSF
+0
+IFNEWN2O5
+0
+IFDOISRP (0: only MESA; 1: only ISRP; 2: MESA+ISRP=>MESA; 3: MESA+ISRP=>ISRP; 4: only ISRPorg)
+1
+IFMODISOUT
+0
+IFONLINEMET
+0
+IFNH3
+1
+IFATOM
+0, 7, 27, 9, 1
+IFSEABIRD
+0
+IFNUCL, IFNUCLORG
+1, 0

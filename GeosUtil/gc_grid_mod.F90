@@ -34,7 +34,7 @@ MODULE GC_Grid_Mod
 #endif
   PUBLIC  :: GET_IJ
   PUBLIC  :: SetGridFromCtr
-#ifdef MODEL_WRF
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
   PUBLIC  :: SetGridFromCtrEdges
 #endif
 !
@@ -547,33 +547,59 @@ CONTAINS
        State_Grid%YMid_R(I,J) = State_Grid%YMid(I,J) * PI_180
 
        ! Edges: approximate from neighboring mid points.
-       IF ( I == 1 ) THEN
-          TMP = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
-          State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
-                                  ( ( TMP - State_Grid%XMid(I,J) ) / 2.0_f4 )
+#if defined( MODEL_CESM )
+       ! If using CESM, prevent out-of-bound errors when running with
+       ! NX or NY equal to 1
+       IF ( State_Grid%NX > 1 ) THEN
+#endif
+           IF ( I == 1 ) THEN
+              TMP = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
+              State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
+                                      ( ( TMP - State_Grid%XMid(I,J) ) / 2.0_f4 )
+           ELSE
+              State_Grid%XEdge(I,J) = ( State_Grid%XMid(I,J) + &
+                                          State_Grid%XMid(I-1,J) ) / 2.0_f4
+           ENDIF
+#if defined( MODEL_CESM )
        ELSE
-          State_Grid%XEdge(I,J) = ( State_Grid%XMid(I,J) + &
-                                      State_Grid%XMid(I-1,J) ) / 2.0_f4
+           State_Grid%XEdge(I,J) = State_Grid%XMid(I,J)
        ENDIF
 
-       IF ( J == 1 ) THEN
-          TMP = RoundOff( latCtr(I,J+1) / PI_180, 4 )
-          State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
-                                  ( ( TMP - State_Grid%YMid(I,J) ) / 2.0_f4 )
+       IF ( State_Grid%NY > 1 ) THEN
+#endif
+           IF ( J == 1 ) THEN
+              TMP = RoundOff( latCtr(I,J+1) / PI_180, 4 )
+              State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
+                                      ( ( TMP - State_Grid%YMid(I,J) ) / 2.0_f4 )
+           ELSE
+              State_Grid%YEdge(I,J) = ( State_Grid%YMid(I,J) + &
+                                          State_Grid%YMid(I,J-1) ) / 2.0_f4
+           ENDIF
+#if defined( MODEL_CESM )
        ELSE
-          State_Grid%YEdge(I,J) = ( State_Grid%YMid(I,J) + &
-                                      State_Grid%YMid(I,J-1) ) / 2.0_f4
+           State_Grid%YEdge(I,J) = State_Grid%YMid(I,J)
        ENDIF
+#endif
 
        ! Special treatment at uppermost edge
-       IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%XMid(I,J) + &
-             ( ( State_Grid%XMid(I,J) - State_Grid%XMid(I-1,J) ) / 2.0_f4 )
+#if defined( MODEL_CESM )
+       IF ( State_Grid%NX > 1 ) THEN
+#endif
+           IF ( I == State_Grid%NX ) THEN
+              State_Grid%XEdge(I+1,J) = State_Grid%XMid(I,J) + &
+                 ( ( State_Grid%XMid(I,J) - State_Grid%XMid(I-1,J) ) / 2.0_f4 )
+           ENDIF
+#if defined( MODEL_CESM )
        ENDIF
-       IF ( J == State_Grid%NY ) THEN
-          State_Grid%YEdge(I,J+1) = State_Grid%YMid(I,J) + &
-             ( ( State_Grid%YMid(I,J) - State_Grid%YMid(I,J-1) ) / 2.0_f4 )
+       IF ( State_Grid%NY > 1 ) THEN
+#endif
+           IF ( J == State_Grid%NY ) THEN
+              State_Grid%YEdge(I,J+1) = State_Grid%YMid(I,J) + &
+                 ( ( State_Grid%YMid(I,J) - State_Grid%YMid(I,J-1) ) / 2.0_f4 )
+           ENDIF
+#if defined( MODEL_CESM )
        ENDIF
+#endif
 
        ! Special quantities directly derived from State_Grid%YEdge
        State_Grid%YEdge_R(I,J) = State_Grid%YEdge(I,J) * PI_180
@@ -589,7 +615,7 @@ CONTAINS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
-#ifdef MODEL_WRF
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -599,7 +625,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the
 !  passed mid-points and edge-points given an external grid. This interface
-!  is primarily used for GEOS-Chem to interface with the WRF model.
+!  is primarily used for GEOS-Chem to interface with the WRF and CESM models.
 !\\
 !\\
 ! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
