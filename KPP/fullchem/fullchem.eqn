@@ -426,6 +426,15 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 //
 // Gas-phase reactions
 //
+// NOTE: Be sure to use "D" exponents to force double-precision constants
+// (i.e. write 1.70d-12 instead of 1.70e-12, etc.).
+//
+// ALSO NOTE: Kpp seems to have a maximum line length for the right side of
+// equations.  If the line is too long KPP might not be able to parse it
+// properly.  This probably can be fixed by changing one of the constant
+// values in the Kpp C code but I haven't figured out how to do that yet.
+//  -- Bob Yantosca (14 Dec 2020)
+//
 O3 + NO = NO2 + O2 :                         GCARR(3.00E-12, 0.0E+00, -1500.0);   
 O3 + OH = HO2 + O2 :                         GCARR(1.70E-12, 0.0E+00, -940.0);    
 O3 + HO2 = OH + O2 + O2 :                    GCARR(1.00E-14, 0.0E+00, -490.0);    
@@ -503,7 +512,7 @@ PPN = RCO3 + NO2 :                           GCJPLEQ(9.00E-29, 0.0E+00, 14000.0,
 RCO3 + NO = NO2 + 0.500OTHRO2 +
  0.070A3O2 + 0.270B3O2 :                     GCARR(6.70E-12, 0.0E+00, 340.0);     {2019/05/10; Fisher2018; JAF}
 RCHO + NO3 = HNO3 + RCO3 :                   GCARR(6.50E-15, 0.0E+00, 0.0);       
-ACET + OH = ATO2 + H2O :                     1.33E-13+3.82E-11*exp(-2000.0_dp/TEMP); {JPL Eval 17, p1-62-D31; EVF}
+ACET + OH = ATO2 + H2O :                     1.33E-13+3.82E-11*exp(-2.0d3/TEMP); {JPL Eval 17, p1-62-D31; EVF}
 A3O2 + MO2 = HO2 + 0.750CH2O + 0.750RCHO +
  0.250MOH + 0.250ROH :                       GCARR(5.92E-13, 0.0E+00, 0.0);       
 PO2 + MO2 = HO2 + 0.500ALD2 + 1.250CH2O +
@@ -924,43 +933,43 @@ ISOP + O3 = 0.416MACR + 0.177MVK +
  0.28OH + 0.407CO2 + 0.407CO + 0.407MO2 +
  0.16HO2 + 0.58CH2OO + 0.827CH2O +
  0.013H2O2 :                                 GCARR(1.3E-17, 0.0E+00, 0.0);        {2019/11/06; Bates2019; KHB}
-ISOP + OH = LISOPOH + IHOO1 :                GC_ISO1(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
-ISOP + OH = LISOPOH + IHOO4 :                GC_ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO1 :                GC_ISO1(1.7d-11, 3.9d2, 9.33d-2, 5.05d15, -1.22d4, 1.79d14, -8.83d3); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO4 :                GC_ISO1(1.0d-11, 3.9d2, 2.26d-1, 2.22d9, -7.16d3,  1.75d14, -9.054d3); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O +
  0.15HPALD3 + 0.25HPALD1 + 0.4HO2 +
- 0.6CO + 1.5OH + 0.3HPETHNL + LISOPOH :      GC_ISO2( 1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
+ 0.6CO + 1.5OH + 0.3HPETHNL + LISOPOH :      GC_ISO2(1.7d-11, 3.9d2, 9.33d-2, 5.05d15, -1.22d4, 1.79d14, -8.83d3); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3CH2O + 0.15HPALD4 +
  0.25HPALD2 + 1.5OH + 0.9CO + 0.7HO2 +
- 0.3MGLY + 0.3ATOOH + LISOPOH :              GC_ISO2( 1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ 0.3MGLY + 0.3ATOOH + LISOPOH :              GC_ISO2(1.0d-11, 3.9d2, 2.26d-1, 2.22d9, -7.16d3, 1.75d14, -9.054d3); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = 0.063MVK + 0.063OH +
- 0.063HO2 + 0.063CH2O + 0.937RIPA :          ARRPLUS(2.12E-13,-1300.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + HO2 = RIPC :                         ARRPLUS(2.12E-13,-1300.0,0.0,-0.1644,7.0485E-4); {2019/11/06; Bates2019; KHB}
+ 0.063HO2 + 0.063CH2O + 0.937RIPA :          ARRPLUS(2.12d-13, -1.3d3, 0.0d0,  1.1644d0, -7.0485d-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + HO2 = RIPC :                         ARRPLUS(2.12d-13, -1.3d3, 0.0d0, -0.1644d0,  7.0485d-4); {2019/11/06; Bates2019; KHB}
 IHOO4 + HO2 = 0.063MACR + 0.063OH +
- 0.063HO2 + 0.063CH2O + 0.937RIPB :          ARRPLUS(2.12E-13,-1300.0,0.0,1.2038,-9.0435E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + HO2 = RIPD :                         ARRPLUS(2.12E-13,-1300.0,0.0,-0.2038,9.0435E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 = CH2O + OH + MVK :                    ARRPLUS(1.04E11,9746.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
+ 0.063HO2 + 0.063CH2O + 0.937RIPB :          ARRPLUS(2.12d-13, -1.3d3, 0.0d0,  1.2038d0, -9.0435d-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + HO2 = RIPD :                         ARRPLUS(2.12d-13, -1.3d3, 0.0d0, -0.2038d0,  9.0435d-4); {2019/11/06; Bates2019; KHB}
+IHOO1 = CH2O + OH + MVK :                    ARRPLUS(1.04d11, 9.746d3, 0.0d0,  1.1644d0, -7.0485d-4); {2019/11/06; Bates2019; KHB}
 IHOO1 = 0.15HPALD3 + 0.25HPALD1 + 0.4HO2 +
  0.6CO + 1.5OH + 0.3CH2O + 0.3MGLY +
- 0.3HPETHNL + 0.3MCO3 :                      TUNPLUS(5.05E15,-12200.0,1.E8,-0.0128,5.1242E-5); {2019/11/06; Bates2019; KHB}
-IHOO4 = MACR + OH + CH2O :                   ARRPLUS(1.88E11,9752.0,0.0,1.2038,-9.0435E-4); {2019/11/06; Bates2019; KHB}
+ 0.3HPETHNL + 0.3MCO3 :                      TUNPLUS(5.05d15, -1.22d4,  1.0d8, -0.0128d0, 5.1242d-5); {2019/11/06; Bates2019; KHB}
+IHOO4 = MACR + OH + CH2O :                   ARRPLUS(1.88d11,  9.752d3, 0.0d0,  1.2038d0, -9.0435d-4); {2019/11/06; Bates2019; KHB}
 IHOO4 = 0.15HPALD4 + 0.25HPALD2 + 1.5OH +
  0.3CH2O + 0.9CO + 0.7HO2 + 0.3MGLY +
- 0.3ATOOH :                                  TUNPLUS(2.22E9,-7160.0,1.E8,-0.0306,1.1346E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + IHOO1 = 2MVK + 2HO2 + 2CH2O :        ARRPLUS(6.92E-14,0.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + IHOO4 = 2MACR + 2HO2 + 2CH2O :       ARRPLUS(5.74E-12,0.0,0.0,1.2038,-9.0435E-4); {2019/11/06; Bates2019; KHB}
-IHOO1 + IHOO4 = MACR + MVK + 2HO2 + 2CH2O :  ARRPLUS(1.54E-12,0.0,0.0,2.3682,-1.6092E-3); {2019/11/06; Bates2019; KHB}
+ 0.3ATOOH :                                  TUNPLUS(2.22d9, -7.160d3, 1.0d8, -3.06d-2, 1.1346d-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + IHOO1 = 2MVK + 2HO2 + 2CH2O :        ARRPLUS(6.92d-14, 0.0d0, 0.0d0, 1.1644d0, -7.0485d-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + IHOO4 = 2MACR + 2HO2 + 2CH2O :       ARRPLUS(5.74d-12, 0.0d0, 0.0d0, 1.2038d0, -9.0435d-4); {2019/11/06; Bates2019; KHB}
+IHOO1 + IHOO4 = MACR + MVK + 2HO2 + 2CH2O :  ARRPLUS(1.54d-12, 0.0d0, 0.0d0, 2.3682d0, -1.6092d-3); {2019/11/06; Bates2019; KHB}
 IHOO1 + IHOO1 = HO2 + HC5A + CO + OH +
- MVKHP :                                     ARRPLUS(2.49E-12,0.0,0.0,-0.1644,7.0485E-4); {2019/11/06; Bates2019; KHB}
+ MVKHP :                                     ARRPLUS(2.49d-12, 0.0d0, 0.0d0, -0.1644d0, 7.0485d-4); {2019/11/06; Bates2019; KHB}
 IHOO4 + IHOO4 = HO2 + HC5A + CO + OH +
- MCRHP :                                     ARRPLUS(3.94E-12,0.0,0.0,-0.2038,9.0435E-4); {2019/11/06; Bates2019; KHB}
+ MCRHP :                                     ARRPLUS(3.94d-12, 0.0d0, 0.0d0, -0.2038d0, 9.0435d-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +
- 0.5MVKHP + 0.5MCRHP :                       ARRPLUS(1.54E-12,0.0,0.0,-0.3682,1.6092E-3); {2019/11/06; Bates2019; KHB}
-IHOO1 + MO2 = MVK + 2HO2 + 2CH2O :           ARRPLUS(2.0E-12,0.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
+ 0.5MVKHP + 0.5MCRHP :                       ARRPLUS(1.54d-12, 0.0d0, 0.0d0, -0.3682d0,  1.6092d-3); {2019/11/06; Bates2019; KHB}
+IHOO1 + MO2 = MVK + 2HO2 + 2CH2O :           ARRPLUS(2.0d-12,  0.0d0, 0.0d0,  1.1644d0, -7.0485d-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + MO2 = CH2O + 0.5HC5A + 1.5HO2 +
- 0.5MVKHP + 0.5CO + 0.5OH :                  ARRPLUS(2.0E-12,0.0,0.0,-0.1644,7.0485E-4); {2019/11/06; Bates2019; KHB}
-IHOO4 + MO2 = MACR + 2HO2 + 2CH2O :          ARRPLUS(2.0E-12,0.0,0.0,1.2038,-9.0435E-4); {2019/11/06; Bates2019; KHB}
+ 0.5MVKHP + 0.5CO + 0.5OH :                  ARRPLUS(2.0d-12, 0.0d0, 0.0d0, -1.644d-1,  7.0485d-4); {2019/11/06; Bates2019; KHB}
+IHOO4 + MO2 = MACR + 2HO2 + 2CH2O :          ARRPLUS(2.0d-12, 0.0d0, 0.0d0,  1.2038d0, -9.0435d-4); {2019/11/06; Bates2019; KHB}
 IHOO4 + MO2 = CH2O + 0.5HC5A + 1.5HO2 +
- 0.5MCRHP + 0.5CO + 0.5OH :                  ARRPLUS(2.0E-12,0.0,0.0,-0.2038,9.0435E-4); {2019/11/06; Bates2019; KHB}
+ 0.5MCRHP + 0.5CO + 0.5OH :                  ARRPLUS(2.0d-12, 0.0d0, 0.0d0, -2.038d-1, 9.0435d-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + NO = IHN2 :                          GC_NIT(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + NO = NO2 + MVK + HO2 + CH2O :        GC_ALK(2.7E-12,350.0,1.19,6.0,1.1644,7.05E-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + NO = IHN4 :                          GC_NIT(2.7E-12,350.0,1.421,6.0,-0.1644,-7.05E-4); {2019/11/06; Bates2019; KHB}

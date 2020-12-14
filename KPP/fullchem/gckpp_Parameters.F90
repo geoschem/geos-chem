@@ -12,8 +12,8 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Parameters.F90
-! Time                 : Thu Dec 10 15:43:38 2020
+! File                 : gckpp_Parameters.f90
+! Time                 : Mon Dec 14 17:35:28 2020
 ! Working directory    : /local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp

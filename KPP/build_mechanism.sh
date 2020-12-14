@@ -72,6 +72,12 @@ line2="  if(present(Aout)) Aout(:) = A(:)\n\n"
 line3="! Aggregate function"
 sed -i -e "s|${line3}|${line1}${line2}${line3}|" gckpp_Function.F90
 
+# For some reason, "I2O3" is appended after this write statement
+# in gckpp_Rates.F90.  We'll strip it out just to be safe
+line1="          write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'I2O3"
+line2="          write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'"
+sed -i -e "s/${line1}/${line2}/" gckpp_Rates.F90
+
 # Run python parser OHreactParser.py. This will create fortran code
 # for subroutine Get_OHreactivity and insert it into gckpp_Util.F90
 python ../OHreact_parser.py
