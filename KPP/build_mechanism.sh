@@ -17,13 +17,21 @@
 # !AUTHOR:
 #  Melissa Sulprizio (mpayer@seas.harvard.edu)
 #
+# !REMARKS:
+#  KPP may have issues parsing the RHS of an equation when it needs to be
+#  split up into more than one F90 line.  The quick solution is to keep
+#  the length of the RHS at about ~100 characters or less.
+#  https://github.com/geoschem/KPP/issues/1
+#
 # !REVISION HISTORY:
 #  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Check that directory exists
+#============================================================================
+# Check that directory exists before proceeding
+#============================================================================
 if [ "x${1}" != "x" ]; then
     mechanismDir=$1
     if [ ! -d "$mechanismDir" ]; then
@@ -35,8 +43,10 @@ else
     exit 1
 fi
 
+#============================================================================
 # Remove prior gckpp*.F90 files
 # (but preserve a few files that do not need to be rebuilt)
+#============================================================================
 cd $mechanismDir
 mv gckpp_HetRates.F90 HETCODE
 mv gckpp_Integrator.F90 INTEGRATOR
@@ -44,8 +54,10 @@ mv gckpp_Precision.F90 PRECISION
 rm -f *.F90
 rm -f *.o
 
+#============================================================================
 # Build the mechanism and change extension from *.f90 to *.F90
 # Halt if the gckpp_Rates file was not built
+#============================================================================
 kpp gckpp.kpp
 for a in $(ls *.f90); do mv -v $a ${a%.f90}.F90; done
 if [[ ! -e gckpp_Rates.F90 ]]; then
@@ -53,12 +65,16 @@ if [[ ! -e gckpp_Rates.F90 ]]; then
   exit 1
 fi
 
+#============================================================================
 # Restore the preserved files to their original names
+#============================================================================
 mv HETCODE gckpp_HetRates.F90
 mv INTEGRATOR gckpp_Integrator.F90
 mv PRECISION gckpp_Precision.F90
 
+#============================================================================
 # Insert code to enable reaction rate diagnostics in gckpp_Function.F90
+#============================================================================
 line_new="SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )"
 line_orig="SUBROUTINE Fun ( V, F, RCT, Vdot )"
 sed -i -e "s|${line_orig}|${line_new}|" gckpp_Function.F90
@@ -72,18 +88,23 @@ line2="  if(present(Aout)) Aout(:) = A(:)\n\n"
 line3="! Aggregate function"
 sed -i -e "s|${line3}|${line1}${line2}${line3}|" gckpp_Function.F90
 
-# For some reason, "I2O3" is appended after this write statement
-# in gckpp_Rates.F90.  We'll strip it out just to be safe
-line1="          write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'I2O3"
-line2="          write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'"
-sed -i -e "s/${line1}/${line2}/" gckpp_Rates.F90
+#============================================================================
+# Strip unwanted characters in gckpp_Rates.F90
+# These seem to be created by KPP due to issues in breaking long lines
+#============================================================================
+line1="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'I2O3"
+line2="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'"
+sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 
+#============================================================================
 # Run python parser OHreactParser.py. This will create fortran code
 # for subroutine Get_OHreactivity and insert it into gckpp_Util.F90
+#============================================================================
 python ../OHreact_parser.py
 
-# Change back to the prior directory
+#============================================================================
+# Change back to the prior directory and exit
+#============================================================================
 cd ..
-
 exit 0
 #EOC

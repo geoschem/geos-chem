@@ -484,30 +484,6 @@ MODULE GCKPP_HETRATES
       ! HOBr + HBr (update: XW 2019-06-08)
       !----------------------------------------------------------------------
       kITemp = HETHOBr_HBr( H%HOBr%MW_g, 0.0_fp, Input_Opt                  )
-      if ( i==23 .and. j==34 .and. L==1 ) then
-         print*, '%%%%% kitemp 1     : ', kitemp
-         print*, '%%%%% phCloud      : ', phCloud
-         print*, '%%%%% xdena        : ', XDenA
-         print*, '%%%%% rliq         : ', rLiq
-         print*, '%%%%% rice         : ', rIce
-         print*, '%%%%% aliq         : ', aliq
-         print*, '%%%%% vair         : ', vair
-         print*, '%%%%% temp         : ', temp
-         print*, '%%%%% cldfr        : ', cldfr
-         print*, '%%%%% hconc_sul    : ', hconc_sul
-         print*, '%%%%% hconc_lcl    : ', hconc_lcl
-         print*, '%%%%% hconc_icl    : ', hconc_icl
-         print*, '%%%%% clconc_clda  : ', clconc_clda
-         print*, '%%%%% clconc_cldc  : ', clconc_cldc
-         print*, '%%%%% clconc_cldg  : ', clconc_cldg
-         print*, '%%%%% brconc_clda  : ', brconc_clda
-         print*, '%%%%% brconc_cldc  : ', brconc_cldc
-         print*, '%%%%% brconc_cldg  : ', brconc_cldg
-         print*, '%%%%% hso3conc_cld : ', hso3conc_cld
-         print*, '%%%%% so3conc_cld  : ', so3conc_cld
-         print*, '%%%%% hno3_th      : ', hno3_th
-         print*, '%%%%% hcl_th       : ', hcl_th
-      endif
 
       kITemp = kITemp                                                        &
              + HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
@@ -518,11 +494,6 @@ MODULE GCKPP_HETRATES
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hno3_th,     hcl_th,               &
                              hbr_th,      6,           H                    )
-      if ( i==23 .and. j==34 .and. L==1 ) then
-         print*, '%%%%% kitemp 2     : ', kitemp
-         print*, '%%%%% C(ind_HOBr)  : ', C(ind_HOBr)
-         print*, '%%%%% C(ind_HOBr)  : ', C(ind_HBr)
-      endif
 
       HET(ind_HOBr,  1) = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), kITemp         )
 

@@ -18,7 +18,6 @@ PH2O2 : H2O2;
 
 
 #INLINE F90_RATES
-
   FUNCTION ARRPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
     REAL(kind=dp)             :: k0, rate
