@@ -1078,8 +1078,6 @@ MODULE GCKPP_HETRATES
       ! Nullify pointers
       H      => NULL()
 
-#include "/local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem/print_het.H"
-
     END SUBROUTINE SET_HET
 !EOC
 !------------------------------------------------------------------------------
