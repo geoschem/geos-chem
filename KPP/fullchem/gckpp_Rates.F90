@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Dec 18 11:42:34 2020
+! Time                 : Fri Dec 18 14:31:16 2020
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -130,20 +130,41 @@ CONTAINS
 ! Begin INLINED Rate Law Functions
 
 
-  FUNCTION ARRPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
-    REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
-    REAL(kind=dp)             :: k0, rate
-    k0   = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = k0 * EXP( -b0 / TEMP ) * ( TEMP / 300.0_dp )**c0
-    IF ( rate < 0.0_dp ) rate = 0.0_dp     
-  END FUNCTION ARRPLUS
+  ! Not needed in this mechanism; leave commented out for now (bmy, 12/18/20)
+  !FUNCTION ARRPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
+  !  ! Modified Arrhenius law
+  !  ! Use when Arrhenius parameters b0 and c0 are both nonzero
+  !  REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
+  !  REAL(kind=dp)             :: k0, rate
+  !  k0   = a0 * ( d0 + ( TEMP * e0 ) )
+  !  rate = k0 * EXP( -b0 / TEMP ) * ( TEMP / 300.0_dp )**c0
+  !  IF ( rate < 0.0_dp ) rate = 0.0_dp
+  !END FUNCTION ARRPLUS
+
+  FUNCTION ARRPLUS1( a0, b0, d0, e0 ) RESULT( rate )
+    ! Modified Arrhenius law, neglecting ( T/300 )**c0 term
+    ! Use when c0 is zero, to avoid useless CPU cycles.
+    REAL(kind=dp), INTENT(IN) :: a0, b0, d0, e0
+    REAL(kind=dp)             :: rate
+    rate = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
+    rate = MAX( rate, 0.0_dp )
+  END FUNCTION ARRPLUS1
+
+  FUNCTION ARRPLUS2( a0, d0, e0 ) RESULT( rate )
+    ! Modified Arrhenius law, neglecting EXP( -b0/T ) and ( 300/T )**c0 terms.
+    ! Use when b0 and c0 are both zero, to avoid useless CPU cycles.
+    REAL(kind=dp), INTENT(IN) :: a0, d0, e0
+    REAL(kind=dp)             :: rate
+    rate = a0 * ( d0 + ( TEMP * e0 ) )
+    rate = MAX( rate, 0.0_dp )
+  END FUNCTION ARRPLUS2
 
   FUNCTION TUNPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
-    REAL(kind=dp)             :: k0, rate
-    k0   = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = k0 * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
-    IF ( rate < 0.0_dp ) rate = 0.0_dp     
+    REAL(kind=dp)             :: rate
+    rate = a0 * ( d0 + ( TEMP * e0 ) )
+    rate = rate * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
+    rate = MAX( rate, 0.0_dp )
   END FUNCTION TUNPLUS
 
   FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
@@ -225,9 +246,9 @@ CONTAINS
 
   FUNCTION GCARR1( a0, b0 ) RESULT( rate )
     ! Arrhenius function, neglecting the EXP( c0/T ) term.
-    ! Use this when c0 is zero, to avoid excess CPU cycles
+    ! Use this when c0 is zero, to avoid excess CPU cycles.
     REAL(kind=dp), INTENT(IN) :: a0, b0
-    REAL(kind=dp)             :: rate 
+    REAL(kind=dp)             :: rate
     rate = a0 * ( 300.0_dp / TEMP )**b0
   END FUNCTION GCARR1
 
@@ -239,14 +260,18 @@ CONTAINS
     rate = a0 * EXP( c0 / TEMP )
   END FUNCTION GCARR2
 
-  REAL(kind=dp) FUNCTION GC_HO2HO2( A0,B0,C0,A1,B1,C1 )
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-    GC_HO2HO2 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
-         EXP(2200.E+0_dp/TEMP))
+  FUNCTION GC_HO2HO2( a0, c0, a1, c1 ) RESULT( rate )
+    ! Reaction rate for HO2 + HO2 = H2O2 + O2
+    ! NOTE: The (300/T)**b0 and (300/T)**b1 terms evaluate to zero.
+    ! because b0 = b1 = 0.  So we can neglect these.  Also, we choose
+    ! to evaluate the Arrhenius law (for r0 and r1) inline instead of
+    ! calling GCARR2.  This avoids extra function calls. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   = a0 * EXP( c0 / TEMP )
+    r1   = a1 * EXP( c1 / TEMP )
+    rate = ( r0     + r1         * NUMDEN                           ) &
+         * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
   END FUNCTION GC_HO2HO2
 
   REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
@@ -576,7 +601,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(8) = (GCARR2(4.80d-11,250.0d0))
   RCONST(9) = (1.80d-12)
   RCONST(10) = (GCARR2(3.30d-12,270.0d0))
-  RCONST(11) = (GC_HO2HO2(3.00E-13,0.0E+00,460.0,2.1E-33,0.0,920.0))
+  RCONST(11) = (GC_HO2HO2(3.00d-13,460.0d0,2.1d-33,920.0d0))
   RCONST(12) = (GC_OHCO(1.50E-13,0.0E+00,0.0))
   RCONST(13) = (GCARR2(2.45d-12,-1775.0d0))
   RCONST(14) = (GC_RO2NO('B',2.80E-12,0.0E+00,300.0,1.0,0.0,0.0))
@@ -963,24 +988,24 @@ SUBROUTINE Update_RCONST ( )
   RCONST(395) = (GC_ISO1(1.0d-11,3.90d2,2.26d-1,2.22d9,-7.160d3,1.75d14,-9.054d3))
   RCONST(396) = (GC_ISO2(1.7d-11,3.90d2,9.33d-2,5.05d15,-1.22d4,1.79d14,-8.830d3))
   RCONST(397) = (GC_ISO2(1.0d-11,3.90d2,2.26d-1,2.22d9,-7.160d3,1.75d14,-9.054d3))
-  RCONST(398) = (ARRPLUS(2.12d-13,-1.3d3,0.0d0,1.1644d0,-7.0485d-4))
-  RCONST(399) = (ARRPLUS(2.12d-13,-1.3d3,0.0d0,-0.1644d0,7.0485d-4))
-  RCONST(400) = (ARRPLUS(2.12d-13,-1.3d3,0.0d0,1.2038d0,-9.0435d-4))
-  RCONST(401) = (ARRPLUS(2.12d-13,-1.3d3,0.0d0,-0.2038d0,9.0435d-4))
-  RCONST(402) = (ARRPLUS(1.04d11,9.746d3,0.0d0,1.1644d0,-7.0485d-4))
+  RCONST(398) = (ARRPLUS1(2.12d-13,-1300d0,1.1644d0,-7.0485d-4))
+  RCONST(399) = (ARRPLUS1(2.12d-13,-1300d0,-0.1644d0,7.0485d-4))
+  RCONST(400) = (ARRPLUS1(2.12d-13,-1300d0,1.2038d0,-9.0435d-4))
+  RCONST(401) = (ARRPLUS1(2.12d-13,-1300d0,-0.2038d0,9.0435d-4))
+  RCONST(402) = (ARRPLUS1(1.04d11,9.746d3,1.1644d0,-7.0485d-4))
   RCONST(403) = (TUNPLUS(5.05d15,-1.22d4,1.0d8,-0.0128d0,5.1242d-5))
-  RCONST(404) = (ARRPLUS(1.88d11,9.752d3,0.0d0,1.2038d0,-9.0435d-4))
+  RCONST(404) = (ARRPLUS1(1.88d11,9.752d3,1.2038d0,-9.0435d-4))
   RCONST(405) = (TUNPLUS(2.22d9,-7.160d3,1.0d8,-0.0306d0,1.1346d-4))
-  RCONST(406) = (ARRPLUS(6.92d-14,0.0d0,0.0d0,1.1644d0,-7.0485d-4))
-  RCONST(407) = (ARRPLUS(5.74d-12,0.0d0,0.0d0,1.2038d0,-9.0435d-4))
-  RCONST(408) = (ARRPLUS(1.54d-12,0.0d0,0.0d0,2.3682d0,-1.6092d-3))
-  RCONST(409) = (ARRPLUS(2.49d-12,0.0d0,0.0d0,-0.1644d0,7.0485d-4))
-  RCONST(410) = (ARRPLUS(3.94d-12,0.0d0,0.0d0,-0.2038d0,9.0435d-4))
-  RCONST(411) = (ARRPLUS(1.54d-12,0.0d0,0.0d0,-0.3682d0,1.6092d-3))
-  RCONST(412) = (ARRPLUS(2.0d-12,0.0d0,0.0d0,1.1644d0,-7.0485d-4))
-  RCONST(413) = (ARRPLUS(2.0d-12,0.0d0,0.0d0,-0.1644d0,7.0485d-4))
-  RCONST(414) = (ARRPLUS(2.0d-12,0.0d0,0.0d0,1.2038d0,-9.0435d-4))
-  RCONST(415) = (ARRPLUS(2.0d-12,0.0d0,0.0d0,-0.2038d0,9.0435d-4))
+  RCONST(406) = (ARRPLUS2(6.92d-14,1.1644d0,-7.0485d-4))
+  RCONST(407) = (ARRPLUS2(5.74d-12,1.2038d0,-9.0435d-4))
+  RCONST(408) = (ARRPLUS2(1.54d-12,2.3682d0,-1.6092d-3))
+  RCONST(409) = (ARRPLUS2(2.49d-12,-0.1644d0,7.0485d-4))
+  RCONST(410) = (ARRPLUS2(3.94d-12,-0.2038d0,9.0435d-4))
+  RCONST(411) = (ARRPLUS2(1.54d-12,-0.3682d0,1.6092d-3))
+  RCONST(412) = (ARRPLUS2(2.0d-12,1.1644d0,-7.0485d-4))
+  RCONST(413) = (ARRPLUS2(2.0d-12,-0.1644d0,7.0485d-4))
+  RCONST(414) = (ARRPLUS2(2.0d-12,1.2038d0,-9.0435d-4))
+  RCONST(415) = (ARRPLUS2(2.0d-12,-0.2038d0,9.0435d-4))
   RCONST(416) = (GC_NIT(2.7d-12,3.50d2,1.19d0,6.0d0,1.1644d0,7.05d-4))
   RCONST(417) = (GC_ALK(2.7d-12,3.50d2,1.19d0,6.0d0,1.1644d0,7.05d-4))
   RCONST(418) = (GC_NIT(2.7d-12,3.50d2,1.421d0,6.0d0,-0.1644d0,-7.05d-4))
