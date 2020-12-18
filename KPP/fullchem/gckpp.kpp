@@ -106,7 +106,7 @@ PH2O2 : H2O2;
      k3   = k2 / ( k2 + c0 )
      k4   = A0 * ( x0 - TEMP*y0 )
      rate = k4 * EXP( b0 / TEMP ) * k3
-     IF ( rate < 0.0_dp ) rate = 0.0_dp
+     rate = MAX( rate, 0.0_dp )
   END FUNCTION GC_NIT
 
   FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( rate )
@@ -121,7 +121,7 @@ PH2O2 : H2O2;
      k3   = c0/ ( k2 + c0 )
      k4   = a0 * ( x0 - TEMP*y0 )
      rate = k4 * EXP( b0 / TEMP ) * k3
-     IF ( rate < 0.0_dp ) rate = 0.0_dp
+     rate = MAX( rate, 0.0_dp )
   END FUNCTION GC_ALK
 
   FUNCTION GCARR( a0, b0, c0 ) RESULT( rate )
@@ -149,11 +149,13 @@ PH2O2 : H2O2;
   END FUNCTION GCARR2
 
   FUNCTION GC_HO2HO2( a0, c0, a1, c1 ) RESULT( rate )
-    ! Reaction rate for HO2 + HO2 = H2O2 + O2
-    ! NOTE: The (300/T)**b0 and (300/T)**b1 terms evaluate to zero.
-    ! because b0 = b1 = 0.  So we can neglect these.  Also, we choose
-    ! to evaluate the Arrhenius law (for r0 and r1) inline instead of
-    ! calling GCARR2.  This avoids extra function calls. (bmy, 12/18/20)
+    ! Reaction rate for
+    !    HO2 + HO2 = H2O2 + O2
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    !    (300/T)**b1
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
     REAL(kind=dp)             :: r0, r1, rate
     r0   = a0 * EXP( c0 / TEMP )
@@ -162,33 +164,68 @@ PH2O2 : H2O2;
          * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
   END FUNCTION GC_HO2HO2
 
-  REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
-    ! Temperature Dependent Branching Ratio
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+  FUNCTION GC_TBRANCH1( a0, c0, a1, c1 ) RESULT( rate )
+    ! Temperature Dependent Branching Ratio, used for reactions:
+    !    MO2 + MO2 = MOH + CH2O + O2
+    !    MO2 + MO2 = 2CH2O + 2HO2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    !    (300/T)**b1
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   = a0 * EXP( c0 / TEMP )
+    r1   = a1 * EXP( c1 / TEMP )
+    rate = r0 / ( 1.0_dp + r1 )
+  END FUNCTION GC_TBRANCH1
 
-    GC_TBRANCH = R0/(1.D0+R1)
-  END FUNCTION GC_TBRANCH
+  FUNCTION GC_TBRANCH2( a0, c0, a1, b1, c1 ) RESULT( rate )
+    ! Temperature Dependent Branching Ratio, used for reactions:
+    !    C3H8 + OH = B3O2
+    !    C3H8 + OH = A3O2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    ! because b0 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   =  a0 * EXP( c0 / TEMP )
+    r1   =  a1 * EXP( c1 / TEMP ) * ( 300.0_dp / TEMP )**b1
+    rate =  r0 / ( 1.0_dp + r1 )
+  END FUNCTION GC_TBRANCH2
 
-  REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
-    ! Carbon Dependence of RO2+HO2
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-    GC_RO2HO2 = R0*(1E0-EXP(-0.245E0*R1))
+  FUNCTION GC_RO2HO2( a0, c0, a1 ) RESULT( rate )
+    ! Carbon Dependence of RO2+HO2, used in these reactions:
+    !    A3O2 + HO2 = RA3P
+    !    PO2  + HO2 = PP
+    !    KO2  + HO2 = 0.150OH + 0.150ALD2 + 0.150MCO3 + 0.850ATOOH
+    !    B3O2 + HO2 = RB3P
+    !    PRN1 + HO2 = PRPN
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    !    (300/T)**b1 * EXP(c1/T)
+    ! Because b0 = b1 = c1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1
+    REAL(kind=dp)             :: rate
+    rate = a0 * EXP( c0 / TEMP )
+    rate = rate * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
   END FUNCTION GC_RO2HO2
 
-  REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
-    ! DMS+OH+O2
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-    !GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
-    GC_DMSOH = (R0*NUMDEN*0.2095e0_dp)/(1e0_dp+R1*0.2095e0_dp)
+  FUNCTION GC_DMSOH( a0, c0, a1, c1 ) RESULT( rate )
+    ! Reaction rate for:
+    !    DMS + OH = 0.750SO2 + 0.250MSA + MO2
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    !    (300/T)**b1
+    ! Because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   = a0 * EXP( c0 / TEMP )
+    r1   = a1 * EXP( c1 / TEMP )
+    rate = ( r0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + r1 * 0.2095e0_dp )
   END FUNCTION GC_DMSOH
 
   REAL(kind=dp) FUNCTION GC_GLYXNO3( A0,B0,C0 )

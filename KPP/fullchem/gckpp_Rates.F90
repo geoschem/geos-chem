@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Dec 18 14:31:16 2020
+! Time                 : Fri Dec 18 15:38:51 2020
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -218,7 +218,7 @@ CONTAINS
      k3   = k2 / ( k2 + c0 )
      k4   = A0 * ( x0 - TEMP*y0 )
      rate = k4 * EXP( b0 / TEMP ) * k3
-     IF ( rate < 0.0_dp ) rate = 0.0_dp
+     rate = MAX( rate, 0.0_dp )
   END FUNCTION GC_NIT
 
   FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( rate )
@@ -233,7 +233,7 @@ CONTAINS
      k3   = c0/ ( k2 + c0 )
      k4   = a0 * ( x0 - TEMP*y0 )
      rate = k4 * EXP( b0 / TEMP ) * k3
-     IF ( rate < 0.0_dp ) rate = 0.0_dp
+     rate = MAX( rate, 0.0_dp )
   END FUNCTION GC_ALK
 
   FUNCTION GCARR( a0, b0, c0 ) RESULT( rate )
@@ -261,11 +261,13 @@ CONTAINS
   END FUNCTION GCARR2
 
   FUNCTION GC_HO2HO2( a0, c0, a1, c1 ) RESULT( rate )
-    ! Reaction rate for HO2 + HO2 = H2O2 + O2
-    ! NOTE: The (300/T)**b0 and (300/T)**b1 terms evaluate to zero.
-    ! because b0 = b1 = 0.  So we can neglect these.  Also, we choose
-    ! to evaluate the Arrhenius law (for r0 and r1) inline instead of
-    ! calling GCARR2.  This avoids extra function calls. (bmy, 12/18/20)
+    ! Reaction rate for 
+    !    HO2 + HO2 = H2O2 + O2
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 
+    !    (300/T)**b1
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
     REAL(kind=dp)             :: r0, r1, rate
     r0   = a0 * EXP( c0 / TEMP )
@@ -274,33 +276,69 @@ CONTAINS
          * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
   END FUNCTION GC_HO2HO2
 
-  REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
-    ! Temperature Dependent Branching Ratio
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+  FUNCTION GC_TBRANCH1( a0, c0, a1, c1 ) RESULT( rate )
+    ! Temperature Dependent Branching Ratio, used for reactions:
+    !    MO2 + MO2 = MOH + CH2O + O2
+    !    MO2 + MO2 = 2CH2O + 2HO2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 
+    !    (300/T)**b1
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   = a0 * EXP( c0 / TEMP )
+    r1   = a1 * EXP( c1 / TEMP )
+    rate = r0 / ( 1.0_dp + r1 )
+  END FUNCTION GC_TBRANCH1
 
-    GC_TBRANCH = R0/(1.D0+R1)
-  END FUNCTION GC_TBRANCH
+  FUNCTION GC_TBRANCH2( a0, c0, a1, b1, c1 ) RESULT( rate )
+    ! Temperature Dependent Branching Ratio, used for reactions:
+    !    C3H8 + OH = B3O2
+    !    C3H8 + OH = A3O2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 
+    !    (300/T)**b1
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   =  a0 * EXP( c0 / TEMP )
+    r1   =  a1 * EXP( c1 / TEMP ) * ( 300.0_dp / TEMP )**b1
+    rate =  r0 / ( 1.0_dp + r1 )
+  END FUNCTION GC_TBRANCH2
 
-  REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
-    ! Carbon Dependence of RO2+HO2
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-    GC_RO2HO2 = R0*(1E0-EXP(-0.245E0*R1))
+  FUNCTION GC_RO2HO2( a0, c0, a1 ) RESULT( rate )
+    ! Carbon Dependence of RO2+HO2, used in these reactions:
+    !    A3O2 + HO2 = RA3P
+    !    PO2  + HO2 = PP
+    !    KO2  + HO2 = 0.150OH + 0.150ALD2 + 0.150MCO3 + 0.850ATOOH
+    !    B3O2 + HO2 = RB3P
+    !    PRN1 + HO2 = PRPN
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 
+    !    (300/T)**b1 * EXP(c1/T)
+    ! Because b0 = b1 = c1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1
+    REAL(kind=dp)             :: rate
+    rate = a0 * EXP( c0 / TEMP )
+    rate = rate * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
   END FUNCTION GC_RO2HO2
 
-  REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
-    ! DMS+OH+O2
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-    !GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
-    GC_DMSOH = (R0*NUMDEN*0.2095e0_dp)/(1e0_dp+R1*0.2095e0_dp)
+  FUNCTION GC_DMSOH( a0, c0, a1, c1 ) RESULT( rate )
+    ! Reaction rate for:
+    !    DMS + OH = 0.750SO2 + 0.250MSA + MO2
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 
+    !    (300/T)**b1
+    ! Because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms in order to avoid extra CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
+    REAL(kind=dp)             :: r0, r1, rate
+    r0   = a0 * EXP( c0 / TEMP )
+    r1   = a1 * EXP( c1 / TEMP )
+    rate = ( r0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + r1 * 0.2095e0_dp )
   END FUNCTION GC_DMSOH
 
   REAL(kind=dp) FUNCTION GC_GLYXNO3( A0,B0,C0 )
@@ -607,8 +645,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(14) = (GC_RO2NO('B',2.80E-12,0.0E+00,300.0,1.0,0.0,0.0))
   RCONST(15) = (GC_RO2NO('A',2.80E-12,0.0E+00,300.0,1.0,0.0,0.0))
   RCONST(16) = (GCARR(4.10E-13,0.0E+00,750.0))
-  RCONST(17) = (GC_TBRANCH(9.50E-14,0.0E+00,390.0,2.62E1,0.0,-1130.0))
-  RCONST(18) = (GC_TBRANCH(9.50E-14,0.0E+00,390.0,4.E-2,0.0,1130.0))
+  RCONST(17) = (GC_TBRANCH1(9.50d-14,390.0d0,2.62d1,-1130.0d0))
+  RCONST(18) = (GC_TBRANCH1(9.50d-14,390.0d0,4.0d-2,1130.0d0))
   RCONST(19) = (GCARR2(2.66d-12,200.0d0))
   RCONST(20) = (GCARR2(1.14d-12,200.0d0))
   RCONST(21) = (GCARR2(2.66d-12,200.0d0))
@@ -639,8 +677,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(46) = (GC_RO2NO('B',2.60E-12,0.0E+00,365.0,2E0,0.0,0.0))
   RCONST(47) = (GC_RO2NO('A',2.60E-12,0.0E+00,365.0,2E0,0.0,0.0))
   RCONST(48) = (GCARR2(2.60d-12,365.0d0))
-  RCONST(49) = (GC_TBRANCH(7.60E-12,0.0E+00,-585.0,5.87E0,0.64E0,-816.0))
-  RCONST(50) = (GC_TBRANCH(7.60E-12,0.0E+00,-585.0,1.7E-1,-0.64E0,816.0))
+  RCONST(49) = (GC_TBRANCH2(7.60d-12,-585.0d0,5.87d0,0.64d0,-816.0d0))
+  RCONST(50) = (GC_TBRANCH2(7.60d-12,-585.0d0,1.7d-1,-0.64d0,816.0d0))
   RCONST(51) = (GC_RO2NO('B',2.90E-12,0.0E+00,350.0,3E0,0.0,0.0))
   RCONST(52) = (GC_RO2NO('A',2.90E-12,0.0E+00,350.0,3E0,0.0,0.0))
   RCONST(53) = (GCARR2(2.70d-12,350.0d0))
@@ -667,9 +705,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(74) = (GCARR2(7.40d-13,700.0d0))
   RCONST(75) = (GCARR2(7.40d-13,700.0d0))
   RCONST(76) = (GCARR2(8.60d-13,700.0d0))
-  RCONST(77) = (GC_RO2HO2(2.91E-13,0.0E+00,1300.0,4.0,0.0,0.0))
-  RCONST(78) = (GC_RO2HO2(2.91E-13,0.0E+00,1300.0,3.0,0.0,0.0))
-  RCONST(79) = (GC_RO2HO2(2.91E-13,0.0E+00,1300.0,3.0,0.0,0.0))
+  RCONST(77) = (GC_RO2HO2(2.91d-13,1300.0d0,4.0d0))
+  RCONST(78) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
+  RCONST(79) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
   RCONST(80) = (GCARR2(1.30d-12,-25.0d0))
   RCONST(81) = (3.00d-13)
   RCONST(82) = (3.00d-13)
@@ -688,8 +726,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(95) = (2.70d-14)
   RCONST(96) = (GCARR2(7.40d-13,700.0d0))
   RCONST(97) = (GCARR2(7.40d-13,700.0d0))
-  RCONST(98) = (GC_RO2HO2(2.91E-13,0.0E+00,1300.0,3.0,0.0,0.0))
-  RCONST(99) = (GC_RO2HO2(2.91E-13,0.0E+00,1300.0,3.0,0.0,0.0))
+  RCONST(98) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
+  RCONST(99) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
   RCONST(100) = (GCARR2(4.30d-13,1040.0d0))
   RCONST(101) = (GCJPLPR(4.60E-27,4.0E+00,0.0,2.6E-11,1.3,0.0,0.5,0.0,0.0))
   RCONST(102) = (GCARR2(5.50d-15,-1880.0d0))
@@ -742,7 +780,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(149) = (GCJPLPR(1.00E-30,4.8E+00,0.0,7.2E-12,2.1E0,0.0,0.6,0.0,0.0))
   RCONST(150) = (GCJPLPR(1.05E-02,4.8E+00,-11234.0,7.58E16,2.1E0,-11234.0,0.6,0.0,0.0))
   RCONST(151) = (GCARR2(1.20d-11,-280.0d0))
-  RCONST(152) = (GC_DMSOH(8.20E-39,0.0E+00,5376.0,1.05E-5,0.0,3644.0))
+  RCONST(152) = (GC_DMSOH(8.20d-39,5376.0d0,1.05d-5,3644.0d0))
   RCONST(153) = (GCARR2(1.90d-13,530.0d0))
   RCONST(154) = (GCJPLPR(3.30E-31,4.3E+00,0.0,1.6E-12,0.0,0.0,0.6,0.0,0.0))
   RCONST(155) = (GCARR2(1.60d-11,-780.0d0))
