@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Wed Dec 16 16:38:38 2020
-! Working directory    : /local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem
+! Time                 : Fri Dec 18 11:42:34 2020
+! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
