@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Dec 18 17:05:44 2020
+! Time                 : Fri Dec 18 17:54:29 2020
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -213,12 +213,20 @@ CONTAINS
      rate = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO
 
-  FUNCTION GC_PAN( a0, b0, c0, a1, b1, c1, cf ) RESULT( rate )
-     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, a1, b1, c1, cf
+  FUNCTION GC_PAN( a0, c0, a1, c1, cf ) RESULT( rate )
+    ! Reaction rate for
+    !    MACR1OO + NO2 = MPAN
+    !    MACRNO2 + NO2 = MPAN + NO2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(b0/T)
+    !    EXP(b1/T)
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, cf
      REAL(kind=dp)             :: k0, k1, kr, nc, f,  rate
      !
-     k0   = a0 * EXP( b0 / TEMP ) * ( TEMP / 300.0_dp )**c0
-     k1   = a1 * EXP( b1 / TEMP ) * ( TEMP / 300.0_dp )**c1
+     k0   = a0 * ( TEMP / 300.0_dp )**c0
+     k1   = a1 * ( TEMP / 300.0_dp )**c1
      k0   = k0 * NUMDEN
      kr   = k0 / k1
      nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
@@ -428,17 +436,6 @@ CONTAINS
     rate      = a0 * glyc_frac
   END FUNCTION GC_GLYCOHA
 
-!  REAL(kind=dp) FUNCTION GC_GLYCOHB( A0,B0,C0 )
-! 
-!    REAL A0,B0,C0
-!    REAL(kind=dp) :: R0,GLYC_FRAC
-!    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-!    GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
-!    IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
-!    GC_GLYCOHB=R0*(1e0_dp-GLYC_FRAC)
-!    
-!  END FUNCTION GC_GLYCOHB
-
   FUNCTION GC_GLYCOHB( a0 ) RESULT( rate )
     ! Reaction rate for:
     !    GLYC + OH = HCOOH + OH + CO
@@ -456,49 +453,70 @@ CONTAINS
     rate      = a0 * ( 1.0_dp - glyc_frac )
   END FUNCTION GC_GLYCOHB
 
-  REAL(kind=dp) FUNCTION GC_HACOHA( A0,B0,C0 )
-!
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHA=R0*HAC_FRAC
+  FUNCTION GC_HACOHA( a0, c0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    HAC + OH = MGLY + HO2
+    ! For this reaction, this Arrhenius law term evaluates to 1:
+    !    (300/T)**b0
+    ! because b0 = 0.  Therefore we can skip computing this
+    ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
+    !
+    r0       = a0 * EXP( c0 / TEMP )
+    hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
+    hac_frac = MAX( hac_frac, 0.0_dp )
+    rate     = r0 * hac_frac
   END FUNCTION GC_HACOHA
 
-  REAL(kind=dp) FUNCTION GC_HACOHB( A0,B0,C0 )
+  FUNCTION GC_HACOHB( a0, c0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    HAC + OH = 0.5HCOOH + OH    + 0.5ACTA
+    !             + 0.5CO2   + 0.5CO + 0.5MO2 :
+    ! For this reaction, this Arrhenius law term evaluates to 1:
+    !    (300/T)**b0
+    ! because b0 = 0.  Therefore we can skip computing this
+    ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHB=R0*(1.E0_dp-HAC_FRAC)
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
+    !
+    r0       = a0 * EXP( c0 / TEMP )
+    hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
+    hac_frac = MAX( hac_frac, 0.0_dp )
+    rate     = r0 * ( 1.0_dp - hac_frac )
   END FUNCTION GC_HACOHB
 
-  REAL(kind=dp) FUNCTION GC_OHCO( A0,B0,C0 )
-    REAL A0,B0,C0,R0
-    REAL KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
-    REAL KCO1,KCO2,KCO
-
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R0 = R0 * (1.E+0_dp + 0.6e+0_dp*9.871E7_dp*PRESS)
-
-    ! new OH+CO rate from JPL2006.
-    KLO1=5.9E-33_dp*(300._dp/TEMP)**(1.E+0_dp)
-    KHI1=1.1E-12_dp*(300._dp/TEMP)**(-1.3E0_dp)
-    XYRAT1=KLO1*NUMDEN/KHI1
-    BLOG1=LOG10(XYRAT1)
-    FEXP1=1.E+0_dp/(1.E+0_dp+BLOG1*BLOG1)
-    KCO1=KLO1*NUMDEN*0.6**FEXP1/(1.e+0_dp+XYRAT1)
-    KLO2=1.5E-13_dp*(300._dp/TEMP)**(0.E+0_dp)
-    KHI2=2.1e+09_dp *(300._dp/TEMP)**(-6.1E+0_dp)
-    XYRAT2=KLO2*NUMDEN/KHI2
-    BLOG2=LOG10(XYRAT2)
-    FEXP2=1.E+0_dp/(1.E+0_dp+BLOG2*BLOG2)
-    KCO2=KLO2*0.6**FEXP2/(1.e+0_dp+XYRAT2)
-    KCO=KCO1+KCO2
-    GC_OHCO=KCO
+  FUNCTION GC_OHCO( a0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 * EXP(c0/T)
+    ! because b0 = c0 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0
+    REAL(kind=dp)             :: r0,     klo1,   klo2,  khi1,    khi2
+    REAL(kind=dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
+    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, rate
+    !
+    TEMP300 = ( 300.0_dp / TEMP )
+    r0      = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
+    klo1    = 5.9E-33_dp * TEMP300  !**(1.E+0_dp)
+    khi1    = 1.1E-12_dp * TEMP300**(-1.3_dp)
+    xyrat1  = klo1 * NUMDEN / khi1
+    blog1   = LOG10( xyrat1 )
+    fexp1   = 1.0_dp / ( 1.0_dp + blog1*blog1 )
+    kco1    = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+    klo2    = 1.5E-13_dp !* TEMP300**(0.E+0_dp)
+    khi2    = 2.1E+09_dp * TEMP300**(-6.1_dp)
+    xyrat2  = klo2 * NUMDEN / khi2
+    blog2   = LOG10( xyrat2 )
+    fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
+    kco2    = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
+    rate    = kco1 + kco2
   END FUNCTION GC_OHCO
 
   REAL(kind=dp) FUNCTION GC_RO2NO( B,A0,B0,C0,A1,B1,C1 )
@@ -712,7 +730,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(9) = (1.80d-12)
   RCONST(10) = (GCARR2(3.30d-12,270.0d0))
   RCONST(11) = (GC_HO2HO2(3.00d-13,460.0d0,2.1d-33,920.0d0))
-  RCONST(12) = (GC_OHCO(1.50E-13,0.0E+00,0.0))
+  RCONST(12) = (GC_OHCO(1.50d-13))
   RCONST(13) = (GCARR2(2.45d-12,-1775.0d0))
   RCONST(14) = (GC_RO2NO('B',2.80E-12,0.0E+00,300.0,1.0,0.0,0.0))
   RCONST(15) = (GC_RO2NO('A',2.80E-12,0.0E+00,300.0,1.0,0.0,0.0))
@@ -810,8 +828,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(107) = (1.50d-11)
   RCONST(108) = (GC_GLYXNO3(1.40d-12,-1860.0d0))
   RCONST(109) = (GCARR2(3.36d-12,-1860.0d0))
-  RCONST(110) = (GC_HACOHA(2.15E-12,0.0E+00,305.0))
-  RCONST(111) = (GC_HACOHB(2.15E-12,0.0E+00,305.0))
+  RCONST(110) = (GC_HACOHA(2.15d-12,305.0d0))
+  RCONST(111) = (GC_HACOHB(2.15d-12,305.0d0))
   RCONST(112) = (GCARR2(1.68d-12,500.0d0))
   RCONST(113) = (GCARR2(1.68d-12,500.0d0))
   RCONST(114) = (GCARR2(1.87d-13,500.0d0))
@@ -1277,10 +1295,10 @@ SUBROUTINE Update_RCONST ( )
   RCONST(574) = (GC_ALK(2.7d-12,350.0d0,2.985d0,6.0d0,1.0d0,0.0d0))
   RCONST(575) = (GC_NIT(2.7d-12,350.0d0,2.985d0,6.0d0,1.0d0,0.0d0))
   RCONST(576) = (GCARR2(8.7d-12,290.0d0))
-  RCONST(577) = (GC_PAN(2.591d-28,0.0d0,-6.87d0,1.125d-11,0.0d0,-1.105d0,0.3d0))
+  RCONST(577) = (GC_PAN(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
   RCONST(578) = (GCARR2(3.14d-12,580.0d0))
   RCONST(579) = (GCARR2(7.50d-12,290.0d0))
-  RCONST(580) = (GC_PAN(2.591d-28,0.0d0,-6.87d0,1.125d-11,0.0d0,-1.105d0,0.3d0))
+  RCONST(580) = (GC_PAN(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
   RCONST(581) = (4.00d-12)
   RCONST(582) = (GCARR2(2.9d-12,500.0d0))
   RCONST(583) = (GCARR2(1.58d+16,-13500.0d0))

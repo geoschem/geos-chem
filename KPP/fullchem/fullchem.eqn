@@ -474,7 +474,7 @@ OH + HO2 = H2O + O2 :                        GCARR2(4.80d-11, 250.0d0);
 OH + H2O2 = H2O + HO2 :                      1.80d-12;
 HO2 + NO = OH + NO2 :                        GCARR2(3.30d-12, 270.0d0);                                                      {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
 HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                                 {2014/02/03; Eastham2014; SDE}
-OH + CO = HO2 + CO2 :                        GC_OHCO(1.50E-13, 0.0E+00, 0.0);                                                {2017/02/22; JPL 15-10; BHH,MJE}
+OH + CO = HO2 + CO2 :                        GC_OHCO(1.50d-13);                                                              {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR2(2.45d-12, -1775.0d0);
 MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO('B', 2.80E-12, 0.0E+00, 300.0, 1.0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
 MO2 + NO = MENO3 :                           GC_RO2NO('A', 2.80E-12, 0.0E+00, 300.0, 1.0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
@@ -607,9 +607,9 @@ GLYX + OH = HO2 + 2.000CO :                  GCARR2(3.10d-12, 340.0d0);         
 MGLY + OH = MCO3 + CO :                      1.50d-11;
 GLYX + NO3 = HNO3 + HO2 + 2.000CO :          GC_GLYXNO3(1.40d-12, -1860.0d0);
 MGLY + NO3 = HNO3 + CO + MCO3 :              GCARR2(3.36d-12, -1860.0d0);                                                    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-HAC + OH = MGLY + HO2 :                      GC_HACOHA(2.15E-12, 0.0E+00, 305.0);                                            {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+HAC + OH = MGLY + HO2 :                      GC_HACOHA(2.15d-12, 305.0d0);                                                   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 HAC + OH = 0.500HCOOH + OH + 0.500ACTA +
- 0.500CO2 + 0.500CO + 0.500MO2 :             GC_HACOHB(2.15E-12, 0.0E+00, 305.0);                                            {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ 0.500CO2 + 0.500CO + 0.500MO2 :             GC_HACOHB(2.15d-12, 305.0d0);                                                   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MCO3 + A3O2 = MO2 + RCHO + HO2 :             GCARR2(1.68d-12, 500.0d0);
 MCO3 + PO2 = MO2 + ALD2 + CH2O + HO2 :       GCARR2(1.68d-12, 500.0d0);
 MCO3 + A3O2 = ACTA + RCHO :                  GCARR2(1.87d-13, 500.0d0);
@@ -1290,11 +1290,11 @@ MCROHOO + NO = 0.86HAC + 0.86CO +
 MCROHOO + NO = MCRHN :                       GC_NIT(2.7d-12, 350.0d0, 2.985d0, 6.0d0, 1.0d0, 0.0d0);                         {2019/11/06; Bates2019; KHB}
 MACR1OO + NO = 0.35MCO3 + 0.65MO2 +
  0.65CO + CH2O + CO2 + NO2 :                 GCARR2(8.7d-12, 290.0d0);                                                       {2019/11/06; Bates2019; KHB}
-MACR1OO + NO2 = MPAN :                       GC_PAN(2.591d-28, 0.0d0, -6.87d0, 1.125d-11, 0.0d0, -1.105d0, 0.3d0);           {2019/11/06; Bates2019; KHB}
+MACR1OO + NO2 = MPAN :                       GC_PAN(2.591d-28, -6.87d0, 1.125d-11, -1.105d0, 0.3d0);                         {2019/11/06; Bates2019; KHB}
 MACRNO2 + HO2 = 0.5HAC + 0.5OH + 0.5CO2 +
  0.5NO2 + 0.13O3 + 0.37MCRHN + 0.13MCRHNB :  GCARR2(3.14d-12, 580.0d0);                                                      {2019/11/06; Bates2019; KHB}
 MACRNO2 + NO = HAC + 2NO2 + CO2 :            GCARR2(7.50d-12, 290.0d0);                                                      {2019/11/06; Bates2019; KHB}
-MACRNO2 + NO2 = MPAN + NO2 :                 GC_PAN(2.591d-28, 0.0d0, -6.87d0, 1.125d-11, 0.0d0, -1.105d0, 0.3d0);           {2019/11/06; Bates2019; KHB}
+MACRNO2 + NO2 = MPAN + NO2 :                 GC_PAN(2.591d-28, -6.87d0, 1.125d-11, -1.105d0, 0.3d0);                         {2019/11/06; Bates2019; KHB}
 MACRNO2 + NO3 = HAC + 2NO2 + CO2 :           4.00d-12;                                                                       {2019/11/06; Bates2019; KHB}
 MACRNO2 + MO2 = 0.7HAC + 0.7CO2 + 0.7NO2 +
  0.7HO2 + CH2O + 0.3MCRHNB :                 GCARR2(2.9d-12, 500.0d0);                                                       {2019/11/06; Bates2019; KHB}

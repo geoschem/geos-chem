@@ -101,12 +101,20 @@ PH2O2 : H2O2;
      rate = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO
 
-  FUNCTION GC_PAN( a0, b0, c0, a1, b1, c1, cf ) RESULT( rate )
-     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, a1, b1, c1, cf
+  FUNCTION GC_PAN( a0, c0, a1, c1, cf ) RESULT( rate )
+    ! Reaction rate for
+    !    MACR1OO + NO2 = MPAN
+    !    MACRNO2 + NO2 = MPAN + NO2
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(b0/T)
+    !    EXP(b1/T)
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, cf
      REAL(kind=dp)             :: k0, k1, kr, nc, f,  rate
      !
-     k0   = a0 * EXP( b0 / TEMP ) * ( TEMP / 300.0_dp )**c0
-     k1   = a1 * EXP( b1 / TEMP ) * ( TEMP / 300.0_dp )**c1
+     k0   = a0 * ( TEMP / 300.0_dp )**c0
+     k1   = a1 * ( TEMP / 300.0_dp )**c1
      k0   = k0 * NUMDEN
      kr   = k0 / k1
      nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
@@ -333,49 +341,70 @@ PH2O2 : H2O2;
     rate      = a0 * ( 1.0_dp - glyc_frac )
   END FUNCTION GC_GLYCOHB
 
-  REAL(kind=dp) FUNCTION GC_HACOHA( A0,B0,C0 )
-!
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHA=R0*HAC_FRAC
+  FUNCTION GC_HACOHA( a0, c0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    HAC + OH = MGLY + HO2
+    ! For this reaction, this Arrhenius law term evaluates to 1:
+    !    (300/T)**b0
+    ! because b0 = 0.  Therefore we can skip computing this
+    ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
+    !
+    r0       = a0 * EXP( c0 / TEMP )
+    hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
+    hac_frac = MAX( hac_frac, 0.0_dp )
+    rate     = r0 * hac_frac
   END FUNCTION GC_HACOHA
 
-  REAL(kind=dp) FUNCTION GC_HACOHB( A0,B0,C0 )
+  FUNCTION GC_HACOHB( a0, c0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    HAC + OH = 0.5HCOOH + OH    + 0.5ACTA
+    !             + 0.5CO2   + 0.5CO + 0.5MO2 :
+    ! For this reaction, this Arrhenius law term evaluates to 1:
+    !    (300/T)**b0
+    ! because b0 = 0.  Therefore we can skip computing this
+    ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHB=R0*(1.E0_dp-HAC_FRAC)
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
+    !
+    r0       = a0 * EXP( c0 / TEMP )
+    hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
+    hac_frac = MAX( hac_frac, 0.0_dp )
+    rate     = r0 * ( 1.0_dp - hac_frac )
   END FUNCTION GC_HACOHB
 
-  REAL(kind=dp) FUNCTION GC_OHCO( A0,B0,C0 )
-    REAL A0,B0,C0,R0
-    REAL KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
-    REAL KCO1,KCO2,KCO
-
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R0 = R0 * (1.E+0_dp + 0.6e+0_dp*9.871E7_dp*PRESS)
-
-    ! new OH+CO rate from JPL2006.
-    KLO1=5.9E-33_dp*(300._dp/TEMP)**(1.E+0_dp)
-    KHI1=1.1E-12_dp*(300._dp/TEMP)**(-1.3E0_dp)
-    XYRAT1=KLO1*NUMDEN/KHI1
-    BLOG1=LOG10(XYRAT1)
-    FEXP1=1.E+0_dp/(1.E+0_dp+BLOG1*BLOG1)
-    KCO1=KLO1*NUMDEN*0.6**FEXP1/(1.e+0_dp+XYRAT1)
-    KLO2=1.5E-13_dp*(300._dp/TEMP)**(0.E+0_dp)
-    KHI2=2.1e+09_dp *(300._dp/TEMP)**(-6.1E+0_dp)
-    XYRAT2=KLO2*NUMDEN/KHI2
-    BLOG2=LOG10(XYRAT2)
-    FEXP2=1.E+0_dp/(1.E+0_dp+BLOG2*BLOG2)
-    KCO2=KLO2*0.6**FEXP2/(1.e+0_dp+XYRAT2)
-    KCO=KCO1+KCO2
-    GC_OHCO=KCO
+  FUNCTION GC_OHCO( a0 ) RESULT( rate )
+    ! Reaction rate for:
+    !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
+    ! For this reaction, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0 * EXP(c0/T)
+    ! because b0 = c0 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    REAL(kind=dp), INTENT(IN) :: a0
+    REAL(kind=dp)             :: r0,     klo1,   klo2,  khi1,    khi2
+    REAL(kind=dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
+    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, rate
+    !
+    TEMP300 = ( 300.0_dp / TEMP )
+    r0      = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
+    klo1    = 5.9E-33_dp * TEMP300  !**(1.E+0_dp)
+    khi1    = 1.1E-12_dp * TEMP300**(-1.3_dp)
+    xyrat1  = klo1 * NUMDEN / khi1
+    blog1   = LOG10( xyrat1 )
+    fexp1   = 1.0_dp / ( 1.0_dp + blog1*blog1 )
+    kco1    = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+    klo2    = 1.5E-13_dp !* TEMP300**(0.E+0_dp)
+    khi2    = 2.1E+09_dp * TEMP300**(-6.1_dp)
+    xyrat2  = klo2 * NUMDEN / khi2
+    blog2   = LOG10( xyrat2 )
+    fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
+    kco2    = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
+    rate    = kco1 + kco2
   END FUNCTION GC_OHCO
 
   REAL(kind=dp) FUNCTION GC_RO2NO( B,A0,B0,C0,A1,B1,C1 )
