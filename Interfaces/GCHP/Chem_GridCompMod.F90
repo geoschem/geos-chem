@@ -3729,7 +3729,11 @@ CONTAINS
        ! (advected species will be updated with tracers)
        ! ckeller, 10/27/2014
        !=======================================================================
+#ifdef ADJOINT
        IF ( FIRST .or. Input_Opt%IS_ADJOINT) THEN
+#else
+       IF ( FIRST ) THEN
+#endif
        
           ! Get Generic State
           call MAPL_GetObjectFromGC ( GC, STATE, RC=STATUS)

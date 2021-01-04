@@ -415,18 +415,8 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
      LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
 #endif
-     !----------------------------------------
-     ! GCHP adjoint fields
-     !---------------------------------------
-     LOGICAL                     :: IS_ADJOINT
-     LOGICAL                     :: IS_FD_SPOT, IS_FD_GLOBAL
-     INTEGER                     :: FD_STEP
-     LOGICAL                     :: IS_FD_SPOT_THIS_PET
-     INTEGER                     :: IFD, JFD, NFD, LFD, NFD_ADJ
-     INTEGER                     :: CF_IMIN, CF_IMAX
-     INTEGER                     :: CF_JMIN, CF_JMAX
-     INTEGER                     :: CF_LMIN, CF_LMAX
 
+#ifdef ADJOINT
      !----------------------------------------
      ! GCHP adjoint fields
      !---------------------------------------
@@ -438,6 +428,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: CF_IMIN, CF_IMAX
      INTEGER                     :: CF_JMIN, CF_JMAX
      INTEGER                     :: CF_LMIN, CF_LMAX
+#endif
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -953,6 +944,7 @@ CONTAINS
     Input_Opt%TurnOffHetRates        = .FALSE.
 #endif
 
+#ifdef ADJOINT
     !----------------------------------------
     ! Fields for adoint
     !---------------------------------------
@@ -965,7 +957,7 @@ CONTAINS
     Input_Opt%JFD                    = -999
     Input_Opt%NFD                    = -999
     Input_Opt%LFD                    = -999
-
+#endif
 
     !----------------------------------------
     ! Fields for LINOZ strat chem
