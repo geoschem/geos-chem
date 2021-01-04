@@ -137,9 +137,8 @@ CONTAINS
           write(*,*) 'Before diagnostic ',  &
                State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
        ENDIF
-       CALL Set_SpcAdj_Diagnostic( 'SpeciesAdj', State_Diag%SpeciesAdj, &
-                                   Input_Opt,  State_Chm, State_Grid,   &
-                                   State_Met,  RC )
+       CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,         &
+                                   State_Grid, State_Met, RC                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -351,29 +350,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpcAdj_Diagnostic( DiagMetadataID, Ptr2Data, Input_Opt, &
-                                    State_Chm, State_Grid, State_Met, RC ) 
+  SUBROUTINE Set_SpcAdj_Diagnostic( Input_Opt, State_Chm, State_Diag,    &
+                                    State_Grid, State_Met, RC           )  
 !
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState, Get_Metadata_State_Diag
+    USE State_Diag_Mod, ONLY : DgnMap
+    USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
-    CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
     TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
     TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm         ! Chemistry state obj
-    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -383,15 +382,27 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  15 Dec 2019 - C. Lee - Initial version
+!  17 Dec 2020 - C. Lee - Updated to account for changes to Set_SpcConcs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
-    LOGICAL            :: Found
-    INTEGER            :: I, J, L, N
+    ! Scalars
+    LOGICAL               :: Found
+    INTEGER               :: D, I, J, L, N, S
+    REAL(fp)              :: TmpVal, Conv
+
+    ! Strings
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData
+
+    ! Arrays
+    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,State_Chm%nSpecies)
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -400,68 +411,60 @@ CONTAINS
     ! Assume success
     RC      =  GC_SUCCESS
     Found   = .FALSE.
-    ThisLoc = ' -> Set_SpcAdj_Diagnostic ' // ModLoc
+    ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
-    ! Exit if species concentration is not a diagnostics in HISTORY.rc
-    IF ( ASSOCIATED( Ptr2Data ) ) THEN
 
-       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' .or. &
-            TRIM( DiagMetadataID ) == 'SpeciesBC' ) THEN
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-          ! For GEOS-Chem restart and BC collections force units to v/v dry
-          Units = 'v/v dry'
-
-       ELSE
-
-          ! Retrieve the units of the diagnostic from the metadata
-          CALL Get_Metadata_State_Diag( Input_Opt%amIRoot,     &
-                                        TRIM(DiagMetadataID),  &
-                                        Found, RC, Units=Units )
-
-          ! Allow for alternate format of units
-          IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
-          IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
-          IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-          IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
-
-       ENDIF
-
-       ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
-                               Units, RC, OrigUnit=OrigUnit )
-       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-          write(*,*) 'After Convert_Spc_Units to ',  trim(units), &
-               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
-       ENDIF       
-       ! Copy species concentrations to diagnostic array
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, N )
        DO N = 1, State_Chm%nSpecies
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          Ptr2Data(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
+          ! Forward code
+          ! TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+          !                     ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+          TmpSpcArr(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
        ENDDO
        ENDDO
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
 
-       ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                               OrigUnit, RC )
+    !=======================================================================
+    ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
+    !=======================================================================
+    IF ( Input_Opt%Is_Adjoint ) THEN
 
-       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-          write(*,*) 'After Convert_Spc_Units back to ', trim(origunit),   &
-               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
-       ENDIF       
-       
-       ! Error handling
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error converting species units for archiving diagnostics'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-       ENDIF
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_SpeciesConc
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%SpeciesAdj(:,:,:,S) = TmpSpcArr(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE Set_SpcAdj_Diagnostic

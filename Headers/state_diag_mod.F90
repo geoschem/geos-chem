@@ -120,8 +120,9 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_SpeciesAdj
 
      ! Concentrations
-     REAL(f8),  POINTER :: ScaleICsAdj     (:,:,:,:) ! Spc Conc for diag output
-     LOGICAL :: Archive_ScaleICsAdj
+     REAL(f8),           POINTER :: ScaleICsAdj(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ScaleICsAdj
+     LOGICAL                     :: Archive_ScaleICsAdj
 #endif
 
      !%%%%% Budget diagnostics %%%%%
@@ -1103,7 +1104,7 @@ CONTAINS
     State_Diag%Archive_SpeciesAdj                  = .FALSE.
 
     State_Diag%ScaleICsAdj                         => NULL()
-    State_Diag%ScaleICSAdj                         => NULL()
+    State_Diag%Map_ScaleICSAdj                     => NULL()
     State_Diag%Archive_ScaleICsAdj                 = .FALSE.
 #endif
 
@@ -2113,7 +2114,7 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%ScaleICsAdj,                            &
          archiveData    = State_Diag%Archive_ScaleICsAdj,                    &
-         mapData        = State_Diag%ScaleICsAdj,                            &
+         mapData        = State_Diag%Map_ScaleICsAdj,                            &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )

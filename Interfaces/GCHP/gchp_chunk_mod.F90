@@ -92,6 +92,7 @@ CONTAINS
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
 #ifdef ADJOINT
     USE Charpak_Mod,             ONLY : To_UpperCase
+    USE State_Chm_Mod,           ONLY : Ind_
 #endif
 #if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
@@ -1549,10 +1550,8 @@ CONTAINS
           ENDIF
        ENDDO
 
-       CALL Set_SpcAdj_Diagnostic( 'SpeciesAdj',                 &
-                                   State_Diag%SpeciesAdj,                   &
-                                   Input_Opt,  State_Chm,                   &
-                                   State_Grid, State_Met,  RC              )
+       CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,        &
+                                   State_Grid, State_Met, RC                )
     ENDIF
 #endif
 
@@ -1621,6 +1620,9 @@ CONTAINS
     ErrorMsg  = ''
     ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' // &
          'GeosUtil/unitconv_mod.F)'
+
+    ! Assume success
+    RC = GC_SUCCESS
 
     ! Echo info
     IF ( Input_Opt%amIRoot ) THEN

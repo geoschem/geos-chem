@@ -3318,10 +3318,10 @@ CONTAINS
 
 #ifdef ADJOINT
        CASE ( 'SPECIESADJ' )
-          IF ( isDesc    ) Desc  = 'Adjoint variables for species'
-          IF ( isUnits   ) Units = 'varies'
-          IF ( isRank    ) Rank  = 3
-          IF ( isSpecies ) PerSpecies = 'ALL'
+          IF ( isDesc  ) Desc   = 'Adjoint variables for species'
+          IF ( isUnits ) Units  = 'varies'
+          IF ( isRank  ) Rank   = 3
+          IF ( isSpc   ) PerSpc = 'ALL'
        CASE ( 'COSTFUNCMASK' )
           IF ( isDesc    ) Desc  = 'Cost function volume mask'
           IF ( isUnits   ) Units = 'none'

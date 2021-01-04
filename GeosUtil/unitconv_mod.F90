@@ -1360,8 +1360,7 @@ ENDIF
 #ifdef ADJOINT
           if (Is_Adjoint) &
                State_Chm%SpeciesAdj(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N) &
-                                     * ( 1e+6_fp * MolecRatio )              &
-                                     / ( AVO / MW_kg )                       &
+                                     * 1e+6_fp / ( AVO / MW_kg )                       &
                                      / State_Met%AIRDEN(I,J,L)
 #endif
        ENDDO

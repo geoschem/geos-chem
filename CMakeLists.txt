@@ -17,7 +17,7 @@ endif()
 #-----------------------------------------------------------------------------
 # Print header
 #-----------------------------------------------------------------------------
-get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
+# get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
 message("=================================================================")
 message("GEOS-Chem ${PROJECT_VERSION} (science codebase)")
 message("Current status: ${GC_REPO_VERSION}")
