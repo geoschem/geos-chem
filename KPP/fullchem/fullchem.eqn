@@ -476,8 +476,8 @@ HO2 + NO = OH + NO2 :                        GCARR2(3.30d-12, 270.0d0);         
 HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                                 {2014/02/03; Eastham2014; SDE}
 OH + CO = HO2 + CO2 :                        GC_OHCO(1.50d-13);                                                              {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR2(2.45d-12, -1775.0d0);
-MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO('B', 2.80E-12, 0.0E+00, 300.0, 1.0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
-MO2 + NO = MENO3 :                           GC_RO2NO('A', 2.80E-12, 0.0E+00, 300.0, 1.0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
+MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO_B1(2.80d-12, 300.0d0);                                                 {2019/05/10; Fisher2018; JAF}
+MO2 + NO = MENO3 :                           GC_RO2NO_A1(2.80d-12, 300.0d0);                                                 {2019/05/10; Fisher2018; JAF}
 MO2 + HO2 = MP + O2 :                        GCARR(4.10E-13, 0.0E+00, 750.0);
 MO2 + MO2 = MOH + CH2O + O2 :                GC_TBRANCH1(9.50d-14, 390.0d0, 2.62d1, -1130.0d0);
 MO2 + MO2 = 2.000CH2O + 2.000HO2 :           GC_TBRANCH1(9.50d-14, 390.0d0, 4.0d-2, 1130.0d0);
@@ -509,27 +509,27 @@ MCO3 + NO2 {+M} = PAN :                      GCJPLPR(9.70E-29, 5.6E+00, 0.0, 9.3
 PAN = MCO3 + NO2 :                           GCJPLEQ(9.30E-29, 0.0E+00, 14000.0, 9.7E-29, 5.6E0, 0.0, 9.3E-12, 1.5E0, 0., 0.6, 0., 0.);
 MCO3 + NO = MO2 + NO2 + CO2 :                GCARR2(8.10d-12, 270.0d0);
 C2H6 + OH = ETO2 + H2O :                     GCARR2(7.66d-12, -1020.0d0);                                                    {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
-ETO2 + NO = ALD2 + NO2 + HO2 :               GC_RO2NO('B', 2.60E-12, 0.0E+00, 365.0, 2E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
-ETO2 + NO = ETNO3 :                          GC_RO2NO('A', 2.60E-12, 0.0E+00, 365.0, 2E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
+ETO2 + NO = ALD2 + NO2 + HO2 :               GC_RO2NO_B2(2.60d-12, 365.0d0, 2.0d0);                                          {2019/05/10; Fisher2018; JAF}
+ETO2 + NO = ETNO3 :                          GC_RO2NO_A2(2.60d-12, 365.0d0, 2.0d0);                                          {2019/05/10; Fisher2018; JAF}
 OTHRO2 + NO = ALD2 + NO2 + HO2 :             GCARR2(2.60d-12, 365.0d0);                                                      {2019/05/10; Fisher2018; JAF}
 C3H8 + OH = B3O2 :                           GC_TBRANCH2(7.60d-12, -585.0d0, 5.87d0, 0.64d0, -816.0d0);
 C3H8 + OH = A3O2 :                           GC_TBRANCH2(7.60d-12, -585.0d0, 1.7d-1, -0.64d0, 816.0d0);
-A3O2 + NO = NO2 + HO2 + RCHO :               GC_RO2NO('B', 2.90E-12, 0.0E+00, 350.0, 3E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
-A3O2 + NO = NPRNO3 :                         GC_RO2NO('A', 2.90E-12, 0.0E+00, 350.0, 3E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
+A3O2 + NO = NO2 + HO2 + RCHO :               GC_RO2NO_B2(2.90d-12, 350.0d0, 3.0d0);                                          {2019/05/10; Fisher2018; JAF}
+A3O2 + NO = NPRNO3 :                         GC_RO2NO_A2(2.90d-12, 350.0d0, 3.0d0);                                          {2019/05/10; Fisher2018; JAF}
 PO2 + NO = NO2 + HO2 + CH2O + ALD2 :         GCARR2(2.70d-12, 350.0d0);
 ALK4 + OH = R4O2 :                           GCARR2(9.10d-12, -405.0d0);
 R4O2 + NO = NO2 + 0.320ACET + 0.190MEK +
  0.190MO2 + 0.270HO2 + 0.320ALD2 +
  0.140RCHO + 0.050A3O2 + 0.180B3O2 +
- 0.320OTHRO2 :                               GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 4.5E0, 0.0, 0.0);                       {2017/02/23; ALK4 lumping fix; BHH}
-R4O2 + NO = R4N2 :                           GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 4.5E0, 0.0, 0.0);
+ 0.320OTHRO2 :                               GC_RO2NO_B2(2.70d-12, 350.0d0, 4.5d0);                                          {2017/02/23; ALK4 lumping fix; BHH}
+R4O2 + NO = R4N2 :                           GC_RO2NO_A2(2.70d-12, 350.0d0, 4.5d0);
 R4N1 + NO = 2.000NO2 + 0.570RCHO +
  0.860ALD2 + 0.570CH2O :                     GCARR2(2.70d-12, 350.0d0);                                                      {2017/07/27; Fix C creation; SAS,BHH,MJE}
 ATO2 + NO = NO2 + CH2O + MCO3 :              GCARR2(2.80d-12, 300.0d0);                                                      {2017/07/27; Fix C creation; SAS,BHH,MJE}
 KO2 + NO = 0.930NO2 + 0.930ALD2 +
  0.930MCO3 + 0.070R4N2 :                     GCARR2(2.70d-12, 350.0d0);
-B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO('B', 2.70E-12, 0.0E+00, 360.0, 3E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
-B3O2 + NO = IPRNO3 :                         GC_RO2NO('A', 2.70E-12, 0.0E+00, 360.0, 3E0, 0.0, 0.0);                         {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO_B2(2.70E-12, 360.0d0, 3.0d0);                                          {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = IPRNO3 :                         GC_RO2NO_A2(2.70E-12, 360.0d0, 3.0d0);                                          {2019/05/10; Fisher2018; JAF}
 PRN1 + NO = 2.000NO2 + CH2O + ALD2 :         GCARR2(2.70d-12, 350.0d0);
 ALK4 + NO3 = HNO3 + R4O2 :                   GCARR2(2.80d-12, -3280.0d0);
 R4N2 + OH = R4N1 + H2O :                     1.60d-12;
