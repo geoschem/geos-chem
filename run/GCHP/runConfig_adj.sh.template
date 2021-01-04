@@ -524,10 +524,23 @@ replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
 echo "Removing adjoint history collections"
+<<<<<<< HEAD
+<<<<<<<< HEAD:run/GCHP/runConfig_adj.sh.template
+=======
+>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150
 sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'Adjoint',/" HISTORY.rc
 sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'SFEmissions',/" HISTORY.rc
 replace_val SFEmissions.backwards 1 HISTORY.rc
 sed -i -e "s/^[ \t]*#\([ \t]*SFEmis.*\)$/\1/" HEMCO_Diagn.rc
+<<<<<<< HEAD
+========
+sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
+sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
+replace_val SFEmissions.backwards 0 HISTORY.rc
+sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
+>>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150:run/GCHPctm/runConfig.sh.template
+=======
+>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150
 
 ####  set cubed-sphere resolution and related grid variables
 echo " "
@@ -577,7 +590,15 @@ echo "Initial reestart file:"
 replace_val GCHPchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
 
 ### adjoint model phase
+<<<<<<< HEAD
+<<<<<<<< HEAD:run/GCHP/runConfig_adj.sh.template
 replace_val MODEL_PHASE "ADJOINT" GCHP.rc
+========
+replace_val MODEL_PHASE "FORWARD" GCHP.rc
+>>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150:run/GCHPctm/runConfig.sh.template
+=======
+replace_val MODEL_PHASE "ADJOINT" GCHP.rc
+>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150
 
 #### Set simulation start and end datetimes based on input.geos
 echo " "
@@ -585,7 +606,15 @@ echo "Simulation start, end, duration:"
 replace_val BEG_DATE  "${Start_Time}" CAP.rc
 replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
+<<<<<<< HEAD
+<<<<<<<< HEAD:run/GCHP/runConfig_adj.sh.template
 replace_val REVERSE_TIME "1"          CAP.rc
+========
+replace_val REVERSE_TIME "0"          CAP.rc
+>>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150:run/GCHPctm/runConfig.sh.template
+=======
+replace_val REVERSE_TIME "1"          CAP.rc
+>>>>>>> cd488b8f73a4f81cb1052cb4042e140242c19150
 
 #### Set frequency of writing restart files
 # Set to a very large number if turned off

@@ -79,7 +79,8 @@ CONTAINS
     USE Linoz_Mod,               ONLY : Linoz_Read
     USE PhysConstants,           ONLY : PI_180
     USE Pressure_Mod,            ONLY : Init_Pressure
-    USE State_Chm_Mod,           ONLY : ChmState
+    USE Roundoff_Mod,            ONLY : RoundOff
+    USE State_Chm_Mod,           ONLY : ChmState, Ind_
     USE State_Diag_Mod,          ONLY : DgnState
     USE State_Grid_Mod,          ONLY : GrdState, Init_State_Grid
     USE State_Met_Mod,           ONLY : MetState
@@ -92,7 +93,6 @@ CONTAINS
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
 #ifdef ADJOINT
     USE Charpak_Mod,             ONLY : To_UpperCase
-    USE State_Chm_Mod,           ONLY : Ind_
 #endif
 #if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer

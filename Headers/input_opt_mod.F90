@@ -428,6 +428,18 @@ MODULE Input_Opt_Mod
      INTEGER                     :: CF_LMIN, CF_LMAX
 
      !----------------------------------------
+     ! GCHP adjoint fields
+     !---------------------------------------
+     LOGICAL                     :: IS_ADJOINT
+     LOGICAL                     :: IS_FD_SPOT, IS_FD_GLOBAL
+     INTEGER                     :: FD_STEP
+     LOGICAL                     :: IS_FD_SPOT_THIS_PET
+     INTEGER                     :: IFD, JFD, NFD, LFD, NFD_ADJ
+     INTEGER                     :: CF_IMIN, CF_IMAX
+     INTEGER                     :: CF_JMIN, CF_JMAX
+     INTEGER                     :: CF_LMIN, CF_LMAX
+
+     !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------
      INTEGER                     :: LINOZ_NLEVELS
