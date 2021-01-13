@@ -2,7 +2,7 @@
 name: Start an extended discussion about a GEOS-Chem-related topic
 about: Use this template to start a discussion about an ongoing research matter or open-ended development project.
 title: "[DISCUSSION]"
-labels: discussion
+labels: discussion, never-stale
 assignees: ''
 
 ---

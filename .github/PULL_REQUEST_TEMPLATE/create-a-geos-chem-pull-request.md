@@ -2,7 +2,7 @@
 name: Submit updates to GEOS-Chem with a pull request
 about: This template instructs users to submit a GEOS-Chem pull request
 title: "[PULL REQUEST]"
-labels: ''
+labels: never-stale
 assignees: ''
 
 ---
