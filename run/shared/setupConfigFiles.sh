@@ -255,7 +255,7 @@ Species name            : MOPO"
     # TOMAS settings
     #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-        replace_colon_sep_val "Use non-local PBL?"       F    input.geos
+        replace_colon_sep_val " => Use non-local PBL?"   F    input.geos
         replace_colon_sep_val "Use linear. strat. chem?" F    input.geos
         replace_colon_sep_val "=> Online O3 from model"  F    input.geos
         replace_colon_sep_val "TOMAS_Jeagle"             on   HEMCO_Config.rc
