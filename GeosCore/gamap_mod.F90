@@ -538,10 +538,6 @@ CONTAINS
     !=================================================================
 
     ! Write one line to "tracerinfo.dat" file
-    WRITE( 6, 100, IOSTAT=IOS ) &
-         ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, 1, N, SCALE, TRIM( UNIT )
-
-    ! Write one line to "tracerinfo.dat" file
     WRITE( IU_FILE, 100, IOSTAT=IOS ) &
          ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, 1, N, SCALE, TRIM( UNIT )
 
