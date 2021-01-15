@@ -88,8 +88,9 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
-                                  USE_O3_FROM_MET, TO3, RC )
+  SUBROUTINE COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid,      State_Chm,     &
+                                  DAY,       USE_O3_FROM_MET, TO3,           &
+                                  RC                                        )
 !
 ! !USES:
 !
@@ -101,15 +102,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
-    TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
-    TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
-    INTEGER,        INTENT(IN) :: DAY             ! Day of month
-    LOGICAL,        INTENT(IN) :: USE_O3_FROM_MET ! Use TO3 directly from met?
-    REAL(fp),       INTENT(IN) :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
-                                                                   ! [Dobsons]
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+    TYPE(GrdState), INTENT(IN)    :: State_Grid            ! Grid State
+    INTEGER,        INTENT(IN)    :: DAY                   ! Day of month
+    LOGICAL,        INTENT(IN)    :: USE_O3_FROM_MET       ! Use TO3 rom met?
+    REAL(fp),       INTENT(IN)    :: TO3(State_Grid%NX, &
+                                         State_Grid%NY)    ! Met TO3 [Dobsons]
 !
-    INTEGER,        INTENT(OUT) :: RC              ! Success or failure?!
+! !INPUT/OUTPUT PARAMETERS
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! Chemistry State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC                    ! Success/failure?
+!
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
 !                                                                             .
@@ -226,7 +233,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
           RETURN
        ENDIF
-       
+
        ! Evalulate the last day TOMS O3 columns from HEMCO
        CALL HCO_EvalFld( HcoState, 'TOMS2_O3_COL', State_Chm%TOMS2, RC )
        IF ( RC /= GC_SUCCESS ) THEN
