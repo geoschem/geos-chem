@@ -48,14 +48,14 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       false    # 1980-2020
+    --> METEOROLOGY            :       true     # 1980-2021
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       false
     --> STATE_PSC              :       false
     --> HEMCO_RESTART          :       false
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2020
+    --> GC_BCs                 :       false    # 1980-2021
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2011_HOURLY         :       false    # 2006-2013
@@ -94,7 +94,7 @@ Warnings:                    1
     --> RCP_85                 :       false    # 2005-2100
 # ----- BIOMASS BURNING EMISSIONS -----------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       false    # 2003-2020
+    --> GFAS                   :       false    # 2003-2021
 # ----- OFFLINE EMISSIONS -------------------------------------
 # To use online emissions instead set the
 # offline emissions to 'false' and the
@@ -106,10 +106,10 @@ Warnings:                    1
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
 #--------------------------------------------------------------
-    --> OFFLINE_DUST           :       true     # 1980-2020
-    --> OFFLINE_BIOGENICVOC    :       true     # 1980-2020
-    --> OFFLINE_SEASALT        :       true     # 1980-2020
-    --> OFFLINE_SOILNOX        :       true     # 1980-2020
+    --> OFFLINE_DUST           :       true     # 1980-2021
+    --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
+    --> OFFLINE_SEASALT        :       true     # 1980-2021
+    --> OFFLINE_SOILNOX        :       true     # 1980-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> UVALBEDO               :       true     # 1985
     --> CCM_STRAT_Bry          :       true     # 2007
@@ -182,6 +182,7 @@ Warnings:                    1
     --> Emit HOI               :       true
     --> Emit I2                :       true
 130     TOMAS_Jeagle           : off   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
+130     TOMAS_DustDead         : off   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -2240,75 +2241,75 @@ Warnings:                    1
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s ACET 75/311        5 2
-0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s ACET 75/312        5 2
-0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s ALD2 75/311        5 2
-0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s ALD2 75/312        5 2
-0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s ALK4 75/311        5 2
-0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s ALK4 75/312        5 2
-0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
-0 QFED_BCPO_PBL  -                                                                 -       -                     -  -             -       BCPO 71/75/311     5 2
-0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
-0 QFED_BCPO_FT   -                                                                 -       -                     -  -             -       BCPO 71/75/312     5 2
-0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
-0 QFED_OCPO_PBL  -                                                                 -       -                     -  -             -       OCPO 73/75/311     5 2
-0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
-0 QFED_OCPO_FT   -                                                                 -       -                     -  -             -       OCPO 73/75/312     5 2
-0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s C2H6 75/311        5 2
-0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s C2H6 75/312        5 2
-0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s C3H8 75/311        5 2
-0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s C3H8 75/312        5 2
-0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s CH2O 75/311        5 2
-0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s CH2O 75/312        5 2
-0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s CH4  75/311        5 2
-0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s CH4  75/312        5 2
-0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s CO   54/75/311     5 2
-0 QFED_SOAP_PBL  -                                                                 -       -                     -  -             -       SOAP 54/75/281/311 5 2
-0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s CO   54/75/312     5 2
-0 QFED_SOAP_FT   -                                                                 -       -                     -  -             -       SOAP 54/75/281/312 5 2
-0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s CO2  75/311        5 2
-0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s CO2  75/312        5 2
-0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s MEK  75/311        5 2
-0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s MEK  75/312        5 2
-0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s NH3  75/311        5 2
-0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
-0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s NO   75/311        5 2
-0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s NO   75/312        5 2
-0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
-0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
-0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=1:PBL     kg/m2/s PRPE 75/311        5 2
-0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0 EF xyL=PBL:5500m kg/m2/s PRPE 75/312        5 2
+0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ACET 75/311        5 2
+0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ACET 75/312        5 2
+0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALD2 75/311        5 2
+0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALD2 75/312        5 2
+0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALK4 75/311        5 2
+0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALK4 75/312        5 2
+0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
+0 QFED_BCPO_PBL  -                                                                 -       -                             -  -             -       BCPO 71/75/311     5 2
+0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
+0 QFED_BCPO_FT   -                                                                 -       -                             -  -             -       BCPO 71/75/312     5 2
+0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
+0 QFED_OCPO_PBL  -                                                                 -       -                             -  -             -       OCPO 73/75/311     5 2
+0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
+0 QFED_OCPO_FT   -                                                                 -       -                             -  -             -       OCPO 73/75/312     5 2
+0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C2H6 75/311        5 2
+0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C2H6 75/312        5 2
+0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C3H8 75/311        5 2
+0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C3H8 75/312        5 2
+0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH2O 75/311        5 2
+0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH2O 75/312        5 2
+0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH4  75/311        5 2
+0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH4  75/312        5 2
+0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO   54/75/311     5 2
+0 QFED_SOAP_PBL  -                                                                 -       -                             -  -             -       SOAP 54/75/281/311 5 2
+0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO   54/75/312     5 2
+0 QFED_SOAP_FT   -                                                                 -       -                             -  -             -       SOAP 54/75/281/312 5 2
+0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO2  75/311        5 2
+0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO2  75/312        5 2
+0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s MEK  75/311        5 2
+0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s MEK  75/312        5 2
+0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3  75/311        5 2
+0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
+0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO   75/311        5 2
+0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO   75/312        5 2
+0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
+0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
+0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE 75/311        5 2
+0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s PRPE 75/312        5 2
 )))QFED2
 
 #==============================================================================
 # --- GFAS biomass burning ---
 #==============================================================================
 (((GFAS
-0 GFAS_CO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO   75     5 3
-0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 5 3
-0 GFAS_NO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc noxfire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NO   75     5 3
-0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75  5 3
-0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75  5 3
-0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
-0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
-0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75     5 3
-0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75     5 3
-0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
-0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
-0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75     5 3
-0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75     5 3
-0 GFAS_ALK4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkanesfire 2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALK4 75     5 3
-0 GFAS_PRPE1 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkenesfire 2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75     5 3
-0 GFAS_PRPE2 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75     5 3
-0 GFAS_C2H6  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H6 75     5 3
-0 GFAS_C3H8  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C3H8 75     5 3
-0 GFAS_CH2O  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch2ofire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH2O 75     5 3
-0 GFAS_C2H4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H4 75     5 3
-0 GFAS_ISOP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c5h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ISOP 75     5 3
-0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
-0 GFAS_TOLU  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c7h8fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s TOLU 75     5 3
-0 GFAS_BENZ  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c6h6fire      2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BENZ 75     5 3
-0 GFAS_XYLE  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c8h10fire     2003-2020/1-12/1-31/0 C xyL=1:scal300 kg/m2/s XYLE 75     5 3
+0 GFAS_CO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO   75     5 3
+0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 5 3
+0 GFAS_NO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc noxfire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NO   75     5 3
+0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75  5 3
+0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75  5 3
+0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
+0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
+0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75     5 3
+0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75     5 3
+0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
+0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
+0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75     5 3
+0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75     5 3
+0 GFAS_ALK4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkanesfire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALK4 75     5 3
+0 GFAS_PRPE1 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkenesfire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75     5 3
+0 GFAS_PRPE2 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75     5 3
+0 GFAS_C2H6  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H6 75     5 3
+0 GFAS_C3H8  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C3H8 75     5 3
+0 GFAS_CH2O  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch2ofire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH2O 75     5 3
+0 GFAS_C2H4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H4 75     5 3
+0 GFAS_ISOP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c5h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ISOP 75     5 3
+0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
+0 GFAS_TOLU  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c7h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s TOLU 75     5 3
+0 GFAS_BENZ  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c6h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BENZ 75     5 3
+0 GFAS_XYLE  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c8h10fire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s XYLE 75     5 3
 )))GFAS
 
 #==============================================================================
@@ -2610,86 +2611,86 @@ Warnings:                    1
 * PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
 
 # --- A1 fields ---
-* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1980-2020/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 
 # --- A3cld fields ---
-* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3dyn fields ---
-* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3mstC fields ---
-* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3mstE fields ---
-* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2020/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- I3 fields ---
-* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2020/1-12/1-31/*           EFY xy  1  * -  1 1
-* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
-* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2020/1-12/1-31/*           EFY xyz 1  * -  1 1
+* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2021/1-12/1-31/*           EFY xy  1  * -  1 1
+* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
+* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
 
-* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2020/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
-* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
-* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2020/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2021/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
+* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
 
 #==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
@@ -2699,8 +2700,8 @@ Warnings:                    1
 #                                                    --Lee Murray (16 Jan 2019)
 #==============================================================================
 (((LightNOx
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2020/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 )))LightNOx
 
 )))METEOROLOGY
@@ -2729,7 +2730,7 @@ Warnings:                    1
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_  $ROOT/SAMPLE_BCs/v2020-03/tropchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2020/1-12/1-31/* EY xyz 1 * - 1 1
+* BC_  $ROOT/SAMPLE_BCs/v2020-03/tropchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EY xyz 1 * - 1 1
 )))GC_BCs
 
 (((CHEMISTRY_INPUT
@@ -3697,10 +3698,10 @@ Warnings:                    1
 51 KET2ACET   0.75  - - - xy unitless 1
 )))RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85
 
-(((APEI.or.EDGARv43.or.DICE_Africa
+(((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
 54 COPROD_BIOMASS   1.05  - - - xy unitless 1
-)))APEI.or.EDGARv43.or.DICE_Africa
+)))APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 
 # RCP acids to HCOOH conversion
 (((RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85
@@ -3877,7 +3878,7 @@ Warnings:                    1
 # --- GFAS scale factors ---
 #==============================================================================
 (((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2020/1-12/1-31/0 C xy m 1
+300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
 )))GFAS
 
 #==============================================================================

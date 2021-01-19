@@ -83,7 +83,7 @@ set_common_settings() {
 	sed -i -e "s|AL  0      3 |AL  107    -1|"       HEMCO_Diagn.rc   #   "   "
 	sed -i -e "s|CL  0      3 |CL  107    -1|"       HEMCO_Diagn.rc   #   "   "
         sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
-        sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108) 
+        sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108)
         sed -i -e "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
         sed -i -e "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
         sed -i -e "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
@@ -258,8 +258,12 @@ Species name            : MOPO"
         replace_colon_sep_val " => Use non-local PBL?"   F    input.geos
         replace_colon_sep_val "Use linear. strat. chem?" F    input.geos
         replace_colon_sep_val "=> Online O3 from model"  F    input.geos
-        replace_colon_sep_val "TOMAS_Jeagle"             on   HEMCO_Config.rc
-        # Add TOMAS species to input.geos
+
+	# Turn on TOMAS size-resolved dust & seasalt extensions
+	sed -i -e "/TOMAS_DustDead         : off/TOMAS_DustDead         : on/" HEMCO_Config.rc
+	sed -i -e "/TOMAS_Jeagle           : off/TOMAS_Jeagle           : on/" HEMCO_Config.rc
+
+	# Add TOMAS species to input.geos
         prev_line="Species name            : XYLE"
         new_line="\Species name            : H2SO4\n\
 Species name            : NK1\n\

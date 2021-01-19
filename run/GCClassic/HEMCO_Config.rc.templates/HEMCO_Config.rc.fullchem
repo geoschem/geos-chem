@@ -45,7 +45,7 @@ Warnings:                    1
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
-0       Base                   : on    *           
+0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     # 1980-2021
@@ -115,7 +115,7 @@ Warnings:                    1
     --> CCM_STRAT_Bry          :       true     # 2007
     --> GMI_STRAT_OH           :       true     # 2005
     --> GMI_PROD_LOSS          :       true     # 2005
-    --> UCX_PROD_LOSS          :       false    # 2013   
+    --> UCX_PROD_LOSS          :       false    # 2013
     --> OMOC_RATIO             :       false    # 2010
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
@@ -180,6 +180,7 @@ Warnings:                    1
     --> Emit HOI               :       true
     --> Emit I2                :       true
 130     TOMAS_Jeagle           : off   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
+131     TOMAS_DustDead         : off   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
