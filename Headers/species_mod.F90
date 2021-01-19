@@ -139,6 +139,10 @@ MODULE Species_Mod
                                             !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
+#ifdef MODEL_CESM
+     LOGICAL            :: WD_ExternalDep   ! In CESM, some GEOS-Chem aerosols
+                                            ! can be deposited by MAM.
+#endif
 
      ! Microphysics parameters
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
@@ -376,6 +380,9 @@ CONTAINS
     Spc%WD_Is_HNO3      = MISSING_BOOL
     Spc%WD_Is_SO2       = MISSING_BOOL
     Spc%WD_LiqAndGas    = MISSING_BOOL
+#ifdef MODEL_CESM
+    Spc%WD_ExternalDep  = MISSING_BOOL
+#endif
 
     ! Integers
     Spc%AdvectId        = MISSING_INT
@@ -638,6 +645,12 @@ CONTAINS
           IF ( ThisSpc%WD_Is_SO2 ) THEN
              WRITE( 6, 130 ) "WD_Is_SO2      ",  ThisSpc%WD_Is_SO2
           ENDIF
+
+#ifdef MODEL_CESM
+          IF ( ThisSpc%WD_ExternalDep ) THEN
+             Write( 6, 130 ) "WD_ExternalDep ", ThisSpc%WD_ExternalDep
+          ENDIF
+#endif
        ENDIF
 
        !--------------------------------------------------------------------
