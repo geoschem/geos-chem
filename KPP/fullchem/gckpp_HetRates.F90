@@ -275,7 +275,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)               :: HOBr_RTEMP,   QICE,     QLIQ,     SPC_BrNO3
       REAL(fp)               :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
       REAL(fp)               :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
-      REAL(fp)               :: conc1, conc2
+      REAL(fp)               :: conc1, conc2, denom1,   denom2
 
       ! SAVEd scalars
       LOGICAL,          SAVE :: FIRST = .TRUE.
@@ -475,45 +475,46 @@ MODULE GCKPP_HETRATES
             + spcVec(H%SALACL%mId) * 0.7_fp                                  &
             + spcVec(H%SALCCL%mId)
 
+      ! conc1 and conc2 are used as the denominators below (bmy, 1/20/20)
+      denom1 = conc1
+      denom2 = conc2
+
       CALL Get_Halide_CldConc( conc1,       conc2,      VLiq,  VIce,         &
                                VAir,        TempK,      CLDFr, pHCloud,      &
                                brConc_Cldg, clConc_Cldg                     )
 
       brConc_Cld  = brConc_Cldg
-      brConc_Cldg = ( brConc_Cld * spcVec(H%HBr%mId)                        )&
-                  / ( spcVec(H%HBr%mId)             +                       &
-                      spcVec(H%BrSALA%mId) * 0.7_fp +                       &
-                      spcVec(H%BrSALC%mId)                                  )
-      brConc_CldA = ( brConc_Cld * spcVec(H%BrSALA%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
 
-      brConc_CldC = ( brConc_Cld * spcVec(H%BrSALC%mId)                     )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      IF ( denom1 > 0.0_fp ) THEN
+         brConc_Cldg = ( brConc_Cld * spcVec(H%HBr%mId)             ) / denom1 
+         brConc_CldA = ( brConc_Cld * spcVec(H%BrSALA%mId) * 0.7_fp ) / denom1
+         brConc_CldC = ( brConc_Cld * spcVec(H%BrSALC%mId)          ) / denom1
+      ELSE
+         brConc_Cldg = 0.0_fp
+         brConc_CldA = 0.0_fp
+         brConc_CldC = 0.0_fp
+      ENDIF
 
+      ! Enforce minimum values
       brConc_Cldg = MAX( brConc_Cldg, 1.0e-20_fp )
       brConc_CldA = MAX( brConc_CldA, 1.0e-20_fp )
       brConc_CldC = MAX( brConc_CldC, 1.0e-20_fp )
 
       clConc_Cld  = clConc_Cldg
-      clConc_Cldg = ( clConc_Cld * spcVec(H%HCl%mId)                        )&
-                  / ( spcVec(H%HCl%mId)              +                     &
-                      spcVec(H%SALACL%mId) * 0.7_fp  +                     &
-                      spcVec(H%SALCCL%mId)                                  )
 
-      clConc_CldA = ( clConc_Cld * spcVec(H%SALACL%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      IF ( denom2 > 0.0_fp ) THEN
+         clConc_Cldg = ( clConc_Cld * spcVec(H%HCl%mId)             ) / denom2
+         clConc_CldA = ( clConc_Cld * spcVec(H%SALACL%mId) * 0.7_fp ) / denom2
+         clConc_CldC = ( clConc_Cld * spcVec(H%SALCCL%mId)          ) / denom2
+      ELSE
+         clConc_Cldg = 0.0_fp
+         clConc_CldA = 0.0_fp
+         clConc_CldC = 0.0_fp 
+      ENDIF
 
-      clConc_Cldc = ( clConc_Cld * spcVec(H%SALCCL%mId)                     )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
-
+      ! Enforce minimum values
       clConc_Cldg = MAX( clConc_Cldg, 1.0e-20_fp )
       clConc_CldA = MAX( clConc_CldA, 1.0e-20_fp )
       clConc_CldC = MAX( clConc_CldC, 1.0e-20_fp )
