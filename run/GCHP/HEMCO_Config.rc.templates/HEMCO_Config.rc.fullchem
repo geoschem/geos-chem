@@ -2449,18 +2449,28 @@ Warnings:                    1
 )))SoilNOx
 
 #==============================================================================
-# --- Dust emissions using DEAD model (Extension 105) ---
+# --- Dust emissions using DEAD model (Extensions 105 and 131) ---
 #==============================================================================
 (((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc              GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc                  VAI      1985/1-12/1/0 C xy unitless *    -    1 1
+105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
 )))DustDead
+(((TOMAS_DustDead
+131 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
+131 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
+131 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
+131 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
+131 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
+131 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
+131 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
+131 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
+)))TOMAS_DustDead
 
 #==============================================================================
 # --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
@@ -2472,7 +2482,7 @@ Warnings:                    1
 )))DustGinoux
 
 #==============================================================================
-# --- Sea salt emissions (Extension 107)
+# --- Sea salt emissions (Extensions 107 and 130)
 #
 # MODIS Chlorophyll-A fields used for emissions of marine organic aerosols
 #==============================================================================
@@ -2482,6 +2492,12 @@ Warnings:                    1
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
 )))SeaSalt
+(((TOMAS_Jeagle
+130 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS 2005-2014/1-12/1/0 C xy 1 * - 1 1
+
+# Climatology CHLR
+#130 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
+)))TOMAS_Jeagle
 
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108)
