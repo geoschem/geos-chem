@@ -107,6 +107,9 @@ if [[ $? == 0 ]]; then
     # Echo end date
     echo '===> Run ended at' `date` >> ${log}
 
+    # Update the results log
+    ./intTestResults.sh
+
 else
     cat ${log}
 fi

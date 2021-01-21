@@ -64,31 +64,47 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
-# Loop over all of the execution logs
-for path in logs/execute*; do
+# Get a list of GCHP run directories
+dirlist=$(ls -1 | grep gchp_)
 
-    # Get the run directory name from the path
+# Loop over all of the execution logs
+for dir in ${dirlist}; do
+
+    # Log file path
+    path="execute.${dir}.log"
+
+    # If the log file path exists, then get the filename part
     file=$(basename ${path})
     runDir="${file%.*}"
     runDir="${runDir#*.}"
-    
+
     # Create sucess and failure messages
     passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
     failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
+    naMsg="$runDir${FILL:${#runDir}}.....Not Completed"
 
-    # Look for the text ----EXTDATA, which shows up
-    # at the end of a successful GCHP job
-    grep -e ----EXTDATA ${path} > /dev/null
-    if [[ $? -eq 0 ]]; then
-        let passed++
-	print_to_log "${passMsg}" ${results}
+    # Test if the log file exists
+    if [[ -f ${path} ]]; then
+
+	# Look for the text ----EXTDATA, which shows up
+	# at the end of a successful GCHP job
+	grep -e ----EXTDATA ${path} > /dev/null
+	if [[ $? -eq 0 ]]; then
+	    let passed++
+	    print_to_log "${passMsg}" ${results}
+	else
+    	    let failed++
+	    print_to_log "${failMsg}" ${results}
+	fi
+	let remain--
+
     else
-    	let failed++
-	print_to_log "${failMsg}" ${results}
+
+	# If the log file path does not exist,
+	# then indicate the test is still to be done
+	print_to_log "${naMsg}" ${results}
 
     fi
-    let remain--
-
 done
 
 #============================================================================
