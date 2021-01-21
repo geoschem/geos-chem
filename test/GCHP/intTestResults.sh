@@ -71,7 +71,7 @@ dirlist=$(ls -1 | grep gchp_)
 for dir in ${dirlist}; do
 
     # Log file path
-    path="execute.${dir}.log"
+    path="logs/execute.${dir}.log"
 
     # If the log file path exists, then get the filename part
     file=$(basename ${path})
@@ -81,7 +81,7 @@ for dir in ${dirlist}; do
     # Create sucess and failure messages
     passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
     failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
-    naMsg="$runDir${FILL:${#runDir}}.....Not Completed"
+    tbdMsg="$runDir${FILL:${#runDir}}.....${EXE_TBD_STR}"
 
     # Test if the log file exists
     if [[ -f ${path} ]]; then
@@ -102,7 +102,7 @@ for dir in ${dirlist}; do
 
 	# If the log file path does not exist,
 	# then indicate the test is still to be done
-	print_to_log "${naMsg}" ${results}
+	print_to_log "${tbdMsg}" ${results}
 
     fi
 done

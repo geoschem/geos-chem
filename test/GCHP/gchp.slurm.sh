@@ -107,15 +107,17 @@ if [[ $? == 0 ]]; then
     # Echo end date
     echo '===> Run ended at' `date` >> ${log}
 
-    # Update the results log
-    ./intTestResults.sh
-
 else
     cat ${log}
 fi
 
 # Clear variable
 unset log
+
+# Update the results log
+cd ..
+./intTestResults.sh
+cd ${thisDir}
 
 # Exit normally
 exit 0
