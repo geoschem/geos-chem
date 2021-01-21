@@ -325,7 +325,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-    USE CMN_O3_MOD               ! SAVEOH
+    USE CMN_O3_MOD,         ONLY : SAVEOA
     USE CMN_SIZE_MOD,       ONLY : NRH, NDUST
     USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
     USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,  GET_TS_CHEM
@@ -522,6 +522,16 @@ CONTAINS
                            ( Spc(I,J,L,N) * ( AIRMW &
                            / State_Chm%SpcData(N)%Info%MW_g ) &
                              * GOOD(I) )
+
+             ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+
+                !--------------------------------------
+                ! OH [molec/cm3]
+                !--------------------------------------
+
+                ! Accumulate data
+                Q(X,Y,K,W) = Q(X,Y,K,W) + &
+                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) )
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
@@ -1802,7 +1812,7 @@ CONTAINS
     IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
     IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
     IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
-    
+
   END SUBROUTINE CLEANUP_DIAG51b
 !EOC
 END MODULE DIAG51b_MOD

@@ -328,8 +328,8 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
     USE CMN_FJX_MOD,        ONLY : ISOPOD
-    USE CMN_O3_MOD               ! SAVEOH, SAVEOA
     USE CMN_SIZE_MOD,       ONLY : NRH, NDUST
+    USE CMN_O3_MOD,         ONLY : SAVEOA
     USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
     USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
@@ -537,18 +537,15 @@ CONTAINS
                      ( Spc(I,J,L,N) * (AIRMW &
                      / State_Chm%SpcData(N)%Info%MW_g ) * GOOD(I) )
 
-                ! NOTE: We can restore this once we figure out what the
-                ! proper unit conversion is (bmy, 11/20/17)
-                !            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-                !
-                !               !--------------------------------------
-                !               ! OH [molec/cm3]
-                !               ! NOTE: Only archive at chem timestep
-                !               !--------------------------------------
-                !
-                !               ! Accumulate data
-                !               Q(X,Y,K,W) = Q(X,Y,K,W) + &
-                !                   ( SAVEOH(I,J,L,id_OH) * GOOD(X) )
+             ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+
+                !--------------------------------------
+                ! OH [molec/cm3]
+                !--------------------------------------
+
+                ! Accumulate data
+                Q(X,Y,K,W) = Q(X,Y,K,W) + &
+                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) )
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
@@ -628,7 +625,7 @@ CONTAINS
                 Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(I,J,L) * GOOD(I) )
 
              ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
-                
+
                 !--------------------------------------
                 ! CLOUD TOP HEIGHTS [mb]
                 !--------------------------------------
@@ -1521,7 +1518,7 @@ CONTAINS
           UNIT     = 'unitless'
           GMNL     = ND51_NL
           GMTRC    = 6
-            
+
        ELSE IF ( N == 518 ) THEN
 
           !---------------------
