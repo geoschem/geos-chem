@@ -260,8 +260,8 @@ Species name            : MOPO"
         replace_colon_sep_val "=> Online O3 from model"  F    input.geos
 
 	# Turn on TOMAS size-resolved dust & seasalt extensions
-	sed -i -e "/TOMAS_DustDead         : off/TOMAS_DustDead         : on/" HEMCO_Config.rc
-	sed -i -e "/TOMAS_Jeagle           : off/TOMAS_Jeagle           : on/" HEMCO_Config.rc
+	sed -i -e "s|TOMAS_DustDead         : off|TOMAS_DustDead         : on|" HEMCO_Config.rc
+	sed -i -e "s|TOMAS_Jeagle           : off|TOMAS_Jeagle           : on|" HEMCO_Config.rc
 
 	# Add TOMAS species to input.geos
         prev_line="Species name            : XYLE"
