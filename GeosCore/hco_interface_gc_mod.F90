@@ -231,7 +231,7 @@ CONTAINS
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
  100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
- 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a12, 15x, '%%%%%' )
     ENDIF
 
     !=======================================================================
