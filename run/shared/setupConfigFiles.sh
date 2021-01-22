@@ -260,13 +260,13 @@ Species name            : MOPO"
         replace_colon_sep_val "=> Online O3 from model"  F    input.geos
 
 	# Turn on TOMAS size-resolved dust & seasalt extensions
-	sed -ie "s|TOMAS_DustDead         : off|TOMAS_DustDead         : on |" HEMCO_Config.rc
-	sed -ie "s|TOMAS_Jeagle           : off|TOMAS_Jeagle           : on |" HEMCO_Config.rc
+	sed -i -e "s|TOMAS_DustDead         : off|TOMAS_DustDead         : on |" HEMCO_Config.rc
+	sed -i -e "s|TOMAS_Jeagle           : off|TOMAS_Jeagle           : on |" HEMCO_Config.rc
 
 	# Remove extra species in extension settings for TOMAS15 simulations
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	    sed -ie "s|\/SS16\/SS17\/SS18\/SS19\/SS20\/SS21\/SS22\/SS23\/SS24\/SS25\/SS26\/SS27\/SS28\/SS29\/SS30\/SS31\/SS32\/SS33\/SS34\/SS35\/SS36\/SS37\/SS38\/SS39\/SS40||" HEMCO_Config.rc
-	    sed -ie "s|\/DUST16\/DUST17\/DUST18\/DUST19\/DUST20\/DUST21\/DUST22\/DUST23\/DUST24\/DUST25\/DUST26\/DUST27\/DUST28\/DUST29\/DUST30\/DUST31\/DUST32\/DUST33\/DUST34\/DUST35\/DUST36\/DUST37\/DUST38\/DUST39\/DUST40||" HEMCO_Config.rc
+	    sed -i -e "s|\/SS16\/SS17\/SS18\/SS19\/SS20\/SS21\/SS22\/SS23\/SS24\/SS25\/SS26\/SS27\/SS28\/SS29\/SS30\/SS31\/SS32\/SS33\/SS34\/SS35\/SS36\/SS37\/SS38\/SS39\/SS40||" HEMCO_Config.rc
+	    sed -i -e "s|\/DUST16\/DUST17\/DUST18\/DUST19\/DUST20\/DUST21\/DUST22\/DUST23\/DUST24\/DUST25\/DUST26\/DUST27\/DUST28\/DUST29\/DUST30\/DUST31\/DUST32\/DUST33\/DUST34\/DUST35\/DUST36\/DUST37\/DUST38\/DUST39\/DUST40||" HEMCO_Config.rc
 	fi
 
 	# Add TOMAS species to input.geos
