@@ -155,7 +155,8 @@ MODULE TOMAS_MOD
 
   INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
   INTEGER  :: act_nuc = 0 ! in BL
-  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu 
+                          ! (Yu currently broken, JRP 202101)
   INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                           ! nucleation tuned by factor of 1.0D-5
 
@@ -2155,7 +2156,7 @@ CONTAINS
           rhin=dble(RHTOMAS*100.e+0_fp)
           tempin=dble(TEMPTMS)
           !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
-          !           fn, dum1, rnuc, dum2)
+          !            fn, dum1, rnuc, dum2)
           fn=0.
           rnuc=1E-9
           nflg=.true.
