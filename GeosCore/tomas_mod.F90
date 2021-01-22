@@ -2154,8 +2154,10 @@ CONTAINS
           !enddo
           rhin=dble(RHTOMAS*100.e+0_fp)
           tempin=dble(TEMPTMS)
-          call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
-                      fn, dum1, rnuc, dum2)
+          !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
+          !           fn, dum1, rnuc, dum2)
+          fn=0.
+          rnuc=1E-9
           nflg=.true.
        else
           nflg=.false.
@@ -2957,8 +2959,10 @@ CONTAINS
           rhin=dble(RHTOMAS*100.e+0_fp)
           tempin=dble(TEMPTMS)
 
-          call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
-                      fn, dum1, rnuc, dum2)
+          !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
+          !            fn, dum1, rnuc, dum2)
+          fn=0.
+          rnuc=1E-9
        endif
        if((act_nuc.eq.1).and.(lev.le.7))then
           call bl_nucl(h2so4,fn,rnuc)
@@ -6401,7 +6405,7 @@ CONTAINS
     CALL READFRACTION( fname(4), FRACTION2 )
 
     !initialize yu lookup table
-    call READJIMN5D( Input_Opt, RC )  ! yu nucleation inputs
+    !call READJIMN5D( Input_Opt, RC )  ! yu nucleation inputs
 
     ! Find a free file LUN
     LUN = findFreeLUN()
