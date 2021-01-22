@@ -8,7 +8,7 @@
 !
 ! !DESCRIPTION: Module hco\_interface\_gc\_mod.F90 contains routines and
 ! variables to interface GEOS-Chem and HEMCO. It contains the HEMCO
-! state object (HcoState) as well as init-run-finalize driver routines 
+! state object (HcoState) as well as init-run-finalize driver routines
 ! to run HEMCO within GEOS-Chem.
 !\\
 !\\
@@ -230,8 +230,8 @@ CONTAINS
        WRITE( 6, 100   ) 'HEMCO: Harmonized Emissions Component'
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
- 101   FORMAT( '%%%%%', 15x, a, a12, 15x, '%%%%%' )
+ 100   FORMAT( '%%%%%', 15x, a,      17x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a12, 14x, '%%%%%' )
     ENDIF
 
     !=======================================================================
@@ -2981,7 +2981,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Lightning NOx extension
     !
-    ! The lightning NOx extension is only used in fullchem simulations. We 
+    ! The lightning NOx extension is only used in fullchem simulations. We
     ! will create a shadow field (Input_Opt%DoLightningNOx) to determine if
     ! the FLASH_DENS and CONV_DEPTH fields are needed in flexgrid_read_mod.F90
     !-----------------------------------------------------------------------
