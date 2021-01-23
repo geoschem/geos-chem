@@ -1,11 +1,11 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : {DATE1} {TIME1}
-End   YYYYMMDD, hhmmss  : {DATE2} {TIME2}
+Start YYYYMMDD, hhmmss  : 20000101 000000
+End   YYYYMMDD, hhmmss  : 20000101 010000
 Run directory           : ./
-Root data directory     : {DATA_ROOT}
-Met field               : {MET}
-Simulation name         : Standard
+Root data directory     : ./
+Met field               : MERRA2
+Simulation name         : Fullchem
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
@@ -69,6 +69,7 @@ Species name            : ClNO2
 Species name            : ClNO3
 Species name            : ClO
 Species name            : ClOO
+Species name            : CLOCK
 Species name            : CO
 Species name            : DMS
 Species name            : DST1
@@ -234,7 +235,7 @@ Turn on Transport       : T
  => IORD, JORD, KORD    : 3  3  7
 ------------------------+------------------------------------------------------
 %%% CONVECTION MENU %%% :
-Turn on Cloud Conv?     : T
+Turn on Cloud Conv?     : F
 Turn on PBL Mixing?     : T
  => Use non-local PBL?  : T
 ------------------------+------------------------------------------------------
@@ -242,7 +243,7 @@ Turn on PBL Mixing?     : T
 HEMCO Input file        : HEMCO_Config.rc
 Switches for UCX        :---
  => Use CH4 emissions?  : F
- => Set init. strat. H2O: T
+ => Set init. strat. H2O: F
 ------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
