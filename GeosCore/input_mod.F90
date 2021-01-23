@@ -25,9 +25,7 @@ MODULE INPUT_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-#if !defined ( MODEL_CESM )
   PUBLIC  :: Read_Input_File
-#endif
   PUBLIC  :: Do_Error_Checks
   PUBLIC  :: Validate_Directories
 !
@@ -47,7 +45,6 @@ MODULE INPUT_MOD
 
 CONTAINS
 !EOC
-#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -400,7 +397,6 @@ CONTAINS
 
   END SUBROUTINE READ_INPUT_FILE
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
