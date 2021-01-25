@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Mon Jan  4 16:57:36 2021
+! Time                 : Mon Jan 25 15:21:19 2021
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -130,43 +130,53 @@ CONTAINS
 ! Begin INLINED Rate Law Functions
 
 
-  ! Not needed in this mechanism; leave commented out for now (bmy, 12/18/20)
-  !FUNCTION ARRPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
-  !  ! Modified Arrhenius law
-  !  ! Use when Arrhenius parameters b0 and c0 are both nonzero
-  !  REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
-  !  REAL(kind=dp)             :: k0, rate
-  !  k0   = a0 * ( d0 + ( TEMP * e0 ) )
-  !  rate = k0 * EXP( -b0 / TEMP ) * ( TEMP / 300.0_dp )**c0
-  !  IF ( rate < 0.0_dp ) rate = 0.0_dp
-  !END FUNCTION ARRPLUS
 
-  FUNCTION ARRPLUS1( a0, b0, d0, e0 ) RESULT( rate )
-    ! Modified Arrhenius law, skipping computation of ( T/300 )**c0,
-    ! which evaluates to 1 when c0=0.  This avoids excess CPU cycles.
-    ! (bmy, 12/18/20)
-    !
-    REAL(kind=dp), INTENT(IN) :: a0, b0, d0, e0
-    REAL(kind=dp)             :: rate
-    !
-    rate = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
-    rate = MAX( rate, 0.0_dp )
-  END FUNCTION ARRPLUS1
-
-  FUNCTION ARRPLUS2( a0, d0, e0 ) RESULT( rate )
+  FUNCTION ARRPLUS_ade( a0, d0, e0 ) RESULT( rate )
     ! Modified Arrhenius law, skipping computation of EXP( -b0/T )
     ! and ( 300/T )**c0 terms, which evaluate to 1 when b0 = c0 = 0.
     ! This avoids excess CPU cycles. (bmy, 12/18/20)
+    !
+    ! Used to compute the rate for these reactions:
+    !    IHOO1 + IHOO1 = 2MVK  + 2HO2 + 2CH2O
+    !    IHOO4 + IHOO4 = 2MACR + 2HO2 + 2CH2O
+    !    IHOO1 + IHOO4 = MACR + MVK + 2HO2 + 2CH2O
+    !    IHOO1 + IHOO1 = HO2 + HC5A + CO + OH +  MVKHP
+    !    IHOO4 + IHOO4 = HO2 + HC5A + CO + OH +  MCRHP
+    !    IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +  0.5MVKHP + 0.5MCRHP 
+    !    IHOO1 + MO2   = MVK + 2HO2 + 2CH2O : 
+    !    IHOO1 + MO2   = CH2O + 0.5HC5A + 1.5HO2 + 0.5MVKHP + 0.5CO + 0.5OH
+    !    IHOO4 + MO2   = MACR + 2HO2 + 2CH2O
+    !    IHOO4 + MO2   = CH2O + 0.5HC5A + 1.5HO2 +  0.5MCRHP + 0.5CO + 0.5OH
     !
     REAL(kind=dp), INTENT(IN) :: a0, d0, e0
     REAL(kind=dp)             :: rate
     !
     rate = a0 * ( d0 + ( TEMP * e0 ) )
     rate = MAX( rate, 0.0_dp )
-  END FUNCTION ARRPLUS2
+  END FUNCTION ARRPLUS_ade
 
-  FUNCTION TUNPLUS( a0, b0, c0, d0, e0 ) RESULT( rate )
-    ! Reaction rate for:
+  FUNCTION ARRPLUS_abde( a0, b0, d0, e0 ) RESULT( rate )
+    ! Modified Arrhenius law, skipping computation of ( T/300 )**c0,
+    ! which evaluates to 1 when c0=0.  This avoids excess CPU cycles.
+    ! (bmy, 12/18/20)
+    !
+    ! Used to compute the rate for these reactions:
+    !    IHOO1 + HO2 = 0.063MVK + 0.063OH + 0.063HO2 + 0.063CH2O + 0.937RIPA
+    !    IHOO1 + HO2 = RIPC
+    !    IHOO4 + HO2 = 0.063MACR + 0.063OH + 0.063HO2 + 0.063CH2O + 0.937RIPB
+    !    IHOO4 + HO2 = RIPD
+    !    IHOO1       = CH2O + OH + MVK
+    !    IHOO4       = MACR + OH + CH2O
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, b0, d0, e0
+    REAL(kind=dp)             :: rate
+    !
+    rate = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
+    rate = MAX( rate, 0.0_dp )
+  END FUNCTION ARRPLUS_abde
+
+  FUNCTION TUNPLUS_abcde( a0, b0, c0, d0, e0 ) RESULT( rate )
+    ! Used to compute the rate for these reactions:
     !    IHOO1 = 1.5OH + ...
     !    IHOO4 = 1.5OH + ...
     !
@@ -176,10 +186,10 @@ CONTAINS
     rate = a0 * ( d0 + ( TEMP * e0 ) )
     rate = rate * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
     rate = MAX( rate, 0.0_dp )
-  END FUNCTION TUNPLUS
+  END FUNCTION TUNPLUS_abcde
 
   FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
-    ! Reaction rate for:
+    ! Used to compute the rate for these reactions:
     !    ISOP + OH = LISOPOH + IHOO1
     !    ISOP + OH = LISOPOH + IHOO4
     !
@@ -193,7 +203,7 @@ CONTAINS
   END FUNCTION GC_ISO1
 
   FUNCTION GC_ISO2( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
-    ! Reaction rate for:
+    ! Used to compute the rate for these reactions:
     !    ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O
     !              + 0.15HPALD3 + 0.25HPALD1 + 0.4HO2
     !              + 0.6CO + 1.5OH + 0.3HPETHNL + LISOPOH
@@ -211,7 +221,7 @@ CONTAINS
   END FUNCTION GC_ISO2
 
   FUNCTION GC_EPO( a1, e1, m1 ) RESULT( rate )
-    ! Reaction rate for
+    ! Used to compute the rate for these reactions:
     !    RIPA   + OH = 0.67IEPOXA   + 0.33IEPOXB   + OH + 0.005LVOC
     !    RIPB   + OH = 0.68IEPOXA   + 0.321IEPOB   + OH + 0.005LVOC
     !    IEPOXA + OH = 0.67IEPOXA00 + 0.33IEPOXB00
@@ -232,8 +242,8 @@ CONTAINS
     rate = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO
 
-  FUNCTION GC_PAN( a0, c0, a1, c1, cf ) RESULT( rate )
-    ! Reaction rate for
+  FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( rate )
+    ! Used to compute the rate for these reactions:
     !    MACR1OO + NO2 = MPAN
     !    MACRNO2 + NO2 = MPAN + NO2
     !
@@ -253,10 +263,10 @@ CONTAINS
     nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
     f    = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
     rate = k0 * k1 * f / ( k0 + k1 )
-  END FUNCTION GC_PAN
+  END FUNCTION GC_PAN_acac
 
   FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( rate )
-    ! Reaction rate for:
+    ! Used to compute the rate for these reactions:
     !    IHOO1    + NO = IHN2
     !    IHOO4    + NO = IHN4
     !    IHPOO1   + NO = IHTN
@@ -292,7 +302,7 @@ CONTAINS
   END FUNCTION GC_NIT
 
   FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( rate )
-    ! Reaction rate for:
+    ! Used to compute the rate for these reactions:
     !   IHOO1    + NO =      NO2 + ...
     !   IHOO4    + NO =      NO2 + ...
     !   IHP001   + NO =      NO2 + ...
@@ -329,17 +339,7 @@ CONTAINS
     rate = MAX( rate, 0.0_dp )
   END FUNCTION GC_ALK
 
-  FUNCTION GCARR( a0, b0, c0 ) RESULT( rate )
-    ! Arrhenius function, using all 3 terms.
-    ! Use this when a0, b0, c0 are all nonzero.
-    !
-    REAL(kind=dp), INTENT(IN) :: a0, b0, c0
-    REAL(kind=dp)             :: rate
-    !
-    rate = a0 * EXP( c0 / TEMP ) * ( 300.0_dp / TEMP )**b0
-  END FUNCTION GCARR
-
-  FUNCTION GCARR1( a0, b0 ) RESULT( rate )
+  FUNCTION GCARR_ab( a0, b0 ) RESULT( rate )
     ! Arrhenius function, skipping computation of EXP( c0/T ),
     ! which evaluates to 1 when c0=0.  This avoids excess CPU
     ! cycles. (bmy, 12/18/20)
@@ -348,9 +348,9 @@ CONTAINS
     REAL(kind=dp)             :: rate
     !
     rate = a0 * ( 300.0_dp / TEMP )**b0
-  END FUNCTION GCARR1
+  END FUNCTION GCARR_ab
 
-  FUNCTION GCARR2( a0, c0 ) RESULT( rate )
+  FUNCTION GCARR_ac( a0, c0 ) RESULT( rate )
     ! Arrhenius function, skipping computation of ( 300/T )**b0,
     ! which evaluates to 1 when b0=0.  This avoids excess CPU
     ! cycles (bmy, 12/18/20)
@@ -359,10 +359,20 @@ CONTAINS
     REAL(kind=dp)             :: rate
     !
     rate = a0 * EXP( c0 / TEMP )
-  END FUNCTION GCARR2
+  END FUNCTION GCARR_ac
 
-  FUNCTION GC_HO2HO2( a0, c0, a1, c1 ) RESULT( rate )
-    ! Reaction rate for
+  FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( rate )
+    ! Arrhenius function, using all 3 terms.
+    ! Use this when a0, b0, c0 are all nonzero.
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, b0, c0
+    REAL(kind=dp)             :: rate
+    !
+    rate = a0 * EXP( c0 / TEMP ) * ( 300.0_dp / TEMP )**b0
+  END FUNCTION GCARR_abc
+
+  FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( rate )
+    ! Used to compute the rate for these reactions:
     !    HO2 + HO2 = H2O2 + O2
     !
     ! For this reaction, these Arrhenius law terms evaluate to 1:
@@ -378,9 +388,9 @@ CONTAINS
     r1   = a1 * EXP( c1 / TEMP )
     rate = ( r0     + r1         * NUMDEN                           ) &
          * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
-  END FUNCTION GC_HO2HO2
+  END FUNCTION GC_HO2HO2_acac
 
-  FUNCTION GC_TBRANCH1( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_1_acac( a0, c0, a1, c1 ) RESULT( rate )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    MO2 + MO2 = CH2O  + MOH + O2
     !    MO2 + MO2 = 2CH2O + 2HO2
@@ -397,9 +407,9 @@ CONTAINS
     r0   = a0 * EXP( c0 / TEMP )
     r1   = a1 * EXP( c1 / TEMP )
     rate = r0 / ( 1.0_dp + r1 )
-  END FUNCTION GC_TBRANCH1
+  END FUNCTION GC_TBRANCH_1_acac
 
-  FUNCTION GC_TBRANCH2( a0, c0, a1, b1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( rate )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    C3H8 + OH = B3O2
     !    C3H8 + OH = A3O2
@@ -415,9 +425,9 @@ CONTAINS
     r0   =  a0 * EXP( c0 / TEMP )
     r1   =  a1 * EXP( c1 / TEMP ) * ( 300.0_dp / TEMP )**b1
     rate =  r0 / ( 1.0_dp + r1 )
-  END FUNCTION GC_TBRANCH2
+  END FUNCTION GC_TBRANCH_2_acabc
 
-  FUNCTION GC_RO2HO2( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( rate )
     ! Carbon Dependence of RO2+HO2, used in these reactions:
     !    A3O2 + HO2 = RA3P
     !    PO2  + HO2 = PP
@@ -436,9 +446,9 @@ CONTAINS
     !
     rate = a0 * EXP( c0 / TEMP )
     rate = rate * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
-  END FUNCTION GC_RO2HO2
+  END FUNCTION GC_RO2HO2_aca
 
-  FUNCTION GC_DMSOH( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_DMSOH_acac( a0, c0, a1, c1 ) RESULT( rate )
     ! Reaction rate for:
     !    DMS + OH = 0.750SO2 + 0.250MSA + MO2
     !
@@ -453,9 +463,9 @@ CONTAINS
     r0   = a0 * EXP( c0 / TEMP )
     r1   = a1 * EXP( c1 / TEMP )
     rate = ( r0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + r1 * 0.2095e0_dp )
-  END FUNCTION GC_DMSOH
+  END FUNCTION GC_DMSOH_acac
 
-  FUNCTION GC_GLYXNO3( a0, c0 ) RESULT( rate )
+  FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( rate )
     ! Reaction rate for:
     !    GLYX + NO3 = HNO3 + HO2 + 2.000CO
     !    i.e. the HO2 + 2*CO branch
@@ -472,10 +482,10 @@ CONTAINS
     O2   = NUMDEN * 0.2095e0_dp
     rate = a0 * EXP( c0 / TEMP )
     rate = rate * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
-  END FUNCTION GC_GLYXNO3
+  END FUNCTION GC_GLYXNO3_ac
 
-  FUNCTION GC_OHHNO3( a0, c0, a1, c1, a2, c2 ) RESULT( rate )
-    ! Reaction rate for:
+  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( rate )
+    ! Used to compute the rate for these reactions:
     !    HNO3  + OH = H2O + NO3
     !    HONIT + OH = NO3 + HAC
     !
@@ -494,12 +504,13 @@ CONTAINS
     r1   = a1 * EXP( c1 / TEMP )
     r2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
     rate = r0 + r2 / ( 1.0_dp + r2/r1 )
-  END FUNCTION GC_OHHNO3
+  END FUNCTION GC_OHHNO3_acacac
 
-  FUNCTION GC_GLYCOHA( a0 ) RESULT( rate )
-    ! Reaction rate for:
+  FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( rate )
+    ! Used to compute the rate for this reaction:
     !    GLYC + OH = 0.732CH2O + 0.361CO2  + 0.505CO    + 0.227OH
     !              + 0.773HO2  + 0.134GLYX + 0.134HCOOH
+    ! which is the "A" branch of GLYC + OH.
     !
     ! For this reaction, these Arrhenius law terms evaluate to 1:
     !    (300/T)**b0 * EXP(c0/T)
@@ -513,11 +524,12 @@ CONTAINS
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
     rate      = a0 * glyc_frac
-  END FUNCTION GC_GLYCOHA
+  END FUNCTION GC_GLYCOH_A_a
 
-  FUNCTION GC_GLYCOHB( a0 ) RESULT( rate )
-    ! Reaction rate for:
+  FUNCTION GC_GLYCOH_B_a( a0 ) RESULT( rate )
+    ! Used to compute the rate for this reaction:
     !    GLYC + OH = HCOOH + OH + CO
+    ! which is the "B" branch of GLYC + OH.
     !
     ! For this reaction, these Arrhenius law terms evaluate to 1:
     !    (300/T)**b0 * EXP(c0/T)
@@ -531,11 +543,12 @@ CONTAINS
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
     rate      = a0 * ( 1.0_dp - glyc_frac )
-  END FUNCTION GC_GLYCOHB
+  END FUNCTION GC_GLYCOH_B_a
 
-  FUNCTION GC_HACOHA( a0, c0 ) RESULT( rate )
-    ! Reaction rate for:
+  FUNCTION GC_HACOH_A_ac( a0, c0 ) RESULT( rate )
+    ! Used to compute the rate for this reaction:
     !    HAC + OH = MGLY + HO2
+    ! which is the "A" branch of HAC + OH.
     !
     ! For this reaction, this Arrhenius law term evaluates to 1:
     !    (300/T)**b0
@@ -550,12 +563,12 @@ CONTAINS
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
     rate     = r0 * hac_frac
-  END FUNCTION GC_HACOHA
+  END FUNCTION GC_HACOH_A_ac
 
-  FUNCTION GC_HACOHB( a0, c0 ) RESULT( rate )
-    ! Reaction rate for:
-    !    HAC + OH = 0.5HCOOH + OH    + 0.5ACTA
-    !             + 0.5CO2   + 0.5CO + 0.5MO2
+  FUNCTION GC_HACOH_B_ac( a0, c0 ) RESULT( rate )
+    ! Used to compute the rate for this reaction:
+    !    HAC + OH = 0.5HCOOH + OH + 0.5ACTA + 0.5CO2 + 0.5CO + 0.5MO2
+    ! which is the "B" branch of HAC + OH.
     !
     ! For this reaction, this Arrhenius law term evaluates to 1:
     !    (300/T)**b0
@@ -570,9 +583,9 @@ CONTAINS
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
     rate     = r0 * ( 1.0_dp - hac_frac )
-  END FUNCTION GC_HACOHB
+  END FUNCTION GC_HACOH_B_ac
 
-  FUNCTION GC_OHCO( a0 ) RESULT( rate )
+  FUNCTION GC_OHCO_a( a0 ) RESULT( rate )
     ! Reaction rate for:
     !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
     !
@@ -602,9 +615,9 @@ CONTAINS
     fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
     kco2    = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
     rate    = kco1 + kco2
-  END FUNCTION GC_OHCO
+  END FUNCTION GC_OHCO_a
 
-  FUNCTION GC_RO2NO_A1( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( rate )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions:
     !    MO2  + NO = MENO3
     ! in which the "a1" parameter equals exactly 1.
@@ -624,9 +637,9 @@ CONTAINS
     ! Value based on upper limit of Flocke et al. 1998 as applied
     ! in Fisher et al. 2018
     rate  = a0 * EXP( c0 / TEMP ) * fyrno3
-  END FUNCTION GC_RO2NO_A1
+  END FUNCTION GC_RO2NO_A1_ac
 
-  FUNCTION GC_RO2NO_B1( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B1_ac( a0, c0 ) RESULT( rate )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    MO2 + NO = CH2O + NO2 + HO2
     ! in which the "a1" parameter equals exactly 1.
@@ -642,9 +655,9 @@ CONTAINS
     REAL(kind=dp)             :: rate
     !
     rate = a0 * EXP( c0 / TEMP ) * one_minus_fyrno3
-  END FUNCTION GC_RO2NO_B1
+  END FUNCTION GC_RO2NO_B1_ac
 
-  FUNCTION GC_RO2NO_A2( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A2_aca( a0, c0, a1 ) RESULT( rate )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions,
     !    ETO2 + NO = ETNO3
     !    A3O2 + NO = NPRNO3
@@ -662,7 +675,7 @@ CONTAINS
     REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP )
+    r0     = a0 * EXP( c0 / TEMP ) 
     xxyn   = 1.94e-22_dp * EXP( 0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
@@ -670,9 +683,9 @@ CONTAINS
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
     rate   = r0 * fyrno3
-  END FUNCTION GC_RO2NO_A2
+  END FUNCTION GC_RO2NO_A2_aca
 
-  FUNCTION GC_RO2NO_B2( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B2_aca( a0, c0, a1 ) RESULT( rate )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    ETO2 + NO = NO2 +     HO2 + ...
     !    A3O2 + NO = NO2 +     HO2 + ...
@@ -701,104 +714,159 @@ CONTAINS
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
     rate   = r0 * ( 1.0_dp - fyrno3 )
-  END FUNCTION GC_RO2NO_B2
+  END FUNCTION GC_RO2NO_B2_aca
 
-  REAL(kind=dp) FUNCTION GCJPL3( k0_300, n, ki_300, m)
-    !  Functions given in JPL Booklet
-    REAL k0_300, n, ki_300,m
-    REAL k0, ki
-
-    k0=k0_300*((TEMP/300.d0)**(-n))
-    ki=ki_300*((TEMP/300.d0)**(-m))
-
-    !      GCJPL3=(k0*NUMDEN)/(1+k0*NUMDEN/ki)*0.6** &
-    !	((1+((LOG10(k0*NUMDEN/ki))**2d0)**-1.0d0))
-    GCJPL3=(k0/(1.d0+k0/(ki/NUMDEN)))*0.6** &
-         ((1+((log10(k0/(ki/NUMDEN)))**2d0)**1.0e0))
-    GCJPL3=GCJPL3*NUMDEN
-  END FUNCTION GCJPL3
-
-  REAL(kind=dp) FUNCTION GCJPLEQ( A0,B0,C0,A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2 )
-    ! Function calculates the rate constant of the forward reaction
-    ! calculates the equilibrium constant
+  FUNCTION GCJPLEQ_acabab( a0, c0, a1, b1, a2, b2, fv ) RESULT( rate )
+    ! Calculates the equilibrium constant
     ! Find the backwards reaction by K=kforward/kbackwards
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    REAL, OPTIONAL :: A2,B2,C2,FV,FCT1,FCT2 !If a P-dependent rxn
-
-    ! Calculate Backwards reaction
-    R0 = GCARR( A0,B0,C0 )
-
-    ! Calculate forwards reaction
-    IF (present(A2)) THEN ! P-dependent
-       IF (present(B2) .and. present(C2) .and. present(FV) &
-            .and. present(FCT1) .and. present(FCT2)) THEN
-          R1 = GCJPLPR( A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2)
-       ELSE
-          ! Missing params
-          write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'
-          write(6,'(a)') 'GCJPLEQ: Returning zero'
-          GCJPLEQ = 0.E0
-          RETURN
-       ENDIF
-    ELSE
-       R1 = gcarr( A1,B1,C1 ) !Std. Arrhenius eqn.
-    ENDIF
-
-    GCJPLEQ=R1/R0
-  END FUNCTION GCJPLEQ
-
-  REAL(kind=dp) FUNCTION GCJPLPR(A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2)
-    ! * PRESSURE-DEPENDENT EFFECTS
-    ! * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE
-    ! * COEFFICIENTS.
-    ! A0 B0, & C0 are the Arrhenius parameters for the lower-limit
-    ! rate. A1, B1 & C1 are the upper-limit parameters.
-    ! FV is the falloff curve paramter, (SEE ATKINSON ET. AL (1992)
-    ! J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6
+    ! Calculates the rate constant of the forward reaction
     !
-    REAL A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2
-    REAL FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
+    ! Used to compute the rate for these reactions:
+    !    PPN        = RCO3 + NO2
+    !    PAN        = MCO3 + NO2
+    !    ClOO  {+M} = Cl   + O2 {+M}
+    !    Cl2O2 {+M} = 2ClO      {+M} 
+    !
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b0
+    !    EXP(c1/T)
+    !    EXP(c2/T)
+    ! because b0 = c1 = c12= 0.  Therefore we can skip computing these terms.  
+    ! Also, fct1 = fct2 = 0, so we will skip those terms as well.  This is
+    ! more computationally efficient. (bmy, 1/25/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, a2, b2, fv
+    REAL(kind=dp)             :: r0, r1, rate
+    !
+    r0    = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
+    r1    = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
+    rate  = r1 / r0    
+  END FUNCTION GCJPLEQ_acabab
 
-    RLOW  = GCARR( A0,B0,C0 )*NUMDEN
-    RHIGH = GCARR( A1,B1,C1 )
+  FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( rate )
+    ! Third body effect for pressure dependence of rate coefficients.
+    ! a1 is Arrhenius parameters for the lower-limit rate.
+    ! a2 is Arrhenius parameters for the upper-limit rate.
+    ! fv is the falloff curve paramter, (see ATKINSON ET. AL (1992)
+    ! J. Phys. Chem. Ref. Data 21, P. 1145). Usually fv = 0.6.
+    !
+    ! Used to compute the rate for this reaction:
+    !    Cl + PRPE {+M} = HCl + PO2 {+M}
+    !
+    ! For this reactions, these Arrhenius law terms evaluate to 1:
+    !    (300/T)**b1 * EXP(c1/T)
+    !    (300/T)**b2 * EXP(c2/T)
+    ! because b1 = b2 = c1 = c2 = 0.  Therefore we can skip computing
+    ! these terms.  Also, fct1 = fct2 = 0, so we will skip computing 
+    ! these terms as well.  This is more computationally efficient. 
+    ! (bmy, 1/25/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a1,    a2,   fv
+    REAL(kind=dp)             :: xyrat, blog, fexp, rate
+    !
+    xyrat = a1 / a2         ! rlow = a1 and rhigh = a2
+    blog  = LOG10( xyrat )
+    fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
+    rate  = a1 * ( fv**fexp ) / ( 1.0_dp + xyrat )
+  END FUNCTION GCJPLPR_aa
 
-    IF (FCT2.NE.0.) THEN
-       FCT            = EXP(-TEMP / FCT1) + EXP(-FCT2 / TEMP)
-       XYRAT          = RLOW/RHIGH
-       BLOG           = LOG10(XYRAT)
-       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-       GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)
-    ELSEIF (FCT1.NE.0.) THEN
-       FCT            = EXP(-TEMP / FCT1)
-       XYRAT          = RLOW/RHIGH
-       BLOG           = LOG10(XYRAT)
-       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-       GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)
-    ELSE
-       XYRAT          = RLOW/RHIGH
-       BLOG           = LOG10(XYRAT)
-       FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-       GCJPLPR        = RLOW*FV**FEXP/(1e+0_dp+XYRAT)
-    ENDIF
+  FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( rate )
+    ! Third body effect for pressure dependence of rate coefficients.
+    ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
+    ! a2     is  the Arrhenius parameters for the upper-limit rate.
+    ! fv     is the falloff curve paramter, (see ATKINSON ET. AL (1992)
+    !        J. Phys. Chem. Ref. Data 21, P. 1145). Usually fv = 0.6.
+    !
+    ! Used to compute the rate for these reactions:
+    !    OH  + OH  {+M} = H2O2
+    !    NO2 + OH  {+M} = HNO3       {+M}
+    !    Cl  + O2  {+M} = ClOO       {+M}
+    !    SO2 + OH  {+M} = SO4  + HO2
+    !    Br  + NO2 {+M} = BrNO2      {+M}
+    !    NO  + O   {+M} = NO2        {+M}
+    !    I   + NO2 {+M} = IONO       {+M}
+    !    I + NO    {+M} = INO        {+M}
+    !
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(c1/T)
+    !    (300/T)**b2 * EXP(c2/T)
+    ! because b2 = c1 = c2 = 0.  Therefore we can skip computing these 
+    ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
+    ! terms as well.  This is more computationally efficient. 
+    ! (bmy, 1/25/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
+    !
+    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
+    xyrat = rlow / a2      ! rhigh = a2
+    blog  = LOG10( xyrat )
+    fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
+    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+  END FUNCTION GCJPLPR_aba
 
-  END FUNCTION GCJPLPR
+  FUNCTION GCJPLPR_abab( a1, b1, a2, b2, fv ) RESULT( rate )
+    ! Third body effect for pressure dependence of rate coefficients.
+    ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
+    ! a2, b2 are the Arrhenius parameters for the upper-limit rate.
+    ! fv     is the falloff curve paramter, (see ATKINSON ET. AL (1992)
+    !        J. Phys. Chem. Ref. Data 21, P. 1145). Usually fv = 0.6.
+    !
+    ! Used to compute the rate for these reactions:
+    !    NO   + OH  {+M} = HNO2  {+M}
+    !    HO2  + NO2 {+M} = HNO4
+    !    NO2  + NO3 {+M} = N2O5
+    !    ClO  + NO2 {+M} = ClNO3 {+M}
+    !    MCO3 + NO2 {+M} = PAN 
+    !    RCO3 + NO2 {+M} = PPN
+    !    PRPE + OH  {+M} = PO2
+    !    MO2  + NO2 {+M} = MPN   {+M}
+    !    BrO  + NO2 {+M} = BrNO3 {+M}
+    !    NO2  + O   {+M} = NO3   {+M}
+    !    H    + O2  {+M} = HO2   {+M}
+    !    IO   + NO2 {+M} = IONO2 {+M}
+    !
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(c1/T)
+    !    EXP(c2/T)
+    ! because c1 = c2 = 0.  Therefore we can skip computing these 
+    ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
+    ! terms as well.  This is more computationally efficient. 
+    ! (bmy, 1/25/20)
+    !
+    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    !
+    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
+    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 )
+    xyrat = rlow / rhigh
+    blog  = LOG10( xyrat )
+    fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
+    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+  END FUNCTION GCJPLPR_abab
 
-  REAL(kind=dp) FUNCTION GCIUPAC3(ko_300,n,ki_300,m,Fc)
-    ! Function calcualtes the rate constant of 3 body reaction using IUPAC
-    ! methology
-    REAL ko_300,n,ki_300,m,Fc
-    REAL ko, ki, F, NN
-
-    ko=ko_300*((TEMP/300.e0)**n)*NUMDEN
-    ki=ki_300*((TEMP/300.e0)**m)
-
-    NN=0.75-1.27*LOG10(Fc)
-    F=10.0**(LOG10(Fc)/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
-
-    GCIUPAC3=ko/(1+ko/ki)*F
-  END FUNCTION GCIUPAC3
-
+  FUNCTION GCJPLPR_abcabc( a1, b1, c1, a2, b2, c2, fv ) RESULT( rate )
+    ! Third body effect for pressure dependence of rate coefficients.
+    ! a1, b1, c1 are the Arrhenius parameters for the lower-limit rate.
+    ! a2, b2, c2 are the Arrhenius parameters for the upper-limit rate.
+    ! fv         is the falloff curve paramter, (see ATKINSON ET. AL (1992)
+    !           J. Phys. Chem. Ref. Data 21, P. 1145). Usually fv = 0.6.
+    !
+    ! Used to compute the rate for these reactions:
+    !    HNO4 {+M} = HO2 + NO2
+    !    N2O5 {+M} = NO2 + NO3
+    !    MPN  {+M} = MO2 + NO2
+    !
+    REAL(kind=dp), INTENT(IN) :: a1,   b1,    c1,    a2,   b2,   c2,  fv
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    !
+    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * EXP( c1 / TEMP ) * NUMDEN
+    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 ) * EXP( c2 / TEMP )
+    xyrat = rlow / rhigh
+    blog  = LOG10( xyrat )
+    fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
+    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+  END FUNCTION GCJPLPR_abcabc
 
 ! End INLINED Rate Law Functions
 
@@ -860,216 +928,216 @@ SUBROUTINE Update_RCONST ( )
 
 ! End INLINED RCONST
 
-  RCONST(1) = (GCARR2(3.00d-12,-1500.0d0))
-  RCONST(2) = (GCARR2(1.70d-12,-940.0d0))
-  RCONST(3) = (GCARR2(1.00d-14,-490.0d0))
-  RCONST(4) = (GCARR2(1.20d-13,-2450.0d0))
-  RCONST(5) = (GCARR2(2.90d-16,-1000.0d0))
+  RCONST(1) = (GCARR_ac(3.00d-12,-1500.0d0))
+  RCONST(2) = (GCARR_ac(1.70d-12,-940.0d0))
+  RCONST(3) = (GCARR_ac(1.00d-14,-490.0d0))
+  RCONST(4) = (GCARR_ac(1.20d-13,-2450.0d0))
+  RCONST(5) = (GCARR_ac(2.90d-16,-1000.0d0))
   RCONST(6) = (1.80d-12)
-  RCONST(7) = (GCJPLPR(6.90E-31,1.0E+00,0.0,2.6E-11,0.0,0.0,0.6,0.0,0.0))
-  RCONST(8) = (GCARR2(4.80d-11,250.0d0))
+  RCONST(7) = (GCJPLPR_aba(6.90d-31,1.0d+00,2.6d-11,0.6d0))
+  RCONST(8) = (GCARR_ac(4.80d-11,250.0d0))
   RCONST(9) = (1.80d-12)
-  RCONST(10) = (GCARR2(3.30d-12,270.0d0))
-  RCONST(11) = (GC_HO2HO2(3.00d-13,460.0d0,2.1d-33,920.0d0))
-  RCONST(12) = (GC_OHCO(1.50d-13))
-  RCONST(13) = (GCARR2(2.45d-12,-1775.0d0))
-  RCONST(14) = (GC_RO2NO_B1(2.80d-12,300.0d0))
-  RCONST(15) = (GC_RO2NO_A1(2.80d-12,300.0d0))
-  RCONST(16) = (GCARR(4.10E-13,0.0E+00,750.0))
-  RCONST(17) = (GC_TBRANCH1(9.50d-14,390.0d0,2.62d1,-1130.0d0))
-  RCONST(18) = (GC_TBRANCH1(9.50d-14,390.0d0,4.0d-2,1130.0d0))
-  RCONST(19) = (GCARR2(2.66d-12,200.0d0))
-  RCONST(20) = (GCARR2(1.14d-12,200.0d0))
-  RCONST(21) = (GCARR2(2.66d-12,200.0d0))
-  RCONST(22) = (GCARR2(1.14d-12,200.0d0))
-  RCONST(23) = (GCARR2(5.50d-12,125.0d0))
-  RCONST(24) = (GCJPLPR(1.80E-30,3.0E+00,0.0,2.8E-11,0.0,0.0,0.6,0.0,0.0))
-  RCONST(25) = (GC_OHHNO3(2.41d-14,460.0d0,2.69d-17,2199.0d0,6.51d-34,1335.0d0))
-  RCONST(26) = (GCJPLPR(7.00E-31,2.6E+00,0.0,3.60E-11,0.1,0.0,0.6,0.0,0.0))
-  RCONST(27) = (GCARR2(1.80d-11,-390.0d0))
-  RCONST(28) = (GCJPLPR(1.90E-31,3.4E+00,0.0,4.0e-12,0.3,0.0,0.6,0.0,0.0))
-  RCONST(29) = (GCJPLPR(9.05E-05,3.4E+00,-10900.0,1.90E15,0.3,-10900.0,0.6,0.0,0.0))
-  RCONST(30) = (GCARR2(1.30d-12,380.0d0))
+  RCONST(10) = (GCARR_ac(3.30d-12,270.0d0))
+  RCONST(11) = (GC_HO2HO2_acac(3.00d-13,460.0d0,2.1d-33,920.0d0))
+  RCONST(12) = (GC_OHCO_a(1.50d-13))
+  RCONST(13) = (GCARR_ac(2.45d-12,-1775.0d0))
+  RCONST(14) = (GC_RO2NO_B1_ac(2.80d-12,300.0d0))
+  RCONST(15) = (GC_RO2NO_A1_ac(2.80d-12,300.0d0))
+  RCONST(16) = (GCARR_abc(4.10E-13,0.0E+00,750.0))
+  RCONST(17) = (GC_TBRANCH_1_acac(9.50d-14,390.0d0,2.62d1,-1130.0d0))
+  RCONST(18) = (GC_TBRANCH_1_acac(9.50d-14,390.0d0,4.0d-2,1130.0d0))
+  RCONST(19) = (GCARR_ac(2.66d-12,200.0d0))
+  RCONST(20) = (GCARR_ac(1.14d-12,200.0d0))
+  RCONST(21) = (GCARR_ac(2.66d-12,200.0d0))
+  RCONST(22) = (GCARR_ac(1.14d-12,200.0d0))
+  RCONST(23) = (GCARR_ac(5.50d-12,125.0d0))
+  RCONST(24) = (GCJPLPR_aba(1.80d-30,3.0d+00,2.8d-11,0.6d0))
+  RCONST(25) = (GC_OHHNO3_acacac(2.41d-14,460.0d0,2.69d-17,2199.0d0,6.51d-34,1335.0d0))
+  RCONST(26) = (GCJPLPR_abab(7.00d-31,2.6d+00,3.60d-11,0.1d0,0.6d0))
+  RCONST(27) = (GCARR_ac(1.80d-11,-390.0d0))
+  RCONST(28) = (GCJPLPR_abab(1.90d-31,3.4d+00,4.0d-12,0.3d0,0.6d0))
+  RCONST(29) = (GCJPLPR_abcabc(9.05d-05,3.4d0,-10900.0d0,1.90d15,0.3d0,-10900.0d0,0.6d0))
+  RCONST(30) = (GCARR_ac(1.30d-12,380.0d0))
   RCONST(31) = (3.50d-12)
-  RCONST(32) = (GCARR2(1.50d-11,170.0d0))
+  RCONST(32) = (GCARR_ac(1.50d-11,170.0d0))
   RCONST(33) = (2.20d-11)
-  RCONST(34) = (GCJPLPR(2.40E-30,3.0E+00,0.0,1.6E-12,-0.1,0.0,0.6,0.0,0.0))
-  RCONST(35) = (GCJPLPR(4.14E-04,3.0E+00,-10840.0,2.76E14,-0.1,-10840.0,0.6,0.0,0.0))
+  RCONST(34) = (GCJPLPR_abab(2.40d-30,3.0d+00,1.6d-12,-0.1d0,0.6d0))
+  RCONST(35) = (GCJPLPR_abcabc(4.14d-04,3.0d0,-10840.0d0,2.76d14,-0.1d0,-10840.0d0,0.6d0))
   RCONST(36) = (4.00d-13)
-  RCONST(37) = (GCARR2(2.90d-12,-345.0d0))
-  RCONST(38) = (GCARR2(4.50d-14,-1260.0d0))
+  RCONST(37) = (GCARR_ac(2.90d-12,-345.0d0))
+  RCONST(38) = (GCARR_ac(4.50d-14,-1260.0d0))
   RCONST(39) = (5.80d-16)
-  RCONST(40) = (GCARR2(4.63d-12,350.0d0))
-  RCONST(41) = (GCARR2(1.40d-12,-1900.0d0))
-  RCONST(42) = (GCJPLPR(9.70E-29,5.6E+00,0.0,9.3E-12,1.5E0,0.0,0.6,0.0,0.0))
-  RCONST(43) = (GCJPLEQ(9.30E-29,0.0E+00,14000.0,9.7E-29,5.6E0,0.0,9.3E-12,1.5E0,0.,0.6,0.,0.))
-  RCONST(44) = (GCARR2(8.10d-12,270.0d0))
-  RCONST(45) = (GCARR2(7.66d-12,-1020.0d0))
-  RCONST(46) = (GC_RO2NO_B2(2.60d-12,365.0d0,2.0d0))
-  RCONST(47) = (GC_RO2NO_A2(2.60d-12,365.0d0,2.0d0))
-  RCONST(48) = (GCARR2(2.60d-12,365.0d0))
-  RCONST(49) = (GC_TBRANCH2(7.60d-12,-585.0d0,5.87d0,0.64d0,-816.0d0))
-  RCONST(50) = (GC_TBRANCH2(7.60d-12,-585.0d0,1.7d-1,-0.64d0,816.0d0))
-  RCONST(51) = (GC_RO2NO_B2(2.90d-12,350.0d0,3.0d0))
-  RCONST(52) = (GC_RO2NO_A2(2.90d-12,350.0d0,3.0d0))
-  RCONST(53) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(54) = (GCARR2(9.10d-12,-405.0d0))
-  RCONST(55) = (GC_RO2NO_B2(2.70d-12,350.0d0,4.5d0))
-  RCONST(56) = (GC_RO2NO_A2(2.70d-12,350.0d0,4.5d0))
-  RCONST(57) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(58) = (GCARR2(2.80d-12,300.0d0))
-  RCONST(59) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(60) = (GC_RO2NO_B2(2.70E-12,360.0d0,3.0d0))
-  RCONST(61) = (GC_RO2NO_A2(2.70E-12,360.0d0,3.0d0))
-  RCONST(62) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(63) = (GCARR2(2.80d-12,-3280.0d0))
+  RCONST(40) = (GCARR_ac(4.63d-12,350.0d0))
+  RCONST(41) = (GCARR_ac(1.40d-12,-1900.0d0))
+  RCONST(42) = (GCJPLPR_abab(9.70d-29,5.6d+00,9.3d-12,1.5d0,0.6d0))
+  RCONST(43) = (GCJPLEQ_acabab(9.30d-29,14000.0d0,9.7d-29,5.6d0,9.3d-12,1.5d0,0.6d0))
+  RCONST(44) = (GCARR_ac(8.10d-12,270.0d0))
+  RCONST(45) = (GCARR_ac(7.66d-12,-1020.0d0))
+  RCONST(46) = (GC_RO2NO_B2_aca(2.60d-12,365.0d0,2.0d0))
+  RCONST(47) = (GC_RO2NO_A2_aca(2.60d-12,365.0d0,2.0d0))
+  RCONST(48) = (GCARR_ac(2.60d-12,365.0d0))
+  RCONST(49) = (GC_TBRANCH_2_acabc(7.60d-12,-585.0d0,5.87d0,0.64d0,-816.0d0))
+  RCONST(50) = (GC_TBRANCH_2_acabc(7.60d-12,-585.0d0,1.7d-1,-0.64d0,816.0d0))
+  RCONST(51) = (GC_RO2NO_B2_aca(2.90d-12,350.0d0,3.0d0))
+  RCONST(52) = (GC_RO2NO_A2_aca(2.90d-12,350.0d0,3.0d0))
+  RCONST(53) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(54) = (GCARR_ac(9.10d-12,-405.0d0))
+  RCONST(55) = (GC_RO2NO_B2_aca(2.70d-12,350.0d0,4.5d0))
+  RCONST(56) = (GC_RO2NO_A2_aca(2.70d-12,350.0d0,4.5d0))
+  RCONST(57) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(58) = (GCARR_ac(2.80d-12,300.0d0))
+  RCONST(59) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(60) = (GC_RO2NO_B2_aca(2.70E-12,360.0d0,3.0d0))
+  RCONST(61) = (GC_RO2NO_A2_aca(2.70E-12,360.0d0,3.0d0))
+  RCONST(62) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(63) = (GCARR_ac(2.80d-12,-3280.0d0))
   RCONST(64) = (1.60d-12)
-  RCONST(65) = (GCARR2(3.15d-14,920.0d0))
-  RCONST(66) = (GCARR2(6.00d-12,410.0d0))
-  RCONST(67) = (GCJPLPR(9.00E-28,8.9E+00,0.0,7.7E-12,0.2,0.0,0.6,0.0,0.0))
-  RCONST(68) = (GCJPLEQ(9.00E-29,0.0E+00,14000.0,9.00E-28,8.9E0,0.0,7.7E-12,0.2,0.,0.6,0.,0.))
-  RCONST(69) = (GCARR2(6.70d-12,340.0d0))
+  RCONST(65) = (GCARR_ac(3.15d-14,920.0d0))
+  RCONST(66) = (GCARR_ac(6.00d-12,410.0d0))
+  RCONST(67) = (GCJPLPR_abab(9.00d-28,8.9d0,7.7d-12,0.2d0,0.6d0))
+  RCONST(68) = (GCJPLEQ_acabab(9.00d-29,14000.0d0,9.00d-28,8.9d0,7.7d-12,0.2d0,0.6d0))
+  RCONST(69) = (GCARR_ac(6.70d-12,340.0d0))
   RCONST(70) = (6.50d-15)
   RCONST(71) = (1.33d-13+3.82d-11*exp(-2000.0d0/TEMP))
   RCONST(72) = (5.92d-13)
   RCONST(73) = (5.92d-13)
-  RCONST(74) = (GCARR2(7.40d-13,700.0d0))
-  RCONST(75) = (GCARR2(7.40d-13,700.0d0))
-  RCONST(76) = (GCARR2(8.60d-13,700.0d0))
-  RCONST(77) = (GC_RO2HO2(2.91d-13,1300.0d0,4.0d0))
-  RCONST(78) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
-  RCONST(79) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
-  RCONST(80) = (GCARR2(1.30d-12,-25.0d0))
+  RCONST(74) = (GCARR_ac(7.40d-13,700.0d0))
+  RCONST(75) = (GCARR_ac(7.40d-13,700.0d0))
+  RCONST(76) = (GCARR_ac(8.60d-13,700.0d0))
+  RCONST(77) = (GC_RO2HO2_aca(2.91d-13,1300.0d0,4.0d0))
+  RCONST(78) = (GC_RO2HO2_aca(2.91d-13,1300.0d0,3.0d0))
+  RCONST(79) = (GC_RO2HO2_aca(2.91d-13,1300.0d0,3.0d0))
+  RCONST(80) = (GCARR_ac(1.30d-12,-25.0d0))
   RCONST(81) = (3.00d-13)
   RCONST(82) = (3.00d-13)
   RCONST(83) = (8.00d-16)
   RCONST(84) = (8.37d-14)
   RCONST(85) = (8.37d-14)
-  RCONST(86) = (GCARR2(7.50d-13,500.0d0))
+  RCONST(86) = (GCARR_ac(7.50d-13,500.0d0))
   RCONST(87) = (8.37d-14)
   RCONST(88) = (8.37d-14)
   RCONST(89) = (8.37d-14)
   RCONST(90) = (3.35d-12)
-  RCONST(91) = (GCARR2(4.60d-12,70.0d0))
+  RCONST(91) = (GCARR_ac(4.60d-12,70.0d0))
   RCONST(92) = (4.10d-14)
   RCONST(93) = (4.10d-14)
   RCONST(94) = (2.70d-14)
   RCONST(95) = (2.70d-14)
-  RCONST(96) = (GCARR2(7.40d-13,700.0d0))
-  RCONST(97) = (GCARR2(7.40d-13,700.0d0))
-  RCONST(98) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
-  RCONST(99) = (GC_RO2HO2(2.91d-13,1300.0d0,3.0d0))
-  RCONST(100) = (GCARR2(4.30d-13,1040.0d0))
-  RCONST(101) = (GCJPLPR(4.60E-27,4.0E+00,0.0,2.6E-11,1.3,0.0,0.5,0.0,0.0))
-  RCONST(102) = (GCARR2(5.50d-15,-1880.0d0))
-  RCONST(103) = (GC_GLYCOHA(8.00d-12))
-  RCONST(104) = (GC_GLYCOHB(8.00d-12))
-  RCONST(105) = (GCARR2(4.59d-13,-1156.0d0))
-  RCONST(106) = (GCARR2(3.10d-12,340.0d0))
+  RCONST(96) = (GCARR_ac(7.40d-13,700.0d0))
+  RCONST(97) = (GCARR_ac(7.40d-13,700.0d0))
+  RCONST(98) = (GC_RO2HO2_aca(2.91d-13,1300.0d0,3.0d0))
+  RCONST(99) = (GC_RO2HO2_aca(2.91d-13,1300.0d0,3.0d0))
+  RCONST(100) = (GCARR_ac(4.30d-13,1040.0d0))
+  RCONST(101) = (GCJPLPR_abab(4.60d-27,4.0d0,2.6d-11,1.3d0,0.5d0))
+  RCONST(102) = (GCARR_ac(5.50d-15,-1880.0d0))
+  RCONST(103) = (GC_GLYCOH_A_a(8.00d-12))
+  RCONST(104) = (GC_GLYCOH_B_a(8.00d-12))
+  RCONST(105) = (GCARR_ac(4.59d-13,-1156.0d0))
+  RCONST(106) = (GCARR_ac(3.10d-12,340.0d0))
   RCONST(107) = (1.50d-11)
-  RCONST(108) = (GC_GLYXNO3(1.40d-12,-1860.0d0))
-  RCONST(109) = (GCARR2(3.36d-12,-1860.0d0))
-  RCONST(110) = (GC_HACOHA(2.15d-12,305.0d0))
-  RCONST(111) = (GC_HACOHB(2.15d-12,305.0d0))
-  RCONST(112) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(113) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(114) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(115) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(116) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(117) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(118) = (GCARR2(8.78d-12,200.0d0))
-  RCONST(119) = (GCARR2(5.18d-12,200.0d0))
-  RCONST(120) = (GCARR2(5.18d-12,200.0d0))
-  RCONST(121) = (GCARR2(8.78d-12,200.0d0))
-  RCONST(122) = (GCARR2(8.78d-12,200.0d0))
-  RCONST(123) = (GCARR2(6.13d-13,200.0d0))
-  RCONST(124) = (GCARR2(8.78d-12,200.0d0))
-  RCONST(125) = (GCARR2(4.82d-11,-400.0d0))
-  RCONST(126) = (GCARR2(6.13d-13,200.0d0))
+  RCONST(108) = (GC_GLYXNO3_ac(1.40d-12,-1860.0d0))
+  RCONST(109) = (GCARR_ac(3.36d-12,-1860.0d0))
+  RCONST(110) = (GC_HACOH_A_ac(2.15d-12,305.0d0))
+  RCONST(111) = (GC_HACOH_B_ac(2.15d-12,305.0d0))
+  RCONST(112) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(113) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(114) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(115) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(116) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(117) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(118) = (GCARR_ac(8.78d-12,200.0d0))
+  RCONST(119) = (GCARR_ac(5.18d-12,200.0d0))
+  RCONST(120) = (GCARR_ac(5.18d-12,200.0d0))
+  RCONST(121) = (GCARR_ac(8.78d-12,200.0d0))
+  RCONST(122) = (GCARR_ac(8.78d-12,200.0d0))
+  RCONST(123) = (GCARR_ac(6.13d-13,200.0d0))
+  RCONST(124) = (GCARR_ac(8.78d-12,200.0d0))
+  RCONST(125) = (GCARR_ac(4.82d-11,-400.0d0))
+  RCONST(126) = (GCARR_ac(6.13d-13,200.0d0))
   RCONST(127) = (1.40d-18)
-  RCONST(128) = (GCARR2(2.50d-12,500.0d0))
-  RCONST(129) = (GCARR2(1.80d-12,500.0d0))
-  RCONST(130) = (GCARR2(2.00d-13,500.0d0))
-  RCONST(131) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(132) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(133) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(134) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(135) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(136) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(137) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(138) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(139) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(140) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(141) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(142) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(143) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(144) = (GCARR2(1.68d-12,500.0d0))
-  RCONST(145) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(146) = (GCARR2(1.87d-13,500.0d0))
-  RCONST(147) = (GCARR2(2.50d-12,500.0d0))
-  RCONST(148) = (GCARR2(8.50d-13,-2450.0d0))
-  RCONST(149) = (GCJPLPR(1.00E-30,4.8E+00,0.0,7.2E-12,2.1E0,0.0,0.6,0.0,0.0))
-  RCONST(150) = (GCJPLPR(1.05E-02,4.8E+00,-11234.0,7.58E16,2.1E0,-11234.0,0.6,0.0,0.0))
-  RCONST(151) = (GCARR2(1.20d-11,-280.0d0))
-  RCONST(152) = (GC_DMSOH(8.20d-39,5376.0d0,1.05d-5,3644.0d0))
-  RCONST(153) = (GCARR2(1.90d-13,530.0d0))
-  RCONST(154) = (GCJPLPR(3.30E-31,4.3E+00,0.0,1.6E-12,0.0,0.0,0.6,0.0,0.0))
-  RCONST(155) = (GCARR2(1.60d-11,-780.0d0))
-  RCONST(156) = (GCARR2(4.50d-12,460.0d0))
-  RCONST(157) = (GCARR2(4.80d-12,-310.0d0))
-  RCONST(158) = (GCARR2(5.50d-12,200.0d0))
-  RCONST(159) = (GCARR2(2.40d-12,40.0d0))
-  RCONST(160) = (GCARR2(2.80d-14,860.0d0))
-  RCONST(161) = (GCARR2(8.80d-12,260.0d0))
+  RCONST(128) = (GCARR_ac(2.50d-12,500.0d0))
+  RCONST(129) = (GCARR_ac(1.80d-12,500.0d0))
+  RCONST(130) = (GCARR_ac(2.00d-13,500.0d0))
+  RCONST(131) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(132) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(133) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(134) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(135) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(136) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(137) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(138) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(139) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(140) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(141) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(142) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(143) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(144) = (GCARR_ac(1.68d-12,500.0d0))
+  RCONST(145) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(146) = (GCARR_ac(1.87d-13,500.0d0))
+  RCONST(147) = (GCARR_ac(2.50d-12,500.0d0))
+  RCONST(148) = (GCARR_ac(8.50d-13,-2450.0d0))
+  RCONST(149) = (GCJPLPR_abab(1.00d-30,4.8d+00,7.2d-12,2.1d0,0.6d0))
+  RCONST(150) = (GCJPLPR_abcabc(1.05d-02,4.8d+00,-11234.0d0,7.58d16,2.1d0,-11234.0d0,0.6d0))
+  RCONST(151) = (GCARR_ac(1.20d-11,-280.0d0))
+  RCONST(152) = (GC_DMSOH_acac(8.20d-39,5376.0d0,1.05d-5,3644.0d0))
+  RCONST(153) = (GCARR_ac(1.90d-13,530.0d0))
+  RCONST(154) = (GCJPLPR_aba(3.30d-31,4.3d+00,1.6d-12,0.6d0))
+  RCONST(155) = (GCARR_ac(1.60d-11,-780.0d0))
+  RCONST(156) = (GCARR_ac(4.50d-12,460.0d0))
+  RCONST(157) = (GCARR_ac(4.80d-12,-310.0d0))
+  RCONST(158) = (GCARR_ac(5.50d-12,200.0d0))
+  RCONST(159) = (GCARR_ac(2.40d-12,40.0d0))
+  RCONST(160) = (GCARR_ac(2.80d-14,860.0d0))
+  RCONST(161) = (GCARR_ac(8.80d-12,260.0d0))
   RCONST(162) = (4.90d-11)
-  RCONST(163) = (GCARR2(2.10d-11,240.0d0))
-  RCONST(164) = (GCARR2(1.20d-10,-430.0d0))
-  RCONST(165) = (GCARR2(5.80d-12,-1500.0d0))
-  RCONST(166) = (GCARR2(1.70d-11,250.0d0))
+  RCONST(163) = (GCARR_ac(2.10d-11,240.0d0))
+  RCONST(164) = (GCARR_ac(1.20d-10,-430.0d0))
+  RCONST(165) = (GCARR_ac(5.80d-12,-1500.0d0))
+  RCONST(166) = (GCARR_ac(1.70d-11,250.0d0))
   RCONST(167) = (1.60d-11)
-  RCONST(168) = (GCARR2(1.70d-11,-800.0d0))
-  RCONST(169) = (GCARR2(1.80d-11,-460.0d0))
-  RCONST(170) = (GCARR2(1.66d-10,-7000.0d0))
-  RCONST(171) = (GCARR2(2.36d-10,-6411.0d0))
-  RCONST(172) = (GCARR2(8.77d-11,-4330.0d0))
-  RCONST(173) = (GCJPLPR(4.20E-31,2.4E+00,0.0,2.7E-11,0.0,0.0,0.6,0.0,0.0))
-  RCONST(174) = (GCJPLPR(5.40E-31,3.1E+00,0.0,6.5E-12,2.9,0.0,0.6,0.0,0.0))
-  RCONST(175) = (GCARR2(9.00d-13,-360.0d0))
-  RCONST(176) = (GCARR2(2.00d-12,-840.0d0))
-  RCONST(177) = (GCARR2(1.42d-12,-1150.0d0))
-  RCONST(178) = (GCARR2(1.63d-10,60.0d0))
-  RCONST(179) = (GCARR2(2.15d-11,110.0d0))
-  RCONST(180) = (GCARR2(3.30d-11,55.0d0))
+  RCONST(168) = (GCARR_ac(1.70d-11,-800.0d0))
+  RCONST(169) = (GCARR_ac(1.80d-11,-460.0d0))
+  RCONST(170) = (GCARR_ac(1.66d-10,-7000.0d0))
+  RCONST(171) = (GCARR_ac(2.36d-10,-6411.0d0))
+  RCONST(172) = (GCARR_ac(8.77d-11,-4330.0d0))
+  RCONST(173) = (GCJPLPR_aba(4.20d-31,2.4d0,2.7d-11,0.6d0))
+  RCONST(174) = (GCJPLPR_abab(5.40d-31,3.1d0,6.5d-12,2.9d0,0.6d0))
+  RCONST(175) = (GCARR_ac(9.00d-13,-360.0d0))
+  RCONST(176) = (GCARR_ac(2.00d-12,-840.0d0))
+  RCONST(177) = (GCARR_ac(1.42d-12,-1150.0d0))
+  RCONST(178) = (GCARR_ac(1.63d-10,60.0d0))
+  RCONST(179) = (GCARR_ac(2.15d-11,110.0d0))
+  RCONST(180) = (GCARR_ac(3.30d-11,55.0d0))
   RCONST(181) = (1.20d-10)
-  RCONST(182) = (GCARR2(4.63d-11,20.0d0))
-  RCONST(183) = (GCARR2(7.25d-11,20.0d0))
+  RCONST(182) = (GCARR_ac(4.63d-11,20.0d0))
+  RCONST(183) = (GCARR_ac(7.25d-11,20.0d0))
   RCONST(184) = (1.31d-10)
   RCONST(185) = (0.09d-10)
   RCONST(186) = (0.35d-10)
-  RCONST(187) = (GCARR1(6.00d-34,2.4d0)*NUMDEN)
-  RCONST(188) = (GCARR2(8.00d-12,-2060.0d0))
-  RCONST(189) = (GCARR2(2.80d-12,-1800.0d0))
-  RCONST(190) = (GCARR2(1.80d-11,180.0d0))
-  RCONST(191) = (GCARR2(3.00d-11,200.0d0))
+  RCONST(187) = (GCARR_ab(6.00d-34,2.4d0)*NUMDEN)
+  RCONST(188) = (GCARR_ac(8.00d-12,-2060.0d0))
+  RCONST(189) = (GCARR_ac(2.80d-12,-1800.0d0))
+  RCONST(190) = (GCARR_ac(1.80d-11,180.0d0))
+  RCONST(191) = (GCARR_ac(3.00d-11,200.0d0))
   RCONST(192) = (1.20d-10)
   RCONST(193) = (1.20d-10)
-  RCONST(194) = (GCARR2(2.10d-11,-2200.0d0))
-  RCONST(195) = (GCARR2(1.10d-13,-1200.0d0))
-  RCONST(196) = (GCARR2(5.10d-12,210.0d0))
+  RCONST(194) = (GCARR_ac(2.10d-11,-2200.0d0))
+  RCONST(195) = (GCARR_ac(1.10d-13,-1200.0d0))
+  RCONST(196) = (GCARR_ac(5.10d-12,210.0d0))
   RCONST(197) = (1.00d-11)
-  RCONST(198) = (GCJPLPR(9.00E-32,1.5E+00,0.0,3.0E-11,0.0E0,0.0,0.6,0.0,0.0))
-  RCONST(199) = (GCJPLPR(2.50E-31,1.8E+00,0.0,2.2E-11,0.7E0,0.0,0.6,0.0,0.0))
-  RCONST(200) = (GCARR2(1.40d-12,-2000.0d0))
-  RCONST(201) = (GCJPLPR(4.40E-32,1.3E+00,0.0,7.5E-11,-0.2E0,0.0,0.6,0.0,0.0))
-  RCONST(202) = (GCARR2(1.40d-10,-470.0d0))
+  RCONST(198) = (GCJPLPR_aba(9.00d-32,1.5d+00,3.0d-11,0.6d0))
+  RCONST(199) = (GCJPLPR_abab(2.50d-31,1.8d+00,2.2d-11,0.7d0,0.6d0))
+  RCONST(200) = (GCARR_ac(1.40d-12,-2000.0d0))
+  RCONST(201) = (GCJPLPR_abab(4.40d-32,1.3d+00,7.5d-11,-0.2d0,0.6d0))
+  RCONST(202) = (GCARR_ac(1.40d-10,-470.0d0))
   RCONST(203) = (7.20d-11)
   RCONST(204) = (1.60d-12)
   RCONST(205) = (6.90d-12)
-  RCONST(206) = (GCARR2(1.50d-11,-3600.0d0))
-  RCONST(207) = (GCARR2(2.10d-11,100.0d0))
-  RCONST(208) = (GCARR2(5.80d-12,220.0d0))
-  RCONST(209) = (GCARR2(1.90d-11,230.0d0))
-  RCONST(210) = (GCARR2(3.40d-11,-1600.0d0))
+  RCONST(206) = (GCARR_ac(1.50d-11,-3600.0d0))
+  RCONST(207) = (GCARR_ac(2.10d-11,100.0d0))
+  RCONST(208) = (GCARR_ac(5.80d-12,220.0d0))
+  RCONST(209) = (GCARR_ac(1.90d-11,230.0d0))
+  RCONST(210) = (GCARR_ac(3.40d-11,-1600.0d0))
   RCONST(211) = (1.50d-10)
   RCONST(212) = (1.50d-10)
   RCONST(213) = (2.70d-10)
@@ -1086,109 +1154,109 @@ SUBROUTINE Update_RCONST ( )
   RCONST(224) = (2.00d-10)
   RCONST(225) = (2.00d-10)
   RCONST(226) = (2.32d-10)
-  RCONST(227) = (GCARR2(1.30d-10,-25.0d0))
-  RCONST(228) = (GCARR2(5.40d-11,-30.0d0))
-  RCONST(229) = (GCARR2(1.60d-10,0.0d0))
-  RCONST(230) = (GCARR2(2.60d-12,-1100.0d0))
-  RCONST(231) = (GCARR2(1.80d-11,-600.0d0))
-  RCONST(232) = (GCARR2(7.40d-12,270.0d0))
-  RCONST(233) = (GCARR2(6.00d-13,230.0d0))
-  RCONST(234) = (GCARR2(1.40d-12,600.0d0))
-  RCONST(235) = (GCARR2(6.00d-13,670.0d0))
-  RCONST(236) = (GCARR2(1.80d-12,-250.0d0))
-  RCONST(237) = (GCARR2(3.00d-12,-500.0d0))
-  RCONST(238) = (GCARR2(2.40d-12,-1250.0d0))
-  RCONST(239) = (GCARR2(1.20d-12,-330.0d0))
-  RCONST(240) = (GCARR2(1.96d-12,-1200.0d0))
-  RCONST(241) = (GCARR2(2.61d-12,-944.0d0))
-  RCONST(242) = (GCARR2(4.69d-12,-1134.0d0))
-  RCONST(243) = (GCARR2(1.64d-12,-1520.0d0))
-  RCONST(244) = (GCARR2(9.20d-13,-1560.0d0))
-  RCONST(245) = (GCARR2(1.25d-12,-1600.0d0))
-  RCONST(246) = (GCARR2(1.30d-12,-1770.0d0))
-  RCONST(247) = (GCARR2(7.40d-13,-900.0d0))
-  RCONST(248) = (GCARR2(7.10d-12,-1270.0d0))
-  RCONST(249) = (GCARR2(7.32d-11,-30.0d0))
-  RCONST(250) = (GCARR2(2.30d-11,-200.0d0))
-  RCONST(251) = (GCARR2(3.05d-11,-2270.0d0))
-  RCONST(252) = (GCARR2(1.10d-11,-980.0d0))
-  RCONST(253) = (GCARR2(1.40d-11,270.0d0))
-  RCONST(254) = (GCARR2(3.60d-11,-375.0d0))
-  RCONST(255) = (GCARR2(2.80d-11,85.0d0))
-  RCONST(256) = (GCARR2(2.60d-12,290.0d0))
-  RCONST(257) = (GCARR2(6.40d-12,290.0d0))
-  RCONST(258) = (GCJPLPR(1.80E-31,3.4E+00,0.0,1.50E-11,1.9E0,0.0,0.6,0.0,0.0))
-  RCONST(259) = (GCARR2(1.00d-12,-1590.0d0))
-  RCONST(260) = (GCARR2(3.00d-11,-2450.0d0))
-  RCONST(261) = (GCARR2(3.50d-13,-1370.0d0))
-  RCONST(262) = (GCJPLPR(2.20E-33,3.1E+00,0.0,1.8E-10,0.0,0.0,0.6,0.0,0.0))
-  RCONST(263) = (GCJPLEQ(6.60E-25,0.0,2502.0,2.20E-33,3.1E+00,0.0,1.8E-10,0.0,0.0,0.6,0.0,0.0))
-  RCONST(264) = (GCJPLPR(1.90E-32,3.6E+00,0.0,3.7E-12,1.6,0.0,0.6,0.0,0.0))
-  RCONST(265) = (GCJPLEQ(2.16E-27,0.0,8537.0,1.90E-32,3.6E+00,0.0,3.7E-12,1.6,0.0,0.6,0.0,0.0))
+  RCONST(227) = (GCARR_ac(1.30d-10,-25.0d0))
+  RCONST(228) = (GCARR_ac(5.40d-11,-30.0d0))
+  RCONST(229) = (GCARR_ac(1.60d-10,0.0d0))
+  RCONST(230) = (GCARR_ac(2.60d-12,-1100.0d0))
+  RCONST(231) = (GCARR_ac(1.80d-11,-600.0d0))
+  RCONST(232) = (GCARR_ac(7.40d-12,270.0d0))
+  RCONST(233) = (GCARR_ac(6.00d-13,230.0d0))
+  RCONST(234) = (GCARR_ac(1.40d-12,600.0d0))
+  RCONST(235) = (GCARR_ac(6.00d-13,670.0d0))
+  RCONST(236) = (GCARR_ac(1.80d-12,-250.0d0))
+  RCONST(237) = (GCARR_ac(3.00d-12,-500.0d0))
+  RCONST(238) = (GCARR_ac(2.40d-12,-1250.0d0))
+  RCONST(239) = (GCARR_ac(1.20d-12,-330.0d0))
+  RCONST(240) = (GCARR_ac(1.96d-12,-1200.0d0))
+  RCONST(241) = (GCARR_ac(2.61d-12,-944.0d0))
+  RCONST(242) = (GCARR_ac(4.69d-12,-1134.0d0))
+  RCONST(243) = (GCARR_ac(1.64d-12,-1520.0d0))
+  RCONST(244) = (GCARR_ac(9.20d-13,-1560.0d0))
+  RCONST(245) = (GCARR_ac(1.25d-12,-1600.0d0))
+  RCONST(246) = (GCARR_ac(1.30d-12,-1770.0d0))
+  RCONST(247) = (GCARR_ac(7.40d-13,-900.0d0))
+  RCONST(248) = (GCARR_ac(7.10d-12,-1270.0d0))
+  RCONST(249) = (GCARR_ac(7.32d-11,-30.0d0))
+  RCONST(250) = (GCARR_ac(2.30d-11,-200.0d0))
+  RCONST(251) = (GCARR_ac(3.05d-11,-2270.0d0))
+  RCONST(252) = (GCARR_ac(1.10d-11,-980.0d0))
+  RCONST(253) = (GCARR_ac(1.40d-11,270.0d0))
+  RCONST(254) = (GCARR_ac(3.60d-11,-375.0d0))
+  RCONST(255) = (GCARR_ac(2.80d-11,85.0d0))
+  RCONST(256) = (GCARR_ac(2.60d-12,290.0d0))
+  RCONST(257) = (GCARR_ac(6.40d-12,290.0d0))
+  RCONST(258) = (GCJPLPR_abab(1.80d-31,3.4d+00,1.50d-11,1.9d0,0.6d0))
+  RCONST(259) = (GCARR_ac(1.00d-12,-1590.0d0))
+  RCONST(260) = (GCARR_ac(3.00d-11,-2450.0d0))
+  RCONST(261) = (GCARR_ac(3.50d-13,-1370.0d0))
+  RCONST(262) = (GCJPLPR_aba(2.20d-33,3.1d+00,1.8d-10,0.6d0))
+  RCONST(263) = (GCJPLEQ_acabab(6.60d-25,2502.0d0,2.20d-33,3.1d+00,1.8d-10,0.0d0,0.6d0))
+  RCONST(264) = (GCJPLPR_abab(1.90d-32,3.6d+00,3.7d-12,1.6d0,0.6d0))
+  RCONST(265) = (GCJPLEQ_acabab(2.16d-27,8537.0d0,1.90d-32,3.6d+00,3.7d-12,1.6d0,0.6d0))
   RCONST(266) = (2.30d-10)
   RCONST(267) = (1.20d-11)
-  RCONST(268) = (GCARR2(9.50d-13,550.0d0))
-  RCONST(269) = (GCARR2(2.30d-12,260.0d0))
-  RCONST(270) = (GCARR2(4.10d-13,290.0d0))
-  RCONST(271) = (GCARR2(3.60d-12,-840.0d0))
-  RCONST(272) = (GCARR2(6.50d-12,135.0d0))
-  RCONST(273) = (GCARR2(2.17d-11,-1130.0d0))
-  RCONST(274) = (GCARR2(1.24d-12,-1070.0d0))
-  RCONST(275) = (GCARR2(3.77d-12,-1011.0d0))
+  RCONST(268) = (GCARR_ac(9.50d-13,550.0d0))
+  RCONST(269) = (GCARR_ac(2.30d-12,260.0d0))
+  RCONST(270) = (GCARR_ac(4.10d-13,290.0d0))
+  RCONST(271) = (GCARR_ac(3.60d-12,-840.0d0))
+  RCONST(272) = (GCARR_ac(6.50d-12,135.0d0))
+  RCONST(273) = (GCARR_ac(2.17d-11,-1130.0d0))
+  RCONST(274) = (GCARR_ac(1.24d-12,-1070.0d0))
+  RCONST(275) = (GCARR_ac(3.77d-12,-1011.0d0))
   RCONST(276) = (2.00d-13)
   RCONST(277) = (1.60d-10)
   RCONST(278) = (5.7d-11)
-  RCONST(279) = (GCARR2(7.2d-11,-70.0d0))
+  RCONST(279) = (GCARR_ac(7.2d-11,-70.0d0))
   RCONST(280) = (7.4d-11)
   RCONST(281) = (7.4d-11)
   RCONST(282) = (5.5d-11)
   RCONST(283) = (9.6d-11)
   RCONST(284) = (2.8d-14)
-  RCONST(285) = (GCARR2(6.54d-11,60.0d0))
-  RCONST(286) = (GCARR2(8.12d-11,-90.0d0))
-  RCONST(287) = (GCARR2(7.70d-11,-1000.0d0))
-  RCONST(288) = (GCARR2(7.60d-11,500.0d0))
+  RCONST(285) = (GCARR_ac(6.54d-11,60.0d0))
+  RCONST(286) = (GCARR_ac(8.12d-11,-90.0d0))
+  RCONST(287) = (GCARR_ac(7.70d-11,-1000.0d0))
+  RCONST(288) = (GCARR_ac(7.60d-11,500.0d0))
   RCONST(289) = (2.05d-10)
-  RCONST(290) = (GCJPLPR(4.00E-28,0.0E+00,0.0,2.8E-10,0.0E0,0.0,0.6,0.0,0.0))
+  RCONST(290) = (GCJPLPR_aa(4.00d-28,2.8E-10,0.6))
   RCONST(291) = (3.60d-12)
-  RCONST(292) = (GCJPLPR(1.80E-32,1.0E+00,0.0,1.77E-11,0.0,0.0,0.6,0.0,0.0))
-  RCONST(293) = (GCARR2(8.40d-11,-2620.0d0))
-  RCONST(294) = (GCJPLPR(3.00E-31,1.0E+00,0.0,6.6E-11,0.0,0.0,0.63,0.0,0.0))
-  RCONST(295) = (GCARR2(9.94d+17,-11859.0d0))
-  RCONST(296) = (GCARR2(2.90d-11,-2600.0d0))
+  RCONST(292) = (GCJPLPR_aba(1.80d-32,1.0d0,1.77d-11,0.6d0))
+  RCONST(293) = (GCARR_ac(8.40d-11,-2620.0d0))
+  RCONST(294) = (GCJPLPR_aba(3.00d-31,1.0d0,6.6d-11,0.63d0))
+  RCONST(295) = (GCARR_ac(9.94d+17,-11859.0d0))
+  RCONST(296) = (GCARR_ac(2.90d-11,-2600.0d0))
   RCONST(297) = (1.50d-12)
-  RCONST(298) = (GCJPLPR(7.50E-31,3.5E+00,0.0,7.6E-12,1.5E0,0.0,0.6,0.0,0.0))
-  RCONST(299) = (GCARR2(2.10d+15,-13670.0d0))
-  RCONST(300) = (GCARR2(9.10d-11,-146.0d0))
+  RCONST(298) = (GCJPLPR_abab(7.50d-31,3.5d0,7.6d-12,1.5d0,0.6d0))
+  RCONST(299) = (GCARR_ac(2.10d+15,-13670.0d0))
+  RCONST(300) = (GCARR_ac(9.10d-11,-146.0d0))
   RCONST(301) = (1.20d-11)
-  RCONST(302) = (GCARR2(3.00d-12,510.0d0))
-  RCONST(303) = (GCARR2(1.20d-11,510.0d0))
+  RCONST(302) = (GCARR_ac(3.00d-12,510.0d0))
+  RCONST(303) = (GCARR_ac(1.20d-11,510.0d0))
   RCONST(304) = (1.00d-10)
   RCONST(305) = (1.50d-10)
   RCONST(306) = (3.80d-02)
-  RCONST(307) = (GCARR2(1.10d-12,542.0d0))
-  RCONST(308) = (GCARR2(5.10d-12,280.0d0))
-  RCONST(309) = (GCARR2(2.81d-12,280.0d0))
-  RCONST(310) = (GCARR2(1.02d-12,280.0d0))
-  RCONST(311) = (GCARR2(2.30d-11,-870.0d0))
-  RCONST(312) = (GCARR2(1.50d-11,-1090.0d0))
+  RCONST(307) = (GCARR_ac(1.10d-12,542.0d0))
+  RCONST(308) = (GCARR_ac(5.10d-12,280.0d0))
+  RCONST(309) = (GCARR_ac(2.81d-12,280.0d0))
+  RCONST(310) = (GCARR_ac(1.02d-12,280.0d0))
+  RCONST(311) = (GCARR_ac(2.30d-11,-870.0d0))
+  RCONST(312) = (GCARR_ac(1.50d-11,-1090.0d0))
   RCONST(313) = (1.80d-10)
   RCONST(314) = (3.00d-11)
   RCONST(315) = (5.00d-12)
-  RCONST(316) = (GCARR2(1.30d-11,570.0d0))
-  RCONST(317) = (GCARR2(9.10d-12,240.0d0))
-  RCONST(318) = (GCARR2(6.00d-12,500.0d0))
-  RCONST(319) = (GCARR2(9.00d-12,500.0d0))
-  RCONST(320) = (GCARR2(1.00d+12,-9770.0d0))
-  RCONST(321) = (GCARR2(2.50d+14,-9770.0d0))
-  RCONST(322) = (GCARR2(2.90d-12,-1100.0d0))
+  RCONST(316) = (GCARR_ac(1.30d-11,570.0d0))
+  RCONST(317) = (GCARR_ac(9.10d-12,240.0d0))
+  RCONST(318) = (GCARR_ac(6.00d-12,500.0d0))
+  RCONST(319) = (GCARR_ac(9.00d-12,500.0d0))
+  RCONST(320) = (GCARR_ac(1.00d+12,-9770.0d0))
+  RCONST(321) = (GCARR_ac(2.50d+14,-9770.0d0))
+  RCONST(322) = (GCARR_ac(2.90d-12,-1100.0d0))
   RCONST(323) = (2.40d-12)
   RCONST(324) = (6.70d-13)
   RCONST(325) = (1.20d-15)
   RCONST(326) = (1.00d-14)
   RCONST(327) = (1.00d-15)
   RCONST(328) = (1.70d-15)
-  RCONST(329) = (GCARR2(2.88d-35,1391.0d0))
+  RCONST(329) = (GCARR_ac(2.88d-35,1391.0d0))
   RCONST(330) = (1.40d-12)
   RCONST(331) = (3.70d-11)
   RCONST(332) = (1.20d-15)
@@ -1197,84 +1265,84 @@ SUBROUTINE Update_RCONST ( )
   RCONST(335) = (7.00d-14)
   RCONST(336) = (6.00d-18)
   RCONST(337) = (1.00d-17)
-  RCONST(338) = (GCARR2(2.33d-12,-193.0d0))
-  RCONST(339) = (GCARR2(1.81d-12,338.0d0))
+  RCONST(338) = (GCARR_ac(2.33d-12,-193.0d0))
+  RCONST(339) = (GCARR_ac(1.81d-12,338.0d0))
   RCONST(340) = (2.31d-11)
   RCONST(341) = (2.60d-16)
-  RCONST(342) = (GCARR2(1.40d-12,700.0d0))
-  RCONST(343) = (GCARR2(2.60d-12,350.0d0))
-  RCONST(344) = (GCARR2(1.40d-12,700.0d0))
-  RCONST(345) = (GCARR2(2.60d-12,350.0d0))
-  RCONST(346) = (GCARR2(1.40d-12,700.0d0))
-  RCONST(347) = (GCARR2(2.60d-12,350.0d0))
-  RCONST(348) = (GCARR2(1.21d-11,440.0d0))
-  RCONST(349) = (GCARR2(1.21d-11,440.0d0))
+  RCONST(342) = (GCARR_ac(1.40d-12,700.0d0))
+  RCONST(343) = (GCARR_ac(2.60d-12,350.0d0))
+  RCONST(344) = (GCARR_ac(1.40d-12,700.0d0))
+  RCONST(345) = (GCARR_ac(2.60d-12,350.0d0))
+  RCONST(346) = (GCARR_ac(1.40d-12,700.0d0))
+  RCONST(347) = (GCARR_ac(2.60d-12,350.0d0))
+  RCONST(348) = (GCARR_ac(1.21d-11,440.0d0))
+  RCONST(349) = (GCARR_ac(1.21d-11,440.0d0))
   RCONST(350) = (4.00d-12)
   RCONST(351) = (1.50d-11)
-  RCONST(352) = (GCARR2(3.56d-14,708.0d0))
-  RCONST(353) = (GCARR2(7.40d-13,765.0d0))
+  RCONST(352) = (GCARR_ac(3.56d-14,708.0d0))
+  RCONST(353) = (GCARR_ac(7.40d-13,765.0d0))
   RCONST(354) = (1.20d-12)
-  RCONST(355) = (GCARR2(5.00d-16,-530.0d0))
-  RCONST(356) = (GCARR2(5.00d-16,-530.0d0))
-  RCONST(357) = (GCARR2(8.33d-13,490.0d0))
-  RCONST(358) = (GCARR2(8.33d-13,490.0d0))
-  RCONST(359) = (GCARR2(4.20d-11,401.0d0))
-  RCONST(360) = (GCARR2(2.95d-15,-783.0d0))
+  RCONST(355) = (GCARR_ac(5.00d-16,-530.0d0))
+  RCONST(356) = (GCARR_ac(5.00d-16,-530.0d0))
+  RCONST(357) = (GCARR_ac(8.33d-13,490.0d0))
+  RCONST(358) = (GCARR_ac(8.33d-13,490.0d0))
+  RCONST(359) = (GCARR_ac(4.20d-11,401.0d0))
+  RCONST(360) = (GCARR_ac(2.95d-15,-783.0d0))
   RCONST(361) = (1.22d-11)
   RCONST(362) = (4.00d-12)
   RCONST(363) = (1.50d-11)
-  RCONST(364) = (GCARR2(3.56d-14,708.0d0))
-  RCONST(365) = (GCARR2(7.40d-13,765.0d0))
+  RCONST(364) = (GCARR_ac(3.56d-14,708.0d0))
+  RCONST(365) = (GCARR_ac(7.40d-13,765.0d0))
   RCONST(366) = (1.20d-12)
-  RCONST(367) = (GCARR2(3.40d-12,190.0d0))
+  RCONST(367) = (GCARR_ac(3.40d-12,190.0d0))
   RCONST(368) = (4.00d-12)
   RCONST(369) = (4.00d-12)
-  RCONST(370) = (GCARR2(1.66d-13,1300.0d0))
-  RCONST(371) = (GCARR2(1.66d-13,1300.0d0))
-  RCONST(372) = (GCARR2(1.60d-13,708.0d0))
-  RCONST(373) = (GCARR2(9.68d-14,708.0d0))
-  RCONST(374) = (GCARR2(8.85d-13,765.0d0))
-  RCONST(375) = (GCARR2(5.37d-13,765.0d0))
+  RCONST(370) = (GCARR_ac(1.66d-13,1300.0d0))
+  RCONST(371) = (GCARR_ac(1.66d-13,1300.0d0))
+  RCONST(372) = (GCARR_ac(1.60d-13,708.0d0))
+  RCONST(373) = (GCARR_ac(9.68d-14,708.0d0))
+  RCONST(374) = (GCARR_ac(8.85d-13,765.0d0))
+  RCONST(375) = (GCARR_ac(5.37d-13,765.0d0))
   RCONST(376) = (1.20d-12)
   RCONST(377) = (1.20d-12)
-  RCONST(378) = (GCARR2(7.00d-14,1000.0d0))
-  RCONST(379) = (GCARR2(4.25d-14,1000.0d0))
-  RCONST(380) = (GCARR2(2.96d-14,1000.0d0))
+  RCONST(378) = (GCARR_ac(7.00d-14,1000.0d0))
+  RCONST(379) = (GCARR_ac(4.25d-14,1000.0d0))
+  RCONST(380) = (GCARR_ac(2.96d-14,1000.0d0))
   RCONST(381) = (4.80d-12)
   RCONST(382) = (7.29d-11)
   RCONST(383) = (1.67d-16)
-  RCONST(384) = (GCARR2(3.15d-13,-448.0d0))
-  RCONST(385) = (GCARR2(3.15d-13,-448.0d0))
+  RCONST(384) = (GCARR_ac(3.15d-13,-448.0d0))
+  RCONST(385) = (GCARR_ac(3.15d-13,-448.0d0))
   RCONST(386) = (2.78d-04)
   RCONST(387) = (2.78d-04)
-  RCONST(388) = (GC_OHHNO3(2.41d-14,460.0d0,2.69d-17,2199.0d0,6.51d-34,1335.0d0))
-  RCONST(389) = (GCARR2(8.00d-13,-1000.0d0))
-  RCONST(390) = (GCARR2(1.00d-12,-490.0d0))
-  RCONST(391) = (GCARR2(1.20d-12,-320.0d0))
+  RCONST(388) = (GC_OHHNO3_acacac(2.41d-14,460.0d0,2.69d-17,2199.0d0,6.51d-34,1335.0d0))
+  RCONST(389) = (GCARR_ac(8.00d-13,-1000.0d0))
+  RCONST(390) = (GCARR_ac(1.00d-12,-490.0d0))
+  RCONST(391) = (GCARR_ac(1.20d-12,-320.0d0))
   RCONST(392) = (7.10d-13)
   RCONST(393) = (1.3d-17)
   RCONST(394) = (GC_ISO1(1.7d-11,3.90d2,9.33d-2,5.05d15,-1.22d4,1.79d14,-8.830d3))
   RCONST(395) = (GC_ISO1(1.0d-11,3.90d2,2.26d-1,2.22d9,-7.160d3,1.75d14,-9.054d3))
   RCONST(396) = (GC_ISO2(1.7d-11,3.90d2,9.33d-2,5.05d15,-1.22d4,1.79d14,-8.830d3))
   RCONST(397) = (GC_ISO2(1.0d-11,3.90d2,2.26d-1,2.22d9,-7.160d3,1.75d14,-9.054d3))
-  RCONST(398) = (ARRPLUS1(2.12d-13,-1300d0,1.1644d0,-7.0485d-4))
-  RCONST(399) = (ARRPLUS1(2.12d-13,-1300d0,-0.1644d0,7.0485d-4))
-  RCONST(400) = (ARRPLUS1(2.12d-13,-1300d0,1.2038d0,-9.0435d-4))
-  RCONST(401) = (ARRPLUS1(2.12d-13,-1300d0,-0.2038d0,9.0435d-4))
-  RCONST(402) = (ARRPLUS1(1.04d11,9.746d3,1.1644d0,-7.0485d-4))
-  RCONST(403) = (TUNPLUS(5.05d15,-1.22d4,1.0d8,-0.0128d0,5.1242d-5))
-  RCONST(404) = (ARRPLUS1(1.88d11,9.752d3,1.2038d0,-9.0435d-4))
-  RCONST(405) = (TUNPLUS(2.22d9,-7.160d3,1.0d8,-0.0306d0,1.1346d-4))
-  RCONST(406) = (ARRPLUS2(6.92d-14,1.1644d0,-7.0485d-4))
-  RCONST(407) = (ARRPLUS2(5.74d-12,1.2038d0,-9.0435d-4))
-  RCONST(408) = (ARRPLUS2(1.54d-12,2.3682d0,-1.6092d-3))
-  RCONST(409) = (ARRPLUS2(2.49d-12,-0.1644d0,7.0485d-4))
-  RCONST(410) = (ARRPLUS2(3.94d-12,-0.2038d0,9.0435d-4))
-  RCONST(411) = (ARRPLUS2(1.54d-12,-0.3682d0,1.6092d-3))
-  RCONST(412) = (ARRPLUS2(2.0d-12,1.1644d0,-7.0485d-4))
-  RCONST(413) = (ARRPLUS2(2.0d-12,-0.1644d0,7.0485d-4))
-  RCONST(414) = (ARRPLUS2(2.0d-12,1.2038d0,-9.0435d-4))
-  RCONST(415) = (ARRPLUS2(2.0d-12,-0.2038d0,9.0435d-4))
+  RCONST(398) = (ARRPLUS_abde(2.12d-13,-1300d0,1.1644d0,-7.0485d-4))
+  RCONST(399) = (ARRPLUS_abde(2.12d-13,-1300d0,-0.1644d0,7.0485d-4))
+  RCONST(400) = (ARRPLUS_abde(2.12d-13,-1300d0,1.2038d0,-9.0435d-4))
+  RCONST(401) = (ARRPLUS_abde(2.12d-13,-1300d0,-0.2038d0,9.0435d-4))
+  RCONST(402) = (ARRPLUS_abde(1.04d11,9.746d3,1.1644d0,-7.0485d-4))
+  RCONST(403) = (TUNPLUS_abcde(5.05d15,-1.22d4,1.0d8,-0.0128d0,5.1242d-5))
+  RCONST(404) = (ARRPLUS_abde(1.88d11,9.752d3,1.2038d0,-9.0435d-4))
+  RCONST(405) = (TUNPLUS_abcde(2.22d9,-7.160d3,1.0d8,-0.0306d0,1.1346d-4))
+  RCONST(406) = (ARRPLUS_ade(6.92d-14,1.1644d0,-7.0485d-4))
+  RCONST(407) = (ARRPLUS_ade(5.74d-12,1.2038d0,-9.0435d-4))
+  RCONST(408) = (ARRPLUS_ade(1.54d-12,2.3682d0,-1.6092d-3))
+  RCONST(409) = (ARRPLUS_ade(2.49d-12,-0.1644d0,7.0485d-4))
+  RCONST(410) = (ARRPLUS_ade(3.94d-12,-0.2038d0,9.0435d-4))
+  RCONST(411) = (ARRPLUS_ade(1.54d-12,-0.3682d0,1.6092d-3))
+  RCONST(412) = (ARRPLUS_ade(2.0d-12,1.1644d0,-7.0485d-4))
+  RCONST(413) = (ARRPLUS_ade(2.0d-12,-0.1644d0,7.0485d-4))
+  RCONST(414) = (ARRPLUS_ade(2.0d-12,1.2038d0,-9.0435d-4))
+  RCONST(415) = (ARRPLUS_ade(2.0d-12,-0.2038d0,9.0435d-4))
   RCONST(416) = (GC_NIT(2.7d-12,3.50d2,1.19d0,6.0d0,1.1644d0,7.05d-4))
   RCONST(417) = (GC_ALK(2.7d-12,3.50d2,1.19d0,6.0d0,1.1644d0,7.05d-4))
   RCONST(418) = (GC_NIT(2.7d-12,3.50d2,1.421d0,6.0d0,-0.1644d0,-7.05d-4))
@@ -1283,88 +1351,88 @@ SUBROUTINE Update_RCONST ( )
   RCONST(421) = (GC_ALK(2.7d-12,3.50d2,1.297d0,6.0d0,1.2038d0,9.04d-4))
   RCONST(422) = (GC_NIT(2.7d-12,3.50d2,1.421d0,6.0d0,-0.2038d0,-9.04d-4))
   RCONST(423) = (GC_ALK(2.7d-12,3.50d2,1.421d0,6.0d0,-0.2038d0,-9.04d-4))
-  RCONST(424) = (GCARR2(1.17d-11,450.0d0))
-  RCONST(425) = (GCARR2(1.17d-11,450.0d0))
-  RCONST(426) = (GCARR2(2.20d-11,390.0d0))
-  RCONST(427) = (GCARR2(3.50d-11,390.0d0))
-  RCONST(428) = (GCARR2(4.64d-12,650.0d0))
-  RCONST(429) = (GCARR2(9.85d-12,410.0d0))
-  RCONST(430) = (GCARR2(3.00d-12,650.0d0))
-  RCONST(431) = (GCARR2(2.47d-12,390.0d0))
+  RCONST(424) = (GCARR_ac(1.17d-11,450.0d0))
+  RCONST(425) = (GCARR_ac(1.17d-11,450.0d0))
+  RCONST(426) = (GCARR_ac(2.20d-11,390.0d0))
+  RCONST(427) = (GCARR_ac(3.50d-11,390.0d0))
+  RCONST(428) = (GCARR_ac(4.64d-12,650.0d0))
+  RCONST(429) = (GCARR_ac(9.85d-12,410.0d0))
+  RCONST(430) = (GCARR_ac(3.00d-12,650.0d0))
+  RCONST(431) = (GCARR_ac(2.47d-12,390.0d0))
   RCONST(432) = (GC_EPO(1.62d-11,3.90d2,4.77d-21))
-  RCONST(433) = (GCARR2(4.35d-12,390.0d0))
+  RCONST(433) = (GCARR_ac(4.35d-12,390.0d0))
   RCONST(434) = (GC_EPO(2.85d-11,390.0d0,4.77d-21))
-  RCONST(435) = (GCARR2(6.10d-12,200.0d0))
-  RCONST(436) = (GCARR2(4.10d-12,200.0d0))
-  RCONST(437) = (GCARR2(3.53d-11,390.0d0))
-  RCONST(438) = (GCARR2(3.53d-11,390.0d0))
-  RCONST(439) = (GCARR2(1.59d+13,-10000.0d0))
+  RCONST(435) = (GCARR_ac(6.10d-12,200.0d0))
+  RCONST(436) = (GCARR_ac(4.10d-12,200.0d0))
+  RCONST(437) = (GCARR_ac(3.53d-11,390.0d0))
+  RCONST(438) = (GCARR_ac(3.53d-11,390.0d0))
+  RCONST(439) = (GCARR_ac(1.59d+13,-10000.0d0))
   RCONST(440) = (GC_ALK(2.7d-12,3.50d2,2.1d0,9.0d0,1.0d0,0.0d0))
   RCONST(441) = (GC_NIT(2.7d-12,3.50d2,2.1d0,9.0d0,1.0d0,0.0d0))
-  RCONST(442) = (GCARR2(2.47d-13,1300.0d0))
-  RCONST(443) = (GCARR2(2.91d+13,-10000.0d0))
+  RCONST(442) = (GCARR_ac(2.47d-13,1300.0d0))
+  RCONST(443) = (GCARR_ac(2.91d+13,-10000.0d0))
   RCONST(444) = (GC_ALK(2.7d-12,3.50d2,2.315d0,9.0d0,1.0d0,0.0d0))
   RCONST(445) = (GC_NIT(2.7d-12,3.50d2,2.315d0,9.0d0,1.0d0,0.0d0))
-  RCONST(446) = (GCARR2(2.47d-13,1300.0d0))
-  RCONST(447) = (GCARR2(1.875d+13,-10000.0d0))
+  RCONST(446) = (GCARR_ac(2.47d-13,1300.0d0))
+  RCONST(447) = (GCARR_ac(1.875d+13,-10000.0d0))
   RCONST(448) = (GC_ALK(2.7d-12,3.50d2,3.079d0,9.0d0,1.0d0,0.0d0))
   RCONST(449) = (GC_NIT(2.7d-12,3.50d2,3.079d0,9.0d0,1.0d0,0.0d0))
-  RCONST(450) = (GCARR2(2.47d-13,1300.0d0))
-  RCONST(451) = (GCARR2(3.22d-11,-400.0d0))
-  RCONST(452) = (GCARR2(1.05d-11,-400.0d0))
+  RCONST(450) = (GCARR_ac(2.47d-13,1300.0d0))
+  RCONST(451) = (GCARR_ac(3.22d-11,-400.0d0))
+  RCONST(452) = (GCARR_ac(1.05d-11,-400.0d0))
   RCONST(453) = (GC_EPO(5.82d-11,-4.00d2,1.14d-20))
-  RCONST(454) = (GCARR2(8.25d-12,-400.0d0))
+  RCONST(454) = (GCARR_ac(8.25d-12,-400.0d0))
   RCONST(455) = (GC_EPO(3.75d-11,-4.00d2,8.91d-21))
-  RCONST(456) = (GCARR2(1.875d+13,-10000.0d0))
-  RCONST(457) = (GCARR2(1.0d+7,-5000.0d0))
-  RCONST(458) = (GCARR2(2.38d-13,1300.0d0))
+  RCONST(456) = (GCARR_ac(1.875d+13,-10000.0d0))
+  RCONST(457) = (GCARR_ac(1.0d+7,-5000.0d0))
+  RCONST(458) = (GCARR_ac(2.38d-13,1300.0d0))
   RCONST(459) = (GC_ALK(2.7d-12,3.50d2,13.098d0,8.0d0,1.0d0,0.0d0))
   RCONST(460) = (GC_NIT(2.7d-12,3.50d2,13.098d0,8.0d0,1.0d0,0.0d0))
-  RCONST(461) = (GCARR2(1.875d+13,-10000.0d0))
-  RCONST(462) = (GCARR2(1.0d+7,-5000.0d0))
+  RCONST(461) = (GCARR_ac(1.875d+13,-10000.0d0))
+  RCONST(462) = (GCARR_ac(1.0d+7,-5000.0d0))
   RCONST(463) = (GC_ALK(2.7d-12,3.50d2,16.463d0,8.0d0,1.0d0,0.0d0))
   RCONST(464) = (GC_NIT(2.7d-12,3.50d2,16.463d0,8.0d0,1.0d0,0.0d0))
-  RCONST(465) = (GCARR2(2.38d-13,1300.0d0))
-  RCONST(466) = (GCARR2(2.38d-13,1300.0d0))
+  RCONST(465) = (GCARR_ac(2.38d-13,1300.0d0))
+  RCONST(466) = (GCARR_ac(2.38d-13,1300.0d0))
   RCONST(467) = (GC_NIT(2.7d-12,3.50d2,13.098d0,8.0d0,1.0d0,0.0d0))
   RCONST(468) = (GC_ALK(2.7d-12,3.50d2,13.098d0,8.0d0,1.0d0,0.0d0))
-  RCONST(469) = (GCARR2(1.875d+13,-10000.0d0))
-  RCONST(470) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(471) = (GCARR2(2.38d-13,1300.0d0))
-  RCONST(472) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(473) = (GCARR2(2.38d-13,1300.0d0))
-  RCONST(474) = (GCARR2(7.14d-12,390.0d0))
+  RCONST(469) = (GCARR_ac(1.875d+13,-10000.0d0))
+  RCONST(470) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(471) = (GCARR_ac(2.38d-13,1300.0d0))
+  RCONST(472) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(473) = (GCARR_ac(2.38d-13,1300.0d0))
+  RCONST(474) = (GCARR_ac(7.14d-12,390.0d0))
   RCONST(475) = (GC_EPO(6.30d-12,390.0d0,1.62d-19))
-  RCONST(476) = (GCARR2(1.02d-11,390.0d0))
+  RCONST(476) = (GCARR_ac(1.02d-11,390.0d0))
   RCONST(477) = (GC_EPO(1.05d-11,390.0d0,2.49d-19))
   RCONST(478) = (GC_EPO(1.55d-11,390.0d0,2.715d-19))
-  RCONST(479) = (GCARR2(2.04d-11,390.0d0))
+  RCONST(479) = (GCARR_ac(2.04d-11,390.0d0))
   RCONST(480) = (GC_EPO(9.52d-12,390.0d0,2.715d-19))
-  RCONST(481) = (GCARR2(2.95d-11,390.0d0))
-  RCONST(482) = (GCARR2(7.5d-12,20.0d0))
-  RCONST(483) = (GCARR2(7.5d-12,20.0d0))
-  RCONST(484) = (GCARR2(1.875d+13,-10000.0d0))
-  RCONST(485) = (GCARR2(2.60d-13,1300.0d0))
+  RCONST(481) = (GCARR_ac(2.95d-11,390.0d0))
+  RCONST(482) = (GCARR_ac(7.5d-12,20.0d0))
+  RCONST(483) = (GCARR_ac(7.5d-12,20.0d0))
+  RCONST(484) = (GCARR_ac(1.875d+13,-10000.0d0))
+  RCONST(485) = (GCARR_ac(2.60d-13,1300.0d0))
   RCONST(486) = (GC_ALK(2.7d-12,350.0d0,6.32d0,11.0d0,1.0d0,0.0d0))
   RCONST(487) = (GC_NIT(2.7d-12,350.0d0,6.32d0,11.0d0,1.0d0,0.0d0))
-  RCONST(488) = (GCARR2(1.875d+13,-10000.0d0))
-  RCONST(489) = (GCARR2(2.60d-13,1300.0d0))
+  RCONST(488) = (GCARR_ac(1.875d+13,-10000.0d0))
+  RCONST(489) = (GCARR_ac(2.60d-13,1300.0d0))
   RCONST(490) = (GC_ALK(2.7d-12,350.0d0,7.941d0,11.0d0,1.0d0,0.0d0))
   RCONST(491) = (GC_NIT(2.7d-12,350.0d0,7.941d0,11.0d0,1.0d0,0.0d0))
-  RCONST(492) = (GCARR2(1.256d+13,-10000.0d0))
-  RCONST(493) = (GCARR2(5.092d+12,-10000.0d0))
-  RCONST(494) = (GCARR2(2.60d-13,1300.0d0))
+  RCONST(492) = (GCARR_ac(1.256d+13,-10000.0d0))
+  RCONST(493) = (GCARR_ac(5.092d+12,-10000.0d0))
+  RCONST(494) = (GCARR_ac(2.60d-13,1300.0d0))
   RCONST(495) = (GC_ALK(2.7d-12,350.0d0,4.712d0,11.0d0,1.0d0,0.0d0))
   RCONST(496) = (GC_NIT(2.7d-12,350.0d0,4.712d0,11.0d0,1.0d0,0.0d0))
-  RCONST(497) = (GCARR2(2.60d-13,1300.0d0))
+  RCONST(497) = (GCARR_ac(2.60d-13,1300.0d0))
   RCONST(498) = (GC_ALK(2.7d-12,350.0d0,2.258d0,11.0d0,1.0d0,0.0d0))
   RCONST(499) = (GC_NIT(2.7d-12,350.0d0,2.258d0,11.0d0,1.0d0,0.0d0))
-  RCONST(500) = (GCARR2(2.60d-13,1300.0d0))
+  RCONST(500) = (GCARR_ac(2.60d-13,1300.0d0))
   RCONST(501) = (GC_ALK(2.7d-12,350.0d0,1.851d0,11.0d0,1.0d0,0.0d0))
   RCONST(502) = (GC_NIT(2.7d-12,350.0d0,1.851d0,11.0d0,1.0d0,0.0d0))
-  RCONST(503) = (GCARR2(2.95d-12,450.0d0))
-  RCONST(504) = (GCARR2(2.47d-13,1300.0d0))
-  RCONST(505) = (GCARR2(2.47d-13,1300.0d0))
+  RCONST(503) = (GCARR_ac(2.95d-12,450.0d0))
+  RCONST(504) = (GCARR_ac(2.47d-13,1300.0d0))
+  RCONST(505) = (GCARR_ac(2.47d-13,1300.0d0))
   RCONST(506) = (1.61d-12)
   RCONST(507) = (2.56d-12)
   RCONST(508) = (3.71d-12)
@@ -1378,71 +1446,71 @@ SUBROUTINE Update_RCONST ( )
   RCONST(516) = (GC_NIT(2.7d-12,350.0d0,12.915d0,9.0d0,1.0d0,0.0d0))
   RCONST(517) = (GC_ALK(2.7d-12,350.0d0,1.412d0,9.0d0,1.0d0,0.0d0))
   RCONST(518) = (GC_NIT(2.7d-12,350.0d0,1.412d0,9.0d0,1.0d0,0.0d0))
-  RCONST(519) = (GCARR2(2.50d-14,-300.0d0))
-  RCONST(520) = (GCARR2(1.00d+20,-10000.0d0))
-  RCONST(521) = (GCARR2(5.88d-12,390.0d0))
-  RCONST(522) = (GCARR2(1.61d-11,390.0d0))
+  RCONST(519) = (GCARR_ac(2.50d-14,-300.0d0))
+  RCONST(520) = (GCARR_ac(1.00d+20,-10000.0d0))
+  RCONST(521) = (GCARR_ac(5.88d-12,390.0d0))
+  RCONST(522) = (GCARR_ac(1.61d-11,390.0d0))
   RCONST(523) = (GC_EPO(4.471d-12,390.0d0,2.28d-20))
   RCONST(524) = (GC_EPO(8.77d-12,390.0d0,2.185d-20))
   RCONST(525) = (GC_EPO(1.493d-11,390.0d0,2.715d-19))
-  RCONST(526) = (GCARR2(2.278d-12,200.0d0))
-  RCONST(527) = (GCARR2(3.40d-12,200.0d0))
-  RCONST(528) = (GCARR2(7.50d-12,20.0d0))
-  RCONST(529) = (GCARR2(6.55d+12,-10000.0d0))
-  RCONST(530) = (GCARR2(8.72d+12,-10000.0d0))
-  RCONST(531) = (GCARR2(2.64d-13,1300.0d0))
-  RCONST(532) = (GCARR2(2.64d-13,1300.0d0))
+  RCONST(526) = (GCARR_ac(2.278d-12,200.0d0))
+  RCONST(527) = (GCARR_ac(3.40d-12,200.0d0))
+  RCONST(528) = (GCARR_ac(7.50d-12,20.0d0))
+  RCONST(529) = (GCARR_ac(6.55d+12,-10000.0d0))
+  RCONST(530) = (GCARR_ac(8.72d+12,-10000.0d0))
+  RCONST(531) = (GCARR_ac(2.64d-13,1300.0d0))
+  RCONST(532) = (GCARR_ac(2.64d-13,1300.0d0))
   RCONST(533) = (GC_ALK(2.7d-12,350.0d0,6.092d0,12.0d0,1.0d0,0.0d0))
   RCONST(534) = (GC_NIT(2.7d-12,350.0d0,6.092d0,12.0d0,1.0d0,0.0d0))
   RCONST(535) = (GC_ALK(2.7d-12,350.0d0,4.383d0,12.0d0,1.0d0,0.0d0))
   RCONST(536) = (GC_NIT(2.7d-12,350.0d0,4.383d0,12.0d0,1.0d0,0.0d0))
   RCONST(537) = (GC_EPO(2.97d-12,390.0d0,2.715d-19))
-  RCONST(538) = (GCARR2(9.35d-12,390.0d0))
-  RCONST(539) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(540) = (GCARR2(2.54d-13,1300.0d0))
-  RCONST(541) = (GCARR2(1.00d-11,0.0d0))
-  RCONST(542) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(543) = (GCARR2(2.71d-13,1300.0d0))
-  RCONST(544) = (GCARR2(2.60d-12,610.0d0))
-  RCONST(545) = (GCARR2(8.50d-16,-1520.0d0))
-  RCONST(546) = (GCARR2(4.40d-12,380.0d0))
-  RCONST(547) = (GCARR2(2.70d-12,470.0d0))
-  RCONST(548) = (GCARR2(1.40d-15,-2100.0d0))
-  RCONST(549) = (GCARR2(1.80d-13,-1190.0d0))
-  RCONST(550) = (GCARR2(1.24d-12,380.0d0))
+  RCONST(538) = (GCARR_ac(9.35d-12,390.0d0))
+  RCONST(539) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(540) = (GCARR_ac(2.54d-13,1300.0d0))
+  RCONST(541) = (GCARR_ac(1.00d-11,0.0d0))
+  RCONST(542) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(543) = (GCARR_ac(2.71d-13,1300.0d0))
+  RCONST(544) = (GCARR_ac(2.60d-12,610.0d0))
+  RCONST(545) = (GCARR_ac(8.50d-16,-1520.0d0))
+  RCONST(546) = (GCARR_ac(4.40d-12,380.0d0))
+  RCONST(547) = (GCARR_ac(2.70d-12,470.0d0))
+  RCONST(548) = (GCARR_ac(1.40d-15,-2100.0d0))
+  RCONST(549) = (GCARR_ac(1.80d-13,-1190.0d0))
+  RCONST(550) = (GCARR_ac(1.24d-12,380.0d0))
   RCONST(551) = (5.77d-11)
-  RCONST(552) = (GCARR2(2.70d-12,470.0d0))
-  RCONST(553) = (GCARR2(1.39d-11,380.0d0))
-  RCONST(554) = (GCARR2(2.70d-12,470.0d0))
-  RCONST(555) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(556) = (GCARR2(1.93d-13,1300.0d0))
+  RCONST(552) = (GCARR_ac(2.70d-12,470.0d0))
+  RCONST(553) = (GCARR_ac(1.39d-11,380.0d0))
+  RCONST(554) = (GCARR_ac(2.70d-12,470.0d0))
+  RCONST(555) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(556) = (GCARR_ac(1.93d-13,1300.0d0))
   RCONST(557) = (9.00d-12)
-  RCONST(558) = (GCARR2(2.70d-12,350.0d0))
-  RCONST(559) = (GCARR2(1.93d-13,1300.0d0))
+  RCONST(558) = (GCARR_ac(2.70d-12,350.0d0))
+  RCONST(559) = (GCARR_ac(1.93d-13,1300.0d0))
   RCONST(560) = (9.00d-12)
-  RCONST(561) = (GCARR2(3.71d-12,983.0d0))
-  RCONST(562) = (GCARR2(5.00d-12,470.0d0))
-  RCONST(563) = (GCARR2(8.70d-12,70.0d0))
-  RCONST(564) = (GCARR2(5.00d-12,470.0d0))
-  RCONST(565) = (GCARR2(2.00d-12,70.0d0))
-  RCONST(566) = (GCARR2(2.4d-11,70.0d0))
-  RCONST(567) = (GCARR2(2.12d-13,1300.0d0))
+  RCONST(561) = (GCARR_ac(3.71d-12,983.0d0))
+  RCONST(562) = (GCARR_ac(5.00d-12,470.0d0))
+  RCONST(563) = (GCARR_ac(8.70d-12,70.0d0))
+  RCONST(564) = (GCARR_ac(5.00d-12,470.0d0))
+  RCONST(565) = (GCARR_ac(2.00d-12,70.0d0))
+  RCONST(566) = (GCARR_ac(2.4d-11,70.0d0))
+  RCONST(567) = (GCARR_ac(2.12d-13,1300.0d0))
   RCONST(568) = (GC_ALK(2.7d-12,350.0d0,4.573d0,6.0d0,1.0d0,0.0d0))
   RCONST(569) = (GC_NIT(2.7d-12,350.0d0,4.573d0,6.0d0,1.0d0,0.0d0))
-  RCONST(570) = (GCARR2(2.12d-13,1300.0d0))
-  RCONST(571) = (GCARR2(3.14d-12,580.0d0))
+  RCONST(570) = (GCARR_ac(2.12d-13,1300.0d0))
+  RCONST(571) = (GCARR_ac(3.14d-12,580.0d0))
   RCONST(572) = (1.66d-11)
-  RCONST(573) = (GCARR2(2.90d+7,-5297.0d0))
+  RCONST(573) = (GCARR_ac(2.90d+7,-5297.0d0))
   RCONST(574) = (GC_ALK(2.7d-12,350.0d0,2.985d0,6.0d0,1.0d0,0.0d0))
   RCONST(575) = (GC_NIT(2.7d-12,350.0d0,2.985d0,6.0d0,1.0d0,0.0d0))
-  RCONST(576) = (GCARR2(8.7d-12,290.0d0))
-  RCONST(577) = (GC_PAN(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
-  RCONST(578) = (GCARR2(3.14d-12,580.0d0))
-  RCONST(579) = (GCARR2(7.50d-12,290.0d0))
-  RCONST(580) = (GC_PAN(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
+  RCONST(576) = (GCARR_ac(8.7d-12,290.0d0))
+  RCONST(577) = (GC_PAN_acac(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
+  RCONST(578) = (GCARR_ac(3.14d-12,580.0d0))
+  RCONST(579) = (GCARR_ac(7.50d-12,290.0d0))
+  RCONST(580) = (GC_PAN_acac(2.591d-28,-6.87d0,1.125d-11,-1.105d0,0.3d0))
   RCONST(581) = (4.00d-12)
-  RCONST(582) = (GCARR2(2.9d-12,500.0d0))
-  RCONST(583) = (GCARR2(1.58d+16,-13500.0d0))
+  RCONST(582) = (GCARR_ac(2.9d-12,500.0d0))
+  RCONST(583) = (GCARR_ac(1.58d+16,-13500.0d0))
   RCONST(584) = (2.90d-11)
   RCONST(585) = (4.33d-12)
   RCONST(586) = (1.00d-11)
@@ -1451,15 +1519,15 @@ SUBROUTINE Update_RCONST ( )
   RCONST(589) = (3.00d-12)
   RCONST(590) = (1.00d-11)
   RCONST(591) = (3.00d-12)
-  RCONST(592) = (GCARR2(1.40d-12,-1860.0d0))
+  RCONST(592) = (GCARR_ac(1.40d-12,-1860.0d0))
   RCONST(593) = (8.00d-13)
-  RCONST(594) = (GCARR2(1.30d-12,500.0d0))
-  RCONST(595) = (GCARR2(3.14d-12,580.0d0))
-  RCONST(596) = (GCARR2(1.55d-12,340.0d0))
+  RCONST(594) = (GCARR_ac(1.30d-12,500.0d0))
+  RCONST(595) = (GCARR_ac(3.14d-12,580.0d0))
+  RCONST(596) = (GCARR_ac(1.55d-12,340.0d0))
   RCONST(597) = (2.91d-11)
-  RCONST(598) = (GCARR2(1.56d-11,117.0d0))
-  RCONST(599) = (GCARR2(1.40d-12,700.0d0))
-  RCONST(600) = (GCARR2(2.60d-12,350.0d0))
+  RCONST(598) = (GCARR_ac(1.56d-11,117.0d0))
+  RCONST(599) = (GCARR_ac(1.40d-12,700.0d0))
+  RCONST(600) = (GCARR_ac(2.60d-12,350.0d0))
   RCONST(601) = (HET(ind_HO2,1))
   RCONST(602) = (HET(ind_NO2,1))
   RCONST(603) = (HET(ind_NO3,1))
