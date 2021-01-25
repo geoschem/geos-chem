@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Mon Jan 25 15:21:19 2021
+! Time                 : Mon Jan 25 16:54:25 2021
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -220,7 +220,7 @@ CONTAINS
     rate = a0 * EXP( b0 / TEMP ) * k2
   END FUNCTION GC_ISO2
 
-  FUNCTION GC_EPO( a1, e1, m1 ) RESULT( rate )
+  FUNCTION GC_EPO_a( a1, e1, m1 ) RESULT( rate )
     ! Used to compute the rate for these reactions:
     !    RIPA   + OH = 0.67IEPOXA   + 0.33IEPOXB   + OH + 0.005LVOC
     !    RIPB   + OH = 0.68IEPOXA   + 0.321IEPOB   + OH + 0.005LVOC
@@ -240,7 +240,7 @@ CONTAINS
     !
     k1   = 1.0_dp / ( m1 * NUMDEN + 1.0_dp )
     rate = a1 * EXP( e1 / TEMP ) *  K1
-  END FUNCTION GC_EPO
+  END FUNCTION GC_EPO_a
 
   FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( rate )
     ! Used to compute the rate for these reactions:
@@ -706,7 +706,7 @@ CONTAINS
     REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     =  a0 * EXP( c0 / TEMP )
+    r0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP(  0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )** 8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
@@ -731,7 +731,7 @@ CONTAINS
     !    (300/T)**b0
     !    EXP(c1/T)
     !    EXP(c2/T)
-    ! because b0 = c1 = c12= 0.  Therefore we can skip computing these terms.  
+    ! because b0 = c1 = c2 = 0.  Therefore we can skip computing these terms.  
     ! Also, fct1 = fct2 = 0, so we will skip those terms as well.  This is
     ! more computationally efficient. (bmy, 1/25/20)
     !
@@ -761,13 +761,14 @@ CONTAINS
     ! these terms as well.  This is more computationally efficient. 
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,    a2,   fv
-    REAL(kind=dp)             :: xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   a2,   fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
     !
-    xyrat = a1 / a2         ! rlow = a1 and rhigh = a2
+    rlow  = a1 * NUMDEN
+    xyrat = rlow / a2         ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = a1 * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aa
 
   FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( rate )
@@ -799,7 +800,7 @@ CONTAINS
     REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
     !
     rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
-    xyrat = rlow / a2      ! rhigh = a2
+    xyrat = rlow / a2                                  ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
     rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
@@ -1359,9 +1360,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(429) = (GCARR_ac(9.85d-12,410.0d0))
   RCONST(430) = (GCARR_ac(3.00d-12,650.0d0))
   RCONST(431) = (GCARR_ac(2.47d-12,390.0d0))
-  RCONST(432) = (GC_EPO(1.62d-11,3.90d2,4.77d-21))
+  RCONST(432) = (GC_EPO_a(1.62d-11,3.90d2,4.77d-21))
   RCONST(433) = (GCARR_ac(4.35d-12,390.0d0))
-  RCONST(434) = (GC_EPO(2.85d-11,390.0d0,4.77d-21))
+  RCONST(434) = (GC_EPO_a(2.85d-11,390.0d0,4.77d-21))
   RCONST(435) = (GCARR_ac(6.10d-12,200.0d0))
   RCONST(436) = (GCARR_ac(4.10d-12,200.0d0))
   RCONST(437) = (GCARR_ac(3.53d-11,390.0d0))
@@ -1380,9 +1381,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(450) = (GCARR_ac(2.47d-13,1300.0d0))
   RCONST(451) = (GCARR_ac(3.22d-11,-400.0d0))
   RCONST(452) = (GCARR_ac(1.05d-11,-400.0d0))
-  RCONST(453) = (GC_EPO(5.82d-11,-4.00d2,1.14d-20))
+  RCONST(453) = (GC_EPO_a(5.82d-11,-4.00d2,1.14d-20))
   RCONST(454) = (GCARR_ac(8.25d-12,-400.0d0))
-  RCONST(455) = (GC_EPO(3.75d-11,-4.00d2,8.91d-21))
+  RCONST(455) = (GC_EPO_a(3.75d-11,-4.00d2,8.91d-21))
   RCONST(456) = (GCARR_ac(1.875d+13,-10000.0d0))
   RCONST(457) = (GCARR_ac(1.0d+7,-5000.0d0))
   RCONST(458) = (GCARR_ac(2.38d-13,1300.0d0))
@@ -1402,12 +1403,12 @@ SUBROUTINE Update_RCONST ( )
   RCONST(472) = (GCARR_ac(2.70d-12,350.0d0))
   RCONST(473) = (GCARR_ac(2.38d-13,1300.0d0))
   RCONST(474) = (GCARR_ac(7.14d-12,390.0d0))
-  RCONST(475) = (GC_EPO(6.30d-12,390.0d0,1.62d-19))
+  RCONST(475) = (GC_EPO_a(6.30d-12,390.0d0,1.62d-19))
   RCONST(476) = (GCARR_ac(1.02d-11,390.0d0))
-  RCONST(477) = (GC_EPO(1.05d-11,390.0d0,2.49d-19))
-  RCONST(478) = (GC_EPO(1.55d-11,390.0d0,2.715d-19))
+  RCONST(477) = (GC_EPO_a(1.05d-11,390.0d0,2.49d-19))
+  RCONST(478) = (GC_EPO_a(1.55d-11,390.0d0,2.715d-19))
   RCONST(479) = (GCARR_ac(2.04d-11,390.0d0))
-  RCONST(480) = (GC_EPO(9.52d-12,390.0d0,2.715d-19))
+  RCONST(480) = (GC_EPO_a(9.52d-12,390.0d0,2.715d-19))
   RCONST(481) = (GCARR_ac(2.95d-11,390.0d0))
   RCONST(482) = (GCARR_ac(7.5d-12,20.0d0))
   RCONST(483) = (GCARR_ac(7.5d-12,20.0d0))
@@ -1450,9 +1451,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(520) = (GCARR_ac(1.00d+20,-10000.0d0))
   RCONST(521) = (GCARR_ac(5.88d-12,390.0d0))
   RCONST(522) = (GCARR_ac(1.61d-11,390.0d0))
-  RCONST(523) = (GC_EPO(4.471d-12,390.0d0,2.28d-20))
-  RCONST(524) = (GC_EPO(8.77d-12,390.0d0,2.185d-20))
-  RCONST(525) = (GC_EPO(1.493d-11,390.0d0,2.715d-19))
+  RCONST(523) = (GC_EPO_a(4.471d-12,390.0d0,2.28d-20))
+  RCONST(524) = (GC_EPO_a(8.77d-12,390.0d0,2.185d-20))
+  RCONST(525) = (GC_EPO_a(1.493d-11,390.0d0,2.715d-19))
   RCONST(526) = (GCARR_ac(2.278d-12,200.0d0))
   RCONST(527) = (GCARR_ac(3.40d-12,200.0d0))
   RCONST(528) = (GCARR_ac(7.50d-12,20.0d0))
@@ -1464,7 +1465,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(534) = (GC_NIT(2.7d-12,350.0d0,6.092d0,12.0d0,1.0d0,0.0d0))
   RCONST(535) = (GC_ALK(2.7d-12,350.0d0,4.383d0,12.0d0,1.0d0,0.0d0))
   RCONST(536) = (GC_NIT(2.7d-12,350.0d0,4.383d0,12.0d0,1.0d0,0.0d0))
-  RCONST(537) = (GC_EPO(2.97d-12,390.0d0,2.715d-19))
+  RCONST(537) = (GC_EPO_a(2.97d-12,390.0d0,2.715d-19))
   RCONST(538) = (GCARR_ac(9.35d-12,390.0d0))
   RCONST(539) = (GCARR_ac(2.70d-12,350.0d0))
   RCONST(540) = (GCARR_ac(2.54d-13,1300.0d0))

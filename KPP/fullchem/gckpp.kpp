@@ -30,8 +30,8 @@ PH2O2 : H2O2;
     !    IHOO1 + IHOO4 = MACR + MVK + 2HO2 + 2CH2O
     !    IHOO1 + IHOO1 = HO2 + HC5A + CO + OH +  MVKHP
     !    IHOO4 + IHOO4 = HO2 + HC5A + CO + OH +  MCRHP
-    !    IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +  0.5MVKHP + 0.5MCRHP 
-    !    IHOO1 + MO2   = MVK + 2HO2 + 2CH2O : 
+    !    IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +  0.5MVKHP + 0.5MCRHP
+    !    IHOO1 + MO2   = MVK + 2HO2 + 2CH2O :
     !    IHOO1 + MO2   = CH2O + 0.5HC5A + 1.5HO2 + 0.5MVKHP + 0.5CO + 0.5OH
     !    IHOO4 + MO2   = MACR + 2HO2 + 2CH2O
     !    IHOO4 + MO2   = CH2O + 0.5HC5A + 1.5HO2 +  0.5MCRHP + 0.5CO + 0.5OH
@@ -563,7 +563,7 @@ PH2O2 : H2O2;
     REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP ) 
+    r0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP( 0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
@@ -594,7 +594,7 @@ PH2O2 : H2O2;
     REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     =  a0 * EXP( c0 / TEMP )
+    r0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP(  0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )** 8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
@@ -613,13 +613,13 @@ PH2O2 : H2O2;
     !    PPN        = RCO3 + NO2
     !    PAN        = MCO3 + NO2
     !    ClOO  {+M} = Cl   + O2 {+M}
-    !    Cl2O2 {+M} = 2ClO      {+M} 
+    !    Cl2O2 {+M} = 2ClO      {+M}
     !
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    (300/T)**b0
     !    EXP(c1/T)
     !    EXP(c2/T)
-    ! because b0 = c1 = c12= 0.  Therefore we can skip computing these terms.  
+    ! because b0 = c1 = c2 = 0.  Therefore we can skip computing these terms.
     ! Also, fct1 = fct2 = 0, so we will skip those terms as well.  This is
     ! more computationally efficient. (bmy, 1/25/20)
     !
@@ -628,7 +628,7 @@ PH2O2 : H2O2;
     !
     r0    = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
     r1    = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
-    rate  = r1 / r0    
+    rate  = r1 / r0
   END FUNCTION GCJPLEQ_acabab
 
   FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( rate )
@@ -645,17 +645,18 @@ PH2O2 : H2O2;
     !    (300/T)**b1 * EXP(c1/T)
     !    (300/T)**b2 * EXP(c2/T)
     ! because b1 = b2 = c1 = c2 = 0.  Therefore we can skip computing
-    ! these terms.  Also, fct1 = fct2 = 0, so we will skip computing 
-    ! these terms as well.  This is more computationally efficient. 
+    ! these terms.  Also, fct1 = fct2 = 0, so we will skip computing
+    ! these terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,    a2,   fv
-    REAL(kind=dp)             :: xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   a2,   fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
     !
-    xyrat = a1 / a2         ! rlow = a1 and rhigh = a2
+    rlow  = a1 * NUMDEN
+    xyrat = rlow / a2         ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = a1 * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aa
 
   FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( rate )
@@ -678,16 +679,16 @@ PH2O2 : H2O2;
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    EXP(c1/T)
     !    (300/T)**b2 * EXP(c2/T)
-    ! because b2 = c1 = c2 = 0.  Therefore we can skip computing these 
+    ! because b2 = c1 = c2 = 0.  Therefore we can skip computing these
     ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
-    ! terms as well.  This is more computationally efficient. 
+    ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
     REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
     !
     rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
-    xyrat = rlow / a2      ! rhigh = a2
+    xyrat = rlow / a2                                  ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
     rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
@@ -705,7 +706,7 @@ PH2O2 : H2O2;
     !    HO2  + NO2 {+M} = HNO4
     !    NO2  + NO3 {+M} = N2O5
     !    ClO  + NO2 {+M} = ClNO3 {+M}
-    !    MCO3 + NO2 {+M} = PAN 
+    !    MCO3 + NO2 {+M} = PAN
     !    RCO3 + NO2 {+M} = PPN
     !    PRPE + OH  {+M} = PO2
     !    MO2  + NO2 {+M} = MPN   {+M}
@@ -717,9 +718,9 @@ PH2O2 : H2O2;
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    EXP(c1/T)
     !    EXP(c2/T)
-    ! because c1 = c2 = 0.  Therefore we can skip computing these 
+    ! because c1 = c2 = 0.  Therefore we can skip computing these
     ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
-    ! terms as well.  This is more computationally efficient. 
+    ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv
