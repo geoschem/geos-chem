@@ -2956,6 +2956,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial version
+!  26 Jan 2021 - J. Pierce   - Update to Emerson et al. PNAS (2020) parameters
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2984,6 +2985,15 @@ CONTAINS
     !REAL(f8)  :: DIAM, DEN, RATIO_R, RWET, RCM
     REAL(f8)  :: DIAM, DEN, RATIO_R, RWET, RUM
     REAL(f8)  :: FAC1, FAC2
+
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
+    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
+     
+    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
+    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
+    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
+
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
     ! New variables added (jaegle 5/11/11)
     REAL(f8)  :: SW
@@ -3335,7 +3345,8 @@ CONTAINS
 
     ! Schmidt number
     SC   = AIRVS / DIFF
-    EB   = 1.e+0_f8/SC**(gamma(LUC))
+    !EB   = 1.e+0_f8/SC**(gamma(LUC))
+    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -3343,15 +3354,18 @@ CONTAINS
        EIN  = 0e+0_f8
     ELSE
        ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
-       EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       !EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       EIN  = CIN * ( DIAM / AA )**(UPSILON) ! Emerson 2020 update JRP
     ENDIF
 
     ! Use the formulation of Slinn and Slinn (1980) for the impaction over
     ! water surfaces (jaegle 5/11/11)
     IF (LUC == 14) THEN
-       EIM  = 10.e+0_f8**( -3.e+0_f8/ ST )         ! for water surfaces
+       EIM  = 10.e+0_f8**( -3.e+0_f8/ ST )         ! for water surface
+       ! JRP: Emerson doesn't describe what to do here, so I'm leaving as is
     ELSE
-       EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+       !EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+       EIM  = CIM * ( ST / ( ALPHA(LUC) + ST ) )**(BETA) ! Emerson 2020 update
        EIM  = MIN( EIM, 0.6e+0_f8 )
     ENDIF
 
@@ -3683,6 +3697,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial version
+!  26 Jan 2021 - J. Pierce   - Update to Emerson et al. PNAS (2020) parameters
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3706,6 +3721,15 @@ CONTAINS
     REAL(f8)  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
     REAL(f8)  :: SC, ST      ! Schmidt and Stokes number (nondim)
     REAL(f8)  :: DIAM, DEN
+
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
+    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
+     
+    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
+    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
+    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
+
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
 
     !=======================================================================
@@ -3893,7 +3917,8 @@ CONTAINS
 
     ! Schmidt number
     SC   = AIRVS / DIFF
-    EB   = 1.e+0_f8/SC**(gamma(LUC))
+    !EB   = 1.e+0_f8/SC**(gamma(LUC))
+    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -3901,10 +3926,12 @@ CONTAINS
        EIN  = 0e+0_f8
     ELSE
        ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
-       EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       !EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       EIN  = CIN * ( DIAM / AA )**(UPSILON) ! Emerson 2020 update JRP
     ENDIF
 
-    EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+    !EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+    EIM  = CIM * ( ST / ( ALPHA(LUC) + ST ) )**(BETA) ! Emerson 2020 update JRP
 
     EIM  = MIN( EIM, 0.6e+0_f8 )
 
@@ -3927,7 +3954,8 @@ CONTAINS
 ! !IROUTINE: dust_sfcrsii
 !
 ! !DESCRIPTION: Function DUST\_SFCRSII computes the aerodynamic resistance of
-!  dust aerosol species according to Zhang et al 2001.  We do not consider the
+!  dust aerosol species according to Zhang et al 2001 modified by Emerson et al.
+!  2020.  We do not consider the
 !  hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04,
 !  4/15/05)
 !\\
@@ -3954,6 +3982,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial version
+!  26 Jan 2021 - J. Pierce   - Update to Emerson et al. PNAS (2020) parameters
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3976,6 +4005,15 @@ CONTAINS
     REAL(f8)  :: VISC        ! Viscosity of air (Pa s)
     REAL(f8)  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
     REAL(f8)  :: SC, ST      ! Schmidt and Stokes number (nondim)
+    
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
+    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
+     
+    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
+    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
+    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
+
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
 
     !=======================================================================
@@ -4157,7 +4195,8 @@ CONTAINS
 
     ! Schmidt number
     SC   = AIRVS / DIFF
-    EB   = 1.e+0_f8/SC**(gamma(LUC))
+    !EB   = 1.e+0_f8/SC**(gamma(LUC))
+    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -4165,10 +4204,12 @@ CONTAINS
        EIN  = 0e+0_f8
     ELSE
        ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
-       EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       !EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
+       EIN  = CIN * ( DIAM / AA )**(UPSILON) ! Emerson 2020 update JRP
     ENDIF
 
-    EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+    !EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+    EIM  = CIM * ( ST / ( ALPHA(LUC) + ST ) )**(BETA) ! Emerson 2020 update JRP
 
     EIM  = MIN( EIM, 0.6e+0_f8 )
 
