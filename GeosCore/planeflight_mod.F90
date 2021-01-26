@@ -339,7 +339,7 @@ CONTAINS
             A9,X,A3,X,A5,X,A5,X,250(a10,x) )
 #else
 110 FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X, &
-            A9,X,A3,X,A5,X,A5,X,200(a11,x) )
+            A9,X,A3,X,A5,X,A5,X,250(a11,x) )
 #endif
 
   END SUBROUTINE SETUP_PLANEFLIGHT
@@ -2310,7 +2310,7 @@ CONTAINS
            X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else
 110 FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3, &
-           X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,200(es11.3e3,x))
+           X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #endif
 
     ! Error check
