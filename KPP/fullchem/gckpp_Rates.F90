@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Mon Jan 25 16:54:25 2021
+! Time                 : Thu Jan 28 17:52:37 2021
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -142,8 +142,8 @@ CONTAINS
     !    IHOO1 + IHOO4 = MACR + MVK + 2HO2 + 2CH2O
     !    IHOO1 + IHOO1 = HO2 + HC5A + CO + OH +  MVKHP
     !    IHOO4 + IHOO4 = HO2 + HC5A + CO + OH +  MCRHP
-    !    IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +  0.5MVKHP + 0.5MCRHP 
-    !    IHOO1 + MO2   = MVK + 2HO2 + 2CH2O : 
+    !    IHOO1 + IHOO4 = HO2 + HC5A + CO + OH +  0.5MVKHP + 0.5MCRHP
+    !    IHOO1 + MO2   = MVK + 2HO2 + 2CH2O :
     !    IHOO1 + MO2   = CH2O + 0.5HC5A + 1.5HO2 + 0.5MVKHP + 0.5CO + 0.5OH
     !    IHOO4 + MO2   = MACR + 2HO2 + 2CH2O
     !    IHOO4 + MO2   = CH2O + 0.5HC5A + 1.5HO2 +  0.5MCRHP + 0.5CO + 0.5OH
@@ -467,7 +467,7 @@ CONTAINS
 
   FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( rate )
     ! Reaction rate for:
-    !    GLYX + NO3 = HNO3 + HO2 + 2.000CO
+    !    GLYX + NO3 = HNO3 + HO2 + 2CO
     !    i.e. the HO2 + 2*CO branch
     !
     ! For this reaction, this Arrhenius term evaluates to 1:
@@ -675,7 +675,7 @@ CONTAINS
     REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP ) 
+    r0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP( 0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
@@ -725,13 +725,13 @@ CONTAINS
     !    PPN        = RCO3 + NO2
     !    PAN        = MCO3 + NO2
     !    ClOO  {+M} = Cl   + O2 {+M}
-    !    Cl2O2 {+M} = 2ClO      {+M} 
+    !    Cl2O2 {+M} = 2ClO      {+M}
     !
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    (300/T)**b0
     !    EXP(c1/T)
     !    EXP(c2/T)
-    ! because b0 = c1 = c2 = 0.  Therefore we can skip computing these terms.  
+    ! because b0 = c1 = c2 = 0.  Therefore we can skip computing these terms.
     ! Also, fct1 = fct2 = 0, so we will skip those terms as well.  This is
     ! more computationally efficient. (bmy, 1/25/20)
     !
@@ -740,7 +740,7 @@ CONTAINS
     !
     r0    = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
     r1    = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
-    rate  = r1 / r0    
+    rate  = r1 / r0
   END FUNCTION GCJPLEQ_acabab
 
   FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( rate )
@@ -757,8 +757,8 @@ CONTAINS
     !    (300/T)**b1 * EXP(c1/T)
     !    (300/T)**b2 * EXP(c2/T)
     ! because b1 = b2 = c1 = c2 = 0.  Therefore we can skip computing
-    ! these terms.  Also, fct1 = fct2 = 0, so we will skip computing 
-    ! these terms as well.  This is more computationally efficient. 
+    ! these terms.  Also, fct1 = fct2 = 0, so we will skip computing
+    ! these terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   a2,   fv
@@ -786,14 +786,14 @@ CONTAINS
     !    Br  + NO2 {+M} = BrNO2      {+M}
     !    NO  + O   {+M} = NO2        {+M}
     !    I   + NO2 {+M} = IONO       {+M}
-    !    I + NO    {+M} = INO        {+M}
+    !    I   + NO  {+M} = INO        {+M}
     !
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    EXP(c1/T)
     !    (300/T)**b2 * EXP(c2/T)
-    ! because b2 = c1 = c2 = 0.  Therefore we can skip computing these 
+    ! because b2 = c1 = c2 = 0.  Therefore we can skip computing these
     ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
-    ! terms as well.  This is more computationally efficient. 
+    ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
@@ -818,7 +818,7 @@ CONTAINS
     !    HO2  + NO2 {+M} = HNO4
     !    NO2  + NO3 {+M} = N2O5
     !    ClO  + NO2 {+M} = ClNO3 {+M}
-    !    MCO3 + NO2 {+M} = PAN 
+    !    MCO3 + NO2 {+M} = PAN
     !    RCO3 + NO2 {+M} = PPN
     !    PRPE + OH  {+M} = PO2
     !    MO2  + NO2 {+M} = MPN   {+M}
@@ -830,9 +830,9 @@ CONTAINS
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    EXP(c1/T)
     !    EXP(c2/T)
-    ! because c1 = c2 = 0.  Therefore we can skip computing these 
+    ! because c1 = c2 = 0.  Therefore we can skip computing these
     ! terms.  Also, fct1 = fct2 = 0, so we will skip computing these
-    ! terms as well.  This is more computationally efficient. 
+    ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv

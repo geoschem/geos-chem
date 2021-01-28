@@ -355,7 +355,7 @@ PH2O2 : H2O2;
 
   FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( rate )
     ! Reaction rate for:
-    !    GLYX + NO3 = HNO3 + HO2 + 2.000CO
+    !    GLYX + NO3 = HNO3 + HO2 + 2CO
     !    i.e. the HO2 + 2*CO branch
     !
     ! For this reaction, this Arrhenius term evaluates to 1:
@@ -674,7 +674,7 @@ PH2O2 : H2O2;
     !    Br  + NO2 {+M} = BrNO2      {+M}
     !    NO  + O   {+M} = NO2        {+M}
     !    I   + NO2 {+M} = IONO       {+M}
-    !    I + NO    {+M} = INO        {+M}
+    !    I   + NO  {+M} = INO        {+M}
     !
     ! For these reactions, these Arrhenius law terms evaluate to 1:
     !    EXP(c1/T)
@@ -764,6 +764,13 @@ PH2O2 : H2O2;
   ! as they are updated for each iteration w/in a parallel loop
   !-----------------------------------------------------------------------
   !$OMP THREADPRIVATE( C, VAR, FIX, RCONST, TIME, TEMP, CFACTOR )
+
+  !-----------------------------------------------------------------------
+  ! Add parameters to isolate a box for debugging
+  !-----------------------------------------------------------------------
+  INTEGER,       PARAMETER :: I_dbg = 50
+  INTEGER,       PARAMETER :: J_dbg = 2
+  INTEGER,       PARAMETER :: L_dbg = 44
 
   !-----------------------------------------------------------------------
   ! Add more inlined global parameters for heterogeneous chemistry here

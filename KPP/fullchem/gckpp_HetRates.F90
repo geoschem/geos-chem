@@ -228,7 +228,7 @@ MODULE GCKPP_HETRATES
       ! Scalars
       LOGICAL                :: SAFEDIV
       INTEGER                :: IND
-      REAL(fp)               :: conc1, conc2
+      REAL(fp)               :: conc1, conc2, denom
 
       ! SAVEd scalars
       INTEGER,          SAVE :: id_SALA = -1
@@ -301,27 +301,47 @@ MODULE GCKPP_HETRATES
       hConc_SSC = 10.0**(-5.0_fp)
 
       ! Get halide concentrations, in cloud
-      conc1 = C(ind_HBr) + C(ind_BrSALA)*0.7_fp + C(ind_BrSALC)
-      conc2 = C(ind_HCl) + C(ind_SALACL)*0.7_fp + C(ind_SALCCL)
+      conc1 = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_fp ) + C(ind_BrSALC)
+      conc2 = C(ind_HCl) + ( C(ind_SALACL) * 0.7_fp ) + C(ind_SALCCL)
 
       CALL Get_Halide_CldConc( conc1,       conc2,      VLiq,  VIce,         &
                                VAir,        Temp,       CLDFr, pHCloud,      &
                                brConc_Cldg, clConc_Cldg                     )
 
       brConc_Cld  = brConc_Cldg 
-      brConc_Cldg = ( brConc_Cld * C(ind_HBr)             ) / conc1
-      brConc_CldA = ( brConc_Cld * C(ind_BrSALA) * 0.7_fp ) / conc1
-      brConc_CldC = ( brConc_Cld * C(ind_BrSALC)          ) / conc1
 
-      clConc_Cld  = clConc_Cldg
-      clConc_Cldg = ( clConc_Cld * C(ind_HCL)             ) / conc2
-      clConc_CldA = ( clConc_Cld * C(ind_SALACL) * 0.7_fp ) / conc2
-      clConc_Cldc = ( clConc_Cld * C(ind_SALCCL)          ) / conc2
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_fp ) + C(ind_BrSALC)
+      IF ( denom > 0.0_fp ) THEN
+         brConc_Cldg = ( brConc_Cld * C(ind_HBr   )          ) / denom
+         brConc_CldA = ( brConc_Cld * C(ind_BrSALA) * 0.7_fp ) / denom
+         brConc_CldC = ( brConc_Cld * C(ind_BrSALC)          ) / denom
+      ELSE
+         brConc_Cldg = 0.0_fp
+         brConc_CldA = 0.0_fp
+         brConc_CldC = 0.0_fp
+      ENDIF
 
-      ! Prevent underflow
+      ! Enforce minimum values
       brConc_Cldg = MAX( brConc_Cldg, 1.0e-20_fp )
       brConc_CldA = MAX( brConc_CldA, 1.0e-20_fp )
       brConc_CldC = MAX( brConc_CldC, 1.0e-20_fp )
+
+      clConc_Cld  = clConc_Cldg
+
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = C(ind_HCl) + ( C(ind_SALACL) * 0.7_fp ) + C(ind_SALCCL)
+      IF ( denom > 0.0_fp ) THEN
+         clConc_Cldg = ( clConc_Cld * C(ind_HCl   )          ) / denom
+         clConc_CldA = ( clConc_Cld * C(ind_SALACL) * 0.7_fp ) / denom
+         clConc_CldC = ( clConc_Cld * C(ind_SALCCL)          ) / denom
+      ELSE
+         clConc_Cldg = 0.0_fp
+         clConc_CldA = 0.0_fp
+         clConc_CldC = 0.0_fp
+      ENDIF
+
+      ! Enforce minimum values
       clConc_Cldg = MAX( clConc_Cldg, 1.0e-20_fp )
       clConc_CldA = MAX( clConc_CldA, 1.0e-20_fp )
       clConc_CldC = MAX( clConc_CldC, 1.0e-20_fp )
@@ -2091,7 +2111,7 @@ MODULE GCKPP_HETRATES
 
             !For SNA aerosol...
             ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+fineSSA aerosol
-            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
+            ADJUSTEDRATE=ARSL1K( (1.0_fp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
 
             !Calculate ClNO2 yield on SNA(+ORG) aerosol using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2120,7 +2140,7 @@ MODULE GCKPP_HETRATES
             SA     = output(4)
 
             !For coarse mode SSA aerosol ...
-            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K( (1.0_fp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP))
 
             !Calculate ClNO2 yield using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)

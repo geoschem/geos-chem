@@ -88,7 +88,7 @@ CONTAINS
 !  full chemistry with KPP.
 !\\
 !\\
-0! !INTERFACE:
+! !INTERFACE:
 !
   SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag,                 &
                           State_Grid, State_Met, RC                         )
@@ -879,7 +879,6 @@ CONTAINS
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================
-
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "     Integrate 1", RC,                          &
                             InLoop=.TRUE.,      ThreadNum=Thread            )
@@ -1074,6 +1073,7 @@ CONTAINS
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species
        !====================================================================
+
        ! Loop over KPP species
        DO N = 1, NSPEC
 
@@ -1488,11 +1488,10 @@ CONTAINS
 
        ! ... check if there are solid PSCs at this grid box
        PSCBOX     = ( ( Input_Opt%LPSCCHEM                ) .and.            &
-                      ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and.            &
-                      ( STRATBOX                          )                 )
+                      ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. STRATBOX  )
 
-       ! ... check if there is surface NAT
-       NATSURFACE = ( PSCBOX .and. ( C(ind_NIT) < 0.0_f8 )                  )
+       ! ... check if there is surface NAT at this grid box
+       NATSURFACE = ( PSCBOX .and. ( C(ind_NIT) > 0.0_f8 )                  )
 
     ELSE
 
@@ -1503,7 +1502,8 @@ CONTAINS
        ! ... set H2O concentration from the meteorology
        C(ind_H2O) = H2O
 
-       ! ... set logicals to false
+       ! ... zero out UCX-related quantities
+       KHETI_SLA  = 0.0_f8
        STRATBOX   = .FALSE.
        PSCBOX     = .FALSE.
        NATSURFACE = .FALSE.

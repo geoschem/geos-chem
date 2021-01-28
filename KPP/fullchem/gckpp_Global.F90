@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Mon Jan 25 16:54:25 2021
+! Time                 : Thu Jan 28 17:52:37 2021
 ! Working directory    : /local/ryantosca/GC/rundirs/epa-kpp/gcc_epa/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -74,6 +74,13 @@ MODULE gckpp_Global
   ! as they are updated for each iteration w/in a parallel loop
   !-----------------------------------------------------------------------
   !$OMP THREADPRIVATE( C, VAR, FIX, RCONST, TIME, TEMP, CFACTOR )
+
+  !-----------------------------------------------------------------------
+  ! Add parameters to isolate a box for debugging
+  !-----------------------------------------------------------------------
+  INTEGER,       PARAMETER :: I_dbg = 50
+  INTEGER,       PARAMETER :: J_dbg = 2
+  INTEGER,       PARAMETER :: L_dbg = 44
 
   !-----------------------------------------------------------------------
   ! Add more inlined global parameters for heterogeneous chemistry here
