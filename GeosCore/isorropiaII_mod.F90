@@ -436,24 +436,24 @@ CONTAINS
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
-    !=================================================================
+    !========================================================================
     ! Loop over grid boxes and call ISORROPIA (see comments in the
     ! ISORROPIA routine ISORROPIAIICODE.f which describes
     ! the input/output args)
-    !=================================================================
-    !$OMP PARALLEL DO                                                  &
-    !$OMP DEFAULT( SHARED )                                            &
-    !$OMP PRIVATE( I,       J,        L,          N,         WI      ) &
-    !$OMP PRIVATE( WT,      GAS,      TEMPI,      RHI,       VOL     ) &
-    !$OMP PRIVATE( TSO4,    TNH3,     TNA,        TCL,       ANO3    ) &
-    !$OMP PRIVATE( GNO3,    TCA,      TMG,        TK,        CNTRL   ) &
-    !$OMP PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  ) &
-    !$OMP PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV ) &
-    !$OMP  PRIVATE( GCL,     ACL,      AlkR,       NM,        PHCl    ) &
-    !$OMP  PRIVATE( Qk,      n_air,    n_ssc,      Hplus,     Dcs     ) &
-    !$OMP PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds, F_HCL, F_HNO3     ) &
-    !$OMP PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP, CLTEMP             ) &
-    !$OMP SCHEDULE( DYNAMIC, 1 )
+    !========================================================================
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                  ) &
+    !$OMP PRIVATE( I,        J,         L,           N,         WI         ) &
+    !$OMP PRIVATE( WT,       GAS,       TEMPI,       RHI,       VOL        ) &
+    !$OMP PRIVATE( TSO4,     TNH3,      TNA,         TCL,       ANO3       ) &
+    !$OMP PRIVATE( GNO3,     TCA,       TMG,         TK,        CNTRL      ) &
+    !$OMP PRIVATE( SCASI,    P_Pa,      TNO3,        AERLIQ,    AERSLD     ) &
+    !$OMP PRIVATE( OTHER,    TNH4,      TNIT,        HPLUSTEMP, NUM_SAV    ) &
+    !$OMP PRIVATE( GCL,      ACL,       AlkR,        NM,        PHCl       ) &
+    !$OMP PRIVATE( Qk,       n_air,     n_ssc,       Hplus,     Dcs        ) &
+    !$OMP PRIVATE( DEN_SAV,  HNO3_DEN,  OutOfBounds, F_HCL,     F_HNO3     ) &
+    !$OMP PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP,    HNO3_UGM3, CLTEMP     ) &
+    !$OMP SCHEDULE( DYNAMIC, 1                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -891,20 +891,20 @@ CONTAINS
           State_Chm%IsorropBisulfate(I,J,L)  = MAX(BISULTEMP, 1e-30_fp)
           State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
           
-          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         + &
-                         Spc(I,J,L,id_NH4) /18e+0_fp         + &
-                         Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
+          NUM_SAV    = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
+                     +   Spc(I,J,L,id_NH4)  / 18.0_fp                        &
+                     +   Spc(I,J,L,id_SALA) * 0.3061_fp / 23.0_fp           )
 
-          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp*2e+0_fp + &    
-                         Spc(I,J,L,id_NIT)  / 62e+0_fp         + &
-                         HNO3_DEN           / 63e+0_fp         + &
-                         Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
+          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp             &
+                     +   Spc(I,J,L,id_NIT)  / 62.0_fp                        &
+                     +   HNO3_DEN           / 63.0_fp                        &
+                     +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp          )
        ENDIF
 
 
     ENDDO
 
-    PHCl = (Spc(I,J,L,id_HCL) - PHCl)*35.45/36.45
+    PHCl = ( Spc(I,J,L,id_HCL) - PHCl ) * 35.45_fp / 36.45_fp
 
     ENDDO
     ENDDO

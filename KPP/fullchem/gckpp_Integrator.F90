@@ -12,9 +12,9 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Integrator.f90
-! Time                 : Thu Mar 23 14:12:41 2017
-! Working directory    : /short/m19/jaf574/GC.v11-01/Code.v11-01/KPP/Standard
+! File                 : gckpp_Integrator.F90
+! Time                 : Mon Dec 14 10:32:01 2020
+! Working directory    : /local/ryantosca/GC/gcc_kpp/src/GEOS-Chem/KPP/fullchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -99,6 +99,7 @@ SUBROUTINE INTEGRATE( TIN, TOUT, &
    IF (PRESENT(RCNTRL_U)) THEN
      WHERE(RCNTRL_U(:) > 0) RCNTRL(:) = RCNTRL_U(:)
    END IF
+
 
    CALL Rosenbrock(NVAR,VAR,TIN,TOUT,   &
          ATOL,RTOL,                &
@@ -269,7 +270,7 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 !~~~>  Initialize statistics
    ISTATUS(1:8) = 0
    RSTATUS(1:3) = ZERO
-   
+
 !~~~>  Autonomous or time dependent ODE. Default is time dependent.
    Autonomous = .NOT.(ICNTRL(1) == 0)
 
@@ -396,6 +397,7 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
         RETURN
       END IF
     END DO
+
 
 !~~~>  CALL Rosenbrock method
    CALL ros_Integrator(Y, Tstart, Tend, Texit,   &
@@ -1289,6 +1291,7 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
  USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Function, ONLY: Fun
+ USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
    REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1298,6 +1301,8 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
 
    Told = TIME
    TIME = T
+   CALL Update_SUN()
+   CALL Update_RCONST()
    CALL Fun( Y, FIX, RCONST, Ydot )
    TIME = Told
 
@@ -1314,6 +1319,7 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
  USE gckpp_LinearAlgebra
+ USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1330,6 +1336,8 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
     Told = TIME
     TIME = T
+    CALL Update_SUN()
+    CALL Update_RCONST()
 #ifdef FULL_ALGEBRA    
     CALL Jac_SP(Y, FIX, RCONST, JV)
     DO j=1,NVAR
