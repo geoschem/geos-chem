@@ -392,118 +392,119 @@ CONTAINS
        NSPECRAD     = 16  ! aerosol+gas species in RT
     ENDIF
 
-    !-----------------------------------------------------------------------
-    !  Allocate arrays
-    !-----------------------------------------------------------------------
+    IF ( .not. Input_Opt%DryRun ) THEN
+       !-----------------------------------------------------------------------
+       !  Allocate arrays
+       !-----------------------------------------------------------------------
 
-    ALLOCATE( ZPJ( State_Grid%NZ, JVN_, State_Grid%NX, State_Grid%NY), &
-              STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ZPJ = 0e+0_fp
+       ALLOCATE( ZPJ( State_Grid%NZ, JVN_, State_Grid%NX, State_Grid%NY), &
+            STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ZPJ = 0e+0_fp
 
-    ALLOCATE( ODMDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                       NWVAA, NDUST), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ODMDUST = 0e+0_fp
+       ALLOCATE( ODMDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
+            NWVAA, NDUST), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ODMDUST = 0e+0_fp
 
-    ALLOCATE( ODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NWVAA, NAER),&
-              STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ODAER = 0e+0_fp
+       ALLOCATE( ODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NWVAA, NAER),&
+            STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ODAER = 0e+0_fp
 
-    ALLOCATE( MIEDX(AN_), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    MIEDX = 0
+       ALLOCATE( MIEDX(AN_), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       MIEDX = 0
 
-    ! Allocate array for isoprene SOA AOD (eam, 2014):
-    ALLOCATE( ISOPOD( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NWVAA), &
-              STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ISOPOD = 0e+0_fp
+       ! Allocate array for isoprene SOA AOD (eam, 2014):
+       ALLOCATE( ISOPOD( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NWVAA), &
+            STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ISOPOD = 0e+0_fp
 
-    !-----------------------------------------------------------------------
-    !  Variables added for RRTMG (dar, mps, 12/5/14)
-    !-----------------------------------------------------------------------
+       !-----------------------------------------------------------------------
+       !  Variables added for RRTMG (dar, mps, 12/5/14)
+       !-----------------------------------------------------------------------
 
-    ALLOCATE( IRHARR( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
-              STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    IRHARR = 0d0
+       ALLOCATE( IRHARR( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
+            STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       IRHARR = 0d0
 
-    ALLOCATE( WVAA(NWVAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    WVAA = 0d0
+       ALLOCATE( WVAA(NWVAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       WVAA = 0d0
 
-    ALLOCATE( RHAA(NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RHAA = 0d0
+       ALLOCATE( RHAA(NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RHAA = 0d0
 
-    ALLOCATE( NRLAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    NRLAA = 0d0
+       ALLOCATE( NRLAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       NRLAA = 0d0
 
-    ALLOCATE( NCMAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    NCMAA = 0d0
+       ALLOCATE( NCMAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       NCMAA = 0d0
 
-    ALLOCATE( RDAA(NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RDAA = 0d0
+       ALLOCATE( RDAA(NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RDAA = 0d0
 
-    ALLOCATE( RWAA(NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RWAA = 0d0
+       ALLOCATE( RWAA(NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RWAA = 0d0
 
-    ALLOCATE( SGAA(NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    SGAA = 0d0
+       ALLOCATE( SGAA(NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SGAA = 0d0
 
-    ALLOCATE( QQAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    QQAA = 0d0
+       ALLOCATE( QQAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       QQAA = 0d0
 
-    ALLOCATE( ALPHAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ALPHAA = 0d0
+       ALLOCATE( ALPHAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ALPHAA = 0d0
 
-    ALLOCATE( REAA(NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    REAA = 0d0
+       ALLOCATE( REAA(NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       REAA = 0d0
 
-    ALLOCATE( SSAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    SSAA = 0d0
+       ALLOCATE( SSAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SSAA = 0d0
 
-    ALLOCATE( ASYMAA(NWVAA,NRAA,NSPAA), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    ASYMAA = 0d0
+       ALLOCATE( ASYMAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       ASYMAA = 0d0
 
-    ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    PHAA = 0d0
+       ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       PHAA = 0d0
 
-    ALLOCATE( SPECMASK(NSPECRAD), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    SPECMASK = 0
+       ALLOCATE( SPECMASK(NSPECRAD), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       SPECMASK = 0
 
 #ifdef RRTMG
-    ! +2 to split SNA into SU, NI and AM
-    ALLOCATE( RTODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                       NWVAA,NAER+2+NDUST), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RTODAER = 0d0
+       ! +2 to split SNA into SU, NI and AM
+       ALLOCATE( RTODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
+            NWVAA,NAER+2+NDUST), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RTODAER = 0d0
 
-    ALLOCATE( RTSSAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                       NWVAA, NAER+2+NDUST ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RTSSAER = 0d0
+       ALLOCATE( RTSSAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
+            NWVAA, NAER+2+NDUST ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RTSSAER = 0d0
 
-    ALLOCATE( RTASYMAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                         NWVAA, NAER+2+NDUST ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    RTASYMAER = 0d0
+       ALLOCATE( RTASYMAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
+            NWVAA, NAER+2+NDUST ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       RTASYMAER = 0d0
 #endif
-
+    ENDIF
     ! Initialize RNAMES to empty string (ckeller,12/29/17)
     RNAMES(:) = ""
 
