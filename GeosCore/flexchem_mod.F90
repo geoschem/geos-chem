@@ -821,21 +821,27 @@ CONTAINS
           ENDIF
        ENDIF
 
+       !====================================================================
+       ! Start KPP main timer and prepare arrays
+       !====================================================================
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+       ENDIF
+
        ! Zero out dummy species index in KPP after call to SET_HET
        DO F = 1, NFAM
           KppID = PL_Kpp_Id(F)
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
-       !====================================================================
-       ! Update reaction rates
-       !====================================================================
-
        ! Set VAR and FIX arrays
        ! This has to be done after the zeroing above
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
+       !====================================================================
+       ! Update reaction rates
+       !====================================================================
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
