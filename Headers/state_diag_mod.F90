@@ -214,6 +214,86 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_DryDepVel
      LOGICAL                     :: Archive_DryDepVel
 
+     REAL(f4),           POINTER :: DryDepVelPFT1(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVelPFT1
+     LOGICAL                     :: Archive_DryDepVelPFT1
+
+     REAL(f4),           POINTER :: DryDepVelPFT2(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVelPFT2
+     LOGICAL                     :: Archive_DryDepVelPFT2
+
+     REAL(f4),           POINTER :: DryDepVelPFT3(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVelPFT3
+     LOGICAL                     :: Archive_DryDepVelPFT3
+
+     REAL(f4),           POINTER :: DryDepVelPFT4(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVelPFT4
+     LOGICAL                     :: Archive_DryDepVelPFT4
+
+     REAL(f4),           POINTER :: DryDepVelPFT5(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepVelPFT5
+     LOGICAL                     :: Archive_DryDepVelPFT5
+     LOGICAL                     :: Archive_DryDepVel_anyPFT
+
+     !%%%%% Ecophysiology %%%%%
+
+     REAL(f4),           POINTER :: EcophyPFTFrac(:,:,:)
+     LOGICAL                     :: Archive_EcophyPFTFrac
+
+     REAL(f4),           POINTER :: EcophyLAI(:,:,:)
+     LOGICAL                     :: Archive_EcophyLAI
+
+     REAL(f4),           POINTER :: EcophyRa(:,:)
+     LOGICAL                     :: Archive_EcophyRa
+
+     REAL(f4),           POINTER :: EcophyRbO3(:,:)
+     LOGICAL                     :: Archive_EcophyRbO3
+
+     REAL(f4),           POINTER :: EcophyGCan(:,:,:)
+     LOGICAL                     :: Archive_EcophyGCan
+
+     REAL(f4),           POINTER :: EcophyACan(:,:,:)
+     LOGICAL                     :: Archive_EcophyACan
+
+     REAL(f4),           POINTER :: EcophyRespCan(:,:,:)
+     LOGICAL                     :: Archive_EcophyRespCan
+
+     REAL(f4),           POINTER :: EcophyCO2Leaf(:,:,:)
+     LOGICAL                     :: Archive_EcophyCO2Leaf
+
+     REAL(f4),           POINTER :: EcophyRespLeaf(:,:,:)
+     LOGICAL                     :: Archive_EcophyRespLeaf
+
+     REAL(f4),           POINTER :: EcophyFluxO3Can(:,:,:)
+     LOGICAL                     :: Archive_EcophyFluxO3Can
+
+     REAL(f4),           POINTER :: EcophyO3DmgFac(:,:,:)
+     LOGICAL                     :: Archive_EcophyO3DmgFac
+
+     REAL(f4),           POINTER :: EcophySoilStress(:,:,:)
+     LOGICAL                     :: Archive_EcophySoilStress
+
+     REAL(f4),           POINTER :: EcophyVCMax(:,:,:)
+     LOGICAL                     :: Archive_EcophyVCMax
+
+     REAL(f4),           POINTER :: EcophyLightLmtRate(:,:,:)
+     LOGICAL                     :: Archive_EcophyLightLmtRate
+
+     REAL(f4),           POINTER :: EcophyRubisLmtRate(:,:,:)
+     LOGICAL                     :: Archive_EcophyRubisLmtRate
+
+     REAL(f4),           POINTER :: EcophyProdLmtRate(:,:,:)
+     LOGICAL                     :: Archive_EcophyProdLmtRate
+
+     REAL(f4),           POINTER :: EcophyAGrossLeaf(:,:,:)
+     LOGICAL                     :: Archive_EcophyAGrossLeaf
+
+     REAL(f4),           POINTER :: EcophyIsopEmisPFT(:,:,:)
+     LOGICAL                     :: Archive_EcophyIsopEmisPFT
+
+     REAL(f4),           POINTER :: HEMCOIsopEmis(:,:,:)
+     LOGICAL                     :: Archive_HEMCOIsopEmis
+
      !%%%%% Photolysis %%%%%
 
      REAL(f4),           POINTER :: Jval(:,:,:,:)
@@ -1189,6 +1269,86 @@ CONTAINS
     State_Diag%DryDepVel                           => NULL()
     State_Diag%Map_DryDepVel                       => NULL()
     State_Diag%Archive_DryDepVel                   = .FALSE.
+
+    State_Diag%DryDepVelPFT1                       => NULL()
+    State_Diag%Map_DryDepVelPFT1                   => NULL()
+    State_Diag%Archive_DryDepVelPFT1               = .FALSE.
+
+    State_Diag%DryDepVelPFT2                       => NULL()
+    State_Diag%Map_DryDepVelPFT2                   => NULL()
+    State_Diag%Archive_DryDepVelPFT2               = .FALSE.
+
+    State_Diag%DryDepVelPFT3                       => NULL()
+    State_Diag%Map_DryDepVelPFT3                   => NULL()
+    State_Diag%Archive_DryDepVelPFT3               = .FALSE.
+
+    State_Diag%DryDepVelPFT4                       => NULL()
+    State_Diag%Map_DryDepVelPFT4                   => NULL()
+    State_Diag%Archive_DryDepVelPFT4               = .FALSE.
+
+    State_Diag%DryDepVelPFT5                       => NULL()
+    State_Diag%Map_DryDepVelPFT5                   => NULL()
+    State_Diag%Archive_DryDepVelPFT5               = .FALSE.
+    State_Diag%Archive_DryDepVel_anyPFT            = .FALSE.
+
+    !%%%%% Ecophysiology diagnostics %%%%%
+
+    State_Diag%EcophyPFTFrac                       => NULL()
+    State_Diag%Archive_EcophyPFTFrac               = .FALSE.
+
+    State_Diag%EcophyLAI                           => NULL()
+    State_Diag%Archive_EcophyLAI                   = .FALSE.
+
+    State_Diag%EcophyRa                            => NULL()
+    State_Diag%Archive_EcophyRa                    = .FALSE.
+
+    State_Diag%EcophyRbO3                          => NULL()
+    State_Diag%Archive_EcophyRbO3                  = .FALSE.
+
+    State_Diag%EcophyGCan                          => NULL()
+    State_Diag%Archive_EcophyGCan                  = .FALSE.
+
+    State_Diag%EcophyACan                          => NULL()
+    State_Diag%Archive_EcophyACan                  = .FALSE.
+
+    State_Diag%EcophyRespCan                       => NULL()
+    State_Diag%Archive_EcophyRespCan               = .FALSE.
+
+    State_Diag%EcophyCO2Leaf                       => NULL()
+    State_Diag%Archive_EcophyCO2Leaf               = .FALSE.
+
+    State_Diag%EcophyRespLeaf                      => NULL()
+    State_Diag%Archive_EcophyRespLeaf              = .FALSE.
+
+    State_Diag%EcophyFluxO3Can                     => NULL()
+    State_Diag%Archive_EcophyFluxO3Can             = .FALSE.
+
+    State_Diag%EcophyO3DmgFac                      => NULL()
+    State_Diag%Archive_EcophyO3DmgFac              = .FALSE.
+
+    State_Diag%EcophySoilStress                    => NULL()
+    State_Diag%Archive_EcophySoilStress            = .FALSE.
+
+    State_Diag%EcophyVCMax                         => NULL()
+    State_Diag%Archive_EcophyVCMax                 = .FALSE.
+
+    State_Diag%EcophyLightLmtRate                  => NULL()
+    State_Diag%Archive_EcophyLightLmtRate          = .FALSE.
+
+    State_Diag%EcophyRubisLmtRate                  => NULL()
+    State_Diag%Archive_EcophyRubisLmtRate          = .FALSE.
+
+    State_Diag%EcophyProdLmtRate                   => NULL()
+    State_Diag%Archive_EcophyProdLmtRate           = .FALSE.
+
+    State_Diag%EcophyAGrossLeaf                    => NULL()
+    State_Diag%Archive_EcophyAGrossLeaf            = .FALSE.
+
+    State_Diag%EcophyIsopEmisPFT                   => NULL()
+    State_Diag%Archive_EcophyIsopEmisPFT           = .FALSE.
+
+    State_Diag%HEMCOIsopEmis                       => NULL()
+    State_Diag%Archive_HEMCOIsopEmis               = .FALSE.
 
     !%%%%% Chemistry, J-value, Prod/Loss diagnostics %%%%%
 
@@ -2690,6 +2850,522 @@ CONTAINS
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for broadleaf tree
+    !-----------------------------------------------------------------------
+    diagID  = 'DryDepVelPFT1'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVelPFT1,                          &
+         archiveData    = State_Diag%Archive_DryDepVelPFT1,                  &
+         mapData        = State_Diag%Map_DryDepVelPFT1,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for needleleaf tree
+    !-----------------------------------------------------------------------
+    diagID  = 'DryDepVelPFT2'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVelPFT2,                          &
+         archiveData    = State_Diag%Archive_DryDepVelPFT2,                  &
+         mapData        = State_Diag%Map_DryDepVelPFT2,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for C3 grass
+    !-----------------------------------------------------------------------
+    diagID  = 'DryDepVelPFT3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVelPFT3,                          &
+         archiveData    = State_Diag%Archive_DryDepVelPFT3,                  &
+         mapData        = State_Diag%Map_DryDepVelPFT3,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for C4 grass
+    !-----------------------------------------------------------------------
+    diagID  = 'DryDepVelPFT4'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVelPFT4,                          &
+         archiveData    = State_Diag%Archive_DryDepVelPFT4,                  &
+         mapData        = State_Diag%Map_DryDepVelPFT4,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Dry deposition velocity for Shrub
+    !-----------------------------------------------------------------------
+    diagID  = 'DryDepVelPFT5'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%DryDepVelPFT5,                          &
+         archiveData    = State_Diag%Archive_DryDepVelPFT5,                  &
+         mapData        = State_Diag%Map_DryDepVelPFT5,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Fraction of grid box occupied by the PFT (per 1000)
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyPFTFrac'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyPFTFrac,                          &
+         archiveData    = State_Diag%Archive_EcophyPFTFrac,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf area index of the PFT
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyLAI'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyLAI,                              &
+         archiveData    = State_Diag%Archive_EcophyLAI,                      &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Aerodynamic resistance
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyRa'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyRa,                               &
+         archiveData    = State_Diag%Archive_EcophyRa,                       &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+ 
+    !-----------------------------------------------------------------------
+    ! Boundary layer resistance
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyRbO3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyRbO3,                             &
+         archiveData    = State_Diag%Archive_EcophyRbO3,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy stomatal conductance
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyGCan'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyGCan,                             &
+         archiveData    = State_Diag%Archive_EcophyGCan,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy photosynthesis
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyACan'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyACan,                             &
+         archiveData    = State_Diag%Archive_EcophyACan,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Bulk canopy respiration
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyRespCan'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyRespCan,                          &
+         archiveData    = State_Diag%Archive_EcophyRespCan,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CO2 internal partial pressure
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyCO2Leaf'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyCO2Leaf,                          &
+         archiveData    = State_Diag%Archive_EcophyCO2Leaf,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Canopy ozone uptake flux
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyFluxO3Can'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyFluxO3Can,                        &
+         archiveData    = State_Diag%Archive_EcophyFluxO3Can,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Ozone damage factor
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyO3DmgFac'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyO3DmgFac,                         &
+         archiveData    = State_Diag%Archive_EcophyO3DmgFac,                 &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Soil moisture stress factor
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophySoilStress'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophySoilStress,                       &
+         archiveData    = State_Diag%Archive_EcophySoilStress,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Maximum photosynthetic capacity
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyVCMax'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyVCMax,                            &
+         archiveData    = State_Diag%Archive_EcophyVCMax,                    &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Light-limited photosynthetic rate
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyLightLmtRate'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyLightLmtRate,                     &
+         archiveData    = State_Diag%Archive_EcophyLightLmtRate,             &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Rubisco-limited photosynthetic rate
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyRubisLmtRate'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyRubisLmtRate,                     &
+         archiveData    = State_Diag%Archive_EcophyRubisLmtRate,             &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Product-limited photosynthetic rate 
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyProdLmtRate'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyProdLmtRate,                      &
+         archiveData    = State_Diag%Archive_EcophyProdLmtRate,              &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Leaf level gross photosynthesis
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyAGrossLeaf'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyAGrossLeaf,                       &
+         archiveData    = State_Diag%Archive_EcophyAGrossLeaf,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Isoprene Emission
+    !-----------------------------------------------------------------------
+    diagID  = 'EcophyIsopEmisPFT'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%EcophyIsopEmisPFT,                      &
+         archiveData    = State_Diag%Archive_EcophyIsopEmisPFT,              &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! HEMCO Isoprene Emission in vdiff_mod
+    !-----------------------------------------------------------------------
+    diagID  = 'HEMCOIsopEmis'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%HEMCOIsopEmis,                          &
+         archiveData    = State_Diag%Archive_HEMCOIsopEmis,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+    
+    IF( RC /= GC_SUCCESS ) THEN
+      errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+      CALL GC_Error( errMsg, RC, thisLoc )
+      RETURN
     ENDIF
 
 #ifdef MODEL_GEOS
@@ -8260,6 +8936,13 @@ CONTAINS
          State_Diag%Archive_OHwgtByAirMassColumnFull                    .or. &
          State_Diag%Archive_OHwgtByAirMassColumnTrop                        )
 
+    State_Diag%Archive_DryDepVel_anyPFT = (                                  &
+         State_Diag%Archive_DryDepVelPFT1                               .or. &
+         State_Diag%Archive_DryDepVelPFT2                               .or. &
+         State_Diag%Archive_DryDepVelPFT3                               .or. &
+         State_Diag%Archive_DryDepVelPFT4                               .or. &
+         State_Diag%Archive_DryDepVelPFT5                                   )
+
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
     ! 4th dimension is column region: Full, Trop, PBL respectively
@@ -8483,6 +9166,126 @@ CONTAINS
     CALL Finalize( diagId   = 'DryDepVel',                                   &
                    Ptr2Data = State_Diag%DryDepVel,                          &
                    mapData  = State_Diag%Map_DryDepVel,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelPFT1',                               &
+                   Ptr2Data = State_Diag%DryDepVelPFT1,                      &
+                   mapData  = State_Diag%Map_DryDepVelPFT1,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelPFT2',                               &
+                   Ptr2Data = State_Diag%DryDepVelPFT2,                      &
+                   mapData  = State_Diag%Map_DryDepVelPFT2,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelPFT3',                               &
+                   Ptr2Data = State_Diag%DryDepVelPFT3,                      &
+                   mapData  = State_Diag%Map_DryDepVelPFT3,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelPFT4',                               &
+                   Ptr2Data = State_Diag%DryDepVelPFT4,                      &
+                   mapData  = State_Diag%Map_DryDepVelPFT4,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'DryDepVelPFT5',                               &
+                   Ptr2Data = State_Diag%DryDepVelPFT5,                      &
+                   mapData  = State_Diag%Map_DryDepVelPFT5,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyLAI',                                   &
+                   Ptr2Data = State_Diag%EcophyLAI,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyRa',                                    &
+                   Ptr2Data = State_Diag%EcophyRa,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyRbO3',                                  &
+                   Ptr2Data = State_Diag%EcophyRbO3,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyPFTFrac',                               &
+                   Ptr2Data = State_Diag%EcophyPFTFrac,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyGCan',                                  &
+                   Ptr2Data = State_Diag%EcophyGCan,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyACan',                                  &
+                   Ptr2Data = State_Diag%EcophyACan,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyRespCan',                               &
+                   Ptr2Data = State_Diag%EcophyRespCan,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyCO2Leaf',                               &
+                   Ptr2Data = State_Diag%EcophyCO2Leaf,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyFluxO3Can',                             &
+                   Ptr2Data = State_Diag%EcophyFluxO3Can,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyO3DmgFac',                              &
+                   Ptr2Data = State_Diag%EcophyO3DmgFac,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophySoilStress',                            &
+                   Ptr2Data = State_Diag%EcophySoilStress,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyVCMax',                                 &
+                   Ptr2Data = State_Diag%EcophyVCMax,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyLightLmtRate',                          &
+                   Ptr2Data = State_Diag%EcophyLightLmtRate,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyRubisLmtRate',                          &
+                   Ptr2Data = State_Diag%EcophyRubisLmtRate,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyProdLmtRate',                           &
+                   Ptr2Data = State_Diag%EcophyProdLmtRate,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyAGrossLeaf',                            &
+                   Ptr2Data = State_Diag%EcophyAGrossLeaf,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EcophyIsopEmisPFT',                           &
+                   Ptr2Data = State_Diag%EcophyIsopEmisPFT,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'HEMCOIsopEmis',                               &
+                   Ptr2Data = State_Diag%HEMCOIsopEmis,                      &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9868,6 +10671,146 @@ CONTAINS
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELPFT1' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for broadleaf tree'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELPFT2' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for needleleaf tree'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELPFT3' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for C3 grass'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELPFT4' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for C4 grass'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELPFT5' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species' // &
+                                ' for shrub'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYPFTFRAC' ) THEN 
+       IF ( isDesc    ) Desc  = 'Fraction of grid box occupied by the PFT'
+       IF ( isUnits   ) Units = '1000'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYLAI' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf area index of the PFT'
+       IF ( isUnits   ) Units = 'm2 m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRA' ) THEN 
+       IF ( isDesc    ) Desc  = 'Aerodynamic resistance'
+       IF ( isUnits   ) Units = 's m-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRBO3' ) THEN 
+       IF ( isDesc    ) Desc  = 'Boundary layer resistance'
+       IF ( isUnits   ) Units = 's m-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYGCAN' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy stomatal conductance'
+       IF ( isUnits   ) Units = 'm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYACAN' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy photosynthesis'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRESPCAN' ) THEN 
+       IF ( isDesc    ) Desc  = 'Bulk canopy respiration'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYCO2LEAF' ) THEN 
+       IF ( isDesc    ) Desc  = 'CO2 internal partial pressure'
+       IF ( isUnits   ) Units = 'Pa'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYFLUXO3CAN' ) THEN 
+       IF ( isDesc    ) Desc  = 'Canopy ozone uptake flux'
+       IF ( isUnits   ) Units = 'nmol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYO3DMGFAC' ) THEN 
+       IF ( isDesc    ) Desc  = 'Ozone damage factor'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYSOILSTRESS' ) THEN 
+       IF ( isDesc    ) Desc  = 'Soil moisture stress factor'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYVCMAX' ) THEN 
+       IF ( isDesc    ) Desc  = 'Maximum Rubisco Carboxylation rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYLIGHTLMTRATE' ) THEN 
+       IF ( isDesc    ) Desc  = 'Light-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYRUBISLMTRATE' ) THEN 
+       IF ( isDesc    ) Desc  = 'Rubisco-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYPRODLMTRATE' ) THEN 
+       IF ( isDesc    ) Desc  = 'Product-limited photosynthetic rate'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYAGROSSLEAF' ) THEN 
+       IF ( isDesc    ) Desc  = 'Leaf level gross photosynthesis'
+       IF ( isUnits   ) Units = 'mol m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ECOPHYISOPEMISPFT' ) THEN 
+       IF ( isDesc    ) Desc  = 'Isoprene Emission'
+       IF ( isUnits   ) Units = 'kg C m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagID = 'PFT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HEMCOISOPEMIS' ) THEN
+       IF ( isDesc    ) Desc  = 'Isoprene Emission'
+       IF ( isUnits   ) Units = 'kg C m-2 s-1'
+       IF ( isRank    ) Rank  = 3
 
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'MONINOBUKHOV' ) THEN
@@ -11262,6 +12205,8 @@ CONTAINS
           numTags = State_Chm%nKppVar
        CASE( 'WET',     'W' )
           numTags = State_Chm%nWetDep
+       CASE( 'PFT'          )
+          numTags = 5
        CASE DEFAULT
           ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
                    ' is not implemented for getting number of tags'
@@ -11378,7 +12323,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL','ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN', 'PFT' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -11469,6 +12414,11 @@ CONTAINS
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
+
+       ! Plant functional types implemented in drydep_mod.F90
+       CASE( 'PFT' )
+          WRITE ( Nstr, "(I1)" ) D
+          tagName = 'PFT' // TRIM(Nstr)
 
        ! Default tag name is the name in the species database
        CASE DEFAULT

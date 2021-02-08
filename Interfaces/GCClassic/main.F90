@@ -203,6 +203,7 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: LCONV
   LOGICAL                  :: LDRYD
   LOGICAL                  :: LDYNOCEAN
+  LOGICAL                  :: LECOPHY
   LOGICAL                  :: LEMIS
   LOGICAL                  :: LGTMM
   LOGICAL                  :: LLINOZ
@@ -457,6 +458,7 @@ PROGRAM GEOS_Chem
   LCONV               =  Input_Opt%LCONV
   LDRYD               =  Input_Opt%LDRYD
   LDYNOCEAN           =  Input_Opt%LDYNOCEAN
+  LECOPHY             =  Input_Opt%LECOPHY
   LEMIS               =  Input_Opt%LEMIS
   LGTMM               =  Input_Opt%LGTMM
   LLINOZ              =  Input_Opt%LLINOZ
@@ -954,7 +956,7 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !=====================================================================
+       !==============================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
        !
        !    Phase 1 updates the HEMCO clock and the content of the

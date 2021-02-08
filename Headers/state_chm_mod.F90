@@ -332,6 +332,13 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: TOMS1      (:,:    )
      REAL(fp),          POINTER :: TOMS2      (:,:    )
 
+     !----------------------------------------------------------------------
+     ! Fields for photosynthesis-dependent isoprene emission 
+     ! (Joey Lam, 22 Oct 2020)
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: Isop_from_Ecophy(:,:) ! Isoprene emission
+                                                         ! [kg m^-2 s^-1]
+
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !-----------------------------------------------------------------------
@@ -535,6 +542,10 @@ CONTAINS
     State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
+
+    ! Simulated isoprene emission from ecophysiology module 
+    ! (Joey Lam, 5 Feb 2021)
+    State_Chm%Isop_from_Ecophy  => NULL()
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -1867,6 +1878,25 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------
+    ! Simulated isoprene emission flux from ecophysiology module 
+    ! (Joey Lam, 5 Feb 2021)
+    !------------------------------------------------------------------
+    chmID = 'Isop_from_Ecophy'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%Isop_from_Ecophy,                            &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to Hg/tagHg simulations
     !=======================================================================
@@ -3123,6 +3153,13 @@ CONTAINS
        State_Chm%TOMS2 => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Isop_from_Ecophy ) ) THEN
+       DEALLOCATE( State_Chm%Isop_from_Ecophy, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Isop_from_Ecophy', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Isop_from_Ecophy => NULL()
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -4000,6 +4037,11 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
           IF ( isUnits ) Units = 'cm3 H2O cm-3 air'
           IF ( isRank  ) Rank  = 3
+
+       CASE( 'ISOP_FROM_ECOPHY') 
+          IF ( isDesc  ) Desc  = 'Isoprene emission rate'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
 
        CASE DEFAULT
           Found = .False.

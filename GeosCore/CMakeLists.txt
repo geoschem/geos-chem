@@ -55,6 +55,7 @@ add_library(GeosCore
   diag53_mod.F90
   drydep_mod.F90
   dust_mod.F90
+	ecophy_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
   flexchem_mod.F90
