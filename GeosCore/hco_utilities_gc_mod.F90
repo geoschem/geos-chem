@@ -1561,6 +1561,7 @@ CONTAINS
     LOGICAL, SAVE           :: first    = .TRUE.
     INTEGER, SAVE           :: id_O3    = -1
     INTEGER, SAVE           :: id_HNO3  = -1
+    INTEGER, SAVE           :: id_ISOP  = -1
 
     ! Scalars
     LOGICAL                 :: found,   zeroHg0Dep
@@ -1631,7 +1632,7 @@ CONTAINS
        ! Get species IDs
        id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
-       is_ISOP = Ind_('ISOP')
+       id_ISOP = Ind_('ISOP')
 
 #if !defined( MODEL_CESM )
        IF ( id_O3 > 0 ) THEN

@@ -405,7 +405,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A, S
+    INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A, S, PFT
     REAL(f8)           :: DVZ, THIK
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
@@ -1349,12 +1349,6 @@ CONTAINS
 
     ! Initialize State_Chm%DryDepVel
     State_Chm%DryDepVel = 0.0e+0_f8
-
-    ! Initialize if PFT-specific dry dep velocity is enabled 
-    ! (Joey Lam, 28 Aug 2019)
-    IF ( State_Diag%Archive_DryDepVel_anyPFT ) THEN
-       State_Diag%DryDepVelPFT = 0.e+0_fp
-    ENDIF
 
 #ifdef MODEL_GEOS
     ! Logical flag for Ra (ckeller, 12/29/17)
@@ -2320,11 +2314,11 @@ CONTAINS
              VK(K) = VD(K)
              VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
                ! PFT-specific dry deposition velocity (Joey Lam, 22 Aug 2019)
-               IF ( State_Diag%Archive_DryDepVel_anyPFT 
-     &              .and. PFT .NE. 0 ) THEN
+               IF ( State_Diag%Archive_DryDepVel_anyPFT .and. &
+                    PFT .NE. 0 ) THEN
                   VK(K) = VD_PFT(K,PFT) 
-                  VD_PFT(K,PFT) = VK(K) + DBLE( IUSE(I,J,LDT) )/C1X(K)
-     &                                    / DBLE( IUSE_PFT(PFT) )
+                  VD_PFT(K,PFT) = VK(K) + DBLE( IUSE(I,J,LDT) )/C1X(K) &
+                                        / DBLE( IUSE_PFT(PFT) )
                ENDIF
 400       CONTINUE
 
