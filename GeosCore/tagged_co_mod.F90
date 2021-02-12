@@ -349,7 +349,7 @@ CONTAINS
     ! Also note, skip this section if emissions are turned off,
     ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
     !=================================================================
-    IF ( Input_Opt%LEMIS ) THEN
+    IF ( Input_Opt%DoEmissions ) THEN
 
        ! Conversion factor from [kg/s] --> [atoms C]
        ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]

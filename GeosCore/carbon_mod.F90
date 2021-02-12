@@ -405,7 +405,7 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LSOA                 = Input_Opt%LSOA
-    LEMIS                = Input_Opt%LEMIS
+    LEMIS                = Input_Opt%DoEmissions
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     DTCHEM               = GET_TS_CHEM()

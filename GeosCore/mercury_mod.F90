@@ -2403,7 +2403,6 @@ CONTAINS
     LOGICAL           :: LGTMM
     LOGICAL           :: LNLPBL
     LOGICAL           :: LPREINDHG
-    LOGICAL           :: LEMIS
     LOGICAL           :: prtDebug
 
     ! Strings
@@ -2424,7 +2423,6 @@ CONTAINS
     LGTMM     = Input_Opt%LGTMM
     LNLPBL    = Input_Opt%LNLPBL
     LPREINDHG = Input_Opt%LPREINDHG
-    LEMIS     = Input_Opt%LEMIS
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
@@ -2440,15 +2438,6 @@ CONTAINS
 
     ! First-time initialization
     IF ( FIRST ) THEN
-
-       ! Check that emissions are turned on. Print error message
-       ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
-       IF ( .not. LEMIS ) THEN
-          ErrMsg = 'ERROR: Hg emissions are need for simulation ' // &
-                   'but emissions are turned off in input.geos'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
 
        ! Read anthro, ocean, land emissions of Hg from disk
        CALL MERCURY_READYR( Input_Opt, RC )

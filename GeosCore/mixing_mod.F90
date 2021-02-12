@@ -293,11 +293,11 @@ CONTAINS
     ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
 
     ! Special case that there is no dry deposition and emissions
-    IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
+    IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%DoEmissions ) RETURN
 
     ! Initialize
     LSCHEM            = Input_Opt%LSCHEM
-    LEMIS             = Input_Opt%LEMIS
+    LEMIS             = Input_Opt%DoEmissions
     LDRYD             = Input_Opt%LDRYD
     PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
     ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM

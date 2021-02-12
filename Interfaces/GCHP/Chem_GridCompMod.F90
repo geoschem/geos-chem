@@ -2704,17 +2704,6 @@ CONTAINS
        ASSERT_(.FALSE.)
     ENDIF
 
-    ! If CH4 emissions are turned on, boundary conditions will not be set
-    ! and CH4 emissions are expected to be provided via HEMCO 
-    IF ( am_I_Root ) THEN
-       IF ( Input_Opt%LCH4EMIS ) THEN
-          WRITE(*,*) 'CH4 emissions are turned on - no CH4 boundary conditions will be applied'
-          WRITE(*,*) 'and CH4 emissions are taken from HEMCO'
-       ELSE
-          WRITE(*,*) 'CH4 emissions are turned off - CH4 boundary conditions will be applied'
-       ENDIF
-    ENDIF
-
     !=======================================================================
     ! All done
     !=======================================================================

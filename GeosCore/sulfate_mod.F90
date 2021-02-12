@@ -2490,10 +2490,9 @@ CONTAINS
     ! and coarse mode, respectively. Values are in # / surface grid
     ! box. These values are needed in the GET_ALK call below.
     ! If the diagnostics are not being found, e.g. because the
-    ! sea salt emissions extension is turned off (or LEMIS is
-    ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
-    ! will stay nullified. Values of zero will be used in this
-    ! case! (ckeller, 01/12/2015)
+    ! sea salt emissions extension is turned off, the passed
+    ! pointers NDENS_SALA and NDENS_SALC will stay nullified.
+    ! Values of zero will be used in this case! (ckeller, 01/12/2015)
     !IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
