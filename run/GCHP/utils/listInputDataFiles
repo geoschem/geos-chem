@@ -123,9 +123,24 @@ function print_filled_file_template(template, date_str) {
 EOF
 )
 
-# Parse and expand ExtData.rc files
-file_list=$(awk "$AWK_SCRIPT_PARSE_EXTDATA" ExtData.rc | sort | uniq | awk -v START_DATE=$START_DATE -v END_DATE=$END_DATE "$AWK_SCRIPT_EXPAND_EXTDATA_FILES")
 
+EXTDATA=$(awk "$AWK_SCRIPT_PARSE_EXTDATA" ExtData.rc)
+
+# Fill %y4 for climatological data
+clim_data=$(awk '{if($6~/C/) print $3}' HEMCO_Config.rc | sed -n 's#$ROOT/##p' | grep '$YYYY' | grep -o '^[^/][^/]*/[^/][^/]*' | sort | uniq)
+for clim_dataset in $clim_data; do
+   # Skip clim_dataset if there aren't any matching files in ExtData.rc
+   echo "$EXTDATA" | grep -- $clim_dataset > /dev/null || continue
+
+   echo "HEMCO/$clim_dataset is a climatology (see: http://geoschemdata.computecanada.ca/ExtData/HEMCO/$clim_dataset)" >&2
+   read -p "-> Select climatology year (leave blank to use simulation period): " CLIM_YEAR
+   CLIM_YEAR=${CLIM_YEAR:-%y4}
+   clim_dataset_regexpr=$(echo "$clim_dataset" | sed "s#/#\\\\/#g")
+   EXTDATA=$(echo "$EXTDATA" | sed "/$clim_dataset_regexpr/s#%y4#$CLIM_YEAR#g")
+done
+
+# Parse and expand ExtData.rc files
+file_list=$(echo "$EXTDATA" | sort | uniq | awk -v START_DATE=$START_DATE -v END_DATE=$END_DATE "$AWK_SCRIPT_EXPAND_EXTDATA_FILES")
 
 function relpath_to_abspath() {
    xargs readlink -m
