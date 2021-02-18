@@ -44,6 +44,7 @@ if [[ "$*" == *-h* || "$*" == *--help* ]]; then
    show_usage_and_error_out
 fi
 
+THIS_SCRIPTS_DIRECTORY=$(realpath $(dirname "$0"))
 
 # Require two arguments
 if [ "$#" -lt 2 ]; then
@@ -149,6 +150,9 @@ for clim_dataset in $clim_data; do
    EXTDATA=$(echo "$EXTDATA" | sed "/$clim_dataset_regexpr/s#%y4#$CLIM_YEAR#g")
 done
 
+# Add extra templates to be expanded
+EXTDATA=$(printf "%s\n%s" "$EXTDATA" "$(cat $THIS_SCRIPTS_DIRECTORY/extra_templates.txt)")
+
 # Parse and expand ExtData.rc files
 file_list=$(echo "$EXTDATA" | sort | uniq | awk -v START_DATE=$START_DATE -v END_DATE=$END_DATE "$AWK_SCRIPT_EXPAND_EXTDATA_FILES")
 
@@ -168,7 +172,6 @@ function abspath_to_url() {
        -e "s#.*\($CHEMINPUTS_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g" 
 }
 
-THIS_SCRIPTS_DIRECTORY=$(realpath $(dirname "$0"))
 function extra_static_files() {
    HEMCO_PATH="HEMCO"
    GCDATA_PREFIX=$(echo "$1" | sed -n "s/\(.*\)$HEMCO_PATH.*/\1/p" | head -1)
