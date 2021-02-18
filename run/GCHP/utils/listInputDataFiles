@@ -24,6 +24,16 @@ Examples:
    ./listInputDataFiles 20190101 20190601                  Print files for 2019-01-01 to 2019-06-01
    ./listInputDataFiles 20190101 20190601 --wget-urls      Print download urls for wget -i
    ./listInputDataFiles 20190101 20190601 --globus-batch   Print transfer list for globus --batch
+
+Detailed example (wget):
+   Navigate to your run directory:
+      $ cd /path/to/your/rundirectory
+   Run listInputDataFiles and redirect the output to a file:
+      $ ./utils/listInputDataFiles 20190101 20190601 --wget-urls > downloads.txt
+   Navigate to your ExtData (the top-level of ExtData):
+      $ cd /path/to/your/ExtData
+   Download files listed in downloads.txt:
+      $ wget -i downloads.txt -cxnH --cut-dirs=1
 EOF
 )
    echo "$usage" >&2
@@ -158,6 +168,13 @@ function abspath_to_url() {
        -e "s#.*\($CHEMINPUTS_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g" 
 }
 
+THIS_SCRIPTS_DIRECTORY=$(realpath $(dirname "$0"))
+function extra_static_files() {
+   HEMCO_PATH="HEMCO"
+   GCDATA_PREFIX=$(echo "$1" | sed -n "s/\(.*\)$HEMCO_PATH.*/\1/p" | head -1)
+   sed "s#^#$GCDATA_PREFIX#g" $THIS_SCRIPTS_DIRECTORY/extra_static_files.txt
+}
+
 function abspath_to_globus_list() {
    GEOSFP_PATH="GEOS_0\.25x0\.3125/GEOS_FP"
    MERRA2_PATH="GEOS_0\.5x0\.625/MERRA2"
@@ -171,6 +188,8 @@ function abspath_to_globus_list() {
 }
 
 abspath_file_list=$(echo "$file_list" | relpath_to_abspath)
+extra_files_list=$(extra_static_files "$abspath_file_list")
+abspath_file_list=$(printf "%s\n%s\n" "$abspath_file_list" "$extra_files_list")
 
 if [[ "$*" == *--wget-urls* ]]; then
    echo "$abspath_file_list" | abspath_to_url
