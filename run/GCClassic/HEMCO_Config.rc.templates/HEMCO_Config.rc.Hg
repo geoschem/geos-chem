@@ -84,7 +84,6 @@ Warnings:                    1
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> OXIDANT_FIELDS         :       true     # 2007
     --> BrOx_GC                :       true     # 2007
-    --> BrOx_GMI               :       true     # 1985
     --> JBrO                   :       true     # 2002 
     --> LRED_JNO2              :       true     # 2005
     --> AERO_HG2_PARTITION     :       true     # 2007
@@ -568,26 +567,26 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-* GLOBAL_O3        $ROOT/O3/v2014-09/MERGE.O3.geos5.72L.2x25.nc                 O3             1985/1-12/1/0 C xyz v/v * - 1 1
-* GLOBAL_OH_trop   $ROOT/MERCURY/v2018-04/Johan.OH.kgm3.2007.nc                 CHEM_L_S__OH   2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_OH_strat  $ROOT/OH/v2014-09/v7-02-03.GMI/OH_3Dglobal.geos5.72L.2x25.nc OH             1985/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_HO2_strat $ROOT/GMI/v2015-02/gmi.clim.HO2.geos5.2x25.nc                species        2005/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_HO2_trop  $ROOT/MERCURY/v2018-04/Johan.HO2.2007.nc                     CHEM_L_S__HO2  2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_Cl        $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc          IJ_24H_S__Cl   2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_HOCl      $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc          IJ_24H_S__HOCl 2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_ClO       $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc          IJ_24H_S__ClO  2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_NO2       $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc          IJ_24H_S__NO2  2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_NO        $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc          IJ_24H_S__NO   2007/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_OA        $ROOT/MERCURY/v2018-04/OA_3Dglobal.geosfp.4x5.2013.nc        IJ_SOA_S__     2013/1-12/1/0 C xyz 1   * - 1 1
-* GLOBAL_OCEAN     $ROOT/MERCURY/v2018-04/ocean_fixed.nc                        ocean_conc     2007/1-12/1/0 C xyz 1   * - 1 1
+* GLOBAL_Cl   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_Cl   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_ClO  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_ClO  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HNO3 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HNO3 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HO2  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HO2  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HOCl $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HOCl 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NIT  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_NO   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NO   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_NO2  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NO2  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_O3   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_O3   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OH   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OA   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.AerosolMass.$YYYY$MM$DD_0000z.nc4 TotalOA          2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc ocean_conc 2007/1-12/1/0 C xyz 1   * - 1 1
 )))OXIDANT_FIELDS
 
 #==============================================================================
 # --- BrOx fields --
 #==============================================================================
 (((BrOx_GC
-* Br_GC      $ROOT/MERCURY/v2018-04/halogens.Johan.Mar16.2007.nc IJ_24H_S__Br     2007/1-12/1/0 C xyz ppbv * - 1 1
-* BrO_GC     -                                                   IJ_24H_S__BrO    -             - -   ppbv * - 1 1
+* Br_GC      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_Br  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* BrO_GC     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))BrOx_GC
 
 (((.not.BrOx_GC
@@ -595,33 +594,28 @@ Warnings:                    1
 * BrO_TOMCAT -                                                  LBRO2H -             - -   pptv * - 1 1
 ))).not.BrOx_GC
 
-(((BrOx_GMI
-* Br_GMI     $ROOT/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.nc LBRO2N 1985/1-12/1/0 C xyz pptv * - 1 1
-* BrO_GMI    -                                                  LBRO2H -             - -   pptv * - 1 1
-)))BrOx_GMI
-
 #==============================================================================
 # --- J-value fields ---
 #==============================================================================
 (((JBrO
-* JBrO $ROOT/MERCURY/v2014-09/JVALUES/jBrO.daytime.geos5.2x25.nc JBrO 2002/1-12/1/0 C xyz s-1 * - 1 1
+* JBrO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4 Jval_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))JBrO
 (((LRED_JNO2
-* JNO2 $ROOT/MERCURY/v2014-09/JVALUES/jvalues.noon.geos5.2x25.nc JNO2 2005/1-12/1/0 C xyz s-1 * - 1 1
+* JNO2 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4 Jval_NO2 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))LRED_JNO2
 
 #==============================================================================
 # --- Aerosol data for Hg2 partitioning ---
 #==============================================================================
 (((AERO_HG2_PARTITION
-* AERO_SO4  $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc SO4  2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_NH4  $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc NH4  2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_NIT  $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc NIT  2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_BCPI $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc BCPI 2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_BCPO $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc BCPO 2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_OCPI $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc OCPI 2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_OCPO $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc OCPO 2007/1/1/0 C xyz ppbv * - 1 1
-* AERO_DST1 $ROOT/MERCURY/v2014-09/Hg2_PARTITION/aero.IJ_AVG.2007.geos5.2x25.nc DST1 2007/1/1/0 C xyz ppbv * - 1 1
+* AERO_SO4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_SO4  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_NH4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NH4  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NIT  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_BCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BCPI 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_BCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BCPO 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_OCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OCPI 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_OCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OCPO 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_DST1 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_DST1 2007/1/1/0 C xyz 1 * - 1 1
 )))AERO_HG2_PARTITION
 
 #==============================================================================

@@ -146,30 +146,30 @@ CONTAINS
     IF ( LGCBROMINE ) THEN
 
        !-----------------------------------------------------------------
-       ! Evaluate Br_GC from HEMCO to set Br_TROP
+       ! Evaluate Br_GC from GEOS-Chem to set Br_MERGE (trop+strat)
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'Br_GC', Br_TROP, RC )
+       CALL HCO_EvalFld(HcoState, 'Br_GC', Br_MERGE, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find Br_GC in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       ! Convert ppbv -> pptv
-       Br_TROP  = Br_TROP * 1e+3_fp
+       ! Convert v/v -> pptv
+       Br_MERGE = Br_MERGE * 1e+12_fp
 
        !-----------------------------------------------------------------
-       ! Evaluate BrO_GC from HEMCO to set BrO_TROP
+       ! Evaluate BrO_GC from GEOS-Chem to set BrO_MERGE (trop+strat)
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'BrO_GC', Br_TROP, RC )
+       CALL HCO_EvalFld(HcoState, 'BrO_GC', Br_MERGE, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find BrO_GC in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       ! Convert ppbv -> pptv
-       BrO_TROP  = BrO_TROP * 1e+3_fp
+       ! Convert v/v -> pptv
+       BrO_MERGE = BrO_MERGE * 1e+12_fp
 
     ELSE
 
@@ -193,63 +193,61 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-----------------------------------------------------------------
+       ! Evaluate Br from GMI for stratosphere [pptv]
+       !-----------------------------------------------------------------
+       CALL HCO_EvalFld(HcoState, 'Br_GMI', Br_STRAT, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find Br_GMI in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Evaluate BrO from GMI for stratosphere [pptv]
+       !-----------------------------------------------------------------
+       CALL HCO_EvalFld(HcoState, 'BrO_GMI', BrO_STRAT, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find BrO_GMI in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Use pTOMCAT exclusively in the troposphere.
+       ! In the stratosphere, use the greater value from either COMBO or
+       ! the tropospheric model. COMBO source gases include CH3Br and
+       ! halons, while pTOMCAT includes CH3Br and shorter-lived gases.
+       !-----------------------------------------------------------------
+       BR_MERGE  = BR_TROP
+       BRO_MERGE = BRO_TROP
+
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED )  &
+       !$OMP PRIVATE( I, J, TPL )
+       DO J=1, State_Grid%NY
+       DO I=1, State_Grid%NX
+
+          ! First layer in the stratosphere
+          TPL = State_Met%TropLev(I,J)
+
+          BR_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(      &
+               BR_STRAT(I,J,TPL:State_Grid%NZ),         &
+               BR_TROP(I,J,TPL:State_Grid%NZ),          &
+               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
+                      BR_TROP(I,J,TPL:State_Grid%NZ) )
+
+          BRO_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(     &
+               BRO_STRAT(I,J,TPL:State_Grid%NZ),        &
+               BRO_TROP(I,J,TPL:State_Grid%NZ),         &
+               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
+                      BR_TROP(I,J,TPL:State_Grid%NZ) )
+
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
-
-    !-----------------------------------------------------------------
-    ! Evaluate Br from GMI for stratosphere [pptv]
-    !-----------------------------------------------------------------
-    CALL HCO_EvalFld(HcoState, 'Br_GMI', Br_STRAT, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find Br_GMI in HEMCO data list!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Evaluate BrO from GMI for stratosphere [pptv]
-    !-----------------------------------------------------------------
-    CALL HCO_EvalFld(HcoState, 'BrO_GMI', BrO_STRAT, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find BrO_GMI in HEMCO data list!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Use pTOMCAT or GEOS-Chem exclusively in the troposphere.
-    ! In the stratosphere, use the greater value from either COMBO or
-    ! the tropospheric model. COMBO source gases include CH3Br and
-    ! halons, while pTOMCAT and GEOS-Chem includes CH3Br and
-    ! shorter-lived gases.
-    !-----------------------------------------------------------------
-
-    BR_MERGE  = BR_TROP
-    BRO_MERGE = BRO_TROP
-
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, TPL )
-    DO J=1, State_Grid%NY
-    DO I=1, State_Grid%NX
-
-       ! First layer in the stratosphere
-       TPL = State_Met%TropLev(I,J)
-
-       BR_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(       &
-             BR_STRAT(I,J,TPL:State_Grid%NZ),         &
-             BR_TROP(I,J,TPL:State_Grid%NZ),          &
-             MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
-                    BR_TROP(I,J,TPL:State_Grid%NZ) )
-
-       BRO_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(      &
-             BRO_STRAT(I,J,TPL:State_Grid%NZ),        &
-             BRO_TROP(I,J,TPL:State_Grid%NZ),         &
-             MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
-                    BR_TROP(I,J,TPL:State_Grid%NZ) )
-
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
 
     !-----------------------------------------------------------------
     ! Evaluate J_BrO

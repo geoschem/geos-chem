@@ -1840,8 +1840,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)  :: I, J, L
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+    INTEGER,        INTENT(IN)  :: I              ! Longitude index
+    INTEGER,        INTENT(IN)  :: J              ! Latitude index
+    INTEGER,        INTENT(IN)  :: L              ! Level index
+    TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
+!
+! !RETURN VALUE:
+!
+    REAL(fp)                    :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  03 Feb 2011 - CL Friedman - Initial Version, copied from mercury_mod.f
@@ -1849,10 +1855,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp)        :: OH_MOLEC_CM3
 
     !=================================================================
     ! GET_OH begins here!
@@ -1861,9 +1863,11 @@ CONTAINS
     ! Test for sunlight...
     IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
+       ! OH from HEMCO is in mol/mol, convert to molec/cm3
+       OH_MOLEC_CM3 = OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
        ! Impose a diurnal variation on OH during the day
-       ! OH from HEMCO is in kg/m3
-       OH_MOLEC_CM3 = OH(I,J,L) * 1e-6_fp * ( AVO / 0.017) * &
+       OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                       ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) * &
                       ( 86400e+0_fp           / GET_TS_CHEM() )
 

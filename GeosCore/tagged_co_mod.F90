@@ -449,8 +449,8 @@ CONTAINS
        ! GCO is CO concentration in [molec CO/cm3]
        GCO   = Spc(I,J,L,1) * STTCO
 
-       ! DENS is the number density of air [molec air/cm3]
-       DENS  = AD(I,J,L) * 1000.e+0_fp / BOXVL * AVO / AIRMW
+       ! Number density of air [molec air/cm3]
+       DENS  = State_Met%AIRNUMDEN(I,J,L)
 
        ! Cosine of the solar zenith angle [unitless]
        SUNCOS = State_Met%SUNCOSmid(I,J)
@@ -467,9 +467,9 @@ CONTAINS
        ! This is done in other offline simulations but was
        ! missing from tagged CO (jaf, 3/12/14)
        !
-       ! NOTE: HEMCO brings in OH in kg/m3, so we need to also
+       ! NOTE: HEMCO brings in OH in mol/mol, so we need to also
        ! apply a conversion to molec/cm3 here. (bmy, 10/12/16)
-       OH_MOLEC_CM3 = ( GLOBAL_OH(I,J,L) * kgm3_to_mcm3OH ) * FAC_DIURNAL
+       OH_MOLEC_CM3 = ( GLOBAL_OH(I,J,L) * DENS ) * FAC_DIURNAL
 
        ! Make sure OH is not negative
        OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )

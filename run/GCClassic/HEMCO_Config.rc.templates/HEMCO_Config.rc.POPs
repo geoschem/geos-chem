@@ -221,8 +221,8 @@ Warnings:                    1
 # --- Oxidant fields --
 #==============================================================================
 (((OXIDANT_FIELDS
-* GLOBAL_O3  $ROOT/O3/v2014-09/MERGE.O3.geos5.72L.2x25.nc                 O3 1985/1-12/1/0 C xyz v/v   * - 1 1
-* GLOBAL_OH  $ROOT/OH/v2014-09/v7-02-03.GMI/OH_3Dglobal.geos5.72L.2x25.nc OH 1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_O3   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_O3   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OH   2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))OXIDANT_FIELDS
 
 )))CHEMISTRY_INPUT

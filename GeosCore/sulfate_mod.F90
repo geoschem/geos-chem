@@ -2525,9 +2525,9 @@ CONTAINS
 
     ! If offline aerosol simulation, evaluate offline oxidant fields from HEMCO
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       CALL HCO_EvalFld( HcoState, 'O3', O3m, RC )
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', O3m, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Cannot get data for O3 from HEMCO!'
+          ErrMsg = 'Cannot get data for GLOBAL_O3 from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -7666,15 +7666,15 @@ CONTAINS
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
+! !RETURN VALUE:
+!
+    REAL(fp)                   :: OH_MOLEC_CM3 ! OH conc [molec/cm3]
+!
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp)            :: OH_MOLEC_CM3
 
     !=================================================================
     ! GET_OH begins here!
@@ -7690,9 +7690,7 @@ CONTAINS
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
-          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) &
-                         * State_Met%AIRDEN(I,J,L) * 1e+3_fp * AVO &
-                         / AIRMW
+          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) * BAIRDENS
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF
@@ -7706,13 +7704,13 @@ CONTAINS
        ! Test for sunlight...
        IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
+          ! OH from HEMCO is in mol/mol, convert to molec/cm3
+          OH_MOLEC_CM3 = GLOBAL_OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
           ! Impose a diurnal variation on OH during the day
-          OH_MOLEC_CM3 = GLOBAL_OH(I,J,L)  * &
+          OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                          ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) * &
                          ( 86400e+0_fp           / GET_TS_CHEM() )
-
-          ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
-          OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
           ! Make sure OH is not negative
           OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )

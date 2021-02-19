@@ -141,9 +141,6 @@ MODULE CARBON_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-
-  ! Molecules OH  per kg OH [molec/kg]
-  REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
   REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
   ! SOAupdate:(hotp 5/20/10) new mtp
@@ -5502,13 +5499,13 @@ CONTAINS
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
+         ! OH from HEMCO is in mol/mol, convert to molec/cm3
+         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L)                        * &
+         OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                         ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   * &
                         ( 86400e+0_fp / GET_TS_CHEM() )
-
-         ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
-         OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -5577,14 +5574,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
    REAL(fp)             :: BOXVL
+   REAL(fp)             :: BAIRDENS
 
    !=================================================================
    ! GET_NO3 begins here!
@@ -5592,7 +5586,7 @@ CONTAINS
    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
       !----------------------
-      ! Fullchem simulation
+      ! Coupled simulation
       !----------------------
 
       ! NO3 is defined only in the chemistry grid
@@ -5613,29 +5607,9 @@ CONTAINS
 
    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-      !==============================================================
-      ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-      ! in [v/v].  Convert these to [molec/cm3] as follows:
-      !
-      !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-      !  ------- = --------- * -------- * ---------------- =  kg NO3
-      !  vol air   moles air      1        kg air/mole air
-      !
-      ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-      !
-      !  kg NO3   molec NO3   mole NO3     1     molec NO3
-      !  ------ * --------- * -------- * ----- = ---------
-      !     1     mole NO3     kg NO3     cm3       cm3
-      !          ^                    ^
-      !          |____________________|
-      !            this is XNUMOL_NO3
-      !
-      ! If at nighttime, use the monthly mean NO3 concentration from
-      ! the NO3 array of "global_no3_mod.f".  If during the daytime,
-      ! set the NO3 concentration to zero.  We don't have to relax to
-      ! the monthly mean concentration every 3 hours (as for HNO3)
-      ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02)
-      !==============================================================
+      !---------------------
+      ! Offline simulation
+      !---------------------
 
       ! Test if daylight
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -5645,13 +5619,14 @@ CONTAINS
 
       ELSE
 
-         ! At night: Get NO3 [v/v] and convert it to [kg]
-         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AD(I,J,L) &
-                         * ( 62e+0_fp/AIRMW )
+         ! Grid box volume [cm3]
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-         ! Convert NO3 from [kg] to [molec/cm3]
-         BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+         ! Air density [molec/cm3]
+         BAIRDENS = State_Met%AD(I,J,L) * 1000e+0_fp / BOXVL * AVO / AIRMW
+
+         ! NO3 from HEMCO is in mol/mol, convert to molec/cm3
+         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * BAIRDENS
 
       ENDIF
 
@@ -5716,14 +5691,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
    REAL(fp)             :: BOXVL
+   REAL(fp)             :: BAIRDENS
 
    !=================================================================
    ! GET_O3 begins here!
@@ -5760,13 +5732,14 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( L <= State_Grid%MaxChemLev ) THEN
 
-         ! Get O3 [v/v] and convert it to [kg]
-         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AD(I,J,L) * &
-                        ( 48e+0_fp / AIRMW )            ! hard-coded MW
+         ! Grid box volume [cm3]
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-         ! Convert O3 from [kg] to [molec/cm3]
-         BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+         ! Air density [molec/cm3]
+         BAIRDENS = State_Met%AD(I,J,L) * 1000e+0_fp / BOXVL * AVO / AIRMW
+
+         ! O3 from HEMCO is in mol/mol, convert to molec/cm3
+         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * BAIRDENS
 
       ELSE
          O3_MOLEC_CM3 = 0e+0_fp

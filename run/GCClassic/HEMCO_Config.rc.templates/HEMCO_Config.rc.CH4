@@ -571,7 +571,7 @@ Warnings:                    1
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_ $ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EY xyz 1 * - 1 1
+* BC_ $ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EY xyz 1 * - 1 1
 )))GC_BCs
 
 #==============================================================================
@@ -582,10 +582,10 @@ Warnings:                    1
 * CH4_LOSS   $ROOT/CH4/v2014-09/4x5/gmi.ch4loss.geos5_47L.4x5.nc     CH4loss      1985/1-12/1/0 C xyz s-1   * - 1 1
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_OH  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/CH4/v2020-02/Cl/Cl_XuanWang_2019_ACP.4x5.nc          IJ_AVG_S__Cl 2005/1-12/1/0 C xyz ppbv  * - 1 1
+* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 EY xyz mol/mol * - 1 1
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 
