@@ -260,7 +260,7 @@ fi
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
 printf "${thinline}Choose meteorology source:${thinline}"
-printf "  1. MERRA2 (Recommended)\n"
+printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -472,8 +472,8 @@ done
 # Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
-    printf "${thinline}Enter run directory name, or press return to use default:\n"
-    printf "(This will be a subfolder of the path you entered above.)${thinline}"
+    printf "${thinline}Enter run directory name, or press return to use default:\n\n"
+    printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
@@ -497,7 +497,7 @@ while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read new_rundir
+	read -e new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -524,7 +524,13 @@ cp ./gitignore                              ${rundir}/.gitignore
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+
+# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
+# so skip copying it unless the file exists (bmy, 12/11/20)
+if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
+fi
+
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py

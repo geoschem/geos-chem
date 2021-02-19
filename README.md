@@ -1,24 +1,51 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546) [![Build
-Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](https://travis-ci.org/JiaweiZhuang/geos-chem) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
 
-# README for the GEOS-Chem source code repository
+# README for the GEOS-Chem science codebase repository
 
-This repository (https://github.com/geoschem/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition.
+## Overview
+
+This repository (https://github.com/geoschem/geos-chem) contains the __GEOS-Chem science codebase__ (aka the GEOS-Chem chemical module).  Included in this repository are:
+
+  * The source code for GEOS-Chem science routines;
+
+  * Scripts to create GEOS-Chem run directories;
+
+  * Scripts to run GEOS-Chem tests;
+
+  * Driver routines (e.g. "main.F90") that enable GEOS-Chem to be run in several different contexts, including:
+
+    * __GEOS-Chem "Classic"__ (suitable for running with less than ~64 cores on a single node)
+    * __GCHP__ (GEOS-Chem "High Performance, which can run across multiple nodes for high scalability)
+    * __GEOS-GC__ (GEOS-Chem coupled to the NASA GEOS ESM)
+    * __WRF-GC__ (GEOS-Chem coupled with WRF)
+    * and GEOS-Chem coupled to other Earth System Models (e.g. CESM2, NCAR "next-generation" models, etc.)
+
+## HEMCO is no longer part of the geoschem/GEOS-Chem repository
+
+One important note: The __Harmonized Emissions Component (HEMCO)__ source code has been removed, and is maintained as a separate repository (geoschem/HEMCO). This is because HEMCO is now being developed independently of GEOS-Chem.  This will facilitate HEMCO being used in external models (such as at NOAA and NCAR).  
+
+## Wrapper repositories
+
+You should not clone geoschem/geos-chem directly.  Instead, you should clone one of the "wrapper" repositories:
+
+  * __geoschem/GCClassic__
+
+  * __geoschem/GCHP__
+
+which will then treat geoschem/geos-chem (and geoschem/HEMCO for that matter) as a Git submodule.  For details, we refer you to our "Getting Started with GEOS-Chem" manual or our Youtube tutorial videos (discussed in the Documentation section below).
 
 ## GEOS-Chem Development
 
 ### Branches
 This repository contains several branches.  Each branch contains code updates belonging to a particular line of development.
 
- * The __master__ branch always contains the __current stable version__.  You should never add new code directly into this branch.  Instead, open a new branch off of master and add your code there.
-
-   * NOTE: In GEOS-Chem 13.0.0 and later, the __master__ branch will renamed to __main__.
+ * The __main__ branch always contains the __current stable version__.  You should never add new code directly into this branch.  Instead, open a new branch off of main and add your code there.
 
  * The __dev/X.Y.Z__ branches always contains in-development code for upcoming version X.Y.Z.  Code in dev/X.Y.Z is very much "work in progress" and should not be relied upon until it has been fully debugged, validated, and merged back into the master branch.
 
- * The __GEOS__ branch contains updates that are specific to the interface between GEOS-Chem and the NASA GEOS-DAS Earth System Model.  Most GEOS-Chem users can simply ignore this branch.
-
  * From time to time, you will see other branches pertaining to new lines of development being created.  These branches usually will start with __feature/__ or __bugfix/__.  Once the code in these branches has been sufficiently validated, these branches will be merged back into the master branch.  You should not use code in these branches.
+
+ * You may also see branches beginning with e.g. __GEOS__, __CESM__, etc.  These branches are intended for ongoing development to connect GEOS_Chem within other Earth System Models.  You may ignore the code in these branches.
 
 ### Versions
 
@@ -52,24 +79,33 @@ You can find the __The GEOS-Chem User's Guide__ online here:
 
   * http://manual.geos-chem.org
 
+NOTE: The above link currently points to __Getting Started with GEOS-Chem__ on the GEOS-Chem wiki.  In the near future, we will migrate this documentation to readthedocs.io.
+
 ### Wiki
 The most up-to-date information about GEOS-Chem is posted on the __GEOS-Chem wiki__.  Here you will find information about technical issues, bug fixes, and other pertinent topics.
 
   * http://wiki.geos-chem.org
 
-## GEOS-Chem run directories
-To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on the [Creating GEOS-Chem run directories wiki page](http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories).
+### Youtube
+We have created several tutorial videos at our GEOS-Chem Youtube channel (https://youtube.com/c/geos-chem).  Please take a few moments to view the following tutorials
+
+  * [Getting started with GEOS-Chem "Classic" 13.0.0](https://www.youtube.com/watch?v=BV4BIj8WAxE)
+
+  * [Getting started with GCHP 13.0.0 -- Building GCHP](https://www.youtube.com/watch?v=G_DMCv-mJ2k)
+  * [Getting started with GCHP 13.0.0 -- Running GCHP](https://www.youtube.com/watch?v=K6frcfCjpds)
+
+  * [Getting started with the HEMCO 3.0.0 standalone](https://www.youtube.com/watch?v=6Bup9V0ts6U&t=25s)
+
+  * [Getting started with GCPy](https://www.youtube.com/watch?v=eC6203eF05g)
 
 ## Support
-We encourage GEOS-Chem users to use the Github issue tracker attached to this repository to report  bugs or technical issues with the GEOS-Chem code.
-
-You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@g.harvard.edu.
+We encourage GEOS-Chem users to use [the Github issue tracker attached to this repository](https://github.com/geoschem/geos-chem/issues/new/choose) to report bugs or technical issues with the GEOS-Chem code.
 
 ## License
 
 GEOS-Chem (and related software) is distributed under the MIT license. Please see the license documents LICENSE.txt and AUTHORS.txt in the root folder.
 
 
-14 Nov 2018
+06 Jan 2021
 GEOS-Chem Support Team
 geos-chem-support@g.harvard.edu

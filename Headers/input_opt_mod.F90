@@ -735,9 +735,9 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
-    Input_Opt%TPCORE_IORD            = .FALSE.
-    Input_Opt%TPCORE_JORD            = .FALSE.
-    Input_Opt%TPCORE_KORD            = .FALSE.
+    Input_Opt%TPCORE_IORD            = 0
+    Input_Opt%TPCORE_JORD            = 0
+    Input_Opt%TPCORE_KORD            = 0
     Input_Opt%TS_DYN                 = 0
 
     !----------------------------------------

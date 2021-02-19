@@ -163,7 +163,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CREATE_DINFO
+  SUBROUTINE CREATE_DINFO()
 !
 ! !USES:
 !
@@ -539,7 +539,7 @@ CONTAINS
 
     ! Write one line to "tracerinfo.dat" file
     WRITE( IU_FILE, 100, IOSTAT=IOS ) &
-         ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, N, SCALE, TRIM( UNIT )
+         ADJUSTL( NAME ), ADJUSTL( FNAME ), MWT, 1, N, SCALE, TRIM( UNIT )
 
     ! Error check
     IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_tinfo:1' )
@@ -656,7 +656,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_DIAGINFO
+  SUBROUTINE INIT_DIAGINFO()
 !
 ! !REVISION HISTORY:
 !  17 Oct 1996 - R. Yantosca - Initial version
@@ -5054,7 +5054,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize arrays for "diaginfo.dat"
-    CALL INIT_DIAGINFO
+    CALL INIT_DIAGINFO()
 
     ! Initialize arrays for "tracerinfo.dat"
     CALL INIT_TRACERINFO( Input_Opt, State_Chm, RC )

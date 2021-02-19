@@ -4315,6 +4315,9 @@ CONTAINS
 300       FORMAT( a, ' ', a )
        ENDIF
 
+       ! Get dry-run output from NOXCOEFF_INIT as well
+       CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
+       
        ! Exit without doing any computation (dry-run only)
        RETURN
     ENDIF

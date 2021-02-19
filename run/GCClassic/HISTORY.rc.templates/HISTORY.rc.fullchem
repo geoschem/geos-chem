@@ -1,6 +1,6 @@
 ###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
-###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
 #============================================================================
@@ -43,6 +43,7 @@ COLLECTIONS: 'Restart',
              #'LevelEdgeDiags',
              #'ProdLoss',
              ##'RRTMG',
+	     ##'RxnRates',
              #'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -522,6 +523,24 @@ COLLECTIONS: 'Restart',
                               'RadAsymWL1_DU         ', 'GIGCchem',
                               'RadAsymWL1_PM         ', 'GIGCchem',
                               #'RadAsymWL1_ST         ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.format:     'CFIO',
+  RxnRates.frequency:  {FREQUENCY}
+  RxnRates.duration:   {DURATION}
+  RxnRates.mode:       'time-averaged'
+  RxnRates.fields:     'RxnRate_EQ001                           ', 'GIGCchem',
+                       'RxnRate_EQ002                           ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

@@ -26,6 +26,17 @@ Chem/emis timestep [sec]: 1200
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : O3
 Species name            : O3Strat
+Species name            : O3ut
+Species name            : O3mt
+Species name            : O3row
+Species name            : O3pcbl
+Species name            : O3nabl
+Species name            : O3atbl
+Species name            : O3eubl
+Species name            : O3afbl
+Species name            : O3asbl
+Species name            : O3init
+Species name            : O3usa
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T
@@ -164,7 +175,7 @@ Output file name        : plane.log.YYYYMMDD
 Turn on ND51 diagnostic : F
 LT avg timeseries file  : ts_satellite.YYYYMMDD.bpch
 Output as HDF5?         : F
-Tracers to include      : 46 504 506
+Tracers to include      : 1
 GMT Hour for disk write :   0
 Avg Period [LT hours]   :   9  11
 IMIN, IMAX of region    :   1  72
@@ -173,9 +184,9 @@ LMIN, LMAX of region    :   1  40
 -------------------------------------------------------------------------------
 %%% ND51b MENU %%%      :
 Turn on ND51b diagnstic : F
-LT avg timeseries file  : ts_13_15.NA.YYYYMMDD.h5
+LT avg timeseries file  : ts_13_15.NA.YYYYMMDD.bpch
 Output as HDF5?         : F
-Tracers to include      : 1 4 20 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 60 61 62 63 64 65 66 72 73 75 82 83 84 85 86 87 93 94 98 99
+Tracers to include      : 1
 GMT Hour for disk write :  1
 Avg Period [LT hours]   :  13  15
 IMIN, IMAX of region    :   1  72

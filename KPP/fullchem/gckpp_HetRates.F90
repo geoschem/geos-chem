@@ -206,10 +206,10 @@ MODULE GCKPP_HETRATES
 !    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
 !    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
 !    US. Atmos. Chem. Phys., 16, 2961-2990, 2016.
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
-!    4980-4990, https://doi.org/10.1029/2019GL081990   
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
+!    4980-4990, https://doi.org/10.1029/2019GL081990
 !  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
 !    formation from isoprene: application to the southeast United States and
 !    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
@@ -275,7 +275,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)               :: HOBr_RTEMP,   QICE,     QLIQ,     SPC_BrNO3
       REAL(fp)               :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
       REAL(fp)               :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
-      REAL(fp)               :: conc1, conc2
+      REAL(fp)               :: conc1, conc2, denom
 
       ! SAVEd scalars
       LOGICAL,          SAVE :: FIRST = .TRUE.
@@ -480,40 +480,43 @@ MODULE GCKPP_HETRATES
                                brConc_Cldg, clConc_Cldg                     )
 
       brConc_Cld  = brConc_Cldg
-      brConc_Cldg = ( brConc_Cld * spcVec(H%HBr%mId)                        )&
-                  / ( spcVec(H%HBr%mId)             +                       &
-                      spcVec(H%BrSALA%mId) * 0.7_fp +                       &
-                      spcVec(H%BrSALC%mId)                                  )
-      brConc_CldA = ( brConc_Cld * spcVec(H%BrSALA%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
 
-      brConc_CldC = ( brConc_Cld * spcVec(H%BrSALC%mId)                     )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = spcVec(H%HBr%mId   )                                           &
+            + spcVec(H%BrSALA%mId) * 0.7_fp                                  &
+            + spcVec(H%BrSALC%mId)
+      IF ( denom > 0.0_fp ) THEN
+         brConc_Cldg = ( brConc_Cld * spcVec(H%HBr%mId)             ) / denom
+         brConc_CldA = ( brConc_Cld * spcVec(H%BrSALA%mId) * 0.7_fp ) / denom
+         brConc_CldC = ( brConc_Cld * spcVec(H%BrSALC%mId)          ) / denom
+      ELSE
+         brConc_Cldg = 0.0_fp
+         brConc_CldA = 0.0_fp
+         brConc_CldC = 0.0_fp
+      ENDIF
 
+      ! Enforce minimum values
       brConc_Cldg = MAX( brConc_Cldg, 1.0e-20_fp )
       brConc_CldA = MAX( brConc_CldA, 1.0e-20_fp )
       brConc_CldC = MAX( brConc_CldC, 1.0e-20_fp )
 
       clConc_Cld  = clConc_Cldg
-      clConc_Cldg = ( clConc_Cld * spcVec(H%HCl%mId)                        )&
-                  / ( spcVec(H%HCl%mId)              +                     &
-                      spcVec(H%SALACL%mId) * 0.7_fp  +                     &
-                      spcVec(H%SALCCL%mId)                                  )
 
-      clConc_CldA = ( clConc_Cld * spcVec(H%SALACL%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = spcVec(H%HCl%mId   )                                            &
+            + spcVec(H%SALACL%mId) * 0.7_fp                                   &
+            + spcVec(H%SALCCL%mId)
+      IF ( denom > 0.0_fp ) THEN
+         clConc_Cldg = ( clConc_Cld * spcVec(H%HCl%mId)             ) / denom
+         clConc_CldA = ( clConc_Cld * spcVec(H%SALACL%mId) * 0.7_fp ) / denom
+         clConc_CldC = ( clConc_Cld * spcVec(H%SALCCL%mId)          ) / denom
+      ELSE
+         clConc_Cldg = 0.0_fp
+         clConc_CldA = 0.0_fp
+         clConc_CldC = 0.0_fp
+      ENDIF
 
-      clConc_Cldc = ( clConc_Cld * spcVec(H%SALCCL%mId)                     )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
-
+      ! Enforce minimum values
       clConc_Cldg = MAX( clConc_Cldg, 1.0e-20_fp )
       clConc_CldA = MAX( clConc_CldA, 1.0e-20_fp )
       clConc_CldC = MAX( clConc_CldC, 1.0e-20_fp )
@@ -1341,14 +1344,14 @@ MODULE GCKPP_HETRATES
 !  cell. The function uses the "entrainment limited uptake" equations of
 !  Holmes et al. (2019). Both liquid and ice water clouds are treated.
 !
-!  For gasses that are that are consumed in multiple aqueous reactions with different 
-!  products, CloudHet can provide the loss frequency for each reaction branch using the 
+!  For gasses that are that are consumed in multiple aqueous reactions with different
+!  products, CloudHet can provide the loss frequency for each reaction branch using the
 !  optional branch ratios (branchLiq, branchIce) as arguments.
 !
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
-!    4980-4990, https://doi.org/10.1029/2019GL081990   
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
+!    4980-4990, https://doi.org/10.1029/2019GL081990
 !\\
 !\\
 ! !INTERFACE:
@@ -1373,7 +1376,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),         INTENT(IN) :: gammaLiq   ! Gamma values on liquid water
       REAL(fp),         INTENT(IN) :: gammaIce   !   and water ice
       REAL(fp),         OPTIONAL   :: branchLiq  ! Fraction of reactant consumed in a particular reaction branch
-      REAL(fp),         OPTIONAL   :: branchIce  !   in liquid and ice, fraction [0-1] 
+      REAL(fp),         OPTIONAL   :: branchIce  !   in liquid and ice, fraction [0-1]
 !
 ! !RETURN VALUE:
 !
@@ -1518,12 +1521,12 @@ MODULE GCKPP_HETRATES
       ! kHet = kI * xx / ( 1d0 + xx )
       !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
       !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) ) 
-      
+      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
+
       ! Overall loss rate in a particular reaction branch, 1/s
       kHet = kHet * branch
       ! Note: CloudHet currently requires calling CloudHet N times for N reaction branches.
-      ! Returning both total loss frequency and mean branch ratio would allow calculation of 
+      ! Returning both total loss frequency and mean branch ratio would allow calculation of
       ! all loss rates with N-1 calls to CloudHet (more efficient) (C.D. Holmes)
 
     end function CloudHet

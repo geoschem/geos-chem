@@ -1588,7 +1588,14 @@ PROGRAM GEOS_Chem
           ! Get the overhead column O3 for use with FAST-J
           ! NOTE: Move to CHEMISTRY section.  This now has to come after
           ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
-          CALL Get_Overhead_O3_For_FastJ( Input_Opt, State_Grid, State_Met )
+          CALL Get_Overhead_O3_For_FastJ( Input_Opt,  State_Chm,             &
+                                          State_Grid, State_Met, RC         )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Get_Overhead_O3_for_FastJ"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
 
           ! Every chemistry timestep...
           IF ( ITS_TIME_FOR_CHEM() ) THEN
@@ -2533,19 +2540,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Overhead_O3_For_FastJ( Input_Opt, State_Grid, State_Met )
+  SUBROUTINE Get_Overhead_O3_For_FastJ( Input_Opt,  State_Chm,               &
+                                        State_Grid, State_Met, RC           )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(GrdState), INTENT(IN)    :: State_Grid
     TYPE(MetState), INTENT(IN)    :: State_Met
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REMARKS:
 !  This routine makes use of variables declared in above in the main program

@@ -38,6 +38,7 @@ CMP_PASS_STR="Configure & Build......PASS"
 CMP_FAIL_STR="Configure & Build......FAIL"
 EXE_PASS_STR="Execute Simulation.....PASS"
 EXE_FAIL_STR="Execute Simulation.....FAIL"
+EXE_TBD_STR="Execute Simulation.....TBD"
 
 
 function absolute_path() {
@@ -71,9 +72,9 @@ function is_valid_rundir() {
 }
 
 
-function is_gchpctm_rundir() {
+function is_gchp_rundir() {
     #========================================================================
-    # Function that tests if a run directory is a GCHPctm run directory
+    # Function that tests if a run directory is a GCHP run directory
     #
     # 1st argument: Directory to be tested
     #========================================================================
@@ -132,8 +133,8 @@ function update_config_files() {
     sed -i -e "${SED_HISTORY_RC_1}" ${root}/${runDir}/HISTORY.rc
     sed -i -e "${SED_HISTORY_RC_2}" ${root}/${runDir}/HISTORY.rc
 
-    # For GCHPctm only
-    expr=$(is_gchpctm_rundir "${root}/${runDir}")
+    # For GCHP only
+    expr=$(is_gchp_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
 	# Replace text in run.config.sh
@@ -320,7 +321,7 @@ function gcclassic_compiletest_name() {
 
 function build_gcclassic() {
     #========================================================================
-    # Configures and compiles GEOS-Chem (Classic or GCHPctm) for
+    # Configures and compiles GEOS-Chem (Classic or GCHP) for
     # CMAKE_BUILD_TYPE=Debug.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
@@ -379,9 +380,9 @@ function build_gcclassic() {
 }
 
 
-function build_gchpctm() {
+function build_gchp() {
     #========================================================================
-    # Configures and compiles GCHPctm.
+    # Configures and compiles GCHP.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GEOS_Chem Classic build directory
@@ -399,7 +400,7 @@ function build_gchpctm() {
 
     # Local variables
     codeDir=${root}/CodeDir
-    message="GCHPctm"
+    message="GCHP"
     passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
     failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 
@@ -439,13 +440,13 @@ function build_gchpctm() {
 }
 
 
-function submit_gchpctm_slurm_job() {
+function submit_gchp_slurm_job() {
     #========================================================================
-    # Submits a GCHPctm SLURM job script for the execution test phase.
+    # Submits a GCHP SLURM job script for the execution test phase.
     # Subsequent jobs are submitted as SLURM job dependencies.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GCHPctm run directory name
+    # 2nd argument = GCHP run directory name
     # 3rd argument = Id from the previous SLURM job
     #========================================================================
 
