@@ -332,7 +332,7 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-    cp ${gcdir}/run/GCHP/runScriptSamples/gchp.benchmark.run ${rundir}
+    cp ${gcdir}/run/GCHP/runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
 

@@ -1,4 +1,14 @@
-Copy run script to your run directory prior to executing.
-All example run scripts assume SLURM except gchp.sge.run and gchp.local.run.
-Use gchp.local.run to run interactively, independent of a job scheduler.
+# Example Run Scripts
 
+These are example job scripts for GCHP batch jobs. You should write your own, but these are good
+templates to start from. 
+
+You can find simple examples for various schedulers in `runScriptSamples/simple_examples`.
+Currently, we have examples for Slurm, PBS, and LSF. You can find system-specific examples in
+`runScriptSamples/simple_examples`. Currently we have examples for Pleiades (NASA), Cannon
+(Harvard), and Compute1 (WUSTL).
+
+You can find "full-fledged" examples in `runScriptSamples/operational_examples`. These are more
+complicated, but they demonstrate what some operational GCHP job scripts look like. Initially, it's
+probably best to err on the side of simplicity, and build your own automated functionality with
+time. 
