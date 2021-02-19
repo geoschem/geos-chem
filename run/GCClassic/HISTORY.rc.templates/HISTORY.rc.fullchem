@@ -38,6 +38,7 @@ COLLECTIONS: 'Restart',
              ##'ConcAboveSfc',
              #'ConcAfterChem',
              #'DryDep',
+             #'DryDepVelPFT',
              #'JValues',
              #'KppDiags',
              #'LevelEdgeDiags',
@@ -49,9 +50,8 @@ COLLECTIONS: 'Restart',
              #'WetLossConv',
              #'WetLossLS',
              ##'BoundaryConditions',
-             'Ecophysiology',
-             'Ecophys_ave',
-             'Ecophys_const',
+             #'Ecophysiology',
+             #'Ecophys_const',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -366,11 +366,24 @@ COLLECTIONS: 'Restart',
                               ##'DryDepChm_?DRY?              ', 'GIGCchem',
                               ##'DryDepMix_?DRY?              ', 'GIGCchem',
                               'DryDep_?DRY?                  ', 'GIGCchem',
-                              'DryDepVelPFT1                 ', 'GIGCchem',
-                              'DryDepVelPFT2                 ', 'GIGCchem',
-                              'DryDepVelPFT3                 ', 'GIGCchem',
-                              'DryDepVelPFT4                 ', 'GIGCchem',
-                              'DryDepVelPFT5                 ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE DryDepVelPFT COLLECTION %%%%%
+#
+# PFT-specific dry depositon velocities (for all dry-depositing species)
+#
+# Available for all simuations that have dry-depositing species
+#==============================================================================
+  DryDepVelPFT.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  DryDepVelPFT.format:        'CFIO',
+  DryDepVelPFT.frequency:     00000100 000000
+  DryDepVelPFT.duration:      00000100 000000
+  DryDepVelPFT.mode:          'time-averaged'
+  DryDepVelPFT.fields:        'DryDepVelPFT1_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT2_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT3_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT4_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT5_?DRY?           ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
