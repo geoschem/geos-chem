@@ -124,6 +124,7 @@ Warnings:                    1
     --> RRTMG                  :       false    # 2002
     --> SfcVMR                 :       true     # 1750-2014
     --> OCEAN_O3_DRYDEP        :       true     # 1985
+    --> SOIL_PARAMS            :       true     # const.
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3/MOH
@@ -2629,6 +2630,7 @@ Warnings:                    1
 * PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 * PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 * PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* QV2M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     QV2M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 * SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 * SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 * SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
@@ -2700,6 +2702,15 @@ Warnings:                    1
 * FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 * CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_{NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 )))LightNOx
+
+#==============================================================================
+# --- Soil parameter fields used in ecophysiology module ---
+#==============================================================================
+(((SOIL_PARAMS
+* THETA_WILT     ./HadGEM2ES_Soil_Ancil_05x05.nc     sm_wilt         */1/1/0     C xy  1  * -  1 1
+* THETA_CRIT     ./HadGEM2ES_Soil_Ancil_05x05.nc     sm_crit         */1/1/0     C xy  1  * -  1 1
+* THETA_SATU     ./HadGEM2ES_Soil_Ancil_05x05.nc     sm_sat          */1/1/0     C xy  1  * -  1 1
+)))SOIL_PARAMS
 
 )))METEOROLOGY
 
