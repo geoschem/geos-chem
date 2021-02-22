@@ -752,7 +752,6 @@ END SUBROUTINE GetMass
 ! Get_OHreactivity - returns the OH reactivity
 ! The OH reactivity is defined as the inverse of its lifetime.
 ! This routine was auto-generated using script OHreact_parser.py.
-! Generated on 2021-02-12
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
