@@ -589,7 +589,7 @@ CONTAINS
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
-    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP COLLAPSE( 2                                                       )&
     !$OMP SCHEDULE( DYNAMIC,  1                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
