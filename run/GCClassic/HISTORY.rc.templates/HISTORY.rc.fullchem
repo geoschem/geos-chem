@@ -51,7 +51,7 @@ COLLECTIONS: 'Restart',
              #'WetLossLS',
              ##'BoundaryConditions',
              #'Ecophysiology',
-             #'Ecophys_const',
+             #'Ecophy_const',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -776,10 +776,10 @@ COLLECTIONS: 'Restart',
 #
 # Available for fullchem simulations
 #==============================================================================
-  Ecophys_const.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Ecophys_const.format:       'CFIO',
-  Ecophys_const.frequency:    'end'
-  Ecophys_const.duration:     'end'
-  Ecophys_const.mode:         'instantaneous'
-  Ecophys_const.fields:       'EcophyPFTFrac_?PFT?           ', 'GIGCchem',
+  Ecophy_const.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Ecophy_const.format:       'CFIO',
+  Ecophy_const.frequency:    'end'
+  Ecophy_const.duration:     'end'
+  Ecophy_const.mode:         'instantaneous'
+  Ecophy_const.fields:       'EcophyPFTFrac_?PFT?           ', 'GIGCchem',
 ::
