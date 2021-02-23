@@ -3545,10 +3545,6 @@ CONTAINS
        ! Get the species ID from the wetdep ID
        N = State_Chm%Map_WetDep(NW)
 
-#ifdef MODEL_CESM
-       IF ( State_Chm%SpcData(N)%Info%WD_ExternalDep ) CYCLE
-#endif
-
        ! Call subroutine RAINOUT to comptue the fraction
        ! of species lost to rainout in grid box (I,J,L)
        CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,            &
@@ -3899,10 +3895,6 @@ CONTAINS
 
        ! Get the species ID from the wetdep ID
        N           = State_Chm%Map_WetDep(NW)
-
-#ifdef MODEL_CESM
-       IF ( State_Chm%SpcData(N)%Info%WD_ExternalDep ) CYCLE
-#endif
 
        ! zero local variables
        ALPHA       = 0e+0_fp
@@ -4326,10 +4318,6 @@ CONTAINS
        ! Get the species ID from the wetdep ID
        N = State_Chm%Map_WetDep(NW)
 
-#ifdef MODEL_CESM
-       IF ( State_Chm%SpcData(N)%Info%WD_ExternalDep ) CYCLE
-#endif
-
        ! WETLOSS is the amount of species in grid box (I,J,L) per area
        ! that is lost to rainout. (qli, bmy, 10/29/02)
        WETLOSS = -DSpc(NW,L+1,I,J)
@@ -4613,10 +4601,6 @@ CONTAINS
 
        ! Get species ID from wetdep ID
        N = State_Chm%Map_WetDep(NW)
-
-#ifdef MODEL_CESM
-       IF ( State_Chm%SpcData(N)%Info%WD_ExternalDep ) CYCLE
-#endif
 
        ! Call WASHOUT to compute the fraction of species
        ! in grid box (I,J,L) that is lost to washout.
