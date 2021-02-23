@@ -19,26 +19,52 @@
 #BOC
 
 #=============================================================================
+#### Replacement for `sed -i -e` that works on both MacOS and Linux
+#=============================================================================
+sed_ie() {
+
+    # Replace text in place within a file.  Using -i'' will avoid saving a
+    # backup of the original file on MacOS, and will search inline on Linux.
+    REGEX=${1}
+    FILE=${2}
+    sed -i'' -e "${REGEX}" "${FILE}"
+
+    # MacOS will leave a backup file with the -e extension, so remove it
+    if [[ -f ${FILE}-e ]]; then
+	rm -f ${FILE}-e
+    fi
+}
+
+#=============================================================================
 #### Define function to replace values in config files
 #=============================================================================
 replace_colon_sep_val() {
-    KEY=$1
-    VALUE=$2
-    FILE=$3
-    #printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VALUE}" "${FILE}"
+    KEY=${1}
+    VALUE=${2}
+    FILE=${3}
 
-    # replace value in line starting with 'whitespace + key + whitespace + : +
+    # Debug print (leave commented out)
+    # printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VALUE}" "${FILE}"
+
+    # Replace value in line starting with 'whitespace + key + whitespace + : +
     # whitespace + value' where whitespace is variable length including none
-    sed -i -e "s|^\([\t ]*${KEY}[\t ]*:[\t ]*\).*|\1${VALUE}|" ${FILE}
+    #
+    # MacOS sed does not allow you to use \t for tab.  The quick fix is
+    # to use printf to save a tab character to a variable, and to use
+    # that in the regular expression everywhere you would have used \t.
+    # See the Github issue geoschem/geos-chem #617. (bmy, 2/23/21)
+    TAB=$(printf "\t")
+    REGEX="s|^\([${TAB} ]*${KEY}[${TAB} ]*:[${TAB} ]*\).*|\1${VALUE}|"
+    sed_ie "${REGEX}" "${FILE}"
 }
 
 #============================================================================
 #### Define function to remove line(s) in config files
 #============================================================================
 remove_text() {
-    VALUE=$1
-    FILE=$2
-    sed -i -e "/${VALUE}/d" ${FILE}
+    REGEX="/${1}/d"
+    FILE=${2}
+    sed_ie "${REGEX}" "${FILE}"
 }
 
 #============================================================================
@@ -52,7 +78,7 @@ set_common_settings() {
 
     # Check that simulation option is passed
     if [[ $# == 1 ]]; then
-        sim_extra_option=$1
+        sim_extra_option=${1}
     else
        echo "Usage: ./setupConfigFiles.sh {sim_extra_option}"
        exit
@@ -74,35 +100,36 @@ set_common_settings() {
         replace_colon_sep_val "--> OFFLINE_BIOGENICVOC" false HEMCO_Config.rc
         replace_colon_sep_val "--> OFFLINE_SEASALT"     false HEMCO_Config.rc
         replace_colon_sep_val "--> OFFLINE_SOILNOX"     false HEMCO_Config.rc
-        sed -i -e "s|DustDead               : off|DustDead               : on |" HEMCO_Config.rc
-        sed -i -e "s|SoilNOx                : off|SoilNOx                : on |" HEMCO_Config.rc
-        sed -i -e "s|SeaSalt                : off|SeaSalt                : on |" HEMCO_Config.rc
-        sed -i -e "s|NO     0      3 |NO     104    -1|" HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
-	sed -i -e "s|SALA  0      3 |SALA  107    -1|"   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
-	sed -i -e "s|SALC  0      3 |SALC  107    -1|"   HEMCO_Diagn.rc   #   "   "
-	sed -i -e "s|AL  0      3 |AL  107    -1|"       HEMCO_Diagn.rc   #   "   "
-	sed -i -e "s|CL  0      3 |CL  107    -1|"       HEMCO_Diagn.rc   #   "   "
-        sed -i -e "s|0      3 |105    -1|"               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
-        sed -i -e "s|0      4 |108    -1|"               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108)
-        sed -i -e "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
-        sed -i -e "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
-        sed -i -e "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
-        sed -i -e "s|#Inv|Inv|"                          HEMCO_Diagn.rc
+	exit 1
+        sed_ie "s|DustDead               : off|DustDead               : on |" HEMCO_Config.rc
+        sed_ie "s|SoilNOx                : off|SoilNOx                : on |" HEMCO_Config.rc
+        sed_ie "s|SeaSalt                : off|SeaSalt                : on |" HEMCO_Config.rc
+        sed_ie "s|NO     0      3 |NO     104    -1|" HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
+	sed_ie "s|SALA  0      3 |SALA  107    -1|"   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
+	sed_ie "s|SALC  0      3 |SALC  107    -1|"   HEMCO_Diagn.rc   #   "   "
+	sed_ie "s|AL  0      3 |AL  107    -1|"       HEMCO_Diagn.rc   #   "   "
+	sed_ie "s|CL  0      3 |CL  107    -1|"       HEMCO_Diagn.rc   #   "   "
+        sed_ie "s|0      3 |105    -1|"               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
+        sed_ie "s|0      4 |108    -1|"               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108)
+        sed_ie "s|NH3    105    -1|NH3    0      3 |" HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
+        sed_ie "s|ALD2   105    -1|ALD2   0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
+        sed_ie "s|EOH    105    -1|EOH    0      3 |" HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
+        sed_ie "s|#Inv|Inv|"                          HEMCO_Diagn.rc
 
 	# Turn @ into # characters for the benchmark simulation,
 	# which should cause MAPL to skip reading these lines.
 	# This is a workaround for a "input file to long" MAPL error.
-	sed -i -e "s|@|#|"                               HISTORY.rc
+	sed_ie "s|@|#|"                                HISTORY.rc
 
 	# Remove the first comment character on diagnostics
-        sed -i -e "s|#'|'|"                              HISTORY.rc
+        sed_ie "s|#'|'|"                               HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
     # Standard settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xnone" ]]; then
-	sed -i -e 's/@//' HISTORY.rc
+	sed_ie 's/@//' HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
@@ -124,7 +151,7 @@ Species name            : ASOAN\n\
 Species name            : ASOG1\n\
 Species name            : ASOG2\n\
 Species name            : ASOG3"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
         prev_line="Species name            : TOLU"
         new_line="\Species name            : TSOA0\n\
@@ -135,9 +162,9 @@ Species name            : TSOG0\n\
 Species name            : TSOG1\n\
 Species name            : TSOG2\n\
 Species name            : TSOG3"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e 's/@//' HISTORY.rc
+	sed_ie 's/@//' HISTORY.rc
     fi
 
     # For complexSOA only, remove SOAP and SOAS species from input.geos
@@ -161,23 +188,23 @@ Species name            : TSOG3"
         # Add semivolatile POA species in input.geos
         prev_line="Species name            : N2O5"
         new_line="\Species name            : NAP"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
         prev_line="Species name            : OIO"
         new_line="\Species name            : OPOA1\n\
 Species name            : OPOA2\n\
 Species name            : OPOG1\n\
 Species name            : OPOG2"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
         prev_line="Species name            : PIP"
         new_line="\Species name            : POA1\n\
 Species name            : POA2\n\
 Species name            : POG1\n\
 Species name            : POG2"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e 's/@//' HISTORY.rc
+	sed_ie 's/@//' HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
@@ -193,7 +220,7 @@ Species name            : POG2"
 Species name            : DSTAL2\n\
 Species name            : DSTAL3\n\
 Species name            : DSTAL4"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
 	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after NIT and NITs.
@@ -202,7 +229,7 @@ Species name            : DSTAL4"
 Species name            : NITD2\n\
 Species name            : NITD3\n\
 Species name            : NITD4"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
 	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after SO4 and SO4s.
@@ -211,9 +238,9 @@ Species name            : NITD4"
 Species name            : SO4D2\n\
 Species name            : SO4D3\n\
 Species name            : SO4D4"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e 's/@//' HISTORY.rc
+	sed_ie 's/@//'                       HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
@@ -227,9 +254,9 @@ Species name            : SO4D4"
         prev_line="Species name            : MONITU"
         new_line="\Species name            : MOPI\n\
 Species name            : MOPO"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
-	sed -i -e "s|@||"                      HISTORY.rc
+	sed_ie "s|@||"                       HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
@@ -244,8 +271,8 @@ Species name            : MOPO"
         replace_colon_sep_val "All-sky flux?"        T input.geos
         replace_colon_sep_val "--> RRTMG"         true HEMCO_Config.rc
 
-	sed -i -e "s|@||"                              HISTORY.rc
-        sed -i -e "s|##'RRTMG'|'RRTMG'|"               HISTORY.rc
+	sed_ie "s|@||"                                 HISTORY.rc
+        sed_ie "s|##'RRTMG'|'RRTMG'|"                  HISTORY.rc
         printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
         printf "\nEdit input.geos and HISTORY.rc in your new run directory to customize options to only"
         printf "\nwhat you need.\n"
@@ -260,13 +287,13 @@ Species name            : MOPO"
         replace_colon_sep_val "=> Online O3 from model"  F    input.geos
 
 	# Turn on TOMAS size-resolved dust & seasalt extensions
-	sed -i -e "s|TOMAS_DustDead         : off|TOMAS_DustDead         : on |" HEMCO_Config.rc
-	sed -i -e "s|TOMAS_Jeagle           : off|TOMAS_Jeagle           : on |" HEMCO_Config.rc
+	sed_ie "s/TOMAS_DustDead         : off/TOMAS_DustDead         : on /" HEMCO_Config.rc
+	sed_ie "s/TOMAS_Jeagle           : off/TOMAS_Jeagle           : on /" HEMCO_Config.rc
 
 	# Remove extra species in extension settings for TOMAS15 simulations
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	    sed -i -e "s|\/SS16\/SS17\/SS18\/SS19\/SS20\/SS21\/SS22\/SS23\/SS24\/SS25\/SS26\/SS27\/SS28\/SS29\/SS30\/SS31\/SS32\/SS33\/SS34\/SS35\/SS36\/SS37\/SS38\/SS39\/SS40||" HEMCO_Config.rc
-	    sed -i -e "s|\/DUST16\/DUST17\/DUST18\/DUST19\/DUST20\/DUST21\/DUST22\/DUST23\/DUST24\/DUST25\/DUST26\/DUST27\/DUST28\/DUST29\/DUST30\/DUST31\/DUST32\/DUST33\/DUST34\/DUST35\/DUST36\/DUST37\/DUST38\/DUST39\/DUST40||" HEMCO_Config.rc
+	    sed_ie "s|\/SS16\/SS17\/SS18\/SS19\/SS20\/SS21\/SS22\/SS23\/SS24\/SS25\/SS26\/SS27\/SS28\/SS29\/SS30\/SS31\/SS32\/SS33\/SS34\/SS35\/SS36\/SS37\/SS38\/SS39\/SS40||" HEMCO_Config.rc
+	    sed_ie "s|\/DUST16\/DUST17\/DUST18\/DUST19\/DUST20\/DUST21\/DUST22\/DUST23\/DUST24\/DUST25\/DUST26\/DUST27\/DUST28\/DUST29\/DUST30\/DUST31\/DUST32\/DUST33\/DUST34\/DUST35\/DUST36\/DUST37\/DUST38\/DUST39\/DUST40||" HEMCO_Config.rc
 	fi
 
 	# Add TOMAS species to input.geos
@@ -407,7 +434,7 @@ Species name            : AW12\n\
 Species name            : AW13\n\
 Species name            : AW14\n\
 Species name            : AW15"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
 
         if [[ ${sim_extra_option} = "TOMAS40" ]]; then
     	prev_line="Species name            : NK15"
@@ -436,7 +463,7 @@ Species name            : NK37\n\
 Species name            : NK38\n\
 Species name            : NK39\n\
 Species name            : NK40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
 	prev_line="Species name            : SF15"
     	new_line="\Species name            : SF16\n\
@@ -464,7 +491,7 @@ Species name            : SF37\n\
 Species name            : SF38\n\
 Species name            : SF39\n\
 Species name            : SF40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : SS15"
     	new_line="\Species name            : SS16\n\
@@ -492,7 +519,7 @@ Species name            : SS37\n\
 Species name            : SS38\n\
 Species name            : SS39\n\
 Species name            : SS40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : ECOB15"
     	new_line="\Species name            : ECOB16\n\
@@ -520,7 +547,7 @@ Species name            : ECOB37\n\
 Species name            : ECOB38\n\
 Species name            : ECOB39\n\
 Species name            : ECOB40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : ECIL15"
     	new_line="\Species name            : ECIL16\n\
@@ -548,7 +575,7 @@ Species name            : ECIL37\n\
 Species name            : ECIL38\n\
 Species name            : ECIL39\n\
 Species name            : ECIL40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : OCOB15"
     	new_line="\Species name            : OCOB16\n\
@@ -576,7 +603,7 @@ Species name            : OCOB37\n\
 Species name            : OCOB38\n\
 Species name            : OCOB39\n\
 Species name            : OCOB40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : OCIL15"
     	new_line="\Species name            : OCIL16\n\
@@ -604,7 +631,7 @@ Species name            : OCIL37\n\
 Species name            : OCIL38\n\
 Species name            : OCIL39\n\
 Species name            : OCIL40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : DUST15"
     	new_line="\Species name            : DUST16\n\
@@ -632,7 +659,7 @@ Species name            : DUST37\n\
 Species name            : DUST38\n\
 Species name            : DUST39\n\
 Species name            : DUST40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
 
     	prev_line="Species name            : AW15"
     	new_line="\Species name            : AW16\n\
@@ -660,8 +687,8 @@ Species name            : AW37\n\
 Species name            : AW38\n\
 Species name            : AW39\n\
 Species name            : AW40"
-    	sed -i -e "/${prev_line}/a ${new_line}" input.geos
-	sed -i -e 's/@//' HISTORY.rc
+    	sed_ie "/${prev_line}/a ${new_line}" input.geos
+	sed_ie 's/@//' HISTORY.rc
         fi
     fi
 
@@ -785,8 +812,8 @@ Species name            : APMSPBIN37\n\
 Species name            : APMSPBIN38\n\
 Species name            : APMSPBIN39\n\
 Species name            : APMSPBIN40"
-        sed -i -e "/${prev_line}/a ${new_line}" input.geos
-	sed -i -e 's/@//' HISTORY.rc
+        sed_ie "/${prev_line}/a ${new_line}" input.geos
+	sed_ie 's/@//' HISTORY.rc
     fi
 }
 #EOC
