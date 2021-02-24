@@ -112,7 +112,6 @@ set_common_settings() {
         replace_colon_sep_val '--> OFFLINE_BIOGENICVOC' false HEMCO_Config.rc
         replace_colon_sep_val '--> OFFLINE_SEASALT'     false HEMCO_Config.rc
         replace_colon_sep_val '--> OFFLINE_SOILNOX'     false HEMCO_Config.rc
-	exit 1
         sed_ie 's|DustDead               : off|DustDead               : on |' HEMCO_Config.rc
         sed_ie 's|SoilNOx                : off|SoilNOx                : on |' HEMCO_Config.rc
         sed_ie 's|SeaSalt                : off|SeaSalt                : on |' HEMCO_Config.rc
