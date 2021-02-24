@@ -573,23 +573,23 @@ printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   make -j\n   make insta
 cd ${rundir}
 
 # Replace token strings in certain files
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   input.geos
-sed -i -e "s|{MET}|${met_name}|"             input.geos
-sed -i -e "s|{SIM}|${sim_name}|"             input.geos
-sed -i -e "s|{RES}|${grid_res_long}|"        input.geos
-sed -i -e "s|{NLEV}|${grid_lev}|"            input.geos
-sed -i -e "s|{LON_RANGE}|${lon_range}|"      input.geos
-sed -i -e "s|{LAT_RANGE}|${lat_range}|"      input.geos
-sed -i -e "s|{HALF_POLAR}|${half_polar}|"    input.geos
-sed -i -e "s|{NESTED_SIM}|${nested_sim}|"    input.geos
-sed -i -e "s|{BUFFER_ZONE}|${buffer_zone}|"  input.geos
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   HEMCO_Config.rc
-sed -i -e "s|{GRID_DIR}|${grid_dir}|"        HEMCO_Config.rc
-sed -i -e "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
-sed -i -e "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed -i -e "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
+sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   input.geos
+sed_ie "s|{MET}|${met_name}|"             input.geos
+sed_ie "s|{SIM}|${sim_name}|"             input.geos
+sed_ie "s|{RES}|${grid_res_long}|"        input.geos
+sed_ie "s|{NLEV}|${grid_lev}|"            input.geos
+sed_ie "s|{LON_RANGE}|${lon_range}|"      input.geos
+sed_ie "s|{LAT_RANGE}|${lat_range}|"      input.geos
+sed_ie "s|{HALF_POLAR}|${half_polar}|"    input.geos
+sed_ie "s|{NESTED_SIM}|${nested_sim}|"    input.geos
+sed_ie "s|{BUFFER_ZONE}|${buffer_zone}|"  input.geos
+sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   HEMCO_Config.rc
+sed_ie "s|{GRID_DIR}|${grid_dir}|"        HEMCO_Config.rc
+sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
+sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
+sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
+sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
+sed_ie "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
@@ -602,16 +602,16 @@ else
 fi
 starttime="000000"
 endtime="000000"
-sed -i -e "s|{DATE1}|${startdate}|"  input.geos
-sed -i -e "s|{DATE2}|${enddate}|"    input.geos
-sed -i -e "s|{TIME1}|${starttime}|"  input.geos
-sed -i -e "s|{TIME2}|${endtime}|"    input.geos
+sed_ie "s|{DATE1}|${startdate}|"  input.geos
+sed_ie "s|{DATE2}|${enddate}|"    input.geos
+sed_ie "s|{TIME1}|${starttime}|"  input.geos
+sed_ie "s|{TIME2}|${endtime}|"    input.geos
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
 printf "\n     You may modify these settings in input.geos.\n"
 
-sed -i -e "s|{FREQUENCY}|00000100 000000|"  HISTORY.rc
-sed -i -e "s|{DURATION}|00000100 000000|"   HISTORY.rc
+sed_ie "s|{FREQUENCY}|00000100 000000|"  HISTORY.rc
+sed_ie "s|{DURATION}|00000100 000000|"   HISTORY.rc
 
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
@@ -645,7 +645,7 @@ if [[ "x${chemgrid}" == "xtrop_only" ]]; then
     replace_colon_sep_val "--> STATE_PSC"        false HEMCO_Config.rc
     replace_colon_sep_val "--> GMI_PROD_LOSS"    false HEMCO_Config.rc
     replace_colon_sep_val "--> UCX_PROD_LOSS"     true HEMCO_Config.rc
-    sed -i -e "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
+    sed_ie "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
 fi
 
 # Modify input files for nested-grid simulations
@@ -659,20 +659,20 @@ fi
 
 # Modify input files for POPs simulations
 if [[ ${sim_name} =~ "POPs" ]]; then
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               input.geos
-    sed -i -e "s|{POPs_XMW}|${POP_XMW}|"               input.geos
-    sed -i -e "s|{POPs_KOA}|${POP_KOA}|"               input.geos
-    sed -i -e "s|{POPs_KBC}|${POP_KBC}|"               input.geos
-    sed -i -e "s|{POPs_K_POPG_OH}|${POP_K_POPG_OH}|"   input.geos
-    sed -i -e "s|{POPs_K_POPG_O3A}|${POP_K_POPG_O3A}|" input.geos
-    sed -i -e "s|{POPs_K_POPG_O3B}|${POP_K_POPG_O3B}|" input.geos
-    sed -i -e "s|{POPs_HSTAR}|${POP_HSTAR}|"           input.geos
-    sed -i -e "s|{POPs_DEL_H}|${POP_DEL_H}|"           input.geos
-    sed -i -e "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         input.geos
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Diagn.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               input.geos
+    sed_ie "s|{POPs_XMW}|${POP_XMW}|"               input.geos
+    sed_ie "s|{POPs_KOA}|${POP_KOA}|"               input.geos
+    sed_ie "s|{POPs_KBC}|${POP_KBC}|"               input.geos
+    sed_ie "s|{POPs_K_POPG_OH}|${POP_K_POPG_OH}|"   input.geos
+    sed_ie "s|{POPs_K_POPG_O3A}|${POP_K_POPG_O3A}|" input.geos
+    sed_ie "s|{POPs_K_POPG_O3B}|${POP_K_POPG_O3B}|" input.geos
+    sed_ie "s|{POPs_HSTAR}|${POP_HSTAR}|"           input.geos
+    sed_ie "s|{POPs_DEL_H}|${POP_DEL_H}|"           input.geos
+    sed_ie "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         input.geos
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Diagn.rc
 fi
 
 #--------------------------------------------------------------------
@@ -684,9 +684,9 @@ if [[ "x${domain_name}" == "xAS"     ]] || \
    [[ "x${domain_name}" == "xNA"     ]] || \
    [[ "x${domain_name}" == "xcustom" ]]; then
     cmd='s|\[sec\]: 600|\[sec\]: 300|'
-    sed -i -e "$cmd" input.geos
+    sed_ie "$cmd" input.geos
     cmd='s|\[sec\]: 1200|\[sec\]: 600|'
-    sed -i -e "$cmd" input.geos
+    sed_ie "$cmd" input.geos
 fi
 
 #--------------------------------------------------------------------
