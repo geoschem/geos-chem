@@ -21,7 +21,7 @@
 #=============================================================================
 #### Replacement for `sed -i -e` that works on both MacOS and Linux
 #=============================================================================
-sed_ie() {
+function sed_ie() {
     REGEX=${1}
     FILE=${2}
     if [[ "x$(uname -s)" == "xDarwin" ]]; then
@@ -34,7 +34,7 @@ sed_ie() {
 #=============================================================================
 #### Define function to replace values in config files
 #=============================================================================
-replace_colon_sep_val() {
+function replace_colon_sep_val() {
     KEY=${1}
     VALUE=${2}
     FILE=${3}
@@ -57,7 +57,7 @@ replace_colon_sep_val() {
 #============================================================================
 #### Define function to remove line(s) in config files
 #============================================================================
-remove_text() {
+function remove_text() {
     REGEX="/${1}/d"
     FILE=${2}
     sed_ie "${REGEX}" "${FILE}"
@@ -66,7 +66,7 @@ remove_text() {
 #============================================================================
 #### Define function to insert text between two lines of a config file
 #============================================================================
-insert_text() {
+function insert_text() {
     PREV_LINE=${1}
     NEW_LINE=${2}
     FILE=${3}
@@ -86,14 +86,14 @@ ${NEW_LINE}"
 ####
 #### Argument: Extra option for full-chemistry simulation (string)
 #============================================================================
-set_common_settings() {
+function set_common_settings() {
 
     # Check that simulation option is passed
     if [[ $# == 1 ]]; then
         sim_extra_option=${1}
     else
        echo 'Usage: ./setupConfigFiles.sh {sim_extra_option}'
-       exit
+       exit 1
     fi
 
     valid_options=( 'standard' 'benchmark' 'complexSOA' 'complexSOA_SVPOA' \
