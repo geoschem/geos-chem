@@ -7690,7 +7690,8 @@ CONTAINS
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
-          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) * BAIRDENS
+          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) * &
+                         State_Met%AIRNUMDEN(I,J,L)
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF

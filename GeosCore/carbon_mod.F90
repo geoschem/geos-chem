@@ -5577,8 +5577,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
-   REAL(fp)             :: BOXVL
-   REAL(fp)             :: BAIRDENS
 
    !=================================================================
    ! GET_NO3 begins here!
@@ -5619,14 +5617,8 @@ CONTAINS
 
       ELSE
 
-         ! Grid box volume [cm3]
-         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-         ! Air density [molec/cm3]
-         BAIRDENS = State_Met%AD(I,J,L) * 1000e+0_fp / BOXVL * AVO / AIRMW
-
          ! NO3 from HEMCO is in mol/mol, convert to molec/cm3
-         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * BAIRDENS
+         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ENDIF
 
@@ -5694,8 +5686,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
-   REAL(fp)             :: BOXVL
-   REAL(fp)             :: BAIRDENS
 
    !=================================================================
    ! GET_O3 begins here!
@@ -5732,14 +5722,8 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( L <= State_Grid%MaxChemLev ) THEN
 
-         ! Grid box volume [cm3]
-         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-         ! Air density [molec/cm3]
-         BAIRDENS = State_Met%AD(I,J,L) * 1000e+0_fp / BOXVL * AVO / AIRMW
-
          ! O3 from HEMCO is in mol/mol, convert to molec/cm3
-         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * BAIRDENS
+         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ELSE
          O3_MOLEC_CM3 = 0e+0_fp
