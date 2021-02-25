@@ -692,15 +692,33 @@ fi
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
+
+# Root path for restarts
+rst_root=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
+
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    # Use restart file saved out from latest 1-year benchmark
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
+
+    # For TOMAS simulations, use restarts provided by the TOMAS team
+    # For other fullchem simulations, use restart the latest 1-yr benchmark
+    if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
+	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS15.nc
+    elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
+	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS40.nc
+    else
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
+    fi
+
 elif [[ ${sim_name} = "TransportTracers" ]]; then
-    # Use restart file saved out from latest 1-year benchmark
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.8.0/GEOSChem.Restart.TransportTracers.20170101_0000z.nc4
+
+    # For TransportTracers, use restart from latest 1-year benchmark
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    
 else
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+
+    # For other specialty simulations, use previoiusly saved restarts
+    sample_rst=${rst_root}/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
 fi
+
 if [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
