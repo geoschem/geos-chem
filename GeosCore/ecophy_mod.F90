@@ -74,7 +74,7 @@
       ! K_EXTINCT     : Light extinction coefficient                      []
       ! PARAM_A_LOW   : PFT-specific parameter for low sensitivity   
       !                 ozone damage scheme                               [m^2 s nmol^-1]
-      ! PARAM_A_HI    : PFT-specific parameter for high sensitivity 
+      ! PARAM_A_HIGH  : PFT-specific parameter for high sensitivity 
       !                 ozone damage scheme                               [m^2 s nmol^-1]
       ! FLUXO3_CRIT   : PFT-specific threshold for ozone uptake           [nmol m^-2 s^-1]
       ! THRESHOLD     : Threshold of relative error                       []
@@ -98,7 +98,7 @@
       REAL(fp), PARAMETER   :: G_LEAF_MIN    (NUMPFT) = 1.0e-4                                ! gives RS ~ 9999
       REAL(fp), PARAMETER   :: K_EXTINCT     (NUMPFT) = 0.5
       REAL(fp), PARAMETER   :: PARAM_A_LOW   (NUMPFT) = (/ 0.04, 0.02, 0.25, 0.13, 0.03 /)    ! low sensitivity
-      REAL(fp), PARAMETER   :: PARAM_A_HI    (NUMPFT) = (/ 0.15, 0.075, 1.40, 0.735, 0.10 /)  ! high sensistivity
+      REAL(fp), PARAMETER   :: PARAM_A_HIGH  (NUMPFT) = (/ 0.15, 0.075, 1.40, 0.735, 0.10 /)  ! high sensistivity
       REAL(fp), PARAMETER   :: FLUXO3_CRIT   (NUMPFT) = (/ 1.6,  1.6,  5.0,  5.0,  1.6  /)
       REAL(fp), PARAMETER   :: THRESHOLD              = 1.0e-3
       ! Second set of optimized parameters (from Raoult et al. 2016)
@@ -124,7 +124,7 @@
       ! SATU          : Soil moisture at saturation point                 [m^3 water / m^3 soil]
       ! CRIT          : Soil moisture at critical point                   [m^3 water / m^3 soil]
       ! WILT          : Soil moisture at wilting point                    [m^3 water / m^3 soil]
-      ! O3dmg_opt     : Control switch for ozone damage scheme            [hi/low/off]
+      ! O3dmg_opt     : Control switch for ozone damage scheme            [high/low/off]
       ! A_NET_st      : Leaf photosynthesis rate under standard cond.     [mol CO2 m^-2 leaf s^-1]
       ! RESP_st       : Leaf respiration rate under standard cond.        [mol CO2 m^-2 leaf s^-1]
       ! CO2_IN_st     : Leaf CO2 partial pressure under standard cond.    [Pa]
@@ -132,7 +132,7 @@
       REAL(fp)              :: SATU
       REAL(fp)              :: CRIT
       REAL(fp)              :: WILT
-      CHARACTER(len=3)      :: O3dmg_opt 
+      CHARACTER(len=4)      :: O3dmg_opt 
       REAL(fp)              :: A_NET_st      (NUMPFT)
       REAL(fp)              :: RESP_st       (NUMPFT)
       REAL(fp)              :: CO2_IN_st     (NUMPFT)
@@ -669,7 +669,7 @@
             ELSE 
                ! Apply ozone damage scheme by Sitch et al. (2007)
                SELECT CASE( O3dmg_opt )
-               CASE( 'LOW', 'HI' )
+               CASE( 'LOW', 'HIGH' )
                   CALL OZONE_DAMAGE ( O3_CONC,   RAB,         &
                                       G_LEAF,    PFT,         &
                                       FLUXO3,    FACTOR_O3,   &
@@ -691,7 +691,7 @@
                   G_LEAF_OUT  = G_LEAF
                CASE DEFAULT 
                   ErrMsg = 'No ozone damage option chosen. Please ' // &
-                           'choose from HI, LOW or OFF.'
+                           'choose from HIGH, LOW or OFF.'
                   CALL GC_Error( ErrMsg, RC, ThisLoc )
                   RETURN               
                END SELECT   ! O3 damage
@@ -1102,7 +1102,7 @@
       ! RAB             : Aerodynamic and boundary resistance                     [s m^-1]
       ! G_LEAF          : Leaf conductance for H2O in the absence of O3 effects   [m s^-1]
       ! PFT             : Index for PFT                                           []
-      ! O3dmg_opt       : Control switch for ozone damage scheme                  [HI/LOW/OFF]
+      ! O3dmg_opt       : Control switch for ozone damage scheme                  [HIGH/LOW/OFF]
       !---------------------------------------------------------------------------------------
       REAL(fp),         INTENT(IN)  :: O3_CONC
       REAL(fp),         INTENT(IN)  :: RAB
@@ -1147,13 +1147,13 @@
       ThisLoc    = ' -> at OZONE_DAMAGE (in GeosCore/ecophy_mod.F90)'
       ! Choose ozone damage parameters based on sensistivity
       SELECT CASE( O3dmg_opt )
-         CASE( 'HI' )
-            PARAM_A = PARAM_A_HI( PFT )
+         CASE( 'HIGH' )
+            PARAM_A = PARAM_A_HIGH( PFT )
          CASE( 'LOW' )
             PARAM_A = PARAM_A_LOW( PFT )
          CASE DEFAULT
             PARAM_A = 0
-            ErrMsg = 'Any O3dmg_opt other than "HI" or "LOW" should ' // &
+            ErrMsg = 'Any O3dmg_opt other than "HIGH" or "LOW" should ' // &
                      'not have reached this subroutine.'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN

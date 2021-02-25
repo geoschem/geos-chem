@@ -3211,7 +3211,7 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LECOPHY
 
-    ! Sitch ozone damage scheme option (HI/LOW/OFF)
+    ! Sitch ozone damage scheme option (HIGH/LOW/OFF)
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'O3dmg_opt', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )

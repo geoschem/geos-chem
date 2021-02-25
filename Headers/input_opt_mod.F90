@@ -242,7 +242,7 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: RS_SCALE
      INTEGER                     :: RA_Alt_Above_Sfc
      LOGICAL                     :: LECOPHY
-     CHARACTER(LEN=3)            :: O3dmg_opt 
+     CHARACTER(LEN=4)            :: O3dmg_opt 
      REAL(fp)                    :: Ecophy_CO2
      LOGICAL                     :: LIsop_from_Ecophy
 
