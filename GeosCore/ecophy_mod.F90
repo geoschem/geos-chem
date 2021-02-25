@@ -1688,7 +1688,7 @@
       ThisLoc   = ' -> at Init_Ecophy (in module GeosCore/ecophysiology.F90)'
 
       IF ( Input_Opt%LIsop_from_Ecophy ) THEN
-         DO PFT = 1,5
+         DO PFT = 1, NUMPFT
             ! simulate plant processes under standard conditions
             CALL DO_PHOTOSYNTHESIS( LAI, PFT,     PRESSURE,     APAR,         &
                                     CO2, O2,      TEMPK,        G_CAN_OUT,    &
