@@ -144,6 +144,7 @@ Prescribe_strat_H2O: 1
 #
 INIT_SPC_FROM_FILE: 0
 INIT_SPC_FILE: /discover/nobackup/cakelle2/GEOS_CF/v11-02e/GC_v1102e/21_v11-02e_UCX_PL/GEOSChem_restart.201308010000.edit.nc 
+UNIFORM_IF_MISSING: 1.0e-12
 
 USE_GMI_MESO: 0
 GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf.nc
