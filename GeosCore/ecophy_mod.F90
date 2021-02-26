@@ -1108,7 +1108,7 @@
       REAL(fp),         INTENT(IN)  :: RAB
       REAL(fp),         INTENT(IN)  :: G_LEAF
       INTEGER,          INTENT(IN)  :: PFT
-      CHARACTER(LEN=3), INTENT(IN)  :: O3dmg_opt
+      CHARACTER(LEN=4), INTENT(IN)  :: O3dmg_opt
 !
 ! !OUTPUT PARAMETERS:
 !  
