@@ -426,6 +426,7 @@ CONTAINS
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
     USE Dust_Mod,           ONLY : Init_Dust
+    USE Ecophy_Mod,         ONLY : Init_Ecophy
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Debug_Msg
     USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
@@ -536,6 +537,22 @@ CONTAINS
           ErrMsg = 'Error encountered in "Init_Drydep"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+       !--------------------------------------------------------------
+       ! Call setup routines for ecophysiology (Joey Lam, 26 Feb 2019)
+       ! Note: No need to initialize ecophysiology module if dry
+       !       deposition is turned off.
+       !--------------------------------------------------------------
+       IF ( Input_Opt%LECOPHY ) THEN
+
+          ! Initialize for ecophysiology module
+          CALL Init_Ecophy( Input_Opt, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Init_Ecophy"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Print extra info message for Hg simulation

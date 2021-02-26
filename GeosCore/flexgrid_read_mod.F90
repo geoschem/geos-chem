@@ -132,6 +132,25 @@ CONTAINS
     CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
+    ! Read extra soil variables if ecophysiology module is used 
+    ! (Joey Lam, 26 Feb 2019)
+    IF ( Input_Opt%LECOPHY ) THEN
+       ! Read THETA_WILT
+       v_name = "THETA_WILT"
+       CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+       State_Met%THETA_WILT = Q
+
+       ! Read THETA_CRIT
+       v_name = "THETA_CRIT"
+       CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+       State_Met%THETA_CRIT = Q
+
+       ! Read THETA_SATU
+       v_name = "THETA_SATU"
+       CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+       State_Met%THETA_SATU = Q
+    ENDIF
+
     ! Echo info
     stamp = TimeStamp_String( 20110101, 000000 )
     WRITE( 6, 10 ) stamp
@@ -386,13 +405,11 @@ CONTAINS
     CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECTOT = Q
 
-    !-----------------------------------------------------------------------
-    ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
-    !! Read QV2M
-    !v_name = "QV2M"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
-    !State_Met%QV2M = Q
-    !-----------------------------------------------------------------------
+    ! Uncommented for ecophysiology module (Joey Lam, 26 Feb 2019)
+    ! Read QV2M
+    v_name = "QV2M"
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%QV2M = Q
 
     ! Read SEAICE00
     v_name = "SEAICE00"

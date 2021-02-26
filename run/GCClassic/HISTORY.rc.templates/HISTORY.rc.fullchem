@@ -38,6 +38,7 @@ COLLECTIONS: 'Restart',
              ##'ConcAboveSfc',
              #'ConcAfterChem',
              #'DryDep',
+             #'DryDepVelPFT',
              #'JValues',
              #'KppDiags',
              #'LevelEdgeDiags',
@@ -49,6 +50,8 @@ COLLECTIONS: 'Restart',
              #'WetLossConv',
              #'WetLossLS',
              ##'BoundaryConditions',
+             #'Ecophysiology',
+             #'Ecophy_const',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -363,6 +366,24 @@ COLLECTIONS: 'Restart',
                               ##'DryDepChm_?DRY?              ', 'GIGCchem',
                               ##'DryDepMix_?DRY?              ', 'GIGCchem',
                               'DryDep_?DRY?                  ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE DryDepVelPFT COLLECTION %%%%%
+#
+# PFT-specific dry depositon velocities (for all dry-depositing species)
+#
+# Available for all simuations that have dry-depositing species
+#==============================================================================
+  DryDepVelPFT.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  DryDepVelPFT.format:        'CFIO',
+  DryDepVelPFT.frequency:     00000100 000000
+  DryDepVelPFT.duration:      00000100 000000
+  DryDepVelPFT.mode:          'time-averaged'
+  DryDepVelPFT.fields:        'DryDepVelPFT1_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT2_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT3_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT4_?DRY?           ', 'GIGCchem',
+                              'DryDepVelPFT5_?DRY?           ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
@@ -717,4 +738,48 @@ COLLECTIONS: 'Restart',
   BoundaryConditions.duration:   00000001 000000
   BoundaryConditions.mode:       'instantaneous'
   BoundaryConditions.fields:     'SpeciesBC_?ADV?             ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE Ecophysiology COLLECTION %%%%%
+#
+# Ecophysiology module variable outputs
+#
+# Available for fullchem simulations
+#==============================================================================
+  Ecophysiology.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Ecophysiology.format:       'CFIO',
+  Ecophysiology.frequency:    {FREQUENCY}
+  Ecophysiology.duration:     {DURATION}
+  Ecophysiology.mode:         'instantaneous'
+  Ecophysiology.fields:       'EcophyLAI_?PFT?               ', 'GIGCchem',
+                              'EcophyRa                      ', 'GIGCchem',
+                              'EcophyRbO3                    ', 'GIGCchem',
+                              'EcophyGCan_?PFT?              ', 'GIGCchem',
+                              'EcophyACan_?PFT?              ', 'GIGCchem',
+                              'EcophyRespCan_?PFT?           ', 'GIGCchem',
+                              'EcophyCO2Leaf_?PFT?           ', 'GIGCchem',
+                              'EcophyFluxO3Can_?PFT?         ', 'GIGCchem',
+                              'EcophyO3DmgFac_?PFT?          ', 'GIGCchem',
+                              'EcophySoilStress_?PFT?        ', 'GIGCchem',
+                              'EcophyVCMax_?PFT?             ', 'GIGCchem',
+                              'EcophyLightLmtRate_?PFT?      ', 'GIGCchem',
+                              'EcophyRubisLmtRate_?PFT?      ', 'GIGCchem',
+                              'EcophyProdLmtRate_?PFT?       ', 'GIGCchem',
+                              'EcophyAGrossLeaf_?PFT?        ', 'GIGCchem',
+                              'EcophyIsopEmisPFT_?PFT?       ', 'GIGCchem',
+                              'HEMCOIsopEmis                 ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE Ecophysiology constant COLLECTION %%%%%
+#
+# Ecophysiology module constant outputs
+#
+# Available for fullchem simulations
+#==============================================================================
+  Ecophy_const.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Ecophy_const.format:       'CFIO',
+  Ecophy_const.frequency:    'end'
+  Ecophy_const.duration:     'end'
+  Ecophy_const.mode:         'instantaneous'
+  Ecophy_const.fields:       'EcophyPFTFrac_?PFT?           ', 'GIGCchem',
 ::

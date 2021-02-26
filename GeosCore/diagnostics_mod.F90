@@ -231,6 +231,7 @@ CONTAINS
 !
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Diag_Mod,   ONLY : DgnState
+    USE Time_Mod,         ONLY : ITS_TIME_FOR_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -307,6 +308,50 @@ CONTAINS
        ! up to that height, so we need to zero these out.)
        IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
           State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+    ENDIF
+
+    ! Zero diagnostics here
+    IF ( ITS_TIME_FOR_EMIS() ) THEN
+       ! Zero diagnostics here
+       IF ( State_Diag%Archive_EcophyGCan ) THEN
+          State_Diag%EcophyGCan ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyACan ) THEN
+          State_Diag%EcophyACan ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRespCan ) THEN
+          State_Diag%EcophyRespCan ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyCO2Leaf ) THEN
+          State_Diag%EcophyCO2Leaf ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyFluxO3Can   ) THEN
+          State_Diag%EcophyFluxO3Can   ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyO3DmgFac ) THEN
+          State_Diag%EcophyO3DmgFac ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophySoilStress ) THEN
+          State_Diag%EcophySoilStress ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyVCMax ) THEN
+          State_Diag%EcophyVCMax ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyLightLmtRate ) THEN
+          State_Diag%EcophyLightLmtRate ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyRubisLmtRate ) THEN
+          State_Diag%EcophyRubisLmtRate ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyProdLmtRate ) THEN
+          State_Diag%EcophyProdLmtRate ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyAGrossLeaf ) THEN
+          State_Diag%EcophyAGrossLeaf ( :,:,: ) = 0.0_f4
+       ENDIF
+       IF ( State_Diag%Archive_EcophyIsopEmisPFT ) THEN
+          State_Diag%EcophyIsopEmisPFT ( :,:,: ) = 0.0_f4
        ENDIF
     ENDIF
 

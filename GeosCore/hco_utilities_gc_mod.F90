@@ -1561,6 +1561,7 @@ CONTAINS
     LOGICAL, SAVE           :: first    = .TRUE.
     INTEGER, SAVE           :: id_O3    = -1
     INTEGER, SAVE           :: id_HNO3  = -1
+    INTEGER, SAVE           :: id_ISOP  = -1
 
     ! Scalars
     LOGICAL                 :: found,   zeroHg0Dep
@@ -1631,6 +1632,7 @@ CONTAINS
        ! Get species IDs
        id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
+       id_ISOP = Ind_('ISOP')
 
 #if !defined( MODEL_CESM )
        IF ( id_O3 > 0 ) THEN
@@ -1727,6 +1729,17 @@ CONTAINS
              DO L = 1, topMix
                 CALL GetHcoValEmis( NA, I, J, L, found, emis )
                 IF ( .NOT. found ) EXIT
+                ! Add an option to use simulated isoprene emission
+                ! from ecophysiology module (Joey Lam, 1 Feb 2021)
+                IF ( NA == id_ISOP ) THEN
+                   IF ( State_Diag%Archive_HEMCOIsopEmis ) THEN
+                      State_Diag%HEMCOIsopEmis( I,J,L ) = emis
+                   ENDIF
+                   ! replace HEMCO values by simulated isoprene emission
+                   IF ( L == 1 .AND. Input_Opt%LIsop_from_Ecophy ) THEN
+                      emis = State_Chm%Isop_from_Ecophy( I,J )
+                   ENDIF
+                ENDIF
                 tmpFlx = tmpFlx + emis
              ENDDO
              eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
