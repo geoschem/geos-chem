@@ -890,7 +890,7 @@ CONTAINS
     ! Set tropospheric CH4 concentrations and fill species array with
     ! current values.
 #if defined( MODEL_GEOS )
-    IF ( .NOT. Input_Opt%LCH4EMIS .AND. ( DoTurb .OR. DoTend ) ) THEN
+    IF ( DoTurb .OR. DoTend ) THEN
 #else
     IF ( Phase /= 2 .AND. Input_Opt%ITS_A_FULLCHEM_SIM  &
          .AND. IND_('CH4','A') > 0 ) THEN

@@ -464,7 +464,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   !  --------------------------------------------------------------------------
   !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
   !****************************************************************************
-  IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
+  IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%DoEmissions ) THEN
 
      ! Category & unit string
      UNIT     = 'kg'

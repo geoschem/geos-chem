@@ -268,6 +268,7 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met_name='MERRA2'
+	met_name_lc="merra2"
 	met_dir='MERRA2'
 	met_resolution='05x0625'
 	met_native='0.5x0.625'
@@ -280,6 +281,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
+	met_name_lc="geosfp"
 	met_dir='GEOS_FP'
 	met_resolution='025x03125'
 	met_native='0.25x0.3125'
@@ -477,9 +479,9 @@ if [ -z "$1" ]; then
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gc_${grid_res}_${sim_name}
+	    rundir_name=gc_${met_name_lc}_${sim_name}
 	else
-	    rundir_name=gc_${grid_res}_${sim_name}_${sim_extra_option}
+	    rundir_name=gc_${met_name_lc}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi

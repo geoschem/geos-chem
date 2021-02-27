@@ -11,6 +11,7 @@ rm -fv gchp.log
 rm -fv HEMCO.log
 rm -fv PET*.log
 rm -fv multirun.log
+rm -fv warnings_and_errors.log
 rm -fv GC*.log
 rm -fv log.dryrun*
 rm -fv logfile.000000.out

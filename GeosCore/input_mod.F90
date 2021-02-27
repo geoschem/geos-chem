@@ -147,7 +147,7 @@ CONTAINS
        ! (1) SIMULATION MENU should be listed first.
        ! (2) TIMESTEP MENU should be listed second.
        ! (3) ADVECTED SPECIES MENU should be listed third.
-       ! (4) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
+       ! (4) AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
        !      and DEPOSITION menus (in any order) should follow.
        ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
        !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
@@ -195,14 +195,6 @@ CONTAINS
           CALL READ_AEROSOL_MENU( Input_Opt, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error in "Read_Aerosol_Menu"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-          CALL READ_EMISSIONS_MENU( Input_Opt, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error in "Read_Emissions_Menu"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1849,165 +1841,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_emissions_menu
-!
-! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE READ_EMISSIONS_MENU( Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE TIME_MOD,      ONLY : GET_YEAR
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  The Ind_() function now defines all species ID's.  It returns -1 if
-!  a species cannot be found.  Therefore now test for Ind_() > 0  for a
-!  valid species.
-!
-! !REVISION HISTORY:
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Arrays
-    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-    !=======================================================================
-    ! READ_EMISSIONS_MENU begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = 'Error reading the "input.geos" file!'
-    ThisLoc = ' -> at Read_Emissions_Menu (in module GeosCore/input_mod.F90)'
-
-    ! Error check
-    IF ( CT1 /= 2 ) THEN
-       ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
-                'must be read in first!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! NOTE: Prior to FlexGrid, the Input_Opt%LEMIS switch was used to
-    ! turn emissions on or off.  But since FlexGrid, we also use HEMCO
-    ! to read met fields and chemistry inputs as well as emissions.
-    ! Setting Input_Opt%LEMIS = .FALSE. will turn off HEMCO completely,
-    ! which will cause met fields and chemistry inputs not to be read.
-    !
-    ! The quick fix is to just hardwire Input_Opt%LEMIS = .TRUE. and
-    ! then use the MAIN SWITCHES in HEMCO_Config.rc to toggle the
-    ! emissions, met fields, and chemistry inputs on or off.
-    ! We have also removed the corresponding line from input.geos.
-    !
-    !    -- Bob Yantosca (29 Jul 2020)
-    !
-    Input_Opt%LEMIS = .TRUE.
-    !-----------------------------------------------------------------------
-
-    ! HEMCO Input file
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HcoConfigFile', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%HcoConfigFile
-
-    ! Separator line (start of UCX options)
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Use variable methane emissions?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCH4EMIS', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LCH4EMIS
-
-    ! Initialize strat H2O to GEOS-Chem baseline?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETH2O', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2O
-
-    ! Separator line
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !=================================================================
-    ! Error check logical flags
-    !=================================================================
-
-    ! Turn off full-chem only switches
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSETH2O = .FALSE.
-    ENDIF
-
-    ! Return success
-    RC = GC_SUCCESS
-
-    !=================================================================
-    ! Print to screen
-    !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
-       WRITE( 6, '(  a)' ) '--------------'
-       WRITE( 6, 100 ) 'Turn on emissions?          : ', &
-                       Input_Opt%LEMIS
-       WRITE( 6, 130 ) 'HEMCO Configuration file    : ', &
-                        TRIM( Input_Opt%HcoConfigFile )
-       WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ', &
-                        Input_Opt%LCH4EMIS
-       WRITE( 6, 100 ) 'Set initial strat H2O?      : ', &
-                        Input_Opt%LSETH2O
-    ENDIF
-
-    ! FORMAT statements
-100 FORMAT( A, L5 )
-110 FORMAT( A, I5 )
-130 FORMAT( A, A  )
-
-  END SUBROUTINE READ_EMISSIONS_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_co_sim_menu
 !
 ! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU
@@ -3533,12 +3366,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( .not. Input_Opt%LEMIS ) THEN
-       WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
-       WRITE( 6, '(a)' ) ' following diagnostics will also be turned'
-       WRITE( 6, '(a)' ) ' off:  ND06, ND53'
-    ENDIF
-
     ! Binary punch file name
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'BPCH_FILE', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3576,8 +3403,7 @@ CONTAINS
     ENDIF
 #ifdef TOMAS
     READ( SUBSTRS(1), * ) ND06
-    IF ( .not. Input_Opt%LDUST .or. &
-         .not. Input_Opt%LEMIS ) ND06 = 0
+    IF ( .not. Input_Opt%LDUST ) ND06 = 0
     CALL SET_TINDEX( Input_Opt, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN)
 #endif
 
@@ -3612,8 +3438,7 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1), * ) ND53
-    IF ( .not. Input_Opt%ITS_A_POPS_SIM .or. &
-         .not. Input_Opt%LEMIS) ND53 = 0
+    IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
     CALL SET_TINDEX( Input_Opt, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
     !--------------------------
@@ -4929,8 +4754,7 @@ CONTAINS
 ! !IROUTINE: read_ch4_menu
 !
 ! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of
-!  the GEOS-Chem input file; this defines emissions options for CH4 tagged
-!  simulations.
+!  the GEOS-Chem input file; this defines options for CH4 simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -5028,8 +4852,7 @@ CONTAINS
 ! !IROUTINE: read_pops_menu
 !
 ! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of
-!  the GEOS-Chem input file; this defines emissions options for POPs
-!  simulations.
+!  the GEOS-Chem input file; this defines options for POPs simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -5568,7 +5391,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL            :: LCONV, LCHEM,       LDRYD
-    LOGICAL            :: LEMIS, LTRAN,       LTURB
+    LOGICAL            :: LTRAN, LTURB
     INTEGER            :: I,     J,           K
     INTEGER            :: L,     TS_SMALLEST, TS_DIAG
     INTEGER            :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN
@@ -5590,7 +5413,6 @@ CONTAINS
     LCONV = Input_Opt%LCONV
     LCHEM = Input_Opt%LCHEM
     LDRYD = Input_Opt%LDRYD
-    LEMIS = Input_Opt%LEMIS
     LTRAN = Input_Opt%LTRAN
     LTURB = Input_Opt%LTURB
 
@@ -5644,7 +5466,7 @@ CONTAINS
     ! transport is enabled.
     !IF ( .not. LTRAN                  ) I = 999999
     IF ( .not. LCONV .and..not. LTURB ) J = 999999
-    IF ( .not. LDRYD .and..not. LEMIS ) K = 999999
+    IF ( .not. LDRYD                  ) K = 999999
     IF ( .not. LCHEM                  ) L = 999999
 
     ! Get the smallest of all of the above
@@ -5676,7 +5498,7 @@ CONTAINS
     ! (ccc, 5/13/09)
     IF ( .not. LTRAN                  ) I = -999999
     IF ( .not. LCONV .and..not. LTURB ) J = -999999
-    IF ( .not. LDRYD .and..not. LEMIS ) K = -999999
+    IF ( .not. LDRYD                  ) K = -999999
     IF ( .not. LCHEM                  ) L = -999999
 
     TS_DIAG = MAX( I, J, K, L )
