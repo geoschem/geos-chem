@@ -304,7 +304,9 @@ CONTAINS
           DO S = 1, State_Diag%Map_WetLossConv%nSlots
              NW = State_Diag%Map_WetLossConv%slot2id(S)
              DO L = 1, State_Grid%NZ
-                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
+!                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
+                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW) &
+                                                / AREA_M2
              ENDDO
           ENDDO
        ENDIF
@@ -941,7 +943,8 @@ CONTAINS
                 IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
                    WRITE( 6, 200 )
 200                FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC)
+                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
+                   write(*,*) T0,T1,T2,T3,T4,DELQ,SDT,TSUM
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
@@ -949,9 +952,9 @@ CONTAINS
                 ! Return if we encounter NaN
                 IF ( IT_IS_NAN( Q(K,IC) ) ) THEN
                    WRITE( 6, 250 )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC)
+                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
 250                FORMAT( 'NaN encountered in DO_CLOUD_CONVECTION!' )
-255                FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
+255                FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6, 1x, a10 )
                    RC = GC_FAILURE
                    RETURN
                 ENDIF

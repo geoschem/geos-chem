@@ -10158,7 +10158,7 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for emissions and dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
@@ -10166,7 +10166,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for emissions and '  // &
                                 'dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
@@ -10174,133 +10174,133 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 'in column for emissions and dry '    // &
                                 'deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 ' for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for wet deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for wet deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for wet deposition '
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'WET'
 
@@ -10508,7 +10508,8 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
        IF ( isDesc    ) Desc  = &
             'Loss of soluble species in convective updrafts'
-       IF ( isUnits   ) Units = 'kg s-1'
+       !IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 

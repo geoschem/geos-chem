@@ -724,7 +724,8 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
-                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep
+                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
              ENDIF
           ENDDO
        ENDIF
@@ -766,7 +767,8 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
-                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
+                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
              ENDIF
           ENDDO
        ENDIF
@@ -808,7 +810,8 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
              ELSE
-                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                               / State_Grid%AREA_M2(I,J)
              ENDIF
           ENDDO
        ENDIF

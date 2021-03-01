@@ -1990,6 +1990,11 @@ CONTAINS
        ! Get tracer ID
        Int2Spc(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
 
+       ! testing only
+       !if(MAPL_am_I_Root())then
+       ! write(*,*) 'Int2Spc setup: ',I,TRIM(SpcInfo%Name),Int2Spc(I)%ID,SpcInfo%ModelID
+       !endif
+
        ! If tracer ID is not valid, make sure all vars are at least defined.
        IF ( Int2Spc(I)%ID <= 0 ) THEN
           Int2Spc(I)%Internal => NULL()
@@ -3349,9 +3354,9 @@ CONTAINS
                                   FrstRewind = FirstRewind,& ! First rewind?
 #endif
                                   __RC__                  )  ! Success or fail?
-       
+
              CALL MAPL_TimerOff(STATE, "DO_CHEM")
-       
+
 #if !defined( MODEL_GEOS )
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
@@ -5591,6 +5596,7 @@ CONTAINS
     INTEGER                    :: STATUS
     INTEGER                    :: nymd, nhms, yy, mm, dd, h, m, s, incSecs
     REAL                       :: MW
+    REAL                       :: UniformIfMissing
     LOGICAL                    :: FileExists
     INTEGER                    :: DoIt, idx, x1, x2
     LOGICAL                    :: ReadGMI 
@@ -5608,6 +5614,9 @@ CONTAINS
     TYPE(ESMF_TIME)            :: Gmitime
     LOGICAL                    :: GmiFileExists
     INTEGER, SAVE              :: OnlyOnFirst = -999 
+
+    ! Parameter
+    REAL, PARAMETER            :: MISSVAL = 1.0e-15
 
     !=======================================================================
     ! Initialization
@@ -5670,6 +5679,7 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( GeosCF, TopLev, Label = 'DO_NOT_OVERWRITE_ABOVE_LEVEL:', Default=LM, __RC__ )
     IF ( TopLev < 0 ) TopLev = LM
     CALL ESMF_ConfigGetAttribute( GeosCF, VarPrefix, Label = 'VAR_PREFIX:', Default='SpeciesRst_', __RC__ )
+    CALL ESMF_ConfigGetAttribute( GeosCF, UniformIfMissing, Label = 'UNIFORM_IF_MISSING:', Default=-999.0, __RC__ )
 
     ! Verbose
     IF ( am_I_Root ) THEN
@@ -5679,6 +5689,13 @@ CONTAINS
        WRITE(*,*) 'External data is on GEOS levels: ',OnGeosLev
        WRITE(*,*) 'Only overwrite above tropopause: ',AboveTroppOnly
        WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
+       WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
+    ENDIF
+
+    ! Initialize array to missing values 
+    IF ( UniformIfMissing >= 0.0 ) THEN
+        State_Chm%Species(:,:,:,:) = UniformIfMissing 
+        IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
 
     ! Check for GMI flags
@@ -5783,10 +5800,15 @@ CONTAINS
           ENDIF
 
           ! Verbose
-          IF ( am_I_Root ) WRITE(*,*) 'Species initialized from external field: ',TRIM(FldName)
+          IF ( am_I_Root ) WRITE(*,*) 'Species initialized from external field: ',TRIM(FldName),N,MINVAL(State_Chm%Species(:,:,:,N)),MAXVAL(State_Chm%Species(:,:,:,N)),SUM(State_Chm%Species(:,:,:,N))/IM/JM/LM
 
        ELSE
-          IF ( am_I_Root ) WRITE(*,*) 'Species unchanged, field not found for species ',TRIM(SpcName)
+          IF ( UniformIfMissing >= 0.0 ) THEN
+             State_Chm%Species(:,:,:,N) = UniformIfMissing 
+             IF ( am_I_Root ) WRITE(*,*) 'Field not found for species ',TRIM(SpcName),', set to uniform value of ',UniformIfMissing
+          ELSE
+             IF ( am_I_Root ) WRITE(*,*) 'Species unchanged, field not found for species ',TRIM(SpcName)
+          ENDIF
        ENDIF
 
        ! ---------------------------
@@ -5846,6 +5868,9 @@ CONTAINS
 
     ! All done
     CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
+
+    ! Make sure that values are not zero
+    WHERE ( State_Chm%Species <= 0.0 ) State_Chm%Species = MISSVAL
 
     ENDIF ! DoUpdate 
 
@@ -6107,7 +6132,7 @@ CONTAINS
 !
 ! !USE:
 !
-   USE Species_Mod,      ONLY : MISSING_R8
+   USE Species_Mod,      ONLY : MISSING, MISSING_R8
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6137,6 +6162,7 @@ CONTAINS
     TYPE(ESMF_Field)                 :: Field
     CHARACTER(LEN=ESMF_MAXSTR)       :: FieldName
     real(ESMF_KIND_R4), dimension(4) :: HenryCoeffs 
+    real(ESMF_KIND_R4), dimension(3) :: kcs
     REAL                             :: fscav
     REAL(ESMF_KIND_R4)               :: hstar,dhr,ak0,dak 
     INTEGER                          :: N, N_WD
@@ -6152,7 +6178,7 @@ CONTAINS
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) 'Update wet scavenging parameter for MOIST:' 
-       WRITE(*,*) 'ID,          Name:  AerScavEff, Hstar, dHstar, Ka, dKa'
+       WRITE(*,*) 'ID,          Name:  Hstar, dHstar, Ka, dKa, AerScavEff, KcScal1, KcScal2, KcScal3'
     ENDIF
 
     ! Turn off SO2 washout? Defaults to yes. 
@@ -6178,10 +6204,10 @@ CONTAINS
        IF ( (TRIM(FieldName)==TRIM(SPFX)//'SO2') .AND. (TurnOffSO2==1) ) fscav = 0.0 
        CALL ESMF_AttributeSet(Field, NAME='ScavengingFractionPerKm', VALUE=fscav, __RC__ )
 
-       ! Henry coefficients. All values default to 0.0
-       hstar = 0.0
-       dhr   = 0.0
-       ak0   = 0.0
+       ! Henry coefficients. All values default to -1.0 
+       hstar = -99.0 
+       dhr   = 0.0 !mkelp 20210114
+       ak0   = 0.0 !mkelp
        ! Henry law coefficient [mol/atm]
        IF ( SpcInfo%Henry_K0  /= MISSING_R8 ) hstar = SpcInfo%Henry_K0
        ! Temperature correction factor [K]
@@ -6189,12 +6215,12 @@ CONTAINS
        ! Acid dissociation constant Ka, compute from pKa
        IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = 10.0**(-SpcInfo%Henry_pKa) 
        ! Temperature correction for Ka, currently ignored by GEOS-Chem
-       dak   = 0.0
+       dak   = 0.0 !mkelp 
        ! Don't washout SO2 if specified so
        IF ( (TRIM(FieldName)==TRIM(SPFX)//'SO2') .AND. (TurnOffSO2==1) ) THEN 
-          hstar = 0.0
-          dhr   = 0.0
-          ak0   = 0.0
+          hstar = -99.0 
+          dhr   = 0.0 !mkelp 
+          ak0   = 0.0 !mkelp
        ENDIF
        ! Pass to array
        HenryCoeffs(1) = hstar
@@ -6202,11 +6228,16 @@ CONTAINS
        HenryCoeffs(3) = ak0
        HenryCoeffs(4) = dak
        CALL ESMF_AttributeSet(Field, 'SetofHenryLawCts', HenryCoeffs, __RC__ )
-
+       ! KC scale factors
+       kcs(:) = 1.0
+       IF ( SpcInfo%WD_KcScaleFac(1) /= MISSING ) kcs(1) = SpcInfo%WD_KcScaleFac(1)
+       IF ( SpcInfo%WD_KcScaleFac(2) /= MISSING ) kcs(2) = SpcInfo%WD_KcScaleFac(2)
+       IF ( SpcInfo%WD_KcScaleFac(3) /= MISSING ) kcs(3) = SpcInfo%WD_KcScaleFac(3)
+       CALL ESMF_AttributeSet(Field, 'SetofKcScalFactors', kcs, __RC__ )
        ! Verbose
        IF ( am_I_Root ) THEN
-          WRITE(*,100) N_WD, TRIM(SpcInfo%Name), fscav, hstar, dhr, ak0, dak 
-100       FORMAT( i3,1x,a14,': ',f3.1,4(1x,es9.2) )
+          WRITE(*,100) N_WD, TRIM(SpcInfo%Name), hstar, dhr, ak0, dak, fscav, kcs(1), kcs(2), kcs(3)
+100       FORMAT( i3,1x,a14,': ',4(1x,es9.2),4(1x,f3.1) )
        ENDIF
     ENDDO
 
