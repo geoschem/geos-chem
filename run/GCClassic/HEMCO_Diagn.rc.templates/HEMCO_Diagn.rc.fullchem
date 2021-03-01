@@ -752,7 +752,11 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 ###InvOFFLINESEASALT_BrSALA BrSALA 0 3  -1  2   kg/m2/s  BrSALA_seasalt_emission_flux_from_offline_model
 ###InvOFFLINESEASALT_BrSALC BrSALC 0 3  -1  2   kg/m2/s  BrSALC_seasalt_emission_flux_from_offline_model
 ###InvOFFLINESEASALT_SALA   SALA   0 3  -1  2   kg/m2/s  SALA_seasalt_emission_flux_from_offline_model
+###InvOFFLINESEASALT_SALAAL SALAAL 0 3  -1  2   kg/m2/s  SALAAL_seasalt_emission_flux_from_offline_model
+###InvOFFLINESEASALT_SALACL SALACL 0 3  -1  2   kg/m2/s  SALACL_seasalt_emission_flux_from_offline_model
 ###InvOFFLINESEASALT_SALC   SALC   0 3  -1  2   kg/m2/s  SALC_seasalt_emission_flux_from_offline_model
+###InvOFFLINESEASALT_SALCAL SALCAL 0 3  -1  2   kg/m2/s  SALCAL_seasalt_emission_flux_from_offline_model
+###InvOFFLINESEASALT_SALCCL SALCCL 0 3  -1  2   kg/m2/s  SALCCL_seasalt_emission_flux_from_offline_model
 ##
 ###=============================
 ### Offline soil NOx emissions
