@@ -627,6 +627,12 @@ fi
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
+    if [[ ${met_name} = "GEOSFP" ]] && [[ ${grid_res}="4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
+    fi
+    if [[ ${met_name} = "MERRA2" ]] && [[ ${grid_res}="4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
+    fi  
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
