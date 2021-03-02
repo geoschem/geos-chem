@@ -577,10 +577,14 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! NOTE: The following variables are held THREADPRIVATE and
-    ! therefore do not need to be included in the !$OMP PRIVATE
-    ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN,
-    ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
+    ! MAIN LOOP: Compute reaction rates and call chemical solver
+    !
+    ! Variables not listed here are held THREADPRIVATE in gckpp_Global.F90
+    ! !$OMP COLLAPSE(3) vectorizes the loop and !$OMP DYNAMIC(24) sends
+    ! 24 boxes at a time to each core... then when that core is finished,
+    ! it gets a nother chunk of 24 boxes.  This should lead to better
+    ! load balancing, and will spread the sunrise/sunset boxes across
+    ! more cores.
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
@@ -589,8 +593,8 @@ CONTAINS
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
-    !$OMP COLLAPSE( 2                                                       )&
-    !$OMP SCHEDULE( DYNAMIC,  1                                             )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
