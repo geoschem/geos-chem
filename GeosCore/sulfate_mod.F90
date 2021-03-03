@@ -135,6 +135,9 @@ MODULE SULFATE_MOD
   REAL(fp),  ALLOCATABLE :: COSZM(:,:)
   REAL(fp),  ALLOCATABLE :: GLOBAL_OH(:,:,:)
   REAL(fp),  ALLOCATABLE :: GLOBAL_HNO3(:,:,:)
+  REAL(fp),  ALLOCATABLE :: GLOBAL_HCl(:,:,:)
+  REAL(fp),  ALLOCATABLE :: GLOBAL_HCOOH(:,:,:)
+  REAL(fp),  ALLOCATABLE :: GLOBAL_ACTA(:,:,:)
   REAL(fp),  ALLOCATABLE :: PNIT(:,:,:) ! xnw
   REAL(fp),  ALLOCATABLE :: PACL(:,:,:) ! xnw
   REAL(fp),  ALLOCATABLE :: PCCL(:,:,:) ! xnw
@@ -317,6 +320,14 @@ CONTAINS
        CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', GLOBAL_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_HNO3 from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Evaluate offline global HCl from HEMCO
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCl', GLOBAL_HCl, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for GLOBAL_HCl from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2523,11 +2534,25 @@ CONTAINS
     !   FIRST = .FALSE.
     !ENDIF
 
-    ! If offline aerosol simulation, evaluate offline oxidant fields from HEMCO
+    ! If offline aerosol simulation, evaluate fields from HEMCO
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', O3m, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_O3 from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCOOH', GLOBAL_HCOOH, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for GLOBAL_HCOOH from HEMCO!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       CALL HCO_EvalFld( HcoState, 'GLOBAL_ACTA', GLOBAL_ACTA, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get data for GLOBAL_ACTA from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2961,17 +2986,30 @@ CONTAINS
           ! Get total chloride (SALACL + HCL) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7
           CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
-               Spc(I,J,L,id_SALCCL)  + Spc(I,J,L,id_HCL)
+                  Spc(I,J,L,id_SALCCL)
+          IF ( id_HCl > 0 ) THEN
+             CL = CL + Spc(I,J,L,id_HCL)
+          ELSE
+             CL = CL + GLOBAL_HCL(I,J,L)
+          ENDIF
 
           ! Get total formic acid concentration [v/v]
           ! jmm (12/3/18)
           ! no cloud scavenging because gases?
-          TFA     = Spc(I,J,L,id_HCOOH)
+          IF ( id_HCOOH > 0 ) THEN
+             TFA = Spc(I,J,L,id_HCOOH)
+          ELSE
+             TFA = GLOBAL_HCOOH(I,J,L)
+          ENDIF
 
           ! Get total acetic acid concentration [v/v]
           ! jmm (12/3/18)
           ! no cloud scavenging b/c gases?
-          TAA     = Spc(I,J,L,id_ACTA)
+          IF ( id_ACTA > 0 ) THEN
+             TAA = Spc(I,J,L,id_ACTA)
+          ELSE
+             TAA = GLOBAL_ACTA(I,J,L)
+          ENDIF
 
           ! Get total sea salt NVC concentration expressed as NA+ equivalents
           ! and convert from [v/v] to [moles/liter]
@@ -3972,22 +4010,19 @@ CONTAINS
     SO2_eq  = ( ( 2.0_fp * SO2_cd * AD(I,J,L) ) / AIRMW  ) * 1000.0_fp
     SO2_eq  = MAX( SO2_eq, MINDAT )
 
-    ! Get the HNO3 concentration [v/v], either from the species
+    ! Get the HNO3 and HCl concentration [v/v], either from the species
     ! array (fullchem sims) or from HEMCO (aerosol-only sims)
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        HNO3_vv = Spc(I,J,L,id_HNO3)
+       HCl_vv  = Spc(I,J,L,id_HCL)
     ELSE
        HNO3_vv = GLOBAL_HNO3(I,J,L)
+       HCl_vv  = GLOBAL_HCl(I,J,L)
     ENDIF
 
-    ! Convert HNO3 [v/v] to [equivalents]
-    ! Remove species molecular weights from equation (bmy, 2/10/17)
+    ! Convert HNO3 and HCl [v/v] to [equivalents]
     HNO3_eq = ( ( HNO3_vv * AD(I,J,L) ) / AIRMW ) * 1000.0_fp
-
-    ! Get the HCl concentration [v/v]
-    HCl_vv = Spc(I,J,L,id_HCL)
-    !Convert HCl [v/v] to [equivalents]
-    HCl_eq = ( ( HCl_vv * AD(I,J,L) ) / AIRMW ) * 1000.0_fp
+    HCl_eq  = ( ( HCl_vv  * AD(I,J,L) ) / AIRMW ) * 1000.0_fp
 
     !-----------
     ! SO2
@@ -8397,6 +8432,21 @@ CONTAINS
        CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_HNO3', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        GLOBAL_HNO3 = 0e+0_fp
+
+       ALLOCATE(GLOBAL_HCl(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC)
+       CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_HCl', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       GLOBAL_HCl = 0e+0_fp
+
+       ALLOCATE(GLOBAL_HCOOH(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC)
+       CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_HCOOH', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       GLOBAL_HCOOH = 0e+0_fp
+
+       ALLOCATE(GLOBAL_ACTA(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC)
+       CALL GC_CheckVar( 'sulfate_mod.F90:GLOBAL_ACTA', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       GLOBAL_ACTA = 0e+0_fp
     ENDIF
 
     !================================================================
@@ -8513,32 +8563,35 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
-    IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
-    IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
-    IF ( ALLOCATED( PNIT       ) ) DEALLOCATE( PNIT       ) !xnw
-    IF ( ALLOCATED( PACL       ) ) DEALLOCATE( PACL       ) !xnw
-    IF ( ALLOCATED( PCCL       ) ) DEALLOCATE( PCCL       ) !xnw
-    IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
-    IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
+    IF ( ALLOCATED( DMSo        ) ) DEALLOCATE( DMSo        )
+    IF ( ALLOCATED( PMSA_DMS    ) ) DEALLOCATE( PMSA_DMS    )
+    IF ( ALLOCATED( PNITs       ) ) DEALLOCATE( PNITs       )
+    IF ( ALLOCATED( PNIT        ) ) DEALLOCATE( PNIT        ) !xnw
+    IF ( ALLOCATED( PACL        ) ) DEALLOCATE( PACL        ) !xnw
+    IF ( ALLOCATED( PCCL        ) ) DEALLOCATE( PCCL        ) !xnw
+    IF ( ALLOCATED( PSO2_DMS    ) ) DEALLOCATE( PSO2_DMS    )
+    IF ( ALLOCATED( PSO4_SO2    ) ) DEALLOCATE( PSO4_SO2    )
 #ifdef APM
     IF ( ALLOCATED( PSO4_SO2APM ) ) DEALLOCATE( PSO4_SO2APM )
     IF ( ALLOCATED( PSO4_SO2SEA ) ) DEALLOCATE( PSO4_SO2SEA )
 #endif
 #ifdef TOMAS
-    IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ )
-    IF ( ALLOCATED( SO4_ANTH   ))  DEALLOCATE( SO4_ANTH   )
+    IF ( ALLOCATED( PSO4_SO2AQ  ) ) DEALLOCATE( PSO4_SO2AQ  )
+    IF ( ALLOCATED( SO4_ANTH    ))  DEALLOCATE( SO4_ANTH    )
 #endif
-    IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
-    IF ( ALLOCATED( PSO4_dust  ) ) DEALLOCATE( PSO4_dust  )
-    IF ( ALLOCATED( PNIT_dust  ) ) DEALLOCATE( PNIT_dust  )
-    IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )
-    IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
-    IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
-    IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )
-    IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
-    IF ( ALLOCATED( GLOBAL_OH  ) ) DEALLOCATE( GLOBAL_OH  )
-    IF ( ALLOCATED( GLOBAL_HNO3) ) DEALLOCATE( GLOBAL_HNO3)
+    IF ( ALLOCATED( PSO4_ss     ) ) DEALLOCATE( PSO4_ss     )
+    IF ( ALLOCATED( PSO4_dust   ) ) DEALLOCATE( PSO4_dust   )
+    IF ( ALLOCATED( PNIT_dust   ) ) DEALLOCATE( PNIT_dust   )
+    IF ( ALLOCATED( SOx_SCALE   ) ) DEALLOCATE( SOx_SCALE   )
+    IF ( ALLOCATED( SSTEMP      ) ) DEALLOCATE( SSTEMP      )
+    IF ( ALLOCATED( TCOSZ       ) ) DEALLOCATE( TCOSZ       )
+    IF ( ALLOCATED( TTDAY       ) ) DEALLOCATE( TTDAY       )
+    IF ( ALLOCATED( COSZM       ) ) DEALLOCATE( COSZM       )
+    IF ( ALLOCATED( GLOBAL_OH   ) ) DEALLOCATE( GLOBAL_OH   )
+    IF ( ALLOCATED( GLOBAL_HNO3 ) ) DEALLOCATE( GLOBAL_HNO3 )
+    IF ( ALLOCATED( GLOBAL_HCl  ) ) DEALLOCATE( GLOBAL_HCl  )
+    IF ( ALLOCATED( GLOBAL_HCOOH) ) DEALLOCATE( GLOBAL_HCOOH)
+    IF ( ALLOCATED( GLOBAL_ACTA ) ) DEALLOCATE( GLOBAL_ACTA )
 
     ! Free pointers
     IF ( ASSOCIATED( NDENS_SALA ) ) NDENS_SALA => NULL()
