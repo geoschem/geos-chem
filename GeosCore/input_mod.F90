@@ -1961,6 +1961,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2O
 
+    ! Use static strat H2O boundary condition?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTATICH2OBC', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%LStaticH2OBC
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1971,11 +1979,6 @@ CONTAINS
     !=================================================================
     ! Error check logical flags
     !=================================================================
-
-    ! Turn off full-chem only switches
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSETH2O = .FALSE.
-    ENDIF
 
     ! Return success
     RC = GC_SUCCESS
@@ -1994,6 +1997,8 @@ CONTAINS
                         Input_Opt%LCH4EMIS
        WRITE( 6, 100 ) 'Set initial strat H2O?      : ', &
                         Input_Opt%LSETH2O
+       WRITE( 6, 100 ) 'Use robust strat H2O BC?    : ', &
+                        Input_Opt%LStaticH2OBC
     ENDIF
 
     ! FORMAT statements
