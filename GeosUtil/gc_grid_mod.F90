@@ -124,6 +124,18 @@ CONTAINS
     ELSE IF ( State_Grid%NZ == 72 ) THEN
        State_Grid%MaxTropLev  = 40
        State_Grid%MaxStratLev = 59
+    ELSE IF ( State_Grid%NZ == 40 ) THEN
+       State_Grid%NativeNZ = 40
+       State_Grid%MaxTropLev  = 28
+       State_Grid%MaxStratLev = 40
+    ELSE IF ( State_Grid%NZ == 74 ) THEN
+       State_Grid%NativeNZ = 102
+       State_Grid%MaxTropLev  = 60
+       State_Grid%MaxStratLev = 72
+    ELSE IF ( State_Grid%NZ == 102 ) THEN
+       State_Grid%NativeNZ = 102
+       State_Grid%MaxTropLev  = 60
+       State_Grid%MaxStratLev = 91
     ELSE
        ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes)// &
                 ' does not have MaxTropLev and MaxStratLev defined.'// &
@@ -149,7 +161,11 @@ CONTAINS
 
     ! Compute number of grid boxes on global grid
     State_Grid%GlobalNX =   360.0_fp / State_Grid%DX
-    State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY ) + 1
+    IF ( State_Grid%HalfPolar ) THEN
+       State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY ) + 1
+    ELSE
+       State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY )
+    ENDIF
 
     !----------------------------------------------------------------------
     ! Calculate grid box centers on global grid
@@ -168,30 +184,57 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%GlobalYMid = 0e+0_fp
 
-    ! Loop over horizontal grid
+    ALLOCATE( State_Grid%GlobalXEdge(State_Grid%GlobalNX+1,State_Grid%GlobalNY),&
+              STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%GlobalXEdge', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%GlobalXEdge = 0e+0_fp
+
+    ALLOCATE( State_Grid%GlobalYEdge(State_Grid%GlobalNX,State_Grid%GlobalNY+1),&
+              STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%GlobalYEdge', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%GlobalYEdge = 0e+0_fp
+
+    !======================================================================
+    ! Global Horizontal Grid
+    !======================================================================
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
 
-       !--------------------------------
-       ! Longitude centers [degrees]
-       !--------------------------------
-       State_Grid%GlobalXMid(I,J) = ( State_Grid%DX * (I-1) ) - 180e+0_fp
+      IF ( J == 1 ) THEN
+         State_Grid%GlobalYEdge(I,J) = -90.0
+      ELSE
+         IF ( State_Grid%HalfPolar ) THEN
+            State_Grid%GlobalYEdge(I,J) = -90.0 - State_Grid%DY/2.0 + State_Grid%DY*(J-1)  
+         ELSE
+            State_Grid%GlobalYEdge(I,J) = -90.0 + State_Grid%DY*(J-1)  
+         ENDIF
+         IF ( J == State_Grid%GlobalNY ) THEN
+            State_Grid%GlobalYEdge(I,J+1) = 90.0
+         ENDIF
+      ENDIF
 
-       !--------------------------------
-       ! Latitude centers [degrees]
-       !--------------------------------
-       State_Grid%GlobalYMid(I,J) = ( State_Grid%DY * (J-1) ) - 90e+0_fp
+      IF ( I == 1 ) THEN
+         IF ( State_Grid%Center180 ) THEN
+            State_Grid%GlobalXEdge(I,J) = -180.0 - State_Grid%DX / 2.0
+         ELSE
+            State_Grid%GlobalXEdge(I,J) = -180.0 
+         ENDIF
+      ELSE
+         State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J) + State_Grid%DX * ( I - 1 )
+         IF ( I == State_Grid%GlobalNX ) THEN
+            State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J) + 360.0
+         ENDIF
+      ENDIF
 
-       ! If using half-sized polar boxes, multiply DY by 1/4 at poles
-       IF ( State_Grid%HalfPolar .and. J == 1)  THEN
-          ! South Pole
-          State_Grid%GlobalYMid(I,J) = -90e+0_fp + (0.25e+0_fp * State_Grid%DY)
-       ENDIF
-       IF ( State_Grid%HalfPolar .and. J == State_Grid%GlobalNY ) THEN
-          ! North Pole
-          State_Grid%GlobalYMid(I,J) = +90e+0_fp - (0.25e+0_fp * State_Grid%DY)
-       ENDIF
+    ENDDO
+    ENDDO
 
+    DO J = 1, State_Grid%GlobalNY
+    DO I = 1, State_Grid%GlobalNX
+       State_Grid%GlobalYMid(I,J) = 0.5 * ( State_Grid%GlobalYEdge(I,J) + State_Grid%GlobalYEdge(I,J+1) )
+       State_Grid%GlobalXMid(I,J) = 0.5 * ( State_Grid%GlobalXEdge(I,J) + State_Grid%GlobalXEdge(I+1,J) )
     ENDDO
     ENDDO
 
@@ -202,13 +245,13 @@ CONTAINS
     ! Determine X offsets based on global grid
     DO I = 1, State_Grid%GlobalNX
        IF ( State_Grid%GlobalXMid(I,1) >= State_Grid%XMin ) THEN
-          State_Grid%XMinOffset = I-1
+          State_Grid%XMinOffset = I - 1
           EXIT
        ENDIF
     ENDDO
-    DO I = 1, State_Grid%GlobalNX
-       IF ( State_Grid%GlobalXMid(I,1)+State_Grid%DX >= State_Grid%XMax ) THEN
-          State_Grid%XMaxOffset = I
+    DO I = State_Grid%GlobalNX, 1, -1
+       IF ( State_Grid%GlobalXMid(I,1) <= State_Grid%XMax ) THEN
+          State_Grid%XMaxOffset = I - 1
           EXIT
        ENDIF
     ENDDO
@@ -216,13 +259,13 @@ CONTAINS
     ! Determine Y offsets based on global grid
     DO J = 1, State_Grid%GlobalNY
        IF ( State_Grid%GlobalYMid(1,J) >= State_Grid%YMin ) THEN
-          State_Grid%YMinOffset = J-1
+          State_Grid%YMinOffset = J - 1
           EXIT
        ENDIF
     ENDDO
-    DO J = 1, State_Grid%GlobalNY
-       IF ( State_Grid%GlobalYMid(1,J)+State_Grid%DY >= State_Grid%YMax ) THEN
-          State_Grid%YMaxOffset = J
+    DO J = State_Grid%GlobalNY, 1, -1
+       IF ( State_Grid%GlobalYMid(1,J) <= State_Grid%YMax ) THEN
+          State_Grid%YMaxOffset = J - 1
           EXIT
        ENDIF
     ENDDO
@@ -236,106 +279,46 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Index value for user-defined grid on the global grid
-       IG = I + ( State_Grid%XMinOffset - 1 )
-       JG = J + ( State_Grid%YMinOffset - 1 )
+       IG = I + State_Grid%XMinOffset
+       JG = J + State_Grid%YMinOffset
 
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
-       State_Grid%XMid(I,J) = ( State_Grid%DX * IG ) - 180e+0_fp
+       State_Grid%XMid(I,J) = State_Grid%GlobalXMid( IG, JG ) 
 
        !--------------------------------
        ! Longitude edges [degrees]
        !--------------------------------
-       State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
-                             ( State_Grid%DX * 0.5e+0_fp )
+       State_Grid%XEdge(I,J) = State_Grid%GlobalXEdge( IG, JG)
 
        ! Compute the last longitude edge
        IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%XEdge(I,J) + State_Grid%DX
+          State_Grid%XEdge(I+1,J) = State_Grid%GlobalXEdge(I+1,J)
        ENDIF
 
        !--------------------------------
        ! Latitude centers [degrees]
        !--------------------------------
-       State_Grid%YMid(I,J) = ( State_Grid%DY * JG ) - 90e+0_fp
-
-       ! If using half-sized polar boxes on a global grid,
-       ! multiply DY by 1/4 at poles
-       IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid .and. &
-            J == 1 ) THEN
-          ! South Pole
-          State_Grid%YMid(I,J) = -90e+0_fp + ( 0.25e+0_fp * State_Grid%DY )
-       ENDIF
-       IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid .and. &
-            J == State_Grid%NY ) THEN
-          ! North Pole
-          State_Grid%YMid(I,J) = +90e+0_fp - ( 0.25e+0_fp * State_Grid%DY )
-       ENDIF
+       State_Grid%YMid(I,J) = State_Grid%GlobalYMid( IG, JG ) 
 
        !--------------------------------
        ! Latitude centers [radians]
        !--------------------------------
        State_Grid%YMid_R(I,J) = ( PI_180 * State_Grid%YMid(I,J)  )
 
-       !--------------------------------
-       ! Latitude edges [degrees]
-       !--------------------------------
-       State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
-                               ( State_Grid%DY * 0.5e+0_fp )
-
-       ! If using half-sized polar boxeson a global grid,
-       ! force the northern edge of grid boxes along the SOUTH POLE
-       ! to be -90 degrees latitude
-       IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid .and. &
-            J == 1 ) THEN
-          State_Grid%YEdge(I,J) = -90e+0_fp
-       ENDIF
-
-       !--------------------------------
-       ! Lat edges [radians]
-       !--------------------------------
+       !-----------------------------------------
+       ! Latitude edges [degrees; rad; sin(lat)]
+       !-----------------------------------------
+       State_Grid%YEdge(I,J)   = State_Grid%GlobalYEdge( IG, JG ) 
        State_Grid%YEdge_R(I,J) = ( PI_180  * State_Grid%YEdge(I,J) )
+       State_Grid%YSIN(I,J)    = SIN( State_Grid%YEdge_R(I,J) )
 
-       ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
-       YEDGE_VAL = State_Grid%YEdge_R(I,J) ! Lat edge in radians
-       YSIN_VAL  = SIN( YEDGE_VAL )          ! SIN( lat edge )
-       State_Grid%YSIN(I,J) = YSIN_VAL     ! Store in YSIN array
-
-       ! Compute last latitude edge
+       ! Compute the last latitude edge
        IF ( J == State_Grid%NY ) THEN
-
-          ! Test for North Pole if using global grid
-          IF ( .not. State_Grid%NestedGrid ) THEN
-
-             ! Force the northern edge of grid boxes along the NORTH POLE to
-             ! be +90 degrees latitude
-             State_Grid%YEdge(I,J+1) = +90e+0_fp
-
-             ! Make adjustment for second-to-last latitude edge
-             State_Grid%YEdge(I,J  ) = State_Grid%YEdge(I,J+1) - &
-                                     ( State_Grid%DY * 0.5e+0_fp )
-             State_Grid%YEdge_R(I,J  ) = State_Grid%YEdge(I,J  ) * PI_180
-             YEDGE_VAL = State_Grid%YEdge_R(I,J)
-             YSIN_VAL  = SIN( YEDGE_VAL )
-             State_Grid%YSIN(I,J) = YSIN_VAL
-          ELSE
-
-             !----------------------------------------------------------------
-             !                %%%%% FOR NESTED GRIDS ONLY %%%%%
-             !----------------------------------------------------------------
-             State_Grid%YEdge(I,J+1) = State_Grid%YEdge(I,J) + State_Grid%DY
-
-          ENDIF
-
-          ! Last latitude edge [radians]
-          State_Grid%YEdge_R(I,J+1) = State_Grid%YEdge(I,J+1) * PI_180
-
-          ! Also compute sine of last two latitude edges! (ckeller, 02/13/12)
-          YEDGE_VAL = State_Grid%YEdge_R(I,J+1)
-          YSIN_VAL  = SIN( YEDGE_VAL )
-          State_Grid%YSIN(I,J+1) = YSIN_VAL
-
+          State_Grid%YEdge(I,J+1)   = State_Grid%GlobalYEdge(I,JG+1)
+          State_Grid%YEdge_R(I,J+1) = ( PI_180  * State_Grid%YEdge(I,J+1) )
+          State_Grid%YSIN(I,J+1)    = SIN( State_Grid%YEdge_R(I,J+1) )
        ENDIF
 
     ENDDO
