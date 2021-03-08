@@ -328,6 +328,9 @@ mkdir ${rundir}/OutputDir
 chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    chmod 744 ${rundir}/runConfig_adj.sh
+fi
 chmod 744 ${rundir}/archiveRun.sh
 
 # Copy species database; append APM or TOMAS species if needed
@@ -379,6 +382,9 @@ cd ${rundir}
 # Replace token strings in certain files
 sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
 sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig_adj.sh
+fi
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
 sed -i -e "s|{MET}|${met_name}|"              input.geos
 sed -i -e "s|{SIM}|${sim_name}|"              input.geos
@@ -416,6 +422,10 @@ else
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig_adj.sh
+fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
@@ -472,6 +482,20 @@ sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
 sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig_adj.sh
+fi
 sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
 sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc
