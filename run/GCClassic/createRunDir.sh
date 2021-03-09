@@ -632,7 +632,7 @@ if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     fi
     if [[ ${met_name} = "MERRA2" ]] && [[ ${grid_res}="4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
-    fi  
+    fi
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
@@ -701,8 +701,15 @@ fi
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
 
-# Root path for restarts
-rst_root=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
+# Check the Linux Kernel version to see if we are on the AWS cloud.
+# If we are, define the command to copy the restart file from s3://gcgrid
+is_aws=$(uname -r | grep aws)
+if [[ "x${is_aws}" != "x" ]]; then
+   rst_root="s3://gcgrid/GEOSCHEM_RESTARTS"
+   s3_cp="aws s3 cp --request-payer=requester"
+else
+   rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
+fi
 
 if [[ "x${sim_name}" == "xfullchem" ]]; then
 
@@ -713,21 +720,24 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
     elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS40.nc
     else
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     fi
 
 elif [[ ${sim_name} = "TransportTracers" ]]; then
 
     # For TransportTracers, use restart from latest 1-year benchmark
     sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
-    
+
 else
 
     # For other specialty simulations, use previoiusly saved restarts
     sample_rst=${rst_root}/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
 fi
 
-if [[ -f ${sample_rst} ]]; then
+# Copy the restart file to the run directory (for AWS or on a local server)
+if [[ "x${is_aws}" != "x" ]]; then
+    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+elif [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
     printf "\n  -- No sample restart provided for this simulation."
