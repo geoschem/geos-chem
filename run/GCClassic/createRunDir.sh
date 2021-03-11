@@ -567,7 +567,7 @@ ln -s ${wrapperdir} ${rundir}/CodeDir
 
 # Create build directory
 mkdir ${rundir}/build
-printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   make -j\n   make install\n" >> ${rundir}/build/README
+printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
