@@ -582,10 +582,10 @@ Warnings:                    1
 * CH4_LOSS   $ROOT/CH4/v2014-09/4x5/gmi.ch4loss.geos5_47L.4x5.nc     CH4loss      1985/1-12/1/0 C xyz s-1   * - 1 1
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$01_0000z.nc4 SpeciesConc_OH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OH  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$01_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 
