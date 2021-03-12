@@ -2755,7 +2755,7 @@ CONTAINS
 !   UPDATE: because the RT optics output doesnt have access to the
 !   standard wavelengths we now calculate two sets of values: one
 !   for the ND21 and diag3 outputs that use the standard wavelengths
-!   and one for ND72 that interpolates the optics from RRTMG
+!   and one for RRTMG diagnostics that interpolate the optics from RRTMG
 !   wavelengths. Perhaps a switch needs adding to switch off the RT
 !   optics output (and interpolation) if this ends up costing too
 !   much and is not used, but it is ideal to have an optics output

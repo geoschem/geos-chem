@@ -264,7 +264,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND59   ! TOMAS
      INTEGER                     :: ND60   ! TOMAS
      INTEGER                     :: ND61   ! TOMAS
-     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -795,7 +794,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
-    Input_Opt%ND72                   = 0
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
