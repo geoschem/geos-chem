@@ -608,14 +608,14 @@ Warnings:                    1
 # --- Aerosol data for Hg2 partitioning ---
 #==============================================================================
 (((AERO_HG2_PARTITION
-* AERO_SO4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_SO4  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_NH4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NH4  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NIT  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_BCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPI 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_BCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPO 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_OCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPI 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_OCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPO 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_DST1 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_DST1 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_SO4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_SO4  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_NH4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NH4  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NIT  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_BCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPI 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_BCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_OCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPI 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_OCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* AERO_DST1 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_DST1 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))AERO_HG2_PARTITION
 
 #==============================================================================
