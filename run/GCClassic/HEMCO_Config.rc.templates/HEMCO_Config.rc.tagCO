@@ -905,13 +905,13 @@ Mask fractions:              false
 # --- Quantities needed for CO chemistry ---
 #==============================================================================
 (((GLOBAL_OH
-* GLOBAL_OH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OH  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OH  2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_OH
 (((PROD_CO_CH4
-* PCO_CH4     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4    ProdCOfromCH4   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* PCO_CH4     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4    ProdCOfromCH4   2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_CH4
 (((PROD_CO_NMVOC
-* PCO_NMVOC   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4    ProdCOfromNMVOC 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* PCO_NMVOC   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4    ProdCOfromNMVOC 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_NMVOC
 
 #==============================================================================

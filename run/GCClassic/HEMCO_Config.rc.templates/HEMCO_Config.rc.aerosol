@@ -1425,16 +1425,16 @@ Warnings:                    1
 # (needed for chemistry, not used for emission calculation)
 #==============================================================================
 (((OXIDANT_FIELDS
-* PH2O2        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4    Prod_H2O2         2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* JH2O2        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4     Jval_H2O2         2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_ACTA  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_ACTA  2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_HCl   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HCl   2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_HCOOH $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HCOOH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_HNO3  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_HNO3  2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_NIT   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NIT   2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_NO3   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NO3   2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_O3    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_O3    2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* GLOBAL_OH    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OH    2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* PH2O2        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4    Prod_H2O2         2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* JH2O2        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM01_0000z.nc4     Jval_H2O2         2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_ACTA  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_ACTA  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HCl   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_HCl   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HCOOH $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_HCOOH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_HNO3  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_HNO3  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_NIT   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NIT   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_NO3   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NO3   2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_O3    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_O3    2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* GLOBAL_OH    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OH    2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))OXIDANT_FIELDS
 
 )))CHEMISTRY_INPUT

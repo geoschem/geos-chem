@@ -627,18 +627,26 @@ fi
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
-    if [[ ${met_name} = "GEOSFP" ]] && [[ ${grid_res}="4x5" ]]; then
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
     fi
-    if [[ ${met_name} = "MERRA2" ]] && [[ ${grid_res}="4x5" ]]; then
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
     fi
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
-if [[ "x${sim_extra_option}" == "xTOMAS" ]]; then
+# NOTE: Also use the same dust tuning factors as for the benchmark
+# for the Tomas_DustDead extension (mps, bmy, 3/11/12)
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
     replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
+    fi
 fi
 
 # Modify input files for troposphere-only chemistry grids

@@ -204,8 +204,8 @@ Warnings:                    1
 #==============================================================================
 (((CHEMISTRY_INPUT
 (((O3_PROD_LOSS
-* O3_PROD $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4 Prod_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* O3_LOSS $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4 Loss_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* O3_PROD $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4 Prod_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* O3_LOSS $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4 Loss_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))O3_PROD_LOSS
 )))CHEMISTRY_INPUT
 
