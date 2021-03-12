@@ -86,9 +86,9 @@ Mask fractions:              false
     --> QFED2                  :       true     # 2000-2020
     --> GFAS                   :       false    # 2003-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
-    --> GLOBAL_OH              :       true     # 2013
-    --> PROD_CO_CH4            :       true     # 2013
-    --> PROD_CO_NMVOC          :       true     # 2013
+    --> GLOBAL_OH              :       true     # 2010-2019
+    --> PROD_CO_CH4            :       true     # 2010-2019
+    --> PROD_CO_NMVOC          :       true     # 2010-2019
     --> GMI_PROD_LOSS          :       true     # 2005
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978

@@ -76,8 +76,8 @@ Warnings:                    1
     --> RCP_85                 :       false    # 2005-2100
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> GMI_CH4_LOSS           :       true     # 1985
-    --> GLOBAL_OH              :       true     # 1985
-    --> GLOBAL_CL              :       true     # 2005
+    --> GLOBAL_OH              :       true     # 2010-2019
+    --> GLOBAL_CL              :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------
@@ -585,7 +585,7 @@ Warnings:                    1
 * GLOBAL_OH  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$01_0000z.nc4 SpeciesConc_OH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$01_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 EY xyz mol/mol * - 1 1
+* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$01_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 C xyz mol/mol * - 1 1
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 

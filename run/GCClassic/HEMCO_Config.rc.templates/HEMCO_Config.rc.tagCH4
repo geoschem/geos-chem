@@ -83,8 +83,8 @@ Warnings:                    1
     --> RCP_85                 :       false    # 2005-2100
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> GMI_CH4_LOSS           :       true     # 1985
-    --> GLOBAL_OH              :       true     # 1985
-    --> GLOBAL_CL              :       true     # 2005
+    --> GLOBAL_OH              :       true     # 2010-2019
+    --> GLOBAL_CL              :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
 # ----------------------------------------------------------------------------

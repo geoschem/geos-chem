@@ -53,7 +53,7 @@ Warnings:                    1
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NON-EMISSIONS DATA ------------------------------------
-    --> OXIDANT_FIELDS         :       true     # 1985
+    --> OXIDANT_FIELDS         :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
 #------------------------------------------------------------------------------

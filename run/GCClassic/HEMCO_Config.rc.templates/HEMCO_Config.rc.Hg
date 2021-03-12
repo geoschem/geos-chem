@@ -82,11 +82,11 @@ Warnings:                    1
     --> EDGAR_TRO              :       false    # 1970-2012
     --> EDGAR_WASTE            :       false    # 1970-2012
 # ----- NON-EMISSIONS DATA ------------------------------------
-    --> OXIDANT_FIELDS         :       true     # 2007
-    --> BrOx_GC                :       true     # 2007
-    --> JBrO                   :       true     # 2002 
+    --> OXIDANT_FIELDS         :       true     # 2010-2019
+    --> BrOx_GC                :       true     # 2010-2019
+    --> JBrO                   :       true     # 2010-2019
     --> LRED_JNO2              :       true     # 2005
-    --> AERO_HG2_PARTITION     :       true     # 2007
+    --> AERO_HG2_PARTITION     :       true     # 2010-2019
     --> OCEAN_Hg               :       true     # 1985,2003,2009
     --> TOMS_SBUV_O3           :       true     # 1971-2010
     --> LHALOGENCHEM           :       true
@@ -585,8 +585,8 @@ Warnings:                    1
 # --- BrOx fields --
 #==============================================================================
 (((BrOx_GC
-* Br_GC      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_Br  2010-2019/1-12/1/0 C xyz 1 * - 1 1
-* BrO_GC     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* Br_GC      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_Br  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* BrO_GC     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))BrOx_GC
 
 (((.not.BrOx_GC
@@ -598,24 +598,24 @@ Warnings:                    1
 # --- J-value fields ---
 #==============================================================================
 (((JBrO
-* JBrO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4 Jval_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* JBrO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM01_0000z.nc4 Jval_BrO 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))JBrO
 (((LRED_JNO2
-* JNO2 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4 Jval_NO2 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* JNO2 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM01_0000z.nc4 Jval_NO2 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))LRED_JNO2
 
 #==============================================================================
 # --- Aerosol data for Hg2 partitioning ---
 #==============================================================================
 (((AERO_HG2_PARTITION
-* AERO_SO4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_SO4  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_NH4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NH4  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_NIT  2007/1/1/0 C xyz 1 * - 1 1
-* AERO_BCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BCPI 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_BCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_BCPO 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_OCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OCPI 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_OCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_OCPO 2007/1/1/0 C xyz 1 * - 1 1
-* AERO_DST1 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4 SpeciesConc_DST1 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_SO4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_SO4  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_NH4  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NH4  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_NIT  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_NIT  2007/1/1/0 C xyz 1 * - 1 1
+* AERO_BCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPI 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_BCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_BCPO 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_OCPI $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPI 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_OCPO $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OCPO 2007/1/1/0 C xyz 1 * - 1 1
+* AERO_DST1 $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_DST1 2007/1/1/0 C xyz 1 * - 1 1
 )))AERO_HG2_PARTITION
 
 #==============================================================================

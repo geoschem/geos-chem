@@ -107,7 +107,7 @@ Warnings:                    1
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> UVALBEDO               :       true     # 1985
     --> OMOC_RATIO             :       false    # 2010
-    --> OXIDANT_FIELDS         :       true     # 1985
+    --> OXIDANT_FIELDS         :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
     --> RRTMG                  :       false    # 2002
