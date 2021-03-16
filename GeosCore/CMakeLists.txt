@@ -127,6 +127,10 @@ target_link_libraries(GeosCore
   # Add dependency on the correct KPP library
   $<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
   $<$<STREQUAL:${MECH},custom>:KPP_custom>
+  #------------------------------------------------------------------
+  # Kludge for KPP development, can remove it later (bmy, 3/16/21)
+  $<$<STREQUAL:${MECH},aerochem>:KPP_aerochem>
+  #------------------------------------------------------------------
 
   $<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true

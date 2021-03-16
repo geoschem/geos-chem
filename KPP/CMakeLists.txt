@@ -4,4 +4,7 @@ endif()
 if("${MECH}" STREQUAL custom)
 	add_subdirectory(custom)
 endif()
+if("${MECH}" STREQUAL aerochem)
+	add_subdirectory(aerochem)
+endif()
 

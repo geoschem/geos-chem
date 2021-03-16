@@ -27,5 +27,10 @@ target_link_libraries(Headers
 	PUBLIC
 	$<$<STREQUAL:${MECH},fullchem>:KPPFirstPass_fullchem>
 	$<$<STREQUAL:${MECH},custom>:KPPFirstPass_custom>
+	#------------------------------------------------------
+	### Kludge for KPP development (can remove this later)
+	### bmy, msl, 3/16/21
+	$<$<STREQUAL:${MECH},aerochem>:KPPFirstPass_aerochem>
+	#------------------------------------------------------
 )
 
