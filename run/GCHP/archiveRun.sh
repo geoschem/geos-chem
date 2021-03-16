@@ -89,17 +89,17 @@ movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
-copyfiles input.geos           ${archivedir}/Config
-copyfiles rundir.version       ${archivedir}/Config
+copyfiles "input.geos"         ${archivedir}/Config
+copyfiles "rundir.version"     ${archivedir}/Config
 copyfiles "*.rc"               ${archivedir}/Config
-copyfiles runConfig.sh         ${archivedir}/Config
+copyfiles "runConfig.sh"       ${archivedir}/Config
 copyfiles "*.run"              ${archivedir}/Config
 copyfiles "*.multirun.sh"      ${archivedir}/Config
 copyfiles "*.env"              ${archivedir}/Config
 copyfiles "*.log"              ${archivedir}/Logs
 copyfiles "slurm-*"            ${archivedir}/Logs
 copyfiles "gcchem_*"           ${archivedir}/Checkpoints
-copyfiles cap_restart          ${archivedir}/Checkpoints
+copyfiles "cap_restart"        ${archivedir}/Checkpoints
 copyfiles "build_info/*"       ${archivedir}/Build
 
 # Special handling for copying initial restart (retrieve filename from config)

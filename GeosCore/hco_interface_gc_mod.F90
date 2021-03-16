@@ -121,12 +121,11 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
 ! types and arrays. The HEMCO configuration is read from the HEMCO
-! configuration file (as listed in Input\_Opt%HcoConfigFile) and stored in
-! the HEMCO configuration object. The entire HEMCO setup is based upon the
-! entries in the HEMCO configuration object. It is possible to explicitly
-! provide a (previously read) HEMCO configuration object via input argument
-! `HcoConfig`. In this case the HEMCO configuration file will not be read
-! any more.
+! configuration file (HEMCO_Config.rc) and stored in the HEMCO configuration
+! object. The entire HEMCO setup is based upon the entries in the HEMCO
+! configuration object. It is possible to explicitly provide a (previously
+! read) HEMCO configuration object via input argument `HcoConfig`. In this
+! case the HEMCO configuration file will not be read any more.
 !\\
 !\\
 ! !INTERFACE:
@@ -188,6 +187,7 @@ CONTAINS
     INTEGER                   :: N
 
     ! Strings
+    CHARACTER(LEN=255)        :: HcoConfigFile
     CHARACTER(LEN=255)        :: OptName, ThisLoc, Instr
     CHARACTER(LEN=512)        :: ErrMSg
 
@@ -206,6 +206,9 @@ CONTAINS
     ThisLoc  = ' -> at HCOI_GC_Init (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
+
+    ! Name of HEMCO configuration file
+    HcoConfigFile = 'HEMCO_Config.rc'
 
     ! Define all species ID's here, for use in module routines below
     id_HNO3  = Ind_('HNO3')
@@ -241,11 +244,7 @@ CONTAINS
     ! The log file is now read in two phases: phase 1 reads only the
     ! settings and extensions; phase 2 reads all data fields. This
     ! way, settings and extension options can be updated before
-    ! reading all the associated fields. For instance, if the LEMIS
-    ! toggle is set to false (=no emissions), all extensions can be
-    ! deactivated. Similarly, certain brackets can be set explicitly
-    ! to make sure that these data is only read by HEMCO if the
-    ! corresponding GEOS-Chem switches are turned on.
+    ! reading all the associated fields.
     ! (ckeller, 2/13/15).
     !=======================================================================
 
@@ -292,7 +291,7 @@ CONTAINS
     !---------------------------------------
     CALL Config_ReadFile( Input_Opt%amIRoot,        &
                           iHcoConfig,               &
-                          Input_Opt%HcoConfigFile,  &
+                          HcoConfigFile,            &
                           1,                        &
                           HMRC,                     &
                           IsDryRun=Input_Opt%DryRun )
@@ -335,7 +334,7 @@ CONTAINS
     !---------------------------------------
     CALL Config_ReadFile( Input_Opt%amIRoot,        &
                           iHcoConfig,               &
-                          Input_Opt%HcoConfigFile,  &
+                          HcoConfigFile,            &
                           2,                        &
                           HMRC,                     &
                           IsDryRun=Input_Opt%DryRun )
@@ -2915,45 +2914,6 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! If emissions are turned off, do not read emissions data
-    !-----------------------------------------------------------------------
-    IF ( .NOT. Input_Opt%LEMIS ) THEN
-
-       IF ( Input_Opt%amIRoot ) THEN
-          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-          Print*, '% Emissions are set to false in input.geos so emissions %'
-          Print*, '% data will not be read by HEMCO (hco_interface_gc_mod.F90) %'
-          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-       END IF
-
-       OptName = 'EMISSIONS : false'
-       CALL AddExtOpt( HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt( EMISSIONS )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-       ! Reset all extension numbers to -999.
-       ! This will make sure that none of the extensions will be initialized
-       ! and none of the input data related to any of the extensions will be
-       ! used.
-       CALL SetExtNr( HcoConfig, -999, RC=HMRC                   )
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "SetExtNr"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! If chemistry is turned off, do not read chemistry input data
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LCHEM ) THEN
@@ -2977,6 +2937,28 @@ CONTAINS
        ENDIF
 
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! EMISSIONS switch in HEMCO_Config.rc
+    !
+    ! Create a shadow field (Input_Opt%DoEmissions) to determine if
+    ! emissions fluxes should be applied in mixing_mod.F90
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( HcoConfig, -999, 'EMISSIONS',           &
+                    OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "GetExtOpt( EMISSIONS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+    IF ( .not. FOUND ) THEN
+       ErrMsg = 'EMISSIONS not found in HEMCO_Config.rc file!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%DoEmissions = LTMP
 
     !-----------------------------------------------------------------------
     ! Lightning NOx extension
@@ -3183,6 +3165,16 @@ CONTAINS
           RETURN
        ENDIF
 
+    ENDIF
+
+    ! Print value of shadow fields
+    IF ( Input_Opt%amIRoot ) THEN
+       Print*, ''
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       Print*, 'Switches read from HEMCO_Config.rc:'
+       Print*, '  EMISSIONS : ', Input_Opt%DoEmissions 
+       Print*, '  LightNOx  : ', Input_Opt%DoLightNOx
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
     ENDIF
 
     ! Return w/ success

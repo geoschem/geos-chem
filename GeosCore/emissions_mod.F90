@@ -265,17 +265,18 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! For CH4 simulation or if CH4 is defined, call EMISSCH4.
+    ! For CH4 simulation
+    !
     ! This will get the individual CH4 emission terms (gas, coal, wetlands,
     ! ...) and write them into the individual emissions arrays defined in
     ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
     ! call to EMISSCH4 is for backwards consistency.  This is especially
-    ! needed to do the analytical inversions.  NOTE: The CH4 manual
-    ! diagnostics are no longer used to force-feed the ND58 bpch diagnostics
-    ! becasue we now archive the exact same quantities to the HEMCO
-    ! diagnostics output. (bmy, mps, 10/19/18)
-    IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-       ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+    ! needed to do the analytical inversions.
+    !
+    ! To enable CH4 emissions in a full-chemistry simulation, add entries
+    ! in HEMCO_Config.rc as is done for other species. 
+    ! (mps, 2/12/21)
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
        CALL EmissCh4( Input_Opt, State_Met, RC )
 
        ! Trap potential errors
@@ -302,7 +303,7 @@ CONTAINS
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        ! Set other (non-UCX) fixed VMRs
-       If ( Input_Opt%LEMIS ) Then
+       If ( Input_Opt%DoEmissions ) Then
           CALL FixSfcVMR_Run( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
           ! Trap potential errors

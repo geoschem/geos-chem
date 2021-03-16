@@ -255,6 +255,7 @@ BrO:
   FullName: Bromine monoxide
   Is_Advected: true
   Is_Gas: true
+  Is_DryAlt: true
   Is_Photolysis: true
   MW_g: 95.90
 BRO2:

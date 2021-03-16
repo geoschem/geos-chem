@@ -203,7 +203,6 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: LCONV
   LOGICAL                  :: LDRYD
   LOGICAL                  :: LDYNOCEAN
-  LOGICAL                  :: LEMIS
   LOGICAL                  :: LGTMM
   LOGICAL                  :: LLINOZ
   LOGICAL                  :: LNLPBL
@@ -457,7 +456,6 @@ PROGRAM GEOS_Chem
   LCONV               =  Input_Opt%LCONV
   LDRYD               =  Input_Opt%LDRYD
   LDYNOCEAN           =  Input_Opt%LDYNOCEAN
-  LEMIS               =  Input_Opt%LEMIS
   LGTMM               =  Input_Opt%LGTMM
   LLINOZ              =  Input_Opt%LLINOZ
   LNLPBL              =  Input_Opt%LNLPBL
@@ -726,16 +724,7 @@ PROGRAM GEOS_Chem
 
   ! Initialize HEMCO. This reads the HEMCO configuration file
   ! and creates entries for all data files needed for emission
-  ! calculation. Also sets some logical switches in Input_Opt
-  ! (e.g. LSOILNOX).
-  ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
-  ! is to make sure that HEMCO can still be used to read
-  ! non-emission data such as stratospheric Bry fields. If LEMIS
-  ! is set to FALSE, the emissions driver routines will make sure
-  ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
-  !
-  ! This call will also initialize the three built-in HEMCO
-  ! diagnostics (default, manual, restart).
+  ! calculation.
   IF ( Input_Opt%useTimers ) THEN
      CALL Timer_Start( "HEMCO", RC )
   ENDIF

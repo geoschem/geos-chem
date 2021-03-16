@@ -230,12 +230,6 @@ Turn on Cloud Conv?     : T
 Turn on PBL Mixing?     : T
  => Use non-local PBL?  : T
 ------------------------+------------------------------------------------------
-%%% EMISSIONS MENU %%%  :
-HEMCO Input file        : HEMCO_Config.rc
-Switches for UCX        :---
- => Use CH4 emissions?  : F
- => Set init. strat. H2O: T
-------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
  => Metal cat. SO2 ox.? : T

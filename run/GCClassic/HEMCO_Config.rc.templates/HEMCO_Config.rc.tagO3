@@ -53,7 +53,7 @@ Warnings:                    1
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NON-EMISSIONS DATA ------------------------------------
-    --> O3_PROD_LOSS           :       true     # 2004
+    --> O3_PROD_LOSS           :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
     --> OCEAN_O3_DRYDEP        :       true     # 1985
@@ -204,8 +204,8 @@ Warnings:                    1
 #==============================================================================
 (((CHEMISTRY_INPUT
 (((O3_PROD_LOSS
-* O3_PROD $ROOT/TAGGED_O3/v2014-09/O3_PRODLOSS.$met.4x5.nc POX 2004/1-12/1-31/0 C xyz kg/m3/s * - 1 1
-* O3_LOSS $ROOT/TAGGED_O3/v2014-09/O3_PRODLOSS.$met.4x5.nc LOX 2004/1-12/1-31/0 C xyz  1/m3/s * - 1 1
+* O3_PROD $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4 Prod_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+* O3_LOSS $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4 Loss_Ox 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))O3_PROD_LOSS
 )))CHEMISTRY_INPUT
 

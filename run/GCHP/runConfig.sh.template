@@ -116,20 +116,19 @@ INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
 # You can specify a custom initial restart file by overwriting the default.
 
 #------------------------------------------------------------
-#    Turn Components On/Off, and other settings in input.geos
+#    Turn Components On/Off
 #------------------------------------------------------------
+# WARNING: these settings will override manual updates you make to config files!
+# input.geos
 Turn_on_Chemistry=T
-Turn_on_emissions=T
 Turn_on_Dry_Deposition=T
 Turn_on_Wet_Deposition=T
 Turn_on_Transport=T
 Turn_on_Cloud_Conv=T
 Turn_on_PBL_Mixing=T
 Turn_on_Non_Local_Mixing=T
-# Settings for UCX
-Use_CH4_emis=F
-Init_strat_H2O=T
-# WARNING: these settings will override manual updates you make to input.geos!
+# HEMCO_Config.rc
+Turn_on_Base_Emissions=true
 
 #------------------------------------------------
 #    Timesteps
@@ -572,7 +571,6 @@ print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
 replace_val "Turn on Chemistry?"        ${Turn_on_Chemistry}        input.geos
-replace_val "Turn on emissions?"	${Turn_on_emissions}        input.geos
 replace_val "Turn on Transport"	        ${Turn_on_Transport}        input.geos
 replace_val "Turn on Cloud Conv?"	${Turn_on_Cloud_Conv}       input.geos
 replace_val "Turn on PBL Mixing?"	${Turn_on_PBL_Mixing}       input.geos
@@ -581,11 +579,15 @@ replace_val "Turn on Dry Deposition?"   ${Turn_on_Dry_Deposition}   input.geos
 replace_val "Turn on Wet Deposition?"   ${Turn_on_Wet_Deposition}   input.geos
 replace_val AdvCore_Advection           ${ADVCORE_ADVECTION}        GCHP.rc
 
-print_msg " "
-print_msg "Switches for UCX:"
-print_msg "------------------"
-replace_val " => Use CH4 emissions?"    ${Use_CH4_emis}             input.geos
-replace_val " => Set init. strat. H2O"  ${Init_strat_H2O}           input.geos
+#### Set options in HEMCO_Config.rc
+print_msg ""
+print_msg "HEMCO settings:"
+print_msg "---------------"
+replace_val "--> EMISSIONS" ${Turn_on_Base_Emissions} HEMCO_Config.rc
+print_msg "NOTE: Includes base emissions only. Turning Extensions on/off must be done manually in HEMCO_Config.rc."
+if [[ ${dustSetting[3]} = "on" ]]; then
+    replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
+fi
 
 #### Set timesteps. This includes updating ExtData.rc entries for PS2,
 #### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
@@ -662,14 +664,6 @@ if [[ ${#inst_collections[@]} > 0 ]]; then
       replace_val $c.frequency   ${inst_freq}      HISTORY.rc  
       replace_val $c.duration    ${inst_dur}       HISTORY.rc
    done
-fi
-
-#### Set options in HEMCO_Config.rc
-print_msg ""
-if [[ ${dustSetting[3]} = "on" ]]; then
-    print_msg "HEMCO settings:"
-    print_msg "---------------"
-    replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
 
 

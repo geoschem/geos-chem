@@ -86,9 +86,9 @@ Mask fractions:              false
     --> QFED2                  :       true     # 2000-2020
     --> GFAS                   :       false    # 2003-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
-    --> GLOBAL_OH              :       true     # 2013
-    --> PROD_CO_CH4            :       true     # 2013
-    --> PROD_CO_NMVOC          :       true     # 2013
+    --> GLOBAL_OH              :       true     # 2010-2019
+    --> PROD_CO_CH4            :       true     # 2010-2019
+    --> PROD_CO_NMVOC          :       true     # 2010-2019
     --> GMI_PROD_LOSS          :       true     # 2005
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
@@ -905,13 +905,13 @@ Mask fractions:              false
 # --- Quantities needed for CO chemistry ---
 #==============================================================================
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/OH/v2017-04/OH_3Dglobal.geosfp.2x25.nc         OH        2013/1-12/1/0 C xyz kg/m3   * - 1 1
+* GLOBAL_OH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OH  2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_OH
 (((PROD_CO_CH4
-* PCO_CH4    $ROOT/TAGGED_CO/v2017-04/PCO_3Dglobal.geosfp.2x25.nc PCO_CH4   2013/1-12/1/0 C xyz kg/m3/s * - 1 1
+* PCO_CH4     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4    ProdCOfromCH4   2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_CH4
 (((PROD_CO_NMVOC
-* PCO_NMVOC  $ROOT/TAGGED_CO/v2017-04/PCO_3Dglobal.geosfp.2x25.nc PCO_NMVOC 2013/1-12/1/0 C xyz kg/m3/s * - 1 1
+* PCO_NMVOC   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4    ProdCOfromNMVOC 2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_NMVOC
 
 #==============================================================================

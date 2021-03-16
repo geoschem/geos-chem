@@ -62,28 +62,22 @@
 #  &main()            : Driver function
 #
 # !PRIVATE MEMBER FUNCTIONS:
-#  &isMonotonic($)    : Checks index variables for monotonicity
-#  &analyzeTime($)    : Checks the "time" variable for COARDS compliance
-#  &analyzeLev($)     : Checks the "lev" variable for COARDS compliance
-#  &analyzeLat($)     : Checks the "lat" variable for COARDS compliance
-#  &analyzeLon($)     : Checks the "lon" variable for COARDS compliance
-#  &analyzeVar($)     : Checks each netCDF" variable for COARDS compliance
-#  &analyzeGlobAtts() : Checks netCDF global attributes for COARDS compliance
-#  &analyzeResults()  : Calls the &analyze* routines and prints results
-#  &parseFile($)      : Calls ncdump and parses the output into Perl variables
+#  &isMonotonic($)     : Checks index variables for monotonicity
+#  &isFirstValueZero($): Checks if the first time point is zero (GCHP req)
+#  &analyzeTime($)     : Checks the "time" variable for COARDS compliance
+#  &analyzeLev($)      : Checks the "lev" variable for COARDS compliance
+#  &analyzeLat($)      : Checks the "lat" variable for COARDS compliance
+#  &analyzeLon($)      : Checks the "lon" variable for COARDS compliance
+#  &analyzeVar($)      : Checks each netCDF" variable for COARDS compliance
+#  &analyzeGlobAtts()  : Checks netCDF global attributes for COARDS compliance
+#  &analyzeResults()   : Calls the &analyze* routines and prints results
+#  &parseFile($)       : Calls ncdump and parses the output into Perl variables
 #
 # !REMARKS:
 #  (1) Assumes a version of "ncdump" is installed on your system.
 #  (2) isCoards may have some limitations.  We have written this primarily
 #       to check COARDS compliance for netCDF files that will be read
 #       by the HEMCO emissions component (part of GEOS-Chem).
-#
-# !REVISION HISTORY:
-#  23 Dec 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add more error checks to avoid warnings
-#                              if null values are encountered
-#  30 Apr 2018 - R. Yantosca - Update the algorithm to be consistent with
-#                              the latest GC netCDF diagnostic output files
 #EOC
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -111,9 +105,6 @@ sub isMonotonic($) {
   # String to indicate return status
   my $result = "";
 #
-# !REVISION HISTORY:
-#  05 Jan 2016 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Bug fix: return string value if not monotonic
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -155,6 +146,43 @@ sub isMonotonic($) {
   if   ( $direction ==  1 ) { return( "is monotonically increasing" ); }
   else                      { return( "is monotonically decreasing" ); }
 }
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: isFirstValueZero
+#
+# !DESCRIPTION: Checks to see if the first value in a list is zero
+#\\
+#\\
+# !INTERFACE:
+#
+sub isFirstValueZero($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Comma-separated list of values
+  my ( $list ) = @_;
+#
+# !RETURN VALUE:
+#
+  # String to indicate return status
+  my $result = "";
+#
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Arrays
+  my @result  = split( /,/, $list );
+
+  # Test the first value
+  if ( $result[0] == "0" ) { return "[0] = 0 (this is required for GCHP)" }
+  else                     { return "[0] != 0 (this is required for GCHP)" }
+}
 #EOC
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -176,10 +204,6 @@ sub analyzeTime($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  23 Dec 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add checks for null values
-#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -202,14 +226,23 @@ sub analyzeTime($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if times are monotonically increasing
+  # %%%%% Check if times are monotonic
   $value = &isMonotonic( $times );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
-       $value eq "is monotonically decreasing" ){
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
     $msg  = qq/$sep $var $value\n/;
     @BAD  = ( @BAD,  $msg );
   } else {
     $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Make sure the first time is zero (this is a GCHP req)
+  $value = &isFirstValueZero( $times );
+  if ( $value =~ "!= 0" ) {
+    $msg  = qq/$sep $var$value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var$value\n/;
     @GOOD = ( @GOOD,  $msg );
   }
 
@@ -297,9 +330,6 @@ sub analyzeILev($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  23 Apr 2018 - R. Yantosca - Initial version
-#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -415,13 +445,6 @@ sub analyzeLev($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add checks for null values
-#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
-#  08 Jan 2016 - R. Yantosca - Add "vertical level as an accepted long_name
-#  08 Jan 2016 - R. Yantosca - Add "layer", "level" as accepted units
-#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -537,10 +560,6 @@ sub analyzeLat($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add checks for null values
-#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -559,25 +578,26 @@ sub analyzeLat($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if latitudes are monotonically increasing
-  $value = &isMonotonic( $latitudes );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
-       $value eq "is monotonically decreasing" ) {
-    $msg  = qq/$sep $var $value\n/;
-    @BAD  = ( @BAD,  $msg );
-  } else {
-    $msg  = qq/$sep $var $value\n/;
-    @GOOD = ( @GOOD,  $msg );
-  }
+  if ( $var =~ m/[Ll][Aa][Tt]/ ) {
+    # %%%%% Check if latitudes are monotonic
+    $value = &isMonotonic( $latitudes );
+    if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+      $msg  = qq/$sep $var $value\n/;
+      @BAD  = ( @BAD,  $msg );
+    } else {
+      $msg  = qq/$sep $var $value\n/;
+      @GOOD = ( @GOOD,  $msg );
+    }
 
-  # %%%%% Check the axis attribute (optional)
-  $value = $axis{$var};
-  if ( defined( $value) && $value =~ m/[Yy]/ ) {
-    $msg  = qq/$sep $var:axis =$value\n/;
-    @GOOD = ( @GOOD, $msg );
-  } else {
-    $msg  = qq/$sep Consider adding $var:axis = "Y"\n/;
-    @OPT  = ( @OPT,  $msg );
+    # %%%%% Check the axis attribute (optional)
+    $value = $axis{$var};
+    if ( defined( $value) && $value =~ m/[Yy]/ ) {
+      $msg  = qq/$sep $var:axis =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep Consider adding $var:axis = "Y"\n/;
+      @OPT  = ( @OPT,  $msg );
+    }
   }
 
   # %%%%% Check the long_name attribute
@@ -634,10 +654,6 @@ sub analyzeLon($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add checks for null values
-#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -656,25 +672,26 @@ sub analyzeLon($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if longitudes are monotonically increasing
-  $value = &isMonotonic( $longitudes );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
-       $value eq "is monotonically decreasing" ) {
-    $msg  = qq/$sep $var $value\n/;
-    @BAD  = ( @BAD,  $msg );
-  } else {
-    $msg  = qq/$sep $var $value\n/;
-    @GOOD = ( @GOOD,  $msg );
-  }
+  if ( $var =~ m/[Ll][Oo][Nn]/ ) {
+     # %%%%% Check if latitudes are monotonic (skip for GCHP)
+     $value = &isMonotonic( $longitudes );
+     if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+       $msg  = qq/$sep $var $value\n/;
+       @BAD  = ( @BAD,  $msg );
+     } else {
+       $msg  = qq/$sep $var $value\n/;
+       @GOOD = ( @GOOD,  $msg );
+     }
 
-  # %%%%% Check the axis attribute (optional)
-  $value = $axis{$var};
-  if ( defined( $value ) && $value =~ m/[Xx]/ ) {
-    $msg  = qq/$sep $var:axis =$value\n/;
-    @GOOD = ( @GOOD, $msg );
-  } else {
-    $msg  = qq/$sep Consider adding $var:axis ="X"\n/;
-    @OPT  = ( @OPT,  $msg );
+     # %%%%% Check the axis attribute (optional / skip for GCHP)
+     $value = $axis{$var};
+     if ( defined( $value ) && $value =~ m/[Xx]/ ) {
+       $msg  = qq/$sep $var:axis =$value\n/;
+       @GOOD = ( @GOOD, $msg );
+     } else {
+       $msg  = qq/$sep Consider adding $var:axis ="X"\n/;
+       @OPT  = ( @OPT,  $msg );
+     }
   }
 
   # %%%%% Check the long_name attribute
@@ -731,8 +748,6 @@ sub analyzeVar($) {
   # Variable name (from ncdump output)
   my ( $var ) = @_;
 #
-# !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -823,25 +838,25 @@ sub analyzeVar($) {
     @OPT  = ( @OPT,  $msg );
   }
 
-  # %%%%% Check the add_offset attribute (optional)
-  $value = $add_offset{$var};
-  if ( defined( $value ) && $value ne "" ) {
-    $msg = qq/$sep $var:add_offset =$value\n/;
-    @GOOD = ( @GOOD, $msg );
-  } else {
-    $msg  = qq/$sep Consider adding $var:add_offset\n/;
-    @OPT  = ( @OPT,  $msg );
-  }
-
-  # %%%%% Check the scale_factor attribute (optional)
-  $value = $scale_factor{$var};
-  if ( defined( $value ) && $value ne "" ) {
-    $msg = qq/$sep $var:scale_factor =$value\n/;
-    @GOOD = ( @GOOD, $msg );
-  } else {
-    $msg  = qq/$sep Consider adding $var:scale_factor\n/;
-    @OPT  = ( @OPT,  $msg );
-  }
+#  # %%%%% Check the add_offset attribute (optional)
+#  $value = $add_offset{$var};
+#  if ( defined( $value ) && $value ne "" ) {
+#    $msg = qq/$sep $var:add_offset =$value\n/;
+#    @GOOD = ( @GOOD, $msg );
+#  } else {
+#    $msg  = qq/$sep Consider adding $var:add_offset\n/;
+#    @OPT  = ( @OPT,  $msg );
+#  }
+#
+#  # %%%%% Check the scale_factor attribute (optional)
+#  $value = $scale_factor{$var};
+#  if ( defined( $value ) && $value ne "" ) {
+#    $msg = qq/$sep $var:scale_factor =$value\n/;
+#    @GOOD = ( @GOOD, $msg );
+#  } else {
+#    $msg  = qq/$sep Consider adding $var:scale_factor\n/;
+#    @OPT  = ( @OPT,  $msg );
+#  }
 
   # Return with error code
   return( $? );
@@ -862,9 +877,6 @@ sub analyzeVar($) {
 #
 sub analyzeGlobAtts() {
 #
-# !REVISION HISTORY:
-#  05 Jan 2016 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Add more robust error check
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -946,10 +958,6 @@ sub analyzeGlobAtts() {
 #
 sub analyzeResults() {
 #
-# !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
-#  06 Jan 2016 - R. Yantosca - Now test for upper/lower case index var names
-#  17 Feb 2016 - R. Yantosca - Fixed typo: [ instead of ] in regexp for lat
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -972,11 +980,16 @@ sub analyzeResults() {
   # Check dimensions: Only lon, lat, lev, ilev, and time are acceptable;
   # Otherwise GCHP simulations will die when reading the file (bmy, 6/14/18)
   foreach $dim ( @dims ) {
-    if ( ( $dim =~ m/[Tt][Ii][Mm][Ee]/ )  ||
-         ( $dim =~ m/[Ii][Ll][Ee][Vv]/ )  ||
-	 ( $dim =~ m/[Ll][Ee][Vv]/     )  ||
-	 ( $dim =~ m/[Ll][Aa][Tt]/     )  ||
-	 ( $dim =~ m/[Ll][Oo][Nn]/     ) )   {
+    if ( ( $dim =~ m/[Tt][Ii][Mm][Ee]/  ) ||
+         ( $dim =~ m/[Ii][Ll][Ee][Vv]/  ) ||
+	 ( $dim =~ m/[Ll][Ee][Vv]/      ) ||
+	 ( $dim =~ m/[Ll][Aa][Tt]/      ) ||
+	 ( $dim =~ m/[Ll][Oo][Nn]/      ) ||
+         ( $dim =~ m/[Xx][Dd][Ii][Mm]/  ) ||     # GCHP only
+         ( $dim =~ m/[Yy][Dd][Ii][Mm]/  ) ||     # GCHP only
+         ( $dim =~ m/nf/                ) ||     # GCHP only
+	 ( $dim =~ m/ncontact/          ) ||     # GCHP only
+	 ( $dim =~ m/orientationStrLen/ ) ) {    # GCHP only
         $msg = qq/$sep Dimension "$dim" adheres to standard usage\n/;
 	@GOOD = ( @GOOD, $msg );
     } else {
@@ -992,12 +1005,25 @@ sub analyzeResults() {
 
   # Check variables
   foreach $var ( @vars ) {
-    if    ( $var =~ m/[Tt][Ii][Mm][Ee]/ ) { &analyzeTime( $var ); }
-    elsif ( $var =~ m/[Ii][Ll][Ee][Vv]/ ) { &analyzeILev( $var ); }
-    elsif ( $var =~ m/[Ll][Ee][Vv]/     ) { &analyzeLev ( $var ); }
-    elsif ( $var =~ m/[Ll][Aa][Tt]/     ) { &analyzeLat ( $var ); }
-    elsif ( $var =~ m/[Ll][Oo][Nn]/     ) { &analyzeLon ( $var ); }
-    else                                  { &analyzeVar ( $var ); }
+
+    # Si
+    if    ( $var =~ m/anchor/            ) {                       }
+    elsif ( $var =~ m/contact/           ) {                       }
+    elsif ( $var =~ m/nf/                ) {                       }
+    elsif ( $var =~ m/orientation/       ) {                       }
+    elsif ( $var =~ m/orientationStrLen/ ) {                       }
+    elsif ( $var =~ m/lats/              ) {                       }
+    elsif ( $var =~ m/lons/              ) {                       }
+
+    # Analyze these dimensions for COARDS compliance
+    elsif ( $var =~ m/[Tt][Ii][Mm][Ee]/  ) { &analyzeTime( $var ); }
+    elsif ( $var =~ m/[Ii][Ll][Ee][Vv]/  ) { &analyzeILev( $var ); }
+    elsif ( $var =~ m/[Ll][Ee][Vv]/      ) { &analyzeLev ( $var ); }
+    elsif ( $var =~ m/[Ll][Aa][Tt]/      ) { &analyzeLat ( $var ); }
+    elsif ( $var =~ m/[Yy][Dd][Ii][Mm]/  ) { &analyzeLat ( $var ); }
+    elsif ( $var =~ m/[Ll][Oo][Nn]/      ) { &analyzeLon ( $var ); }
+    elsif ( $var =~ m/[Xx][Dd][Ii][Mm]/  ) { &analyzeLon ( $var ); }
+    else                                   { &analyzeVar ( $var ); }
   }
 
   # Check global attributes
@@ -1056,11 +1082,6 @@ sub parseFile($) {
   # netCDF file to scan (from command line)
   my ( $fileName ) = @_;
 #
-# !REMARKS:
-#
-# !REVISION HISTORY:
-#  11 Dec 2015 - R. Yantosca - Initial version
-#  05 Jan 2016 - R. Yantosca - Add extra error checks
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -1301,8 +1322,18 @@ sub parseFile($) {
       if ( $inLat                         ) { $latitudes  .= "$line";        }
       if ( $inLat  && $line =~ m/;/       ) { $inLat       =  0;             }
 
+      # Save Ydim values into a string (use $latitudes variable)
+      if ( $line =~ m/[Yy][Dd][Ii][Mm]/   ) { $inLat       =  1              }
+      if ( $inLat                         ) { $latitudes  .= "$line";        }
+      if ( $inLat  && $line =~ m/;/       ) { $inLat       =  0;             }
+
       # Save longitude values into a string
       if ( $line =~ m/[Ll][Oo][Nn]/       ) { $inLon       =  1              }
+      if ( $inLon                         ) { $longitudes .= "$line";        }
+      if ( $inLon  && $line =~ m/;/       ) { $inLon       =  0;             }
+
+      # Save Xdim values into a string (use $longitudes variable)
+      if ( $line =~ m/[Xx][Dd][Ii][Mm]/   ) { $inLon       =  1              }
       if ( $inLon                         ) { $longitudes .= "$line";        }
       if ( $inLon  && $line =~ m/;/       ) { $inLon       =  0;             }
     }
@@ -1371,10 +1402,6 @@ sub parseFile($) {
 #
 sub main() {
 #
-# !REMARKS:
-#
-# !REVISION HISTORY:
-#  11 Dec 2015 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC

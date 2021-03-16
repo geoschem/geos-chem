@@ -50,7 +50,6 @@ Warnings:                    1
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     # 1980-2021
-    --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- GLOBAL INVENTORIES ------------------------------------

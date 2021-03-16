@@ -86,8 +86,8 @@ movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
-copyfiles input.geos           ${archivedir}/Config
-copyfiles rundir.version       ${archivedir}/Config
+copyfiles "input.geos"         ${archivedir}/Config
+copyfiles "rundir.version"     ${archivedir}/Config
 copyfiles "*.rc"               ${archivedir}/Config
 copyfiles "*.run"              ${archivedir}/Config
 copyfiles "*.env"              ${archivedir}/Config
