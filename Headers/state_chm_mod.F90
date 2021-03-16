@@ -434,6 +434,9 @@ CONTAINS
     State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
 
+    ! Indices for HetChem
+    State_Chm%HetInfo           => NULL()
+
     ! Mapping vectors
     State_Chm%Map_Advect        => NULL()
     State_Chm%Map_Aero          => NULL()
