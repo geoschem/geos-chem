@@ -67,6 +67,7 @@ MODULE State_Chm_Mod
   TYPE, PUBLIC :: HetSpc
      INTEGER  :: mId
      REAL(fp) :: MW_g
+     REAL(fp) :: SrMw
      REAL(fp) :: K0
      REAL(fp) :: CR
      REAL(fp) :: TK
@@ -6366,6 +6367,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%BrNO3%mId  = N
        State_Chm%HetInfo%BrNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrNO3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%BrNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%BrNO3%TK   = 298.15_fp
@@ -6380,6 +6382,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%BrSALA%mId  = N
        State_Chm%HetInfo%BrSALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrSALA%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%BrSALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrSALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%BrSALA%TK   = 298.15_fp
@@ -6394,6 +6397,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%BrSALC%mId  = N
        State_Chm%HetInfo%BrSALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%BrSALC%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%BrSALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%BrSALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%BrSALC%TK   = 298.15_fp
@@ -6406,8 +6410,9 @@ CONTAINS
 
     N = Ind_('ClNO2')
     IF ( N > 0 ) THEN
-       State_Chm%HetInfo%ClNO2%mId  = N
-       State_Chm%HetInfo%ClNO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ClNO2%mId   = N
+       State_Chm%HetInfo%ClNO2%MW_g  = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ClNO2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%ClNO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ClNO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%ClNO2%TK   = 298.15_fp
@@ -6422,6 +6427,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%ClNO3%mId  = N
        State_Chm%HetInfo%ClNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ClNO3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%ClNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ClNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%ClNO3%TK   = 298.15_fp
@@ -6436,6 +6442,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%GLYX%mId  = N
        State_Chm%HetInfo%GLYX%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%GLYX%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%GLYX%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%GLYX%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%GLYX%TK   = 298.15_fp
@@ -6450,6 +6457,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%H2O%mId  = N
        State_Chm%HetInfo%H2O%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%H2O%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%H2O%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%H2O%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%H2O%TK   = 298.15_fp
@@ -6464,6 +6472,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HBr%mId  = N
        State_Chm%HetInfo%HBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HBr%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HBr%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HBr%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HBr%TK   = 298.15_fp
@@ -6478,6 +6487,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HCl%mId  = N
        State_Chm%HetInfo%HCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HCl%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HCl%TK   = 298.15_fp
@@ -6492,6 +6502,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HI%mId  = N
        State_Chm%HetInfo%HI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HI%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HI%TK   = 298.15_fp
@@ -6506,6 +6517,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HNO3%mId  = N
        State_Chm%HetInfo%HNO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HNO3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HNO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HNO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HNO3%TK   = 298.15_fp
@@ -6520,6 +6532,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HO2%mId  = N
        State_Chm%HetInfo%HO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HO2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HO2%TK   = 298.15_fp
@@ -6534,6 +6547,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HOI%mId  = N
        State_Chm%HetInfo%HOI%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOI%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HOI%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HOI%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HOI%TK   = 298.15_fp
@@ -6548,6 +6562,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HOBr%mId  = N
        State_Chm%HetInfo%HOBr%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOBr%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HOBr%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HOBr%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HOBr%TK   = 298.15_fp
@@ -6562,6 +6577,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HOCl%mId  = N
        State_Chm%HetInfo%HOCl%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HOCl%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HOCl%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HOCl%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HOCl%TK   = 298.15_fp
@@ -6576,6 +6592,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HONIT%mId  = N
        State_Chm%HetInfo%HONIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HONIT%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HONIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HONIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HONIT%TK   = 298.15_fp
@@ -6590,6 +6607,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%HMML%mId  = N
        State_Chm%HetInfo%HMML%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%HMML%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%HMML%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%HMML%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%HMML%TK   = 298.15_fp
@@ -6604,6 +6622,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%I2O2%mId  = N
        State_Chm%HetInfo%I2O2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%I2O2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%I2O2%TK   = 298.15_fp
@@ -6618,6 +6637,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%I2O3%mId  = N
        State_Chm%HetInfo%I2O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%I2O3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%I2O3%TK   = 298.15_fp
@@ -6632,6 +6652,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%I2O4%mId  = N
        State_Chm%HetInfo%I2O4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%I2O4%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%I2O4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%I2O4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%I2O4%TK   = 298.15_fp
@@ -6646,6 +6667,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IEPOXA%mId  = N
        State_Chm%HetInfo%IEPOXA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXA%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IEPOXA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IEPOXA%TK   = 298.15_fp
@@ -6660,6 +6682,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IEPOXB%mId  = N
        State_Chm%HetInfo%IEPOXB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXB%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IEPOXB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IEPOXB%TK   = 298.15_fp
@@ -6674,6 +6697,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IEPOXD%mId  = N
        State_Chm%HetInfo%IEPOXD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IEPOXD%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IEPOXD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IEPOXD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IEPOXD%TK   = 298.15_fp
@@ -6688,6 +6712,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%ICHE%mId  = N
        State_Chm%HetInfo%ICHE%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ICHE%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%ICHE%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ICHE%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%ICHE%TK   = 298.15_fp
@@ -6702,6 +6727,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IDN%mId  = N
        State_Chm%HetInfo%IDN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IDN%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IDN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IDN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IDN%TK   = 298.15_fp
@@ -6716,6 +6742,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IHN1%mId  = N
        State_Chm%HetInfo%IHN1%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN1%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IHN1%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN1%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IHN1%TK   = 298.15_fp
@@ -6730,6 +6757,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IHN2%mId  = N
        State_Chm%HetInfo%IHN2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IHN2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IHN2%TK   = 298.15_fp
@@ -6744,6 +6772,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IHN3%mId  = N
        State_Chm%HetInfo%IHN3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IHN3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IHN3%TK   = 298.15_fp
@@ -6758,6 +6787,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IHN4%mId  = N
        State_Chm%HetInfo%IHN4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IHN4%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IHN4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IHN4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IHN4%TK   = 298.15_fp
@@ -6772,6 +6802,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%INPB%mId  = N
        State_Chm%HetInfo%INPB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%INPB%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%INPB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%INPB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%INPB%TK   = 298.15_fp
@@ -6786,6 +6817,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%INPD%mId  = N
        State_Chm%HetInfo%INPD%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%INPD%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%INPD%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%INPD%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%INPD%TK   = 298.15_fp
@@ -6800,6 +6832,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IONITA%mId  = N
        State_Chm%HetInfo%IONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONITA%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IONITA%TK   = 298.15_fp
@@ -6814,6 +6847,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IONO%mId  = N
        State_Chm%HetInfo%IONO%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONO%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IONO%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONO%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IONO%TK   = 298.15_fp
@@ -6828,6 +6862,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%IONO2%mId  = N
        State_Chm%HetInfo%IONO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%IONO2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%IONO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%IONO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%IONO2%TK   = 298.15_fp
@@ -6842,6 +6877,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%ITCN%mId  = N
        State_Chm%HetInfo%ITCN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ITCN%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%ITCN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ITCN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%ITCN%TK   = 298.15_fp
@@ -6856,6 +6892,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%ITHN%mId  = N
        State_Chm%HetInfo%ITHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%ITHN%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%ITHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%ITHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%ITHN%TK   = 298.15_fp
@@ -6870,6 +6907,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%LVOC%mId  = N
        State_Chm%HetInfo%LVOC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%LVOC%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%LVOC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%LVOC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%LVOC%TK   = 298.15_fp
@@ -6884,6 +6922,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MCRHN%mId  = N
        State_Chm%HetInfo%MCRHN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MCRHN%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MCRHN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MCRHN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MCRHN%TK   = 298.15_fp
@@ -6898,6 +6937,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MCRHNB%mId  = N
        State_Chm%HetInfo%MCRHNB%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MCRHNB%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MCRHNB%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MCRHNB%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MCRHNB%TK   = 298.15_fp
@@ -6912,6 +6952,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MGLY%mId  = N
        State_Chm%HetInfo%MGLY%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MGLY%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MGLY%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MGLY%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MGLY%TK   = 298.15_fp
@@ -6926,6 +6967,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MONITA%mId  = N
        State_Chm%HetInfo%MONITA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITA%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MONITA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MONITA%TK   = 298.15_fp
@@ -6940,6 +6982,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MONITS%mId = N
        State_Chm%HetInfo%MONITS%MW_g  = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITS%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MONITS%K0    = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITS%CR    = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MONITS%TK    = 298.15_fp
@@ -6954,6 +6997,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MONITU%mId  = N
        State_Chm%HetInfo%MONITU%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MONITU%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MONITU%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MONITU%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MONITU%TK   = 298.15_fp
@@ -6968,6 +7012,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%MVKN%mId  = N
        State_Chm%HetInfo%MVKN%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%MVKN%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%MVKN%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%MVKN%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%MVKN%TK   = 298.15_fp
@@ -6982,6 +7027,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%N2O5%mId  = N
        State_Chm%HetInfo%N2O5%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%N2O5%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%N2O5%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%N2O5%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%N2O5%TK   = 298.15_fp
@@ -6996,6 +7042,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%NIT%mId  = N
        State_Chm%HetInfo%NIT%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NIT%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%NIT%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NIT%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%NIT%TK   = 298.15_fp
@@ -7010,6 +7057,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%NITS%mId  = N
        State_Chm%HetInfo%NITS%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NITS%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%NITS%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NITS%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%NITS%TK   = 298.15_fp
@@ -7024,6 +7072,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%NO2%mId  = N
        State_Chm%HetInfo%NO2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NO2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%NO2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NO2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%NO2%TK   = 298.15_fp
@@ -7038,6 +7087,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%NO3%mId  = N
        State_Chm%HetInfo%NO3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%NO3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%NO3%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%NO3%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%NO3%TK   = 298.15_fp
@@ -7052,6 +7102,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%O3%mId  = N
        State_Chm%HetInfo%O3%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%O3%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%O3%K0   = 1.1e-2_fp
        State_Chm%HetInfo%O3%CR   = 2300.0_fp
        State_Chm%HetInfo%O3%TK   = 298.15_fp
@@ -7066,6 +7117,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%OH%mId  = N
        State_Chm%HetInfo%OH%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%OH%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%OH%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%OH%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%OH%TK   = 298.15_fp
@@ -7080,6 +7132,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%PYAC%mId  = N
        State_Chm%HetInfo%PYAC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%PYAC%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%PYAC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%PYAC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%PYAC%TK   = 298.15_fp
@@ -7094,6 +7147,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%R4N2%mId  = N
        State_Chm%HetInfo%R4N2%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%R4N2%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%R4N2%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%R4N2%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%R4N2%TK   = 298.15_fp
@@ -7108,6 +7162,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%SALA%mId  = N
        State_Chm%HetInfo%SALA%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALA%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%SALA%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALA%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%SALA%TK   = 298.15_fp
@@ -7122,6 +7177,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%SALACL%mId  = N
        State_Chm%HetInfo%SALACL%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALACL%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%SALACL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALACL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%SALACL%TK   = 298.15_fp
@@ -7136,6 +7192,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%SALC%mId  = N
        State_Chm%HetInfo%SALC%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALC%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%SALC%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALC%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%SALC%TK   = 298.15_fp
@@ -7150,6 +7207,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%SALCCL%mId  = N
        State_Chm%HetInfo%SALCCL%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SALCCL%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%SALCCL%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SALCCL%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%SALCCL%TK   = 298.15_fp
@@ -7164,6 +7222,7 @@ CONTAINS
     IF ( N > 0 ) THEN
        State_Chm%HetInfo%SO4%mId  = N
        State_Chm%HetInfo%SO4%MW_g = State_Chm%SpcData(N)%Info%MW_g
+       State_Chm%HetInfo%SO4%SrMw = SQRT(State_Chm%SpcData(N)%Info%MW_g)
        State_Chm%HetInfo%SO4%K0   = State_Chm%SpcData(N)%Info%Henry_K0
        State_Chm%HetInfo%SO4%CR   = State_Chm%SpcData(N)%Info%Henry_CR
        State_Chm%HetInfo%SO4%TK   = 298.15_fp
