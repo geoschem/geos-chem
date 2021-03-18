@@ -4274,46 +4274,10 @@ CONTAINS
        WRITE( 6,'(a)') REPEAT( '=', 79 )
     ENDIF
 
-    ! --------------------------------------------------------------
-    ! Input data sources
-    ! --------------------------------------------------------------
-
-    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
-    ! This is ok for the NOx coeffs which can be regridded on the fly
-    ! from 2x25 onto any other grid. This won't work for the 2D
-    ! boundary conditions, but those have been checked in the logical
-    ! check above (USE2DDATA).
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       GRIDSPEC = 'Grid4x5/InitCFC_'
-    ELSE
-       GRIDSPEC = 'Grid2x25/InitCFC_'
-    ENDIF
-    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
-#ifdef MODEL_GEOS
-         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
-#else
-         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-#endif
-
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and return.
     !=================================================================
     IF ( Input_Opt%DryRun ) THEN
-
-       ! Test if the file exists and define an output string
-       FileName = Noon_File_Root
-       INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
-       IF ( FileExists ) THEN
-          FileMsg = 'UCX (SFCMR_READ): Opening'
-       ELSE
-          FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-       ENDIF
-
-       ! Write to stdout for the dry-run simulation
-       IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
-300       FORMAT( a, ' ', a )
-       ENDIF
 
        ! Get dry-run output from NOXCOEFF_INIT as well
        CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
@@ -4323,25 +4287,8 @@ CONTAINS
     ENDIF
 
     !=================================================================
-    ! For regular simulations, read data from files
+    ! For regular simulations, allocate arrays
     !=================================================================
-
-    ! Write the status of Noon_File_Root to stdout
-    INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
-    IF ( FileExists ) THEN
-       FileMsg = 'UCX (SFCMR_READ): Opening'
-    ELSE
-       FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-    ENDIF
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
-    ENDIF
-
-    IF ( prtDebug ) THEN
-       WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ', &
-            TRIM(NOON_FILE_ROOT)
-       CALL DEBUG_MSG( TRIM(DBGMSG) )
-    ENDIF
 
     ! Allocate arrays of input pressure levels and lat edges
     ALLOCATE( UCX_PLEVS( UCX_NLEVS ), STAT=AS )
