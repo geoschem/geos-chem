@@ -6165,8 +6165,10 @@ CONTAINS
     real(ESMF_KIND_R4), dimension(3) :: kcs
     REAL                             :: fscav
     REAL(ESMF_KIND_R4)               :: hstar,dhr,ak0,dak 
-    INTEGER                          :: N, N_WD
+    REAL                             :: liq_and_gas, retfactor, convfaci2g
+    INTEGER                          :: N
     INTEGER                          :: TurnOffSO2 
+    INTEGER                          :: online_cldliq 
     TYPE(Species), POINTER           :: SpcInfo
 
     __Iam__('AddSpecInfoForMoist')
@@ -6175,17 +6177,22 @@ CONTAINS
     CALL MAPL_GetObjectFromGC(GC, STATE, __RC__ )
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=Internal, __RC__ ) 
 
-    ! Verbose
-    IF ( am_I_Root ) THEN
-       WRITE(*,*) 'Update wet scavenging parameter for MOIST:' 
-       WRITE(*,*) 'ID,          Name:  Hstar, dHstar, Ka, dKa, AerScavEff, KcScal1, KcScal2, KcScal3'
-    ENDIF
-
     ! Turn off SO2 washout? Defaults to yes. 
     ! SO2  washout occurs via reaction with H2O2. This reaction
     ! seems to be explicitly capture in the sulfur chemistry code so make sure that
     ! SO2 is not being washed out.
     CALL ESMF_ConfigGetAttribute( CF, TurnOffSO2, Label="TurnOff_SO2_washout:", Default=1, __RC__ )
+
+    ! Use online or offline calculation of cloud liquid water?
+    CALL ESMF_ConfigGetAttribute( CF, online_cldliq, Label="Online_CLDLIQ:", Default=1, __RC__ )
+
+    ! Verbose
+    IF ( am_I_Root ) THEN
+       WRITE(*,*) 'Update wet scavenging parameter for MOIST:' 
+       WRITE(*,*) 'Turn off SO2 washout: ',TurnOffSO2
+       WRITE(*,*) 'Calculate CLDLIQ online: ',online_cldliq
+       WRITE(*,*) 'ID,          Name:  Hstar, dHstar, Ka, dKa, AerScavEff, KcScal1, KcScal2, KcScal3, liq/gas, i2g, retention'
+    ENDIF
 
     ! Loop over all species
     !DO N_WD = 1, State_Chm%nWetDep
@@ -6234,10 +6241,31 @@ CONTAINS
        IF ( SpcInfo%WD_KcScaleFac(2) /= MISSING ) kcs(2) = SpcInfo%WD_KcScaleFac(2)
        IF ( SpcInfo%WD_KcScaleFac(3) /= MISSING ) kcs(3) = SpcInfo%WD_KcScaleFac(3)
        CALL ESMF_AttributeSet(Field, 'SetofKcScalFactors', kcs, __RC__ )
+       ! Gas-phase washout parameter
+       ! Liquid and gas washout?
+       liq_and_gas = 0.0
+       IF ( SpcInfo%WD_LiqAndGas ) liq_and_gas = 1.0 
+       CALL ESMF_AttributeSet(Field, 'LiqAndGas', liq_and_gas, __RC__ )
+       ! ice to gas ratio
+       IF ( SpcInfo%WD_ConvFacI2G == MISSING ) THEN
+          convfaci2g = 0.0 
+       ELSE       
+          convfaci2g = SpcInfo%WD_ConvFacI2G 
+       ENDIF 
+       CALL ESMF_AttributeSet(Field, 'ConvFacI2G', convfaci2g, __RC__ )
+       ! Retention factor
+       IF ( SpcInfo%WD_RetFactor == MISSING ) THEN
+          retfactor = 1.0 
+       ELSE       
+          retfactor = SpcInfo%WD_RetFactor
+       ENDIF 
+       CALL ESMF_AttributeSet(Field, 'RetentionFactor', retfactor, __RC__ )
+       ! Use online or offline CLDLIQ? This is the same for all species
+       CALL ESMF_AttributeSet(Field, 'OnlineCLDLIQ', real(online_cldliq), __RC__ )
        ! Verbose
        IF ( am_I_Root ) THEN
-          WRITE(*,100) N_WD, TRIM(SpcInfo%Name), hstar, dhr, ak0, dak, fscav, kcs(1), kcs(2), kcs(3)
-100       FORMAT( i3,1x,a14,': ',4(1x,es9.2),4(1x,f3.1) )
+          WRITE(*,100) N, TRIM(SpcInfo%Name), hstar, dhr, ak0, dak, fscav, kcs(1), kcs(2), kcs(3), liq_and_gas, convfaci2g, retfactor
+100       FORMAT( i3,1x,a14,': ',4(1x,es9.2),7(1x,f3.1) )
        ENDIF
     ENDDO
 

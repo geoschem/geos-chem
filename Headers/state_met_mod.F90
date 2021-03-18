@@ -6149,6 +6149,8 @@ CONTAINS
        doRegister = .TRUE.
     ENDIF
 
+    doSlots = PRESENT( nSlots )
+
     IF ( PRESENT( zxyOrder ) ) THEN
        doZxy = zxyOrder
     ELSE
