@@ -151,6 +151,8 @@ def get_run_info():
     """
     run_info = {}
     run_info["nest"] = ""
+    run_info["tomas15"] = False
+    run_info["tomas40"] = False
 
     try:
         with open(INPUT_GEOS_FILE, "r") as f:
@@ -167,6 +169,11 @@ def get_run_info():
                     run_info["met"] = (line.split(":")[1]).strip()
                 elif "Simulation name" in line:
                     run_info["sim"] = (line.split(":")[1]).strip()
+                elif "NK15" in line:
+                    run_info["tomas15"] = True
+                elif "NK40" in line:
+                    run_info["tomas15"] = False
+                    run_info["tomas40"] = True
                 elif "Grid resolution" in line:
                     grid = (line.split(":")[1]).strip()
 
@@ -185,8 +192,6 @@ def get_run_info():
                         break
                     elif "60.0" in line or "70.0" in line:
                         run_info["nest"] = "as"
-                        break
-                    break
             f.close()
     except FileNotFoundError:
         raise FileNotFoundError("Could not open {}".format(INPUT_GEOS_FILE))
@@ -214,8 +219,24 @@ def expand_restart_file_names(paths, run_info):
     for path in paths["found"] + paths["missing"]:
         if "ExtData" in path:
             index = path.find("ExtData")+8
-            prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2018-11/"
-            break
+
+            # Fullchem simulations use restarts from benchmarks (GC_13.0.0)
+            # but TOMAS simulations use restarts from v2020-02
+            if "fullchem" in run_info["sim"]:
+                if run_info["tomas15"] is True or run_info["tomas40"] is True:
+                    prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2020-02/"
+                else:
+                    prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
+                break
+
+            # TransportTracers sims use restarts from benchmarks (GC_13.0.0)
+            elif "TransportTracers" in run_info["sim"]:
+                prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
+                break
+
+            # All other simulations use restarts from v2018-11
+            else:
+                prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2018-11"
 
     # Search for the restart file name in the found files
     new_list = []
@@ -228,14 +249,20 @@ def expand_restart_file_names(paths, run_info):
     
     for path in paths["found"]:
         if "GEOSChem.Restart" in path:
-            realpath = prefix + "initial_GEOSChem_rst." + \
-                       run_info["grid"] + "_" + suffix
-            # --------------------------------------------------------
-            # KLUDGE to replace geosfp "as" file name with "ch"
-            # since symbolic links do not work on AWS s3://gcgrid
-            realpath = realpath.replace("025x03125_tropchem_as.nc",
-                                        "025x03125_tropchem_ch.nc")
-            # --------------------------------------------------------
+            if "fullchem" in run_info["sim"]:
+                if run_info["tomas15"] is True:
+                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS15.nc"
+                elif run_info["tomas40"] is True:
+                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS40.nc"
+                else:
+                    realpath = prefix + \
+                        "GEOSChem.Restart.fullchem.20190701_0000z.nc4"
+            elif "TransportTracers" in run_info["sim"]:
+                realpath = prefix + \
+                    "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
+            else:
+                realpath = prefix + "initial_GEOSChem_rst." + \
+                           run_info["grid"] + "_" + suffix
             path = path + " --> " + realpath
         new_list.append(path)
     paths["found"] = sorted(new_list)
@@ -244,14 +271,20 @@ def expand_restart_file_names(paths, run_info):
     new_list = []
     for path in paths["missing"]:
         if "GEOSChem.Restart" in path:
-            realpath = prefix + "initial_GEOSChem_rst." + \
-                       run_info["grid"] + "_" + suffix
-            # --------------------------------------------------------
-            # KLUDGE to replace geosfp "as" file name with "ch"
-            # since symbolic links do not work on AWS s3://gcgrid
-            realpath = realpath.replace("025x03125_tropchem_as.nc",
-                                        "025x03125_tropchem_ch.nc")
-            # --------------------------------------------------------
+            if "fullchem" in run_info["sim"]:
+                if run_info["tomas15"] is True:
+                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS15.nc"
+                elif run_info["tomas40"] is True:
+                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS40.nc"
+                else:
+                    realpath = prefix + \
+                        "GEOSChem.Restart.fullchem.20190701_0000z.nc4"
+            elif "TransportTracers" in run_info["sim"]:
+                realpath = prefix + \
+                    "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
+            else:
+                realpath = prefix + "initial_GEOSChem_rst." + \
+                           run_info["grid"] + "_" + suffix
             path = path + " --> " + realpath
         new_list.append(path)
     paths["missing"] = sorted(new_list)
@@ -312,8 +345,7 @@ def create_download_script(paths, from_aws=False):
         remote_root = "s3://gcgrid"
         quote = ""
     else:
-        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' + \
-                     paths["local_prefix"] + " "
+        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' #+  paths["local_prefix"] + " "
         remote_root = "http://geoschemdata.computecanada.ca/ExtData"
         quote = '"'
 
@@ -338,24 +370,16 @@ def create_download_script(paths, from_aws=False):
                 local_rst = (path.split("-->")[0]).strip()
                 index1 = remote_rst.find("initial")
                 index2 = remote_rst.find("ExtData") + 7
-                prefix = remote_rst[0:index1]
+                prefix = local_rst
                 remote_rst = remote_root + remote_rst[index2:]
                 cmd = cmd_prefix + quote + remote_rst + quote
                 if from_aws:
                     cmd += " " + prefix
-                print(cmd, file=f)
-                print(file=f)
-
-                # Remove the prior link for safety's sake
-                cmd = "if [[ -L " + local_rst + " ]]; then unlink " + \
-                      local_rst + "; fi"
-                print(cmd, file=f)
-
-                # Then create a symbolic link from the run directory
-                # to the restart file in the local ExtData
-                index3 = remote_rst.find("initial")
-                cmd = "ln -s " + prefix + remote_rst[index3:] + \
-                      " " + local_rst
+                print(cmd)
+                print(paths["local_prefix"])
+                print(remote_rst)
+                print(local_rst)
+                print(remote_root)
                 print(cmd, file=f)
                 print(file=f)
 
@@ -534,7 +558,7 @@ def download_the_data(args):
     # Run the data download script and return the status
     # Remove the file afterwards
     status = subprocess.call(DATA_DOWNLOAD_SCRIPT)
-    os.remove(DATA_DOWNLOAD_SCRIPT)
+    #os.remove(DATA_DOWNLOAD_SCRIPT)
 
     # Raise an exception if the data was not successfully downloaded
     if status != 0:
