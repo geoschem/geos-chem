@@ -169,11 +169,6 @@ def get_run_info():
                     run_info["met"] = (line.split(":")[1]).strip()
                 elif "Simulation name" in line:
                     run_info["sim"] = (line.split(":")[1]).strip()
-                elif "NK15" in line:
-                    run_info["tomas15"] = True
-                elif "NK40" in line:
-                    run_info["tomas15"] = False
-                    run_info["tomas40"] = True
                 elif "Grid resolution" in line:
                     grid = (line.split(":")[1]).strip()
 
@@ -188,10 +183,15 @@ def get_run_info():
                         run_info["grid"] = "025x03125"
                 elif "Longitude" in line:
                     if "-130.0" in line or "-140.0" in line:
-                        run_info["nest"] = "na"                        
+                        run_info["nest"] = "na"
                         break
                     elif "60.0" in line or "70.0" in line:
                         run_info["nest"] = "as"
+                elif "NK15" in line:
+                    run_info["tomas15"] = True
+                elif "NK40" in line:
+                    run_info["tomas15"] = False
+                    run_info["tomas40"] = True
             f.close()
     except FileNotFoundError:
         raise FileNotFoundError("Could not open {}".format(INPUT_GEOS_FILE))
@@ -234,19 +234,23 @@ def expand_restart_file_names(paths, run_info):
                 prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
                 break
 
-            # All other simulations use restarts from v2018-11
+            elif "aerosol" in run_info["sim"]:
+                prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
+                break
+
+            # All other simulations use restarts from v2020-02
             else:
-                prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2018-11"
+                prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2020-02/"
 
     # Search for the restart file name in the found files
     new_list = []
-    
+
     # Suffix string (takes into account nested grids)
     if run_info["nest"] == "":
         suffix = "{}.nc".format(run_info["sim"])
     else:
         suffix = "{}_{}.nc".format(run_info["sim"], run_info["nest"])
-    
+
     for path in paths["found"]:
         if "GEOSChem.Restart" in path:
             if "fullchem" in run_info["sim"]:
@@ -260,9 +264,11 @@ def expand_restart_file_names(paths, run_info):
             elif "TransportTracers" in run_info["sim"]:
                 realpath = prefix + \
                     "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
+            elif "aerosol" in run_info["sim"]:
+                    realpath = prefix + \
+                        "GEOSChem.Restart.fullchem.20190101_0000z.nc4"
             else:
-                realpath = prefix + "initial_GEOSChem_rst." + \
-                           run_info["grid"] + "_" + suffix
+                realpath = prefix + "initial_GEOSChem_rst.2x25_" + suffix
             path = path + " --> " + realpath
         new_list.append(path)
     paths["found"] = sorted(new_list)
@@ -282,9 +288,11 @@ def expand_restart_file_names(paths, run_info):
             elif "TransportTracers" in run_info["sim"]:
                 realpath = prefix + \
                     "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
+            elif "aerosol" in run_info["sim"]:
+                    realpath = prefix + \
+                        "GEOSChem.Restart.fullchem.20190101_0000z.nc4"
             else:
-                realpath = prefix + "initial_GEOSChem_rst." + \
-                           run_info["grid"] + "_" + suffix
+                realpath = prefix + "initial_GEOSChem_rst.2x25_" + suffix
             path = path + " --> " + realpath
         new_list.append(path)
     paths["missing"] = sorted(new_list)
@@ -345,7 +353,8 @@ def create_download_script(paths, from_aws=False):
         remote_root = "s3://gcgrid"
         quote = ""
     else:
-        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' #+  paths["local_prefix"] + " "
+        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' +  \
+                     paths["local_prefix"] + " "
         remote_root = "http://geoschemdata.computecanada.ca/ExtData"
         quote = '"'
 
@@ -371,17 +380,25 @@ def create_download_script(paths, from_aws=False):
                 index1 = remote_rst.find("initial")
                 index2 = remote_rst.find("ExtData") + 7
                 prefix = local_rst
+                extdata = remote_rst[:index2]
                 remote_rst = remote_root + remote_rst[index2:]
                 cmd = cmd_prefix + quote + remote_rst + quote
                 if from_aws:
                     cmd += " " + prefix
-                print(cmd)
-                print(paths["local_prefix"])
-                print(remote_rst)
-                print(local_rst)
-                print(remote_root)
                 print(cmd, file=f)
                 print(file=f)
+
+                # If the file does not exist in the run directory,
+                # then copy it from the restart folder.
+                # This only has to be done from Compute Canada,
+                # since AWS will download directly to the rundir
+                if not from_aws:
+                    if not os.path.exists(local_rst):
+                        index3 = remote_rst.find("GEOSCHEM_RESTARTS")
+                        rst = os.path.join(extdata, remote_rst[index3:])
+                        cmd = "cp -f " + rst + " " + local_rst
+                        print(cmd, file=f)
+                        print(file=f)
 
             elif "gmi.clim.IPMN.geos5.2x25.nc" in path:
 
@@ -558,7 +575,7 @@ def download_the_data(args):
     # Run the data download script and return the status
     # Remove the file afterwards
     status = subprocess.call(DATA_DOWNLOAD_SCRIPT)
-    #os.remove(DATA_DOWNLOAD_SCRIPT)
+    os.remove(DATA_DOWNLOAD_SCRIPT)
 
     # Raise an exception if the data was not successfully downloaded
     if status != 0:
