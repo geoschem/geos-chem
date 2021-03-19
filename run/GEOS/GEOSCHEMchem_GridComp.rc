@@ -79,13 +79,6 @@ RUN_PHASES:        2
 #
 KPP_STOP_IF_FAIL:  0
 
-#
-# %%% Compute vertical updraft velocity (used for
-# %%% wet scavenging) from online values. If set to
-# %%% false (default), a value of 5 m/s and 10 m/s
-# %%% is used over water and land, respectively.
-#
-Calc_VUD_online: 0
 
 #
 # %%% HEMCO configuration file %%%
@@ -115,6 +108,8 @@ Species_friendly_to_moist: 0
 TurnOff_SO2_washout: 1
 # Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
 Online_CLDLIQ: 1
+# Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
+Online_VUD: 0
 
 #
 # %%% Tuning parameter to reduce washout efficiency 

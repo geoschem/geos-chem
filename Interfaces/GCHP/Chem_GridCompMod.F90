@@ -2338,7 +2338,7 @@ CONTAINS
 
     ! Compute vertical updraft velocity from online values 
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, & 
-          Label="Calc_VUD_online:", Default=0, __RC__ )
+          Label="Online_VUD:", Default=0, __RC__ )
     Input_Opt%UseOnlineVUD = ( DoIt == 1 )
     IF ( am_I_Root ) THEN
        WRITE(*,*) '- Compute VUD online: ', Input_Opt%UseOnlineVUD
@@ -6168,7 +6168,7 @@ CONTAINS
     REAL                             :: liq_and_gas, retfactor, convfaci2g
     INTEGER                          :: N
     INTEGER                          :: TurnOffSO2 
-    INTEGER                          :: online_cldliq 
+    INTEGER                          :: online_cldliq, online_vud 
     TYPE(Species), POINTER           :: SpcInfo
 
     __Iam__('AddSpecInfoForMoist')
@@ -6186,11 +6186,15 @@ CONTAINS
     ! Use online or offline calculation of cloud liquid water?
     CALL ESMF_ConfigGetAttribute( CF, online_cldliq, Label="Online_CLDLIQ:", Default=1, __RC__ )
 
+    ! Use online or offline calculation of vertical updraft velocity?
+    CALL ESMF_ConfigGetAttribute( CF, online_vud, Label="Online_VUD:", Default=1, __RC__ )
+
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) 'Update wet scavenging parameter for MOIST:' 
        WRITE(*,*) 'Turn off SO2 washout: ',TurnOffSO2
        WRITE(*,*) 'Calculate CLDLIQ online: ',online_cldliq
+       WRITE(*,*) 'Calculate VUD online: ',online_vud
        WRITE(*,*) 'ID,          Name:  Hstar, dHstar, Ka, dKa, AerScavEff, KcScal1, KcScal2, KcScal3, liq/gas, i2g, retention'
     ENDIF
 
@@ -6262,6 +6266,8 @@ CONTAINS
        CALL ESMF_AttributeSet(Field, 'RetentionFactor', retfactor, __RC__ )
        ! Use online or offline CLDLIQ? This is the same for all species
        CALL ESMF_AttributeSet(Field, 'OnlineCLDLIQ', real(online_cldliq), __RC__ )
+       ! Use online or offline VUD? This is the same for all species
+       CALL ESMF_AttributeSet(Field, 'OnlineVUD', real(online_vud), __RC__ )
        ! Verbose
        IF ( am_I_Root ) THEN
           WRITE(*,100) N, TRIM(SpcInfo%Name), hstar, dhr, ak0, dak, fscav, kcs(1), kcs(2), kcs(3), liq_and_gas, convfaci2g, retfactor
