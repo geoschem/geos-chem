@@ -49,7 +49,6 @@ MODULE UCX_MOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
   PUBLIC :: T_STS          ! Max temperature of STS formation (K)
   PUBLIC :: NDENS_AER      ! See below
 !
@@ -144,7 +143,6 @@ MODULE UCX_MOD
   !=================================================================
 
   ! Scalars
-  CHARACTER(LEN=255)   :: NOON_FILE_ROOT
   REAL(fp)             :: SLA_VA
   REAL(fp)             :: SLA_RR
   REAL(fp)             :: SLA_VR
@@ -3926,6 +3924,8 @@ CONTAINS
     CHARACTER(LEN=255) :: TARG_TRAC
     CHARACTER(LEN=255) :: DBGMSG
     CHARACTER(LEN=255) :: FileMsg
+    CHARACTER(LEN=255) :: GridSpec
+    CHARACTER(LEN=255) :: NOON_FILE_ROOT
 
     !=================================================================
     ! NOXCOEFF_INIT begins here!
@@ -3933,6 +3933,27 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+
+    ! --------------------------------------------------------------
+    ! Input data sources
+    ! --------------------------------------------------------------
+
+    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
+    ! This is ok for the NOx coeffs which can be regridded on the fly
+    ! from 2x25 onto any other grid. This won't work for the 2D
+    ! boundary conditions, but those have been checked in the logical
+    ! check above (USE2DDATA).
+    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+       GRIDSPEC = 'Grid4x5/InitCFC_'
+    ELSE
+       GRIDSPEC = 'Grid2x25/InitCFC_'
+    ENDIF
+    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
+#ifdef MODEL_GEOS
+         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
+#else
+         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+#endif
 
     !=================================================================
     ! In dry-run mode, print file paths to dryrun log and exit.
