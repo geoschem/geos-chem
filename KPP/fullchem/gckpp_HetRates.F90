@@ -50,8 +50,6 @@ MODULE GcKpp_HetRates
   PRIVATE :: HetVOC
   PRIVATE :: HetHBr
   PRIVATE :: HetN2O5
-  PRIVATE :: N2O5
-  PRIVATE :: HO2
   PRIVATE :: CloudHet
 
   ! New iodine heterogeneous chemistry
@@ -118,7 +116,6 @@ MODULE GcKpp_HetRates
   PRIVATE :: GET_THETA_ICE
   PRIVATE :: GAMMA_ClNO3_ICE
   PRIVATE :: GAMMA_HOBr_ICE
-
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -224,8 +221,8 @@ MODULE GcKpp_HetRates
     REAL(dp)               :: HetTemp(3)  !new temp array for gamma results
 
     ! Cloud parameters
-    REAL(dp)               :: rLiq, ALiq, VLiq, CLDFr
-    REAL(dp)               :: rIce, AIce, VIce
+    REAL(dp)               :: rLiq, ALiq, VLiq, CldFr
+    REAL(dp)               :: rIce, AIce, VIce, ClearFr
 
     ! New bromine/chlorine chemistry
     REAL(dp)               :: hConc_Sul
@@ -261,14 +258,14 @@ MODULE GcKpp_HetRates
     ! Point to the HetInfo objec
     H       => State_Chm%HetInfo
 
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     !  Calculate parameters for cloud halogen chemistry
     !  under the new scheme (SDE 2016-12-21)
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
 
     ! Get cloud physical parameters
-    CALL Cld_Params( I,     J,     L,    State_Met, rLiq, ALiq,          &
-                     VLiq,  rIce,  AIce, VIce,      CLDFr          )
+    CALL Cld_Params( I,     J,     L,    State_Met, rLiq,  ALiq,             &
+                     VLiq,  rIce,  AIce, VIce,      CldFr, ClearFr          )
 
     ! Retrieve cloud pH and alkalinity
     pHCloud  = State_Chm%pHCloud(I,J,L)
@@ -280,11 +277,11 @@ MODULE GcKpp_HetRates
     SSAlk(1:2) = State_Chm%SSAlk(I,J,L,1:2)
 
     ! Estimate liquid phase pH (H+ concentration)
-    hConc_Sul = 10.0**(-1.0_dp*pHSSA(1))
-    hConc_LCl = 10.0**(-1.0_dp*pHCloud)
-    hConc_ICl = 10.0**(-4.5_dp)
+    hConc_Sul = 10.0**( -1.0_dp * pHSSA(1) )
+    hConc_LCl = 10.0**( -1.0_dp * pHCloud  )
+    hConc_ICl = 10.0**( -4.5_dp            )
     hConc_SSA = hConc_Sul
-    hConc_SSC = 10.0**(-5.0_dp)
+    hConc_SSC = 10.0**( -5.0_dp            )
 
     ! Get halide concentrations, in cloud
     conc1 = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_dp ) + C(ind_BrSALC)
@@ -1062,10 +1059,10 @@ MODULE GcKpp_HetRates
        HET(ind_IONO2,2) = HetIUptakebySALC( H%IONO2%SrMw, 0.01_dp           )
     ENDIF
 
-!    !------------------------------------------------------------------------
-!    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
-!    ! Assume a ratio of IBr:ICl = 0.15:0.85
-!    !------------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !------------------------------------------------------------------------
     IF ( SSAlk(1) <= 0.05_fp ) THEN
 
        ! Breakdown of HOI on acidic BrSALA
@@ -3299,6 +3296,104 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Gamma_NO3
+!
+! !DESCRIPTION: Function GAMMA\_NO3 calculates reactive uptake coef.
+!               for NO3 on salts and water
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Gamma_NO3( radius, T, C_X, X, H ) RESULT( gamma )
+!
+! !USES:
+!
+    USE PhysConstants, ONLY : Pi, RStarG
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp),       INTENT(IN) :: Radius
+    REAL(dp),       INTENT(IN) :: T        ! Temperature (K)
+    REAL(dp),       INTENT(IN) :: C_X      ! Cl- Concentration (mol/L)
+    INTEGER,        INTENT(IN) :: X        ! X = 1 fine; 2 coarse
+    TYPE(HetState), POINTER    :: H        ! Hetchem species metadata
+!
+! !RETURN VALUE:
+!
+    REAL(dp)                   :: gamma    ! Reactive uptake coefficient [1]
+
+!
+! !REMARKS:
+!   Used in HetNO3_CL, which is immediately below.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+!
+      ! Scalars
+      REAL(dp) :: ab, M_X, k_tot, H_X, k1, k2
+      REAL(dp) :: cavg, D_l, gb, l_r
+      REAL(dp) :: WaterC, Vol
+      REAL(dp) :: H_K0_O3
+
+      ! Henry's law [M/atm]
+      H_K0_O3 = H%O3%K0 * con_atm_bar
+      H_X     = H_K0_O3 * EXP( H%O3%CR * ( 1.0_dp/T - 1.0_dp/H%O3%TK ) )
+
+      ! O3 mol wt (kg/mol)
+      M_X = H%O3%MW_g * 1.0e-3_dp
+
+      WaterC = AWATER(X) / 18.0e+12_dp                      ! mol/cm3 air
+      IF (X == 1) THEN
+         Vol = AClAREA   * AClRADI   * 1.0e-3_dp / 3.0_dp   ! L/cm3 air
+      ELSE
+         Vol = XAREA(12) * XRADI(12) * 1.0e-3_dp / 3.0_dp   ! L/cm3 air
+      ENDIF
+
+      WaterC = WaterC / Vol                                 ! mol/L aerosol
+
+      ! HNO3 mol wt (kg/mol)
+      M_X = H%NO3%MW_g * 1.0e-3_dp
+
+      ! Mass accommodation coefficient
+      ab = 1.3e-2_dp
+
+      ! Thermal velocity [cm/s]
+      cavg = SQRT( 8.0_dp * RStarG * T / ( Pi * M_X ) ) *1.0e2_dp
+
+      ! Liquid phase diffusion coefficient [cm2/s] for NO3
+      ! (Ammann et al., Atmos. Chem. Phys., 2013)
+      D_l  = 1.0e-5_dp
+
+      k1 = 2.76e+6_dp                                       ! M-1 s-1
+      k2 = 23.0_dp                                          ! M-1 s-1
+
+      k_tot = k1*C_X + k2*WaterC
+
+      H_X = 0.6_dp                                          ! M atm-1
+      H_X = H_X * con_atm_bar                               ! M/bar
+      l_r = SQRT( D_l / k_tot )
+
+      ! Leave commented out
+      !IF (K_Tot .EQ. 0.0) THEN
+      !    K_tot = 1.0e-2_dp
+      ! ENDIF
+
+      gb = 4.0_dp * H_X * con_R * T * l_r * k_tot / cavg
+
+      gb = gb * REACTODIFF_CORR( Radius, l_r)
+
+      gamma = 1.0_dp / (1.0_dp/ab  +  1.0_dp/gb)
+
+    END FUNCTION GAMMA_NO3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HetNO3_Cl
 !
 ! !DESCRIPTION: Sets the NO3(g) hypsis rate on Cl-.
@@ -3306,44 +3401,36 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETNO3_Cl( denAir, rAer, AAer, TK, clConc, X, H ) RESULT( kISum )
+  FUNCTION HETNO3_Cl( denAir, rAer, AAer, TK, clConc, X, H ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(dp),       INTENT(IN) :: denAir   ! Density of air (#/cm3)
-      REAL(dp),       INTENT(IN) :: rAer     ! Radius of aerosol (cm)
-      REAL(dp),       INTENT(IN) :: AAer     ! Area of aerosol (cm2/cm3)
-      REAL(dp),       INTENT(IN) :: TK       ! Temperature (K)
-      REAL(dp),       INTENT(IN) :: clConc   ! Cloride concentration (mol/L)
-      INTEGER,        INTENT(IN) :: X
-      TYPE(HetState), POINTER    :: H        ! Hetchem species metadata
+    REAL(dp),       INTENT(IN) :: denAir  ! Density of air (#/cm3)
+    REAL(dp),       INTENT(IN) :: rAer    ! Radius of aerosol (cm)
+    REAL(dp),       INTENT(IN) :: AAer    ! Area of aerosol (cm2/cm3)
+    REAL(dp),       INTENT(IN) :: TK      ! Temperature (K)
+    REAL(dp),       INTENT(IN) :: clConc  ! Cloride concentration (mol/L)
+    INTEGER,        INTENT(IN) :: X       ! 1=fine sea salt; 2=coarse sea salt
+    TYPE(HetState), POINTER    :: H       ! Hetchem species metadata
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)                   :: kISum       ! NO3(g) reaction rate on Cl-
-!
-! !REVISION HISTORY:
-!  14 Mar 2018 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)                   :: rate    ! NO3(g) reaction rate on Cl- [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(dp) :: XStkCf, XSqM
+    REAL(dp) :: gamma
 
-      ! Initialize
-      kISum = 0.0_dp
-      XSQM   = SQRT( H%NO3%MW_g )
+    ! Compute reactive uptake coefficient [1]
+    gamma = Gamma_NO3( rAer, TK, clConc, X, H ) * 0.01_dp
 
-      ! Compute reactive uptake coefficient
-      XStkCf = GAMMA_NO3( rAer, TK, clConc, X, H ) * 0.01_dp
+    ! Reaction rate for surface of aerosol [1/s]
+    rate = ARSL1K( AAer, rAer, denAir, gamma, XTemp, H%NO3%SrMw )
 
-      ! Reaction rate for surface of aerosol
-      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, XTemp, XSqM )
-
-    END FUNCTION HETNO3_Cl
+  END FUNCTION HETNO3_Cl
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3516,103 +3603,6 @@ MODULE GcKpp_HetRates
       kISum = Arsl1K( AAer, rAer, denAir, GAM_ClNO2, XTemp, XSqM ) * r_gp
 
     END FUNCTION HETClNO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Gamma_NO3
-!
-! !DESCRIPTION: Function GAMMA\_NO3 calculates reactive uptake coef.
-!               for NO3 on salts and water
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION GAMMA_NO3( Radius, T, C_X, X, H ) RESULT( GAM_NO3 )
-!
-! !USES:
-!
-      USE PhysConstants, ONLY : Pi, RStarG
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp),       INTENT(IN) :: Radius
-      REAL(dp),       INTENT(IN) :: T        ! Temperature (K)
-      REAL(dp),       INTENT(IN) :: C_X      ! Cl- Concentration (mol/L)
-      INTEGER,        INTENT(IN) :: X        ! X = 1 fine; 2 coarse
-      TYPE(HetState), POINTER    :: H        ! Hetchem species metadata
-!
-! !RETURN VALUE:
-!
-      REAL(dp)                   :: GAM_NO3  ! Reactive uptake coefficient [1]
-
-!
-! !REVISION HISTORY:
-!  24 Sep 2015 - J. Schmidt  - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!
-      ! Scalars
-      REAL(dp) :: ab, M_X, k_tot, H_X, k1, k2
-      REAL(dp) :: cavg, D_l, gb, l_r
-      REAL(dp) :: WaterC, Vol
-      REAL(dp) :: H_K0_O3
-
-      ! Henry's law [M/atm]
-      H_K0_O3 = H%O3%K0 * con_atm_bar
-      H_X     = H_K0_O3 * EXP( H%O3%CR * ( 1.0e0_dp/T - 1.0e0_dp/H%O3%TK ) )
-
-      ! O3 mol wt (kg/mol)
-      M_X = H%O3%MW_g * 1e-3_dp
-
-      WaterC = AWATER(X) / 18e12_dp !mol/cm3 air
-      IF (X == 1) THEN
-         Vol = AClAREA * AClRADI * 1.0e-3_dp / 3.0e0_dp !L/cm3 air
-      ELSE
-         Vol = XAREA(12) * XRADI(12) * 1.0e-3_dp / 3.0e0_dp !L/cm3 air
-      ENDIF
-
-      WaterC = WaterC / Vol !mol/L aerosol
-
-      ! HNO3 mol wt (kg/mol)
-      M_X = H%NO3%MW_g * 1.0e-3_dp
-
-      ! Mass accommodation coefficient
-      ab = 1.3e-2_dp
-
-      cavg = SQRT(8.0e+0_dp*RStarG*T/(Pi*M_X)) *1.0e2_dp ! thermal velocity (cm/s)
-
-      ! Liquid phase diffusion coefficient [cm2/s] for NO3
-      ! (Ammann et al., Atmos. Chem. Phys., 2013)
-      D_l  = 1.0e-5_dp
-
-      k1 = 2.76e+6_dp !M-1s-1
-      k2 = 23e+0_dp !M-1s-1
-
-      k_tot = k1*C_X + k2*WaterC
-
-      H_X = 0.6e+0_dp !M atm-1
-      H_X = H_X * con_atm_bar !M/bar
-      l_r = SQRT(D_l / k_tot)
-!
-!      IF (K_Tot .EQ. 0.0) THEN
-!         K_tot = 1.0e-2_dp
-!      ENDIF
-
-      gb = 4.0e0_dp * H_X * con_R * T * l_r * k_tot / cavg
-
-      gb = gb * REACTODIFF_CORR( Radius, l_r)
-
-      GAM_NO3 = 1.0e0_dp / (1.0e0_dp/ab  +  1.0e0_dp/gb)
-
-    END FUNCTION GAMMA_NO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6556,15 +6546,11 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE CLD_PARAMS( I,    J,    L,    State_Met, rLiq,                &
-                           ALiq, VLiq, rIce, AIce,      VIce, CLDFr         )
+    SUBROUTINE Cld_Params( I,    J,    L,    State_Met, rLiq,  ALiq,         &
+                           VLiq, rIce, AIce, VIce,      CldFr, ClearFr      )
 !
 ! !USES:
 !
-      USE GcKpp_Global,  ONLY : DENAIR => XDENA
-      USE GcKpp_Global,  ONLY : T      => TEMP
-      USE GcKpp_Global,  ONLY : QI     => QIce
-      USE GcKpp_Global,  ONLY : QL     => QLiq
       USE GcKpp_Global,  ONLY : Vair
       USE State_Met_Mod, ONLY : MetState
 !
@@ -6577,23 +6563,31 @@ MODULE GcKpp_HetRates
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(dp),       INTENT(OUT) :: rLiq     ! Radius of liquid cloud droplets (cm)
-      REAL(dp),       INTENT(OUT) :: rIce     ! Radius of ice cloud crystals (cm)
-      REAL(dp),       INTENT(OUT) :: ALiq     ! Sfc area of liq. cloud (cm2/cm3)
-      REAL(dp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2/cm3)
-      REAL(dp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud condensate (cm3/cm3)
-      REAL(dp),       INTENT(OUT) :: VIce     ! Volume of ice cloud condensate (cm3/cm3)
-      REAL(dp),       INTENT(OUT) :: CLDFr    ! cloud fraction
+      REAL(dp),       INTENT(OUT) :: rLiq      ! Radius of liquid cloud
+                                               !  droplets [cm]
+      REAL(dp),       INTENT(OUT) :: rIce      ! Radius of ice cloud
+                                               !  crystals [cm]
+      REAL(dp),       INTENT(OUT) :: ALiq      ! Surface area of liquid
+                                               !  cloud [cm2/cm3]
+      REAL(dp),       INTENT(OUT) :: AIce      ! Area of ice cloud [cm2/cm3]
+      REAL(dp),       INTENT(OUT) :: VLiq      ! Volume of liquid
+                                               !  cloud condensate [cm3/cm3]
+      REAL(dp),       INTENT(OUT) :: VIce      ! Volume of ice cloud
+                                               !  condensate [cm3/cm3]
+      REAL(dp),       INTENT(OUT) :: CldFr     ! Cloudy fraction [1]
+      REAL(dp),       INTENT(OUT) :: ClearFr   ! Clear sky fraction [1]
 !
 ! !REMARKS:
 !  References:
-!   Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships between ice water content and volume extinction coefficient from in situ observations for temperatures from 0° to –86°C: implications for spaceborne lidar retrievals. Journal of Applied Meteorology and Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
+!   Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships
+!    between ice water content and volume extinction coefficient from in
+!    situ observations for temperatures from 0° to –86°C: implications for
+!    spaceborne lidar retrievals. Journal of Applied Meteorology and
+!    Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
 !
-!   Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates for Individual Ice Particles and Particle Populations. Journal of Applied Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
-!
-! !REVISION HISTORY:
-!  21 Dec 2016 - S. D. Eastham - Adapted from CLD1K_BrNO3
-!  See https://github.com/geoschem/geos-chem for complete history
+!   Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates
+!    for Individual Ice Particles and Particle Populations. Journal of Applied
+!    Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6618,70 +6612,56 @@ MODULE GcKpp_HetRates
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(dp)            :: nu         ! Mean molecular speed
-      REAL(dp)            :: RADIUS     ! Radius of cloud droplet      [cm]
-      REAL(dp)            :: SQM        ! Square root of molec. weight [g/mol]
-      REAL(dp)            :: STK        ! Square root of temperature   [K]
-      REAL(dp)            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
-      REAL(dp)            :: AREA_L     ! Surface area (liquid)        [cm2/cm3]
-      REAL(dp)            :: AREA_I     ! Surface area (ice) )         [cm2/cm3]
-      REAL(dp)            :: Vcl, Vci   ! Volume of the cloud (liq and ice) [cm3]
+      REAL(dp) :: nu        ! Mean molecular speed         [cm/s   ]
+      REAL(dp) :: RADIUS    ! Radius of cloud droplet      [cm     ]
+      REAL(dp) :: SQM       ! Square root of molec. weight [g/mol  ]
+      REAL(dp) :: STK       ! Square root of temperature   [K      ]
+      REAL(dp) :: DFKG      ! Gas diffusion coefficient    [cm2/s  ]
+      REAL(dp) :: AREA_L    ! Surface area (liquid)        [cm2/cm3]
+      REAL(dp) :: AREA_I    ! Surface area (ice) )         [cm2/cm3]
+      REAL(dp) :: Vcl       ! Volume of the cloud (liquid) [cm3    ]
+      REAL(dp) :: Vci       ! Volume of the cloud (ice)    [cm3    ]
+      REAL(dp) :: alpha     ! Coefficient
+      REAL(dp) :: beta      ! Coefficient
 
-      LOGICAL             :: IS_LAND, IS_ICE, Is_Warm
-      REAL(dp)            :: alpha,   beta
-
-      ! Pointers
-      REAL(dp), POINTER   :: AD(:,:,:)
-      REAL(dp), POINTER   :: CLDF(:,:,:)
-      REAL(dp), POINTER   :: FRLAND(:,:)
-      REAL(dp), POINTER   :: FROCEAN(:,:)
-
-      !=================================================================
+      !======================================================================
       ! CLD_PARAMS begins here!
-      !=================================================================
+      !======================================================================
 
-      ! Initialize pointers
-      AD      => State_Met%AD
-      CLDF    => State_Met%CLDF
-      FRLAND  => State_Met%FRLAND
-      FROCEAN => State_Met%FROCEAN
-
-      CLDFr = CLDF(I,J,L)
-      CLDFr = Max(CLDFr, 0.0e+0_dp)
-      CLDFr = Min(CLDFr, 1.0e+0_dp)
+      ! Cloud fraction and clear fraction of grid box
+      CldFr   = State_Met%CLDF(I,J,L)
+      CldFr   = MAX( CldFr, 0.0_dp )
+      CldFr   = MIN( CldFr, 1.0_dp )
+      ClearFr = 1.0_dp - CldFr
 
       ! Quick test - is there any cloud?
-      IF ( ( (QL+QI) <= 0.0e+0_dp) .or. (CLDF(I,J,L) <= 0.0e+0_dp) ) THEN
+      IF ( ( State_Met%QL(I,J,L) + State_Met%QI(I,J,L) <= 0.0_dp )  .or.     &
+           ( State_Met%CLDF(I,J,L)                     <= 0.0_dp ) ) THEN
          rLiq = xCldR_Cont
          rIce = xCLDrIce
-         ALiq = 0.0e+0_dp
-         VLiq = 0.0e+0_dp
-         AIce = 0.0e+0_dp
-         VIce = 0.0e+0_dp
-         Return
+         ALiq = 0.0_dp
+         VLiq = 0.0_dp
+         AIce = 0.0_dp
+         VIce = 0.0_dp
+         RETURN
       ENDIF
 
-      ! ----------------------------------------------
-      ! In GC 12.0 and earlier, the liquid water volume was
-      ! set to zero at temperatures colder than 258K and
-      ! over land ice (Antarctica & Greenland). That
-      ! was likely legacy code from GEOS-4, which provided
-      ! no information on cloud phase. As of GC 12.0,
-      ! all met data sources provide explicit liquid and
-      ! ice condensate amounts, so we use those as provided.
-      ! (C.D. Holmes)
-      ! ----------------------------------------------
-
-      !-----------------------------------------------
+      ! ---------------------------------------------------------------------
+      ! In GC 12.0 and earlier, the liquid water volume was set to zero at
+      ! temperatures colder than 258K and over land ice (Antarctica &
+      ! Greenland). That was likely legacy code from GEOS-4, which provided
+      ! no information on cloud phase. As of GC 12.0, all met data sources
+      ! provide explicit liquid and ice condensate amounts, so we use those
+      ! as provided. (C.D. Holmes)
+      !
       ! Liquid water clouds
       !
       ! Droplets are spheres, so
       ! Surface area = 3 * Volume / Radius
       !
       ! Surface area density = Surface area / Grid volume
-      !-----------------------------------------------
-
-      IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
+      !----------------------------------------------------------------------
+      IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
          ! Continental cloud droplet radius [cm]
          rLiq = XCLDR_CONT
       ELSE
@@ -6691,55 +6671,49 @@ MODULE GcKpp_HetRates
 
       ! get the volume of cloud condensate [cm3(condensate)/cm3(air)]
       ! QL is [g/g]
-      VLiq = QL * AD(I,J,L) / dens_liq / Vair
-      VIce = QI * AD(I,J,L) / dens_ice / Vair
+      VLiq = State_Met%QL(I,J,L) * State_Met%AD(I,J,L) / dens_liq / Vair
+      VIce = State_Met%QI(I,J,L) * State_Met%AD(I,J,L) / dens_ice / Vair
 
-      ALiq = 3.e+0_dp * VLiq / rLiq
+      ALiq = 3.0_dp * VLiq / rLiq
 
-      !-----------------------------------------------
+      !-----------------------------------------------------------------------
       ! Ice water clouds
       !
-      ! Surface area calculation requires information about
-      ! ice crystal size and shape, which is a function of
-      ! temperature. Use Heymsfield (2014) empirical relationships
-      ! between temperature, effective radius, surface area
-      ! and ice water content.
+      ! Surface area calculation requires information about ice crystal size
+      ! and shape, which is a function of temperature. Use Heymsfield (2014)
+      ! empirical relationships between temperature, effective radius,
+      ! surface area and ice water content.
       !
-      ! Schmitt and Heymsfield (2005) found that ice surface area
-      ! is about 9 times its cross-sectional area.
+      ! Schmitt and Heymsfield (2005) found that ice surface area is about
+      ! 9 times its cross-sectional area.
+      !
       ! For any shape,
-      ! Cross section area = pi * (Effective Radius)^2, so
-      ! Cross section area = 3 * Volume / ( 4 * Effective Radius ).
+      !   Cross section area = pi * (Effective Radius)^2, so
+      !   Cross section area = 3 * Volume / ( 4 * Effective Radius ).
       !
       ! Thus, for ice
-      ! Surface area = 9 * Cross section area
-      !              = 2.25 * 3 * Volume / Effective Radius
+      !   Surface area = 9 * Cross section area
+      !                = 2.25 * 3 * Volume / Effective Radius
       ! (C.D. Holmes)
-      !-----------------------------------------------
+      !----------------------------------------------------------------------
 
       ! Heymsfield (2014) ice size parameters
-      if (T < 273e+0_dp - 71e+0_dp ) then
-          alpha = 83.3e+0_dp
-          beta  = 0.0184e+0_dp
-      elseif ( T < 273e+0_dp - 56e+0_dp ) then
+      IF ( State_Met%T(I,J,L) < 202.0_dp ) THEN          ! -71 C
+          alpha = 83.3_dp
+          beta  = 0.0184_dp
+      ELSE IF ( State_Met%T(I,J,L) < 217.0_dp ) THEN     ! -56 C
           alpha = 9.1744e+4_dp
-          beta = 0.117e+0_dp
-      else
-          alpha = 308.4e+0_dp
-          beta  = 0.0152e+0_dp
-      endif
+          beta  = 0.117_dp
+      ELSE
+          alpha = 308.4_dp
+          beta  = 0.0152_dp
+      ENDIF
 
       ! Effective radius, cm
-      rIce = 0.5e+0_dp * alpha * exp( beta * (T-273.15e+0_dp) ) / 1e+4_dp
+      rIce = 0.5_dp * alpha * EXP(beta * (State_Met%T(I,J,L) - 273.15_dp)) / 1e+4_dp
 
       ! Ice surface area density, cm2/cm3
-      AIce = 3.e+0_dp * VIce / rIce * 2.25e+0_dp
-
-      ! Free Pointers
-      NULLIFY( AD      )
-      NULLIFY( CLDF    )
-      NULLIFY( FRLAND  )
-      NULLIFY( FROCEAN )
+      AIce = 3.0_dp * VIce / rIce * 2.25_dp
 
     END SUBROUTINE Cld_Params
 !EOC
