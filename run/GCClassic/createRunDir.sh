@@ -735,7 +735,7 @@ elif [[ "x${sim_name}" == "xaerosol" ]]; then
 
     # Aerosol-only simulations can use the fullchem r start
     # as all of the aerosol species are included
-    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190101_0000z.nc4
 
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
