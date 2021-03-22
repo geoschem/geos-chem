@@ -55,11 +55,9 @@ MODULE GcKpp_HetRates
   PRIVATE :: CloudHet
 
   ! New iodine heterogeneous chemistry
-  PRIVATE :: HetIUptake
-  PRIVATE :: HetIXCycleBrSALA
-  PRIVATE :: HetIXCycleBrSALC
-  PRIVATE :: HetIXCycleSALACL
-  PRIVATE :: HetIXCycleSALCCL
+  PRIVATE :: HetIUptakebySALA
+  PRIVATE :: HetIUptakebySALC
+  PRIVATE :: HetIUptakebySulf
 
   ! Halogen fuctions, XW
   PRIVATE :: HETBrNO3
@@ -154,10 +152,11 @@ MODULE GcKpp_HetRates
 !    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
 !    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
 !    US. Atmos. Chem. Phys., 16, 2961-2990, 2016.
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
-!    4980-4990, https://doi.org/10.1029/2019GL081990
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K.,
+!    Graham, K. A., Shah, V. (2019) The role of clouds in the tropospheric
+!    NOx cycle: a new modeling approach for cloud chemistry and its global
+!    implications, Geophys. Res. Lett. 46, 4980-4990,
+!    https://doi.org/10.1029/2019GL081990
 !  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
 !    formation from isoprene: application to the southeast United States and
 !    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
@@ -194,22 +193,16 @@ MODULE GcKpp_HetRates
 ! !INTERFACE:
 !
   SUBROUTINE SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
-
+!
 ! !INPUT PARAMETERS:
-
+!
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, level indices
     TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-
+!
 ! !INPUT/OUTPUT PARAMETERS:
-
+!
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-
-! !REMARKS:
-
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -218,6 +211,7 @@ MODULE GcKpp_HetRates
 
     ! Scalars
     LOGICAL                :: SAFEDIV
+    LOGICAL                :: is_UCX
     INTEGER                :: IND
     REAL(dp)               :: conc1, conc2, denom
 
@@ -259,12 +253,13 @@ MODULE GcKpp_HetRates
     ! SET_HET begins here!
     !====================================================================
 
-    ! Zero scalars and arrays
+    ! Initialize
     ! NOTE: we now get several quantities from gckpp_Global
-    HetTemp       = 0.0_dp
+    HetTemp = 0.0_dp
+    is_UCX  = Input_Opt%LUCX
 
     ! Point to the HetInfo objec
-    H             => State_Chm%HetInfo
+    H       => State_Chm%HetInfo
 
     !--------------------------------------------------------------------
     !  Calculate parameters for cloud halogen chemistry
@@ -381,17 +376,17 @@ MODULE GcKpp_HetRates
     HET = 0.0_dp
 
     ! Calculate genuine first-order uptake reactions first
-    HET(ind_HO2,    1) = HetHO2(     H%HO2%MW_g,    2E-1_dp )
-    HET(ind_NO2,    1) = HetNO2(     H%NO2%MW_g,    1E-4_dp )
-    HET(ind_NO3,    1) = HetNO3(     H%NO3%MW_g,    1E-1_dp )
-    HET(ind_GLYX,   1) = HetGLYX(    H%GLYX%MW_g,   1E-1_dp )
-    HET(ind_MGLY,   1) = HetMGLY(    H%MGLY%MW_g,   1E-1_dp )
-    HET(ind_IEPOXA, 1) = HetIEPOX(   H%IEPOXA%MW_g, 1E-1_dp )
-    HET(ind_IEPOXB, 1) = HetIEPOX(   H%IEPOXB%MW_g, 1E-1_dp )
-    HET(ind_IEPOXD, 1) = HetIEPOX(   H%IEPOXD%MW_g, 1E-1_dp )
-    HET(ind_HMML,   1) = HetIMAE(    H%HMML%MW_g,   1E-1_dp )
-    HET(ind_PYAC,   1) = HetMGLY(    H%PYAC%MW_g,   1E-1_dp )
-    HET(ind_ICHE,   1) = HetIEPOX(   H%ICHE%MW_g,   1E-1_dp )
+    HET(ind_HO2,    1) = HetHO2(   H%HO2%MW_g,    2.0E-1_dp )
+    HET(ind_NO2,    1) = HetNO2(   H%NO2%MW_g,    1.0E-4_dp )
+    HET(ind_NO3,    1) = HetNO3(   H%NO3%MW_g,    1.0E-1_dp )
+    HET(ind_GLYX,   1) = HetGLYX(  H%GLYX%MW_g,   1.0E-1_dp )
+    HET(ind_MGLY,   1) = HetMGLY(  H%MGLY%MW_g,   1.0E-1_dp )
+    HET(ind_IEPOXA, 1) = HetIEPOX( H%IEPOXA%MW_g, 1.0E-1_dp )
+    HET(ind_IEPOXB, 1) = HetIEPOX( H%IEPOXB%MW_g, 1.0E-1_dp )
+    HET(ind_IEPOXD, 1) = HetIEPOX( H%IEPOXD%MW_g, 1.0E-1_dp )
+    HET(ind_HMML,   1) = HetIMAE(  H%HMML%MW_g,   1.0E-1_dp )
+    HET(ind_PYAC,   1) = HetMGLY(  H%PYAC%MW_g,   1.0E-1_dp )
+    HET(ind_ICHE,   1) = HetIEPOX( H%ICHE%MW_g,   1.0E-1_dp )
 
     ! These VOC species use the same rate-law function
     HET(ind_LVOC,   1) = HetVOC(   H%LVOC%SrMw,   1.0E+0_dp )
@@ -1022,77 +1017,119 @@ MODULE GcKpp_HetRates
     HET(ind_ClNO2, 6) = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), kITemp          )
 
     !========================================================================
-    ! Iodine chemistry
+    ! Iodine chemistry (forming AERI, ISALA and ISALC)
     !========================================================================
 
-    ! Uptake reactions (forming AERI, ISALA and ISALC)
-    HET(ind_HI,   1) = HetIUptake( H%HI%MW_g,   0.10_dp,  8, Input_Opt      )
-    HET(ind_HI,   2) = HetIUptake( H%HI%MW_g,   0.10_dp, 11, Input_Opt      )
-    HET(ind_HI,   3) = HetIUptake( H%HI%MW_g,   0.10_dp, 12, Input_Opt      )
-    HET(ind_I2O2, 1) = HetIUptake( H%I2O2%MW_g, 0.02_dp,  8, Input_Opt      )
-    HET(ind_I2O2, 2) = HetIUptake( H%I2O2%MW_g, 0.02_dp, 11, Input_Opt      )
-    HET(ind_I2O2, 3) = HetIUptake( H%I2O2%MW_g, 0.02_dp, 12, Input_Opt      )
-    HET(ind_I2O3, 1) = HetIUptake( H%I2O3%MW_g, 0.02_dp,  8, Input_Opt      )
-    HET(ind_I2O3, 2) = HetIUptake( H%I2O3%MW_g, 0.02_dp, 11, Input_Opt      )
-    HET(ind_I2O3, 3) = HetIUptake( H%I2O3%MW_g, 0.02_dp, 12, Input_Opt      )
-    HET(ind_I2O4, 1) = HetIUptake( H%I2O4%MW_g, 0.02_dp,  8, Input_Opt      )
-    HET(ind_I2O4, 2) = HetIUptake( H%I2O4%MW_g, 0.02_dp, 11, Input_Opt      )
-    HET(ind_I2O4, 3) = HetIUptake( H%I2O4%MW_g, 0.02_dp, 12, Input_Opt      )
+    !------------------------------------------------------------------------
+    ! Uptake of iodine species on tropospheric sulfate (aerosol type #8)
+    !------------------------------------------------------------------------
+    HET(ind_HI,   1) = HetIUptakebySulf( H%HI%SrMw,   0.10_dp, is_UCX       )
+    HET(ind_I2O2, 1) = HetIUptakebySulf( H%I2O2%SrMw, 0.02_dp, is_UCX       )
+    HET(ind_I2O3, 1) = HetIUptakebySulf( H%I2O3%SrMw, 0.02_dp, is_UCX       )
+    HET(ind_I2O4, 1) = HetIUptakebySulf( H%I2O4%SrMw, 0.02_dp, is_UCX       )
 
-    ! These uptake reactions require non-acidic aerosol
-    ! Fine sea salt first
-    IF (SSAlk(1).gt.0.05) THEN
-       HET(ind_HOI,  1) = HetIUptake( H%HOI%MW_g,   0.01_dp, 11, Input_Opt  )
-       HET(ind_IONO, 1) = HetIUptake( H%IONO%MW_g,  0.02_dp, 11, Input_Opt  )
-       HET(ind_IONO2,1) = HetIUptake( H%IONO2%MW_g, 0.01_dp, 11, Input_Opt  )
+    !------------------------------------------------------------------------
+    ! Uptake of iodine species on accum-mode sea salt (aerosol type #11)
+    !------------------------------------------------------------------------
+
+    ! Case 1: Uptake on fine sea-salt regardless of acidity
+    HET(ind_HI,   2)    = HetIUptakebySALA( H%HI%SrMw,    0.10_dp           )
+    HET(ind_I2O2, 2)    = HetIUptakebySALA( H%I2O2%SrMw,  0.02_dp           )
+    HET(ind_I2O3, 2)    = HetIUptakebySALA( H%I2O3%SrMw,  0.02_dp           )
+    HET(ind_I2O4, 2)    = HetIUptakebySALA( H%I2O4%SrMw,  0.02_dp           )
+
+    ! Case 2: Uptake on alkaline fine sea-salt only
+    IF ( SSAlk(1) > 0.05_dp ) THEN
+       HET(ind_HOI,  1) = HetIUptakebySALA( H%HOI%SrMw,   0.01_dp           )
+       HET(ind_IONO, 1) = HetIUptakebySALA( H%IONO%SrMw,  0.02_dp           )
+       HET(ind_IONO2,1) = HetIUptakebySALA( H%IONO2%SrMw, 0.01_dp           )
     ENDIF
 
-    ! Now coarse sea salt
-    IF (SSAlk(2).gt.0.05) THEN
-       HET(ind_HOI,  2) = HetIUptake( H%HOI%MW_g,   0.01_dp, 12, Input_Opt  )
-       HET(ind_IONO, 2) = HetIUptake( H%IONO%MW_g,  0.02_dp, 12, Input_Opt  )
-       HET(ind_IONO2,2) = HetIUptake( H%IONO2%MW_g, 0.01_dp, 12, Input_Opt  )
+    !------------------------------------------------------------------------
+    ! Uptake reactions on coarse-mode sea salt (aerosol type #12)
+    !------------------------------------------------------------------------
+
+    ! Case 3: Uptake on coarse sea-salt regardless of acidity
+    HET(ind_HI,   3)    = HetIUptakebySALC( H%HI%SrMw,    0.10_dp           )
+    HET(ind_I2O2, 3)    = HetIUptakebySALC( H%I2O2%SrMw,  0.02_dp           )
+    HET(ind_I2O3, 3)    = HetIUptakebySALC( H%I2O3%SrMw,  0.02_dp           )
+    HET(ind_I2O4, 3)    = HetIUptakebySALC( H%I2O4%SrMw,  0.02_dp           )
+
+    ! Case 4: Uptake on alkaline cosea-salt only
+    IF ( SSAlk(2) > 0.05_dp ) THEN
+       HET(ind_HOI,  2) = HetIUptakebySALC( H%HOI%SrMw,   0.01_dp           )
+       HET(ind_IONO, 2) = HetIUptakebySALC( H%IONO%SrMw,  0.02_dp           )
+       HET(ind_IONO2,2) = HetIUptakebySALC( H%IONO2%SrMw, 0.01_dp           )
     ENDIF
 
-    ! Breakdown of iodine compounds on sea-salt
-    rate              = HetIXCycleBrSALA( H%HOI%SrMw, 0.01_dp, SSAlk        )
-    HET(ind_HOI,   3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), rate           )
+!    !------------------------------------------------------------------------
+!    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+!    ! Assume a ratio of IBr:ICl = 0.15:0.85
+!    !------------------------------------------------------------------------
+    IF ( SSAlk(1) <= 0.05_fp ) THEN
 
-    rate              = HetIXCycleBrSALC( H%HOI%SrMw, 0.01_dp, SSAlk        )
-    HET(ind_HOI,   4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), rate           )
+       ! Breakdown of HOI on acidic BrSALA
+       rate             = 0.15_dp * HetIUptakeBySALA( H%HOI%SrMw,   0.01_dp )
+       HET(ind_HOI,  3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), rate         )
 
-    rate              = HetIXCycleSALACL( H%HOI%SrMw, 0.01_dp, SSAlk        )
-    HET(ind_HOI,   5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), rate           )
+       ! Breakdown of IONO on acidic BrSALA
+       rate             = 0.15_dp * HetIUptakeBySALA( H%IONO%SrMw,  0.02_dp )
+       HET(ind_IONO, 3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), rate        )
 
-    rate              = HetIXCycleSALCCL( H%HOI%SrMw, 0.01_dp, SSAlk        )
-    HET(ind_HOI,   6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), rate           )
+       ! Breakdown of IONO2 on acidic BrSALA
+       rate             = 0.15_dp * HetIUptakeBySALA( H%IONO2%SrMw, 0.01_dp )
+       HET(ind_IONO2,3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), rate       )
 
-    rate              = HetIXCycleBrSALA( H%IONO%SrMw, 0.02_dp, SSAlk       )
-    HET(ind_IONO,  3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), rate          )
+       ! Breakdown of HOI on acidic SALACL
+       rate             = 0.85_dp * HetIUptakeBySALA( H%HOI%SrMw,   0.01_dp )
+       HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), rate         )
 
-    rate              = HetIXCycleBrSALC( H%IONO%SrMw, 0.02_dp, SSAlk       )
-    HET(ind_IONO,  4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), rate          )
+       ! Breakdown of IONO on acidic SALACL
+       rate             = 0.85_dp * HetIUptakeBySALA( H%IONO%SrMw,  0.02_dp )
+       HET(ind_IONO, 5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), rate        )
 
-    rate              = HetIXCycleSALACL( H%IONO%SrMw, 0.02_dp, SSAlk       )
-    HET(ind_IONO,  5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), rate          )
+       ! Breakdown of IONO2 on acidic SALACL
+       rate             = 0.85_dp * HetIUptakeBySALA( H%IONO2%SrMw, 0.01_dp )
+       HET(ind_IONO2,5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), rate       )
 
-    rate              = HetIXCycleSALCCL( H%IONO%SrMw, 0.02_dp, SSAlk       )
-    HET(ind_IONO,  6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), rate          )
+    ENDIF
 
-    rate              = HetIXCycleBrSALA( H%IONO2%SrMw, 0.01_dp, SSAlk      )
-    HET(ind_IONO2, 3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), rate         )
+    !------------------------------------------------------------------------
+    ! Breakdown of iodine species on acidic sea-salt (coarse mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !------------------------------------------------------------------------
+    IF ( SSAlk(2) <= 0.05_fp ) THEN
 
-    rate              = HetIXCycleBrSALC( H%IONO2%SrMw, 0.01_dp, SSAlk      )
-    HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), rate         )
+       ! Breakdown of HOI on acidic BrSALC
+       rate             = 0.15_dp * HetIUptakeBySALC( H%HOI%SrMw,   0.01_dp )
+       HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), rate         )
 
-    rate              = HetIXCycleSALACL( H%IONO2%SrMw, 0.01_dp, SSAlk      )
-    HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), rate         )
+       ! Breakdown of IONO on acidic BrSALC
+       rate             = 0.15_dp * HetIUptakeBySALC( H%IONO%SrMw,  0.02_dp )
+       HET(ind_IONO, 4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), rate        )
 
-    rate              = HetIXCycleSALCCL( H%IONO2%SrMw, 0.01_dp, SSAlk      )
-    HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), rate         )
+       ! Breakdown of IONO2 on acidic BrSALC
+       rate             = 0.15_dp * HetIUptakeBySALC( H%IONO2%SrMw, 0.01_dp )
+       HET(ind_IONO2,4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), rate       )
 
-    ! Nullify pointers
-    H      => NULL()
+       ! Breakdown of HOI on acidic SALCCL
+       rate             = 0.85_dp * HetIUptakeBySALC( H%HOI%SrMw,   0.01_dp )
+       HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), rate         )
+
+       ! Breakdown of IONO on acidic SALCCL
+       rate             = 0.85_dp * HetIUptakeBySALC( H%IONO%SrMw,  0.02_dp )
+       HET(ind_IONO, 6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), rate        )
+
+       ! Breakdown of IONO2 on acidic SALCCL
+       rate             = 0.85_dp * HetIUptakeBySALC( H%IONO2%SrMw, 0.01_dp )
+       HET(ind_IONO2,6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), rate       )
+
+    ENDIF
+
+    !========================================================================
+    ! Cleanup & quit
+    !========================================================================
+    H => NULL()
 
   END SUBROUTINE SET_HET
 !EOC
@@ -1148,9 +1185,6 @@ MODULE GcKpp_HetRates
 !
     REAL(dp)                     :: kHet ! Grid-average loss frequency, 1/s
 !
-! !REVISION HISTORY:
-!  23 Aug 2018 - C. D. Holmes - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1325,9 +1359,6 @@ MODULE GcKpp_HetRates
 !
 ! !REMARKS:
 !  Uses HetMinLife and HetMinRate constants from gckpp_Global.F90
-!
-! !REVISION HISTORY:
-! See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -1402,27 +1433,17 @@ MODULE GcKpp_HetRates
   FUNCTION kIIR1R2L( spcVec, indGasA, indGasB, kIASource, kIBSource ) &
        RESULT( kII )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
-    ! Rate coefficients
-    REAL(dp), INTENT(IN)    :: spcVec(:)
-    INTEGER,  INTENT(IN)    :: indGasA
-    INTEGER,  INTENT(IN)    :: indGasB
-    REAL(dp), INTENT(IN)    :: kIASource
-    REAL(dp), INTENT(IN)    :: kIBSource
+    REAL(dp), INTENT(IN) :: spcVec(:)
+    INTEGER,  INTENT(IN) :: indGasA
+    INTEGER,  INTENT(IN) :: indGasB
+    REAL(dp), INTENT(IN) :: kIASource
+    REAL(dp), INTENT(IN) :: kIBSource
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)                :: kII
-
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)             :: kII
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1478,221 +1499,99 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetIXCycleBrSALA
+! !IROUTINE: HetIUptakebySALA
 !
-! !DESCRIPTION: Set the iodine reaction rate on BrSALA sea salt, assuming a 
-!  fixed ratio of ICl and IBr (85:15) is produced.
+! !DESCRIPTION: Set the uptake rate for iodine species by
+!  accumulation-mode sea-salt aerosol.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HETIXCycleBrSALA( SrMw, gamma, SSAlk ) RESULT( rate )
+  FUNCTION HetIUptakebySALA( SrMw, gamma ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN) :: SrMw       ! Sq. root of mol wt [g/mole]
-    REAL(dp), INTENT(IN) :: gamma      ! Reaction probability [1] 
-    REAL(dp), INTENT(IN) :: SSAlk(2)   ! Sea salt alkalinity (1=fine, coarse) 
+    REAL(dp), INTENT(IN) :: SrMw    ! Square root of molecular weight [g/mol]
+    REAL(dp), INTENT(IN) :: gamma   ! Reaction probability [1]
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)             :: rate
-!
-! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)             :: rate    ! Reaction rate [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-    ! Initialize
-    rate = 0.0_dp
+    rate = ARSL1K( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
 
-    ! Rate of reaction on acidic aerosol
-    IF ( SSAlk(1) <= 0.05_fp ) THEN
-       rate = ARSL1K(XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw) * 0.15_dp
-    ENDIF
-    
-  END FUNCTION HETIXCycleBrSALA
+  END FUNCTION HetIUptakebySALA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetIXCycleSSA
+! !IROUTINE: HetIUptakebySALC
 !
-! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
-! of ICl and IBr (85:15) is produced.
+! !DESCRIPTION: Set the uptake rate for iodine species by
+!  coarse-mode sea-salt aerosol.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HETIXCycleBrSALC( SrMw, gamma, SSAlk ) RESULT( rate )
+  FUNCTION HetIUptakebySALC( SrMw, gamma ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
-    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
-    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
+    REAL(dp), INTENT(IN) :: SrMw    ! Square root of molecular weight [g/mol]
+    REAL(dp), INTENT(IN) :: gamma   ! Reaction probability [1]
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)             :: rate
-!
-! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)             :: rate    ! Reaction rate [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    
-    ! Initialize
-    rate = 0.0_dp
+    rate = ARSL1K( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
 
-    ! Rate of reaction on acidic aerosol
-    IF ( SSAlk(2) <= 0.05_dp ) THEN
-       rate = ARSL1K(XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw) * 0.15_dp 
-    ENDIF
-    
-  END FUNCTION HETIXCycleBrSALC
+  END FUNCTION HetIUptakebySALC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetIXCycleSSA
+! !IROUTINE: HetIUptakebySulf
 !
-! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
-! of ICl and IBr (85:15) is produced.
+! !DESCRIPTION: Set the uptake rate for iodine species by tropospheric
+!  sulfate (aerosol type #8).
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HETIXCycleSALACL( SrMw, gamma, SSAlk ) RESULT( rate )
+  FUNCTION HETIUptakeBySulf( SrMw, gamma, LUCX ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
-    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
-    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
+    REAL(dp), INTENT(IN) :: SrMw    ! Square root of molecular weight [g/mol]
+    REAL(dp), INTENT(IN) :: gamma   ! Reaction probability [1]
+    LOGICAL,  INTENT(IN) :: LUCX    ! Are we using UCX?
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)             :: rate
-!
-! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)             :: rate    ! Reaction rate [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    ! Uptake rate of iodine by tropospheric sulfate (N=8)
+    rate = ARSL1K( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
 
-    ! Initialize
-    rate = 0.0_fp
-    
-    ! Reaction rate for surface of acidic aerosol 
-    IF ( SSAlk(1) <= 0.05_fp ) THEN
-       rate = ARSL1K(XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw) * 0.85_dp
+    ! For UCX-based mechanisms also allow reaction on stratospheric
+    ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
+    IF ( LUCX ) THEN
+       rate = rate + ARSL1K( XAREA(13), XRADI(13), XDENA, gamma, XTEMP, SrMw )
     ENDIF
-    
-  END FUNCTION HETIXCycleSALACL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetIXCycleSSA
-!
-! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
-! of ICl and IBr (85:15) is produced.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HETIXCycleSALCCL( SrMw, gamma, SSAlk  ) RESULT( rate )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
-    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
-    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: rate
-!
-! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    ! Initialize
-    rate = 0.0_fp
-    
-    ! Rate of reaction on surface of acidic aerosol
-    IF ( SSAlk(2) <= 0.05_dp ) THEN
-       rate = ARSL1K(XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw) * 0.85_dp
-    ENDIF
-    
-  END FUNCTION HETIXCycleSALCCL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetIUptake
-!
-! !DESCRIPTION: Set the uptake rate for iodine species.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HetIUptake( A, B, N, Input_Opt ) RESULT( kISum )
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp),       INTENT(IN) :: A, B       ! Rate coefficients
-      INTEGER,        INTENT(IN) :: N          ! Which aerosol?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  24 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !REAL(dp) :: XSTKCF, ADJUSTEDRATE
 
-      ! Initialize
-      kISum        = 0.0_dp
+  END FUNCTION HETIUptakeBySulf
 
-      ! Reaction rate for surface of aerosol
-      kISum = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_dp))
-
-      IF ( Input_Opt%LUCX ) THEN
-         ! For UCX-based mechanisms also allow reaction on stratospheric
-         ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
-         IF (N.eq.8) THEN
-            kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
-                    (A**0.5_dp))
-         ENDIF
-      ENDIF
-
-    END FUNCTION HetIUptake
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1706,21 +1605,15 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETNO3( A, B ) RESULT( HET_NO3 )
+  FUNCTION HETNO3( A, B ) RESULT( HET_NO3 )
 !
 ! !INPUT PARAMETERS:
 !
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
+    REAL(dp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: HET_NO3
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
+    REAL(dp)             :: HET_NO3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1808,7 +1701,7 @@ MODULE GcKpp_HetRates
 
       ENDDO
 
-    END FUNCTION HETNO3
+  END FUNCTION HETNO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7434,16 +7327,16 @@ MODULE GcKpp_HetRates
        ! This will prevent div-by-zero errors in the eqns below
        ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
        ARS_L1K = 1.E-30_dp
-       
+
     ELSE
 
        ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
        DFKG  = 9.45E+17_dp / DENAIR * STK *                                  &
                SQRT( 3.472E-2_dp + 1.E0_dp / ( SQM * SQM ) )
-       
+
        ! Compute ARSL1K according to the formula listed above
        ARS_L1K = AREA / ( RADIUS/DFKG + 2.749064E-4_dp*SQM/(STKCF*STK) )
-       
+
     ENDIF
 
   END FUNCTION ARSL1K
