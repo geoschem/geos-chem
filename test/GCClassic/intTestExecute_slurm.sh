@@ -42,6 +42,7 @@ if [[ "x${SLURM_JOBID}" == "x" ]]; then
 else
     . ~/.bashrc
     . ${root}/gcclassic_env.sh
+    export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
 
 # Load common functions for tests
