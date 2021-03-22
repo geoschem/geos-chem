@@ -10,7 +10,7 @@
 !\\
 ! !INTERFACE:
 
-MODULE GCKPP_HETRATES
+MODULE GcKpp_HetRates
 !
 ! !USES:
 !
@@ -56,11 +56,10 @@ MODULE GCKPP_HETRATES
 
   ! New iodine heterogeneous chemistry
   PRIVATE :: HetIUptake
-  !PRIVATE :: HetIXCycleBrSALA
-  !PRIVATE :: HetIXCycleBrSALC
-  !PRIVATE :: HetIXCycleSALACL
-  !PRIVATE :: HetIXCycleSALCCL
-  PRIVATE :: HetIXCycleSSA
+  PRIVATE :: HetIXCycleBrSALA
+  PRIVATE :: HetIXCycleBrSALC
+  PRIVATE :: HetIXCycleSALACL
+  PRIVATE :: HetIXCycleSALCCL
 
   ! Halogen fuctions, XW
   PRIVATE :: HETBrNO3
@@ -227,7 +226,7 @@ MODULE GCKPP_HETRATES
     LOGICAL,          SAVE :: FIRST   = .TRUE.
 
     ! New treatment for educt removal
-    REAL(dp)               :: kITemp, kIITemp
+    REAL(dp)               :: kITemp, kIITemp, rate
     REAL(dp)               :: HetTemp(3)  !new temp array for gamma results
 
     ! Cloud parameters
@@ -1056,41 +1055,41 @@ MODULE GCKPP_HETRATES
     ENDIF
 
     ! Breakdown of iodine compounds on sea-salt
-    kITemp           = HetIXCycleSSA( H%HOI%MW_g, 0.01_dp, SSAlk, 1         )
-    HET(ind_HOI,  3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), kITemp          )
+    rate              = HetIXCycleBrSALA( H%HOI%SrMw, 0.01_dp, SSAlk        )
+    HET(ind_HOI,   3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), rate           )
 
-    kITemp           = HetIXCycleSSA( H%HOI%MW_g, 0.01_dp, SSAlk, 2         )
-    HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), kITemp          )
+    rate              = HetIXCycleBrSALC( H%HOI%SrMw, 0.01_dp, SSAlk        )
+    HET(ind_HOI,   4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), rate           )
 
-    kITemp           = HetIXCycleSSA( H%HOI%MW_g, 0.01_dp, SSAlk, 3         )
-    HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), kITemp          )
+    rate              = HetIXCycleSALACL( H%HOI%SrMw, 0.01_dp, SSAlk        )
+    HET(ind_HOI,   5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), rate           )
 
-    kITemp           = HetIXCycleSSA( H%HOI%MW_g, 0.01_dp, SSAlk, 4         )
-    HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), kITemp          )
+    rate              = HetIXCycleSALCCL( H%HOI%SrMw, 0.01_dp, SSAlk        )
+    HET(ind_HOI,   6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), rate           )
 
-    kITemp           = HetIXCycleSSA( H%IONO%MW_g, 0.02_dp, SSAlk, 1        )
-    HET(ind_IONO, 3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), kITemp         )
+    rate              = HetIXCycleBrSALA( H%IONO%SrMw, 0.02_dp, SSAlk       )
+    HET(ind_IONO,  3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), rate          )
 
-    kITemp           = HetIXCycleSSA( H%IONO%MW_g, 0.02_dp, SSAlk, 2        )
-    HET(ind_IONO, 4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), kITemp         )
+    rate              = HetIXCycleBrSALC( H%IONO%SrMw, 0.02_dp, SSAlk       )
+    HET(ind_IONO,  4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), rate          )
 
-    kITemp           = HetIXCycleSSA( H%IONO%MW_g, 0.02_dp, SSAlk, 3        )
-    HET(ind_IONO, 5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), kITemp         )
+    rate              = HetIXCycleSALACL( H%IONO%SrMw, 0.02_dp, SSAlk       )
+    HET(ind_IONO,  5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), rate          )
 
-    kITemp           = HetIXCycleSSA( H%IONO%MW_g, 0.02_dp, SSAlk, 4        )
-    HET(ind_IONO, 6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), kITemp         )
+    rate              = HetIXCycleSALCCL( H%IONO%SrMw, 0.02_dp, SSAlk       )
+    HET(ind_IONO,  6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), rate          )
 
-    kITemp            = HetIXCycleSSA( H%IONO2%MW_g, 0.01_dp, SSAlk, 1      )
-    HET(ind_IONO2, 3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), kITemp       )
+    rate              = HetIXCycleBrSALA( H%IONO2%SrMw, 0.01_dp, SSAlk      )
+    HET(ind_IONO2, 3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), rate         )
 
-    kITemp            = HetIXCycleSSA( H%IONO2%MW_g, 0.01_dp, SSAlk, 2      )
-    HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), kITemp       )
+    rate              = HetIXCycleBrSALC( H%IONO2%SrMw, 0.01_dp, SSAlk      )
+    HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), rate         )
 
-    kITemp            = HetIXCycleSSA( H%IONO2%MW_g, 0.01_dp, SSAlk, 3      )
-    HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), kITemp       )
+    rate              = HetIXCycleSALACL( H%IONO2%SrMw, 0.01_dp, SSAlk      )
+    HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), rate         )
 
-    kITemp            = HetIXCycleSSA( H%IONO2%MW_g, 0.01_dp, SSAlk, 3      )
-    HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), kITemp       )
+    rate              = HetIXCycleSALCCL( H%IONO2%SrMw, 0.01_dp, SSAlk      )
+    HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), rate         )
 
     ! Nullify pointers
     H      => NULL()
@@ -1473,10 +1472,48 @@ MODULE GCKPP_HETRATES
     ENDIF
 
   END FUNCTION kIIR1R2L
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HetIXCycleBrSALA
+!
+! !DESCRIPTION: Set the iodine reaction rate on BrSALA sea salt, assuming a 
+!  fixed ratio of ICl and IBr (85:15) is produced.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HETIXCycleBrSALA( SrMw, gamma, SSAlk ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw       ! Sq. root of mol wt [g/mole]
+    REAL(dp), INTENT(IN) :: gamma      ! Reaction probability [1] 
+    REAL(dp), INTENT(IN) :: SSAlk(2)   ! Sea salt alkalinity (1=fine, coarse) 
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate
+!
+! !REVISION HISTORY:
+!  24 Dec 2016 - S. D. Eastham - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    ! Initialize
+    rate = 0.0_dp
 
-
-
-
+    ! Rate of reaction on acidic aerosol
+    IF ( SSAlk(1) <= 0.05_fp ) THEN
+       rate = ARSL1K(XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw) * 0.15_dp
+    ENDIF
+    
+  END FUNCTION HETIXCycleBrSALA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1491,22 +1528,17 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HetIXCycleSSA( A, B, SSAlk, X ) RESULT( kISum )
+  FUNCTION HETIXCycleBrSALC( SrMw, gamma, SSAlk ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    ! Rate coefficients
-    REAL(dp), INTENT(IN) :: A, B
-    ! Sea salt alkalinity
-    REAL(dp), INTENT(IN) :: SSAlk(2)
-    ! Br or Cl
-    INTEGER, INTENT(IN) :: X
+    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
+    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
+    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: kISum
-!
-! !REMARKS:
+    REAL(dp)             :: rate
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
@@ -1514,49 +1546,99 @@ MODULE GCKPP_HETRATES
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    
+    ! Initialize
+    rate = 0.0_dp
+
+    ! Rate of reaction on acidic aerosol
+    IF ( SSAlk(2) <= 0.05_dp ) THEN
+       rate = ARSL1K(XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw) * 0.15_dp 
+    ENDIF
+    
+  END FUNCTION HETIXCycleBrSALC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-! !LOCAL VARIABLES:
+! !IROUTINE: HetIXCycleSSA
 !
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE, r_gp
-      INTEGER  :: N, NAer, N1, N2
+! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
+! of ICl and IBr (85:15) is produced.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HETIXCycleSALACL( SrMw, gamma, SSAlk ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
+    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
+    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate
+!
+! !REVISION HISTORY:
+!  24 Dec 2016 - S. D. Eastham - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      ! Initialize
-      kISum        = 0.0_dp
-
-      IF (X == 1) THEN
-         !for BrSALA
-         N1 = 1
-         N2 = 1
-         r_gp = 0.15e+0_dp
-      ELSEIF (X == 2) THEN
-         !for BrSALC
-         N1 = 2
-         N2 = 2
-         r_gp = 0.15e+0_dp
-      ELSEIF (X == 3) THEN
-         !for SALACl
-         N1 = 1
-         N2 = 1
-         r_gp = 0.85e+0_dp
-      ELSEIF (X == 4) THEN
-         !for SALCCl
-         N1 = 2
-         N2 = 2
-         r_gp = 0.85e+0_dp
-      ENDIF
-
-
-      DO N = N1, N2
-         NAer = N + 10
-         ! Only allow reaction on acidic aerosol
-         IF (SSAlk(N).le.0.05e+0_dp) THEN
-            ! Reaction rate for surface of aerosol
-            AdjustedRate = ARSL1K(XAREA(NAer),XRADI(NAer),XDENA,B,XTEMP,(A**0.5_dp))
-            kISum = kISum + AdjustedRate * r_gp
-         ENDIF
-      ENDDO
-
-    END FUNCTION HetIXCycleSSA
+    ! Initialize
+    rate = 0.0_fp
+    
+    ! Reaction rate for surface of acidic aerosol 
+    IF ( SSAlk(1) <= 0.05_fp ) THEN
+       rate = ARSL1K(XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw) * 0.85_dp
+    ENDIF
+    
+  END FUNCTION HETIXCycleSALACL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HetIXCycleSSA
+!
+! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
+! of ICl and IBr (85:15) is produced.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HETIXCycleSALCCL( SrMw, gamma, SSAlk  ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw        ! Sq. root of mol wt [g/mole]
+    REAL(dp), INTENT(IN) :: gamma       ! Reaction probability [1] 
+    REAL(dp), INTENT(IN) :: SSAlk(2)    ! Sea salt alkalinity (fine, coarse) 
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate
+!
+! !REVISION HISTORY:
+!  24 Dec 2016 - S. D. Eastham - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! Initialize
+    rate = 0.0_fp
+    
+    ! Rate of reaction on surface of acidic aerosol
+    IF ( SSAlk(2) <= 0.05_dp ) THEN
+       rate = ARSL1K(XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw) * 0.85_dp
+    ENDIF
+    
+  END FUNCTION HETIXCycleSALCCL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7241,17 +7323,17 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION FYRNO3( XCARBN, ZDNUM, TT ) RESULT( FYR_NO3 )
+  FUNCTION FYRNO3( XCARBN, ZDNUM, TT ) RESULT( FYR_NO3 )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(dp), INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
-      REAL(dp), INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
-      REAL(dp), INTENT(IN) :: TT       ! Temperature   [K         ]
+    REAL(dp), INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
+    REAL(dp), INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
+    REAL(dp), INTENT(IN) :: TT       ! Temperature   [K         ]
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: FYR_NO3
+    REAL(dp)             :: FYR_NO3
 !
 ! !REVISION HISTORY:
 !  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
@@ -7263,23 +7345,23 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(dp) :: YYYN, XXYN,  AAA,  RARB, ZZYN
-      REAL(dp) :: XF,   ALPHA, Y300, BETA, XMINF, XM0
+    REAL(dp) :: YYYN, XXYN,  AAA,  RARB, ZZYN
+    REAL(dp) :: XF,   ALPHA, Y300, BETA, XMINF, XM0
 
-      ! Initialize static variables
-      DATA   Y300,ALPHA,BETA,XM0,XMINF,XF/.826,1.94E-22,.97,0.,8.1,.411/
+    ! Initialize static variables
+    DATA   Y300,ALPHA,BETA,XM0,XMINF,XF/.826,1.94E-22,.97,0.,8.1,.411/
 
-      !=================================================================
-      ! FYRNO3 begins here!
-      !=================================================================
-      XXYN    = ALPHA*EXP(BETA*XCARBN)*ZDNUM*((300./TT)**XM0)
-      YYYN    = Y300*((300./TT)**XMINF)
-      AAA     = LOG10(XXYN/YYYN)
-      ZZYN    = 1./(1.+ AAA*AAA )
-      RARB    = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
-      FYR_NO3 = RARB/(1. + RARB)
+    !=================================================================
+    ! FYRNO3 begins here!
+    !=================================================================
+    XXYN    = ALPHA*EXP(BETA*XCARBN)*ZDNUM*((300./TT)**XM0)
+    YYYN    = Y300*((300./TT)**XMINF)
+    AAA     = LOG10(XXYN/YYYN)
+    ZZYN    = 1./(1.+ AAA*AAA )
+    RARB    = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
+    FYR_NO3 = RARB/(1. + RARB)
 
-    END FUNCTION FYRNO3
+  END FUNCTION FYRNO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7294,33 +7376,32 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM ) &
-         RESULT( ARS_L1K )
+  FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM ) RESULT( ARS_L1K )
 !
 ! !INPUT PARAMETERS:
 !
-      ! Surface  area of wet aerosols/volume of air [cm2/cm3]
-      REAL(dp), INTENT(IN) :: AREA
+    ! Surface  area of wet aerosols/volume of air [cm2/cm3]
+    REAL(dp), INTENT(IN) :: AREA
 
-      ! Radius of wet aerosol [cm], order of 0.01-10 um;
-      ! Note that radius here is Rd, not Ro
-      REAL(dp), INTENT(IN) :: RADIUS
+    ! Radius of wet aerosol [cm], order of 0.01-10 um;
+    ! Note that radius here is Rd, not Ro
+    REAL(dp), INTENT(IN) :: RADIUS
 
-      ! Density of air [#/cm3]
-      REAL(dp), INTENT(IN) :: DENAIR
+    ! Density of air [#/cm3]
+    REAL(dp), INTENT(IN) :: DENAIR
 
-      ! Sticking coefficient [unitless], order of 0.1
-      REAL(dp), INTENT(IN) :: STKCF
+    ! Reaction probability Gamma [unitless], order of 0.1
+    REAL(dp), INTENT(IN) :: STKCF
 
-      ! Square root of temperature [K]
-      REAL(dp), INTENT(IN) :: STK
+    ! Square root of temperature [K]
+    REAL(dp), INTENT(IN) :: STK
 
-      ! Square root of molecular weight [g/mole]
-      REAL(dp), INTENT(IN) :: SQM
+    ! Square root of molecular weight [g/mole]
+    REAL(dp), INTENT(IN) :: SQM
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: ARS_L1K
+    REAL(dp)             :: ARS_L1K
 !
 ! !REMARKS:
 !  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
@@ -7340,31 +7421,31 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(dp) :: DFKG
+    REAL(dp) :: DFKG
 
-      !=================================================================
-      ! ARSL1K begins here!
-      !=================================================================
-      IF ( AREA   < 0e0_dp    .or. DENAIR < 1e-30_dp  .or.  &
-           RADIUS < 1e-30_dp  .or. SQM    < 1e-30_dp  .or.  &
-           STK    < 1e-30_dp  .or. STKCF  < 1e-30_dp ) THEN
+    !========================================================================
+    ! ARSL1K begins here!
+    !========================================================================
+    IF ( AREA   < 0e0_dp    .or. DENAIR < 1e-30_dp  .or.                     &
+         RADIUS < 1e-30_dp  .or. SQM    < 1e-30_dp  .or.                     &
+         STK    < 1e-30_dp  .or. STKCF  < 1e-30_dp ) THEN
 
-         ! Use default value if any of the above values are zero
-         ! This will prevent div-by-zero errors in the eqns below
-         ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
-         ARS_L1K = 1.E-30_dp
+       ! Use default value if any of the above values are zero
+       ! This will prevent div-by-zero errors in the eqns below
+       ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
+       ARS_L1K = 1.E-30_dp
+       
+    ELSE
 
-      ELSE
+       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+       DFKG  = 9.45E+17_dp / DENAIR * STK *                                  &
+               SQRT( 3.472E-2_dp + 1.E0_dp / ( SQM * SQM ) )
+       
+       ! Compute ARSL1K according to the formula listed above
+       ARS_L1K = AREA / ( RADIUS/DFKG + 2.749064E-4_dp*SQM/(STKCF*STK) )
+       
+    ENDIF
 
-         ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-         DFKG  = 9.45E+17_dp/DENAIR * STK * SQRT(3.472E-2_dp + 1.E0_dp/ &
-          (SQM*SQM))
-
-         ! Compute ARSL1K according to the formula listed above
-         ARS_L1K = AREA / ( RADIUS/DFKG + 2.749064E-4_dp*SQM/(STKCF*STK) )
-
-      ENDIF
-
-    END FUNCTION ARSL1K
+  END FUNCTION ARSL1K
 !EOC
-  END MODULE GCKPP_HETRATES
+END MODULE GcKpp_HetRates
