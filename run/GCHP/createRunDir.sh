@@ -356,13 +356,13 @@ do
     src_suffix=".c${N}.nc4"
     target_name=initial_GEOSChem_rst.c${N}_${sim_name}.nc
     if [[ ${sim_name} = "fullchem" ]]; then
-        start_date="20160701_0000z"
+        start_date="20190701_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_12.9.0/${src_name} ${rundir}/${target_name}
+        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
     elif [[ ${sim_name} = "TransportTracers" ]]; then
-        start_date="20170101_0000z"
+        start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_12.8.0/${src_name} ${rundir}/${target_name}
+        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
     fi
 done
 
