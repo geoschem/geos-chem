@@ -595,12 +595,15 @@ sed_ie "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_name} = "fullchem" ]]; then
-    startdate="20190701"
-    enddate="20190801"
-else
+if [[ "x${sim_name}" == "xHg"     ||
+      "x${sim_name}" == "xCH4"    ||
+      "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xTransportTracers" ]]; then
     startdate="20190101"
     enddate="20190201"
+else
+    startdate="20190701"
+    enddate="20190801"
 fi
 starttime="000000"
 endtime="000000"
@@ -719,39 +722,35 @@ else
    rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
 fi
 
-if [[ "x${sim_name}" == "xfullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 
     # For TOMAS simulations, use restarts provided by the TOMAS team
-    # For other fullchem simulations, use restart the latest 1-yr benchmark
+    # For other fullchem simulations, use restart from latest benchmark
+    # Aerosol-only simulations can use the fullchem restart since all of the
+    #  aerosol species are included
     if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS15.nc
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_000z.nc4
     elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS40.nc
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_000z.nc4
     else
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
     fi
-
-elif [[ "x${sim_name}" == "xaerosol" ]]; then
-
-    # Aerosol-only simulations can use the fullchem r start
-    # as all of the aerosol species are included
-    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190101_0000z.nc4
-
+	
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
-    # For TransportTracers, use restart from latest 1-year benchmark
-    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
-
+    # For TransportTracers, use restart from latest benchmark
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	
 elif [[ "x${sim_name}" == "xPOPs" ]]; then
 
     # For POPs, the extra option is in the restart file name
-    sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.2x25_${sim_name}_${sim_extra_option}.nc
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
 
 else
 
     # For other specialty simulations, use previoiusly saved restarts
-    # that have 2019 dates.  We only need the 2x25 restarts.
-    sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.2x25_${sim_name}.nc
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
 fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
