@@ -189,10 +189,10 @@ EmisDMS_Ocean      DMS    101    -1  -1   2   kg/m2/s  DMS_emission_flux_from_oc
 ###############################################################################
 EmisDST1_Total     DST1   -1     -1  -1   2   kg/m2/s  DST1_emission_flux_from_all_sectors
 EmisDST1_Anthro    DST1   0      1   -1   2   kg/m2/s  DST1_emission_flux_from_anthropogenic
-EmisDST1_Natural   DST1   0      3   -1   2   kg/m2/s  DST1_emission_flux_from_natural_sources
-EmisDST2_Natural   DST2   0      3   -1   2   kg/m2/s  DST2_emission_flux_from_natural_sources
-EmisDST3_Natural   DST3   0      3   -1   2   kg/m2/s  DST3_emission_flux_from_natural_sources
-EmisDST4_Natural   DST4   0      3   -1   2   kg/m2/s  DST4_emission_flux_from_natural_sources
+EmisDST1_Natural   DST1   105    -1  -1   2   kg/m2/s  DST1_emission_flux_from_natural_sources
+EmisDST2_Natural   DST2   105    -1  -1   2   kg/m2/s  DST2_emission_flux_from_natural_sources
+EmisDST3_Natural   DST3   105    -1  -1   2   kg/m2/s  DST3_emission_flux_from_natural_sources
+EmisDST4_Natural   DST4   105    -1  -1   2   kg/m2/s  DST4_emission_flux_from_natural_sources
 
 ###############################################################################
 #####  EOH emissions                                                      #####
@@ -719,49 +719,47 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 #InvAFCID_DST1        DST1   0    1  -1   2   kg/m2/s  DST1_emission_flux_from_AFCID_inventory
 
-## Benchmark simulations will use online emissions
-## Comment out offline emission inventories, but leave here for ease of switching
-###=============================
-### Offline dust emissions
-###=============================
-###InvOFFLINEDUST_DST1  DST1   0    3   -1  2   kg/m2/s  DST1_emission_flux_from_offline_model
-###InvOFFLINEDUST_DST2  DST2   0    3   -1  2   kg/m2/s  DST2_emission_flux_from_offline_model
-###InvOFFLINEDUST_DST3  DST3   0    3   -1  2   kg/m2/s  DST3_emission_flux_from_offline_model
-###InvOFFLINEDUST_DST4  DST4   0    3   -1  2   kg/m2/s  DST4_emission_flux_from_offline_model
-##
-###=============================
-### Offline biogenic VOC emissions
-###=============================
-###InvOFFLINEBIOVOC_ACET ACET  0    4   -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_ALD2 ALD2  0    4   -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_C2H4 C2H4  0    4   -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_EOH  EOH   0    4   -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_ISOP ISOP  0    4   -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_LIMO LIMO  0    4   -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_MTPA MTPA  0    4   -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_MTPO MTPO  0    4   -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_PRPE PRPE  0    4   -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_SESQ SESQ  0    4   -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_SOAP SOAP  0    4   -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_offline_model
-###InvOFFLINEBIOVOC_SOAS SOAS  0    4   -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_offline_model
-##
-###=============================
-### Offline sea salt emissions
-###=============================
-###InvOFFLINESEASALT_Br2    Br2    0 3  -1  2   kg/m2/s  Br2_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_BrSALA BrSALA 0 3  -1  2   kg/m2/s  BrSALA_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_BrSALC BrSALC 0 3  -1  2   kg/m2/s  BrSALC_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALA   SALA   0 3  -1  2   kg/m2/s  SALA_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALAAL SALAAL 0 3  -1  2   kg/m2/s  SALAAL_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALACL SALACL 0 3  -1  2   kg/m2/s  SALACL_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALC   SALC   0 3  -1  2   kg/m2/s  SALC_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALCAL SALCAL 0 3  -1  2   kg/m2/s  SALCAL_seasalt_emission_flux_from_offline_model
-###InvOFFLINESEASALT_SALCCL SALCCL 0 3  -1  2   kg/m2/s  SALCCL_seasalt_emission_flux_from_offline_model
-##
-###=============================
-### Offline soil NOx emissions
-###=============================
-###InvOFFLINESOILNOX_NO NO     0    3   -1  2   kg/m2/s  NO_soil_and_fertilizer_emission_flux_from_offline_model
+#=============================
+# Offline dust emissions
+#=============================
+#InvOFFLINEDUST_DST1  DST1   0    3   -1  2   kg/m2/s  DST1_emission_flux_from_offline_model
+#InvOFFLINEDUST_DST2  DST2   0    3   -1  2   kg/m2/s  DST2_emission_flux_from_offline_model
+#InvOFFLINEDUST_DST3  DST3   0    3   -1  2   kg/m2/s  DST3_emission_flux_from_offline_model
+#InvOFFLINEDUST_DST4  DST4   0    3   -1  2   kg/m2/s  DST4_emission_flux_from_offline_model
+
+#=============================
+# Offline biogenic VOC emissions
+#=============================
+#InvOFFLINEBIOVOC_ACET ACET  0    4   -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_ALD2 ALD2  0    4   -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_C2H4 C2H4  0    4   -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_EOH  EOH   0    4   -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_ISOP ISOP  0    4   -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_LIMO LIMO  0    4   -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_MTPA MTPA  0    4   -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_MTPO MTPO  0    4   -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_PRPE PRPE  0    4   -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_SESQ SESQ  0    4   -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_SOAP SOAP  0    4   -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_offline_model
+#InvOFFLINEBIOVOC_SOAS SOAS  0    4   -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_offline_model
+
+#=============================
+# Offline sea salt emissions
+#=============================
+#InvOFFLINESEASALT_Br2    Br2    0 3  -1  2   kg/m2/s  Br2_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_BrSALA BrSALA 0 3  -1  2   kg/m2/s  BrSALA_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_BrSALC BrSALC 0 3  -1  2   kg/m2/s  BrSALC_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALA   SALA   0 3  -1  2   kg/m2/s  SALA_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALAAL SALAAL 0 3  -1  2   kg/m2/s  SALAAL_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALACL SALACL 0 3  -1  2   kg/m2/s  SALACL_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALC   SALC   0 3  -1  2   kg/m2/s  SALC_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALCAL SALCAL 0 3  -1  2   kg/m2/s  SALCAL_seasalt_emission_flux_from_offline_model
+#InvOFFLINESEASALT_SALCCL SALCCL 0 3  -1  2   kg/m2/s  SALCCL_seasalt_emission_flux_from_offline_model
+
+#=============================
+# Offline soil NOx emissions
+#=============================
+#InvOFFLINESOILNOX_NO NO     0    3   -1  2   kg/m2/s  NO_soil_and_fertilizer_emission_flux_from_offline_model
 
 #=============================
 # Seaflux extension
