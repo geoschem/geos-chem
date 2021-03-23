@@ -74,8 +74,9 @@ MODULE GcKpp_HetRates
   PRIVATE :: HETHOBr_TCld
   PRIVATE :: HETClNO3_TCld
   PRIVATE :: HETClNO2_TCld
-  PRIVATE :: HETOH
   PRIVATE :: HETClNO2
+
+  PRIVATE :: Gamma_NO3
   PRIVATE :: HetNO3_Cl
 
   ! Halogen gamma calculation and other subrontines, XW
@@ -89,7 +90,6 @@ MODULE GcKpp_HetRates
   PRIVATE :: Gamma_ClNO2
   PRIVATE :: Gamma_HOCl_AER
   PRIVATE :: Gamma_HOCl_CLD
-  PRIVATE :: Gamma_NO3
 
   ! These are strat-only reactions
   PRIVATE :: HETClNO3_HCl
@@ -206,42 +206,37 @@ MODULE GcKpp_HetRates
 
 !LOCAL VARIABLES:
 
-    ! Scalars
-    LOGICAL                :: SAFEDIV
-    LOGICAL                :: is_UCX
-    INTEGER                :: IND
-    REAL(dp)               :: conc1, conc2, denom
-
     ! SAVEd scalars
-    INTEGER,          SAVE :: id_SALA = -1
-    LOGICAL,          SAVE :: FIRST   = .TRUE.
+    INTEGER,           SAVE :: id_SALA = -1
+    LOGICAL,           SAVE :: FIRST   = .TRUE.
 
-    ! New treatment for educt removal
-    REAL(dp)               :: kITemp, kIITemp, rate
-    REAL(dp)               :: HetTemp(3)  !new temp array for gamma results
+    ! Scalars
+    LOGICAL                 :: SAFEDIV
+    LOGICAL                 :: is_UCX
+    INTEGER                 :: IND
+    REAL(dp)                :: conc1, conc2, denom
+    REAL(dp)                :: kITemp, kIITemp, rate
+    REAL(dp)                :: rLiq, ALiq, VLiq, CldFr
+    REAL(dp)                :: rIce, AIce, VIce, ClearFr
+    REAL(dp)                :: hConc_Sul
+    REAL(dp)                :: hConc_LCl
+    REAL(dp)                :: hConc_ICl
+    REAL(dp)                :: hConc_SSA
+    REAL(dp)                :: hConc_SSC
+    REAL(dp)                :: brConc_SALA, clConc_SALA
+    REAL(dp)                :: brConc_SALC, clConc_SALC
+    REAL(dp)                :: brConc_CldA, clConc_CldA
+    REAL(dp)                :: brConc_CldC, clConc_CldC
+    REAL(dp)                :: brConc_Cldg, clConc_Cldg
+    REAL(dp)                :: brConc_Cld, clConc_Cld
+    REAL(dp)                :: pHCloud
+    REAL(dp)                :: hno3_th, hcl_th, hbr_th
+    REAL(dp)                :: gammaLiq, gammaIce, gamma
 
-    ! Cloud parameters
-    REAL(dp)               :: rLiq, ALiq, VLiq, CldFr
-    REAL(dp)               :: rIce, AIce, VIce, ClearFr
-
-    ! New bromine/chlorine chemistry
-    REAL(dp)               :: hConc_Sul
-    REAL(dp)               :: hConc_LCl
-    REAL(dp)               :: hConc_ICl
-    REAL(dp)               :: hConc_SSA
-    REAL(dp)               :: hConc_SSC
-    REAL(dp)               :: brConc_SALA, clConc_SALA
-    REAL(dp)               :: brConc_SALC, clConc_SALC
-    REAL(dp)               :: brConc_CldA, clConc_CldA
-    REAL(dp)               :: brConc_CldC, clConc_CldC
-    REAL(dp)               :: brConc_Cldg, clConc_Cldg
-    REAL(dp)               :: brConc_Cld, clConc_Cld
-    REAL(dp)               :: pHCloud, pHSSA(2)
-    REAL(dp)               :: SSAlk(2)
-    REAL(dp)               :: hno3_th, hcl_th, hbr_th
-
-    ! Cloud heterogeneous chemistry
-    REAL(dp)               :: gammaLiq, gammaIce
+    ! Arrays
+    REAL(dp)                :: HetTemp(3)
+    REAL(dp)                :: pHSSA(2)
+    REAL(dp)                :: SSAlk(2)
 
     ! Pointers and objects
     TYPE(HetState), POINTER :: H
@@ -912,13 +907,23 @@ MODULE GcKpp_HetRates
 
     !------------------------------------------------------------------------
     ! Reaction of OH with Cl-, XW 3/12/18)
+    !
+    ! NOTES:
+    ! (1) gamma = 0.04 * sea-salt concentration (cf Knipping & Dabdub, 2002)
+    ! (2) Use ARSL1K directly so as to remove function HETOH (bmy, 3/22/21)
     !------------------------------------------------------------------------
-    kITemp          = HETOH( XDenA, AClRADI, AClAREA, Temp, clConc_SALA     )
-    HET(ind_OH,  1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), kITemp            )
 
-    kITemp          = HETOH( XDenA, xRadi(12), xArea(12),                    &
-                             Temp, clConc_SALC                              )
-    HET(ind_OH,  2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), kITemp            )
+    ! OH + Cl on accumulation-mode sea-salt
+    gamma          = 0.04_dp * clConc_SALA
+    rate           = ARSL1K(   AClArea,   AClRadi,       XDENA,              &
+                               gamma,     XTEMP,         H%OH%SrMw          )
+    HET(ind_OH, 1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), rate               )
+
+    ! OH + Cl on coarse-mode sea-salt
+    gamma          = 0.04_dp * clConc_SALC
+    rate           = ARSL1K(   XAREA(12), XRADI(12),     XDENA,              &
+                               gamma,     XTEMP,         H%OH%SrMw          )
+    HET(ind_OH, 2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), rate               )
 
     !------------------------------------------------------------------------
     ! Reaction of ClNO2 with Cl-, XW 3/12/18)
@@ -1127,6 +1132,8 @@ MODULE GcKpp_HetRates
     ! Cleanup & quit
     !========================================================================
     H => NULL()
+
+#include "print_het.H"
 
   END SUBROUTINE SET_HET
 !EOC
@@ -2931,61 +2938,6 @@ MODULE GcKpp_HetRates
     ENDDO
 
   END FUNCTIOn HetVOC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetOH
-!
-! !DESCRIPTION: Set heterogenous chemistry rate for N2O5 with Cl-.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETOH(denAir, rAer, AAer, TK, C_X) RESULT( kISum )
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
-      REAL(dp), INTENT(IN) :: rAer        ! Radius of aerosol (cm)
-      REAL(dp), INTENT(IN) :: AAer        ! Area of aerosol (cm2/cm3)
-      REAL(dp), INTENT(IN) :: TK          ! Temperature (K)
-      REAL(dp), INTENT(IN) :: C_X         ! Cl- concentration (mol/L)
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  12 Mar 2018 - X. Wang  - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF
-      Real(dp), Parameter :: XMolWeight=17.0e+0_dp
-      Real(dp), Parameter :: XSQM=SQRT(XMolWeight)
-!
-! !DEFINED PARAMETERS:
-!
-      ! Initialize
-      kISum        = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      XSTKCF = 0.04_dp * C_X   !Knipping and Dabdub (2002)
-
-      ! Reaction rate
-      kISum = ARSL1K( AAer, rAer, denAir, XSTKCF, XTEMP, XSQM )
-
-    END FUNCTION HETOH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
