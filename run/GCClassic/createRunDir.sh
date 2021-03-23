@@ -729,9 +729,9 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     # Aerosol-only simulations can use the fullchem restart since all of the
     #  aerosol species are included
     if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_000z.nc4
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
     elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_000z.nc4
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
     else
 	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
     fi
@@ -763,6 +763,27 @@ else
     printf "\n     You will need to provide an initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
+fi
+
+# Sample restarts for several simulations do not contain all species. For those
+# simulations, print a warning and change the time cycle option in HEMCO config
+if [[ "x${sim_extra_option}" == "xaciduptake"        ||
+      "x${sim_extra_option}" == "xmarinePOA"         ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
+      "x${sim_extra_option}" == "xAPM"               ||
+      "x${sim_name}"         == "xPOPs"              ||
+      "x${sim_name}"         == "xtagCH4"            ||
+      "x${sim_name}"         == "xtagO3"             ]]; then
+    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFY"
+    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY "
+    sed_ie "s|${old}|${new}|" HEMCO_Config.rc
+
+    printf "\n  -- The sample restart provided for this simulation may not"
+    printf "\n     contain all species defined in this simulation. Missing"
+    printf "\n     species will be assigned default background concentrations."
+    printf "\n     Check your GEOS-Chem log file for details. As always, it"
+    printf "\n     is recommended that you spin up your simulation to ensure"
+    printf "\n     proper initial conditions.\n"
 fi
 
 #--------------------------------------------------------------------
