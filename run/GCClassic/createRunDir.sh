@@ -278,7 +278,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='3.86e-4'
+	offline_dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="geosfp"
@@ -291,7 +291,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
+	offline_dust_sf='6.42e-5'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -591,7 +591,7 @@ sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
 sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
 sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
 sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed_ie "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
+sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
@@ -630,25 +630,28 @@ fi
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
-    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
-	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
-    fi
-    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
-	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
-    fi
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
-# NOTE: Also use the same dust tuning factors as for the benchmark
-# for the Tomas_DustDead extension (mps, bmy, 3/11/12)
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
     replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
+fi
+
+# Set online dust emission mass tuning factor according to met field
+# and resolution. These values were obtained from hcox_dustdead_mod.F90.
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
     fi
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 5.0416e-4 HEMCO_Config.rc
+    fi
     if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 4.7586e-4 HEMCO_Config.rc
     fi
 fi
 

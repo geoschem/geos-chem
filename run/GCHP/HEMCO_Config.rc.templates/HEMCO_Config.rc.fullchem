@@ -96,17 +96,18 @@ Warnings:                    1
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
 # ----- OFFLINE EMISSIONS -------------------------------------
-# To use online emissions instead set the
-# offline emissions to 'false' and the
-# corresponding HEMCO extension to 'on':
+# To use online emissions instead set the offline emissions to
+# 'false' and the corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
 #   OFFLINE_BIOGENICVOC - MEGAN
 #    - Note: MEGAN must always be on for certain
 #            species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
+# NOTE: The offline dust emissions are considered to be buggy.
+#  Until further notice online dust emissions are recommended.
 #--------------------------------------------------------------
-    --> OFFLINE_DUST           :       true     # 1980-2021
+    --> OFFLINE_DUST           :       false   # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
     --> OFFLINE_SEASALT        :       true     # 1980-2021
     --> OFFLINE_SOILNOX        :       true     # 1980-2021
@@ -134,8 +135,7 @@ Warnings:                    1
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : off   NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : off   DST1/DST2/DST3/DST4
-# Mass tuning factor auto-updated with resolution-dependent value set in runConfig.sh
+105     DustDead               : on    DST1/DST2/DST3/DST4
     --> Mass tuning factor     :       -999.0e0
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
