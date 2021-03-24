@@ -1092,7 +1092,7 @@ MODULE GCKPP_HETRATES
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
       HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), kITemp     )
 
-      kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
+      kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 4    )
       HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), kITemp     )
 
       ! Nullify pointers
