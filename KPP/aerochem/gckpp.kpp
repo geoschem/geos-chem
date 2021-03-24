@@ -782,8 +782,10 @@ PH2O2 : H2O2;
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
   REAL(kind=dp), PARAMETER :: CRITRH      = 35.0e+0_dp
 
-  ! Effective Henry's Law constant of IEPOX for reactive
-  ! uptake to aqueous aerosols (M/atm)
+  ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous 
+  ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
+  ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
+  ! (which is the precursor of IEPOX).
   REAL(kind=dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
 
   ! Conversion factor from atm to bar

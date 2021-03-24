@@ -39,25 +39,18 @@ MODULE GcKpp_HetRates
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  ! These functions are used for all mechanisms
-  PRIVATE :: HetNO3
-  PRIVATE :: HetNO2
-  PRIVATE :: HetHO2
-  PRIVATE :: HetGLYX
-  PRIVATE :: HetMGLY
-  PRIVATE :: HetIEPOX
-  PRIVATE :: HetIMAE
-  PRIVATE :: HetVOC
-  PRIVATE :: HetHBr
+  PRIVATE :: Het1stOrderUptakeGLYX
+  PRIVATE :: Het1stOrderUptakeIEPOX
+  PRIVATE :: Het1stOrderUptakeMGLY
+  PRIVATE :: Het1stOrderUptakeHO2
+  PRIVATE :: Het1stOrderUptakeNO2
+  PRIVATE :: Het1stOrderUptakeNO3
+  PRIVATE :: Het1stOrderUptakeVOC
   PRIVATE :: HetN2O5
   PRIVATE :: CloudHet
-
-  ! New iodine heterogeneous chemistry
   PRIVATE :: HetIUptakebySALA
   PRIVATE :: HetIUptakebySALC
   PRIVATE :: HetIUptakebySulf
-
-  ! Halogen fuctions, XW
   PRIVATE :: HETBrNO3
   PRIVATE :: HETClNO3
   PRIVATE :: HETHOBr_HBr
@@ -75,7 +68,6 @@ MODULE GcKpp_HetRates
   PRIVATE :: HETClNO3_TCld
   PRIVATE :: HETClNO2_TCld
   PRIVATE :: HETClNO2
-
   PRIVATE :: Gamma_NO3
   PRIVATE :: HetNO3_Cl
 
@@ -108,7 +100,7 @@ MODULE GcKpp_HetRates
   PRIVATE :: FCRO2HO2
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
-  PRIVATE :: ARSL1K
+  PRIVATE :: ArsL1k
   PRIVATE :: kIIR1Ltd
   PRIVATE :: kIIR1R2L
 
@@ -127,19 +119,14 @@ MODULE GcKpp_HetRates
 !$OMP THREADPRIVATE( fupdateHOCl, nitConc_SALA, nitConc_SALC      )
 
 ! !REMARKS:
-!  Need
-!  - TOTAREA (previously used for archiving N2O5 hydrolysis in the planeflight
-!             diagnostic only)
-!  - Air NUM. DENSITY
-!  - TEMPERATURE
-!  - Aerosol Surface Area
-!  - Aerosol Type
-!  - Gamma (XSTKCF; sticking factor)
-!  - ARR
-!  - Species num density (mcl cm-3)
-!  - Continental PBL or no?
-!  - In stratosphere or no?
-!  - Reaction index (e.g. NK1HBr, NK2HBr)
+!  There are NAEROTYPE=14 aerosol types used in het chem rate computations:
+!  (1 ) Mineral dust (reff = 0.151 um)   (8 ) Tropospheric sulfate
+!  (2 ) Mineral dust (reff = 0.253 um)   (9 ) Black Carbon
+!  (3 ) Mineral dust (reff = 0.402 um)   (10) Organic Carbon
+!  (4 ) Mineral dust (reff = 0.818 um)   (11) Fine (accum-mode) sea salt
+!  (5 ) Mineral dust (reff = 1.491 um)   (12) Coarse sea salt
+!  (6 ) Mineral dust (reff = 2.417 um)   (13) Stratospheric sulfate
+!  (7 ) Mineral dust (reff = 3.721 um)   (14) Irregular ice cloud
 !
 ! !REFERENCES:
 !  Eastham et al., Development and evaluation of the unified tropospheric-
@@ -368,36 +355,36 @@ MODULE GcKpp_HetRates
     HET = 0.0_dp
 
     ! Calculate genuine first-order uptake reactions first
-    HET(ind_HO2,    1) = HetHO2(   H%HO2%MW_g,    2.0E-1_dp )
-    HET(ind_NO2,    1) = HetNO2(   H%NO2%MW_g,    1.0E-4_dp )
-    HET(ind_NO3,    1) = HetNO3(   H%NO3%MW_g,    1.0E-1_dp )
-    HET(ind_GLYX,   1) = HetGLYX(  H%GLYX%MW_g,   1.0E-1_dp )
-    HET(ind_MGLY,   1) = HetMGLY(  H%MGLY%MW_g,   1.0E-1_dp )
-    HET(ind_IEPOXA, 1) = HetIEPOX( H%IEPOXA%MW_g, 1.0E-1_dp )
-    HET(ind_IEPOXB, 1) = HetIEPOX( H%IEPOXB%MW_g, 1.0E-1_dp )
-    HET(ind_IEPOXD, 1) = HetIEPOX( H%IEPOXD%MW_g, 1.0E-1_dp )
-    HET(ind_HMML,   1) = HetIMAE(  H%HMML%MW_g,   1.0E-1_dp )
-    HET(ind_PYAC,   1) = HetMGLY(  H%PYAC%MW_g,   1.0E-1_dp )
-    HET(ind_ICHE,   1) = HetIEPOX( H%ICHE%MW_g,   1.0E-1_dp )
+    HET(ind_GLYX,   1) = Het1stOrderUptakeGLYX(  H%GLYX%SrMw                )
+    HET(ind_HMML,   1) = Het1stOrderUptakeIEPOX( H%HMML%SrMw,   .TRUE.      )
+    HET(ind_HO2,    1) = Het1stOrderUptakeHO2(   H%HO2%SrMw                 )
+    HET(ind_ICHE,   1) = Het1stOrderUptakeIEPOX( H%ICHE%SrMw,   .FALSE.     )
+    HET(ind_IEPOXA, 1) = Het1stOrderUptakeIEPOX( H%IEPOXA%SrMw, .FALSE.     )
+    HET(ind_IEPOXB, 1) = Het1stOrderUptakeIEPOX( H%IEPOXB%SrMw, .FALSE.     )
+    HET(ind_IEPOXD, 1) = Het1stOrderUptakeIEPOX( H%IEPOXD%SrMw, .FALSE.     )
+    HET(ind_MGLY,   1) = Het1stOrderUptakeMGLY(  H%MGLY%SrMw                )
+    HET(ind_NO2,    1) = Het1stOrderUptakeNO2(   H%NO2%SrMw                 )
+    HET(ind_NO3,    1) = Het1stOrderUptakeNO3(   H%NO3%SrMw                 )
+    HET(ind_PYAC,   1) = Het1stOrderUptakeMGLY(  H%PYAC%SrMw                )
 
-    ! These VOC species use the same rate-law function
-    HET(ind_LVOC,   1) = HetVOC(   H%LVOC%SrMw,   1.0E+0_dp )
-    HET(ind_IHN1,   1) = HetVOC(   H%IHN1%SrMw,   5.0E-3_dp )
-    HET(ind_IHN2,   1) = HetVOC(   H%IHN2%SrMw,   5.0E-2_dp )
-    HET(ind_IHN3,   1) = HetVOC(   H%IHN3%SrMw,   5.0E-3_dp )
-    HET(ind_IHN4,   1) = HetVOC(   H%IHN4%SrMw,   5.0E-3_dp )
-    HET(ind_INPB,   1) = HetVOC(   H%INPB%SrMw,   5.0E-3_dp )
-    HET(ind_INPD,   1) = HetVOC(   H%INPD%SrMw,   5.0E-3_dp )
-    HET(ind_MCRHN,  1) = HetVOC(   H%MCRHN%SrMw,  5.0E-3_dp )
-    HET(ind_MCRHNB, 1) = HetVOC(   H%MCRHNB%SrMw, 5.0E-3_dp )
-    HET(ind_MVKN,   1) = HetVOC(   H%MVKN%SrMw,   5.0E-3_dp )
-    HET(ind_R4N2,   1) = HetVOC(   H%R4N2%SrMw,   5.0E-3_dp )
-    HET(ind_IDN,    1) = HetVOC(   H%IDN%SrMw,    5.0E-3_dp )
-    HET(ind_ITHN,   1) = HetVOC(   H%ITHN%SrMw,   5.0E-3_dp )
-    HET(ind_ITCN,   1) = HetVOC(   H%ITCN%SrMw,   5.0E-3_dp )
-    HET(ind_MONITS, 1) = HetVOC(   H%MONITS%SrMw, 1.0E-2_dp )
-    HET(ind_MONITU, 1) = HetVOC(   H%MONITU%SrMw, 1.0E-2_dp )
-    HET(ind_HONIT,  1) = HetVOC(   H%HONIT%SrMw,  1.0E-2_dp )
+    ! These VOC species use the same rate-law function for 1st-order uptake
+    HET(ind_LVOC,   1) = Het1stOrderUptakeVOC(   H%LVOC%SrMw,   1.0E+0_dp   )
+    HET(ind_IHN1,   1) = Het1stOrderUptakeVOC(   H%IHN1%SrMw,   5.0E-3_dp   )
+    HET(ind_IHN2,   1) = Het1stOrderUptakeVOC(   H%IHN2%SrMw,   5.0E-2_dp   )
+    HET(ind_IHN3,   1) = Het1stOrderUptakeVOC(   H%IHN3%SrMw,   5.0E-3_dp   )
+    HET(ind_IHN4,   1) = Het1stOrderUptakeVOC(   H%IHN4%SrMw,   5.0E-3_dp   )
+    HET(ind_INPB,   1) = Het1stOrderUptakeVOC(   H%INPB%SrMw,   5.0E-3_dp   )
+    HET(ind_INPD,   1) = Het1stOrderUptakeVOC(   H%INPD%SrMw,   5.0E-3_dp   )
+    HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC(   H%MCRHN%SrMw,  5.0E-3_dp   )
+    HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC(   H%MCRHNB%SrMw, 5.0E-3_dp   )
+    HET(ind_MVKN,   1) = Het1stOrderUptakeVOC(   H%MVKN%SrMw,   5.0E-3_dp   )
+    HET(ind_R4N2,   1) = Het1stOrderUptakeVOC(   H%R4N2%SrMw,   5.0E-3_dp   )
+    HET(ind_IDN,    1) = Het1stOrderUptakeVOC(   H%IDN%SrMw,    5.0E-3_dp   )
+    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(   H%ITHN%SrMw,   5.0E-3_dp   )
+    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
+    HET(ind_MONITS, 1) = Het1stOrderUptakeVOC(   H%MONITS%SrMw, 1.0E-2_dp   )
+    HET(ind_MONITU, 1) = Het1stOrderUptakeVOC(   H%MONITU%SrMw, 1.0E-2_dp   )
+    HET(ind_HONIT,  1) = Het1stOrderUptakeVOC(   H%HONIT%SrMw,  1.0E-2_dp   )
 
     ! Aerosol-phase organic nitrate formed from monoterpene precursors
     ! (species IONITA and MONITA) have constant hetchem rates.
@@ -910,18 +897,18 @@ MODULE GcKpp_HetRates
     !
     ! NOTES:
     ! (1) gamma = 0.04 * sea-salt concentration (cf Knipping & Dabdub, 2002)
-    ! (2) Use ARSL1K directly so as to remove function HETOH (bmy, 3/22/21)
+    ! (2) Use ArsL1k directly so as to remove function HETOH (bmy, 3/22/21)
     !------------------------------------------------------------------------
 
     ! OH + Cl on accumulation-mode sea-salt
     gamma          = 0.04_dp * clConc_SALA
-    rate           = ARSL1K(   AClArea,   AClRadi,       XDENA,              &
+    rate           = ArsL1k(   AClArea,   AClRadi,       XDENA,              &
                                gamma,     XTEMP,         H%OH%SrMw          )
     HET(ind_OH, 1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), rate               )
 
     ! OH + Cl on coarse-mode sea-salt
     gamma          = 0.04_dp * clConc_SALC
-    rate           = ARSL1K(   XAREA(12), XRADI(12),     XDENA,              &
+    rate           = ArsL1k(   XAREA(12), XRADI(12),     XDENA,              &
                                gamma,     XTEMP,         H%OH%SrMw          )
     HET(ind_OH, 2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), rate               )
 
@@ -1524,7 +1511,7 @@ MODULE GcKpp_HetRates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    rate = ARSL1K( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
 
   END FUNCTION HetIUptakebySALA
 !EOC
@@ -1554,7 +1541,7 @@ MODULE GcKpp_HetRates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    rate = ARSL1K( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
 
   END FUNCTION HetIUptakebySALC
 !EOC
@@ -1586,395 +1573,481 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOC
     ! Uptake rate of iodine by tropospheric sulfate (N=8)
-    rate = ARSL1K( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
 
     ! For UCX-based mechanisms also allow reaction on stratospheric
     ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
     IF ( LUCX ) THEN
-       rate = rate + ARSL1K( XAREA(13), XRADI(13), XDENA, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(13), XRADI(13), XDENA, gamma, XTEMP, SrMw )
     ENDIF
 
   END FUNCTION HETIUptakeBySulf
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetNO3
+! !IROUTINE: Het1stOrderUptakeGLYX
 !
-! !DESCRIPTION: Set the heterogenous chemistry rate for NO3.
+! !DESCRIPTION: Sets the heterogenous chemistry rate for first-order
+!  uptake of GLYX.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HETNO3( A, B ) RESULT( HET_NO3 )
+  FUNCTION Het1stOrderUptakeGLYX( SrMw ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN) :: A, B
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)             :: HET_NO3
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
+    REAL(dp) :: gamma
 
-      ! Initialize
-      HET_NO3      = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
+    !========================================================================
+    ! Het1stOrderUptakeNO2 begins here!
+    !========================================================================
 
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
+    ! Initialize
+    rate  = 0.0_dp
+    gamma = 0.0_dp
 
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
+    ! Only consider inorganic aqueous aerosols with RH > 35%.
+    ! Uptake during the day (higher uptake than night)
+    ! (Sumner et al., 2014):
+    IF ( RELHUM >= CRITRH ) THEN
 
-         XSTKCF = B
+       ! Define gamma for GLYX:
+       IF ( SUNCOS > 0.0_dp ) THEN
 
-         ! Set uptake coefficients
-         select case (N)
-            case (1:7)
-               ! dust
-               xstkcf = 0.01_dp
-            case (8)
-               ! sulfate
-               !if ( relhum < 40.0_dp ) then
-               !   xstkcf = 0.001_dp
-               !else
-               !   xstkcf = 0.002_dp
-               !endif
-               ! Follow NO3 hydrolysis on SSA+SNA
-               xstkcf = 0.0_dp
-            case (9)
-               ! BC
-               if ( relhum < 50.0_dp ) then
-                  xstkcf = 2e-4_dp
-               else
-                  xstkcf = 1e-3_dp
-               endif
-            case (10)
-               ! OC
-               xstkcf = 0.005_dp
-            case (11:12)
-               ! sea salt
-               !if ( relhum < 40.0_dp ) then
-               !   xstkcf = 0.05_dp
-               !elseif ( relhum > 70.0_dp ) then
-               !   xstkcf = 0.002_dp
-               !else
-               !   xstkcf = 0.05_dp + (0.002_dp - 0.05_dp)                    &
-               !          * (relhum - 40.0_dp) / (70.0_dp - 40.0_dp)
-               !endif
-               ! Follow NO3 hydrolysis on SSA+SNA
-               xstkcf = 0.0_dp
-         end select
+          ! Uptake during the day (use Liggio et al., 2005):
+          ! gamma = 2.9e-3_dp ! Prior to 3/2/18
+          gamma = 4.4e-3_dp
 
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSEIF ((N.eq.11).or.(N.eq.12).or.(N.eq.8)) THEN
-            ! Follow combined hydrolysis with Cl-, xnw
-            ADJUSTEDRATE = 0.0e0_dp
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
+       ELSE
 
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
+          ! Uptake at night (lower uptake than day)
+          ! Value is within the range 1d-5 to 1d-6
+          ! (Faye McNeill personal communication, eam, 2015):
+          ! gamma = 5.0e-6_dp ! Prior to 3/2/18
+          gamma = 8.0e-6_dp
 
-         ! Add to overall reaction rate
-         HET_NO3 = HET_NO3 + ADJUSTEDRATE
+       ENDIF
 
-      ENDDO
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
 
-  END FUNCTION HETNO3
+    ENDIF
+
+  END FUNCTION Het1stOrderUptakeGLYX
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetNO2
+! !IROUTINE: Het1stOrderUptakeIEPOX
 !
-! !DESCRIPTION: Set the heterogenous chemistry rate for NO2.
+! !DESCRIPTION: Sets the heterogenous chemistry rate for first-order
+!  uptake of ICHE, IEPOXA, IEPOXB, and IEPOXD.
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETNO2( A, B ) RESULT( HET_NO2 )
+  FUNCTION Het1stOrderUptakeIEPOX( SrMw, doScale ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
+    REAL(dp), INTENT(IN) :: SrMw    ! Square root of molecular weight [g/mole]
+    LOGICAL,  INTENT(IN) :: doScale ! If =T, divide gamma by 30 (for HMML)
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: HET_NO2
+    REAL(dp)             :: rate    ! Reaction rate [1/s]
 !
 ! !REMARKS:
+!
+! !REVISION HISTORY:
+!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+    ! Define first-order particle phase reaction rates
+    ! specific to IEPOX (from Gaston et al., 2014):
+    REAL(dp), PARAMETER :: K_HPLUS = 3.6e-2_dp   ! Alternate: 1.2d-3 (Edding)
+    REAL(dp), PARAMETER :: K_NUC   = 2.0e-4_dp   ! Alternate: 5.2d-1 (Piletic)
+    REAL(dp), PARAMETER :: K_HSO4  = 7.3e-4_dp
+    REAL(dp), PARAMETER :: K_HYDRO = 0.0e+0_dp
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! Het1stOrderUptakeIEPOX begins here!
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+    gamma = 0.0_dp
+
+    ! Only consider inorganic aqueous aerosols with RH > 35%.
+    IF ( RELHUM >= CRITRH ) THEN
+
+       ! Get GAMMA for IEPOX hydrolysis
+       ! HSTAR_EPOX is defined in gckpp_Global.F90
+       gamma = EPOXUPTK( XAREA(8), XRADI(8), TEMP,   SrMw, HSTAR_EPOX,       &
+                         K_HPLUS,  H_PLUS,   K_NUC,  MSO4, MNO3,             &
+                         K_HSO4,   MHSO4,    K_HYDRO                        )
+
+       ! Scale down gamma if [H+] > 8d-5 (cf Riedel et al, 2015)
+       IF ( doScale .and. ( H_PLUS > 8.0e-5_dp ) ) THEN
+          gamma = gamma / 30.0_dp
+       ENDIF
+
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
+
+    ENDIF
+
+  END FUNCTION Het1stOrderUptakeIEPOX
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Het1stOrderUptakeHO2
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for first-order
+!  uptake of HO2.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION Het1stOrderUptakeHO2( SrMw ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! Het1stOrderUptakeNO2 begins here!
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+
+    ! Reaction probability is taken from GAMMA_HO2 in gckpp_Global.F90
+    gamma = GAMMA_HO2
+
+    ! Uptake by mineral dust (aerosol types 1-7)
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
+    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+    rate  = rate + ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
+
+    ! Skip uptake on stratospheric sulfate (aerosol type 13)
+    ! and on irregular ice cloud (aerosol type 14)
+
+  END FUNCTION Het1stOrderUptakeHO2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Het1stOrderUptakeMGLY
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for first-order
+!  uptake of MGLY.  Also used for PYAC.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION Het1stOrderUptakeMGLY( SrMw ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! Het1stOrderUptakeMGLY begins here!
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+    gamma = 0.0_dp
+
+    ! Only consider inorganic aqueous aerosols with RH > 35%.
+    IF ( RELHUM >= CRITRH ) THEN
+
+       ! Define gamma for MGLY:
+       ! Obtained by scaling gamma GLYX by the
+       ! ratio of effective Henry's law constants
+       ! for GLYX (3d7) and MGLY (3.7d3) (eam, 02/2015):
+       gamma = 3.6e-7_dp
+
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), XDENA, gamma, XTEMP, SrMw )
+
+    ENDIF
+
+    END FUNCTION Het1stOrderUptakeMGLY
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+ !IROUTINE: Het1stOrderUptakeNO2
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for first-order
+!  uptake of NO2.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION Het1stOrderUptakeNO2( SrMw ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! Het1stOrderUptakeNO2 begins here!
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+
+    ! Uptake by mineral dust (aerosol types 1-7)
+    gamma = 1.0e-8_dp
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by tropospheric sulfate (aerosol type 8)
+    gamma = 5e-6_dp
+    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by black carbon (aerosol type 9)
+    gamma = 1e-4_dp
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by black carbon (aerosol type 10)
+    gamma = 1e-6_dp
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+    if ( relhum < 40.0_dp ) then
+       gamma = 1.0e-8_dp
+    elseif ( relhum > 70.0_dp ) then
+       gamma = 1.0e-4_dp
+    else
+       gamma = 1.0e-8_dp + (1e-4_dp - 1e-8_dp) * (relhum - 40.0_dp)/30.0_dp
+    endif
+    rate  = rate + ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by stratospheric sulfate (aerosol type 13)
+    ! and by irregular ice cloud (aerosol type 14)
+    gamma = 1.0e-4_dp
+    rate  = rate + XAREA(13) * gamma
+    rate  = rate + ArsL1k( XAREA(14), XRADI(14), XDENA, gamma, XTEMP, SrMw )
+
+  END FUNCTION Het1stOrderUptakeNO2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Het1stOrderUptakeNO3
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for 1st-order
+!  uptake of NO3.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Het1stOrderUptakeNO3( SrMw ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! HetNO3 begins here!
+    !
+    ! Skip HNO3 uptake by trop sulfate and sea salt (aer types 8, 11, 12)
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+
+    ! Uptake by mineral dust (aerosol types 1-7)
+    gamma = 0.01_dp
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by black carbon (aerosol type 9)
+    if ( relhum < 50.0_dp ) then
+       gamma = 2.0e-4_dp
+    else
+       gamma = 1.0e-3_dp
+    endif
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by organic carbon (aerosol type 10)
+    gamma = 0.005_dp
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by stratospheric sulfate (aerosol type 13)
+    ! and by irregular ice cloud (aerosol type 14)
+    gamma = 0.1_dp
+    rate  = rate + XAREA(13) * gamma
+    rate  = rate + ArsL1k( XAREA(14), XRADI(14), XDENA, gamma, XTEMP, SrMw )
+
+  END FUNCTION Het1stOrderUptakeNO3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Het1stOrderUptakeVOC
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for first-order
+!  uptake for several VOC species.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Het1stOrderUptakeVOC( SrMw, gamma ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMW    ! Square root of molecular weight [g/mole]
+    REAL(dp), INTENT(IN) :: gamma   ! Reaction probability [1]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate    ! Reaction rate [1/s]
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
 
-      ! Initialize
-      HET_NO2      = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
+    !========================================================================
+    ! Het1stOrderUptakeVOC begins here!
+    !========================================================================
 
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
+    ! Initialize
+    rate  = 0.0_dp
 
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
+    ! Only consider inorganic aqueous aerosols with RH > 35%.
+    IF ( RELHUM >= CRITRH ) THEN
 
-         XSTKCF = B
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       rate = rate + ArsL1k( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
 
-         ! Set uptake coefficients
-         select case (N)
-            case (1:7)
-               ! dust
-               xstkcf = 1e-8_dp
-            case (8)
-               ! sulfate
-               xstkcf = 5e-6_dp
-            case (9)
-               ! BC
-               xstkcf = 1e-4_dp
-            case (10)
-               ! OC
-               xstkcf = 1e-6_dp
-            case (11:12)
-               ! sea salt
-               if ( relhum < 40 ) then
-                  xstkcf = 1e-8_dp
-               elseif ( relhum > 70 ) then
-                  xstkcf = 1e-4_dp
-               else
-                  xstkcf = 1e-8_dp + (1e-4_dp-1e-8_dp) * (relhum-40)/(70-40)
-               endif
-         end select
+       ! Uptake by black carbon and organic carbon (aerosol types 9-10)
+       rate = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
 
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_dp))
-         ENDIF
+       ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+       rate = rate + ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
 
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
+       ! Uptake by stratospheric sulfate (aerosol type 13)
+       ! and by irregular ice cloud (aerosol type 14)
+       rate = rate + XAREA(13) * gamma
+       rate = rate + ArsL1k( XAREA(14), XRADI(14), XDENA, gamma, XTEMP, SrMw )
 
-         ! Add to overall reaction rate
-         HET_NO2 = HET_NO2 + ADJUSTEDRATE
+    ENDIF
 
-      END DO
-
-    END FUNCTION HETNO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetHO2
-!
-! !DESCRIPTION: Set the heterogenous chemistry rate for HO2.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETHO2( A, B ) RESULT( HET_HO2 )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_HO2
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      ! Initialize
-      HET_HO2      = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         XSTKCF = 0e+0_dp
-         IF (N.gt.12) THEN
-            XSTKCF = TINY(1e+0_dp)
-         ELSE
-            XSTKCF = GAMMA_HO2
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_HO2 = HET_HO2 + ADJUSTEDRATE
-
-      ENDDO
-
-    END FUNCTION HETHO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetHBr
-!
-! !DESCRIPTION: Set the heterogeneous rate for HBr.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETHBr( A, B ) RESULT( HET_HBr )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_HBr
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      ! Initialize
-      HET_HBr      = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Only apply PSC rate adjustment if at high altitude
-      DO_EDUCT     = STRATBOX
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         ! jpp, 3/22/11: set the sticking coefficient to
-         !  ~0 for aerosol types we don't want reactions on
-         !  for the HBr and HOBr surface reaction
-         XSTKCF = 0e+0_dp
-         ! Select proper aerosol type
-         IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
-            ! sulfate, 2 modes of sea-salt
-            XSTKCF = B
-         ELSEIF ( N == 13 ) THEN
-            XSTKCF = KHETI_SLA(11)
-         ELSEIF ( N == 14 ) THEN
-            XSTKCF = 0.1e+0_dp
-         ELSE
-            XSTKCF = 0e+0_dp
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_HBr = HET_HBr + ADJUSTEDRATE
-
-      ENDDO
-
-    END FUNCTION HETHBr
+  END FUNCTION Het1stOrderUptakeVOC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2094,7 +2167,7 @@ MODULE GcKpp_HetRates
 
             !For SNA aerosol...
             ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+fineSSA aerosol
-            ADJUSTEDRATE=ARSL1K( (1.0_dp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_DP) )
+            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_DP) )
 
             !Calculate ClNO2 yield on SNA(+ORG) aerosol using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2123,7 +2196,7 @@ MODULE GcKpp_HetRates
             SA     = output(4)
 
             !For coarse mode SSA aerosol ...
-            ADJUSTEDRATE=ARSL1K( (1.0_dp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_DP))
+            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_DP))
 
             !Calculate ClNO2 yield using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2135,7 +2208,7 @@ MODULE GcKpp_HetRates
          ELSE
             !For all other aerosol types...
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ArsL1k((1-CldFr)*XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_DP))
          ENDIF
 
@@ -2439,511 +2512,6 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HetGLYX
-!
-! !DESCRIPTION: Sets the heterogenous chemistry rate for GLYX.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETGLYX( A, B ) RESULT( HET_GLYX )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_GLYX
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      ! Initialize
-      HET_GLYX     = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         ! Default value
-         XSTKCF = TINY(1e+0_dp)
-
-         ! Only consider inorganic aqueous aerosols with RH > 35%.
-         ! Uptake during the day (higher uptake than night)
-         ! (Sumner et al., 2014):
-         IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-
-            ! Define gamma for GLYX:
-            IF ( SUNCOS .gt. 0 ) THEN
-
-               ! Uptake during the day (use Liggio et al., 2005):
-               ! XSTKCF = 2.9e-3_dp ! Prior to 3/2/18
-               XSTKCF = 4.4e-3_dp
-
-            ELSE
-
-               ! Uptake at night (lower uptake than day)
-               ! Value is within the range 1d-5 to 1d-6
-               ! (Faye McNeill personal communication, eam, 2015):
-               ! XSTKCF = 5.0e-6_dp ! Prior to 3/2/18
-               XSTKCF = 8.0e-6_dp
-
-            ENDIF
-
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_GLYX = HET_GLYX + ADJUSTEDRATE
-      END DO
-
-    END FUNCTIOn HETGLYX
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetMGLY
-!
-! !DESCRIPTION: Sets the heterogenous chemistry rate for MGLY.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETMGLY( A, B ) RESULT( HET_MGLY )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_MGLY
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      ! Initialize
-      HET_MGLY     = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         ! Default value
-         XSTKCF = TINY(1e+0_dp)
-
-         ! Only consider inorganic aqueous aerosols with RH > 35%.
-         IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-
-            ! Define gamma for MGLY:
-            ! Obtained by scaling gamma GLYX by the
-            ! ratio of effective Henry's law constants
-            ! for GLYX (3d7) and MGLY (3.7d3) (eam, 02/2015):
-            XSTKCF = 3.6e-7_dp
-
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_MGLY = HET_MGLY + ADJUSTEDRATE
-      END DO
-
-    END FUNCTIOn HETMGLY
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetIEPOX
-!
-! !DESCRIPTION: Sets the heterogenous chemistry rate for IEPOX.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETIEPOX( A, B ) RESULT( HET_IEPOX )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_IEPOX
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      REAL(dp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4, K_HYDRO
-
-      ! Initialize
-      HET_IEPOX    = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         ! Default value
-         XSTKCF = TINY(1e+0_dp)
-
-         ! Only consider inorganic aqueous aerosols with RH > 35%.
-         IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-
-            ! Define Henry's Law constant
-            ! Changes H* for IEPOX again to accommodate
-            ! reduction in yields of RIP, precursor
-            ! of IEPOX (eam, 07/2015):
-            HSTAR = HSTAR_EPOX    ! (Nguyen et al., 2014)
-
-            ! Define first-order particle phase reaction rates
-            ! specific to IEPOX (from Gaston et al., 2014):
-            K_HPLUS = 3.6e-2_dp   ! Alternate: 1.2d-3 (Edding)
-            K_NUC   = 2.e-4_dp    ! Alternate: 5.2d-1 (Piletic)
-            K_HSO4  = 7.3e-4_dp
-            K_HYDRO = 0.0e+0_dp
-
-            ! Get GAMMA for IEPOX hydrolysis:
-            XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
-                               TEMP,     (A**0.5_dp),         &
-                               HSTAR,    K_HPLUS,    H_PLUS,  &
-                               K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4,      K_HYDRO )
-
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_IEPOX = HET_IEPOX + ADJUSTEDRATE
-      END DO
-
-    END FUNCTIOn HETIEPOX
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetIMAE
-!
-! !DESCRIPTION: Sets the heterogenous chemistry rate for IMAE.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETIMAE( A, B ) RESULT( HET_IMAE )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(dp)             :: HET_IMAE
-!
-! !REMARKS:
-! Here use the same values as are read in for IEPOX, but scale down gamma by
-! a factor of 30 to get the value for IMAE. Gamma for the two species are
-! similar under neutral conditions, so use IEPOX gamma when [H+] <= 8d-5.
-! Implemented by (eam, 01/2015) using lab study findings from Riedel et al.,
-! EST, 2015.
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL  :: DO_EDUCT
-      INTEGER  :: N
-      REAL(dp) :: XSTKCF, ADJUSTEDRATE
-
-      REAL(dp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4, K_HYDRO
-
-      ! Initialize
-      HET_IMAE     = 0.0_dp
-      ADJUSTEDRATE = 0.0_dp
-      XSTKCF       = 0.0_dp
-
-      ! Don't do PSC rate adjustment
-      DO_EDUCT     = .FALSE.
-
-      ! Loop over aerosol types
-      DO N = 1, NAEROTYPE
-
-         ! Default value
-         XSTKCF = TINY(1e+0_dp)
-
-         ! Only consider inorganic aqueous aerosols with RH > 35%.
-         IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-
-            ! Define Henry's Law constant.
-            ! Changes H* for IEPOX again to accommodate
-            ! reduction in yields of RIP, precursor
-            ! of IEPOX (eam, 07/2015):
-            HSTAR = HSTAR_EPOX   ! (Nguyen et al., 2014)
-
-            ! Define first-order particle phase reaction rates
-            ! specific to IEPOX (from Gaston et al., 2014):
-            K_HPLUS = 3.6e-2_dp   ! Alternate: 1.2d-3 (Edding)
-            K_NUC   = 2.6e-4_dp   ! Alternate: 5.2d-1 (Piletic)
-            K_HSO4  = 7.3e-4_dp
-            K_HYDRO = 0.e+0_dp
-
-            ! Get GAMMA for IMAE hydrolysis:
-            XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
-                               TEMP,    (A**0.5_dp),         &
-                               HSTAR,    K_HPLUS,    H_PLUS,  &
-                               K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4,      K_HYDRO )
-
-            ! Scale down gamma if H+ > 8d-5 (30x less than gamma for IEPOX)
-            ! (Riedel et al., 2015)
-            IF ( H_PLUS .gt. 8.e-5_dp ) THEN
-               XSTKCF = XSTKCF / 30.e+0_dp
-            ENDIF
-
-         ENDIF
-
-         IF (N.eq.13) THEN
-            ! Calculate for stratospheric liquid aerosol
-            ! Note that XSTKCF is actually a premultiplying
-            ! factor in this case, including c-bar
-            ADJUSTEDRATE = XAREA(N) * XSTKCF
-         ELSE
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_DP))
-         ENDIF
-
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_dp/HetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_dp/HetMinLife
-            ENDIF
-         ENDIF
-
-         ! Add to overall reaction rate
-         HET_IMAE = HET_IMAE + ADJUSTEDRATE
-      END DO
-
-    END FUNCTION HETIMAE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetVOC
-!
-! !DESCRIPTION: Sets the heterogenous chemistry rate for several VOC species.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HetVOC( SrMw, gammaArg ) RESULT( rate )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: SrMW       ! Square root of SrMw  [g/mole]
-    REAL(dp), INTENT(IN) :: gammaArg   ! Reaction probability [1]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: rate       ! Reaction rate
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER  :: N
-    REAL(dp) :: gamma, adjRate
-
-    !======================================================================
-    ! HetVOC begins here!
-    !======================================================================
-
-    ! Initialize
-    adjRate  = 0.0_dp
-    gamma    = 0.0_dp
-    rate     = 0.0_dp
-
-    ! NEW INLINED CODE (produces numerical noise diffs, though)
-    !! Compute resultant rate through aerosol types 1-7
-    !! (NOTE: inlining code is faster than looping & branching)
-    !rate = rate + ARSL1K( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
-    !
-    !! Define gamma for tropospheric sulfate
-    !! if relative humidity is > critical humidity)
-    !IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-    !   gamma = gammaArg
-    !ENDIF
-    !
-    !! Compute resultant rate through aerosol types 8-12
-    !rate = rate + ARSL1K( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
-    !rate = rate + ARSL1K( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
-    !
-    !! Calculate for stratospheric liquid aerosol
-    !! Note that gamma is actually a premultiplying
-    !! factor in this case, including c-bar
-    !rate = rate + XAREA(13) * gamma
-    !
-    !! Compute resultant rate through aerosol type 14
-    !rate = rate + ARSL1K( XAREA(14), XRADI(14), XDENA, gamma, XTEMP, SrMw )
-
-    ! Loop over aerosol types
-    DO N = 1, NAEROTYPE
-
-       ! Define gamma for tropospheric sulfate
-       ! if relative humidity is > critical humidity)
-       IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
-          gamma = gammaArg
-       ENDIF
-
-       IF ( N == 13 ) THEN
-          ! Calculate for stratospheric liquid aerosol
-          ! Note that gamma is actually a premultiplying
-          ! factor in this case, including c-bar
-          adjRate = XAREA(N) * gamma
-       ELSE
-          ! Reaction rate for surface of aerosol
-          adjRate = ARSL1K( XAREA(N), XRADI(N), XDENA, gamma, XTEMP, SrMw )
-       ENDIF
-
-       ! Add to overall reaction rate
-       rate = rate + adjRate
-    ENDDO
-
-  END FUNCTIOn HetVOC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: HetN2O5_SS
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for N2O5 on Cl- containing
@@ -3018,7 +2586,7 @@ MODULE GcKpp_HetRates
       SA     = output(4)
 
       ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
-      kISum(1) = ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, XSQM )
+      kISum(1) = ArsL1k( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, XSQM )
       kISum(1) = ClNO2_yield * kISum(1)
 
       kISum(2) = XSTKCF
@@ -3111,7 +2679,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -3380,7 +2948,7 @@ MODULE GcKpp_HetRates
     gamma = Gamma_NO3( rAer, TK, clConc, X, H ) * 0.01_dp
 
     ! Reaction rate for surface of aerosol [1/s]
-    rate = ARSL1K( AAer, rAer, denAir, gamma, XTemp, H%NO3%SrMw )
+    rate = ArsL1k( AAer, rAer, denAir, gamma, XTemp, H%NO3%SrMw )
 
   END FUNCTION HETNO3_Cl
 !EOC
@@ -4171,7 +3739,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
             ENDIF
 
             ! Add to overall reaction rate
@@ -4270,10 +3838,10 @@ MODULE GcKpp_HetRates
             ! factor in this case, including c-bar
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE IF (N .eq. 11) THEN
-            ADJUSTEDRATE =ARSL1K((1-CldFr)*AClAREA,AClRADI,XDENA,XSTKCF,XTEMP,XSQM)*r_gp
+            ADJUSTEDRATE =ArsL1k((1-CldFr)*AClAREA,AClRADI,XDENA,XSTKCF,XTEMP,XSQM)*r_gp
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -4364,7 +3932,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSEIF (XStkCf.gt.0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -4454,7 +4022,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSEIF (XStkCf.gt.0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTemp,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTemp,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -5454,7 +5022,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K( (1-CldFr)*XAREA(N), XRADI(N), denAir,       &
+            ADJUSTEDRATE=ArsL1k( (1-CldFr)*XAREA(N), XRADI(N), denAir,       &
                                  XSTKCF,             XTEMP,    XSQM         )
          ENDIF
 
@@ -5545,7 +5113,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE IF (XSTKCF .GT. 0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                XSQM)
          ENDIF
 
@@ -5629,7 +5197,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5714,7 +5282,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5800,7 +5368,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5983,7 +5551,7 @@ MODULE GcKpp_HetRates
       ENDIF
 
       ! Reaction rate
-      kISum = ARSL1K( AAer, rAer, denAir, XSTKCF, XTEMP, XSQM )
+      kISum = ArsL1k( AAer, rAer, denAir, XSTKCF, XTEMP, XSQM )
 
     END FUNCTION HETHOCl_SS
 !EOC
@@ -6354,136 +5922,130 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-    FUNCTION EPOXUPTK( AERAREA, AERRAD,  TEMP,  SQMW,              &
-                       HENRY,   KHPLUS,  HPLUS, KNUC,  SULF, NITR, &
-                       KGACID,  BISULF,  KHYDRO ) &
-             RESULT( GAMMA )
+  FUNCTION EPOXUPTK( AERAREA, AERRAD,  TEMP,  SQMW,  HENRY,                  &
+                     KHPLUS,  HPLUS,   KNUC,  SULF,  NITR,                   &
+                     KGACID,  BISULF,  KHYDRO               ) RESULT( GAMMA )
 !
 ! !USES:
 !
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE PhysConstants, ONLY : RGASLATM
-      USE ERROR_MOD,     ONLY : IT_IS_NAN
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE PhysConstants, ONLY : RGASLATM
+    USE ERROR_MOD,     ONLY : IT_IS_NAN
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(dp), INTENT(IN) :: AERRAD   ! Aerosol radius [cm]
-      REAL(dp), INTENT(IN) :: AERAREA  ! Aerosol surf. area [cm2/cm3]
-      REAL(dp), INTENT(IN) :: TEMP     ! Temperature [K]
-      REAL(dp), INTENT(IN) :: SQMW     ! Square root of the molecular weight
-      REAL(dp), INTENT(IN) :: HENRY    ! Henry's Law constant [M/atm]
-      REAL(dp), INTENT(IN) :: KHPLUS   ! 1st order rxn rate (acid-catalyzed ring
-                                       ! opening)
-      REAL(dp), INTENT(IN) :: HPLUS    ! Proton activity [unitless] and [H+] [M]
-      REAL(dp), INTENT(IN) :: KNUC     ! 1st order rxn rate due to specific
+    REAL(dp), INTENT(IN) :: AERRAD   ! Aerosol radius [cm]
+    REAL(dp), INTENT(IN) :: AERAREA  ! Aerosol surf. area [cm2/cm3]
+    REAL(dp), INTENT(IN) :: TEMP     ! Temperature [K]
+    REAL(dp), INTENT(IN) :: SQMW     ! Square root of the molecular weight
+    REAL(dp), INTENT(IN) :: HENRY    ! Henry's Law constant [M/atm]
+    REAL(dp), INTENT(IN) :: KHPLUS   ! 1st order rxn rate (acid-catalyzed ring
+                                     ! opening)
+    REAL(dp), INTENT(IN) :: HPLUS    ! Proton activity [unitless] and [H+] [M]
+    REAL(dp), INTENT(IN) :: KNUC     ! 1st order rxn rate due to specific
                                        ! nucleophiles (SO4, NO3)
-      REAL(dp), INTENT(IN) :: SULF     ! Sulfate concentration [M]
-      REAL(dp), INTENT(IN) :: NITR     ! Nitrate concentration [M]
-      REAL(dp), INTENT(IN) :: KGACID   ! 1st order rxn rate due to general acids
-                                       ! (bisulfate in this case)
-      REAL(dp), INTENT(IN) :: BISULF   ! Bisulfate concentration [M]
-      REAL(dp), INTENT(IN) :: KHYDRO   ! Hydrolysis rate of alkylnitrates [1/s]
+    REAL(dp), INTENT(IN) :: SULF     ! Sulfate concentration [M]
+    REAL(dp), INTENT(IN) :: NITR     ! Nitrate concentration [M]
+    REAL(dp), INTENT(IN) :: KGACID   ! 1st order rxn rate due to general acids
+                                     ! (bisulfate in this case)
+    REAL(dp), INTENT(IN) :: BISULF   ! Bisulfate concentration [M]
+    REAL(dp), INTENT(IN) :: KHYDRO   ! Hydrolysis rate of alkylnitrates [1/s]
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: GAMMA    ! Reaction probability
+    REAL(dp)             :: GAMMA    ! Reaction probability [1]
 
 ! !REMARKS:
-! Calculation is only done for inorganic aqueous phase aerosols
+!  Calculation is only done for inorganic aqueous phase aerosols
 !                                                                             .
-! This calculation uses the parameterization of Gaston et al., EST, 2014.
+!  This calculation uses the parameterization of Gaston et al., EST, 2014.
 !                                                                             .
-! Redistribution of products (e.g. AITET) to yield organosulfates and
-! organonitrates is done in SOA_CHEMISTRY in carbon_mod.F.
-! This is only done for IEPOX and IMAE if it's an SOA simulation
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
+!  Redistribution of products (e.g. AITET) to yield organosulfates and
+!  organonitrates is done in SOA_CHEMISTRY in carbon_mod.F.
+!  This is only done for IEPOX and HMML if it's an SOA simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
-      REAL(dp)             :: AERVOL   ! Aerosol volume [cm3/cm3]
-      REAL(dp)             :: KPART    ! Particle-phase reaction rate [1/s]
-      REAL(dp)             :: XMMS     ! Mean molecular speed [cm/s]
-      REAL(dp)             :: VAL1, VAL2, VAL3  ! Terms for calculating GAMMA
-      REAL(dp)             :: VALTMP
+    REAL(dp) :: AERVOL            ! Aerosol volume [cm3/cm3]
+    REAL(dp) :: KPART             ! Particle-phase reaction rate [1/s]
+    REAL(dp) :: XMMS              ! Mean molecular speed [cm/s]
+    REAL(dp) :: VAL1, VAL2, VAL3  ! Terms for calculating GAMMA
+    REAL(dp) :: VALTMP
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Gas-phase diffusion constant [cm2/s]:
-      REAL(dp), PARAMETER  :: DIFF_N2O5_STD = 1.0e-1_dp
+    ! Gas-phase diffusion constant [cm2/s]:
+    REAL(dp), PARAMETER  :: DIFF_N2O5_STD = 1.0e-1_dp
 
-      ! Mass accommodation coefficient [unitless]:
-      REAL(dp), PARAMETER  :: MACOEFF = 1.0e-1_dp
+    ! Mass accommodation coefficient [unitless]:
+    REAL(dp), PARAMETER  :: MACOEFF = 1.0e-1_dp
 
-      !=================================================================
-      ! EPOXUPTK begins here!
-      !=================================================================
+    !========================================================================
+    ! EPOXUPTK begins here!
+    !========================================================================
 
-      ! Initialize
-      GAMMA  = 0.0_dp
-      AERVOL = 0.0_dp
-      KPART  = 0.0_dp
-      XMMS   = 0.0_dp
-      VAL1   = 0.0_dp
-      VAL2   = 0.0_dp
-      VAL3   = 0.0_dp
-      VALTMP = 0.0_dp
+    ! Initialize
+    GAMMA  = 0.0_dp
+    AERVOL = 0.0_dp
+    KPART  = 0.0_dp
+    XMMS   = 0.0_dp
+    VAL1   = 0.0_dp
+    VAL2   = 0.0_dp
+    VAL3   = 0.0_dp
+    VALTMP = 0.0_dp
 
-      ! Calculate aerosol volume (use formula in aerosol_mod.F):
-      AERVOL = (AERAREA * AERRAD)/3.0e+0_dp
+    ! Calculate aerosol volume (use formula in aerosol_mod.F):
+    AERVOL = ( AERAREA * AERRAD ) / 3.0_dp
 
-      ! Calculate mean molecular speed [cm/s]:
-      XMMS = SQRT( (2.117e+8_dp * TEMP) / (SQMW * SQMW) )
+    ! Calculate mean molecular speed [cm/s]:
+    XMMS = SQRT( ( 2.117e+8_dp * TEMP ) / ( SQMW * SQMW ) )
 
-      ! Calculate first-order particle-phase reaction rate:
-      ! (assume [H+] = proton activity)
-      ! KHYDRO is only important for alkylnitrates (not currently used).
-      KPART = ( KHPLUS*HPLUS )               + &
-              ( KNUC*HPLUS*( NITR + SULF ) ) + &
-              ( KGACID*BISULF )              + &
-              ( KHYDRO )
+    ! Calculate first-order particle-phase reaction rate:
+    ! (assume [H+] = proton activity)
+    ! KHYDRO is only important for alkylnitrates (not currently used).
+    KPART = ( KHPLUS * HPLUS                   )                             &
+          + ( KNUC   * HPLUS * ( NITR + SULF ) )                             &
+          + ( KGACID * BISULF                  )                             &
+          + ( KHYDRO                           )
 
-      ! Calculate the first uptake parameterization term:
-      VAL1 = ( AERRAD * XMMS )/( 4.e+0_dp * DIFF_N2O5_STD )
+    ! Calculate the first uptake parameterization term:
+    VAL1 = ( AERRAD * XMMS ) / ( 4.0_dp * DIFF_N2O5_STD )
 
-      ! Calculate the second uptake parameterization term:
-      VAL2 = ( 1.e+0_dp/MACOEFF )
+    ! Calculate the second uptake parameterization term:
+    VAL2 = ( 1.0_dp/MACOEFF )
 
-      ! Calculate the third uptake parameterization term:
-      IF ( AERAREA > 0.0_dp .and. XMMS > 0.0_dp ) THEN
-         VALTMP = ( 4.e+0_dp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
-                  ( AERAREA * XMMS )
-      ENDIF
-      IF ( VALTMP .GT. 0 ) THEN
-         VAL3 = 1.e+0_dp / VALTMP
-      ELSE
-         VAL3 = 0.0e+0_dp
-      ENDIF
+    ! Calculate the third uptake parameterization term:
+    IF ( AERAREA > 0.0_dp .and. XMMS > 0.0_dp ) THEN
+       VALTMP = ( 4.0_dp  * AERVOL * RGASLATM * TEMP * HENRY * KPART )       &
+              / ( AERAREA * XMMS                                     )
+    ENDIF
+    IF ( VALTMP .GT. 0.0_dp ) THEN
+       VAL3 = 1.0_dp / VALTMP
+    ELSE
+       VAL3 = 0.0_dp
+    ENDIF
 
-      ! Account for small reaction rates:
-      IF ( KPART .LT. 1.e-8_dp ) THEN
+    ! Account for small reaction rates:
+    IF ( KPART .LT. 1.e-8_dp ) THEN
 
-         GAMMA = TINY(1e+0_dp)
+       GAMMA = 0.0_dp !TINY(1e+0_dp)
 
-      ELSE
+    ELSE
 
-         ! Calculate the uptake coefficient:
-         GAMMA = 1.e+0_dp/( VAL1 + VAL2 + VAL3 )
+       ! Calculate the uptake coefficient:
+       GAMMA = 1.0_dp / ( VAL1 + VAL2 + VAL3 )
 
-      ENDIF
+    ENDIF
 
-      ! Fail safes for negative, very very small, and NAN GAMMA values:
-      IF ( GAMMA  .lt. 0.0e+0_dp )    GAMMA = TINY(1e+0_dp)
-      IF ( IT_IS_NAN( GAMMA ) )       GAMMA = TINY(1e+0_dp)
-      IF ( GAMMA .lt. TINY(1e+0_dp) ) GAMMA = TINY(1e+0_dp)
+    ! Fail safes for negative, very very small, and NAN GAMMA values:
+    IF ( GAMMA  .lt. 0.0_dp      ) GAMMA = 0.0_dp
+    IF ( IT_IS_NAN( GAMMA )      ) GAMMA = 0.0_dp
+    !IF ( GAMMA .lt. TINY(1.0_dp) ) GAMMA = TINY(1.0_dp)
 
-      END FUNCTION EPOXUPTK
+  END FUNCTION EPOXUPTK
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7032,7 +6594,7 @@ MODULE GcKpp_HetRates
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
       DFKG  = 9.45E+17_dp/DENAIR * STK * SQRT(3.472E-2_dp + 1.E+0_dp/(SQM*SQM))
 
-      ! Compute ARSL1K according to the formula listed above
+      ! Compute ArsL1k according to the formula listed above
       ! Sum contribution from ice and liquid clouds
       cld1k = ALiq / ( rLiq/DFKG + 2.749064E-4 * SQM/(ALPHAX*STK) )
       cld1k = AIce / ( rIce/DFKG + 2.749064E-4 * SQM/(ALPHAX*STK) ) + cld1k
@@ -7187,84 +6749,63 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Arsl1k
+! !ROUTINE: ArsL1k
 !
-! !DESCRIPTION: Function ARSL1K calculates the 1st-order loss rate of species
-!  on wet aerosol surface.
+! !DESCRIPTION: Calculates the 1st-order loss rate of species on wet
+!  aerosol surface
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM ) RESULT( ARS_L1K )
+  FUNCTION ArsL1k( area, radius, denAir, gamma, srTk, srMw ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    ! Surface  area of wet aerosols/volume of air [cm2/cm3]
-    REAL(dp), INTENT(IN) :: AREA
-
-    ! Radius of wet aerosol [cm], order of 0.01-10 um;
-    ! Note that radius here is Rd, not Ro
-    REAL(dp), INTENT(IN) :: RADIUS
-
-    ! Density of air [#/cm3]
-    REAL(dp), INTENT(IN) :: DENAIR
-
-    ! Reaction probability Gamma [unitless], order of 0.1
-    REAL(dp), INTENT(IN) :: STKCF
-
-    ! Square root of temperature [K]
-    REAL(dp), INTENT(IN) :: STK
-
-    ! Square root of molecular weight [g/mole]
-    REAL(dp), INTENT(IN) :: SQM
+    REAL(dp), INTENT(IN) :: area   ! Area of wet aerosol / vol of air [cm2/cm3]
+    REAL(dp), INTENT(IN) :: radius ! Radius of wet aerosol (Rd) [cm]
+    REAL(dp), INTENT(IN) :: denair ! Density of air [#/cm3]
+    REAL(dp), INTENT(IN) :: gamma  ! Reaction probability gamma [1]
+    REAL(dp), INTENT(IN) :: srtk   ! Square root of temperature [K]
+    REAL(dp), INTENT(IN) :: srmw   ! Square root of mol wt [g/mole]
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)             :: ARS_L1K
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
 !
 ! !REMARKS:
 !  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
 !  is computed as:
 !                                                                             .
-!      ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * xmms) ]
+!     ArsL1k [1/s] = area / [ radius/dfkg + 4./(gamma * xmms) ]
 !                                                                             .
 !  where XMMS = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
-!        DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-
-! !REVISION HISTORY:
-!  01 Jul 1994 - lwh, jyl, gmg, djj - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
+!                                                                             .
+!     DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp) :: DFKG
+    REAL(dp) :: dfkg
 
     !========================================================================
-    ! ARSL1K begins here!
+    ! ArsL1k begins here!
     !========================================================================
-    IF ( AREA   < 0e0_dp    .or. DENAIR < 1e-30_dp  .or.                     &
-         RADIUS < 1e-30_dp  .or. SQM    < 1e-30_dp  .or.                     &
-         STK    < 1e-30_dp  .or. STKCF  < 1e-30_dp ) THEN
 
-       ! Use default value if any of the above values are zero
-       ! This will prevent div-by-zero errors in the eqns below
-       ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
-       ARS_L1K = 1.E-30_dp
-
-    ELSE
-
-       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-       DFKG  = 9.45E+17_dp / DENAIR * STK *                                  &
-               SQRT( 3.472E-2_dp + 1.E0_dp / ( SQM * SQM ) )
-
-       ! Compute ARSL1K according to the formula listed above
-       ARS_L1K = AREA / ( RADIUS/DFKG + 2.749064E-4_dp*SQM/(STKCF*STK) )
-
+    ! If gamma or radius is very small, set rate to zero and return
+    IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
+       rate = 0.0_dp
+       RETURN
     ENDIF
 
-  END FUNCTION ARSL1K
+    ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+    dfkg = ( 9.45E+17_dp / denAir ) * srTk *                                 &
+           SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
+
+    ! Compute ArsL1k according to the formula listed above
+    rate = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * srTk) )
+
+  END FUNCTION ArsL1k
 !EOC
 END MODULE GcKpp_HetRates
