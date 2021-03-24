@@ -57,6 +57,7 @@ MODULE PHYSCONSTANTS
   REAL(fp), PARAMETER :: VON_KARMAN = 0.4_fp
 
   ! Molar gas constant [J/K/mol] (Source: NIST, 2014)
+  ! NOTE: Also be sure to update con_R in gckpp_Global if you update this!
   REAL(fp), PARAMETER :: RSTARG = 8.3144598_fp
 
   ! XNUMOLAIR : Molecules dry air per kg dry air

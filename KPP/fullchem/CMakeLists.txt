@@ -29,3 +29,9 @@ target_link_libraries(KPP_fullchem
 	PUBLIC GeosUtil
 )
 
+target_compile_options(KPP_fullchem PRIVATE
+  ""
+  # Treat REAL as if it were REAL*8
+  $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
+  $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
+)
