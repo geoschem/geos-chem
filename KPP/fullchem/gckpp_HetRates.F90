@@ -369,25 +369,25 @@ MODULE GcKpp_HetRates
 
     ! These VOC species use the same rate-law function for 1st-order uptake
     HET(ind_LVOC,   1) = Het1stOrderUptakeVOC(   H%LVOC%SrMw,   1.0E+0_dp   )
+    HET(ind_IDN,    1) = Het1stOrderUptakeVOC(   H%IDN%SrMw,    5.0E-3_dp   )
+    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
     HET(ind_IHN1,   1) = Het1stOrderUptakeVOC(   H%IHN1%SrMw,   5.0E-3_dp   )
     HET(ind_IHN2,   1) = Het1stOrderUptakeVOC(   H%IHN2%SrMw,   5.0E-2_dp   )
     HET(ind_IHN3,   1) = Het1stOrderUptakeVOC(   H%IHN3%SrMw,   5.0E-3_dp   )
     HET(ind_IHN4,   1) = Het1stOrderUptakeVOC(   H%IHN4%SrMw,   5.0E-3_dp   )
     HET(ind_INPB,   1) = Het1stOrderUptakeVOC(   H%INPB%SrMw,   5.0E-3_dp   )
     HET(ind_INPD,   1) = Het1stOrderUptakeVOC(   H%INPD%SrMw,   5.0E-3_dp   )
+    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(   H%ITHN%SrMw,   5.0E-3_dp   )
     HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC(   H%MCRHN%SrMw,  5.0E-3_dp   )
     HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC(   H%MCRHNB%SrMw, 5.0E-3_dp   )
     HET(ind_MVKN,   1) = Het1stOrderUptakeVOC(   H%MVKN%SrMw,   5.0E-3_dp   )
     HET(ind_R4N2,   1) = Het1stOrderUptakeVOC(   H%R4N2%SrMw,   5.0E-3_dp   )
-    HET(ind_IDN,    1) = Het1stOrderUptakeVOC(   H%IDN%SrMw,    5.0E-3_dp   )
-    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(   H%ITHN%SrMw,   5.0E-3_dp   )
-    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
     HET(ind_MONITS, 1) = Het1stOrderUptakeVOC(   H%MONITS%SrMw, 1.0E-2_dp   )
     HET(ind_MONITU, 1) = Het1stOrderUptakeVOC(   H%MONITU%SrMw, 1.0E-2_dp   )
     HET(ind_HONIT,  1) = Het1stOrderUptakeVOC(   H%HONIT%SrMw,  1.0E-2_dp   )
 
     ! Aerosol-phase organic nitrate formed from monoterpene precursors
-    ! (species IONITA and MONITA) have constant hetchem rates.
+    ! (species IONITA and MONITA) have constant 1st order uptake rates.
     HET(ind_IONITA, 1) = 2.78E-4_dp
     HET(ind_MONITA, 1) = 2.78E-4_dp
 
@@ -1655,6 +1655,69 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Het1stOrderUptakeHO2
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for first-order
+!  uptake of HO2.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION Het1stOrderUptakeHO2( SrMw ) RESULT( rate )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: rate   ! Reaction rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: gamma
+
+    !========================================================================
+    ! Het1stOrderUptakeNO2 begins here!
+    !========================================================================
+
+    ! Initialize
+    rate  = 0.0_dp
+
+    ! Reaction probability is taken from GAMMA_HO2 in gckpp_Global.F90
+    gamma = GAMMA_HO2
+
+    ! Uptake by mineral dust (aerosol types 1-7)
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
+    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
+
+    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+    rate  = rate + ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
+
+    ! Skip uptake on stratospheric sulfate (aerosol type 13)
+    ! and on irregular ice cloud (aerosol type 14)
+
+  END FUNCTION Het1stOrderUptakeHO2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Het1stOrderUptakeIEPOX
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for first-order
@@ -1724,69 +1787,6 @@ MODULE GcKpp_HetRates
     ENDIF
 
   END FUNCTION Het1stOrderUptakeIEPOX
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Het1stOrderUptakeHO2
-!
-! !DESCRIPTION: Set the heterogenous chemistry rate for first-order
-!  uptake of HO2.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION Het1stOrderUptakeHO2( SrMw ) RESULT( rate )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: SrMw   ! Square root of molecular weight [g/mol]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: rate   ! Reaction rate [1/s]
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp) :: gamma
-
-    !========================================================================
-    ! Het1stOrderUptakeNO2 begins here!
-    !========================================================================
-
-    ! Initialize
-    rate  = 0.0_dp
-
-    ! Reaction probability is taken from GAMMA_HO2 in gckpp_Global.F90
-    gamma = GAMMA_HO2
-
-    ! Uptake by mineral dust (aerosol types 1-7)
-    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), XDENA, gamma, XTEMP, SrMw )
-
-    ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
-    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(10), XRADI(10), XDENA, gamma, XTEMP, SrMw )
-
-    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-    rate  = rate + ArsL1k( XAREA(11), XRADI(11), XDENA, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(12), XRADI(12), XDENA, gamma, XTEMP, SrMw )
-
-    ! Skip uptake on stratospheric sulfate (aerosol type 13)
-    ! and on irregular ice cloud (aerosol type 14)
-
-  END FUNCTION Het1stOrderUptakeHO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6763,10 +6763,10 @@ MODULE GcKpp_HetRates
 !
     REAL(dp), INTENT(IN) :: area   ! Area of wet aerosol / vol of air [cm2/cm3]
     REAL(dp), INTENT(IN) :: radius ! Radius of wet aerosol (Rd) [cm]
-    REAL(dp), INTENT(IN) :: denair ! Density of air [#/cm3]
+    REAL(dp), INTENT(IN) :: denAir ! Density of air [#/cm3]
     REAL(dp), INTENT(IN) :: gamma  ! Reaction probability gamma [1]
-    REAL(dp), INTENT(IN) :: srtk   ! Square root of temperature [K]
-    REAL(dp), INTENT(IN) :: srmw   ! Square root of mol wt [g/mole]
+    REAL(dp), INTENT(IN) :: srTk   ! Square root of temperature [K]
+    REAL(dp), INTENT(IN) :: srMw   ! Square root of mol wt [g/mole]
 !
 ! !RETURN VALUE:
 !
@@ -6795,7 +6795,7 @@ MODULE GcKpp_HetRates
 
     ! If gamma or radius is very small, set rate to zero and return
     IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
-       rate = 0.0_dp
+       rate = 1.0e-30_dp  !0.0_dp
        RETURN
     ENDIF
 
