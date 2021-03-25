@@ -82,6 +82,8 @@ MODULE PLANEFLIGHT_MOD
   ! NPREAC      : # of variables that are really rxns
   ! PREAC       : Array of rxn index numbers
   ! PRRATE      : Array of rxn rates for each entry in PREAC
+  ! JPREAC      : Array of j-rate rxn index numbers
+  ! NJPREAC     :  # of variables that are j-rate rxns
   ! NRO2        : # number of RO2 constituents
   ! PRO2        : Array of species that are RO2 const's
   ! INFILENAME  : Name of input file defining the flight track
@@ -129,6 +131,9 @@ MODULE PLANEFLIGHT_MOD
   INTEGER                        :: NPREAC
   INTEGER,           ALLOCATABLE :: PREAC(:)
   REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:)
+  ! and for photolysis reactions (j-rates)
+  INTEGER,           ALLOCATABLE :: JPREAC(:)
+  INTEGER                        :: NJPREAC
 
   ! For rate of production
   INTEGER                        :: NPROD
@@ -365,6 +370,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
     USE FILE_MOD,   ONLY : IOERROR
+    USE CMN_FJX_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -389,7 +395,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL             :: IS_FULLCHEM
-    INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect
+    INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect, P
     INTEGER             :: PR, J, NF, FM
     CHARACTER(LEN=255)  :: LINE
     CHARACTER(LEN=10)   :: PRODNAME
@@ -747,6 +753,66 @@ CONTAINS
        !      ENDIF
        !   ENDIF
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! 21/12/20 - TMS: access J-rates already stored in State_Diag
+       !===========================================================
+       ! J-rate Rxn rate: listed as "JVL_001", etc.
+       ! PVAR offset: 30000
+       !===========================================================
+       CASE ( 'JVL_' )
+
+         ! Skip if not full-chemistry
+         IF ( IS_FULLCHEM ) THEN
+
+            ! Increment rxn counter
+            R = R + 1
+
+           !==================================================
+           ! NOTE: JVL_??? is translated to indexes from FJX_j2j.dat
+           !==================================================
+
+           ! Extract tracer # from the string
+           READ( LINE(5:14), '(i10)' ) NUM
+
+           ! Initialize
+           PVAR(N)   = -999
+           JPREAC(R) = -999
+           P         = -999         ! GEOS-Chem photolyis species ID
+
+           ! Loop the reaciton branches and find the correct "P" index
+           DO IK = 1, JVN_
+
+               ! GC photolysis species index
+               P = GC_Photo_Id(NUM)
+
+               ! If this FAST_JX photolysis species maps to a valid
+               ! GEOS-Chem photolysis species (for this simulation)...
+               IF ( P > 0 ) THEN
+
+               ! Archive the instantaneous photolysis rate
+               ! (summing over all reaction branches)
+                   IF ( IK == P ) THEN
+                      PVAR(N)  = 30000 + IK
+                      JPREAC(R) = 30000 + IK
+                      EXIT
+                   ENDIF
+               ENDIF
+             ENDDO
+
+           ! Stop w/ error
+           IF ( PVAR(N) == -999 ) THEN
+               IF ( Input_Opt%amIRoot ) THEN
+                  WRITE (6,*) 'Cant match up J-rate reaction number'
+                  WRITE (6,*) NUM, P
+                  WRITE (6,*) 'NOTE: Reactions indexs are from FJX_j2j.dat'
+                  WRITE (6,*) 'Stopping'
+               ENDIF
+               CALL GEOS_CHEM_STOP
+           ENDIF
+
+         ENDIF
 
        !===========================================================
        ! Species: listed as "O3", "C2H6", etc.
@@ -1465,7 +1531,7 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     LOGICAL             :: IS_FULLCHEM, LINTERP
-    INTEGER             :: I, J, L, M, N, R, PR, V
+    INTEGER             :: I, J, L, M, N, R, PR, V, NUM
     INTEGER             :: LL     !eds
     INTEGER             :: IWV, ISPC, K
     REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
@@ -2066,13 +2132,28 @@ CONTAINS
              !!--------------------------
              !! Reaction rates
              !!--------------------------
-             !CASE ( 10000:99999 )
+             !CASE ( 10000:30000 )
              !
              !   ! Increment reaction count
              !   R = R + 1
              !             !   ! Only archive where chemistry is done
              !   VARI(V) = PRRATE(I,J,L,R)
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             !--------------------------
+             ! Photolysis reaction rates
+             !--------------------------
+             CASE ( 30001:99999 )
+
+               ! Increment reaction count
+               R = R + 1
+
+               ! Get the reaction number index from the
+               NUM = JPREAC(R) - 30000
+
+               ! Extract this reaction number from the state diag
+               ! NOTE: JValues collection must have been requested in HISTORY.rc
+               VARI(V) = State_Diag%JVal(I,J,L, NUM )
 
              !--------------------------
              ! GEOS-CHEM advected species [v/v]
@@ -2448,6 +2529,7 @@ CONTAINS
 
     ! Initialize chemistry reaction counter
     NPREAC = 0
+    NJPREAC = 0
 
     ! Initialize prod rate counter:
     NPROD  = 0
@@ -2463,6 +2545,8 @@ CONTAINS
        IF ( INDEX( LINE, 'GAMM' ) > 0 ) NPREAC = NPREAC + 1
        ! Count # of production rate outputs:
        IF ( INDEX( LINE, 'PROD' ) > 0 ) NPROD  = NPROD  + 1
+       ! Increment number of photolysis reactions (j-rates) found
+       IF ( INDEX( LINE, 'JVL_' ) > 0 ) NJPREAC = NJPREAC + 1
     ENDDO
 
     ! Read 4 header lines
@@ -2530,6 +2614,12 @@ CONTAINS
                          MAX( NPREAC, 1 ) ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
+       !-------------------------
+       ! Arrays of size NJPREAC
+       !-------------------------
+       ALLOCATE( JPREAC( MAX( NJPREAC, 1 ) ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PJREAC' )
+
        ! ---------------------
        ! Arrays of size NPROD
        ! ---------------------
@@ -2581,6 +2671,7 @@ CONTAINS
     ! Initialize arrays
     !=================================================================
     PREAC  = 0
+    JPREAC = 0
     NPROD  = 0
     IPROD  = 0
     PRRATE = 0e0
@@ -2621,6 +2712,7 @@ CONTAINS
 
     IF ( ALLOCATED( PVAR   ) ) DEALLOCATE( PVAR   )
     IF ( ALLOCATED( PREAC  ) ) DEALLOCATE( PREAC  )
+    IF ( ALLOCATED( JPREAC ) ) DEALLOCATE( JPREAC )
     IF ( ALLOCATED( IPROD  ) ) DEALLOCATE( IPROD  )
     IF ( ALLOCATED( PNAME  ) ) DEALLOCATE( PNAME  )
     IF ( ALLOCATED( PRRATE ) ) DEALLOCATE( PRRATE )
