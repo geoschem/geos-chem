@@ -224,7 +224,7 @@ create_rundir "1\n1\n7\n2\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 #create_rundir "1\n1\n2\n2\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_complexSOA_geosfp"
-create_rundir "1\n1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+create_rundir "1\n1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_complexSOA_SVPOA_geosfp"
 create_rundir "1\n1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
