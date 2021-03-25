@@ -1118,9 +1118,10 @@ MODULE GcKpp_HetRates
     !========================================================================
     ! Cleanup & quit
     !========================================================================
-    H => NULL()
-
+!### KPP DEBUG
 #include "print_het.H"
+
+    H => NULL()
 
   END SUBROUTINE SET_HET
 !EOC
@@ -1736,12 +1737,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
     REAL(dp)             :: rate    ! Reaction rate [1/s]
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2013,8 +2008,6 @@ MODULE GcKpp_HetRates
 !
     REAL(dp)             :: rate    ! Reaction rate [1/s]
 !
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2074,11 +2067,6 @@ MODULE GcKpp_HetRates
 !
       ! HET_N2O5(1) = rate coefficient; HET_N2O5(2) = SA-weighted gamma
       REAL(dp)             :: HET_N2O5(2)
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2281,12 +2269,6 @@ MODULE GcKpp_HetRates
                             ! output(2) = ClNO2_yield
                             ! output(2) = particle radius, cm
                             ! output(4) = surface area, cm2/cm3
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  13 Dec 2018 - E. McDuffie - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2473,12 +2455,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: PHI
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  13 Dec 2018 - E. McDuffie - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2529,12 +2505,7 @@ MODULE GcKpp_HetRates
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)             :: kISum(3) !(1) = rate coefficient, (2) = gamma, (3) = phi
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
+      REAL(dp)             :: kISum(3) !(1) rate coeff (2) gamma, (3) phi
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2545,7 +2516,7 @@ MODULE GcKpp_HetRates
       REAL(dp) :: XSTKCF, output(4)
       REAL(dp) :: GAM_N2O5, r_gp
       REAL(dp) :: ClNO2_yield, kClNO2, Rp, SA
-      Real(dp), Parameter :: XMolWeight=108.0e+0_dp
+      Real(dp), Parameter :: XMolWeight=108.02e+0_dp
       Real(dp), Parameter :: XSQM=SQRT(XMolWeight)
 !
 ! !DEFINED PARAMETERS:
@@ -2620,11 +2591,6 @@ MODULE GcKpp_HetRates
 !
 ! !REMARKS:
 !  This routine is only activated for UCX-based mechanisms.
-!
-! !REVISION HISTORY:
-!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
-!                              in calcrate.F
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2717,11 +2683,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2730,9 +2691,9 @@ MODULE GcKpp_HetRates
 !
       INTEGER  :: N
       REAL(dp) :: XSTKCF, ADJUSTEDRATE, XSqM
-      Real(dp), Parameter :: XMolWeightHCl=36.5e+0_dp
+      Real(dp), Parameter :: XMolWeightHCl=36.45e+0_dp
       Real(dp), Parameter :: XSqMHCl=SQRT(XMolWeightHCl)
-      Real(dp), Parameter :: XMolWeightHBr=81.0e+0_dp
+      Real(dp), Parameter :: XMolWeightHBr=80.91e+0_dp
       Real(dp), Parameter :: XSqMHBr=SQRT(XMolWeightHBr)
 
       ! Initialize
@@ -2784,9 +2745,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum    ! Rxn rate O3 + Br- in sea salt
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3005,12 +2963,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum       ! Rxn rate
-!
- !REMARKS:
-!
-! !REVISION HISTORY:
-!  08 Aug 2018 - X. Wang      - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3098,10 +3050,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REVISION HISTORY:
-!  14 Mar 2018 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3155,10 +3103,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp),       INTENT(OUT) :: GAM_HOCl
       REAL(dp),       INTENT(OUT) :: r_gp
-!
-! !REVISION HISTORY:
-!  01 Nov 2018 - X. Wang   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3243,10 +3187,6 @@ MODULE GcKpp_HetRates
 !
       ! Reactive uptake coefficient (unitless)
       REAL(dp)                   :: GAM_HOCl
-!
-! !REVISION HISTORY:
-!  16 Mar 2018 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3320,10 +3260,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp),       INTENT(OUT)  :: GAM_ClNO2
       REAL(dp),       INTENT(OUT)  :: r_gp
-!
-! !REVISION HISTORY:
-!  25 Jan 2018 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3406,11 +3342,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum    ! Rxn rate ClNO3 + Br- in sea salt
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3466,9 +3397,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: kISum
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3538,10 +3466,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REVISION HISTORY:
-!  08 Jun 2019 - X. Wang     - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3613,10 +3537,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE
 !
       REAL(dp)                   :: GAM      ! Reactive uptake coeff. (1)
-!
-! !REVISION HISTORY:
-!  24 Sept 2015 - J. Schmidt - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3686,11 +3606,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3777,11 +3692,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: HET_ClNO3  ! Hydrol. rate for ClNO3
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3877,12 +3787,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3968,12 +3872,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4085,12 +3983,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: kISum
-!
- !REMARKS:
-!
-! !REVISION HISTORY:
-!  01 Feb 2018 - X. Wang      - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4218,10 +4110,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REVISION HISTORY:
-!  01 Feb 2018 - X. Wang      - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4320,10 +4208,6 @@ MODULE GcKpp_HetRates
       REAL(dp), INTENT(IN)             :: Radius, n_air
       INTEGER, INTENT(IN)              :: X
       REAL(dp), INTENT(IN)             :: T
-!
-! !REVISION HISTORY:
-!  24 Sept 2015 - J. Schmidt - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4380,10 +4264,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp),       INTENT(OUT) :: GAM_HOBr
       REAL(dp),       INTENT(OUT) :: r_gp
-!
-! !REVISION HISTORY:
-!  30 Nov 2017 - Q.J. Chen   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4510,10 +4390,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp), INTENT(OUT) :: GAM_HOBr
       REAL(dp), INTENT(OUT) :: r_gp
-!
-! !REVISION HISTORY:
-!  05 Jul 2019 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4574,10 +4450,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp),       INTENT(OUT) :: GAM_HOBr
       REAL(dp),       INTENT(OUT) :: r_gp
-!
-! !REVISION HISTORY:
-!  30 Nov 2017 - Q.J. Chen   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4697,11 +4569,6 @@ MODULE GcKpp_HetRates
       ! Reactive uptake coefficient (unitless)
       REAL(dp)                   :: GAM_ClNO3
       REAl(dp)                   :: r_gp
-
-!
-! !REVISION HISTORY:
-!  25 Jan 2018 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4803,10 +4670,6 @@ MODULE GcKpp_HetRates
       INTEGER,  INTENT(IN)           :: X        ! 1=HCl,2=HBr,3=hydrosis
       REAL(dp), INTENT(IN)           :: T        ! Temperature (K)
       REAL(dp), INTENT(IN)           :: hno3_th, hcl_th, hbr_th
-!
-! !REVISION HISTORY:
-!  02 Jul 2019 - X. Wang - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4868,10 +4731,6 @@ MODULE GcKpp_HetRates
 ! !INPUT PARAMETERS:
 !
       REAL(dp),         INTENT(IN)  :: X           ! The argument
-!
-! !REVISION HISTORY:
-!  24 Sept 2015 - J. Schmidt - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4907,10 +4766,6 @@ MODULE GcKpp_HetRates
 ! !INPUT PARAMETERS:
 !
       REAL(dp),         INTENT(IN)  :: radius, l           ! [cm] and [cm]
-!
-! !REVISION HISTORY:
-!  14 Oct 2013 - J. Schmidt - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4962,11 +4817,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: HET_BrNO3  ! Hydrolysis rate
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5056,14 +4906,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: kISum
-!
-! !REMARKS:
-!  This routine is only activated for UCX-based mechanisms.
-!
-! !REVISION HISTORY:
-!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
-!                              in calcrate.F
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5147,13 +4989,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
-!                              in calcrate.F
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5232,13 +5067,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
-!                              in calcrate.F
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5318,13 +5146,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
-!                              in calcrate.F
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5433,10 +5254,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum       ! Reaction rate
-!
-! !REVISION HISTORY:
-!  08 Nov 2018 - X. Wang      - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5527,10 +5344,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)                   :: kISum     ! Rate for HOCl on Cl- aerosol
-!
-! !REVISION HISTORY:
-!  25 Jan 2018 - X. Wang - Initial vesion
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5583,9 +5396,6 @@ MODULE GcKpp_HetRates
 !
 ! !REMARKS:
 !  Taken from the old SMVGEAR function calcrate.F.
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5736,9 +5546,6 @@ MODULE GcKpp_HetRates
 !       loss in the atmosphere from Cu-Fe redox coupling in aerosols,
 !       Atmos. Chem. Phys., 13, 509-519, doi:10.5194/acp-13-509-2013,
 !       2013.
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6260,12 +6067,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp), INTENT(OUT) :: cl_conc, br_conc ! Liq. phase molar concentration [mol/kg-water]
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  21 Dec 2016 - S. D. Eastham - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6345,12 +6146,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp), INTENT(OUT) :: hno3_th, hbr_th, hcl_th
-
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  02 Jul 2019 - X. Wang       - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6407,11 +6202,6 @@ MODULE GcKpp_HetRates
       ! n_x = X-(ssa) number density (#/cm3), surf_area = AERO surface area
       ! conc (cm2/cm3), r_w = AERO wet radius (cm)
       REAL(dp), INTENT(IN)             :: n_x, surf_area, r_w
-
-!
-! !REVISION HISTORY:
-!  25 Jul 2014 - J. Schmidt - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6475,10 +6265,6 @@ MODULE GcKpp_HetRates
 !  The ratio Cliq / Cgas is obtained via Henry's law.  The appropriate
 !  values of Kstar298 and H298_R must be supplied for each species.
 !  (cf Jacob et al 2000, p. 3)
-!
-! !REVISION HISTORY:
-!  23 Feb 2000 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6555,12 +6341,6 @@ MODULE GcKpp_HetRates
       REAL(dp)                   :: cld1k    ! Rate constant for heterogeneous
                                              ! cycling of BrNO3 off of cloud
                                              ! particles
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  27 Feb 2011 - J. Parrella - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6622,9 +6402,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: FC_RO2HO2
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6667,10 +6444,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
       REAL(dp)             :: FY_HORO
-!
-! !REVISION HISTORY:
-!  (1 ) Branching ratio calculation (tmf, 2/6/05).
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6715,11 +6488,6 @@ MODULE GcKpp_HetRates
 ! !RETURN VALUE:
 !
     REAL(dp)             :: FYR_NO3
-!
-! !REVISION HISTORY:
-!  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
-!        and Daniel Jacob circa 1989/1990.
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
