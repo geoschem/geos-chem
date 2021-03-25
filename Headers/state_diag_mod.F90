@@ -174,7 +174,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_Loss
      LOGICAL :: Archive_Prod
 
-#ifdef MODEL_GEOS
+!#ifdef MODEL_GEOS
      ! GEOS-5 only
      REAL(f4),  POINTER :: JValIndiv       (:,:,:,:) ! individual J-values
      REAL(f4),  POINTER :: RxnRconst       (:,:,:,:) ! Rxn rate const from KPP
@@ -186,7 +186,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_O3concAfterChem
      LOGICAL :: Archive_RO2concAfterChem
      LOGICAL :: Archive_CH4pseudoFlux
-#endif
+!#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
      REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
@@ -865,7 +865,7 @@ CONTAINS
     State_Diag%Archive_Loss                        = .FALSE.
     State_Diag%Archive_Prod                        = .FALSE.
 
-#ifdef MODEL_GEOS
+!#ifdef MODEL_GEOS
     State_Diag%JValIndiv                           => NULL()
     State_Diag%RxnRconst                           => NULL()
     State_Diag%O3concAfterChem                     => NULL()
@@ -876,7 +876,7 @@ CONTAINS
     State_Diag%Archive_O3concAfterChem             = .FALSE.
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
-#endif
+!#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     State_Diag%KppError                            => NULL()
@@ -3055,7 +3055,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-#ifdef MODEL_GEOS
+!#ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! CH4 pseudo-flux
        !--------------------------------------------------------------------
@@ -3074,7 +3074,7 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
-#endif
+!#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
@@ -7167,14 +7167,14 @@ CONTAINS
        State_Diag%LossHNO3onSeaSalt => NULL()
     ENDIF
 
-#ifdef MODEL_GEOS
+!#ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Diag%CH4pseudoFlux ) ) THEN
        DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CH4pseudoflux => NULL()
     ENDIF
-#endif
+!#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
@@ -8469,12 +8469,12 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#ifdef MODEL_GEOS
+!#ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'CH4PSEUDOFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-#endif
+!#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
