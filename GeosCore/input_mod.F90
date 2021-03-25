@@ -3481,31 +3481,6 @@ CONTAINS
     CALL SET_TINDEX( Input_Opt, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
 #endif
 
-    !--------------------------
-    ! ND72: Radiation output
-    !--------------------------
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND72', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#ifdef RRTMG
-    !output fields are nspecies*nradfields but user can only specify
-    !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
-    !divided by number of allowed species (PD72R)
-    READ( SUBSTRS(1), * ) ND72
-    CALL SET_TINDEX( Input_Opt, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
-
-    !If LRAD is on then ND72 must be on (so the diagnostic is
-    !available to write into). Check for this
-    IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
-       ErrMsg = 'If LRAD is true then ' // &
-                'ND72 diagnostic must be switched on'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
     !=================================================================
     ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
     !
@@ -3520,10 +3495,6 @@ CONTAINS
     Input_Opt%ND59  = ND59
     Input_Opt%ND60  = ND60
     Input_Opt%ND61  = ND61
-#endif
-
-#ifdef RRTMG
-    Input_Opt%ND72  = ND72
 #endif
 
     ! Loop over # of diagnostics
