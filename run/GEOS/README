@@ -1,0 +1,16 @@
+This is the GEOS-Chem run directory for the 2x2.5 standard simulation.  This
+directory can be used with GEOS-FP or MERRA-2 meteorology.
+
+The various input files (e.g. HEMCO_Config.template, HISTORY.rc, etc.) are
+stored in ../shared_inputs/standard.  This allows us to keep a single set of 
+these files in one location, for convenience.  A new HEMCO_Config.rc file will 
+be created from the HEMCO_Config.template file each time the unit tester is 
+run.
+
+A new input.geos file will also be created from the input.geos.template file
+each time the unit tester is run.  This allows the location of the data
+files to be customized for each user.
+
+12 Feb 2018
+GEOS-Chem Support Team
+geos-chem-support@g.harvard.edu
