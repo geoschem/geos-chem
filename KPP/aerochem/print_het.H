@@ -1,4 +1,6 @@
 IF (I==23 .and. J==34 .and. L==1 ) THEN
+  print*, 'TEMP       ', TEMP
+  print*, 'RELHUM     ', RELHUM
   print*, 'BrNO3    1 ', HET(ind_BrNO3,  1)
   print*, '         2 ', HET(ind_BrNO3,  2)
   print*, 'ClNO2    1 ', HET(ind_ClNO2,  1)

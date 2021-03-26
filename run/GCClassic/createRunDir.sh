@@ -278,7 +278,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='3.86e-4'
+	offline_dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="geosfp"
@@ -291,7 +291,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
+	offline_dust_sf='6.42e-5'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -591,16 +591,19 @@ sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
 sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
 sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
 sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed_ie "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
+sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_name} = "fullchem" ]]; then
-    startdate="20190701"
-    enddate="20190801"
-else
+if [[ "x${sim_name}" == "xHg"     ||
+      "x${sim_name}" == "xCH4"    ||
+      "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xTransportTracers" ]]; then
     startdate="20190101"
     enddate="20190201"
+else
+    startdate="20190701"
+    enddate="20190801"
 fi
 starttime="000000"
 endtime="000000"
@@ -627,25 +630,28 @@ fi
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
-    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
-	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
-    fi
-    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
-	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
-    fi
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
-# NOTE: Also use the same dust tuning factors as for the benchmark
-# for the Tomas_DustDead extension (mps, bmy, 3/11/12)
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
     replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
+fi
+
+# Set online dust emission mass tuning factor according to met field
+# and resolution. These values were obtained from hcox_dustdead_mod.F90.
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
     fi
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 5.0416e-4 HEMCO_Config.rc
+    fi
     if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 4.7586e-4 HEMCO_Config.rc
     fi
 fi
 
@@ -719,32 +725,40 @@ else
    rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
 fi
 
-if [[ "x${sim_name}" == "xfullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 
     # For TOMAS simulations, use restarts provided by the TOMAS team
-    # For other fullchem simulations, use restart the latest 1-yr benchmark
+    # For other fullchem simulations, use restart from latest benchmark
+    # Aerosol-only simulations can use the fullchem restart since all of the
+    #  aerosol species are included
     if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS15.nc
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
     elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	sample_rst=${rst_root}/v2020-02/initial_GEOSChem_rst.4x5_TOMAS40.nc
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
     else
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
     fi
+	
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+    # For TransportTracers, use restart from latest benchmark
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	
+elif [[ "x${sim_name}" == "xPOPs" ]]; then
 
-    # For TransportTracers, use restart from latest 1-year benchmark
-    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    # For POPs, the extra option is in the restart file name
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
 
 else
 
     # For other specialty simulations, use previoiusly saved restarts
-    sample_rst=${rst_root}/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
 fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
 elif [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
@@ -752,6 +766,27 @@ else
     printf "\n     You will need to provide an initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
+fi
+
+# Sample restarts for several simulations do not contain all species. For those
+# simulations, print a warning and change the time cycle option in HEMCO config
+if [[ "x${sim_extra_option}" == "xaciduptake"        ||
+      "x${sim_extra_option}" == "xmarinePOA"         ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
+      "x${sim_extra_option}" == "xAPM"               ||
+      "x${sim_name}"         == "xPOPs"              ||
+      "x${sim_name}"         == "xtagCH4"            ||
+      "x${sim_name}"         == "xtagO3"             ]]; then
+    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFY"
+    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY "
+    sed_ie "s|${old}|${new}|" HEMCO_Config.rc
+
+    printf "\n  -- The sample restart provided for this simulation may not"
+    printf "\n     contain all species defined in this simulation. Missing"
+    printf "\n     species will be assigned default background concentrations."
+    printf "\n     Check your GEOS-Chem log file for details. As always, it"
+    printf "\n     is recommended that you spin up your simulation to ensure"
+    printf "\n     proper initial conditions.\n"
 fi
 
 #--------------------------------------------------------------------

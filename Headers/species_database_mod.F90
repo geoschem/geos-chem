@@ -635,10 +635,18 @@ CONTAINS
 
        ! Is_Gas and Is_Aero tags cannot both be FALSE at the same time
        IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) ) THEN
-          errMsg = "Is_Gas and Is_Aerosol are both FALSE for species "    // &
-                   TRIM( spc ) // "!"
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
+
+          ! Check if this is a KPP species, is so set Is_Gas to TRUE, otherwise
+          ! return with an error. This will account for P/L families not
+          ! defined in the species database.
+          IF ( ThisSpc%Is_Kpp ) THEN
+             ThisSpc%Is_Gas = .TRUE.
+          ELSE
+             errMsg = "Is_Gas and Is_Aerosol are both FALSE for species " // &
+                      TRIM( spc ) // "!"
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! If the species is a gas, set all aerosol fields to missing values
