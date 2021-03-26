@@ -370,13 +370,13 @@ MODULE GcKpp_HetRates
     ! These VOC species use the same rate-law function for 1st-order uptake
     HET(ind_LVOC,   1) = Het1stOrderUptakeVOC(   H%LVOC%SrMw,   1.0E+0_dp   )
     HET(ind_IDN,    1) = Het1stOrderUptakeVOC(   H%IDN%SrMw,    5.0E-3_dp   )
-    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
     HET(ind_IHN1,   1) = Het1stOrderUptakeVOC(   H%IHN1%SrMw,   5.0E-3_dp   )
     HET(ind_IHN2,   1) = Het1stOrderUptakeVOC(   H%IHN2%SrMw,   5.0E-2_dp   )
     HET(ind_IHN3,   1) = Het1stOrderUptakeVOC(   H%IHN3%SrMw,   5.0E-3_dp   )
     HET(ind_IHN4,   1) = Het1stOrderUptakeVOC(   H%IHN4%SrMw,   5.0E-3_dp   )
     HET(ind_INPB,   1) = Het1stOrderUptakeVOC(   H%INPB%SrMw,   5.0E-3_dp   )
     HET(ind_INPD,   1) = Het1stOrderUptakeVOC(   H%INPD%SrMw,   5.0E-3_dp   )
+    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
     HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(   H%ITHN%SrMw,   5.0E-3_dp   )
     HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC(   H%MCRHN%SrMw,  5.0E-3_dp   )
     HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC(   H%MCRHNB%SrMw, 5.0E-3_dp   )
@@ -390,6 +390,9 @@ MODULE GcKpp_HetRates
     ! (species IONITA and MONITA) have constant 1st order uptake rates.
     HET(ind_IONITA, 1) = 2.78E-4_dp
     HET(ind_MONITA, 1) = 2.78E-4_dp
+
+!#### KPP DEBUG
+!goto 9999
 
     !========================================================================
     ! NOy uptake in clouds
@@ -1119,6 +1122,7 @@ MODULE GcKpp_HetRates
     ! Cleanup & quit
     !========================================================================
 !### KPP DEBUG
+9999 continue
 #include "print_het.H"
 
     H => NULL()
