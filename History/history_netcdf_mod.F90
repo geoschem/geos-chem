@@ -139,6 +139,7 @@ CONTAINS
           Current%Item%NcYDimId  = UNDEFINED_INT
           Current%Item%NcZDimId  = UNDEFINED_INT
           Current%Item%NcTDimId  = UNDEFINED_INT
+          Current%Item%NcBDimId  = UNDEFINED_INT
           Current%Item%NcVarId   = UNDEFINED_INT
 
           ! Go to the next entry in the list of HISTORY ITEMS
@@ -225,7 +226,7 @@ CONTAINS
     CHARACTER(LEN=255)          :: FileName
     CHARACTER(LEN=255)          :: ErrMsg,       ThisLoc,     VarUnits
     CHARACTER(LEN=255)          :: VarAxis,      VarPositive, VarCalendar
-    CHARACTER(LEN=255)          :: VarStdName,   VarFormula
+    CHARACTER(LEN=255)          :: VarStdName,   VarFormula,  VarBounds
 
     ! Arrays
     INTEGER                     :: V(8)
@@ -379,6 +380,7 @@ CONTAINS
                           nLev           = nLev,                             &
                           nIlev          = nILev,                            &
                           nTime          = NF_UNLIMITED,                     &
+                          nBounds        = 2,                                &
                           NcFormat       = Container%NcFormat,               &
                           Conventions    = Container%Conventions,            &
                           History        = Container%History,                &
@@ -394,6 +396,7 @@ CONTAINS
                           ILevId         = Container%iDimId,                 &
                           LatId          = Container%yDimId,                 &
                           LonId          = Container%xDimId,                 &
+                          boundsId       = Container%bDimId,                 &
                           KeepDefMode    = .TRUE.,                           &
                           Varct          = VarCt                            )
 
@@ -424,7 +427,7 @@ CONTAINS
        ! have the same dimension subsets as the current container
        CALL IndexVarList_Create( Input_Opt, Container, IndexVarList, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
+          ErrMsg = 'Error encountered in "IndexVarList_Create"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -443,6 +446,7 @@ CONTAINS
                                zDimId       = Container%zDimId,              &
                                iDimId       = Container%iDimId,              &
                                tDimId       = Container%tDimId,              &
+                               bDimId       = Container%bDimId,              &
                                RefDate      = Container%ReferenceYmd,        &
                                RefTime      = Container%ReferenceHms,        &
                                OnLevelEdges = Container%OnLevelEdges,        &
@@ -452,7 +456,8 @@ CONTAINS
                                VarCalendar  = VarCalendar,                   &
                                VarUnits     = VarUnits,                      &
                                VarStdName   = VarStdName,                    &
-                               VarFormula   = VarFormula                    )
+                               VarFormula   = VarFormula,                    &
+                               VarBounds    = VarBounds                     )
 
           ! Set a flag for the precision of the data
           IF ( Current%Item%Output_KindVal == KINDVAL_F4 ) THEN
@@ -473,13 +478,15 @@ CONTAINS
                            iLevId       = Current%Item%NcIDimId,             &
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
+                           boundsId     = Current%Item%NcBDimId,             &
                            VarLongName  = Current%Item%LongName,             &
                            VarUnit      = VarUnits,                          &
                            Axis         = VarAxis,                           &
                            Calendar     = VarCalendar,                       &
                            Positive     = VarPositive,                       &
                            StandardName = VarStdName,                        &
-                           FormulaTerms = VarFormula                        )
+                           FormulaTerms = VarFormula,                        &
+                           Bounds       = VarBounds                         )
 
           ! Debug print
           !CALL HistItem_Print( Current%Item, RC )
@@ -508,6 +515,7 @@ CONTAINS
                                zDimId   = Container%zDimId,                  &
                                iDimId   = Container%iDimId,                  &
                                tDimId   = Container%tDimId,                  &
+                               bDimId   = Container%bDimId,                  &
                                Item     = Current%Item,                      &
                                VarUnits = VarUnits                          )
 
@@ -538,10 +546,12 @@ CONTAINS
                            iLevId       = Current%Item%NcIDimId,          &
                            latId        = Current%Item%NcYDimId,          &
                            lonId        = Current%Item%NcXDimId,          &
-                           VarLongName  = Current%Item%LongName,          &
-                           VarUnit      = VarUnits,                       &
-                          !MissingValue = Current%Item%MissingValue,      &
-                           AvgMethod    = Current%Item%AvgMethod         )
+                           boundsId     = Current%Item%NcBDimId,          &
+                           varLongName  = Current%Item%LongName,          &
+                           varUnit      = VarUnits,                       &
+                          !missingValue = Current%Item%MissingValue,      &
+                           avgMethod    = Current%Item%AvgMethod,         &
+                           bounds       = VarBounds                      )
 
 #if defined( NC_HAS_COMPRESSION )
           ! Turn on netCDF chunking for this HISTORY ITEM
@@ -592,10 +602,21 @@ CONTAINS
           ! Write data for index variables to the netCDF file
           IF ( Current%Item%SpaceDim == 2 ) THEN
 
-             ! AREA is the only 2-D array (4-byte precison)
-             CALL Nc_Var_Write( fId     = Container%FileId,                  &
-                                VarName = Current%Item%Name,                 &
-                                Arr2d   = Current%Item%Source_2d_4          )
+             ! Check the dimension names
+             SELECT CASE( Current%Item%DimNames )
+
+                ! lon_bnds or lat_bnds
+                CASE( 'bx', 'by' )
+                   CALL Nc_Var_Write( fId     = Container%FileId,            &
+                                      VarName = Current%Item%Name,           &
+                                      Arr2d   = Current%Item%Source_2d_8    )
+
+                ! AREA
+                CASE DEFAULT
+                   CALL Nc_Var_Write( fId     = Container%FileId,            &
+                                      VarName = Current%Item%Name,           &
+                                      Arr2d   = Current%Item%Source_2d_4    )
+             END SELECT
 
           ELSE IF ( Current%Item%SpaceDim == 1 ) THEN
 
@@ -1124,11 +1145,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Var_DimIds( Item,     xDimId,      yDimId,                  &
-                             zDimId,   iDimId,      tDimID,                  &
-                             RefDate,  RefTime,     OnLevelEdges,            &
-                             VarAxis,  VarCalendar, VarPositive,             &
-                             VarUnits, VarStdName,  VarFormula              )
+  SUBROUTINE Get_Var_DimIds( Item,         xDimId,   yDimId,                 &
+                             zDimId,       iDimId,   tDimID,                 &
+                             bDimId,       RefDate,  RefTime,                &
+                             OnLevelEdges, VarAxis,  VarCalendar,            &
+                             VarPositive,  VarUnits, VarStdName,             &
+                             VarFormula,   VarBounds                        )
 !
 ! !USES:
 !
@@ -1142,6 +1164,7 @@ CONTAINS
     INTEGER,            INTENT(IN)  :: zDimId       ! Id # of Z (lev cntr) dim
     INTEGER,            INTENT(IN)  :: iDimId       ! Id # of I (lev edge) dim
     INTEGER,            INTENT(IN)  :: tDimId       ! Id # of T (time    ) dim
+    INTEGER,            INTENT(IN)  :: bDimId       ! Id # of B (bounds  ) dim
     INTEGER,            OPTIONAL    :: RefDate      ! Ref YMD for "time" var
     INTEGER,            OPTIONAL    :: RefTime      ! Ref hms for "time" var
     LOGICAL,            OPTIONAL    :: OnLevelEdges ! Is 3D data on lvl edges?
@@ -1158,7 +1181,7 @@ CONTAINS
     CHARACTER(LEN=255), OPTIONAL    :: VarUnits     ! Unit string
     CHARACTER(LEN=255), OPTIONAL    :: VarStdName   ! Standard name
     CHARACTER(LEN=255), OPTIONAL    :: VarFormula   ! Formula terms
-
+    CHARACTER(LEN=255), OPTIONAL    :: VarBounds    ! X or Y bounds var name
 !
 ! !REMARKS:
 !  Call this routine before calling NC_VAR_DEF.
@@ -1184,6 +1207,7 @@ CONTAINS
     CHARACTER(LEN=4)   :: YearStr
     CHARACTER(LEN=255) :: TmpAxis,        TmpCalendar,  TmpStdName
     CHARACTER(LEN=255) :: TmpPositive,    TmpUnits,     TmpFormula
+    CHARACTER(LEN=255) :: TmpBounds
 
     !========================================================================
     ! Initialize
@@ -1194,11 +1218,13 @@ CONTAINS
     TmpUnits        = Item%Units
     TmpStdName      = ''
     TmpFormula      = ''
+    TmpBounds       = ''
     Item%NcXDimId   = UNDEFINED_INT
     Item%NcYDimId   = UNDEFINED_INT
     Item%NcZDimId   = UNDEFINED_INT
     Item%NcIDimId   = UNDEFINED_INT
     Item%NcTDimId   = UNDEFINED_INT
+    Item%NcBDimId   = UNDEFINED_INT
 
     IF ( PRESENT( RefDate ) ) THEN
        ReferenceYmd = RefDate
@@ -1226,12 +1252,12 @@ CONTAINS
        ! lon
        CASE( 'lon' )
           Item%NcXDimId = xDimId
-          TmpAxis       = 'X'
+          TmpBounds     = 'lon_bnds'
 
        ! lat
        CASE( 'lat' )
           Item%NcYDimId = yDimId
-          TmpAxis       = 'Y'
+          TmpBounds     = 'lat_bnds'
 
        ! lev
        CASE( 'lev' )
@@ -1347,6 +1373,16 @@ CONTAINS
                    Item%NcZDimId = zDimId
                 ENDIF
 
+             ! For longitude bounds
+             CASE( 'bx' )
+                Item%NcBDimId = bDimId
+                Item%NcXDimId = xDimId
+
+             ! For latitude bounds
+             CASE( 'by' )
+                Item%NcBDimId = bDimId
+                Item%NcYDimId = yDimId
+
              CASE DEFAULT
                 ! Nothing
 
@@ -1361,6 +1397,7 @@ CONTAINS
     IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
     IF ( PRESENT( VarStdName  ) ) VarStdName  = TmpStdName
     IF ( PRESENT( VarFormula  ) ) VarFormula  = TmpFormula
+    IF ( PRESENT( VarBounds   ) ) VarBounds   = TmpBounds
 
   END SUBROUTINE Get_Var_DimIds
 !EOC
@@ -1426,16 +1463,14 @@ CONTAINS
 
     ! Arrays
     INTEGER                  :: Dimensions(3)
-    INTEGER                  :: Subset_X(2)
-    INTEGER                  :: Subset_Y(2)
-    INTEGER                  :: Subset_Z(2)
-    INTEGER                  :: Subset_Zc(2)
-    INTEGER                  :: Subset_Ze(2)
+    INTEGER                  :: Subset_X(2), Subset_Xc(2)
+    INTEGER                  :: Subset_Y(2), Subset_Yc(2)
+    INTEGER                  :: Subset_Z(2), Subset_Zc(2), Subset_Ze(2)
 
     ! Strings
-    CHARACTER(LEN=20)        :: ItemDimName(11)
-    CHARACTER(LEN=20)        :: ItemName(11)
-    CHARACTER(LEN=20)        :: RegistryName(11)
+    CHARACTER(LEN=20)        :: ItemDimName(13)
+    CHARACTER(LEN=20)        :: ItemName(13)
+    CHARACTER(LEN=20)        :: RegistryName(13)
     CHARACTER(LEN=255)       :: Description
     CHARACTER(LEN=255)       :: ErrMsg
     CHARACTER(LEN=255)       :: ThisLoc
@@ -1443,8 +1478,9 @@ CONTAINS
 
     ! Pointer arrays
     REAL(f8),        POINTER :: Ptr0d_8
-    REAL(f8),        POINTER :: Ptr1d_8(:    )
-    REAL(f4),        POINTER :: Ptr2d_4(:,:  )
+    REAL(f8),        POINTER :: Ptr1d_8(:  )
+    REAL(f8),        POINTER :: Ptr2d_8(:,:)
+    REAL(f4),        POINTER :: Ptr2d_4(:,:)
 
     ! Objects
     TYPE(HistItem),  POINTER :: Item
@@ -1479,10 +1515,12 @@ CONTAINS
     RegistryName(5 ) = 'GRID_HYBM'
     RegistryName(6 ) = 'GRID_HYAM'
     RegistryName(7 ) = 'GRID_LON'
-    RegistryName(8 ) = 'GRID_LAT'
-    RegistryName(9 ) = 'GRID_ILEV'
-    RegistryName(10) = 'GRID_LEV'
-    RegistryName(11) = 'GRID_TIME'
+    RegistryName(8 ) = 'GRID_LONBND'
+    RegistryName(9 ) = 'GRID_LAT'
+    RegistryName(10) = 'GRID_LATBND'
+    RegistryName(11) = 'GRID_ILEV'
+    RegistryName(12) = 'GRID_LEV'
+    RegistryName(13) = 'GRID_TIME'
 
     ! Name for each HISTORY ITEM
     ItemName(1 )     = 'AREA'
@@ -1492,10 +1530,12 @@ CONTAINS
     ItemName(5 )     = 'hybm'
     ItemName(6 )     = 'hyam'
     ItemName(7 )     = 'lon'
-    ItemName(8 )     = 'lat'
-    ItemName(9 )     = 'ilev'
-    ItemName(10)     = 'lev'
-    ItemName(11)     = 'time'
+    ItemName(8 )     = 'lon_bnds'
+    ItemName(9 )     = 'lat'
+    ItemName(10)     = 'lat_bnds'
+    ItemName(11)     = 'ilev'
+    ItemName(12)     = 'lev'
+    ItemName(13)     = 'time'
 
     ! Dimensions for each HISTORY ITEM
     ItemDimName(1 )  = 'xy'
@@ -1505,10 +1545,12 @@ CONTAINS
     ItemDimName(5 )  = 'z'
     ItemDimName(6 )  = 'z'
     ItemDimName(7 )  = 'x'
-    ItemDimName(8 )  = 'y'
-    ItemDimName(9 )  = 'z'
-    ItemDimName(10)  = 'z'
-    ItemDimName(11)  = 't'
+    ItemDimName(8 )  = 'bx'
+    ItemDimName(9 )  = 'y'
+    ItemDimName(10)  = 'by'
+    ItemDimName(11)  = 'z'
+    ItemDimName(12)  = 'z'
+    ItemDimName(13)  = 't'
 
     !========================================================================
     ! Pick the dimensions of the lev and ilev variables properly
@@ -1518,8 +1560,8 @@ CONTAINS
     CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
     ! Subset indices
-    Subset_X  = (/ Container%X0, Container%X1 /)
-    Subset_Y  = (/ Container%Y0, Container%Y1 /)
+    Subset_Xc = (/ Container%X0, Container%X1 /)
+    Subset_Yc = (/ Container%Y0, Container%Y1 /)
     Subset_Zc = (/ Container%Z0, nLev         /)
     Subset_Ze = (/ Container%Z0, nILev        /)
 
@@ -1530,7 +1572,7 @@ CONTAINS
     DO N = 1, SIZE( RegistryName )
 
        !---------------------------------------------------------------------
-       ! Look up one of the index fields from gc_grid_mod.F90
+       ! Look up one of the index fields from grid_registry_mod.F90
        !---------------------------------------------------------------------
        CALL Lookup_Grid( Input_Opt      = Input_Opt,                         &
                          Variable       = RegistryName(N),                   &
@@ -1543,6 +1585,7 @@ CONTAINS
                          OnLevelEdges   = OnLevelEdges,                      &
                          Ptr0d_8        = Ptr0d_8,                           &
                          Ptr1d_8        = Ptr1d_8,                           &
+                         Ptr2d_8        = Ptr2d_8,                           &
                          Ptr2d_4        = Ptr2d_4,                           &
                          RC             = RC                                )
 
@@ -1556,10 +1599,27 @@ CONTAINS
 
        ! Pick proper subset indices for index variables placed on
        ! edges  (hyai, hybi, ilev) or centers (everything else)
+       ! NOTE: special handling for lat_bnds (12) and lon_bnds (13)
        SELECT CASE( N )
-          CASE( 3, 4, 9 )
+          CASE( 2 )                   ! P0
+             Subset_X = (/ 0, 0 /)
+             Subset_Y = (/ 0, 0 /)
+             Subset_Z = (/ 0, 0 /)
+          CASE( 3, 4, 11 )            ! hybi, hyai, ilev
+             Subset_X = Subset_Xc
+             Subset_Y = Subset_Yc
              Subset_Z = Subset_Ze
-          CASE DEFAULT
+          CASE( 8  )                  ! lon_bnds
+             Subset_X = (/ 1, 2 /)
+             Subset_Y = Subset_Xc
+             Subset_Z = (/ 0, 0 /)
+          CASE( 10 )                  ! lat_bnds
+             Subset_X = (/ 1, 2 /)
+             Subset_Y = Subset_Yc
+             Subset_Z = (/ 0, 0 /)
+          CASE DEFAULT                ! everything else
+             Subset_X = Subset_Xc
+             Subset_Y = Subset_Yc
              Subset_Z = Subset_Zc
        END SELECT
 
@@ -1585,6 +1645,7 @@ CONTAINS
                              Source_0d_8    = Ptr0d_8,                       &
                              Source_1d_8    = Ptr1d_8,                       &
                              Source_2d_4    = Ptr2d_4,                       &
+                             Source_2d_8    = Ptr2d_8,                       &
                              RC             = RC                            )
 
        ! Trap potential error
@@ -1601,7 +1662,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Add this item to the Dimension list
        !---------------------------------------------------------------------
-       CALL MetaHistItem_AddNew( Input_Opt    = Input_Opt,                   &
+       CALL MetaHistItem_AddNew( Input_Opt = Input_Opt,                      &
                                  Node      = IndexVarList,                   &
                                  Item      = Item,                           &
                                  RC        = RC                             )

@@ -57,12 +57,13 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)          :: Name                ! Container name
      INTEGER                     :: Id                  !  and ID number
-     INTEGER                     :: nX                  ! X (or lon) dim size
-     INTEGER                     :: nY                  ! Y (or lat) dim size
-     INTEGER                     :: nZ                  ! Z (or lev) dim size
-     INTEGER                     :: X0, X1              ! X (or lon) indices
-     INTEGER                     :: Y0, Y1              ! Y (or lon) indices
-     INTEGER                     :: Z0                  ! Z (or lev) indices
+     INTEGER                     :: nX                  ! X (or lon ) dim size
+     INTEGER                     :: nY                  ! Y (or lat ) dim size
+     INTEGER                     :: nZ                  ! Z (or lev ) dim size
+     INTEGER                     :: nB                  ! B (or bnds) dim size
+     INTEGER                     :: X0, X1              ! X (or lon ) indices
+     INTEGER                     :: Y0, Y1              ! Y (or lon ) indices
+     INTEGER                     :: Z0                  ! Z (or lev ) indices
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers
@@ -150,6 +151,7 @@ MODULE HistContainer_Mod
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
      INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
+     INTEGER                     :: bDimId              ! B (or bnds) dim ID
      CHARACTER(LEN=20)           :: StartTimeStamp      ! Timestamps at start
      CHARACTER(LEN=20)           :: EndTimeStamp        !  and end of sim
      CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
@@ -678,6 +680,7 @@ CONTAINS
     Container%zDimId          = UNDEFINED_INT
     Container%iDimId          = UNDEFINED_INT
     Container%tDimId          = UNDEFINED_INT
+    Container%bDimId          = UNDEFINED_INT
     Container%Spc_Units       = ''
 
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
@@ -699,6 +702,7 @@ CONTAINS
     Container%NX              = UNDEFINED_INT
     Container%NY              = UNDEFINED_INT
     Container%NZ              = UNDEFINED_INT
+    Container%NB              = UNDEFINED_INT
     Container%X0              = UNDEFINED_INT
     Container%X1              = UNDEFINED_INT
     Container%Y0              = UNDEFINED_INT
@@ -891,6 +895,7 @@ CONTAINS
        WRITE( 6, 130 ) 'nX               : ', Container%nX
        WRITE( 6, 130 ) 'nY               : ', Container%nY
        WRITE( 6, 130 ) 'nZ               : ', Container%nZ
+       WRITE( 6, 130 ) 'nB               : ', Container%nB
        WRITE( 6, 160 ) 'EpochJsec        : ', Container%EpochJsec
        WRITE( 6, 160 ) 'EpochJd          : ', Container%EpochJd
        WRITE( 6, 160 ) 'CurrentJSec      : ', Container%CurrentJSec
@@ -925,6 +930,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId
+       WRITE( 6, 130 ) 'bDimId           : ', Container%bDimId
        WRITE( 6, 120 ) 'FileExpId        : ', TRIM( Container%FileExpId    )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
@@ -1645,4 +1651,3 @@ CONTAINS
   END SUBROUTINE AlarmIncrementMonths
 !EOC
 END MODULE HistContainer_Mod
-
