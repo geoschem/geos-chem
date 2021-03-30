@@ -1252,11 +1252,13 @@ CONTAINS
        ! lon
        CASE( 'lon' )
           Item%NcXDimId = xDimId
+          TmpAxis       = 'X'
           TmpBounds     = 'lon_bnds'
 
        ! lat
        CASE( 'lat' )
           Item%NcYDimId = yDimId
+          TmpAxis       = 'Y'
           TmpBounds     = 'lat_bnds'
 
        ! lev
