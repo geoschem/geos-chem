@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -S /bin/bash
 #PBS -N SGIdebugGCHP
-#PBS -l select=1:ncpus=6:mpiprocs=6:model=bro
+#PBS -l select=2:ncpus=24:mpiprocs=48:model=bro
 #PBS -l walltime=00:30:00
 #PBS -j oe
 #PBS -W group_list=[YOUR_ACCOUNT]
