@@ -93,7 +93,7 @@ loggers:
        handlers: [mpi_shared]
        level: WARNING
        root_level: WARNING
-       propagate: 0
+       propagate: false
        
   # Note: When enabling another logger, make sure
   #       indentation matches that of the above 
@@ -170,5 +170,4 @@ loggers:
   # CAP.GCM.OGCM.OCEAN.DATASEA:
   # CAP.GCM.OGCM.OCEAN.MOM:
   # CAP.GCM.OGCM.OCEAN.MOM6:
-
 
