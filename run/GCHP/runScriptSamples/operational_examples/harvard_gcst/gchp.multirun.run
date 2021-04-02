@@ -1,11 +1,12 @@
 #!/bin/bash
 
-#SBATCH -n 30
+#SBATCH -n 24
 #SBATCH -N 1
-#SBATCH --exclusive
-#SBATCH -t 0-0:30
-#SBATCH -p huce_intel
-#SBATCH --mem=MaxMemPerNode
+#SBATCH -t 0-0:10
+#SBATCH -p huce_cascade
+#SBATCH --mem=110000
+## Use lower memory if doing Transport Tracers simulation:
+##SBATCH --mem=30000
 #SBATCH --mail-type=ALL
 #SBATCH -o slurm-%j.out
 #SBATCH -e slurm-%j.err

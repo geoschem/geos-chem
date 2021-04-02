@@ -4,8 +4,8 @@
 #SBATCH -N 2
 #SBATCH --exclusive
 #SBATCH -t 0-20:00
-#SBATCH -p huce_intel
-#SBATCH --mem=MaxMemPerNode
+#SBATCH -p huce_cascade
+#SBATCH --mem=180000
 #SBATCH --mail-type=ALL
 
 # Resource request tips: 
