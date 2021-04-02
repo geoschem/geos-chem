@@ -184,10 +184,10 @@ while [ "${valid_met}" -eq 0 ]; do
     read met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
-	RDI_VARS+="$(cat ${srcrundir}/settings/merra2_settings.txt)\n"
+	RDI_VARS+="$(cat ${gcdir}/shared/merra2_settings.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n'
     elif [[ ${met_num} = "2" ]]; then
-	RDI_VARS+="$(cat ${srcrundir}/settings/geosfp_settings.txt)\n"
+	RDI_VARS+="$(cat ${gcdir}/shared/geosfp_settings.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n'
     else
 	valid_met=0
@@ -345,11 +345,11 @@ RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc
 
 # Determine settings
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-   RDI_VARS+="$(cat ${srcrundir}/settings/benchmark_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/shared/benchmark_settings.txt)\n"
 elif [[ ${sim_name} == "TransportTracers" ]]; then
-   RDI_VARS+="$(cat ${srcrundir}/settings/transporttracer_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/shared/transporttracer_settings.txt)\n"
 else
-   RDI_VARS+="$(cat ${srcrundir}/settings/fullchem_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/shared/fullchem_settings.txt)\n"
 fi
 
 #--------------------------------------------------------------------
