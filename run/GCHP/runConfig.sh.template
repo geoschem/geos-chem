@@ -229,18 +229,18 @@ inst_collections=(ConcAboveSfc      \
 #------------------------------------------------
 #    Debug Options
 #------------------------------------------------
-MAPL_EXTDATA_DEBUG_LEVEL=0
-MEMORY_DEBUG_LEVEL=0
-# Set MAPL ExtData debug flag to 0 for no extra MAPL debug log output, or 1 to
-# print information to log. Using this flag is most helpful for debugging
-# issues with file read (MAPL ExtData).
-#
-# Set memory debug flag to 0 to print memory only once per timestep. Set to
-# 1 to enable memory prints at additional locations throughout the run.
-#
-# For GEOS-Chem debug prints, turn on ND70 in input.geos manually.       
+# Run-time debug options in config files are not set from this file.
+# Try the following manually instead to enable debug prints:
+#   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in input.geos
+#   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
+#   (3) MAPL ExtData (handles GCHP inputs):
+#         - For root thread (single core) prints set CAP.EXTDATA logger
+#           'root_level' to DEBUG in logging.yaml
+#         - For prints by all threads set CAP.EXTDATA logger 'level' to
+#           DEBUG in logging.yaml 
 #
 # WARNING: Turning on debug prints significantly slows down the model!
+#          Remember to turn them back off before doing a long simulation.
 
 #------------------------------------------------------------------
 #    Dust mass tuning factor (only if using HEMCO dust extension)
