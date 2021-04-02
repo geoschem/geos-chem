@@ -72,8 +72,8 @@ MODULE PLANEFLIGHT_MOD
   ! PDATE       : Array of dates     at each flight point
   ! PTIME       : Array of times     at each flight point
   ! PTAU        : Array of TAU's     at each flight point
-  ! PLAT        : Array of latitude  at each flight point
-  ! PLON        : Array of longitude at each flight point
+  ! PLATTD      : Array of latitude  at each flight point
+  ! PLONGTD     : Array of longitude at each flight point
   ! PPRESS      : Array of pressure  at each flight point
   ! PTYPE       : Array of ID'#S     at each flight point
   ! NPVAR       : # of var's to be saved at each flight point
@@ -82,6 +82,8 @@ MODULE PLANEFLIGHT_MOD
   ! NPREAC      : # of variables that are really rxns
   ! PREAC       : Array of rxn index numbers
   ! PRRATE      : Array of rxn rates for each entry in PREAC
+  ! JPREAC      : Array of j-rate rxn index numbers
+  ! NJPREAC     :  # of variables that are j-rate rxns
   ! NRO2        : # number of RO2 constituents
   ! PRO2        : Array of species that are RO2 const's
   ! INFILENAME  : Name of input file defining the flight track
@@ -95,7 +97,7 @@ MODULE PLANEFLIGHT_MOD
   INTEGER,           PARAMETER   :: MAXVARS   = 800
   INTEGER,           PARAMETER   :: MAXPOINTS = 100000
   INTEGER,           PARAMETER   :: MAXREAC   = 50
-  INTEGER,           PARAMETER   :: MAXRO2    = 45
+  INTEGER,           PARAMETER   :: MAXRO2    = 56
   INTEGER,           PARAMETER   :: MAXAN     = 20
   INTEGER,           PARAMETER   :: MAXNOY    = 20
 
@@ -109,8 +111,8 @@ MODULE PLANEFLIGHT_MOD
   REAL(fp),          ALLOCATABLE :: PTAU(:)
 
   ! For specifying lat/lon/alt and ID type
-  REAL*4,            ALLOCATABLE :: PLAT(:)
-  REAL*4,            ALLOCATABLE :: PLON(:)
+  REAL*4,            ALLOCATABLE :: PLATTD(:)
+  REAL*4,            ALLOCATABLE :: PLONGTD(:)
   REAL*4,            ALLOCATABLE :: PPRESS(:)
   REAL*4,            ALLOCATABLE :: POBS(:)
   REAL*4,            ALLOCATABLE :: PTAMB(:)
@@ -129,6 +131,9 @@ MODULE PLANEFLIGHT_MOD
   INTEGER                        :: NPREAC
   INTEGER,           ALLOCATABLE :: PREAC(:)
   REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:)
+  ! and for photolysis reactions (j-rates)
+  INTEGER,           ALLOCATABLE :: JPREAC(:)
+  INTEGER                        :: NJPREAC
 
   ! For rate of production
   INTEGER                        :: NPROD
@@ -339,7 +344,7 @@ CONTAINS
             A9,X,A3,X,A5,X,A5,X,250(a10,x) )
 #else
 110 FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X, &
-            A9,X,A3,X,A5,X,A5,X,200(a11,x) )
+            A9,X,A3,X,A5,X,A5,X,250(a11,x) )
 #endif
 
   END SUBROUTINE SETUP_PLANEFLIGHT
@@ -365,6 +370,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
     USE FILE_MOD,   ONLY : IOERROR
+    USE CMN_FJX_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -389,7 +395,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL             :: IS_FULLCHEM
-    INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect
+    INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect, P
     INTEGER             :: PR, J, NF, FM
     CHARACTER(LEN=255)  :: LINE
     CHARACTER(LEN=10)   :: PRODNAME
@@ -550,6 +556,7 @@ CONTAINS
           IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
           IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005
           IF ( LINE == 'AODC_DUST'  ) PVAR(N) = 2006
+          IF ( LINE == 'AODC_TOT'   ) PVAR(N) = 2007
 
        !===========================================================
        ! Aerosol optical depths below the plane
@@ -563,6 +570,7 @@ CONTAINS
           IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
           IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
           IF ( LINE == 'AODB_DUST'  ) PVAR(N) = 3006
+          IF ( LINE == 'AODB_TOT'   ) PVAR(N) = 3007
 
        !===========================================================
        ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
@@ -748,31 +756,91 @@ CONTAINS
        !   ENDIF
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! 21/12/20 - TMS: access J-rates already stored in State_Diag
+       !===========================================================
+       ! J-rate Rxn rate: listed as "JVL_001", etc.
+       ! PVAR offset: 30000
+       !===========================================================
+       CASE ( 'JVL_' )
+
+         ! Skip if not full-chemistry
+         IF ( IS_FULLCHEM ) THEN
+
+            ! Increment rxn counter
+            R = R + 1
+
+           !==================================================
+           ! NOTE: JVL_??? is translated to indexes from FJX_j2j.dat
+           !==================================================
+
+           ! Extract tracer # from the string
+           READ( LINE(5:14), '(i10)' ) NUM
+
+           ! Initialize
+           PVAR(N)   = -999
+           JPREAC(R) = -999
+           P         = -999         ! GEOS-Chem photolyis species ID
+
+           ! Loop the reaciton branches and find the correct "P" index
+           DO IK = 1, JVN_
+
+               ! GC photolysis species index
+               P = GC_Photo_Id(NUM)
+
+               ! If this FAST_JX photolysis species maps to a valid
+               ! GEOS-Chem photolysis species (for this simulation)...
+               IF ( P > 0 ) THEN
+
+               ! Archive the instantaneous photolysis rate
+               ! (summing over all reaction branches)
+                   IF ( IK == P ) THEN
+                      PVAR(N)  = 30000 + IK
+                      JPREAC(R) = 30000 + IK
+                      EXIT
+                   ENDIF
+               ENDIF
+             ENDDO
+
+           ! Stop w/ error
+           IF ( PVAR(N) == -999 ) THEN
+               IF ( Input_Opt%amIRoot ) THEN
+                  WRITE (6,*) 'Cant match up J-rate reaction number'
+                  WRITE (6,*) NUM, P
+                  WRITE (6,*) 'NOTE: Reactions indexs are from FJX_j2j.dat'
+                  WRITE (6,*) 'Stopping'
+               ENDIF
+               CALL GEOS_CHEM_STOP
+           ENDIF
+
+         ENDIF
+
        !===========================================================
        ! Species: listed as "O3", "C2H6", etc.
        ! PVAR offset: 0
        !===========================================================
        CASE DEFAULT
 
+          ! Loop over all species
+          ! match w/ species as read from disk
+          DO M = 1, State_Chm%nSpecies
+
+             ! Get info about this species from the species database
+             SpcInfo => State_Chm%SpcData(M)%Info
+
+             IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
+                PVAR(N) = M
+                EXIT
+             ENDIF
+
+             ! Free pointer
+             SpcInfo => NULL()
+
+          ENDDO
+
           ! Skip if not full-chemistry
           IF ( IS_FULLCHEM ) THEN
-
-             ! Loop over all species
-             ! match w/ species as read from disk
-             DO M = 1, State_Chm%nSpecies
-
-                ! Get info about this species from the species database
-                SpcInfo => State_Chm%SpcData(M)%Info
-
-                IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
-                   PVAR(N) = M
-                   EXIT
-                ENDIF
-
-                ! Free pointer
-                SpcInfo => NULL()
-
-             ENDDO
 
              ! Special flag for RO2 species
              IF ( TRIM( LINE ) == 'RO2' ) PVAR(N) = 999
@@ -782,16 +850,16 @@ CONTAINS
 
              ! Special flag for NOy species FP
              IF ( TRIM( LINE ) == 'NOy' ) PVAR(N) = 997
+          ENDIF
 
-             ! Error check
-             IF ( PVAR(N) == 0 ) THEN
-                IF ( Input_Opt%amIRoot ) THEN
-                   WRITE( 6, '(a)' ) 'ERROR: invalid species!'
-                   WRITE( 6, 110   ) TRIM( LINE )
-110                FORMAT( 'Species ', a, ' not found!' )
-                   WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
-                   CALL GEOS_CHEM_STOP
-                ENDIF
+          ! Error check
+          IF ( PVAR(N) == 0 ) THEN
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE( 6, '(a)' ) 'ERROR: invalid species!'
+                WRITE( 6, 110   ) TRIM( LINE )
+110             FORMAT( 'Species ', a, ' not found!' )
+                WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
+                CALL GEOS_CHEM_STOP
              ENDIF
           ENDIF
 
@@ -1025,10 +1093,12 @@ CONTAINS
             TRIM(NAME) .EQ. 'Twgc'   .OR. & ! NOAA Tower
             TRIM(NAME) .EQ. 'Twkt' ) THEN   ! NOAA Tower
           ! Change units
+          ! NOTE: PHIS is now in units of [m], so we don't need to
+          ! divide by g0 again (see issue geoschem/geos-chem #531)
           L_ALT = 0
           IJ = GET_IJ( LON, LAT, State_Grid )
           DO L = 1, State_Grid%NZ
-             MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0 &
+             MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))                         &
                         + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
              IF ( (L_ALT .EQ. 0)  .AND. (MOD_ELEV .GT. PRES) ) THEN
                 L_ALT = L
@@ -1037,11 +1107,11 @@ CONTAINS
           PRES = State_Met%PMID(IJ(1),IJ(2),L_ALT)
        ENDIF
 
-       ! Assign LAT value into global PLAT array
-       PLAT(N)   = LAT
+       ! Assign LAT value into global PLATTD array
+       PLATTD(N) = LAT
 
-       ! Assign LON value into global PLON array
-       PLON(N)   = LON
+       ! Assign LON value into global PLONGTD array
+       PLONGTD(N) = LON
 
        ! Assign PRES value into global PPRESS array
        PPRESS(N) = PRES
@@ -1143,7 +1213,7 @@ CONTAINS
               'MVKOHOO', 'R4O2',     'R4N1',     'R4N2',             &
               'C4HVP1',  'C4HVP2',                                   &
               'BRO2',    'TRO2',     'XRO2',     'NRO2',             &
-              'NICO3',   'NIO2',     'PYPO2',    'RCO3')            
+              'NICO3',   'NIO2',     'PYPO2',    'RCO3')
           NPRO2       = NPRO2 + 1
           PRO2(NPRO2) = M
 
@@ -1463,7 +1533,7 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     LOGICAL             :: IS_FULLCHEM, LINTERP
-    INTEGER             :: I, J, L, M, N, R, PR, V
+    INTEGER             :: I, J, L, M, N, R, PR, V, NUM
     INTEGER             :: LL     !eds
     INTEGER             :: IWV, ISPC, K
     REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
@@ -1859,52 +1929,118 @@ CONTAINS
                 N = PVAR(V) - 2000
 
                 IF ( .not. LINTERP ) THEN
-                   VARI(V) = VARI(V) + ODAER(I,J,L,IWVSELECT(1,1),N)
+                   DO LL = 1, State_Grid%NZ
+                      ! Accumulate
+                      VARI(V) = VARI(V) + ODAER(I,J,LL,IWVSELECT(1,1),N)
+                   ENDDO
                 ELSE
-                   ! Interpolated using angstrom exponent between
-                   ! Closest available wavelengths
-                   ! (coefs pre-calculated in CALC_AOD)
-                   !catch any zero values before interpolation
-                   IF ((ODAER(I,J,L,IWVSELECT(2,1),N).GT.0).AND. &
-                        (ODAER(I,J,L,IWVSELECT(1,1),N).GT.0)) THEN
-                      VARI(V) = VARI(V) + &
-                           (ODAER(I,J,L,IWVSELECT(2,1),N)*ACOEF_WV(1)**   &
-                           (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),N)/&
-                           ODAER(I,J,L,IWVSELECT(2,1),N))))
-                   ENDIF
+                   DO LL = 1, State_Grid%NZ
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD)
+                      !catch any zero values before interpolation
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),N).GT.0).AND. &
+                          (ODAER(I,J,LL,IWVSELECT(1,1),N).GT.0)) THEN
+                         VARI(V) = VARI(V) + &
+                           (ODAER(I,J,LL,IWVSELECT(2,1),N)*ACOEF_WV(1)**   &
+                           (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),N)/&
+                           ODAER(I,J,LL,IWVSELECT(2,1),N))))
+                      ENDIF
+                   ENDDO
                 ENDIF
 
              ! DUST
              CASE ( 2006 )
+
                 ! Remove MISSING flag
                 VARI(V) = 0e+0_fp
-                 
+
                 IF ( .not. LINTERP ) THEN
-                   DO ISPC = 1, NDUST
-                      VARI(V) = VARI(V) + ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                   DO LL = 1, State_Grid%NZ
+                      DO ISPC = 1, NDUST
+                         ! Accumulate
+                         VARI(V) = VARI(V) + ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
                    ENDDO
                 ELSE
-                   ! Interpolated using angstrom exponent between
-                   ! Closest available wavelengths
-                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                   !catch any zero values before interpolation
-                   DO ISPC = 1, NDUST
-                      IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND. &
-                           (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                         VARI(V) = VARI(V) + &
-                          (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**   &
-                          (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/&
-                          ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
-                      ENDIF
+                   DO LL = 1, State_Grid%NZ
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD)
+                      !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                         IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
+                             (ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                          VARI(V) = VARI(V) + &
+                           (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)** &
+                           (BCOEF_WV(1)* &
+                           LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/ &
+                               ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                         ENDIF
+                      ENDDO
                    ENDDO
+                ENDIF
 
+             CASE ( 2007 ) ! Total AOD = SULF+ORGC+BLKC+SALA+SALC+STRAT+DUST
+
+                ! Remove MISSING flag
+                VARI(V) = 0e+0_fp
+
+                ! Loop over RH bins
+                DO  ISPC= 1, NAER
+                   IF ( .not. LINTERP ) THEN
+                      DO LL = 1, State_Grid%NZ
+                         ! Accumulate
+                         VARI(V) = VARI(V) + ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                   ELSE
+                      DO LL = 1, State_Grid%NZ
+                         ! Interpolated using angstrom exponent between
+                         ! Closest available wavelengths
+                         ! (coefs pre-calculated in CALC_AOD)
+                         !catch any zero values before interpolation
+                         IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
+                             (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                            VARI(V) = VARI(V) + &
+                            (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**   &
+                            (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/&
+                            ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                         ENDIF
+                      ENDDO
+                   ENDIF
+                ENDDO
+
+                !now add in the dust
+                IF ( .not. LINTERP ) THEN
+                   DO LL = 1, State_Grid%NZ
+                      DO ISPC = 1, NDUST
+                         ! Accumulate
+                         VARI(V) = VARI(V) + ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                   ENDDO
+                ELSE
+                   DO LL = 1, State_Grid%NZ
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD)
+                      !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                         IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
+                             (ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                          VARI(V) = VARI(V) + &
+                          (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**   &
+                          (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/&
+                          ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                         ENDIF
+                      ENDDO
+                   ENDDO
                 ENDIF
 
              !--------------------------
              ! Aerosol optical depths
-             ! above plane [unitless], zhaisx May 29, 2020
+             ! below plane [unitless]
              !--------------------------
-             CASE ( 3001:3005 )
+             CASE ( 3001:3005 ) ! SULF, BLKC, ORGC, SALA, SALC
 
                 ! Remove MISSING flag
                 VARI(V) = 0e+0_fp
@@ -1913,20 +2049,15 @@ CONTAINS
                 N = PVAR(V) - 3000
 
                 IF ( .not. LINTERP ) THEN
-                   DO LL = L, State_Grid%NZ 
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
+                   DO LL = 1, L
                       ! Accumulate
                       VARI(V) = VARI(V) + ODAER(I,J,LL,IWVSELECT(1,1),N)
                    ENDDO
                 ELSE
-                   DO LL = L, State_Grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
-
+                   DO LL = 1, L
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
-                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                      ! (coefs pre-calculated in CALC_AOD
                       !catch any zero values before interpolation
                       IF ((ODAER(I,J,LL,IWVSELECT(2,1),N).GT.0).AND. &
                           (ODAER(I,J,LL,IWVSELECT(1,1),N).GT.0)) THEN
@@ -1945,31 +2076,81 @@ CONTAINS
                 VARI(V) = 0e+0_fp
 
                 IF ( .not. LINTERP ) THEN
-                   DO LL = L, State_Grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
+                   DO LL = 1, L
                       DO ISPC = 1, NDUST
                          ! Accumulate
                          VARI(V) = VARI(V) + ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
                       ENDDO
                    ENDDO
                 ELSE
-                   DO LL = L, State_grid%NZ
-                      ! Skip non-tropospheric boxes
-                      IF ( .not. State_Met%InTroposphere(I,J,LL) ) CYCLE
-
+                   DO LL = 1, L
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
-                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                      ! (coefs pre-calculated in CALC_AOD
                       !catch any zero values before interpolation
                       DO ISPC = 1, NDUST
-                         IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.&
+                         IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
                              (ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                          VARI(V) = VARI(V) + &
+                           (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)** &
+                           (BCOEF_WV(1)* &
+                           LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/ &
+                               ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                         ENDIF
+                      ENDDO
+                   ENDDO
+                ENDIF
+
+             CASE ( 3007 ) ! Total AOD = SULF+ORGC+BLKC+SALA+SALC+STRAT+DUST
+
+                ! Remove MISSING flag
+                VARI(V) = 0e+0_fp
+
+                ! Loop over RH bins
+                DO  ISPC= 1, NAER
+                   IF ( .not. LINTERP ) THEN
+                      DO LL = 1, L
+                         ! Accumulate
+                         VARI(V) = VARI(V) + ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                   ELSE
+                      DO LL = 1, L
+                         ! Interpolated using angstrom exponent between
+                         ! Closest available wavelengths
+                         ! (coefs pre-calculated in CALC_AOD)
+                         !catch any zero values before interpolation
+                         IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
+                             (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
                             VARI(V) = VARI(V) + &
-                             (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**&
-                             (BCOEF_WV(1)* &
-                             LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/ &
-                             ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                            (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**   &
+                            (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/&
+                            ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                         ENDIF
+                      ENDDO
+                   ENDIF
+                ENDDO
+
+                !now add in the dust
+                IF ( .not. LINTERP ) THEN
+                   DO LL = 1, L
+                      DO ISPC = 1, NDUST
+                         ! Accumulate
+                         VARI(V) = VARI(V) + ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                   ENDDO
+                ELSE
+                   DO LL = 1, L
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD)
+                      !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                         IF ((ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND. &
+                             (ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                          VARI(V) = VARI(V) + &
+                          (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**   &
+                          (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/&
+                          ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
                          ENDIF
                       ENDDO
                    ENDDO
@@ -1988,16 +2169,16 @@ CONTAINS
              ! ISORROPIA H+ and pH (eam, 06/2015)
              !--------------------------
              CASE( 5001 )
-                VARI(V) = State_Chm%HplusSav(I,J,L,1)
+                VARI(V) = State_Chm%IsorropHplus(I,J,L,1)
 
              CASE( 5002 )
-                VARI(V) = State_Chm%pHSaV(I,J,L,1)
+                VARI(V) = State_Chm%IsorropAeropH(I,J,L,1)
 
              CASE( 5003 )
-                VARI(V) = State_Chm%WaterSav(I,J,L,1)
+                VARI(V) = State_Chm%IsorropAeroH2O(I,J,L,1)
 
              CASE( 5004 )
-                VARI(V) = State_Chm%BisulSav(I,J,L)
+                VARI(V) = State_Chm%IsorropBisulfate(I,J,L)
 
              !--------------------------
              ! Local Time (eam, 06/2015)
@@ -2064,13 +2245,28 @@ CONTAINS
              !!--------------------------
              !! Reaction rates
              !!--------------------------
-             !CASE ( 10000:99999 )
+             !CASE ( 10000:30000 )
              !
              !   ! Increment reaction count
              !   R = R + 1
              !             !   ! Only archive where chemistry is done
              !   VARI(V) = PRRATE(I,J,L,R)
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             !--------------------------
+             ! Photolysis reaction rates
+             !--------------------------
+             CASE ( 30001:99999 )
+
+               ! Increment reaction count
+               R = R + 1
+
+               ! Get the reaction number index from the
+               NUM = JPREAC(R) - 30000
+
+               ! Extract this reaction number from the state diag
+               ! NOTE: JValues collection must have been requested in HISTORY.rc
+               VARI(V) = State_Diag%JVal(I,J,L, NUM )
 
              !--------------------------
              ! GEOS-CHEM advected species [v/v]
@@ -2194,15 +2390,15 @@ CONTAINS
     ! We have not found a valid point
     FOUND = .FALSE.
 
-    ! Get I corresponding to PLON(IND)
-    I = INT( ( PLON(IND) + 180e+0_fp - &
+    ! Get I corresponding to PLONGTD(IND)
+    I = INT( ( PLONGTD(IND) + 180e+0_fp - &
       ( State_Grid%XMinOffset * State_Grid%DX ) ) / State_Grid%DX + 1.5e+0_fp )
 
     ! Handle date line correctly (bmy, 4/23/04)
     IF ( I > State_Grid%nx ) I = I - State_Grid%NX
 
-    ! Get J corresponding to PLAT(IND)
-    J = INT( ( PLAT(IND) +  90e+0_fp - &
+    ! Get J corresponding to PLATTD(IND)
+    J = INT( ( PLATTD(IND) +  90e+0_fp - &
       ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY + 1.5e+0_fp )
 
     ! Get L corresponding to PRESS(IND)
@@ -2270,8 +2466,8 @@ CONTAINS
     ! WRITE_VARS_TO_FILE begins here!
     !=================================================================
 
-    LON_TMP = REAL(PLON(IND),4)
-    LAT_TMP = REAL(PLAT(IND),4)
+    LON_TMP = REAL(PLONGTD(IND),4)
+    LAT_TMP = REAL(PLATTD(IND),4)
 
     ! Skip observations outside the domain
     IF ( LAT_TMP < State_Grid%YMin .OR. &
@@ -2298,7 +2494,7 @@ CONTAINS
     ! Write data to file
     WRITE( IU_PLANE, 110, IOSTAT=IOS )                            &
            IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ), &
-           PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),          &
+           PLATTD(IND), PLONGTD(IND), PPRESS(IND), POBS(IND),          &
            INT( GET_ELAPSED_SEC() / GET_TS_DYN() ), LL, II, JJ,   &
            ( VARI(I), I=1,NPVAR )
 
@@ -2308,7 +2504,7 @@ CONTAINS
            X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else
 110 FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3, &
-           X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,200(es11.3e3,x))
+           X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #endif
 
     ! Error check
@@ -2446,6 +2642,7 @@ CONTAINS
 
     ! Initialize chemistry reaction counter
     NPREAC = 0
+    NJPREAC = 0
 
     ! Initialize prod rate counter:
     NPROD  = 0
@@ -2461,6 +2658,8 @@ CONTAINS
        IF ( INDEX( LINE, 'GAMM' ) > 0 ) NPREAC = NPREAC + 1
        ! Count # of production rate outputs:
        IF ( INDEX( LINE, 'PROD' ) > 0 ) NPROD  = NPROD  + 1
+       ! Increment number of photolysis reactions (j-rates) found
+       IF ( INDEX( LINE, 'JVL_' ) > 0 ) NJPREAC = NJPREAC + 1
     ENDDO
 
     ! Read 4 header lines
@@ -2528,6 +2727,12 @@ CONTAINS
                          MAX( NPREAC, 1 ) ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
+       !-------------------------
+       ! Arrays of size NJPREAC
+       !-------------------------
+       ALLOCATE( JPREAC( MAX( NJPREAC, 1 ) ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PJREAC' )
+
        ! ---------------------
        ! Arrays of size NPROD
        ! ---------------------
@@ -2558,11 +2763,11 @@ CONTAINS
        ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
 
-       ALLOCATE( PLAT( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
+       ALLOCATE( PLATTD( MAXPOINTS ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLATTD' )
 
-       ALLOCATE( PLON( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
+       ALLOCATE( PLONGTD( MAXPOINTS ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLONGTD' )
 
        ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
        IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
@@ -2579,6 +2784,7 @@ CONTAINS
     ! Initialize arrays
     !=================================================================
     PREAC  = 0
+    JPREAC = 0
     NPROD  = 0
     IPROD  = 0
     PRRATE = 0e0
@@ -2588,8 +2794,8 @@ CONTAINS
     PDATE  = 0e0
     PTIME  = 0e0
     PTAU   = 0e0
-    PLAT   = 0e0
-    PLON   = 0e0
+    PLATTD = 0e0
+    PLONGTD= 0e0
     PPRESS = 0e0
     POBS   = 0e0
 
@@ -2619,6 +2825,7 @@ CONTAINS
 
     IF ( ALLOCATED( PVAR   ) ) DEALLOCATE( PVAR   )
     IF ( ALLOCATED( PREAC  ) ) DEALLOCATE( PREAC  )
+    IF ( ALLOCATED( JPREAC ) ) DEALLOCATE( JPREAC )
     IF ( ALLOCATED( IPROD  ) ) DEALLOCATE( IPROD  )
     IF ( ALLOCATED( PNAME  ) ) DEALLOCATE( PNAME  )
     IF ( ALLOCATED( PRRATE ) ) DEALLOCATE( PRRATE )
@@ -2626,8 +2833,8 @@ CONTAINS
     IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  )
     IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  )
     IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   )
-    IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
-    IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
+    IF ( ALLOCATED( PLATTD ) ) DEALLOCATE( PLATTD   )
+    IF ( ALLOCATED( PLONGTD) ) DEALLOCATE( PLONGTD   )
     IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
     IF ( ALLOCATED( POBS   ) ) DEALLOCATE( POBS   )
 

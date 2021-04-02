@@ -105,6 +105,19 @@ MODULE DiagList_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   TYPE(ColList),    PUBLIC  :: CollList      ! Collection list object
+#if defined( ESMF_ )
+!
+! !PUBLIC PARAMETERS
+!
+  ! Prefix of the species names in the internal state
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
+
+#if defined( MODEL_GEOS )
+  ! Internal state or non-standard diagnostics in GEOS may use TRC_ or GCD_.
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: TPFX = 'TRC_'
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCD_'
+#endif
+#endif
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
@@ -604,21 +617,22 @@ CONTAINS
        ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
           state = 'CHEM'
 #ifdef ESMF_
-       ! Emissions diagnostics are included in HISTORY.rc in GCHP only
-       ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
-          state = 'EMISSIONS'
-       ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
-       ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
-          state = 'EMISSIONS'
+       ! HEMCO diagnostics are included in HISTORY.rc in GCHP/GEOS only.
+       ! Prefix for HEMCO diagnostics in HEMCO_Diagn.rc must be one of the
+       ! following (case-insensitve).
+       ELSEIF ( nameAllCaps(1:4) == 'EMIS' .OR. &
+                nameAllCaps(1:3) == 'INV'  .OR. &
+                nameAllCaps(1:3) == 'HCO') THEN
+          state = 'HEMCO'
 #ifdef MODEL_GEOS
-       ! GEOS uses a different internal state prefix than GCHP and
-       ! and also can have custom diagnostics
+       ! GEOS might have custom diagnostics outside of the standard states
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
           state = 'GEOS'
-       ELSEIF ( nameAllCaps(1:4) == 'TRC_' ) THEN
-#else
-       ELSEIF ( nameAllCaps(1:4) == 'SPC_' ) THEN
+       ! GEOS might have internal state variables that start with other prefix
+       ELSEIF ( nameAllCaps(1:4) == TPFX .OR. nameAllCaps(1:4) == GPFX ) THEN
+          state = 'INTERNAL'
 #endif
+       ELSEIF ( nameAllCaps(1:4) == SPFX ) THEN
           state = 'INTERNAL'
 #endif
        ELSE

@@ -1,4 +1,4 @@
-List of Developers for GEOS-Chem, HEMCO, and Related Software (05 Feb 2020)
+List of Developers for GEOS-Chem, HEMCO, and Related Software (04 Jan 2021)
 ===============================================================================
 
 Peter Adams
@@ -14,8 +14,10 @@ Steven Barret
 Brice Barret
 Kelvin Bates
 Isabelle Bey
+Liam Bindle
 Folkert Boersma
 Sreekanth Bojjagani
+Eimy Bonilla
 Benoit Bovy
 Kevin Bowman
 Brian Boys
@@ -30,6 +32,7 @@ Karen Cady-Pereira
 Philip Cameron-Smith
 Liangzhong Cao
 Guofeng Cao
+Yi Cao
 Shannon Capps
 Claire Carouge
 Therese Carter
@@ -57,6 +60,7 @@ Max Desservettaz
 Nicholas Deutscher
 Maurizio di Pierro
 Aurelien Dommergue
+Will Downs
 Easan Drury
 Bryan Duncan
 Sebastian Eastham
@@ -75,7 +79,9 @@ Eric Fleming
 Judit Flo-Gaya
 Bonne Ford
 Timmy Francis
+Lyssa Freese
 Carey Friedman
+Thibaud Fritz
 Tzung-May Fu
 Joshua Fu
 Brett Gantt
@@ -100,8 +106,6 @@ Zahra Hosseni
 Lu Hu
 Jianping Huang
 Jiayue Huang
-Rynda Hudman Kay
-Hyeonmin Kim
 Kohei Ikeda
 Daniel Jacob
 Andy Jacobson
@@ -113,8 +117,10 @@ Matthew Johnson
 Dylan Jones
 Jaegun Jung
 Prasad Kasibhatla
+Rynda Hudman Kay
 Christoph Keller
 Tetsuro Kikuchi
+Hyeonmin Kim
 Sungshik Kim
 Nutthida Kitwiroon
 Jack Kodros
@@ -129,6 +135,7 @@ Lok Lamsal
 Kateryna Lapina
 Kelsey Larson
 David Lary
+Robyn Latimer
 Philippe Le Sager
 Chulkyu Lee
 Meemong Lee
@@ -152,6 +159,7 @@ Hongyu Liu
 Jane Liu
 Junhua Liu
 Pengfei Liu
+Tina Liu
 Yang Liu
 Ying Liu
 Jennifer Logan
@@ -167,9 +175,12 @@ Eloise Marais
 Marguerite Marks
 Arjen Markus
 Randall Martin
+Maggie Marvin
 Erin McDuffie
+Dana McGuffin
 Chris McLinden
 Hongjian Meng
+Jun Meng
 Nicholas Meskhidze
 Natallia Miatselskaya
 Loretta Mickley
@@ -194,6 +205,7 @@ Justus Notholt
 Kate O'Dell
 Sachiko Okamoto
 Neil Page
+Sidhant Pai
 Paul Palmer
 Nick Parazoo
 Justin Parella
@@ -204,6 +216,7 @@ Sajeev Philip
 Christopher Pickett-Heaps
 Jeff Pierce
 Will Porter
+Ryan Pound
 Michael Prather
 Anna Protonatariou
 Havala Pye
@@ -220,10 +233,12 @@ Sarah Safieddine
 Adrian Sandu
 Mauricio Santillana
 Bastien Sauvage
+Tia Scarpelli
 Luke Schiferl
 Johan Schmidt
 Martin Schultz
 Rebecca Schwantes
+Paolo Sebastianelli
 Noelle Selin
 Michael Seymour
 Viral Shah
@@ -238,6 +253,7 @@ Shaojie Song
 Yu Song
 Dominick Spracklen
 Ilya Stanevich
+Stephen Steenrod
 Rebecca Stern
 David Streets
 Sarah Strode
@@ -248,6 +264,7 @@ Elsie Sunderland
 Parvada Suntharalingam
 Luke Surl
 Kimito Suto
+Monika Szelag
 Amos Tai
 Hiroshi Tanimoto
 John Tannahill
@@ -257,6 +274,7 @@ Thibaud Thonat
 Rong Tian
 Maria Tombrou
 Katherine Travis
+Atanas Trayanov 
 Win Trivitayanurak
 Corey Trujillo
 Paolo Tuccella
@@ -270,19 +288,20 @@ Kostas Varotsos
 Geert Vinken
 Kristina Wagstrom
 Thomas Walker
-Qiaoqiao Wang
-Jun Wang
-Xuan Wang
-Yuxuan Wang
 James Wang
-Yuting Wang
-Zifa Wang
-Yuhang Wang
+Jun Wang
+Qiaoqiao Wang
+Xuan Wang
 Xiaoli Wang
+Yuhang Wang
+Yuting Wang
+Yuxuan Wang
+Zifa Wang
 Kevin Wecht
 Richard Weidner
 Debra Weisenstein
 Kelley Wells
+Hongjian Weng
 Dan Westervelt
 Cynthia Whaley
 Christine Wiedinmyer
@@ -299,18 +318,19 @@ Keiya Yumimoto
 Karen Yu
 Fangqun Yu
 Xu Yue
+Xuyan Yue
 Maria Zatko
 Shuting Zhai
-Li Zhang
 Bo Zhang
-Jiawei Zhang
-Yanxu Zhang
-Lin Zhang
 Chi Zhang
 Hongliang Zhang
+Jiawei Zhang
+Li Zhang
+Lin Zhang
 Qiang Zhang
-Liye Zhu
+Yanxu Zhang
 Lei Zhu
+Liye Zhu
 Jiawei Zhuang
 Quanlai Zhuang
 Peter Zoogman

@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -22,18 +21,18 @@ module m_netcdf_io_handle_err
 ! !AUTHOR:
 !  Jules Kouatchou
 !
-! !REVISION HISTORY:
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic chagnes in ProTeX headers
+! !REMARKS:
+!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -62,8 +61,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC

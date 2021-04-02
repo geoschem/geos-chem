@@ -54,10 +54,6 @@ MODULE DIAG_MOD
   ! Prod/loss rates
   REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
 #endif
-#ifdef RRTMG
-  ! For ND72 -- Radiation output diagnostic
-  REAL*4,  ALLOCATABLE :: AD72(:,:,:)
-#endif
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -108,9 +104,6 @@ CONTAINS
     IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
     IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   )
     IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
-#endif
-#ifdef RRTMG
-    IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
 #endif
   END SUBROUTINE CLEANUP_DIAG
 !EOC

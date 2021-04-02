@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -69,20 +68,14 @@ MODULE m_netcdf_io_define
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Sep 2013 - R. Yantosca - Add routines to save attributes of different
-!                              numerical types
-!  14 May 2014 - R. Yantosca - Add function NcBegin_Def to reopen define mode
-!  14 May 2014 - R. Yantosca - Now use F90 free formatting
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -121,9 +114,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  18 May 2018 - C. Holmes - Add support for unlimited dimensions
-!  25 Jun 2018 - R. Yantosca - Fixed typo
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,8 +142,7 @@ CONTAINS
   END SUBROUTINE NcDef_dimension
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -196,12 +186,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
-!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
-!                              only if the library has nf_def_var_deflate
-!  10 May 2017 - R. Yantosca - Bug fix: var_id needs to be INTENT(OUT),
-!                              because it's returned from NF_DEF_VAR
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -230,8 +215,12 @@ CONTAINS
     ! NOTE: We need to block this out with an #ifdef because some
     ! netCDF installations might lack the nf_def_var_deflate function
     ! which would cause a compile-time error. (bmy, 3/1/17)
+    !
+    ! ALSO NOTE: Newer versions of netCDF balk when you try to compress
+    ! a scalar variable.  This generates an annoying warning message.
+    ! To avoid this, only compress array variables. (bmy, 11/30/20)
     !=====================================================================
-    if (present(Compress)) then
+    if (present(Compress) .and. ndims > 0) then
 
        if (Compress) then
 
@@ -260,8 +249,7 @@ CONTAINS
   END SUBROUTINE NcDef_variable
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -293,9 +281,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Sep 2013 - R. Yantosca - Renamed to NcDef_var_attributes_c and made
-!                              into a PRIVATE array so we can overload it
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,8 +302,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_c
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -350,8 +335,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,8 +357,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_i
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -407,7 +390,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -429,8 +412,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_r4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -463,7 +445,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  20 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -485,8 +467,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_r8
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -519,8 +500,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,8 +522,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_i_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -576,7 +555,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -598,8 +577,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_r4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -632,7 +610,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  20 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -654,8 +632,7 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_r8_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -689,7 +666,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -710,8 +687,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_c
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -745,8 +721,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -768,8 +743,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_i
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -803,7 +777,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -825,8 +799,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_r4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -860,7 +833,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -882,8 +855,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_r8
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -917,8 +889,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
-!  12 Jun 2017 - R. Yantosca - Bug fix: Should call NF_PUT_ATT_INT
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -940,8 +911,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_i_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -975,7 +945,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -997,8 +967,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_r4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1032,7 +1001,7 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  26 Sep 2013 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1054,8 +1023,7 @@ CONTAINS
   END SUBROUTINE NcDef_glob_attributes_r8_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1084,8 +1052,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1104,8 +1071,7 @@ CONTAINS
   END SUBROUTINE NcSetFill
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1134,8 +1100,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1154,8 +1119,7 @@ CONTAINS
   END SUBROUTINE NcEnd_def
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1185,7 +1149,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  14 May 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC

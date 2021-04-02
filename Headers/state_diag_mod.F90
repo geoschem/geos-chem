@@ -918,14 +918,6 @@ MODULE State_Diag_Mod
      ! GEOS-Chem is interfaced into the NASA-GEOS ESM
      !----------------------------------------------------------------------
 
-     !%%%%% Drydep resistances and related quantities %%%%%
-
-     REAL(f4),           POINTER :: DryDepRa2m(:,:)
-     LOGICAL                     :: Archive_DryDepRa2m
-
-     REAL(f4),           POINTER :: DryDepRa10m(:,:)
-     LOGICAL                     :: Archive_DryDepRa10m
-
      REAL(f4),           POINTER :: MoninObukhov(:,:)
      LOGICAL                     :: Archive_MoninObukhov
 
@@ -1088,6 +1080,7 @@ CONTAINS
     State_Diag%Archive_SpeciesRst                  = .FALSE.
 
     State_Diag%SpeciesBC                           => NULL()
+    State_Diag%Map_SpeciesBC                       => NULL()
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
     State_Diag%SpeciesConc                         => NULL()
@@ -1840,12 +1833,6 @@ CONTAINS
     !=======================================================================
     ! These diagnostics are only activated when running GC in NASA/GEOS
     !=======================================================================
-    State_Diag%DryDepRa2m                          => NULL()
-    State_Diag%Archive_DryDepRa2m                  = .FALSE.
-
-    State_Diag%DryDepRa10m                         => NULL()
-    State_Diag%Archive_DryDepRa10m                 = .FALSE.
-
     State_Diag%MoninObukhov                        => NULL()
     State_Diag%Archive_MoninObukhov                = .FALSE.
 
@@ -2698,10 +2685,6 @@ CONTAINS
          mapData        = State_Diag%Map_DryDepVel,                          &
          diagId         = diagId,                                            &
          diagFlag       = 'D',                                               &
-#ifdef MODEL_GEOS
-         ! DryDepVel always needs to be defined for MODEL_GEOS
-         forceDefine    = .TRUE.,                                            &
-#endif
          RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2711,50 +2694,6 @@ CONTAINS
     ENDIF
 
 #ifdef MODEL_GEOS
-    !-----------------------------------------------------------------------
-    ! Aerodynamic resistance @ 2m (ckeller, 11/17/17)
-    !-----------------------------------------------------------------------
-    diagID  = 'DryDepRa2m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepRa2m,                             &
-         archiveData    = State_Diag%Archive_DryDepRa2m,                     &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Aerodynamic resistance @ 10m (ckeller, 11/17/17)
-    !-----------------------------------------------------------------------
-    diagID  = 'DryDepRa10m'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%DryDepRa10m,                            &
-         archiveData    = State_Diag%Archive_DryDepRa10m,                    &
-         diagId         = diagId,                                            &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !-----------------------------------------------------------------------
     ! Monin-Obukhov length
     !-----------------------------------------------------------------------
@@ -8311,87 +8250,6 @@ CONTAINS
                                       State_Diag%Archive_RadAsymWL2    .or. &
                                       State_Diag%Archive_RadAsymWL3        )
 
-    !=======================================================================
-    !========================================================================
-    State_Diag%Archive_Budget = (                                            &
-         State_Diag%Archive_BudgetEmisDryDepFull                        .or. &
-         State_Diag%Archive_BudgetEmisDryDepTrop                        .or. &
-         State_Diag%Archive_BudgetEmisDryDepPBL                         .or. &
-         State_Diag%Archive_BudgetTransportFull                         .or. &
-         State_Diag%Archive_BudgetTransportTrop                         .or. &
-         State_Diag%Archive_BudgetTransportPBL                          .or. &
-         State_Diag%Archive_BudgetMixingFull                            .or. &
-         State_Diag%Archive_BudgetMixingTrop                            .or. &
-         State_Diag%Archive_BudgetMixingPBL                             .or. &
-         State_Diag%Archive_BudgetConvectionFull                        .or. &
-         State_Diag%Archive_BudgetConvectionTrop                        .or. &
-         State_Diag%Archive_BudgetConvectionPBL                         .or. &
-         State_Diag%Archive_BudgetChemistryFull                         .or. &
-         State_Diag%Archive_BudgetChemistryTrop                         .or. &
-         State_Diag%Archive_BudgetChemistryPBL                          .or. &
-         State_Diag%Archive_BudgetWetDepFull                            .or. &
-         State_Diag%Archive_BudgetWetDepTrop                            .or. &
-         State_Diag%Archive_BudgetWetDepPBL                                 )
-
-    State_Diag%Archive_AerMass = (                                           &
-         State_Diag%Archive_AerMassASOA                                 .or. &
-         State_Diag%Archive_AerMassBC                                   .or. &
-         State_Diag%Archive_AerMassINDIOL                               .or. &
-         State_Diag%Archive_AerMassISN1OA                               .or. &
-         State_Diag%Archive_AerMassLVOCOA                               .or. &
-         State_Diag%Archive_AerMassNH4                                  .or. &
-         State_Diag%Archive_AerMassNIT                                  .or. &
-         State_Diag%Archive_AerMassOPOA                                 .or. &
-         State_Diag%Archive_AerMassPOA                                  .or. &
-         State_Diag%Archive_AerMassSAL                                  .or. &
-         State_Diag%Archive_AerMassSO4                                  .or. &
-         State_Diag%Archive_AerMassSOAGX                                .or. &
-         State_Diag%Archive_AerMassSOAIE                                .or. &
-         State_Diag%Archive_AerMassTSOA                                 .or. &
-         State_Diag%Archive_BetaNO                                      .or. &
-         State_Diag%Archive_PM25                                        .or. &
-         State_Diag%Archive_TotalOA                                     .or. &
-         State_Diag%Archive_TotalOC                                     .or. &
-         State_Diag%Archive_TotalBiogenicOA       )
-
-    State_Diag%Archive_AOD = (                                               &
-         State_Diag%Archive_AODHygWL1                                   .or. &
-         State_Diag%Archive_AODHygWL2                                   .or. &
-         State_Diag%Archive_AODHygWL3                                   .or. &
-         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
-         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
-         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
-         State_Diag%Archive_AODDust                                     .or. &
-         State_Diag%Archive_AODDustWL1                                  .or. &
-         State_Diag%Archive_AODDustWL2                                  .or. &
-         State_Diag%Archive_AODDustWL3                                      )
-
-    State_Diag%Archive_AODStrat = (                                          &
-         State_Diag%Archive_AODSLAWL1                                   .or. &
-         State_Diag%Archive_AODSLAWL2                                   .or. &
-         State_Diag%Archive_AODSLAWL3                                   .or. &
-         State_Diag%Archive_AODPSCWL1                                   .or. &
-         State_Diag%Archive_AODPSCWL2                                   .or. &
-         State_Diag%Archive_AODPSCWL3                                   .or. &
-         State_Diag%Archive_AerNumDenSLA                                .or. &
-         State_Diag%Archive_AerNumDenPSC                                   )
-
-    State_Diag%Archive_ConcAboveSfc = (                                      &
-         State_Diag%Archive_SpeciesConcALT1                            .and. &
-         State_Diag%Archive_DryDepRaALT1                               .and. &
-         State_Diag%Archive_DryDepVelForALT1      )
-
-    State_Diag%Archive_KppDiags = (                                          &
-         State_Diag%Archive_KppIntCounts                               .or.  &
-         State_Diag%Archive_KppJacCounts                               .or.  &
-         State_Diag%Archive_KppTotSteps                                .or.  &
-         State_Diag%Archive_KppAccSteps                                .or.  &
-         State_Diag%Archive_KppRejSteps                                .or.  &
-         State_Diag%Archive_KppLuDecomps                               .or.  &
-         State_Diag%Archive_KppSubsts                                  .or.  &
-         State_Diag%Archive_KppSmDecomps                               .or.  &
-         State_Diag%Archive_KppDiags                                        )
-
     State_Diag%Archive_Metrics = (                                           &
          State_Diag%Archive_AirMassColumnFull                           .or. &
          State_Diag%Archive_AirMassColumnTrop                           .or. &
@@ -9608,16 +9466,6 @@ CONTAINS
     !=======================================================================
     ! These fields are only used when GC is interfaced to NASA/GEOS
     !=======================================================================
-    CALL Finalize( diagId   = 'DryDepRa2m',                                  &
-                   Ptr2Data = State_Diag%DryDepRa2m,                         &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'DryDepRa10m',                                 &
-                   Ptr2Data = State_Diag%DryDepRa10m,                        &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'MoninObukhov',                                &
                    Ptr2Data = State_Diag%MoninObukhov,                       &
                    RC       = RC                                            )
@@ -10023,16 +9871,6 @@ CONTAINS
        IF ( isTagged  ) TagId = 'DRY'
 
 #ifdef MODEL_GEOS
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA2M' ) THEN
-       IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
-       IF ( isUnits   ) Units = 's cm-1'
-       IF ( isRank    ) Rank  = 2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA10M' ) THEN
-       IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
-       IF ( isUnits   ) Units = 's cm-1'
-       IF ( isRank    ) Rank  = 2
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'MONINOBUKHOV' ) THEN
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
        IF ( isUnits   ) Units = 'm'
@@ -13536,7 +13374,6 @@ CONTAINS
              RETURN
           ENDIF
 
-
           ! Save the in the mapping object
           IF ( skipInd ) THEN
              mapData%slot2id(index) = index
@@ -13582,12 +13419,12 @@ CONTAINS
           ELSE IF ( isLoss ) THEN
 
              ! Loss: get the index from State_Chm%Map_Loss
-             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(index)
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Loss(TagItem%index)
 
           ELSE IF ( isProd ) THEN
 
-             ! Loss: get the index from State_Chm%Map_Loss
-             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(index)
+             ! Prod get the index from State_Chm%Map_Prod
+             mapData%slot2id(TagItem%index) = State_Chm%Map_Prod(TagItem%index)
 
           ELSE IF ( isRxnRate ) THEN
 
@@ -13616,10 +13453,6 @@ CONTAINS
              ! Otherwise, this is a defined species.
              ! Call Ind_() to get the proper index
              mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )
-             IF ( indFlag ==' P' .and. Input_Opt%amIRoot ) THEN
-                print*, '@@@ ', TRIM(TagItem%Name), TagItem%index, &
-                     Ind_( TagItem%name, indFlag )
-             ENDIF
 
           ENDIF
 

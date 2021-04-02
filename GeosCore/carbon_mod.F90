@@ -141,9 +141,6 @@ MODULE CARBON_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-
-  ! Molecules OH  per kg OH [molec/kg]
-  REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
   REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
   ! SOAupdate:(hotp 5/20/10) new mtp
@@ -405,7 +402,7 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LSOA                 = Input_Opt%LSOA
-    LEMIS                = Input_Opt%LEMIS
+    LEMIS                = Input_Opt%DoEmissions
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     DTCHEM               = GET_TS_CHEM()
@@ -1203,7 +1200,7 @@ CONTAINS
    ! Use an e-folding time of 1.15 days or a convertion rate
    ! of 1.0e-5 /sec.
    !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5
-   !    Aerosols are dry-deposited,   kd = DEPSAV (sec-1)
+   !    Aerosols are dry-deposited,   kd = dry dep freq (sec-1)
    !=================================================================
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
@@ -5017,7 +5014,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPO_BB'
-   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                       ERR, THISLOC=LOC)
@@ -5127,7 +5124,7 @@ CONTAINS
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
    DgnName = 'BIOGENIC_SOAS'
-   CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
       RETURN
@@ -5466,7 +5463,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp) :: MolecRatio ! moles C / moles species
    REAL(fp) :: OH_MW_kg   ! kg OH / mol
 
    !=================================================================
@@ -5482,13 +5478,11 @@ CONTAINS
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
          ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
-         MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
-         OH_MW_kg   = State_Chm%SpcData(id_OH)%Info%emMW_g * 1.e-3_fp
+         OH_MW_kg = State_Chm%SpcData(id_OH)%Info%MW_g * 1.e-3_fp
 
          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) &
-                        * ( AVO / OH_MW_kg )           &
-                        / ( State_Met%AIRVOL(I,J,L)    &
-                        * 1e+6_fp * MolecRatio )
+                        * ( AVO / OH_MW_kg ) &
+                        / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
       ELSE
 
@@ -5505,13 +5499,13 @@ CONTAINS
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
+         ! OH from HEMCO is in mol/mol, convert to molec/cm3
+         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L)                        * &
+         OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                         ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   * &
                         ( 86400e+0_fp / GET_TS_CHEM() )
-
-         ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
-         OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -5580,15 +5574,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
-   REAL(fp)             :: MolecRatio ! moles C / moles species
    REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
-   REAL(fp)             :: BOXVL
 
    !=================================================================
    ! GET_NO3 begins here!
@@ -5596,20 +5584,18 @@ CONTAINS
    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
       !----------------------
-      ! Fullchem simulation
+      ! Coupled simulation
       !----------------------
 
       ! NO3 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
          ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
-         MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
-         NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%emMW_g*1.e-3_fp
+         NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%MW_g * 1.e-3_fp
 
          NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3) &
                          * ( AVO / NO3_MW_kg ) &
-                         / ( State_Met%AIRVOL(I,J,L) &
-                         * 1e+6_fp * MolecRatio )
+                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp  )
 
       ELSE
 
@@ -5619,29 +5605,9 @@ CONTAINS
 
    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-      !==============================================================
-      ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-      ! in [v/v].  Convert these to [molec/cm3] as follows:
-      !
-      !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-      !  ------- = --------- * -------- * ---------------- =  kg NO3
-      !  vol air   moles air      1        kg air/mole air
-      !
-      ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-      !
-      !  kg NO3   molec NO3   mole NO3     1     molec NO3
-      !  ------ * --------- * -------- * ----- = ---------
-      !     1     mole NO3     kg NO3     cm3       cm3
-      !          ^                    ^
-      !          |____________________|
-      !            this is XNUMOL_NO3
-      !
-      ! If at nighttime, use the monthly mean NO3 concentration from
-      ! the NO3 array of "global_no3_mod.f".  If during the daytime,
-      ! set the NO3 concentration to zero.  We don't have to relax to
-      ! the monthly mean concentration every 3 hours (as for HNO3)
-      ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02)
-      !==============================================================
+      !---------------------
+      ! Offline simulation
+      !---------------------
 
       ! Test if daylight
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -5651,13 +5617,8 @@ CONTAINS
 
       ELSE
 
-         ! At night: Get NO3 [v/v] and convert it to [kg]
-         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AD(I,J,L) &
-                         * ( 62e+0_fp/AIRMW )
-
-         ! Convert NO3 from [kg] to [molec/cm3]
-         BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+         ! NO3 from HEMCO is in mol/mol, convert to molec/cm3
+         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ENDIF
 
@@ -5722,15 +5683,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
-   REAL(fp)             :: MolecRatio ! moles C / moles species
    REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
-   REAL(fp)             :: BOXVL
 
    !=================================================================
    ! GET_O3 begins here!
@@ -5745,13 +5700,11 @@ CONTAINS
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
          ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
-         MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
-         O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%emMW_g * 1.e-3_fp
+         O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%MW_g * 1.e-3_fp
 
          O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3) &
                         * ( AVO / O3_MW_kg ) &
-                        / ( State_Met%AIRVOL(I,J,L) &
-                        * 1e+6_fp * MolecRatio )
+                        / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
       ELSE
 
@@ -5769,13 +5722,8 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( L <= State_Grid%MaxChemLev ) THEN
 
-         ! Get O3 [v/v] and convert it to [kg]
-         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AD(I,J,L) * &
-                        ( 48e+0_fp / AIRMW )            ! hard-coded MW
-
-         ! Convert O3 from [kg] to [molec/cm3]
-         BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+         ! O3 from HEMCO is in mol/mol, convert to molec/cm3
+         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ELSE
          O3_MOLEC_CM3 = 0e+0_fp
@@ -5862,7 +5810,6 @@ CONTAINS
    REAL(fp) :: ARO2CARB      ! kg C of ARO2 / kg ARO2
    REAL(fp) :: AROM_MW_kg    ! g C of AROM  / mol C
    REAL(fp) :: LARO2_MW_kg   ! g C of LARO2 / mol C
-   REAL(fp) :: MolecRatio    ! moles C / moles species
 
    !=================================================================
    ! GET_DARO2 begins here!
@@ -5982,23 +5929,13 @@ CONTAINS
 
          ENDIF
 
-         !-----------------------------------------------------------
          ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species
          ! [kg LARO2] and convert to [kg AROM]
-         !
-         ! We use MolecRatio for the parent aromatic hydrocarbon,
-         ! AROM, because:
-         !   atom  C / mol ARO2  = atom C / mol AROM
-         !-----------------------------------------------------------
-
-         ! Now get the species coefficient from the species database
-         ! instead of from Input_Opt (bmy, 5/17/16)
-         MolecRatio  = State_Chm%SpcData(id_AROM)%Info%MolecRatio
-         AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%emMW_g * 1.e-3_fp
-         LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%emMW_g * 1.e-3_fp
+         AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%MW_g * 1.e-3_fp
+         LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%MW_g * 1.e-3_fp
 
          DARO2 = State_Chm%Species(I,J,L,id_LARO2) * ( AVO / LARO2_MW_kg ) &
-                 / ( AVO / AROM_MW_kg  ) * MolecRatio * ARO2CARB
+                 / ( AVO / AROM_MW_kg  ) * ARO2CARB
 
       ELSE
 
@@ -6075,7 +6012,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp) :: MolecRatio    ! moles C / moles ISOP
    REAL(fp) :: ISOP_MW_kg    ! kg C ISOP    / mol C
    REAL(fp) :: LISOPOH_MW_kg ! kg C LISOPOH / mol C
 
@@ -6092,16 +6028,13 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         !-----------------------------------------------------------
          ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
          ! [kg LISOPOH] and convert to [kg C ISOP]
-         !-----------------------------------------------------------
-         MolecRatio    = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
-         ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%emMW_g * 1.e-3_fp
-         LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%emMW_g * 1.e-3_fp
+         ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
+         LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%MW_g * 1.e-3_fp
 
          DOH = State_Chm%Species(I,J,L,id_LISOPOH) * ( AVO / LISOPOH_MW_kg ) &
-               / ( AVO / ISOP_MW_kg ) * MolecRatio
+               / ( AVO / ISOP_MW_kg )
 
       ELSE
 
@@ -7160,7 +7093,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp) :: MolecRatio ! moles C / moles species
    REAL(fp) :: NO_MW_kg   ! kg NO / mol
 
    !=================================================================
@@ -7176,13 +7108,11 @@ CONTAINS
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
          ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
-         MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
-         NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%emMW_g * 1.e-3_fp
+         NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%MW_g * 1.e-3_fp
 
          NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO) &
-                        * ( AVO / NO_MW_kg )           &
-                        / ( State_Met%AIRVOL(I,J,L)    &
-                        * 1e+6_fp * MolecRatio )
+                        * ( AVO / NO_MW_kg ) &
+                        / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
       ELSE
 
@@ -7247,7 +7177,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp) :: MolecRatio ! moles C / moles species
    REAL(fp) :: HO2_MW_kg  ! kg HO2 / mol
 
    !=================================================================
@@ -7263,13 +7192,11 @@ CONTAINS
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
          ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
-         MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
-         HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%emMW_g*1.e-3_fp
+         HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%MW_g*1.e-3_fp
 
          HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,id_HO2) &
                          * ( AVO / HO2_MW_kg ) &
-                         / ( State_Met%AIRVOL(I,J,L) &
-                         * 1e+6_fp * MolecRatio )
+                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
       ELSE
 
@@ -7336,7 +7263,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp) :: MolecRatio     ! molec C / moles ISOP
    REAL(fp) :: ISOP_MW_kg     ! kg C ISOP      / mol C
    REAL(fp) :: LISOPNO3_MW_kg ! kg C LISOPONO3 / mol Ckg
       
@@ -7353,17 +7279,14 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         !-----------------------------------------------------------
          ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
          ! [kg ISOPNO3] and convert to [kg C ISOP]
-         !-----------------------------------------------------------
-         MolecRatio     = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
-         ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%emMW_g * 1.e-3_fp
-         LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%emMW_g * 1.e-3_fp
+         ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
+         LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%MW_g * 1.e-3_fp
 
          ISOPNO3 = State_Chm%Species(I,J,L,id_LISOPNO3) &
                    * ( AVO / LISOPNO3_MW_kg ) &
-                   / ( AVO / ISOP_MW_kg     ) * MolecRatio
+                   / ( AVO / ISOP_MW_kg     )
 
       ELSE
 

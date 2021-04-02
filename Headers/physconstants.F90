@@ -22,53 +22,43 @@ MODULE PHYSCONSTANTS
 !
 ! !DEFINED PARAMETERS:
 !
-  ! AIRMW : Average molecular weight of dry air [g/mol]
-  REAL(fp), PARAMETER :: AIRMW = 28.97e+0_fp
+  ! Average molecular weight of dry air [g/mol]
+  REAL(fp), PARAMETER :: AIRMW = 28.9644_fp                 ! was 28.97
 
-  ! H2OMW : Molecular weight of water [g/mol]
-  REAL(fp), PARAMETER :: H2OMW = 18.016e+0_fp
+  ! Molecular weight of water [g/mol]
+  REAL(fp), PARAMETER :: H2OMW = 18.016_fp
 
-  ! AVO   : Avogadro's number [particles/mol]
-  ! Now use more precise value 6.022140857e+23 instead of 6.022e+23?
-  ! Source: NIST, 2014 (ewl, 1/7/16) (NEED TO CHANGE HEMCO)
+  ! Avogadro's number [particles/mol] (Source: NIST, 2014)
   REAL(fp), PARAMETER :: AVO = 6.022140857e+23_fp
 
-  ! g0    : Acceleration due to gravity at earth's surface [m/s^2]
-  ! Now use more precise value of 9.80665 instead of 9.8 (ewl, 1/7/16)
-  ! Source: NIST, 2014 (NEED TO CHANGE HEMCO)
-  REAL(fp), PARAMETER :: g0 = 9.80665e+0_fp
+  ! Acceleration due to gravity at earth's surface [m/s^2]
+  ! (Source: NIST, 2014)
+  REAL(fp), PARAMETER :: g0     = 9.80665e+0_fp
+  REAL(fp), PARAMETER :: g0_100 = 100.0_fp / g0
 
-  ! g0_100 : 100 / g0
-  REAL(fp), PARAMETER :: g0_100 = 100.e+0_fp / g0
+  ! Double-Precision value of PI (and radians per degree)
+  REAL(fp), PARAMETER :: PI     = 3.14159265358979323_fp
+  REAL(fp), PARAMETER :: PI_180 = PI / 180.0_fp
 
-  ! PI    : Double-Precision value of PI
-  REAL(fp), PARAMETER :: PI  = 3.14159265358979323e+0_fp
+  ! Radius of Earth [m]
+  REAL(fp), PARAMETER :: Re = 6.3710072e+6_fp               ! was 6.375e+6_fp
 
-  ! PI_180 : Number of radians per degree
-  REAL(fp), PARAMETER :: PI_180 = PI / 180e+0_fp
-
-  ! Re    : Radius of Earth [m]
-  REAL(fp), PARAMETER :: Re = 6.375e+6_fp
-
-  ! Rd    : Gas Constant in Dry Air [J/K/kg]
-  REAL(fp), PARAMETER :: Rd = 287.0e+0_fp
-
-  ! Rv    : Gas Constant for water vapor [J/K/kg]
-  REAL(fp), PARAMETER :: Rv = 461.0e+0_fp
-
-  ! Rdg0   = Rd    / g0
+  ! Gas Constant in Dry Air [J/K/kg] (and divided by g)
+  REAL(fp), PARAMETER :: Rd   = 287.0_fp
   REAL(fp), PARAMETER :: Rdg0 = Rd / g0
 
-  ! SCALE_HEIGHT : Scale height of atmosphere [m]
-  REAL(fp), PARAMETER :: SCALE_HEIGHT = 7600.e+0_fp
+  ! Gas Constant for water vapor [J/K/kg]
+  REAL(fp), PARAMETER :: Rv = 461.00_fp
 
-  ! VON_KARMAN : Von Karman's constant [.]
-  REAL(fp), PARAMETER :: VON_KARMAN = 0.4e+0_fp
+  ! Scale height of atmosphere [m]
+  REAL(fp), PARAMETER :: SCALE_HEIGHT = 7600.0_fp
 
-  ! RSTARG : Molar gas constant [J/K/mol]
-  ! Now use more precise value 8.3144598 instead of 8.31450? (ewl, 1/7/16)
-  ! Source: NIST, 2014 (NEED TO CHANGE HEMCO)
-  REAL(fp), PARAMETER :: RSTARG = 8.3144598e+0_fp
+  ! Von Karman's constant [.]
+  REAL(fp), PARAMETER :: VON_KARMAN = 0.4_fp
+
+  ! Molar gas constant [J/K/mol] (Source: NIST, 2014)
+  ! NOTE: Also be sure to update con_R in gckpp_Global if you update this!
+  REAL(fp), PARAMETER :: RSTARG = 8.3144598_fp
 
   ! XNUMOLAIR : Molecules dry air per kg dry air
   REAL(fp), PARAMETER :: XNUMOLAIR = AVO / ( AIRMW * 1.e-3_fp )
@@ -98,6 +88,7 @@ MODULE PHYSCONSTANTS
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
+!  07 Jan 2016 - E. Lundgren - Updated to NIST 2014 values
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-###############################################################################
+HI	###############################################################################
 ###  HISTORY.rc file for GEOS-Chem aerosol-only specialty simulations       ###
-###  Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)     ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
 #============================================================================
@@ -40,7 +40,6 @@ COLLECTIONS: 'Restart',
              #'StateMet',      
              #'WetLossConv',
              #'WetLossLS',
-             #'Transport',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -306,19 +305,28 @@ COLLECTIONS: 'Restart',
   StateChm.frequency:         {FREQUENCY}
   StateChm.duration:          {DURATION}
   StateChm.mode:              'time-averaged'
-  StateChm.fields:            'Chem_phSav                    ', 'GIGCchem',  
-                              'Chem_HplusSav                 ', 'GIGCchem',  
-                              'Chem_WaterSav                 ', 'GIGCchem',  
-                              'Chem_SulRatSav                ', 'GIGCchem',  
-                              'Chem_NaRatSav                 ', 'GIGCchem',  
-                              'Chem_AcidPurSav               ', 'GIGCchem',  
-                              'Chem_BiSulSav                 ', 'GIGCchem',
+  StateChm.fields:            'Chem_IsorropAeropHAccum       ', 'GIGCchem',
+                              'Chem_IsorropAeropHCoarse      ', 'GIGCchem',
+                              'Chem_IsorropHplusAccum        ', 'GIGCchem',
+                              'Chem_IsorropHplusCoarse       ', 'GIGCchem',
+                              'Chem_IsorropAeroH2OAccum      ', 'GIGCchem',
+                              'Chem_IsorropAeroH2OCoarse     ', 'GIGCchem',
+                              'Chem_IsorropSulfate           ', 'GIGCchem',
+                              'Chem_IsorropNitrateAccum      ', 'GIGCchem',
+                              'Chem_IsorropNitrateCoarse     ', 'GIGCchem',
+                              'Chem_IsorropChlorideAccum     ', 'GIGCchem',
+                              'Chem_IsorropChlorideCoarse    ', 'GIGCchem',
+                              'Chem_IsorropBisulfate         ', 'GIGCchem',
                               'Chem_pHCloud                  ', 'GIGCchem',
                               'Chem_isCloud                  ', 'GIGCchem',
-                              'Chem_SSAlkAccum               ', 'GIGCchem',
-                              'Chem_SSAlkCoarse              ', 'GIGCchem',
+                              'Chem_SSAlkAccumMode           ', 'GIGCchem',
+                              'Chem_SSAlkCoarseMode          ', 'GIGCchem',
                               'Chem_HSO3AQ                   ', 'GIGCchem',
                               'Chem_SO3AQ                    ', 'GIGCchem',
+                              'Chem_fupdateHOBr              ', 'GIGCchem',
+                              'Chem_GammaN2O5overall         ', 'GIGCchem',
+                              'Chem_GammaN2O5fine            ', 'GIGCchem',
+                              'Chem_YieldClNO2fine           ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
@@ -441,20 +449,6 @@ COLLECTIONS: 'Restart',
   WetLossLS.duration:         {DURATION}
   WetLossLS.mode:             'time-averaged'
   WetLossLS.fields:           'WetLossLS_?WET?               ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE Transport COLLECTION %%%%%
-#
-# Diagnostics for evaluating transport, including age of air [s]
-#
-# Available for all simulations
-#==============================================================================
-  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  Transport.format:           'CFIO',
-  Transport.frequency:        'End',
-  Transport.duration:         'End',
-  Transport.mode:             'instantaneous'
-  Transport.fields:           'Met_AgeOfAir                  ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE BoundaryConditions COLLECTION %%%%%

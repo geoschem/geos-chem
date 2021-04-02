@@ -559,12 +559,8 @@ ENDIF
     !$OMP PRIVATE( I, J, L, N, MW_g, MwRatio )
     DO N = 1, State_Chm%nSpecies
 
-       ! (Emitted) molecular weight for the species [g]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_g = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight for the species [g]
+       MW_g = State_Chm%SpcData(N)%Info%MW_g
 
        ! Compute the ratio (MW air / MW species) outside of the IJL loop
        MwRatio = ( AIRMW / MW_g )
@@ -674,12 +670,8 @@ ENDIF
     !$OMP PRIVATE( I, J, L, N, MW_g )
     DO N = 1, State_Chm%nSpecies
 
-       ! (Emitted) molecular weight for the species [g]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_g = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight for the species [g]
+       MW_g = State_Chm%SpcData(N)%Info%MW_g
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -1114,7 +1106,7 @@ ENDIF
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, L, N
-    REAL(fp)           :: MolecRatio, MW_kg
+    REAL(fp)           :: MW_kg
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -1159,25 +1151,17 @@ ENDIF
     !    = Species(I,J,L,N) [kg/kg] * AIRDEN(I,J,L) * AVO / MW_KG / 1e6
     !
     ! NOTES:
-    !   (1) Also divide by mol C / mol species (equal to one for most spc)
-    !   (2) Use AD/AIRVOL instead of AIRDEN to preserve legacy method
+    !   (1) Use AD/AIRVOL instead of AIRDEN to preserve legacy method
     !====================================================================
 
     ! Loop over all species
-    !$OMP PARALLEL DO                              &
-    !$OMP DEFAULT( SHARED                        ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )
+    !$OMP PARALLEL DO                  &
+    !$OMP DEFAULT( SHARED            ) &
+    !$OMP PRIVATE( I, J, L, N, MW_kg )
     DO N = 1, State_Chm%nSpecies
 
-       ! Moles C / moles species
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-
-       ! (Emitted) molecular weight for the species [kg]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Molecular weight for the species [kg]
+       MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -1185,8 +1169,7 @@ ENDIF
        DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * State_Met%AIRDEN(I,J,L)              &
-                                     * ( AVO / MW_kg )                      &
-                                     / ( 1e+6_fp * MolecRatio )
+                                     * ( AVO / MW_kg ) / 1e+6_fp
 
        ENDDO
        ENDDO
@@ -1239,7 +1222,7 @@ ENDIF
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, L, N
-    REAL(fp)           :: MolecRatio, MW_kg
+    REAL(fp)           :: MW_kg
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -1285,36 +1268,27 @@ ENDIF
     !    = Species(I,J,L,N) [molecules/cm3] * AIRDEN(I,J,L) * AVO / MW_KG / 1e6
     !
     ! NOTES:
-    !  (1) Also multiply by mol C / mol species (equal to one for most spc)
-    !  (2) Use exact reverse of the mixing ratio -> # density conversion to
+    !  (1) Use exact reverse of the mixing ratio -> # density conversion to
     !      avoid numerical noise differences
-    !  (3) Use AD/AIRVOL instead of AIRDEN to preserve legacy method
+    !  (2) Use AD/AIRVOL instead of AIRDEN to preserve legacy method
     !
     !====================================================================
 
     ! Loop over species
-    !$OMP PARALLEL DO                              &
-    !$OMP DEFAULT( SHARED                        ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )
+    !$OMP PARALLEL DO                  &
+    !$OMP DEFAULT( SHARED            ) &
+    !$OMP PRIVATE( I, J, L, N, MW_kg )
     DO N = 1, State_Chm%nSpecies
 
-       ! Moles C / moles species
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-
-       ! (Emitted) molecular weight for the species [kg]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Molecular weight for the species [kg]
+       MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
-                                     * ( 1e+6_fp * MolecRatio )             &
-                                     / ( AVO / MW_kg )                      &
+                                     * 1e+6_fp / ( AVO / MW_kg )            &
                                      / State_Met%AIRDEN(I,J,L)
        ENDDO
        ENDDO
@@ -1424,12 +1398,8 @@ ENDIF
     !$OMP PRIVATE( I, J, L, N, MW_g )
     DO N = 1, State_Chm%nSpecies
 
-       ! (Emitted) molecular weight for the species [g]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_g = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight for the species [g]
+       MW_g = State_Chm%SpcData(N)%Info%MW_g
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -1545,12 +1515,8 @@ ENDIF
     !$OMP PRIVATE( I, J, L, N, MW_g )
     DO N = 1, State_Chm%nSpecies
 
-       ! (Emitted) molecular weight for the species [g]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_g = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight for the species [g]
+       MW_g = State_Chm%SpcData(N)%Info%MW_g
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -1816,7 +1782,7 @@ ENDIF
 !
     ! Scalars
     INTEGER                :: I, J, L, N
-    REAL(fp)               :: MolecRatio, MW_kg
+    REAL(fp)               :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
@@ -1864,27 +1830,19 @@ ENDIF
     !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) * AVO / MW_KG / 1e6
     !
     ! NOTES:
-    !  (1) Also multiply by mol C / mol species (equal to one for most spc)
-    !  (2) Use exact reverse of the species mass -> # density conversion to
+    !  (1) Use exact reverse of the species mass -> # density conversion to
     !      avoid numerical noise differences
     !
     !====================================================================
 
     ! Loop over all species
-    !$OMP PARALLEL DO                              &
-    !$OMP DEFAULT( SHARED                        ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )
+    !$OMP PARALLEL DO                  &
+    !$OMP DEFAULT( SHARED            ) &
+    !$OMP PRIVATE( I, J, L, N, MW_kg )
     DO N = 1, State_Chm%nSpecies
 
-       ! Moles C / moles species
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-
-       ! (Emitted) molecular weight for the species [g]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Molecular weight for the species [g]
+       MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -1892,8 +1850,7 @@ ENDIF
        DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      / ( AVO / MW_kg )                      &
-                                     * (  State_Met%AIRVOL(I,J,L)           &
-                                          * 1e+6_fp * MolecRatio )
+                                     * (  State_Met%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -1946,7 +1903,7 @@ ENDIF
 !
     ! Scalars
     INTEGER            :: I, J, L, N
-    REAL(fp)           :: MolecRatio, MW_kg
+    REAL(fp)           :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
@@ -1992,25 +1949,16 @@ ENDIF
     !
     !    = Species(I,J,L,N) [kg] / AIRVOL(I,J,L) * AVO / MW_KG / 1e6
     !
-    ! NOTE: Also divide by mol C / mol species (equal to one for most spc)
-    !
     !====================================================================
 
     ! Loop over all species
-    !$OMP PARALLEL DO                              &
-    !$OMP DEFAULT( SHARED                        ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )
+    !$OMP PARALLEL DO                  &
+    !$OMP DEFAULT( SHARED            ) &
+    !$OMP PRIVATE( I, J, L, N, MW_kg )
     DO N = 1, State_Chm%nSpecies
 
-       ! Moles C / moles species
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-
-       ! (Emitted) molecular weight for the species [kg]
-       ! NOTE: Non-advected species will have a MW of -1, which will
-       ! make the species concentration negative.  This can be used to
-       ! flag that the species should not be used.  The inverse unit
-       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
-       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Molecular weight for the species [kg]
+       MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
@@ -2018,8 +1966,7 @@ ENDIF
        DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( AVO / MW_kg )                      &
-                                     / ( State_Met%AIRVOL(I,J,L)            &
-                                         * 1e+6_fp * MolecRatio )
+                                     / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO

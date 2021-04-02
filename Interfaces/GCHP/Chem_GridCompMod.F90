@@ -1,8 +1,7 @@
 #include "MAPL_Generic.h"
 
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -32,11 +31,7 @@
 !
 ! GEOS-5 only:
 ! All GEOS-Chem species are stored in the GEOSCHEMchem internal state object
-! in units of kg/kg total. Since molecular weights are missing for 
-! non-transported species (SPC_<XXX>), a value of 1g/mol is used when 
-! converting molec/cm3 to kg/kg total. Hence, the concentrations of all
-! non-transported species are in units of 'kg of species with molecular
-! weight of 1g/mol per kg air'.
+! in units of kg/kg total.
 !\\
 !\\
 ! !INTERFACE:
@@ -53,6 +48,7 @@ MODULE Chem_GridCompMod
   USE ESMF                                           ! ESMF library
   USE MAPL_Mod                                       ! MAPL library
   USE Charpak_Mod                                    ! String functions
+  USE DiagList_Mod                                   ! Internal state prefixes
   USE Hco_Types_Mod, ONLY : ConfigObj
   USE Input_Opt_Mod                                  ! Input Options obj
   USE GCHP_Chunk_Mod                                 ! GCHP IRF methods
@@ -257,27 +253,6 @@ MODULE Chem_GridCompMod
 # include "GCHPchem_DeclarePointer___.h"
 #endif
 
-#if !defined( MODEL_GEOS )
-  ! GCHP only
-  ! Use archived convection fields?
-  ! If the attribute 'ARCHIVED_CONV' in the GEOS-Chem configuration file is set
-  ! to '1', GEOS-Chem will use archived convection fields, imported through
-  ! ExtData (ExtData must contain an entry for each of the pointers defined
-  ! below). These data fields are then passed to the GEOS-Chem meteorlogical 
-  ! state instead of the (instantaneous) fields imported from MOIST. The 
-  ! fields imported through ExtData must be named 'ARCHIVED_PFI_CN', 
-  ! 'ARCHIVED_PFL_CN', etc.
-  LOGICAL           :: ArchivedConv
-  REAL, POINTER     :: PTR_ARCHIVED_PFI_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_PFL_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_MFC(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_MFD(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_CNV_CVW(:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_DQRC   (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_REV_CN (:,:,:) => NULL()
-  REAL, POINTER     :: PTR_ARCHIVED_T      (:,:,:) => NULL()
-#endif
-
 #if defined( MODEL_GEOS )
   !! GEOS-5 only (also in gchp_providerservices but don't use yet):
   !! -RATS:
@@ -353,8 +328,7 @@ MODULE Chem_GridCompMod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -863,6 +837,51 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    ! Isorropia fields needed for heterogeneous chemistry
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropHplusFine', &
+       LONG_NAME          = 'Isorropia Hplus concentration fine mode',  &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropSulfate',  &
+       LONG_NAME          = 'Isorropia sulfate concentration', &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropNitrateFine',  &
+       LONG_NAME          = 'Isorropia Nitrate concentration fine mode', &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'IsorropBisulfate',  &
+       LONG_NAME          = 'Isorropia bisulfate concentration',  &
+       UNITS              = 'M', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                   RC=STATUS  )
+    _VERIFY(STATUS)
+
     ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DELP_DRY',  &
@@ -875,39 +894,38 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! State_Met variables needed for benchmarking
-    IF ( SimType == 'benchmark' .OR. SimType == 'TransportTracers' ) THEN
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'AREA',  &
-          LONG_NAME          = 'Grid horizontal area',  &
-          UNITS              = 'm2', &
-          DIMS               = MAPL_DimsHorzOnly,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'BXHEIGHT',  &
-          LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
-          UNITS              = 'm', &
-          DIMS               = MAPL_DimsHorzVert,    &
-          VLOCATION          = MAPL_VLocationCenter,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
+    ! Additional outputs useful for unit conversions and post-processing analysis
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'AREA',  &
+       LONG_NAME          = 'Grid horizontal area',  &
+       UNITS              = 'm2', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'BXHEIGHT',  &
+       LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
+       UNITS              = 'm', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
 
-       call MAPL_AddInternalSpec(GC, &
-          SHORT_NAME         = 'TropLev',  &
-          LONG_NAME          = 'GEOS-Chem level where the tropopause occurs',  &
-          UNITS              = '1', &
-          DIMS               = MAPL_DimsHorzOnly,    &
-          VLOCATION          = MAPL_VLocationCenter,    &
-          PRECISION          = ESMF_KIND_R8, &
-          FRIENDLYTO         = trim(COMP_NAME),    &
-                                                         RC=STATUS  )
-       _VERIFY(STATUS)
-    ENDIF
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'TropLev',  &
+       LONG_NAME          = 'GEOS-Chem level where the tropopause occurs',  &
+       UNITS              = '1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
 #endif
 
 #if defined( MODEL_GEOS )
@@ -1587,83 +1605,6 @@ CONTAINS
     close(NUNIT)
 #endif
 
-#if !defined( MODEL_GEOS )
-    !=======================================================================
-    !              %%% Test for archived convection fields %%%
-    !=======================================================================
-    CALL ESMF_ConfigGetAttribute( myState%myCF, I, &
-            Label="ARCHIVED_CONV:", Default=0, __RC__ )
-    ArchivedConv = ( I == 1 )
-
-    ! Need to add archived convection fields to import state
-    IF ( ArchivedConv ) THEN
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_PFI_CN',                   &
-          LONG_NAME          = 'archived_PFI_CN',                   &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_PFL_CN',                   &
-          LONG_NAME          = 'archived_PFL_CN',                   &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_MFC',                  &
-          LONG_NAME          = 'archived_CNV_MFC',                  &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_MFD',                  &
-          LONG_NAME          = 'archived_CNV_MFD',                  &
-          UNITS              = 'kg m-2 s-1',                        &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_CNV_CVW',                  &
-          LONG_NAME          = 'archived_CNV_CVW',                  &
-          UNITS              = 'hPa s-1',                           &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_DQRC',                     &
-          LONG_NAME          = 'archived_DQRC',                     &
-          UNITS              = 'kg kg-1 s-1',                       &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_REV_CN',                   &
-          LONG_NAME          = 'archived_REV_CN',                   &
-          UNITS              = 'kg kg-1 s-1',                       &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-
-       call MAPL_AddImportSpec(GC,                                  &
-          SHORT_NAME         = 'ARCHIVED_T',                        &
-          LONG_NAME          = 'archived_T',                        &
-          UNITS              = 'K',                                 &
-          DIMS               = MAPL_DimsHorzVert,                   &
-          VLOCATION          = MAPL_VLocationCenter,                &
-                                                            __RC__ )
-    ENDIF ! ArchivedConv 
-
-#endif
-
     ! OLSON
     DO T = 1, NSURFTYPE
        landTypeInt = T-1
@@ -1726,8 +1667,7 @@ CONTAINS
   END SUBROUTINE SetServices
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2596,16 +2536,6 @@ CONTAINS
        _VERIFY(STATUS)
     end if
 
-#if !defined( MODEL_GEOS )
-    IF ( ArchivedConv .AND. am_I_Root ) THEN
-       WRITE(*,*) ' '
-       WRITE(*,*) ' --------------------------------------------------- '
-       WRITE(*,*) ' GEOS-Chem will be using archived convection fields! '
-       WRITE(*,*) ' --------------------------------------------------- '
-       WRITE(*,*) ' '
-    ENDIF
-#endif
-
 #if defined( MODEL_GEOS )
     !=======================================================================
     ! Read GEOSCHEMchem settings 
@@ -2774,17 +2704,6 @@ CONTAINS
        ASSERT_(.FALSE.)
     ENDIF
 
-    ! If CH4 emissions are turned on, boundary conditions will not be set
-    ! and CH4 emissions are expected to be provided via HEMCO 
-    IF ( am_I_Root ) THEN
-       IF ( Input_Opt%LCH4EMIS ) THEN
-          WRITE(*,*) 'CH4 emissions are turned on - no CH4 boundary conditions will be applied'
-          WRITE(*,*) 'and CH4 emissions are taken from HEMCO'
-       ELSE
-          WRITE(*,*) 'CH4 emissions are turned off - CH4 boundary conditions will be applied'
-       ENDIF
-    ENDIF
-
     !=======================================================================
     ! All done
     !=======================================================================
@@ -2812,8 +2731,7 @@ CONTAINS
 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2879,8 +2797,7 @@ CONTAINS
   END SUBROUTINE Run1 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2950,8 +2867,7 @@ CONTAINS
   END SUBROUTINE Run2 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3328,33 +3244,6 @@ CONTAINS
        HcoState%EXPORT   => EXPORT
        !HcoState => NULL()
 
-       ! To use archived convection fields
-       IF ( ArchivedConv ) THEN
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_PFI_CN ,           &
-                                 'ARCHIVED_PFI_CN'  , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_PFL_CN ,           &
-                                 'ARCHIVED_PFL_CN'  , notFoundOK=.TRUE., &
-                                  __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_MFC,           &
-                                 'ARCHIVED_CNV_MFC' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_MFD,           &
-                                 'ARCHIVED_CNV_MFD' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_CNV_CVW,           &
-                                 'ARCHIVED_CNV_CVW' , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_DQRC   ,           &
-                                 'ARCHIVED_DQRC'    , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_REV_CN ,           &
-                                 'ARCHIVED_PFI_CN'  , notFoundOK=.TRUE., &
-                                 __RC__ )
-          CALL MAPL_GetPointer ( IMPORT, PTR_ARCHIVED_T      ,           &  
-                                 'ARCHIVED_T'       , notFoundOK=.TRUE., &
-                                  __RC__ )
-       ENDIF
 #endif
     ENDIF
 
@@ -3749,6 +3638,42 @@ CONTAINS
                ASSOCIATED(State_Chm%KPPHvalue) ) THEN
              State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =       &
             Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropHplus) ) THEN
+             State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
+             State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
+             State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
+             State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
 
@@ -4505,8 +4430,7 @@ CONTAINS
   END SUBROUTINE Run_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4699,7 +4623,7 @@ CONTAINS
     ENDIF
     Ptr2d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', &
                           notFoundOK=.TRUE., __RC__ ) 
     IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%KPPHvalue) ) THEN
@@ -4709,7 +4633,43 @@ CONTAINS
     ENDIF
     Ptr3d_R8 => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropHplus) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' , &
                           notFoundOK=.TRUE., __RC__ ) 
     IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Met%DELP_DRY) ) THEN
@@ -4886,8 +4846,7 @@ CONTAINS
   END SUBROUTINE Finalize_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5331,8 +5290,7 @@ CONTAINS
 !EOC
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5463,8 +5421,7 @@ CONTAINS
   END SUBROUTINE CalcTotOzone_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5632,8 +5589,7 @@ CONTAINS
   END SUBROUTINE CalcNO2Column_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5732,7 +5688,7 @@ CONTAINS
    
        ! Get molecular weight of species
        ID = IND_(TRIM(ISPEC))
-       MW = State_Chm%SpcData(ID)%Info%EmMW_g 
+       MW = State_Chm%SpcData(ID)%Info%MW_g 
    
        ! constant 
        !const = MAPL_AVOGAD / 1000.0 / ( MAPL_GRAV * ( MAPL_AIRMW / 1000.0 ) )
@@ -5766,8 +5722,7 @@ CONTAINS
   END SUBROUTINE CalcColumns_
 !EOC
 !!------------------------------------------------------------------------------
-!!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Model                            !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -5977,8 +5932,7 @@ CONTAINS
 !  END SUBROUTINE CalcTendencies_ 
 !!EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6136,8 +6090,7 @@ CONTAINS
   END SUBROUTINE NOxDiagnostics_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6501,7 +6454,7 @@ CONTAINS
             ASSOCIATED(Ptr10m) ) RunMe = .TRUE.
        IF ( RunMe ) THEN
           FieldName = 'SPC_'//TRIM(SpcName)
-          MW = SpcInfo%EmMW_g
+          MW = SpcInfo%MW_g
           IF ( MW < 0.0 ) THEN
              ! Get species and set MW to 1.0. This is ok because the internal
              ! state uses a MW of 1.0 for all species
@@ -6610,14 +6563,15 @@ CONTAINS
              ALLOCATE(CONV(SIZE(Ptr2m,1),SIZE(Ptr2m,2)))
              DryID = SpcInfo%DryDepID
              IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN 
+                IF ( .NOT. ASSOCIATED(State_Chm%DryDepVel ) ) THEN
                    WRITE(*,*)     &
                        'Cannot compute 2M concentration - need diagnostics '// &
                        'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
-                ENDIF      
+                ENDIF
+                ! State_Chm%DryDepVel is stored as [m/s]
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa2m(:,:) *  &
-                            State_Diag%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) * 100.e+0_f8 )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF
@@ -6640,14 +6594,15 @@ CONTAINS
              ALLOCATE(CONV(SIZE(Ptr10m,1),SIZE(Ptr10m,2)))
              DryID = SpcInfo%DryDepID
              IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN
+                IF ( .NOT. ASSOCIATED(State_Chm%DryDepVel ) ) THEN
                    WRITE(*,*)      &
                      'Cannot compute 10M concentration - need diagnostics '// &
                      'of drydep velocity - please activate - ' //TRIM(SpcName)
                    ASSERT_(.FALSE.)
-                ENDIF      
+                ENDIF
+                ! State_Chm%DryDepVel is stored as [m/s]
                 CONV(:,:) = 1.0 - ( State_Chm%DryDepRa10m(:,:) * &
-                            State_Diag%DryDepVel(:,:,DryID) )
+                            State_Chm%DryDepVel(:,:,DryID) * 100.e+0_f8 )
              ELSE
                 CONV(:,:) = 1.0
              ENDIF  
@@ -6682,8 +6637,7 @@ CONTAINS
   END SUBROUTINE CalcSpeciesDiagnostics_
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6761,8 +6715,8 @@ CONTAINS
           SpcInfo   => State_Chm%SpcData(N)%Info ! Species database
           IF ( TRIM(SpcInfo%Name) == "OH" ) THEN
              id_OH = N
-             IF ( SpcInfo%emMW_g > 0.0 ) THEN
-                MW_kg = SpcInfo%emMW_g * 1.e-3
+             IF ( SpcInfo%MW_g > 0.0 ) THEN
+                MW_kg = SpcInfo%MW_g * 1.e-3
              ELSE
                 MW_kg = 1.0 * 1.e-3
              ENDIF
@@ -6805,8 +6759,7 @@ CONTAINS
 
   END SUBROUTINE MassWeightedOH_
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6999,8 +6952,8 @@ CONTAINS
     ! Loop over all species
     DO N = 1, State_Chm%nSpecies
 
-       ! Molecular weight. Note: -1.0 for non-advected species
-       MW = State_Chm%SpcData(N)%Info%emMW_g
+       ! Molecular weight
+       MW = State_Chm%SpcData(N)%Info%MW_g
        IF ( MW < 0.0 ) MW = 1.0
 
        ! Construct field name
@@ -7137,8 +7090,7 @@ CONTAINS
   END SUBROUTINE InitFromFile_ 
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7319,9 +7271,9 @@ CONTAINS
        ENDDO
        ASSERT_(N > 0)
 
-       ! Molecular weight. Note: -1.0 for non-advected species
-   !    MW = State_Chm%SpcData(I)%Info%emMW_g
-   !    IF ( MW < 0.0 ) MW = 48.0 
+       ! Molecular weight
+       !MW = State_Chm%SpcData(I)%Info%MW_g
+       !IF ( MW < 0.0 ) MW = 48.0 
    
        ! # of vertical levels of Q
        IM = SIZE(ANAO3,1)
@@ -7373,8 +7325,7 @@ CONTAINS
 !EOC
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7494,8 +7445,7 @@ CONTAINS
   END SUBROUTINE MetVars_For_Lightning_Init
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7671,8 +7621,7 @@ CONTAINS
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7718,8 +7667,7 @@ CONTAINS
 ! GEOS-5 routine moved to gchp_providerservices_mod but needs updating so
 ! use this for now:
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7912,7 +7860,7 @@ CONTAINS
   END SUBROUTINE FillAeroDP 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !

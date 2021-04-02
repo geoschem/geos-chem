@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -23,17 +22,18 @@ module m_netcdf_io_get_dimlen
 ! !AUTHOR:
 !  Jules Kouatchou
 !
+! !REMARKS:
+!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
+!
 ! !REVISION HISTORY:
-!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -71,8 +71,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Dec 2012 - C.Keller - err_stop argument added
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,8 +100,7 @@ CONTAINS
   end subroutine Ncget_Dimlen
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -135,7 +133,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -51,7 +51,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
-	read extdata
+	read -e extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -117,7 +117,7 @@ sim_extra_option=none
 
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
-    
+
     printf "${thinline}Choose chemistry domain:${thinline}"
     printf "  1. Troposphere + stratosphere (Recommended)\n"
     printf "  2. Troposphere only\n"
@@ -134,7 +134,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	  printf "Invalid chemistry domain option. Try again.\n"
 	fi
     done
-    
+
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -176,7 +176,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
-	    printf "  1. TOASS with 40 bins\n"
+	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option
@@ -251,16 +251,16 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	    valid_pops=0
 	    printf "Invalid POPs type. Try again.\n"
 	fi
-	sim_name="${sim_name}_${pops_spc}"
     done
-
+    # Use the POPs species to set the extra option
+    sim_extra_option=${POP_SPC}
 fi
 
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
 printf "${thinline}Choose meteorology source:${thinline}"
-printf "  1. MERRA2 (Recommended)\n"
+printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -268,6 +268,7 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met_name='MERRA2'
+	met_name_lc="merra2"
 	met_dir='MERRA2'
 	met_resolution='05x0625'
 	met_native='0.5x0.625'
@@ -277,9 +278,10 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='3.86e-4'
+	offline_dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
+	met_name_lc="geosfp"
 	met_dir='GEOS_FP'
 	met_resolution='025x03125'
 	met_native='0.25x0.3125'
@@ -289,7 +291,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
+	offline_dust_sf='6.42e-5'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -358,28 +360,28 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	    nested_sim="T"
 	    buffer_zone="3  3  3  3"
 	    if [[ ${domain_num} = "2" ]]; then
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range=" 60.0 150.0"
 		    lat_range="-11.0  55.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range=" 70.0 140.0"
 		    lat_range=" 15.0  55.0"
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
 		domain_name="EU"
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range="-30.0 50.0"
 		    lat_range=" 30.0 70.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-15.0  40.0"
 		    lat_range=" 32.75 61.25"
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
 		domain_name="NA"
-	        if [[ ${grid_res} = "05x0625" ]]; then 
+	        if [[ ${grid_res} = "05x0625" ]]; then
 	            lon_range="-140.0 -40.0"
 		    lat_range="  10.0  70.0"
-		elif [[ ${grid_res} = "025x03125" ]]; then 
+		elif [[ ${grid_res} = "025x03125" ]]; then
 	            lon_range="-130.0  -60.0"
 		    lat_range="   9.75  60.0"
 		fi
@@ -425,16 +427,43 @@ while [ "${valid_lev}" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define path where directoy will be created
+# Ask user to define path where directory will be created
 #-----------------------------------------------------------------
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read rundir_path
-    if [[ ${rundir_path} = "q" ]]; then
+    read -e rundir_path
+
+    # Test for quitting
+    if [[ "x${rundir_path}" == "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
-    elif [[ ! -d ${rundir_path} ]]; then
+    fi
+
+    # Replace ~ with the user's home directory
+    # NOTE: This is a safe algorithm.
+    if [[ "${rundir_path}" =~ '~' ]]; then
+       rundir_path="${rundir_path/#\~/$HOME}"
+       echo "Expanding to: ${rundir_path}"
+    fi
+
+    # If this is just a new directory within an existing one,
+    # give the user the option to proceed
+    if [[ ! -d ${rundir_path} ]]; then
+        if [[ -d $(dirname ${rundir_path} ) ]]; then
+            printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
+            read mk_rundir
+            if [[ "x${mk_rundir}" == "xy" ]]; then
+                mkdir $rundir_path
+	    elif [[ "x${mk_rundir}" == "xq" ]]; then
+		printf "\nExiting.\n"
+		exit 1
+            fi
+        fi
+    fi
+
+    # Ask user to supply a new path again
+    if [[ ! -d ${rundir_path} ]]; then
         printf "\nERROR: ${rundir_path} does not exist. Enter a new path or hit q to quit.\n"
     else
 	valid_path=1
@@ -442,16 +471,17 @@ while [ "$valid_path" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define run directoy name if not passed as argument
+# Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
 if [ -z "$1" ]; then
-    printf "${thinline}Enter run directory name, or press return to use default:${thinline}"
-    read rundir_name
+    printf "${thinline}Enter run directory name, or press return to use default:\n\n"
+    printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
+    read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gc_${grid_res}_${sim_name}
+	    rundir_name=gc_${met_name_lc}_${sim_name}
 	else
-	    rundir_name=gc_${grid_res}_${sim_name}_${sim_extra_option}
+	    rundir_name=gc_${met_name_lc}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -463,12 +493,13 @@ fi
 # Ask user for a new run directory name if specified one exists
 #-----------------------------------------------------------------
 rundir=${rundir_path}/${rundir_name}
+
 valid_rundir=0
 while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read new_rundir
+	read -e new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -495,8 +526,14 @@ cp ./gitignore                              ${rundir}/.gitignore
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-if [[ ${sim_name} == "fullchem" || ${sim_name} == "CH4" ]]; then
+
+# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
+# so skip copying it unless the file exists (bmy, 12/11/20)
+if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
+fi
+
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -509,11 +546,14 @@ chmod 744 ${rundir}/archiveRun.sh
 chmod 744 ${rundir}/runScriptSamples/*
 
 # Copy species database; append APM or TOMAS species if needed
+# Also copy APM input files to the run directory
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cp ${gcdir}/run/shared/apm_tmp.dat ${rundir}/apm_tmp.dat
+    cp ${gcdir}/run/shared/input.apm   ${rundir}/input.apm
 fi
 
 # If benchmark simulation, put run script in directory
@@ -527,7 +567,7 @@ ln -s ${wrapperdir} ${rundir}/CodeDir
 
 # Create build directory
 mkdir ${rundir}/build
-printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   make -j\n   make install\n" >> ${rundir}/build/README
+printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
@@ -535,68 +575,88 @@ printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   make -j\n   make insta
 cd ${rundir}
 
 # Replace token strings in certain files
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   input.geos
-sed -i -e "s|{MET}|${met_name}|"             input.geos
-sed -i -e "s|{SIM}|${sim_name}|"             input.geos
-sed -i -e "s|{RES}|${grid_res_long}|"        input.geos
-sed -i -e "s|{NLEV}|${grid_lev}|"            input.geos
-sed -i -e "s|{LON_RANGE}|${lon_range}|"      input.geos
-sed -i -e "s|{LAT_RANGE}|${lat_range}|"      input.geos
-sed -i -e "s|{HALF_POLAR}|${half_polar}|"    input.geos
-sed -i -e "s|{NESTED_SIM}|${nested_sim}|"    input.geos
-sed -i -e "s|{BUFFER_ZONE}|${buffer_zone}|"  input.geos
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   HEMCO_Config.rc
-sed -i -e "s|{GRID_DIR}|${grid_dir}|"        HEMCO_Config.rc
-sed -i -e "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
-sed -i -e "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed -i -e "s|{DUST_SF}|${dust_sf}|"          HEMCO_Config.rc
+sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   input.geos
+sed_ie "s|{MET}|${met_name}|"             input.geos
+sed_ie "s|{SIM}|${sim_name}|"             input.geos
+sed_ie "s|{RES}|${grid_res_long}|"        input.geos
+sed_ie "s|{NLEV}|${grid_lev}|"            input.geos
+sed_ie "s|{LON_RANGE}|${lon_range}|"      input.geos
+sed_ie "s|{LAT_RANGE}|${lat_range}|"      input.geos
+sed_ie "s|{HALF_POLAR}|${half_polar}|"    input.geos
+sed_ie "s|{NESTED_SIM}|${nested_sim}|"    input.geos
+sed_ie "s|{BUFFER_ZONE}|${buffer_zone}|"  input.geos
+sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   HEMCO_Config.rc
+sed_ie "s|{GRID_DIR}|${grid_dir}|"        HEMCO_Config.rc
+sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
+sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
+sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
+sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
+sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_name} = "fullchem" ]]; then
-    startdate="20190701"
-    enddate="20190801"
-else
+if [[ "x${sim_name}" == "xHg"     ||
+      "x${sim_name}" == "xCH4"    ||
+      "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xTransportTracers" ]]; then
     startdate="20190101"
     enddate="20190201"
+else
+    startdate="20190701"
+    enddate="20190801"
 fi
 starttime="000000"
 endtime="000000"
-sed -i -e "s|{DATE1}|${startdate}|"  input.geos
-sed -i -e "s|{DATE2}|${enddate}|"    input.geos
-sed -i -e "s|{TIME1}|${starttime}|"  input.geos
-sed -i -e "s|{TIME2}|${endtime}|"    input.geos
+sed_ie "s|{DATE1}|${startdate}|"  input.geos
+sed_ie "s|{DATE2}|${enddate}|"    input.geos
+sed_ie "s|{TIME1}|${starttime}|"  input.geos
+sed_ie "s|{TIME2}|${endtime}|"    input.geos
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
 printf "\n     You may modify these settings in input.geos.\n"
 
-sed -i -e "s|{FREQUENCY}|00000100 000000|"  HISTORY.rc
-sed -i -e "s|{DURATION}|00000100 000000|"   HISTORY.rc
+sed_ie "s|{FREQUENCY}|00000100 000000|"  HISTORY.rc
+sed_ie "s|{DURATION}|00000100 000000|"   HISTORY.rc
 
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
 
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
-if [[ ${sim_extra_option} = "benchmark" ]]; then
+if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     replace_colon_sep_val "Use GC classic timers?"   T    input.geos
 fi
 
 # Modify input files for TOMAS that are specific to GEOS-Chem Classic
-if [[ ${sim_extra_option} = "TOMAS" ]]; then
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     replace_colon_sep_val "Tran/conv timestep [sec]" 1800 input.geos
     replace_colon_sep_val "Chem/emis timestep [sec]" 3600 input.geos
 fi
 
+# Set online dust emission mass tuning factor according to met field
+# and resolution. These values were obtained from hcox_dustdead_mod.F90.
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 8.3286e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xGEOSFP" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 5.0416e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x4x5" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 7.8533e-4 HEMCO_Config.rc
+    fi
+    if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x2x25" ]]; then
+	replace_colon_sep_val "--> Mass tuning factor" 4.7586e-4 HEMCO_Config.rc
+    fi
+fi
+
 # Modify input files for troposphere-only chemistry grids
-if [[ ${chemgrid} = "trop_only" ]]; then
+if [[ "x${chemgrid}" == "xtrop_only" ]]; then
     replace_colon_sep_val "=> Set init. strat. H2O"  F input.geos
     replace_colon_sep_val "Settle strat. aerosols"   F input.geos
     replace_colon_sep_val "Online PSC AEROSOLS"      F input.geos
@@ -607,13 +667,13 @@ if [[ ${chemgrid} = "trop_only" ]]; then
     replace_colon_sep_val "--> STATE_PSC"        false HEMCO_Config.rc
     replace_colon_sep_val "--> GMI_PROD_LOSS"    false HEMCO_Config.rc
     replace_colon_sep_val "--> UCX_PROD_LOSS"     true HEMCO_Config.rc
-    sed -i -e "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
+    sed_ie "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
 fi
 
 # Modify input files for nested-grid simulations
-if [[ ${nested_sim} = "T" ]]; then
+if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
-    if [[ ${domain_name} = "NA" ]]; then
+    if [[ "x${domain_name}" == "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
 	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
     fi
@@ -621,39 +681,112 @@ fi
 
 # Modify input files for POPs simulations
 if [[ ${sim_name} =~ "POPs" ]]; then
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               input.geos
-    sed -i -e "s|{POPs_XMW}|${POP_XMW}|"               input.geos
-    sed -i -e "s|{POPs_KOA}|${POP_KOA}|"               input.geos
-    sed -i -e "s|{POPs_KBC}|${POP_KBC}|"               input.geos
-    sed -i -e "s|{POPs_K_POPG_OH}|${POP_K_POPG_OH}|"   input.geos
-    sed -i -e "s|{POPs_K_POPG_O3A}|${POP_K_POPG_O3A}|" input.geos
-    sed -i -e "s|{POPs_K_POPG_O3B}|${POP_K_POPG_O3B}|" input.geos
-    sed -i -e "s|{POPs_HSTAR}|${POP_HSTAR}|"           input.geos
-    sed -i -e "s|{POPs_DEL_H}|${POP_DEL_H}|"           input.geos
-    sed -i -e "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         input.geos
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
-    sed -i -e "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Diagn.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               input.geos
+    sed_ie "s|{POPs_XMW}|${POP_XMW}|"               input.geos
+    sed_ie "s|{POPs_KOA}|${POP_KOA}|"               input.geos
+    sed_ie "s|{POPs_KBC}|${POP_KBC}|"               input.geos
+    sed_ie "s|{POPs_K_POPG_OH}|${POP_K_POPG_OH}|"   input.geos
+    sed_ie "s|{POPs_K_POPG_O3A}|${POP_K_POPG_O3A}|" input.geos
+    sed_ie "s|{POPs_K_POPG_O3B}|${POP_K_POPG_O3B}|" input.geos
+    sed_ie "s|{POPs_HSTAR}|${POP_HSTAR}|"           input.geos
+    sed_ie "s|{POPs_DEL_H}|${POP_DEL_H}|"           input.geos
+    sed_ie "s|{POPs_DEL_Hw}|${POP_DEL_Hw}|"         input.geos
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Config.rc
+    sed_ie "s|{POPs_SPC}|${POP_SPC}|"               HEMCO_Diagn.rc
+fi
+
+#--------------------------------------------------------------------
+# Change timesteps for nested-grid simulations
+# Transport should be 300s (5min); chemistry should be 600s (10min)
+#--------------------------------------------------------------------
+if [[ "x${domain_name}" == "xAS"     ]] || \
+   [[ "x${domain_name}" == "xEU"     ]] || \
+   [[ "x${domain_name}" == "xNA"     ]] || \
+   [[ "x${domain_name}" == "xcustom" ]]; then
+    cmd='s|\[sec\]: 600|\[sec\]: 300|'
+    sed_ie "$cmd" input.geos
+    cmd='s|\[sec\]: 1200|\[sec\]: 600|'
+    sed_ie "$cmd" input.geos
 fi
 
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
 #--------------------------------------------------------------------
-if [[ ${sim_name} = "fullchem" ]]; then
-    # Use restart file saved out from latest 1-year benchmark
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.9.0/GEOSChem.Restart.fullchem.20160701_0000z.nc4
-elif [[ ${sim_name} = "TransportTracers" ]]; then
-    # Use restart file saved out from latest 1-year benchmark
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/GC_12.8.0/GEOSChem.Restart.TransportTracers.20170101_0000z.nc4
+
+# Check the Linux Kernel version to see if we are on the AWS cloud.
+# If we are, define the command to copy the restart file from s3://gcgrid
+is_aws=$(uname -r | grep aws)
+if [[ "x${is_aws}" != "x" ]]; then
+   rst_root="s3://gcgrid/GEOSCHEM_RESTARTS"
+   s3_cp="aws s3 cp --request-payer=requester"
 else
-    sample_rst=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS/v2018-11/initial_GEOSChem_rst.${grid_res}_${sim_name}.nc
+   rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
 fi
-if [[ -f ${sample_rst} ]]; then
+
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
+
+    # For TOMAS simulations, use restarts provided by the TOMAS team
+    # For other fullchem simulations, use restart from latest benchmark
+    # Aerosol-only simulations can use the fullchem restart since all of the
+    #  aerosol species are included
+    if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
+    elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
+    else
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+    fi
+	
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
+
+    # For TransportTracers, use restart from latest benchmark
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	
+elif [[ "x${sim_name}" == "xPOPs" ]]; then
+
+    # For POPs, the extra option is in the restart file name
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
+
+else
+
+    # For other specialty simulations, use previoiusly saved restarts
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
+fi
+
+# Copy the restart file to the run directory (for AWS or on a local server)
+if [[ "x${is_aws}" != "x" ]]; then
+    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
+elif [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
     printf "\n  -- No sample restart provided for this simulation."
     printf "\n     You will need to provide an initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
+fi
+
+# Sample restarts for several simulations do not contain all species. For those
+# simulations, print a warning and change the time cycle option in HEMCO config
+if [[ "x${sim_extra_option}" == "xaciduptake"        ||
+      "x${sim_extra_option}" == "xmarinePOA"         ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
+      "x${sim_extra_option}" == "xAPM"               ||
+      "x${sim_name}"         == "xPOPs"              ||
+      "x${sim_name}"         == "xtagCH4"            ||
+      "x${sim_name}"         == "xtagO3"             ]]; then
+    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFY"
+    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY "
+    sed_ie "s|${old}|${new}|" HEMCO_Config.rc
+
+    printf "\n  -- The sample restart provided for this simulation may not"
+    printf "\n     contain all species defined in this simulation. Missing"
+    printf "\n     species will be assigned default background concentrations."
+    printf "\n     Check your GEOS-Chem log file for details. As always, it"
+    printf "\n     is recommended that you spin up your simulation to ensure"
+    printf "\n     proper initial conditions.\n"
 fi
 
 #--------------------------------------------------------------------

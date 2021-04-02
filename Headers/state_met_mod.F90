@@ -74,6 +74,7 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
      LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
      LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
@@ -220,11 +221,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: AIRVOL        (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
      REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
-
-     !----------------------------------------------------------------------
-     ! Age of air for diagnosing transport
-     !----------------------------------------------------------------------
-     INTEGER,  POINTER :: AgeOfAir      (:,:,:) ! Age of air [s]
 
      !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
@@ -377,6 +373,7 @@ CONTAINS
     State_Met%IsLand         => NULL()
     State_Met%IsWater        => NULL()
     State_Met%IsIce          => NULL()
+    State_Met%IsSnow         => NULL()
     State_Met%LAI            => NULL()
     State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
@@ -471,7 +468,6 @@ CONTAINS
     State_Met%AIRVOL         => NULL()
     State_Met%DP_DRY_PREV    => NULL()
     State_Met%SPHU_PREV      => NULL()
-    State_Met%AgeOfAir       => NULL()
     State_Met%IREG           => NULL()
     State_Met%ILAND          => NULL()
     State_Met%IUSE           => NULL()
@@ -1034,6 +1030,25 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! IsSnow (do not register for diagnostics)
+    !------------------------------------------------------------------------
+    metId = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%IsSnow,                                      &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! LAI [1]
     !------------------------------------------------------------------------
     metId = 'LAI'
@@ -1214,7 +1229,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! PHIS [m2 s-2]
+    ! PHIS [m2 s-2], converted to [m] after data read
     !------------------------------------------------------------------------
     metId = 'PHIS'
     CALL Init_and_Register(                                                  &
@@ -1911,24 +1926,6 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%AD,                                          &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Age of Air [s]
-    !------------------------------------------------------------------------
-    metId = 'AgeOfAir'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%AgeOfAir,                                    &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3392,6 +3389,13 @@ CONTAINS
        State_Met%IsIce => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%IsSnow ) ) THEN
+       DEALLOCATE( State_Met%IsSnow, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsSnow', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsSnow => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%LAI ) ) THEN
        DEALLOCATE( State_Met%LAI, STAT=RC )
        CALL GC_CheckVar( 'State_Met%LAI', 2, RC )
@@ -4298,17 +4302,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%XLAI_NATIVE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XLAI_NATIVE => NULL()
-#endif
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%AgeOfAir ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%AgeOfAir => NULL()
-#else
-       DEALLOCATE( State_Met%AgeOfAir, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%AgeOfAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%AgeOfAir => NULL()
 #endif
     ENDIF
 
@@ -5219,15 +5212,6 @@ CONTAINS
           IF ( isUnits ) Units  = 'm2 m-2'
           IF ( isRank  ) Rank   = 2
           IF ( isQnt   ) perQnt = 'OLSON'
-
-      !----------------------------------------------------------------------
-      ! Age of air for diagnosing transport-
-      !----------------------------------------------------------------------
-       CASE ( 'AGEOFAIR' )
-          IF ( isDesc  ) Desc  = 'Age of air'
-          IF ( isUnits ) Units = 's'
-          IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationCenter
 
 !       CASE ( 'INCHEMGRID' )
 !          IF ( isDesc  ) Desc  = 'Is each grid box in the chemistry grid?'
@@ -6142,6 +6126,8 @@ CONTAINS
     ELSE
        doEdges = .FALSE.
     ENDIF
+
+    doSlots = PRESENT( nSlots )
 
     IF ( PRESENT( noRegister ) ) THEN
        doRegister = ( .not. noRegister )

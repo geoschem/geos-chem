@@ -1,7 +1,6 @@
-! $Id: m_netcdf_io_read.F90,v 1.1 2009/08/04 14:52:05 bmy Exp $
-!-------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !MODULE:  m_netcdf_io_read
@@ -53,22 +52,19 @@
 ! !AUTHOR:
 !  Jules Kouatchou
 !
+! !REMARKS:
+!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
+!
 ! !REVISION HISTORY:
-!  Initial code.
-!  03 Jul 2008 - R. Yantosca - Now overload all module methods with a
-!                              single public interface.
-!  26 Oct 2011 - R. Yantosca - Add REAL*8 and REAL*4 versions of all
-!                              NCRD_* routines.
-!  20 Dec 2011 - R. Yantosca - Added Ncwr_4d_Int
-!  20 Dec 2011 - R. Yantosca - Make process more efficient by not casting
-!                              to temporary variables after file read
-!  04 Feb 2015 - C. Keller   - Added 7d reading routines.
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_Scal
@@ -102,8 +98,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -135,7 +130,9 @@ CONTAINS
 
       end subroutine Ncrd_Scal
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_Scal_Int
@@ -169,8 +166,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -199,7 +195,9 @@ CONTAINS
 
       end subroutine Ncrd_Scal_Int
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_1d_R8
@@ -241,11 +239,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_1d_R8.  REAL*8 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_1d directly from file
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
-!  24 Jan 2013 - C. Keller   - Added optional input arguments err_stop
-!                              and stat
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -296,7 +290,9 @@ CONTAINS
 
       end subroutine Ncrd_1d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_1d_R4
@@ -338,10 +334,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_1d_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_1d directly from file
-!  24 Jan 2013 - C. Keller   - Added optional input arguments err_stop
-!                              and stat
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -393,7 +386,9 @@ CONTAINS
 
       end subroutine Ncrd_1d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_1d_Int
@@ -437,7 +432,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -490,7 +485,9 @@ CONTAINS
 
       end subroutine Ncrd_1d_Int
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_2d_R8
@@ -529,10 +526,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_2d_R8.  REAL*8 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_2d directly from file
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -559,7 +553,9 @@ CONTAINS
 
       end subroutine Ncrd_2d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_2d_R4
@@ -598,8 +594,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_2d_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_2d directly from file
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -626,7 +621,9 @@ CONTAINS
 
       end subroutine Ncrd_2d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_2d_Int
@@ -666,7 +663,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -693,7 +690,9 @@ CONTAINS
 
       end subroutine Ncrd_2d_Int
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_3d_R8
@@ -733,9 +732,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_3d_R8.  REAL*8 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_3d directly from file
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -762,7 +759,9 @@ CONTAINS
 
       end subroutine Ncrd_3d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_3d_R4
@@ -802,9 +801,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_3d_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_3d directly from file
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -831,7 +828,9 @@ CONTAINS
 
       end subroutine Ncrd_3d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_3d_Int
@@ -872,8 +871,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -900,7 +898,9 @@ CONTAINS
 
       end subroutine Ncrd_3d_Int
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_4d_R8
@@ -940,9 +940,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_4d_R8.  REAL*8 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_4d directly from file
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -970,7 +968,9 @@ CONTAINS
 
       end subroutine Ncrd_4d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_4d_R4
@@ -1010,8 +1010,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_4d_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_4d directly from file
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1038,7 +1037,9 @@ CONTAINS
 
       end subroutine Ncrd_4d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_4d_Int
@@ -1079,8 +1080,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1107,7 +1107,9 @@ CONTAINS
 
       end subroutine Ncrd_4d_Int
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_5d_R8
@@ -1148,9 +1150,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_45_R8.  REAL*8 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_5d directly from file
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1177,7 +1177,9 @@ CONTAINS
 
       end subroutine Ncrd_5d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_5d_R4
@@ -1218,8 +1220,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_45_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_5d directly from file
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1246,7 +1247,9 @@ CONTAINS
 
       end subroutine Ncrd_5d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_6d_R8
@@ -1288,7 +1291,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2011 - R. Yantosca - Initial version
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1315,7 +1318,9 @@ CONTAINS
 
       end subroutine Ncrd_6d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_6d_R4
@@ -1356,8 +1361,7 @@ CONTAINS
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_45_R4.  REAL*4 version.
-!  20 Dec 2011 - R. Yantosca - Now read varrd_5d directly from file
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1384,7 +1388,9 @@ CONTAINS
 
       end subroutine Ncrd_6d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_7d_R8
@@ -1427,7 +1433,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2011 - R. Yantosca - Initial version
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1454,7 +1460,9 @@ CONTAINS
 
       end subroutine Ncrd_7d_R8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_7d_R4
@@ -1497,7 +1505,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2011 - R. Yantosca - Initial version
-!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1524,7 +1532,9 @@ CONTAINS
 
       end subroutine Ncrd_7d_R4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_1d_Char
@@ -1564,8 +1574,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1592,7 +1601,9 @@ CONTAINS
 
       end subroutine Ncrd_1d_Char
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Ncrd_2d_Char
@@ -1632,8 +1643,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1660,6 +1670,5 @@ CONTAINS
 
       end subroutine Ncrd_2d_Char
 !EOC
-!------------------------------------------------------------------------
 end module m_netcdf_io_read
 

@@ -2,7 +2,7 @@ License Agreement for GEOS-Chem, HEMCO, and Related Software
 (The MIT "Expat" License, http://opensource.org/licenses/MIT)
 ==============================================================================
 
-Copyright (c) 2017-2020 Developers of GEOS-Chem, HEMCO, and Related Software
+Copyright (c) 2017-2021 Developers of GEOS-Chem, HEMCO, and Related Software
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -14,21 +14,21 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-  USE CMN_FJX_MOD,        ONLY : NDUST
-  USE CMN_FJX_MOD,        ONLY : NAER
-  USE ERROR_MOD,          ONLY : ERROR_STOP
-  USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-  USE ERROR_MOD,          ONLY : IS_SAFE_DIV, SAFE_DIV
-  USE gckpp_Precision
-  USE gckpp_Parameters
-  USE gckpp_Global,       ONLY : HET
-  USE State_Chm_Mod,      ONLY : ChmState
-  USE State_Chm_Mod,      ONLY : HetState
-  USE State_Chm_Mod,      ONLY : Ind_
-  USE State_Met_Mod,      ONLY : MetState
-  USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
-  USE Precision_Mod,      ONLY : fp
+  USE CMN_FJX_MOD,      ONLY : NDUST
+  USE CMN_FJX_MOD,      ONLY : NAER
+  USE Error_Mod,        ONLY : ERROR_STOP
+  USE Error_Mod,        ONLY : GEOS_CHEM_STOP
+  USE Error_Mod,        ONLY : IS_SAFE_DIV, SAFE_DIV
+  USE GcKpp_Global
+  USE GcKpp_Precision
+  USE GcKpp_Parameters
+  USE State_Chm_Mod,    ONLY : ChmState
+  USE State_Chm_Mod,    ONLY : HetState
+  USE State_Chm_Mod,    ONLY : Ind_
+  USE State_Met_Mod,    ONLY : MetState
+  USE Input_Opt_Mod,    ONLY : OptInput
+  USE PhysConstants,    ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -134,55 +134,12 @@ MODULE GCKPP_HETRATES
 ! !PRIVATE DATA MEMBERS:
 !
   ! Scalars
-  INTEGER  :: NAEROTYPE
-  LOGICAL  :: NATSURFACE,   PSCBOX,    STRATBOX
-  REAL(fp) :: TEMPK,        RELHUM,    SUNCOS,  SPC_SO4
-  REAL(fp) :: SPC_NIT,      GAMMA_HO2, XTEMP,   XDENA
-  REAL(fp) :: QLIQ,         QICE,      SPC_SALA, SPC_fCl
-  REAL(fp) :: SPC_cCl,      SPC_NITs
-  REAL(fp) :: H_PLUS,       MSO4,      MNO3,    MHSO4
-  REAL(fp) :: H_K0_O3,      H_CR_O3,   H_O3_T
-  REAL(fp) :: H_K0_HOBr
-  REAL(fp) :: H_K0_HBr,     H_CR_HBr
-  REAL(fp) :: H_K0_HCl,     H_CR_HCl
-  REAL(fp) :: OMOC_POA, OMOC_OPOA
   REAL(fp) :: HSO3conc_Cld, SO3conc_Cld, fupdateHOBr, fupdateHOCl
-  REAL(fp) :: AClAREA,      AClRADI,   AClVOL   !xnw
   REAL(fp) :: nitConc_SALA, nitConc_SALC
 
-  ! Arrays
-  REAL(fp) :: XAREA(25), XRADI(25), XVOL(25), XH2O(25)
-  REAL(fp) :: KHETI_SLA(11)
-  REAL(fp) :: AWATER(2)
-
-!$OMP THREADPRIVATE( NAEROTYPE,    NATSURFACE, PSCBOX,   STRATBOX )
-!$OMP THREADPRIVATE( TEMPK,        RELHUM,     SPC_NIT,  SPC_SO4  )
-!$OMP THREADPRIVATE( SPC_fCl,      SPC_cCl,    SPC_NITs, AWATER   )
-!$OMP THREADPRIVATE( GAMMA_HO2,    XTEMP,      XDENA,    QLIQ     )
-!$OMP THREADPRIVATE( OMOC_POA,     OMOC_OPOA,  SPC_SALA, AClVOL   )
-!$OMP THREADPRIVATE( QICE,         XAREA,      XRADI, XVOL, XH2O  )
-!$OMP THREADPRIVATE( KHETI_SLA,    SUNCOS,   AClAREA,  AClRADI    )
-!$OMP THREADPRIVATE( H_PLUS,       MSO4,       MNO3,     MHSO4    )
 !$OMP THREADPRIVATE( HSO3conc_Cld, SO3conc_Cld, fupdateHOBr       )
 !$OMP THREADPRIVATE( fupdateHOCl, nitConc_SALA, nitConc_SALC      )
 
-! !DEFINED PARAMETERS:
-!
-  REAL(fp), PARAMETER :: HetMinLife = 1.e-3_fp
-
-  ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
-  REAL(fp), PARAMETER :: CRITRH = 35.0e+0_fp
-
-  ! Effective Henry's Law constant of IEPOX for reactive
-  ! uptake to aqueous aerosols (M/atm)
-  REAL(fp), PARAMETER :: HSTAR_EPOX = 1.7e+7_fp
-
-  ! Conversion factor from atm to bar
-  REAL(fp), PARAMETER :: con_atm_bar = 1.0_fp / 1.01325_fp
-
-  ! Universal gas consatant [bar/(mol/kg)/K]
-  REAL(fp), PARAMETER :: con_R = RStarG * 1.0e-2_fp
-!
 ! !REMARKS:
 !  Need
 !  - TOTAREA (previously used for archiving N2O5 hydrolysis in the planeflight
@@ -206,10 +163,10 @@ MODULE GCKPP_HETRATES
 !    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
 !    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
 !    US. Atmos. Chem. Phys., 16, 2961-2990, 2016.
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
-!    4980-4990, https://doi.org/10.1029/2019GL081990   
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
+!    4980-4990, https://doi.org/10.1029/2019GL081990
 !  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
 !    formation from isoprene: application to the southeast United States and
 !    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
@@ -226,7 +183,7 @@ MODULE GCKPP_HETRATES
 !    https://doi.org/10.5194/acp-16-12239-2016, 2016.
 !
 ! !REVISION HISTORY:
-! Use the gitk browser to view the revision history!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,24 +218,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  01 Apr 2016 - R. Yantosca - Define many variables locally that don't
-!                              need to be in the THREADPRIVATE statements
-!  01 Apr 2016 - R. Yantosca - Remove KII_KI; we now declare that locally
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with emMW_g from species
-!                              database (emitted species g/mol)
-!  26 Jul 2017 - M. Sulprizio- Remove hardcoded molecular weights from calls to
-!                              Het* functions and use MW from species database
-!                              instead
-!  03 Jan 2018 - M. Sulprizio- Remove SCF argument. It was apparently added for
-!                              diagnostic purposes and is no longer used. Also
-!                              rename IO,SM,SC to Input_Opt,State_Met,State_Chm
-!                              for consistency with other GEOS-Chem routines.
-!  31 Jan 2018 - X. Wang     - Correct the calculations of halide concentrations
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database instead of hardcoding in halogens code
-!  17 Oct 2018 - C.D. Holmes - Added cloud heterogeneous chemistry
-!  08 Jun 2019 - X. Wang     - Remove SS debromination options
-!  01 Aug 2020 - C.D. Holmes - Bug fixes for cloud properties. Performance improvements for CloudHet
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,14 +228,11 @@ MODULE GCKPP_HETRATES
       ! Scalars
       LOGICAL                :: SAFEDIV
       INTEGER                :: IND
-      REAL(fp)               :: ADJUSTEDRATE, CONSEXP,  DUMMY,    HBr_RTEMP
-      REAL(fp)               :: HOBr_RTEMP,   QICE,     QLIQ,     SPC_BrNO3
-      REAL(fp)               :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
-      REAL(fp)               :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
-      REAL(fp)               :: conc1, conc2
+      REAL(fp)               :: conc1, conc2, denom
 
       ! SAVEd scalars
-      LOGICAL,          SAVE :: FIRST = .TRUE.
+      INTEGER,          SAVE :: id_SALA = -1
+      LOGICAL,          SAVE :: FIRST   = .TRUE.
 
       ! New treatment for educt removal
       REAL(fp)               :: kITemp, kIITemp
@@ -304,9 +241,6 @@ MODULE GCKPP_HETRATES
       ! Cloud parameters
       REAL(fp)               :: rLiq, ALiq, VLiq, CLDFr
       REAL(fp)               :: rIce, AIce, VIce
-
-      ! Volume of air (cm3)
-      REAL(fp)               :: VAir
 
       ! New bromine/chlorine chemistry
       REAL(fp)               :: hConc_Sul
@@ -328,7 +262,6 @@ MODULE GCKPP_HETRATES
       REAL(fp)               :: gammaLiq, gammaIce
 
       ! Pointers and objects
-      REAL(fp),       POINTER :: spcVec(:)
       TYPE(HetState), POINTER :: H
 
       !====================================================================
@@ -336,129 +269,11 @@ MODULE GCKPP_HETRATES
       !====================================================================
 
       ! Zero scalars and arrays
-      ADJUSTEDRATE  = 0.0_fp
-      CONSEXP       = 0.0_fp
-      DUMMY         = 0.0_fp
-      HBr_RTEMP     = 0.0_fp
-      HOBr_RTEMP    = 0.0_fp
-      KHETI_SLA     = 0.0_fp
-      NAEROTYPE     = State_Chm%nAeroType
-      QICE          = 0.0_fp
-      QLIQ          = 0.0_fp
-      SPC_BrNO3     = 0.0_fp
-      SPC_ClNO3     = 0.0_fp
-      SPC_H2O       = 0.0_fp
-      SPC_HBr       = 0.0_fp
-      SPC_HCl       = 0.0_fp
-      SPC_HOBr      = 0.0_fp
-      SPC_HOCl      = 0.0_fp
-      SPC_N2O5      = 0.0_fp
-      SPC_NIT       = 0.0_fp
-      VPRESH2O      = 0.0_fp
+      ! NOTE: we now get several quantities from gckpp_Global
       HetTemp       = 0.0_fp
-      OMOC_POA      = State_Chm%OMOC_POA(I,J)
-      OMOC_OPOA     = State_Chm%OMOC_OPOA(I,J)
-
-      ! Initialize logicals
-      SAFEDIV       = .FALSE.
-      PSCBOX        = .FALSE.
-      STRATBOX      = .FALSE.
-      NATSURFACE    = .FALSE.
-
-      ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-      IF ( Input_Opt%LUCX ) THEN
-         KHETI_SLA  = State_Chm%KHETI_SLA(I,J,L,:)
-      ENDIF
-
-      ! Point to the chemical species array [molec/cm3]
-      spcVec        => State_Chm%Species(I,J,L,:)
 
       ! Point to the HetInfo objec
       H             => State_Chm%HetInfo
-
-      !--------------------------------------------------------------------
-      ! Calculate RH [%]
-      ! Not clear why this calc is slightly different than State_Met%RH
-      !--------------------------------------------------------------------
-      RELHUM        = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-      CONSEXP       = 17.2693882e+0_fp * (State_Met%T(I,J,L) - 273.16e+0_fp) /&
-                      (State_Met%T(I,J,L) - 35.86e+0_fp)
-      VPRESH2O      = CONSVAP * EXP(CONSEXP) / State_Met%T(I,J,L)
-      RELHUM        = RELHUM / VPRESH2O
-      RELHUM        = RELHUM * 100e+0_fp
-
-      !--------------------------------------------------------------------
-      ! Get species concentrations [molec/cm3]
-      !--------------------------------------------------------------------
-      SPC_NIT  = spcVec(H%NIT%mId   )
-      SPC_SALA = spcVec(H%SALA%mId  )
-      SPC_NITs = spcVec(H%NITs%mId  )
-      SPC_SO4  = spcVec(H%SO4%mId   )
-      SPC_fCl  = spcVec(H%SALACL%mId)
-      SPC_cCl  = spcVec(H%SALCCL%mId)
-      SPC_HBr  = spcVec(H%HBr%mId   )
-      SPC_HOBr = spcVec(H%HOBr%mId  )
-
-      !--------------------------------------------------------------------
-      ! Get fields required for epoxide uptake hydrolysis (EPOXUPTK)
-      ! These values are saved in isorropiaII_mod.F
-      !--------------------------------------------------------------------
-      ! Proton activity [unitless] and H+ concentration [M]
-      ! (assumed equivalent - for now):
-
-      H_PLUS = State_Chm%HplusSav(I,J,L,1)
-
-      ! Sulfate concentration [M]:
-      MSO4   = State_Chm%SulRatSav(I,J,L)
-
-      ! Nitrate concentration [M]:
-
-      MNO3   = State_Chm%NaRatSav(I,J,L,1)
-      ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = State_Chm%BisulSav(I,J,L)
-
-      !--------------------------------------------------------------------
-      ! Aerosol Physical Properties
-      !--------------------------------------------------------------------
-
-      ! Aerosol specific surface area, cm2(aerosol)/cm3(air)
-      XAREA(1:State_Chm%nAeroType) = State_Chm%AeroArea(I,J,L,:)
-
-      ! Aerosol effective radius, cm
-      XRADI(1:State_Chm%nAeroType) = State_Chm%AeroRadi(I,J,L,:)
-
-      ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-      XVOL(1:State_Chm%nAeroType)  = XAREA(1:State_Chm%nAeroType)              &
-                                   * XRADI(1:State_Chm%nAeroType) / 3e+0_fp
-
-      ! Aerosol water content, cm3(H2O)/cm3(air) [note: AeroH2O has units g/m3]
-      XH2O(1:State_Chm%nAeroType)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
-
-      !--------------------------------------------------------------------
-      ! Get fields from State_Met, State_Chm, and Input_Opt
-      !--------------------------------------------------------------------
-      AClAREA = State_Chm%AClArea(I,J,L)      !Fine SSA+SNA aerosol area [cm2/cm3]
-      AClRADI = State_Chm%AClRadi(I,J,L)    !Fine SSA+SNA aerosol radius [cm]
-      AClVOL  = AClArea * AClRadi / 3e+0_fp !Fine SSA+SNA aerosol volume [cm3/cm3]
-      AWATER(:) = State_Chm%WaterSav(I,J,L,:)
-
-      TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
-      XTEMP  = sqrt(State_Met%T(I,J,L))        ! Square root of temperature
-      XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
-      SUNCOS = State_Met%SUNCOSmid(I,J)        ! COS(SZA),midpt of chem timestep
-      VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
-      QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
-      QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
-
-      GAMMA_HO2 = Input_Opt%GAMMA_HO2
-
-      !--------------------------------------------------------------------
-      ! UCX-based mechanisms: Check surface type of PSCs (SDE 04/17/13)
-      !--------------------------------------------------------------------
-      IF ( Input_Opt%LUCX ) THEN
-         CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
-                         Input_Opt, State_Met, State_Chm )
-      ENDIF
 
       !--------------------------------------------------------------------
       !  Calculate parameters for cloud halogen chemistry
@@ -466,12 +281,13 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
 
       ! Get cloud physical parameters
-      CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, State_Met, &
-                       rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce, CLDFr )
+      CALL Cld_Params( I,     J,     L,    State_Met, rLiq, ALiq,          &
+                       VLiq,  rIce,  AIce, VIce,      CLDFr          )
 
       ! Retrieve cloud pH and alkalinity
-      pHCloud = State_Chm%pHCloud(I,J,L)
-      pHSSA(:) = State_Chm%pHSav(I,J,L,:)
+      pHCloud  = State_Chm%pHCloud(I,J,L)
+      pHSSA(:) = State_Chm%IsorropAeropH(I,J,L,:)
+
       ! Since we have Alk tracers, State_Chm%SSAlk may be removed in future
       ! Here still use State_Chm%SSAlk instead of Alk tracers,
       ! to skip unit conversion. xnw 1/24/18
@@ -485,53 +301,47 @@ MODULE GCKPP_HETRATES
       hConc_SSC = 10.0**(-5.0_fp)
 
       ! Get halide concentrations, in cloud
-      conc1 = spcVec(H%HBr%mId   )                                           &
-            + spcVec(H%BrSALA%mId) * 0.7_fp                                  &
-            + spcVec(H%BrSALC%mId)
-
-      conc2 = spcVec(H%HCl%mId   )                                           &
-            + spcVec(H%SALACL%mId) * 0.7_fp                                  &
-            + spcVec(H%SALCCL%mId)
+      conc1 = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_fp ) + C(ind_BrSALC)
+      conc2 = C(ind_HCl) + ( C(ind_SALACL) * 0.7_fp ) + C(ind_SALCCL)
 
       CALL Get_Halide_CldConc( conc1,       conc2,      VLiq,  VIce,         &
-                               VAir,        TempK,      CLDFr, pHCloud,      &
+                               VAir,        Temp,       CLDFr, pHCloud,      &
                                brConc_Cldg, clConc_Cldg                     )
 
       brConc_Cld  = brConc_Cldg
-      brConc_Cldg = ( brConc_Cld * spcVec(H%HBr%mId)                        )&
-                  / ( spcVec(H%HBr%mId)             +                       &
-                      spcVec(H%BrSALA%mId) * 0.7_fp +                       &
-                      spcVec(H%BrSALC%mId)                                  )
-      brConc_CldA = ( brConc_Cld * spcVec(H%BrSALA%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
 
-      brConc_CldC = ( brConc_Cld * spcVec(H%BrSALC%mId)                     )&
-                  / ( spcVec(H%HBr%mId)                 +                    &
-                      spcVec(H%BrSALA%mId) * 0.7_fp     +                    &
-                      spcVec(H%BrSALC%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_fp ) + C(ind_BrSALC)
+      IF ( denom > 0.0_fp ) THEN
+         brConc_Cldg = ( brConc_Cld * C(ind_HBr   )          ) / denom
+         brConc_CldA = ( brConc_Cld * C(ind_BrSALA) * 0.7_fp ) / denom
+         brConc_CldC = ( brConc_Cld * C(ind_BrSALC)          ) / denom
+      ELSE
+         brConc_Cldg = 0.0_fp
+         brConc_CldA = 0.0_fp
+         brConc_CldC = 0.0_fp
+      ENDIF
 
+      ! Enforce minimum values
       brConc_Cldg = MAX( brConc_Cldg, 1.0e-20_fp )
       brConc_CldA = MAX( brConc_CldA, 1.0e-20_fp )
       brConc_CldC = MAX( brConc_CldC, 1.0e-20_fp )
 
       clConc_Cld  = clConc_Cldg
-      clConc_Cldg = ( clConc_Cld * spcVec(H%HCl%mId)                        )&
-                  / ( spcVec(H%HCl%mId)              +                     &
-                      spcVec(H%SALACL%mId) * 0.7_fp  +                     &
-                      spcVec(H%SALCCL%mId)                                  )
 
-      clConc_CldA = ( clConc_Cld * spcVec(H%SALACL%mId) * 0.7_fp            )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
+      ! Avoid div-by-zero (all three expressions use the same denominator)
+      denom = C(ind_HCl) + ( C(ind_SALACL) * 0.7_fp ) + C(ind_SALCCL)
+      IF ( denom > 0.0_fp ) THEN
+         clConc_Cldg = ( clConc_Cld * C(ind_HCl   )          ) / denom
+         clConc_CldA = ( clConc_Cld * C(ind_SALACL) * 0.7_fp ) / denom
+         clConc_CldC = ( clConc_Cld * C(ind_SALCCL)          ) / denom
+      ELSE
+         clConc_Cldg = 0.0_fp
+         clConc_CldA = 0.0_fp
+         clConc_CldC = 0.0_fp
+      ENDIF
 
-      clConc_Cldc = ( clConc_Cld * spcVec(H%SALCCL%mId)                     )&
-                  / ( spcVec(H%HCl%mId)                 +                    &
-                      spcVec(H%SALACL%mId) * 0.7_fp     +                    &
-                      spcVec(H%SALCCL%mId)                                  )
-
+      ! Enforce minimum values
       clConc_Cldg = MAX( clConc_Cldg, 1.0e-20_fp )
       clConc_CldA = MAX( clConc_CldA, 1.0e-20_fp )
       clConc_CldC = MAX( clConc_CldC, 1.0e-20_fp )
@@ -539,28 +349,20 @@ MODULE GCKPP_HETRATES
       ! Get halide concentrations, in aerosol
       ! Note that here Br/ClSALA = Br/Cl- in (SALA + sulfate)
       ! Get the concentration of Br-
-      CALL Get_Halide_SSAConc( spcVec(H%BrSALA%mId), AClAREA,                &
-                               AClRADI,              brConc_SALA            )
-      CALL Get_Halide_SSAConc( spcVec(H%BrSALC%mId), xArea(12),              &
-                               xRadi(12),            brConc_SALC            )
+      CALL Get_Halide_SSAConc(C(ind_BrSALA),AClAREA,  AClRADI,  brConc_SALA)
+      CALL Get_Halide_SSAConc(C(ind_BrSALC),xArea(12),xRadi(12),brConc_SALC)
 
       ! Get the concentration of Cl-
-      CALL Get_Halide_SSAConc( spcVec(H%SALACL%mId), AClAREA,                &
-                               AClRADI,              clConc_SALA            )
-      CALL Get_Halide_SSAConc( spcVec(H%SALCCL%mId), xArea(12),              &
-                               xRadi(12),            clConc_SALC            )
+      CALL Get_Halide_SSAConc(C(ind_SALACL),AClAREA,  AClRADI,  clConc_SALA)
+      CALL Get_Halide_SSAConc(C(ind_SALCCL),xArea(12),xRadi(12),clConc_SALC)
 
       ! Get the concentration of NO3-
-      CALL Get_Halide_SSAConc( spcVec(H%NIT%mId),    AClAREA,                &
-                               AClRADI,              nitConc_SALA           )
-      CALL Get_Halide_SSAConc( spcVec(H%NITs%mId),   xArea(12),              &
-                               xRadi(12),            nitConc_SALC           )
+      CALL Get_Halide_SSAConc(C(ind_NIT),   AClAREA,  AClRADI,  nitConc_SALA)
+      CALL Get_Halide_SSAConc(C(ind_NITs),  xArea(12),xRadi(12),nitConc_SALC)
 
       ! Get theta for ice cloud uptake
-      CALL Get_Theta_Ice(      spcVec(H%HNO3%mId),   spcVec(H%HCl%mId),      &
-                               spcVec(H%HBr%mId),    TempK,                  &
-                               hno3_th,              hcl_th,                 &
-                               hbr_th                                       )
+      CALL Get_Theta_Ice( C(ind_HNO3), C(ind_HCl), C(ind_HBr), Temp,         &
+                          hno3_th,     hcl_th,     hbr_th                   )
 
       !--------------------------------------------------------------------
       !  Get parameters for HOBr + S(IV)
@@ -624,11 +426,11 @@ MODULE GCKPP_HETRATES
       !======================================================================
       HET(ind_NO2,    1) = HET(ind_NO2, 1)                                   &
                          + CloudHet( CldFr, Aliq, Aice,                      &
-                                     rLiq,  rIce, TempK,   XDenA,            &
+                                     rLiq,  rIce, Temp,   XDenA,            &
                                      H%NO2%MW_g,  1e-8_fp, 0.0_fp           )
       HET(ind_NO3,    1) = HET(ind_NO3, 1)                                   &
                          + CloudHet( CldFr, Aliq, Aice,                      &
-                                     rLiq,  rIce, TempK,    XDenA,           &
+                                     rLiq,  rIce, Temp,    XDenA,           &
                                      H%NO3%MW_g,  0.002_fp, 0.001_fp        )
 
       ! Reactive uptake coefficient for N2O5 on liquid water cloud
@@ -637,10 +439,10 @@ MODULE GCKPP_HETRATES
       ! sulfuric acid aerosol at zero percent H2SO4, which is 0.019 at 298 K.
       ! Then apply constant scale factor (0.03/0.019)
       gammaLiq = ( 0.03_fp / 0.019_fp ) * &
-         exp( -25.5265_fp + 9283.76_fp / TempK - 851801.0_fp / TempK**2 )
+         exp( -25.5265_fp + 9283.76_fp / Temp - 851801.0_fp / Temp**2 )
 
       HET(ind_N2O5,   3) = CloudHet( CldFr, Aliq, Aice,                      &
-                                     rLiq,  rIce, TempK,    XDenA,           &
+                                     rLiq,  rIce, Temp,    XDenA,           &
                                      H%N2O5%MW_g, gammaLiq, 0.02_fp         )
 
       ! Now calculate reaction rates where the educt can be consumed.
@@ -650,9 +452,7 @@ MODULE GCKPP_HETRATES
 
       HetTemp(1:2)                 = HETN2O5( 1.08E2_fp, 1E-1_fp, CldFr )
       kITemp                       = HetTemp(1)
-      HET(ind_N2O5,  1)            = kIIR1Ltd( spcVec,    H%N2O5%mId,        &
-                                               H%H2O%mId, kITemp,            &
-                                               HetMinLife                   )
+      HET(ind_N2O5,  1)            = kIIR1Ltd(C(ind_N2O5), C(ind_H2O), kITemp)
       State_Chm%GammaN2O5(I,J,L,1) = HetTemp(2)
 
       !======================================================================
@@ -663,13 +463,13 @@ MODULE GCKPP_HETRATES
       ! Cl- enhanced NO3 hydrolysis (XW 2018-03-16)
       !----------------------------------------------------------------------
       kITemp          = HetNO3_Cl( XDenA, AClRADI,     (1-CldFr)*AClAREA,    &
-                                   TempK, clConc_SALA, 1,                    &
+                                   Temp, clConc_SALA, 1,                    &
                                    H                                        )
 
       HET(ind_NO3, 2) = kITemp
 
       kITemp          = HetNO3_Cl( XDenA, XRADI(12),  (1-CldFr)*XAREA(12),   &
-                                   TempK, clConc_SALC, 2,                    &
+                                   Temp, clConc_SALC, 2,                    &
                                    H                                        )
 
       HET(ind_NO3, 3) = kITemp
@@ -677,31 +477,28 @@ MODULE GCKPP_HETRATES
       !----------------------------------------------------------------------
       ! ClNO3 and BrNO3 hydrolysis (update: XW 2019-06-08)
       !----------------------------------------------------------------------
-      gammaLiq = MAX( 0.0021_fp*TempK - 0.561_fp, 1e-30_fp )
-      gammaIce = 5.3e-4_fp * exp(1100.0_fp / TempK)
-      kITemp            = HETBrNO3( XDenA, TempK, CldFr, H )
+      gammaLiq = MAX( 0.0021_fp*Temp - 0.561_fp, 1e-30_fp )
+      gammaIce = 5.3e-4_fp * exp(1100.0_fp / Temp)
+      kITemp            = HETBrNO3( XDenA, Temp, CldFr, H )
       kITemp = kITemp   + CloudHet( CldFr, Aliq,  Aice,                      &
-                                    rLiq,  rIce,  TempK, XDenA,              &
+                                    rLiq,  rIce,  Temp, XDenA,               &
                                     H%BrNO3%MW_g, gammaLiq, gammaIce        )
 
-      HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, H%BrNO3%mId, H%H2O%mId,          &
-                                    kITemp, HetMinLife                      )
-
-      kITemp            = HETClNO3( XDenA,       TempK, clConc_SALA,         &
+      HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), kITemp        )
+      kITemp            = HETClNO3( XDenA,       Temp, clConc_SALA,         &
                                     brConc_SALA, CldFr, H                   )
 
       kITemp            = kITemp                                             &
                         + HETClNO3_TCld(                                     &
                                     XDenA,       rLiq,  rIce,                &
                                     ALiq,        AIce,  VAir,                &
-                                    TempK,       CldFr, clConc_CldA,         &
+                                    Temp,        CldFr, clConc_CldA,         &
                                     clConc_CldC, clConc_Cldg, brConc_CldA,   &
                                     brConc_CldC, brConc_Cldg, hno3_th,       &
                                     hcl_th,      hbr_th,      7,             &
                                     H                                       )
 
-      HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%H2O%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 1) = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), kITemp        )
 
       !----------------------------------------------------------------------
       ! HOBr + HBr (update: XW 2019-06-08)
@@ -711,15 +508,14 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hno3_th,     hcl_th,               &
                              hbr_th,      6,           H                    )
 
-      HET(ind_HOBr,  1) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%HBr%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  1) = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), kITemp         )
 
       !----------------------------------------------------------------------
       ! HOBr + HCl (update: XW 2019-06-08)
@@ -729,15 +525,14 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hno3_th,     hcl_th,               &
                              hbr_th,      5,           H                    )
 
-      HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%HCl%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  2) = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), kITemp         )
 
       !----------------------------------------------------------------------
       ! HOBr + BrSalA/C (update: XW 2019-06-08)
@@ -746,7 +541,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,       CldFr,        hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -756,17 +551,16 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp +                                                      &
                HETHOBr_SS( XDenA,       AClRADI,     (1-CldFr)*AClAREA,      &
-                           SSAlk(1),    TempK,       hConc_SSA,              &
+                           SSAlk(1),    Temp,        hConc_SSA,              &
                            clConc_SALA, brConc_SALA, 2,                      &
                            H                                                )
 
-      HET(ind_HOBr,  5) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%BrSALA%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  5) = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALA), kITemp      )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -776,12 +570,11 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETHOBr_SS( XDenA,       xRadi(12),   (1-CldFr)*xArea(12),    &
-                           SSAlk(2),    TempK,       hConc_SSC,              &
+                           SSAlk(2),    Temp,        hConc_SSC,              &
                            clConc_SALC, brConc_SALC, 2,                      &
                            H                                                )
 
-      HET(ind_HOBr,  6) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%BrSALC%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  6) = kIIR1Ltd( C(ind_HOBr),  C(ind_BrSALC), kITemp     )
 
       !----------------------------------------------------------------------
       ! HOBr + Cl-(p) (update: XW 2019-06-08)
@@ -789,7 +582,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -799,17 +592,16 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETHOBr_SS( XDenA,       AClRADI,     (1-CldFr)*AClAREA,      &
-                           SSAlk(1),    TempK,       hConc_SSA,              &
+                           SSAlk(1),    Temp,        hConc_SSA,              &
                            clConc_SALA, brConc_SALA, 1,                      &
                            H                                                )
 
-      HET(ind_HOBr,  3) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%SALACL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  3) = kIIR1Ltd( C(ind_HOBr), C(ind_SALACL), kITemp      )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -819,12 +611,11 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETHOBr_SS( XDenA,       xRadi(12),   (1-CldFr)*xArea(12),    &
-                           SSAlk(2),    TempK,       hConc_SSC,              &
+                           SSAlk(2),    Temp,       hConc_SSC,               &
                            clConc_SALC, brConc_SALC, 1,                      &
                            H                                                )
 
-      HET(ind_HOBr,  4) = kIIR1Ltd( spcVec, H%HOBr%mId,  H%SALCCL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOBr,  4) = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), kITemp      )
 
       !----------------------------------------------------------------------
       ! HOBr + HSO3-(aq) (update: XW 2019-06-08)
@@ -833,7 +624,7 @@ MODULE GCKPP_HETRATES
       ! This reaction is first order, so no kII calculation is required
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -849,7 +640,7 @@ MODULE GCKPP_HETRATES
       ! This reaction is first order, so no kII calculation is required
       kITemp = HETHOBr_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, brConc_CldA,          &
                              brConc_CldC, brConc_Cldg, HSO3conc_Cld,         &
@@ -865,7 +656,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      3,                   &
@@ -874,17 +665,16 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETClNO3_SS( XDenA,       AClRADI, (1-CldFr)*AClAREA,         &
-                            SSAlk(1),    TempK,   clConc_SALA,               &
+                            SSAlk(1),    Temp,    clConc_SALA,               &
                             brConc_SALA, 2,       1,                         &
                             H                                               )
 
-      HET(ind_ClNO3, 4) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%BrSALA%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 4) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), kITemp     )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      4,                   &
@@ -893,12 +683,11 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETClNO3_SS( XDenA,       xRadi(12), (1-CldFr)*xArea(12),     &
-                            SSAlk(2),    TempK,     clConc_SALC,             &
+                            SSAlk(2),    Temp,      clConc_SALC,             &
                             brConc_SALC, 2,         2,                       &
                             H                                               )
 
-      HET(ind_ClNO3, 5) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%BrSALC%mId,       &
-                                    kITemp, HetMinLife)
+      HET(ind_ClNO3, 5) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), kITemp     )
 
       !---------------------------------------------------------------------
       ! ClNO3 + Cl-(p) (update: XW 2019-06-08)
@@ -906,7 +695,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      1,                   &
@@ -915,17 +704,16 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETClNO3_SS( XDenA,       AClRADI, (1-CldFr)*AClAREA,         &
-                            SSAlk(1),    TempK,   clConc_SALA,               &
+                            SSAlk(1),    Temp,    clConc_SALA,               &
                             brConc_SALA, 1,       1,                         &
                             H                                               )
 
-      HET(ind_ClNO3, 6) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%SALACL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 6) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), kITemp     )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      2,                   &
@@ -934,12 +722,11 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols out of cloud
       kITemp = kITemp                                                        &
              + HETClNO3_SS( XDenA,       xRadi(12), (1-CldFr)*xArea(12),     &
-                            SSAlk(2),    TempK,     clConc_SALC,             &
+                            SSAlk(2),    Temp,      clConc_SALC,             &
                             brConc_SALC, 1,         2,                       &
                             H                                               )
 
-      HET(ind_ClNO3, 7) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%SALCCL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 7) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), kITemp     )
 
       !--------------------------------------------------------------------
       ! ClNO3 + HCl (update: XW 2019-06-08)
@@ -949,14 +736,13 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      5,                   &
                               H                                             )
 
-      HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%HCl%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 2) = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), kITemp        )
 
       !--------------------------------------------------------------------
       ! ClNO3 + HBr (update: XW 2019-06-08)
@@ -966,14 +752,13 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETClNO3_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       clConc_CldA,         &
+                              Temp,        CldFr,       clConc_CldA,         &
                               clConc_CldC, clConc_Cldg, brConc_CldA,         &
                               brConc_CldC, brConc_Cldg, hno3_th,             &
                               hcl_th,      hbr_th,      6,                   &
                               H                                             )
 
-      HET(ind_ClNO3, 3) = kIIR1Ltd( spcVec, H%ClNO3%mId, H%HBr%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO3, 3) = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), kITemp        )
 
       !----------------------------------------------------------------------
       ! HOCl + HCl and HOCl + HBr (update: XW 2019-06-08)
@@ -982,19 +767,17 @@ MODULE GCKPP_HETRATES
       kITemp = kITemp                                                        &
              + HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hcl_th,      3,                    &
-                             H                                             )
+                             H                                              )
 
-      HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%HCl%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOCl,  1) = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), kITemp         )
 
-      kiTemp            = HETHOCl_HBr( H%HOCl%MW_g, 0E+0_fp, Input_Opt )
+      kiTemp            = HETHOCl_HBr( H%HOCl%MW_g, 0E+0_fp, Input_Opt      )
 
-      HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%HBr%mId,          &
-                                    kiTemp, HetMinLife                      )
+      HET(ind_HOCl,  2) = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), kiTemp         )
 
       !----------------------------------------------------------------
       ! HOCl + Cl-(p) (update: XW 2019-06-08)
@@ -1002,7 +785,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hcl_th,      1,                    &
@@ -1011,16 +794,15 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETHOCl_SS( XDenA,       AClRADI, (1-CldFr)*AClAREA,          &
-                           SSAlk(1),    TempK,   hConc_SSA,                  &
+                           SSAlk(1),    Temp,   hConc_SSA,                   &
                            clConc_SALA, H                                   )
 
-      HET(ind_HOCl,  3) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%SALACL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_HOCl,  3) = kIIR1Ltd( C(ind_HOCl), C(ind_SALACL), kITemp      )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hcl_th,      2,                    &
@@ -1029,11 +811,10 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp                                                        &
              + HETHOCl_SS( XDenA,       xRadi(12), (1-CldFr)*xArea(12),      &
-                           SSAlk(2),    TempK,      hConc_SSC,               &
+                           SSAlk(2),    Temp,      hConc_SSC,                &
                            clConc_SALC, H                                   )
 
-      HET(ind_HOCl,  4) = kIIR1Ltd( spcVec, H%HOCl%mId,  H%SALCCL%mId,       &
-                                    kITemp, HetMinLife)
+      HET(ind_HOCl,  4) = kIIR1Ltd( C(ind_HOCl), C(ind_SALCCL), kITemp      )
 
       !----------------------------------------------------------------
       ! HOCl + HSO3-/SO3--(aq)
@@ -1041,7 +822,7 @@ MODULE GCKPP_HETRATES
       ! This reaction is first order, so no kII calculation is required
       kITemp = HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hcl_th,      4,                    &
@@ -1053,7 +834,7 @@ MODULE GCKPP_HETRATES
       ! This reaction is first order, so no kII calculation is required
       kITemp = HETHOCl_TCld( XDenA,       rLiq,        rIce,                 &
                              ALiq,        AIce,        VAir,                 &
-                             TempK,       CldFr,       hConc_Sul,            &
+                             Temp,        CldFr,       hConc_Sul,            &
                              hConc_LCl,   hConc_ICl,   clConc_CldA,          &
                              clConc_CldC, clConc_Cldg, HSO3conc_Cld,         &
                              SO3conc_Cld, hcl_th,      5,                    &
@@ -1067,54 +848,51 @@ MODULE GCKPP_HETRATES
       !----------------------------------------------------------------
       kITemp = HETO3_TCld( XDenA,       rLiq,        rIce,                   &
                            ALiq,        AIce,        VAir,                   &
-                           TempK,       CldFr,       brConc_CldA,            &
-                           brConc_CldC, brConc_Cldg, spcVec(H%O3%mId),       &
+                           Temp,        CldFr,       brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, C(ind_O3),              &
                            3,           H                                   )
 
-      HET(ind_O3,    1) = kIIR1Ltd( spcVec, H%O3%mId, H%HBr%mId,             &
-                                    kITemp, HetMinLife                      )
+      HET(ind_O3,    1) = kIIR1Ltd( C(ind_O3), C(ind_HBr), kITemp           )
 
       !----------------------------------------------------------------
       ! O3 + BrSALA/C calculations (TMS index: hhc13/14)
       !----------------------------------------------------------------
       kITemp = HETO3_TCld( XDenA,       rLiq,        rIce,                   &
                            ALiq,        AIce,        VAir,                   &
-                           TempK,       CldFr,       brConc_CldA,            &
-                           brConc_CldC, brConc_Cldg, spcVec(H%O3%mId),       &
+                           Temp,        CldFr,       brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, C(ind_O3),              &
                            1,           H                                   )
 
       kITemp = kITemp                                                        &
-             + HETO3_SS( XDenA,            AClRADI, (1-CldFr)*AClAREA,       &
-                         SSAlk(1),         TempK,   brConc_SALA,             &
-                         spcVec(H%O3%mId), H                                )
+             + HETO3_SS( XDenA,         AClRADI, (1-CldFr)*AClAREA,          &
+                         SSAlk(1),      Temp,    brConc_SALA,                &
+                         C(ind_O3),     H                                   )
 
-      HET(ind_O3,    2) = kIIR1Ltd( spcVec, H%O3%mId, H%BrSALA%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_O3,    2) = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), kITemp        )
 
       kITemp  = HETO3_TCld( XDenA,       rLiq,        rIce,                  &
                             ALiq,        AIce,        VAir,                  &
-                            TempK,       CldFr,       brConc_CldA,           &
-                            brConc_CldC, brConc_Cldg, spcVec(H%O3%mId),      &
+                            Temp,        CldFr,       brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, C(ind_O3),             &
                             2,           H                                  )
 
       kITemp = kITemp                                                        &
-             + HETO3_SS( XDenA,            xRadi(12), (1-CldFr)*xArea(12),   &
-                         SSAlk(2),         TempK,     brConc_SALC,           &
-                         spcVec(H%O3%mId), H                                )
+             + HETO3_SS( XDenA,          xRadi(12), (1-CldFr)*xArea(12),     &
+                         SSAlk(2),       Temp,      brConc_SALC,             &
+                         C(ind_O3),      H                                  )
 
-      HET(ind_O3,    3) = kIIR1Ltd( spcVec, H%O3%mId, H%BrSALC%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_O3,    3) = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), kITemp        )
 
       !----------------------------------------------------------------
       ! Br uptake calculation - forms BrSALA/C (TS index: hhc17/18)
       !----------------------------------------------------------------
       ! First-order reactions, no calculation of kII required
       kITemp            = HETHXUptake( XDenA, AClRADI, (1-CldFr)*ACLAREA,    &
-                                       TempK, 2                             )
+                                       Temp, 2                              )
       HET(ind_HBr,   1) = kITemp
 
       kITemp            = HETHXUptake( XDenA, xRadi(12), (1-CldFr)*xArea(12),&
-                                       TempK, 2                             )
+                                       Temp, 2                              )
       HET(ind_HBr,   2) = kITemp
 
       !----------------------------------------------------------------
@@ -1122,43 +900,37 @@ MODULE GCKPP_HETRATES
       !----------------------------------------------------------------
       ! NOTE: the restriction of these reactions to the troposphere has been
       ! restored - TMS (2017/04/06 )
-      HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, H%BrNO3%mId, H%HCl%mId,          &
-                                    HETBrNO3_HCl( 1.42E2_fp, 0.0_fp),        &
-                                    HetMinLife                              )
+      HET(ind_BrNO3, 2) = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl),                &
+                                    HETBrNO3_HCl( 1.42E2_fp, 0.0_fp )       )
 
       !----------------------------------------------------------------
       ! N2O5 + HCl in stratosphere
       !----------------------------------------------------------------
       ! NOTE: this extension of calculation in troposphere has been removed
       !  (TMS 17/04/10)
-      kITemp            = HETN2O5_HCl( 1.08E2_fp, 0.0_fp, Input_Opt )
-      HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, H%N2O5%mId, H%HCl%mId,           &
-                                    kITemp, HetMinLife)
+      kITemp            = HETN2O5_HCl( 1.08E2_fp, 0.0_fp, Input_Opt         )
+      HET(ind_N2O5,  2) = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), kITemp         )
 
       !----------------------------------------------------------------
       ! Reaction of N2O5 with Cl-, XW 1/24/18)
       !----------------------------------------------------------------
       HetTemp(1:3)      = HETN2O5_SS( CldFr, 1 )
-      HET(ind_N2O5,  4) = kIIR1Ltd( spcVec,     H%N2O5%mId, H%SALACL%mId,    &
-                                    HetTemp(1), HetMinLife                  )
+      HET(ind_N2O5,  4) = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), HetTemp(1)  )
       State_Chm%GammaN2O5(I,J,L,2) = HetTemp(1)
 
       HetTemp(1:3)      = HETN2O5_SS( CldFr, 2)
-      HET(ind_N2O5,  5) = kIIR1Ltd( spcVec,     H%N2O5%mId, H%SALCCL%mId,    &
-                                    HetTemp(1), HetMinLife)
+      HET(ind_N2O5,  5) = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), HetTemp(1)  )
       State_Chm%GammaN2O5(I,J,L,3) = HetTemp(1)
 
       !----------------------------------------------------------------
       ! Reaction of OH with Cl-, XW 3/12/18)
       !----------------------------------------------------------------
-      kITemp          = HETOH( XDenA, AClRADI, AClAREA, TempK, clConc_SALA)
-      HET(ind_OH,  1) = kIIR1Ltd( spcVec, H%OH%mId, H%SALACL%mId,            &
-                                  kITemp, HetMinLife                        )
+      kITemp          = HETOH( XDenA, AClRADI, AClAREA, Temp, clConc_SALA   )
+      HET(ind_OH,  1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), kITemp          )
 
       kITemp          = HETOH( XDenA, xRadi(12), xArea(12),                  &
-                               TempK, clConc_SALC                           )
-      HET(ind_OH,  2) = kIIR1Ltd( spcVec, H%OH%mId, H%SALCCL%mId,            &
-                                  kITemp, HetMinLife                        )
+                               Temp, clConc_SALC                            )
+      HET(ind_OH,  2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), kITemp          )
 
       !----------------------------------------------------------------
       ! Reaction of ClNO2 with Cl-, XW 3/12/18)
@@ -1167,7 +939,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               1,           H                                )
@@ -1175,36 +947,33 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols out of cloud
       kITemp = kITemp                                                        &
              + HETClNO2( XDenA,       AClRADI,     (1-CldFr)*AClAREA,        &
-                         SSAlk(1),    TempK,       pHSSA(1),                 &
+                         SSAlk(1),    Temp,       pHSSA(1),                  &
                          clConc_SALA, brConc_SALA, 1,                        &
                           H                                                 )
 
-      HET(ind_ClNO2, 1) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%SALACL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO2, 1) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL), kITemp     )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               2,           H                                )
       ! not on SALC
-      HET(ind_ClNO2, 2) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%SALCCL%mId,       &
-                                    kITemp, HetMinLife)
+      HET(ind_ClNO2, 2) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALCCL), kITemp     )
 
       !----------------------------------------------------------------
       ! ClNO2 + dissolved HCl in cloud
       !----------------------------------------------------------------
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               3,           H                                )
 
-      HET(ind_ClNO2, 3) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%HCl%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO2, 3) = kIIR1Ltd( C(ind_ClNO2), C(ind_HCl), kITemp        )
 
       !----------------------------------------------------------------
       ! Reaction of ClNO2 with sea-salt Br-, XW 8/8/18)
@@ -1213,7 +982,7 @@ MODULE GCKPP_HETRATES
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               4,           H                                )
@@ -1221,17 +990,16 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp +                                                      &
                HETClNO2( XDenA,       AClRADI,     (1-CldFr)*AClAREA,        &
-                         SSAlk(1),    TempK,       pHSSA(1),                 &
+                         SSAlk(1),    Temp,        pHSSA(1),                 &
                          clConc_SALA, brConc_SALA, 2,                        &
                          H                                                  )
 
-      HET(ind_ClNO2, 4) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%BrSALA%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO2, 4) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALA), kITemp     )
 
       ! First consider reaction in troposphere cloud
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               5,           H                                )
@@ -1239,25 +1007,23 @@ MODULE GCKPP_HETRATES
       ! Then calculate reaction on aerosols
       kITemp = kITemp +                                                      &
                HETClNO2( XDenA,       xRadi(12),   (1-CldFr)*xArea(12),      &
-                         SSAlk(2),    TempK,       pHSSA(2),                 &
+                         SSAlk(2),    Temp,        pHSSA(2),                 &
                          clConc_SALC, brConc_SALC, 2,                        &
                          H                                                  )
 
-      HET(ind_ClNO2, 5) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%BrSALC%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO2, 5) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALC), kITemp     )
 
       !----------------------------------------------------------------
       ! ClNO2 + dissolved HBr in cloud
       !----------------------------------------------------------------
       kITemp = HETClNO2_TCld( XDenA,       rLiq,        rIce,                &
                               ALiq,        AIce,        VAir,                &
-                              TempK,       CldFr,       pHCloud,             &
+                              Temp,        CldFr,       pHCloud,             &
                               clConc_CldA, clConc_CldC, clConc_Cldg,         &
                               brConc_CldA, brConc_CldC, brConc_Cldg,         &
                               6,           H                                )
 
-      HET(ind_ClNO2, 6) = kIIR1Ltd( spcVec, H%ClNO2%mId, H%HBr%mId,          &
-                                    kITemp, HetMinLife                      )
+      HET(ind_ClNO2, 6) = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), kITemp        )
 
       !=====================================================================
       ! Iodine chemistry
@@ -1294,55 +1060,42 @@ MODULE GCKPP_HETRATES
 
       ! Breakdown of iodine compounds on sea-salt
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 1       )
-      HET(ind_HOI,  3) = kIIR1Ltd( spcVec, H%HOI%mId, H%BrSALA%mId,          &
-                                   kITemp, HetMinLife                       )
+      HET(ind_HOI,  3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), kITemp        )
 
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 2       )
-      HET(ind_HOI,  4) = kIIR1Ltd( spcVec, H%HOI%mId, H%BrSALC%mId,          &
-                                   kITemp, HetMinLife                       )
+      HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), kITemp        )
 
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 3       )
-      HET(ind_HOI,  5) = kIIR1Ltd( spcVec, H%HOI%mId, H%SALACL%mId,          &
-                                   kITemp, HetMinLife                       )
+      HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), kITemp      )
 
       kITemp           = HETIXCycleSSA( H%HOI%MW_g, 0.01_fp, SSAlk, 4       )
-      HET(ind_HOI,  6) = kIIR1Ltd( spcVec, H%HOI%mId, H%SALCCL%mId,          &
-                                   kITemp, HetMinLife                       )
+      HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), kITemp        )
 
       kITemp           = HETIXCycleSSA( H%IONO%MW_g, 0.02_fp, SSAlk, 1      )
-      HET(ind_IONO, 3) = kIIR1Ltd( spcVec, H%IONO%mId, H%BrSALA%mId,         &
-                                   kITemp, HetMinLife )
+      HET(ind_IONO, 3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), kITemp       )
 
       kITemp           = HETIXCycleSSA( H%IONO%MW_g, 0.02_fp, SSAlk, 2      )
-      HET(ind_IONO, 4) = kIIR1Ltd( spcVec, H%IONO%mId, H%BrSALC%mId,         &
-                                   kITemp, HetMinLife                       )
+      HET(ind_IONO, 4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), kITemp       )
 
       kITemp           = HETIXCycleSSA( H%IONO%MW_g, 0.02_fp, SSAlk, 3      )
-      HET(ind_IONO, 5) = kIIR1Ltd( spcVec, H%IONO%mId, H%SALACL%mId,         &
-                                   kITemp, HetMinLife                       )
+      HET(ind_IONO, 5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), kITemp       )
 
       kITemp           = HETIXCycleSSA( H%IONO%MW_g, 0.02_fp, SSAlk, 4      )
-      HET(ind_IONO, 6) = kIIR1Ltd( spcVec, H%IONO%mId, H%SALCCL%mId,         &
-                                   kITemp, HetMinLife                       )
+      HET(ind_IONO, 6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), kITemp       )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 1    )
-      HET(ind_IONO2, 3) = kIIR1Ltd( spcVec, H%IONO2%mId, H%BrSALA%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_IONO2, 3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), kITemp     )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 2    )
-      HET(ind_IONO2, 4) = kIIR1Ltd( spcVec, H%IONO2%mId, H%BrSALC%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_IONO2, 4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), kITemp     )
 
       kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
-      HET(ind_IONO2, 5) = kIIR1Ltd( spcVec, H%IONO2%mId, H%SALACL%mId,       &
-                                    kITemp, HetMinLife                      )
+      HET(ind_IONO2, 5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), kITemp     )
 
-      kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 3    )
-      HET(ind_IONO2, 6) = kIIR1Ltd( spcVec, H%IONO2%mId, H%SALCCL%mId,       &
-                                    kITemp, HetMinLife )
+      kITemp            = HETIXCycleSSA( H%IONO2%MW_g, 0.01_fp, SSAlk, 4    )
+      HET(ind_IONO2, 6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), kITemp     )
 
       ! Nullify pointers
-      spcVec => NULL()
       H      => NULL()
 
     END SUBROUTINE SET_HET
@@ -1359,14 +1112,14 @@ MODULE GCKPP_HETRATES
 !  cell. The function uses the "entrainment limited uptake" equations of
 !  Holmes et al. (2019). Both liquid and ice water clouds are treated.
 !
-!  For gasses that are that are consumed in multiple aqueous reactions with different 
-!  products, CloudHet can provide the loss frequency for each reaction branch using the 
+!  For gasses that are that are consumed in multiple aqueous reactions with different
+!  products, CloudHet can provide the loss frequency for each reaction branch using the
 !  optional branch ratios (branchLiq, branchIce) as arguments.
 !
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A., 
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling 
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46, 
-!    4980-4990, https://doi.org/10.1029/2019GL081990   
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
+!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
+!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
+!    4980-4990, https://doi.org/10.1029/2019GL081990
 !\\
 !\\
 ! !INTERFACE:
@@ -1391,7 +1144,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),         INTENT(IN) :: gammaLiq   ! Gamma values on liquid water
       REAL(fp),         INTENT(IN) :: gammaIce   !   and water ice
       REAL(fp),         OPTIONAL   :: branchLiq  ! Fraction of reactant consumed in a particular reaction branch
-      REAL(fp),         OPTIONAL   :: branchIce  !   in liquid and ice, fraction [0-1] 
+      REAL(fp),         OPTIONAL   :: branchIce  !   in liquid and ice, fraction [0-1]
 !
 ! !RETURN VALUE:
 !
@@ -1399,12 +1152,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  23 Aug 2018 - C. D. Holmes - Initial version
-!  17 Oct 2018 - C. D. Holmes - Re-implemented for v12.0.2
-!  08 Jun 2019 - X. Wang      - Update for halogen reactions
-!  01 Aug 2020 - C.D. Holmes  - Structural changes for better performance 
-!              (remove SELECT CASE, pass gamma & molar weight as arguments)
-!                               Revised 
-!EOP
+!  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1541,12 +1289,12 @@ MODULE GCKPP_HETRATES
       ! kHet = kI * xx / ( 1d0 + xx )
       !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
       !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) ) 
-      
+      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
+
       ! Overall loss rate in a particular reaction branch, 1/s
       kHet = kHet * branch
       ! Note: CloudHet currently requires calling CloudHet N times for N reaction branches.
-      ! Returning both total loss frequency and mean branch ratio would allow calculation of 
+      ! Returning both total loss frequency and mean branch ratio would allow calculation of
       ! all loss rates with N-1 calls to CloudHet (more efficient) (C.D. Holmes)
 
     end function CloudHet
@@ -1563,84 +1311,76 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION kIIR1Ltd( spcVec, indGas, indEduct, kISource, minLife ) &
-       RESULT( kII )
+    FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
 !
 ! !INPUT PARAMETERS:
 !
       ! Rate coefficients
-      REAL(fp), INTENT(IN)           :: spcVec(:)
-      INTEGER,  INTENT(IN)           :: indGas
-      INTEGER,  INTENT(IN)           :: indEduct
-      REAL(fp), INTENT(IN)           :: kISource
-      REAL(fp), INTENT(IN), OPTIONAL :: minLife
+      REAL(f8), INTENT(IN) :: concGas
+      REAL(f8), INTENT(IN) :: concEduct
+      REAL(dp), INTENT(IN) :: kISource
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                       :: kII
+      REAL(dp)             :: kII
 !
 ! !REMARKS:
+!  Uses HetMinLife and HetMinRate constants from gckpp_Global.F90
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: kIGas, kIEduct, concGas, concEduct
-      REAL(fp) :: lifeA, lifeB, kIMult
-
-      concGas = spcVec(indGas)
-      concEduct = spcVec(indEduct)
+      REAL(dp) :: kIGas, kIEduct, lifeA, lifeB
 
       ! Copy kI as calculated assuming no limitation
-      kIGas = kISource
-      kIEduct = 0.0e+0_fp
-      kII = 0.0e+0_fp
+      kIGas   = kISource
+      kIEduct = 0.0_dp
+      kII     = 0.0_dp
 
-      IF (concEduct.lt.100.0e+0_fp) THEN
-         kIGas = 0.0e+0_fp
-         kIEduct = 0.0e+0_fp
-         kII = 0.0e+0_fp
+      IF ( concEduct < 100.0_dp ) THEN
+         kIGas   = 0.0_dp
+         kIEduct = 0.0_dp
+         kII     = 0.0_dp
       ELSE
          ! Safe division here is probably overkill - may remove this
-         IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-            kIEduct = kIGas*concGas/concEduct
-            kII = kIGas/concEduct
+         IF ( Is_Safe_Div( concGas*kIGas, concEduct ) ) THEN
+            kIEduct = kIGas *concGas / concEduct
+            kII     = kIGas          / concEduct
          ELSE
-            kIGas = 0.0e+0_fp
-            kIEduct = 0.0e+0_fp
-            kII = 0.0e+0_fp
+            kIGas   = 0.0_dp
+            kIEduct = 0.0_dp
+            kII     = 0.0_dp
          ENDIF
       ENDIF
 
       ! Enforce a minimum lifetime?
-      IF (PRESENT(minLife)) THEN
-         IF ((kIGas.gt.0.0e+0_fp).and.(minLife.gt.0.0e+0_fp)) THEN
-            ! Calculate lifetime of each reactant against removal
-            lifeA = Safe_Div(1.0e+0_fp,kIGas,0.0e+0_fp)
-            lifeB = Safe_Div(1.0e+0_fp,kIEduct,0.0e+0_fp)
-            ! Check if either lifetime is "too short"
-            IF ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) THEN
-               IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-                  kIGas = 1.0e+0_fp/minLife
-                  kII = kIGas/concEduct
-               ELSE
-                  kIGas = 0.0e+0_fp
-                  kII = 0.0e+0_fp
-               ENDIF
-            ELSEIF (lifeB.lt.minLife) THEN
-               IF (Is_Safe_Div(concEduct*kIEduct,concGas)) THEN
-                  kIEduct = 1.0e+0_fp/minLife
-                  kII = kIEduct/concGas
-               ELSE
-                  kIEduct = 0.0e+0_fp
-                  kII = 0.0e+0_fp
-               ENDIF
+      IF ( kIGas > 0.0_dp ) THEN
+
+         ! Calculate lifetime of each reactant against removal
+         lifeA = Safe_Div( 1.0_dp, kIGas,   0.0_dp )
+         lifeB = Safe_Div( 1.0_dp, kIEduct, 0.0_dp )
+
+         ! Check if either lifetime is "too short"
+         IF ( ( lifeA < lifeB ) .and. ( lifeA < HetMinLife ) ) THEN
+            IF ( Is_Safe_Div( concGas*kIGas, concEduct) ) THEN
+               kIGas = HetMinRate
+               kII   = kIGas  / concEduct
+            ELSE
+               kIGas = 0.0_dp
+               kII   = 0.0_dp
+            ENDIF
+         ELSE IF ( lifeB < HetMinLife ) THEN
+            IF ( Is_Safe_Div( concEduct*kIEduct, concGas ) ) THEN
+               kIEduct = HetMinRate
+               kII     = kIEduct / concGas
+            ELSE
+               kIEduct = 0.0_dp
+               kII     = 0.0_dp
             ENDIF
          ENDIF
       ENDIF
@@ -1683,9 +1423,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1768,7 +1506,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
-!  04 Apr 2018 - X. Wang       - Update for Cl- simulation
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1844,7 +1582,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1896,12 +1634,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca  - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca  - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca  - Replace KII_KI with DO_EDUCT local variable
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
-!  06 Nov 2019 - R. Yantosca  - Force flexible precision with _fp
-!  28 May 2020 - X. Wang      - Merged with chlorine chemsitry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2017,10 +1750,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2120,9 +1850,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2202,9 +1930,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Define local variable for educt adjustment
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2296,13 +2022,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  02 Jan 2019 - E. McDuffie - Update for gamma for SO4-NIT-NH4 & OC aerosol
-!                              (following McDuffie et al., JGR 2018)
-!  23 Jul 2019 - C.D. Holmes - Consolidated McDuffie gamma into one function
-!  18 May 2020 - X. Wang     - Added effects of chloride
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2366,7 +2086,7 @@ MODULE GCKPP_HETRATES
             XSTKCF = 0.0e+0_fp
          ELSE
             ! For UCX-based mechanisms ABSHUMK is set to Spc(I,J,L,id_H2O)
-            XSTKCF = N2O5( N, TEMPK, RELHUM )
+            XSTKCF = N2O5( N, TEMP, RELHUM )
          ENDIF
 
          ! B) Use gamma to calculate N2O5 loss rate coefficient for each
@@ -2376,7 +2096,7 @@ MODULE GCKPP_HETRATES
             ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
             ! with organics
             output = N2O5_InorgOrg( AClVOL, XVOL(10), XH2O(8), XH2O(10), &
-                 AClRADI,  SPC_NIT, SPC_fCl,  TEMPK,    RELHUM )
+                 AClRADI,  C(ind_NIT), C(ind_SALACL),  TEMP,    RELHUM )
 
             ! Gamma
             XSTKCF = output(1)
@@ -2391,7 +2111,7 @@ MODULE GCKPP_HETRATES
 
             !For SNA aerosol...
             ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+fineSSA aerosol
-            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
+            ADJUSTEDRATE=ARSL1K( (1.0_fp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP) )
 
             !Calculate ClNO2 yield on SNA(+ORG) aerosol using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2408,7 +2128,7 @@ MODULE GCKPP_HETRATES
 
             ! Properties of coarse mode SSA
             output = N2O5_InorgOrg( XVOL(12), 0e+0_fp, XH2O(12), 0e+0_fp, &
-                 XRADI(12), SPC_NITs, SPC_cCl,   TEMPK,    RELHUM )
+                 XRADI(12), C(ind_NITs), C(ind_SALCCL), TEMP, RELHUM )
 
             ! Gamma
             XSTKCF = output(1)
@@ -2420,7 +2140,7 @@ MODULE GCKPP_HETRATES
             SA     = output(4)
 
             !For coarse mode SSA aerosol ...
-            ADJUSTEDRATE=ARSL1K( (1-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K( (1.0_fp-CldFr)*SA, Rp, XDENA, XSTKCF, XTEMP, (A**0.5_FP))
 
             !Calculate ClNO2 yield using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2509,8 +2229,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!    13 Dec 2018 - E. McDuffie - Initial version
-!    23 Jul 2019 - C.D. Holmes - Consolidated into one function
+!  13 Dec 2018 - E. McDuffie - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2553,8 +2273,8 @@ MODULE GCKPP_HETRATES
       H2Ototal = H2Oinorg + H2Oorg
 
       ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
-      volRatioDry = safe_div(max(volInorg - H2Oinorg, 0d0), &
-                             max(volTotal - H2Ototal, 0d0), 0e+0_fp)
+      volRatioDry = safe_div(max(volInorg - H2Oinorg, 0.0_fp),               &
+                             max(volTotal - H2Ototal, 0.0_fp), 0.0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -2701,8 +2421,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!    13 Dec 2018 - E. McDuffie - Initial version
-!    28 May 2020 - X. Wang     - Merged with chlorine chemsitry
+!  13 Dec 2018 - E. McDuffie - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2758,10 +2478,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  02 Mar 2018 - M. Sulprizio- Change daytime gamma to 4.4e-3 and nighttime
-!                              gamma to 8.0e-6 based on recommendation from E.
-!                              Marais to address that SOAGX is a factor of 1.5
-!                              lower in v11-02d than in Marais et al. [2016]
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2861,6 +2578,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2947,6 +2665,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2991,7 +2710,7 @@ MODULE GCKPP_HETRATES
 
             ! Get GAMMA for IEPOX hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
-                               TEMPK,    (A**0.5_fp),         &
+                               TEMP,     (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
                                K_HSO4,   MHSO4,      K_HYDRO )
@@ -3054,6 +2773,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3098,7 +2818,7 @@ MODULE GCKPP_HETRATES
 
             ! Get GAMMA for IMAE hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
-                               TEMPK,    (A**0.5_fp),         &
+                               TEMP,    (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
                                K_HSO4,   MHSO4,      K_HYDRO )
@@ -3163,6 +2883,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3242,6 +2963,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3319,10 +3041,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3400,10 +3119,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3481,10 +3197,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3562,10 +3275,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3643,10 +3353,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3724,10 +3431,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  14 Jul 2017 - M. Sulprizio- Product has been changed to IONITA, which also
-!                              has heterogeneous reaction. Remove call to
-!                              EPOXUPTK here and use gamma value specified in
-!                              SET_HET (Fisher et al., 2016).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3806,6 +3510,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3884,6 +3589,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3962,6 +3668,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4041,6 +3748,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4121,6 +3829,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  14 Jul 2017 - M. Sulprizio- Initial version based on SEAC4RS code and Fisher
 !                              et al. 2016.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4202,6 +3911,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  12 Mar 2018 - X. Wang  - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4253,12 +3963,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  15 Jan 2018 - X. Wang     - Updated function for Cl-(p) simulation
-!  13 Dec 2018 - E. McDuffie - Update to report ClNO2 yield & N2O5 gamma
-!  18 May 2020 - X. Wang     - Merged N2O5 uptake and chlorine chemistry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4287,10 +3992,10 @@ MODULE GCKPP_HETRATES
          ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
          ! with organics
          output = N2O5_InorgOrg( AClVOL, XVOL(10), XH2O(8), XH2O(10), &
-                  AClRadi, SPC_NIT, SPC_fCl,   TEMPK,    RELHUM )
+                  AClRadi, C(ind_NIT), C(ind_SALACL), TEMP, RELHUM )
       ELSEIF (X .eq. 2) THEN
          output = N2O5_InorgOrg( XVOL(12), 0e+0_fp, XH2O(12), 0e+0_fp, &
-                  XRADI(12), SPC_NITs, SPC_cCl,  TEMPK,    RELHUM )
+                  XRADI(12), C(ind_NITs), C(ind_SALCCL), TEMP, RELHUM )
       ENDIF
 
       ! Gamma
@@ -4348,17 +4053,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere. Also now use the
-!                              standard N2O5 calculation to establish gamma for
-!                              sulfate, rather than relying on a fixed factor.
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
-!  13 Dec 2018 - E. McDuffie - Now report kN2O5 and SA-weighted gamma
-!  25 May 2020 - X. Wang     - Remove reporting gamma since this is only for
-!                              stratosphere
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4388,7 +4083,7 @@ MODULE GCKPP_HETRATES
                ! RH dependence
                ! Note gamma calculation on sulfate in troposphere uses
                ! the McDuffie parameterization (func: HetN2O5())
-      	       XSTKCF = N2O5( N, TEMPK, RELHUM )
+      	       XSTKCF = N2O5( N, TEMP, RELHUM )
 	    ENDIF
          ENDIF
 
@@ -4455,10 +4150,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4523,10 +4215,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)                   :: kISum    ! Rxn rate O3 + Br- in sea salt
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4581,6 +4270,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4659,6 +4349,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Aug 2018 - X. Wang      - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4749,6 +4440,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4805,9 +4497,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sep 2015 - J. Schmidt  - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
-!  16 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4823,7 +4513,7 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law [M/atm]
       H_K0_O3 = H%O3%K0 * con_atm_bar
-      H_X     = H_K0_O3 * dexp( H%O3%CR * ( 1.0e0_fp/T - 1.0e0_fp/H%O3%TK ) )
+      H_X     = H_K0_O3 * EXP( H%O3%CR * ( 1.0e0_fp/T - 1.0e0_fp/H%O3%TK ) )
 
       ! O3 mol wt (kg/mol)
       M_X = H%O3%MW_g * 1e-3_fp
@@ -4843,7 +4533,7 @@ MODULE GCKPP_HETRATES
       ! Mass accommodation coefficient
       ab = 1.3e-2_fp
 
-      cavg = dsqrt(8.0e+0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
+      cavg = SQRT(8.0e+0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
 
       ! Liquid phase diffusion coefficient [cm2/s] for NO3
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -4856,7 +4546,7 @@ MODULE GCKPP_HETRATES
 
       H_X = 0.6e+0_fp !M atm-1
       H_X = H_X * con_atm_bar !M/bar
-      l_r = dsqrt(D_l / k_tot)
+      l_r = SQRT(D_l / k_tot)
 !
 !      IF (K_Tot .EQ. 0.0) THEN
 !         K_tot = 1.0e-2_fp
@@ -4904,6 +4594,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Nov 2018 - X. Wang   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4923,7 +4614,7 @@ MODULE GCKPP_HETRATES
       ab       = 0.8_fp
 
       ! thermal velocity (cm/s)
-      cavg     = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X) ) *1.0e2_fp
+      cavg     = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for HOCl
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -4936,9 +4627,9 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOCl   = H%HOCl%K0 * con_atm_bar
-      H_X      = H_HOCl * dexp( H%HOCl%CR * ( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
+      H_X      = H_HOCl * EXP( H%HOCl%CR * ( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
 
-      l_r      = dsqrt( D_l / k_tot )
+      l_r      = SQRT( D_l / k_tot )
       gb_tot   = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot   = gb_tot * REACTODIFF_CORR( Radius, l_r )
 
@@ -4991,6 +4682,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  16 Mar 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5007,7 +4699,7 @@ MODULE GCKPP_HETRATES
       ab       = 0.8_fp
 
       ! thermal velocity (cm/s)
-      cavg     = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg     = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for HOCl
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -5015,9 +4707,9 @@ MODULE GCKPP_HETRATES
 
       k_ter    = 1.5e+4_fp                 ! M-1s-1
       H_HOCl   = H%HOCl%K0 * con_atm_bar   ! M/bar
-      H_X      = H_HOCl*dexp( H%HOCl%CR *( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
+      H_X      = H_HOCl*EXP( H%HOCl%CR *( 1.0_fp/T - 1.0_fp/H%HOCl%TK ) )
 
-      l_r = dsqrt(D_l / (k_ter * C_H * C_X))
+      l_r = SQRT(D_l / (k_ter * C_H * C_X))
       gb       = 4.0_fp * H_X * con_R * T * l_r * k_ter * C_H * C_X / cavg
       gb       = gb * REACTODIFF_CORR( Radius, l_r)
 
@@ -5067,6 +4759,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5085,7 +4778,7 @@ MODULE GCKPP_HETRATES
       ab        = 0.01_fp
 
       ! thermal velocity (cm/s)
-      cavg      = dsqrt( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg      = SQRT( 8.0_fp * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       ! Liquid phase diffusion coefficient [cm2/s] for ClNO2
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -5103,7 +4796,7 @@ MODULE GCKPP_HETRATES
       k_b2      = 1.01e-1_fp / (H_X*H_X*D_l)
 
       k_tot     = k_b1*C_X1 + k_b2*C_X2
-      l_r       = dsqrt(D_l / k_tot)
+      l_r       = SQRT(D_l / k_tot)
       gb_tot    = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot    = gb_tot * REACTODIFF_CORR( Radius, l_r )
 
@@ -5153,11 +4846,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  25 Jan 2018 - X. Wang     - Updated to include both Cl- and Br-
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5215,13 +4904,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)             :: kISum
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Cl- and Br- separately;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jam 2018 - X. Wang     - Updated to include Cl-(p)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5294,6 +4977,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Jun 2019 - X. Wang     - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5368,6 +5052,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5382,13 +5067,13 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_O3     = H%O3%K0 * con_atm_bar
-      H_X      = H_O3*dexp( H%O3%CR * ( 1.0_fp/T - 1.0_fp/H%O3%TK ) )
+      H_X      = H_O3*EXP( H%O3%CR * ( 1.0_fp/T - 1.0_fp/H%O3%TK ) )
 
       ! Molwt of O3 (kg/mol)
       M_X      = H%O3%MW_g * 1.0e-3_fp
 
       ! Thermal velocity (cm/s)
-      cavg     = dsqrt( 8 * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
+      cavg     = SQRT( 8 * RStarG * T / ( Pi * M_X ) ) *1.0e2_fp
 
       Nmax     = 3.0e14_fp  ! #/cm2
       KLangC   = 1.0e-13_fp !cm3
@@ -5399,9 +5084,9 @@ MODULE GCKPP_HETRATES
       gs       = ( 4.0_fp * k_s * C_Y_surf * KLangC * Nmax )                 &
                / ( cavg * ( 1.0_fp + KLangC * C_X_g )      )
 
-      k_b      = 6.3e8_fp *  dexp(-4.45e3_fp / T) !M-1 s-1
+      k_b      = 6.3e8_fp *  EXP(-4.45e3_fp / T) !M-1 s-1
       D_l      = 8.9e-6_fp !cm2 s-1.
-      l_r      = dsqrt( D_l / (k_b * C_Y ) )! cm
+      l_r      = SQRT( D_l / (k_b * C_Y ) )! cm
       gb       = 4.0_fp * H_X * con_R * T * l_r * k_b * C_Y / cavg
       gb       = gb * REACTODIFF_CORR( Radius, l_r)
 
@@ -5441,13 +5126,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
-!  25 Jan 2018 - X. Wang     - Move reactions on troposphere cloud to
-!                              HETClNO3_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5538,11 +5217,7 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  16 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
-!  06 Jun 2018 - X. Wang - Updated to new chemistry
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5643,10 +5318,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Br-, HSO3-, and SO3--;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jan 2018 - X. Wang       - Move reactions on troposphere cloud to
-!                                HetHOBr_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5737,10 +5409,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
-!  01 Dec 2017 - Q.J. Chen     - Updated to account for Cl-, HSO3-, and SO3--;
-!                                Now calls routine Gamma_HOBr_AER
-!  25 Jan 2017 - X. Wang       - Move HOBr + Br- in troposphere cloud to
-!                                HETHOBr_TCld
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5857,7 +5526,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - X. Wang      - Initial version
-!  08 Jun 2019 - X. Wang      - Updated to new cloud process
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5988,8 +5657,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - X. Wang      - Initial version
-!  08 Jun 2018 - X. Wang      - Updated to new cloud process and merged
-!                               HETHOBr_HSO3 and HETHOBr_SO3 here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6091,6 +5759,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6104,9 +5773,9 @@ MODULE GCKPP_HETRATES
       IF (X==1) THEN
          ! This would never be used since HCl uptake is
          ! handled by ISORROPIA now, xnw 1/25/18
-         ab = 4.4e-6_fp * dexp( 2898.0e0_fp / T ) ! ab(RT) = 0.069
+         ab = 4.4e-6_fp * EXP( 2898.0e0_fp / T ) ! ab(RT) = 0.069
       ELSE
-         ab = 1.3e-8_fp * dexp( 4290.0e0_fp / T ) ! ab(RT) = 0.021
+         ab = 1.3e-8_fp * EXP( 4290.0e0_fp / T ) ! ab(RT) = 0.021
       ENDIF
 
       GAM = ab
@@ -6150,8 +5819,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6185,14 +5853,14 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOBr = H%HOBr%K0 * con_atm_bar
-      H_X    = H_HOBr * dexp( H%HOBr%CR *( 1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK ) )
+      H_X    = H_HOBr * EXP( H%HOBr%CR *( 1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK ) )
       M_X    = H%HOBr%MW_g * 1e-3_fp
 
       ! Mass accommodation coefficient
       ab     = 0.6e0_fp
 
       ! Thermal velocity [cm/s]
-      cavg   = dsqrt(8*RStarG*T/(pi*M_X)) *1.0e2_fp
+      cavg   = SQRT(8*RStarG*T/(pi*M_X)) *1.0e2_fp
 
       ! Follow Roberts et al, (2014)
       C_Hp1  = min(C_Hp, 1.0e-6)
@@ -6207,7 +5875,7 @@ MODULE GCKPP_HETRATES
 
       ! l_r is diffusive length scale [cm];
       !gb is Bulk reaction coefficient [unitless]
-      l_r    = dsqrt( D_l / k_tot )
+      l_r    = SQRT( D_l / k_tot )
       gb_tot = 4.0e0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot = gb_tot * REACTODIFF_CORR( Radius, l_r)
 
@@ -6281,6 +5949,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  05 Jul 2019 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6344,8 +6013,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
-!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
-!                              database in SET_HET instead of hardcoding here
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6373,7 +6041,7 @@ MODULE GCKPP_HETRATES
 
       ! Henry's law
       H_HOBr = H%HOBr%K0 * con_atm_bar
-      H_X    = H_HOBr*dexp(H%HOBr%CR*(1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK))
+      H_X    = H_HOBr*EXP(H%HOBr%CR*(1.0e0_fp/T - 1.0e0_fp/H%HOBr%TK))
 
       ! Molwt of HOBr (kg/mol)
       M_X    = H%HOBr%MW_g * 1e-3_fp
@@ -6382,7 +6050,7 @@ MODULE GCKPP_HETRATES
       ab     = 0.6e0_fp
 
       ! Thermal velocity [cm/s]
-      cavg   = dsqrt( 8 * RStarG * T / ( pi * M_X) ) * 1.0e2_fp
+      cavg   = SQRT( 8 * RStarG * T / ( pi * M_X) ) * 1.0e2_fp
 
       ! Follow Roberts et al, (2014)
       C_Hp1  = min(C_Hp, 1.0e-6)
@@ -6395,7 +6063,7 @@ MODULE GCKPP_HETRATES
 
       ! l_r is diffusive length scale [cm];
       ! gb is Bulk reaction coefficient [unitless]
-      l_r    = dsqrt( D_l / k_tot )
+      l_r    = SQRT( D_l / k_tot )
       gb_tot = 4.0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot = gb_tot * REACTODIFF_CORR( Radius, l_r)
 
@@ -6469,6 +6137,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6500,10 +6169,10 @@ MODULE GCKPP_HETRATES
 
       ! Calculate gb2 for ClNO3 + Br-
 
-      cavg = dsqrt(8.0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
+      cavg = SQRT(8.0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
 
       D_l  = 5.0e-6_fp !cm2 s-1.
-      gb2   = 4.0e0_fp * con_R * T * 1.0e6_fp * dsqrt(C_Y2*D_l) / cavg ! H*sqrt(kb)=10^6 (M/s)^½ s-1
+      gb2   = 4.0e0_fp * con_R * T * 1.0e6_fp * SQRT(C_Y2*D_l) / cavg ! H*sqrt(kb)=10^6 (M/s)^½ s-1
 
       k_2 = (1.0e6_fp ** 2.0_fp) * C_Y2 !H2k2Br
 
@@ -6513,20 +6182,20 @@ MODULE GCKPP_HETRATES
       ! from ClNO3 + H2O (gamma = 0.0244) independent of Cl- concentration,
       ! but Cl2 rather than HOCl formed. gb2 can be calculated reversely from
       ! gb1 = gb0 hydrolysis
-      gb0 = 4.0e0_fp * con_R * T * 1.2e5_fp * dsqrt(D_l) / cavg
+      gb0 = 4.0e0_fp * con_R * T * 1.2e5_fp * SQRT(D_l) / cavg
 
       k_0 = 1.2e5_fp ** 2.0_fp !H2k0
 
       k_tot = k_0 + k_2 !H2(k0+k2Br)
 
-      gb_tot = 4.0e0_fp * con_R * T * dsqrt(k_tot*D_l) /cavg
+      gb_tot = 4.0e0_fp * con_R * T * SQRT(k_tot*D_l) /cavg
 
       gbr = k_2/k_tot
 
       GAM_ClNO3 = 1.0e0_fp / (1.0e0_fp/ab  +  1.0e0_fp/gb_tot)
 
       IF (M .EQ. 1) THEN
-         fCl = SPC_fCl / (SPC_fCl + SPC_NIT + SPC_SO4)
+         fCl = C(ind_SALACL) / (C(ind_SALACL) + C(ind_NIT) + C(ind_SO4))
       ELSEIF (M .EQ. 2) THEN
          fCl = 1.0e0_fp
       ELSE
@@ -6573,6 +6242,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  02 Jul 2019 - X. Wang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6596,7 +6266,7 @@ MODULE GCKPP_HETRATES
      rgs = 0.56
      g2 = rgs * hbr_th
      !ClNO3 + H2O
-     cavg = dsqrt(8.0e+0_fp*RStarG*T/(Pi*9.745e-2_fp)) *1.0e2_fp ! thermal velocity (cm/s)
+     cavg = SQRT(8.0e+0_fp*RStarG*T/(Pi*9.745e-2_fp)) *1.0e2_fp ! thermal velocity (cm/s)
      H2Os = 1e15_fp - 3.0*2.7e14_fp*hno3_th
      kks = 4.0_fp * 5.2e-17_fp * exp(2032_fp/T)
      g3 = 1.0_fp / (1.0_fp/0.5_fp + cavg/(kks*H2Os))
@@ -6637,6 +6307,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Sept 2015 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6646,7 +6317,7 @@ MODULE GCKPP_HETRATES
 
       REAL(fp)                 :: exp_temp
 
-      exp_temp = dexp(-2.0e0_fp*X)
+      exp_temp = EXP(-2.0e0_fp*X)
       COTH = (1.0e0_fp + exp_temp)/(1.0e0_fp - exp_temp)
 
       END FUNCTION COTH
@@ -6675,6 +6346,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  14 Oct 2013 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6730,13 +6402,8 @@ MODULE GCKPP_HETRATES
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  16 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
-!  05 Jun 2019 - X. Wang - Added temperature dependence
-!  08 Jun 2019 - X. Wang - Moved cloud updake in CloudHet
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -6832,10 +6499,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6925,11 +6589,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7014,12 +6674,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7105,12 +6760,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
-!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7222,6 +6872,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  08 Nov 2018 - X. Wang      - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7315,6 +6966,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - X. Wang - Initial vesion
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7369,10 +7021,7 @@ MODULE GCKPP_HETRATES
 !  Taken from the old SMVGEAR function calcrate.F.
 !
 ! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
-!  15 Jun 2017 - M. Sulprizio- Move conversion of RH from fraction to % to
-!                              SET_HET above
-!  23 Aug 2018 - C. D. Holmes - Updated Gamma values
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7525,13 +7174,7 @@ MODULE GCKPP_HETRATES
 !       2013.
 !
 ! !REVISION HISTORY:
-!  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
-!  22 May 2013 - M. Payer    - Added option to read GAMMA_HO2 from
-!                              input.geos. Recommended value is 0.2
-!                              based on Jacob et al (2000) and Mao
-!                              et al. (2013).
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7760,6 +7403,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7858,14 +7502,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE CLD_PARAMS( I,      J,      L,    DENAIR,            &
-                           VAir,   T,      QL,   QI,     State_Met, &
-                           rLiq,   ALiq,   VLiq, &
-                           rIce,   AIce,   VIce, CLDFr )
-
+    SUBROUTINE CLD_PARAMS( I,    J,    L,    State_Met, rLiq,                &
+                           ALiq, VLiq, rIce, AIce,      VIce, CLDFr         )
 !
 ! !USES:
 !
+      USE GcKpp_Global,  ONLY : DENAIR => XDENA
+      USE GcKpp_Global,  ONLY : T      => TEMP
+      USE GcKpp_Global,  ONLY : QI     => QIce
+      USE GcKpp_Global,  ONLY : QL     => QLiq
+      USE GcKpp_Global,  ONLY : Vair
       USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -7873,10 +7519,6 @@ MODULE GCKPP_HETRATES
       INTEGER,        INTENT(IN)  :: I         ! Longitude index
       INTEGER,        INTENT(IN)  :: J         ! Latitude  index
       INTEGER,        INTENT(IN)  :: L         ! Altitude  index
-      REAL(fp),       INTENT(IN)  :: DENAIR    ! Density of air [#/cm3]
-      REAL(fp),       INTENT(IN)  :: VAir      ! Volume of air [cm3]
-      REAL(fp),       INTENT(IN)  :: T         ! Temperature [K]
-      REAL(fp),       INTENT(IN)  :: QL, QI    ! Cloud water mixing ratio [kg/kg]
       TYPE(MetState), INTENT(IN)  :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -7897,9 +7539,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Adapted from CLD1K_BrNO3
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!  15 Oct 2018 - C.D. Holmes - Corrections for ice radius, volume, surface area
-!  01 Aug 2020 - C.D. Holmes - Vliq, Vice now cm3/cm3 units, consistent with comments and Aliq, Aice
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8083,9 +7723,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Initial version
-!  27 Feb 2018 - M. Sulprizio  - Obtain Henry's law parameters from species
-!                                database in SET_HET instead of hardcoding here
-!  01 Apr 2018 - X. Wang       - Updated to correct calculation
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8170,6 +7808,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  02 Jul 2019 - X. Wang       - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8230,6 +7869,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  25 Jul 2014 - J. Schmidt - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8296,42 +7936,44 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  23 Feb 2000 - R. Yantosca - Initial version
-!  (1 ) Bundled into "wetscav_mod.f" (bmy, 11/8/02)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  10-Jan-2011 - H. Amos - Corrected the units on KStar298 from moles/atm
-!                          to M/atm
-!  15-May-2013 - F. Paulot - Fix R constant
-!  08 Dec 2015 - R. Yantosca - Now use functions from henry_mod.F
-!  09 Jul 2019 - X. Wang - Add pH as input
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: RC
-      REAL(fp) :: HEFF, KH, TK_8
+      INTEGER :: RC
+      REAL*8  :: CR_8,  H2OLIQ_8, HEFF_8, K0_8, KH_8
+      REAL*8  :: L2G_8, TK_8,     pKa_8,  pH_8
 
       !=================================================================
       ! COMPUTE_L2G_LOCAL begins here!
       !=================================================================
 
-      ! Cast temperature to REAL*8
-      TK_8 = TK
+      ! Cast inputs to REAL*8
+      CR_8  = CR
+      K0_8  = K0
+      pka_8 = pKa
+      pH_8  = pH
+      TK_8  = TK
 
       ! For wetdep, we assume a pH of 4.5 for rainwater
       !pH = 4.5_fp
 
       ! Calculate the Henry's law constant
-      CALL CALC_KH( K0, CR, TK_8, KH, RC )
+      CALL CALC_KH( K0_8, CR_8, TK_8, KH_8, RC )
 
       ! Calculate effective Henry's law constant, corrected for pH
       ! (for those species that have a defined pKa value)
-      CALL CALC_HEFF( pKa, pH, KH, HEFF, RC )
+      CALL CALC_HEFF( pKa_8, pH_8, KH_8, HEFF_8, RC )
 
       ! Use Henry's Law to get the ratio:
       ! [ mixing ratio in liquid phase / mixing ratio in gas phase ]
-      L2G   = HEFF * H2OLIQ
+      L2G_8 = HEFF_8 * H2OLIQ
+
+      ! Cast outputs to flex-precision
+      L2G = L2G_8
 
       END SUBROUTINE COMPUTE_L2G_LOCAL
 !EOC
@@ -8376,10 +8018,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  27 Feb 2011 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8443,7 +8082,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)             :: FC_RO2HO2
 !
 ! !REVISION HISTORY:
-!  24 Jul 2014 - R. Yantosca - Now inlined to calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8489,8 +8128,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  (1 ) Branching ratio calculation (tmf, 2/6/05).
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8539,13 +8177,7 @@ MODULE GCKPP_HETRATES
 ! !REVISION HISTORY:
 !  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
 !        and Daniel Jacob circa 1989/1990.
-!  (2 ) Updated following Atkinson 1990.
-!  (3 ) Change yield from Isoprene Nitrate (ISN2) from 0.44% to 12%,
-!        according to Sprengnether et al., 2002. (amf, bmy, 1/7/02)
-!  (4 ) Eliminate obsolete code from 1/02 (bmy, 2/27/02)
-!  (5 ) Updated comment description of XCARBN (bmy, 6/26/03)
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8622,13 +8254,7 @@ MODULE GCKPP_HETRATES
 
 ! !REVISION HISTORY:
 !  01 Jul 1994 - lwh, jyl, gmg, djj - Initial version
-!  04 Apr 2003 - R. Yantosca - Updated comments, cosmetic changes
-!  07 Apr 2004 - R. Yantosca - Now return w/ default value if RADIUS is zero
-!                              (i.e. is smaller than a very small number)
-!  03 Dec 2009 - R. Yantosca - Prevent div-by-zero errors by returning the
-!                              default value if any of the args are zero
-!  03 Dec 2009 - R. Yantosca - Added ProTeX Header
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8699,12 +8325,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  17 Apr 2013 - S. D. Eastham - Initial version
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
-!                                objects via the arg list
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F)
-!  29 Jan 2016 - M. Sulprizio  - Moved this routine from ucx_mod.F to
-!                                gckpp_HetRates.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8728,7 +8349,7 @@ MODULE GCKPP_HETRATES
                  ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. ( IS_STRAT ) )
 
       ! Check if there is surface NAT
-      IS_NAT   = ( ( IS_PSC ) .and. ( SPC_NIT .gt. TINY(1e+0_fp) ) )
+      IS_NAT   = ( ( IS_PSC ) .and. ( C(ind_NIT) .gt. TINY(1e+0_fp) ) )
 
     END SUBROUTINE CHECK_NAT
 !EOC

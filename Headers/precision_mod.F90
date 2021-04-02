@@ -29,10 +29,10 @@ MODULE Precision_Mod
   !=================================================================
 
   ! KIND parameter for 4-byte precision
-  INTEGER, PARAMETER, PUBLIC :: f4 = KIND( REAL( 0.0, 4 ) )
+  INTEGER, PARAMETER, PUBLIC :: f4 = KIND( 0.0_4 )
 
   ! KIND parameter for 8-byte precision
-  INTEGER, PARAMETER, PUBLIC :: f8 = KIND( REAL( 0.0, 8 ) )
+  INTEGER, PARAMETER, PUBLIC :: f8 = KIND( 0.0_8 )
 
   !=================================================================
   ! Set parameters for floating precision

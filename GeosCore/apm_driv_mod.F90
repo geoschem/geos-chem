@@ -1106,42 +1106,42 @@ CONTAINS
 
           XN0 = 1.d-6*PRESS/(1.3807d-23*TK)   !#/cm3
           CNH3=Spc(I,J,L,APMIDS%id_NH3) &
-               /(VOL*State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g &
+               /(VOL*State_Chm%SpcData(APMIDS%id_NH3)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNH3=CNH3*1.d12/XN0   ! CNH3 now in ppt
           CSO2=Spc(I,J,L,APMIDS%id_SO2) &
-               /(VOL*State_Chm%SpcData(APMIDS%id_SO2)%Info%emMW_g &
+               /(VOL*State_Chm%SpcData(APMIDS%id_SO2)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CSO2=CSO2*1.d12/XN0   ! CSO2 now in ppt
 
           CCO=Spc(I,J,L,APMIDS%id_CO) &
-              /(VOL*State_Chm%SpcData(APMIDS%id_CO)%Info%emMW_g &
+              /(VOL*State_Chm%SpcData(APMIDS%id_CO)%Info%MW_g &
               *1.d-3)*6.02d17   ! #/cm3
           CCO=CCO*1.d6/XN0   ! CCO now in ppm
 
           CNO=Spc(I,J,L,APMIDS%id_NO) &
-              /(VOL*State_Chm%SpcData(APMIDS%id_NO)%Info%emMW_g &
+              /(VOL*State_Chm%SpcData(APMIDS%id_NO)%Info%MW_g &
               *1.d-3)*6.02d17   ! #/cm3
           CNO=CNO*1.d9/XN0   ! CNO now in ppb
           CNO2=Spc(I,J,L,APMIDS%id_NO2) &
-               /(VOL*State_Chm%SpcData(APMIDS%id_NO2)%Info%emMW_g &
+               /(VOL*State_Chm%SpcData(APMIDS%id_NO2)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNO2=CNO2*1.d9/XN0   ! CNO2 now in ppb
           CNO3=Spc(I,J,L,APMIDS%id_NO3) &
-               /(VOL*State_Chm%SpcData(APMIDS%id_NO3)%Info%emMW_g &
+               /(VOL*State_Chm%SpcData(APMIDS%id_NO3)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNO3=CNO3*1.d9/XN0   ! CNO3 now in ppb
           CHNO3=Spc(I,J,L,APMIDS%id_HNO3) &
-                /(VOL*State_Chm%SpcData(APMIDS%id_HNO3)%Info%emMW_g &
+                /(VOL*State_Chm%SpcData(APMIDS%id_HNO3)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CHNO3=CHNO3*1.d9/XN0   ! CHNO3 now in ppb
 
           CISOP=Spc(I,J,L,APMIDS%id_ISOP) &
-                /(VOL*State_Chm%SpcData(APMIDS%id_ISOP)%Info%emMW_g &
+                /(VOL*State_Chm%SpcData(APMIDS%id_ISOP)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CISOP=CISOP*1.d9/XN0   ! CISOP now in ppb
           CMTPA=Spc(I,J,L,APMIDS%id_MTPA) &
-                /(VOL*State_Chm%SpcData(APMIDS%id_MTPA)%Info%emMW_g &
+                /(VOL*State_Chm%SpcData(APMIDS%id_MTPA)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CMTPA=CMTPA*1.d9/XN0   ! CMTPA now in ppb
 
@@ -1153,13 +1153,13 @@ CONTAINS
           IF(IFATHN>0)THEN
              DO ITYP = 1, 3
                 CAMINE(ITYP)=Spc(I,J,L,APMIDS%id_AMINE-1+ITYP)/(VOL* &
-                   State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g*1.d-3* &
+                   State_Chm%SpcData(APMIDS%id_NH3)%Info%MW_g*1.d-3* &
                    MWAMINE(ITYP)/17.)*6.02d17   ! #/cm3
                 CAMINE(ITYP)=CAMINE(ITYP)*1.d12/XN0   ! CAMINE now in ppt
 
                 YAMINEEMIT(ITYP) = MWAMINE(ITYP)/14.*NH3EMIT*ERATIO(ITYP) ! convert to kg-amine/box-sec
                 CAMINEEMIT(ITYP) = YAMINEEMIT(ITYP)/(VOL* &
-                   State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g*1.d-3* &
+                   State_Chm%SpcData(APMIDS%id_NH3)%Info%MW_g*1.d-3* &
                    MWAMINE(ITYP)/17.)*6.02d17   ! # cm-3s-1
              ENDDO
 
@@ -1201,16 +1201,16 @@ CONTAINS
 
           IF(IFAG.EQ.1) THEN
              CSOG(1)=Spc(I,J,L,APMIDS%id_TSOG0)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOG0)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOG0)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(2)=Spc(I,J,L,APMIDS%id_TSOG1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOG1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(3)=Spc(I,J,L,APMIDS%id_TSOG2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOG2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(4)=Spc(I,J,L,APMIDS%id_TSOG3)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOG3)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOG3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              ! Isoprene SOA from Pye et al. (2010) has been removed;
@@ -1221,40 +1221,40 @@ CONTAINS
              CSOG(7) = 1.0e-30
 
              CSOG(8) =Spc(I,J,L,APMIDS%id_ASOG1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOG1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(9) =Spc(I,J,L,APMIDS%id_ASOG2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOG2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(10)=Spc(I,J,L,APMIDS%id_ASOG3)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOG3)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOG3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              CSOG(11)=Spc(I,J,L,APMIDS%id_POG1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_POG1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_POG1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(12)=Spc(I,J,L,APMIDS%id_POG2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_POG2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_POG2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              CSOG(13)=Spc(I,J,L,APMIDS%id_OPOG1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_OPOG1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_OPOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOG(14)=Spc(I,J,L,APMIDS%id_OPOG2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_OPOG2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_OPOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              CSOA(1)=Spc(I,J,L,APMIDS%id_TSOA0)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOA0)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOA0)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(2)=Spc(I,J,L,APMIDS%id_TSOA1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOA1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(3)=Spc(I,J,L,APMIDS%id_TSOA2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOA2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(4)=Spc(I,J,L,APMIDS%id_TSOA3)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_TSOA3)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_TSOA3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              ! Isoprene SOA from Pye et al. (2010) has been removed;
@@ -1265,27 +1265,27 @@ CONTAINS
              CSOA(7) = 1.0e-30
 
              CSOA(8) =Spc(I,J,L,APMIDS%id_ASOA1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOA1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(9) =Spc(I,J,L,APMIDS%id_ASOA2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOA2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(10)=Spc(I,J,L,APMIDS%id_ASOA3)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_ASOA3)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_ASOA3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              CSOA(11)=Spc(I,J,L,APMIDS%id_POA1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_POA1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_POA1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(12)=Spc(I,J,L,APMIDS%id_POA2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_POA2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_POA2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
              CSOA(13)=Spc(I,J,L,APMIDS%id_OPOA1)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_OPOA1)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_OPOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
              CSOA(14)=Spc(I,J,L,APMIDS%id_OPOA2)/ &
-                (VOL*State_Chm%SpcData(APMIDS%id_OPOA2)%Info%emMW_g* &
+                (VOL*State_Chm%SpcData(APMIDS%id_OPOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
 
@@ -2328,7 +2328,7 @@ CONTAINS
   END SUBROUTINE APM_DRIV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3063,7 +3063,7 @@ CONTAINS
   END SUBROUTINE APM_RADFDRIV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3632,7 +3632,7 @@ CONTAINS
   END SUBROUTINE APM_RADFOUT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6937,7 +6937,7 @@ CONTAINS
   END SUBROUTINE CLEANUP_APM3D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

@@ -184,7 +184,7 @@ CONTAINS
 
           ! Conversion factor to pptv
           ToPptv = ( AIRMW                                  /                &
-                     State_Chm%SpcData(id_Hg2)%Info%EmMW_g  *                &
+                     State_Chm%SpcData(id_Hg2)%Info%MW_g  *                  &
                      1.0e+12_fp                               )
 
           ! Save into State_diag
@@ -199,7 +199,7 @@ CONTAINS
 
           ! Conversion factor to pptv
           ToPptv = ( AIRMW                                  /                &
-                     State_Chm%SpcData(id_HgP)%Info%EmMW_g  *                &
+                     State_Chm%SpcData(id_HgP)%Info%MW_g  *                  &
                      1.0e+12_fp                               )
 
           ! Save into State_Diag
@@ -217,23 +217,24 @@ CONTAINS
 !
 ! !IROUTINE: Zero_Diagnostics_StartofTimestep
 !
-! !DESCRIPTION: This routine is currently not used but is available if needed
-!   in the future for diagnostics that are summed over a timestep and must
-!   therefore be zeroed at the start of each time in the dynamic loop.
+! !DESCRIPTION: This routine sets certain diagnostic arrays to zero. This
+!  is intended for diagnostics that must be reset to zero each timestep but
+!  that do not have a clear place in the source code execution for doing this,
+!  generally because they are set in multiple places.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Zero_Diagnostics_StartofTimestep( State_Chm, State_Diag, RC )
+  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-    USE State_Chm_Mod,    ONLY : ChmState
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Diag_Mod,   ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm      ! Chemistry state obj
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
 !
 ! !INPUT AND OUTPUT PARAMETERS:
 !
@@ -252,7 +253,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: I, J, L, N
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
     !=======================================================================
@@ -265,7 +265,50 @@ CONTAINS
     ThisLoc = &
     ' -> at Zero_Diagnostics_StartofTimestep (in GeosCore/diagnostics_mod.F90)'
 
-    ! Zero diagnostics here
+    ! Mercury simulation
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepChm = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+          State_Diag%EmisHg2rivers = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+          State_Diag%EmisHg2snowToOcean = 0.0_f4
+       ENDIF
+
+      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+          State_Diag%FluxOCtoDeepOcean = 0.0_f4
+       ENDIF
+
+    ENDIF
+
+    ! Dry deposition
+    IF ( Input_Opt%LDRYD ) THEN
+       ! Initialize the DryDepMix diagnostic array for the History Component.
+       ! This will prevent leftover values from being carried over to this
+       ! timestep. (For example, if on the last iteration, the PBL height
+       ! was higher than it is now, then we will have stored drydep fluxes
+       ! up to that height, so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC
@@ -289,6 +332,7 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AIRMW
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
@@ -331,6 +375,10 @@ CONTAINS
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
 
+    ! Arrays
+    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,State_Chm%nSpecies)
+
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
     !====================================================================
@@ -341,16 +389,34 @@ CONTAINS
     ThisLoc = &
          ' -> at Set_SpcConc_Diagnostics (in GeosCore/diagnostics_mod.F90)'
 
-    ! Convert State_Chm%Species unit to [v/v dry]
-    Units   = 'v/v dry'
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            Units, RC, OrigUnit=OrigUnit )
-
-    ! Error handling
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error converting species units for archiving diagnostics #1'
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Store species in v/v dry as temporary variable if diagnostics on
+    IF ( State_Diag%Archive_SpeciesConc .OR. &
+         State_Diag%Archive_SpeciesBC   .OR. &
+         State_Diag%Archive_SpeciesRst  .OR. &
+         State_Diag%Archive_ConcAboveSfc ) THEN
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+                               ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+       ENDDO
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================
@@ -358,7 +424,7 @@ CONTAINS
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesConc ) THEN
 
-       ! Point to mapping obj
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
        mapData => State_Diag%Map_SpeciesConc
 
        !$OMP PARALLEL DO       &
@@ -366,7 +432,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesConc(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%SpeciesConc(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -380,7 +446,7 @@ CONTAINS
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesBC ) THEN
 
-       ! Point to mapping obj
+       ! Point to mapping obj specific to species boundary conditions
        mapData => State_Diag%Map_SpeciesBC
 
        !$OMP PARALLEL DO       &
@@ -388,7 +454,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%SpeciesBC(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -401,15 +467,7 @@ CONTAINS
     ! Copy species to SpeciesRst (restart file output) [v/v dry]
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesRst ) THEN
-
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED  ) &
-       !$OMP PRIVATE( N       )
-       DO N = 1, State_Chm%nSpecies
-          State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(:,:,:,N)
-       ENDDO
-       !$OMP END PARALLEL DO
-
+       State_Diag%SpeciesRst(:,:,:,:) = TmpSpcArr(:,:,:,:)
     ENDIF
 
     !=======================================================================
@@ -458,7 +516,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Species concentration [v/v dry]
-             TmpVal = State_Chm%Species(I,J,1,N)
+             TmpVal = TmpSpcArr(I,J,1,N)
 
              ! Conversion factor used to translate from
              ! lowest model layer (~60m) to the surface
@@ -479,10 +537,6 @@ CONTAINS
        !$OMP END PARALLEL DO
 
     ENDIF
-
-    ! Convert State_Chm%Species back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN

@@ -1,6 +1,6 @@
 ###############################################################################
 ###  HISTORY.rc file for GEOS-Chem POPs specialty simulations               ###
-###  Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)     ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
 #============================================================================
@@ -28,7 +28,7 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-             'POPS',
+             #'POPS',
              'SpeciesConc',
              #'Budget',
              #'CloudConvFlux',
@@ -37,7 +37,6 @@ COLLECTIONS: 'Restart',
              #'StateMet',      
              #'WetLossConv',
              #'WetLossLS',
-             #'Transport',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -311,20 +310,6 @@ COLLECTIONS: 'Restart',
   WetLossLS.duration:         {DURATION}
   WetLossLS.mode:             'time-averaged'
   WetLossLS.fields:           'WetLossLS_?WET?               ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE Transport COLLECTION %%%%%
-#
-# Diagnostics for evaluating transport, including age of air [s]
-#
-# Available for all simulations
-#==============================================================================
-  Transport.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  Transport.format:           'CFIO',
-  Transport.frequency:        'End',
-  Transport.duration:         'End',
-  Transport.mode:             'instantaneous'
-  Transport.fields:           'Met_AgeOfAir                  ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE BoundaryConditions COLLECTION %%%%%

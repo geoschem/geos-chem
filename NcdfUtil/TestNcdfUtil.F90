@@ -1,5 +1,6 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -57,11 +58,7 @@ PROGRAM TestNcdfUtil
 
 ! !REVISION HISTORY:
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
-!  24 Jan 2012 - R. Yantosca - Modified to write COARDS-compliant output
-!  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
-!  14 Jun 2012 - R. Yantosca - Now tests 2D character read/write
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  12 Jun 2017 - R. Yantosca - Now write a test global attribute
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +125,8 @@ CONTAINS
 
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -152,8 +150,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
-!  24 Jan 2012 - R. Yantosca - Modified to provide COARDS-compliant output
-!  14 Jun 2012 - R. Yantosca - Now writes a 2-D character array
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -378,7 +375,8 @@ CONTAINS
   END SUBROUTINE TestNcdfCreate
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -402,9 +400,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
-!  24 Jan 2012 - R. Yantosca - Modified to provide COARDS-compliant output
-!  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
-!  14 Jun 2012 - R. Yantosca - Now tests 2-D character read
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,7 +700,8 @@ CONTAINS
   END SUBROUTINE TestNcdfRead
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -730,7 +727,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
-!  14 Jun 2012 - R. Yantosca - Now add 10 more . characters
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

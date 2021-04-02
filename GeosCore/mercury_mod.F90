@@ -52,7 +52,6 @@ MODULE MERCURY_MOD
   PUBLIC  :: INIT_MERCURY
   PUBLIC  :: EMISSMERCURY
   PUBLIC  :: PARTITIONHG2
-  PUBLIC  :: Reset_Hg_Diags
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -259,19 +258,17 @@ MODULE MERCURY_MOD
   ! These need to be declared REAL(f4), aka REAL*4.
   ! (NOTE: We can set them to NULL here because
   ! they are globally SAVEd variables (bmy, 4/29/16)
-  REAL(f4), POINTER :: O3(:,:,:)            => NULL()
-  REAL(f4), POINTER :: OH_trop(:,:,:)       => NULL()
-  REAL(f4), POINTER :: OH_strat(:,:,:)      => NULL()
-  REAL(f4), POINTER :: JNO2(:,:,:)          => NULL()
-  REAL(f4), POINTER :: HEM_NO2(:,:,:)       => NULL()
-  REAL(f4), POINTER :: HEM_NO(:,:,:)        => NULL()
-  REAL(f4), POINTER :: HEM_HOCl(:,:,:)      => NULL()
-  REAL(f4), POINTER :: HEM_HO2_trop(:,:,:)  => NULL()
-  REAL(f4), POINTER :: HEM_HO2_strat(:,:,:) => NULL()
-  REAL(f4), POINTER :: HEM_CLO(:,:,:)       => NULL()
-  REAL(f4), POINTER :: HEM_CL(:,:,:)        => NULL()
-  REAL(f4), POINTER :: HEM_OA(:,:,:)        => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:)    => NULL()
+  REAL(f4), POINTER :: O3(:,:,:)         => NULL()
+  REAL(f4), POINTER :: OH(:,:,:)         => NULL()
+  REAL(f4), POINTER :: JNO2(:,:,:)       => NULL()
+  REAL(f4), POINTER :: NO2(:,:,:)        => NULL()
+  REAL(f4), POINTER :: NO(:,:,:)         => NULL()
+  REAL(f4), POINTER :: HOCl(:,:,:)       => NULL()
+  REAL(f4), POINTER :: HO2(:,:,:)        => NULL()
+  REAL(f4), POINTER :: CLO(:,:,:)        => NULL()
+  REAL(f4), POINTER :: CL(:,:,:)         => NULL()
+  REAL(f4), POINTER :: OA(:,:,:)         => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
 
   ! Hg species IDs
   INTEGER           :: N_Hg_CATS
@@ -580,16 +577,9 @@ CONTAINS
        MONTH = GET_MONTH()
 
        ! Get a pointer to the monthly mean fields from HEMCO
-       CALL HCO_GetPtr( HcoState, 'GLOBAL_OH_trop', OH_trop, RC )
+       CALL HCO_GetPtr( HcoState, 'GLOBAL_OH', OH, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to GLOBAL_OH_trop!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       CALL HCO_GetPtr( HcoState, 'GLOBAL_OH_strat', OH_strat, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to GLOBAL_OH_strat!'
+          ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -615,42 +605,35 @@ CONTAINS
        ! Some oxidants only required by certain mechanisms:
        !-------------------------------------------------------------
        IF ( LHALOGENCHEM ) THEN
-          CALL HCO_GetPtr( HcoState,'GLOBAL_NO2', HEM_NO2, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_NO2', NO2, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
-          CALL HCO_GetPtr( HcoState,'GLOBAL_NO', HEM_NO, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_NO', NO, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_NO!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
-          CALL HCO_GetPtr( HcoState,'GLOBAL_HO2_trop', HEM_HO2_trop, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_HO2', HO2, RC )
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to GLOBAL_HO2_trop!'
+             ErrMsg = 'Cannot get pointer to GLOBAL_HO2!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
-          CALL HCO_GetPtr( HcoState,'GLOBAL_HO2_strat', HEM_HO2_strat, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to GLOBAL_HO2_strat!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          CALL HCO_GetPtr( HcoState,'GLOBAL_ClO', HEM_CLO, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_ClO', ClO, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_ClO!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
-          CALL HCO_GetPtr( HcoState,'GLOBAL_Cl', HEM_CL, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_Cl', Cl, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -660,7 +643,7 @@ CONTAINS
        !-------------------------------------------------------------
 
        IF ( LHGAQCHEM ) THEN
-          CALL HCO_GetPtr( HcoState,'GLOBAL_HOCl', HEM_HOCL, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_HOCl', HOCl, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_HOCl!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -678,7 +661,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          CALL HCO_GetPtr( HcoState,'GLOBAL_OA', HEM_OA, RC )
+          CALL HCO_GetPtr( HcoState,'GLOBAL_OA', OA, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Cannot get pointer to GLOBAL_OA!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -830,7 +813,7 @@ CONTAINS
 
        IF ( LHALOGENCHEM ) THEN
           C_NO2       = GET_NO2(  I, J, L, State_Grid, State_Met, &
-                                  HEM_NO(I,J,L), HEM_NO2(I,J,L), C_O3 )
+                                  NO(I,J,L), NO2(I,J,L), C_O3 )
           C_HO2       = GET_HO2(  I, J, L, State_Met )
           C_CLO       = GET_CLO(  I, J, L, State_Grid, State_Met )
           C_CL        = GET_CL(   I, J, L, State_Grid, State_Met )
@@ -841,7 +824,7 @@ CONTAINS
        ENDIF
 
        IF ( LRED_JNO2 ) THEN
-          C_OA        = HEM_OA(   I, J, L )
+          C_OA        = OA(   I, J, L )
           TPL = State_Met%TropLev(I, J)
           IF ( L >= TPL ) THEN
              C_OA = 0.0e0_fp
@@ -1306,7 +1289,7 @@ CONTAINS
 
                 ! Amt of Hg(0) lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
@@ -1326,7 +1309,7 @@ CONTAINS
 
                 ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
@@ -1346,7 +1329,7 @@ CONTAINS
 
                 ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
                 DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp * &
-                               State_Chm%SpcData(NN)%Info%emMW_g ) / &
+                               State_Chm%SpcData(NN)%Info%MW_g ) / &
                                ( AREA_CM2 * DTCHEM )
 
                 ! Archive to State_Diag (sum over levels)
@@ -2404,7 +2387,6 @@ CONTAINS
     LOGICAL           :: LGTMM
     LOGICAL           :: LNLPBL
     LOGICAL           :: LPREINDHG
-    LOGICAL           :: LEMIS
     LOGICAL           :: prtDebug
 
     ! Strings
@@ -2425,7 +2407,6 @@ CONTAINS
     LGTMM     = Input_Opt%LGTMM
     LNLPBL    = Input_Opt%LNLPBL
     LPREINDHG = Input_Opt%LPREINDHG
-    LEMIS     = Input_Opt%LEMIS
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
@@ -2441,15 +2422,6 @@ CONTAINS
 
     ! First-time initialization
     IF ( FIRST ) THEN
-
-       ! Check that emissions are turned on. Print error message
-       ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
-       IF ( .not. LEMIS ) THEN
-          ErrMsg = 'ERROR: Hg emissions are need for simulation ' // &
-                   'but emissions are turned off in input.geos'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
 
        ! Read anthro, ocean, land emissions of Hg from disk
        CALL MERCURY_READYR( Input_Opt, RC )
@@ -4246,22 +4218,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp) :: BOXVL
 
     !=================================================================
     ! GET_O3 begins here!
     !=================================================================
 
-    ! Grid box volume [cm3]
-    BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-    ! Get ozone [v/v] for this gridbox & month
-    ! and convert to [molec/cm3] (eck, 12/2/04)
-    O3_MOLEC_CM3 = O3(I,J,L)       * ( AVO * 1e+3_fp / AIRMW ) * &
-                   State_Met%AD(I,J,L) / BOXVL
+    ! O3 from HEMCO is in mol/mol, convert to molec/cm3
+    O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
   END FUNCTION GET_O3
 !EOC
@@ -4302,30 +4265,19 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp) :: TPL
-    REAL(fp) :: HEM_OH
 
     !=================================================================
     ! GET_OH begins here!
     !=================================================================
 
-    TPL = State_Met%TropLev(I, J)
-
-    IF ( L > TPL ) THEN
-       HEM_OH = OH_strat(I,J,L)
-    ELSE
-       HEM_OH = OH_trop(I,J,L)
-    ENDIF
-
     ! Test for sunlight...
     IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and.  TCOSZ(I,J) > 0e+0_fp ) THEN
 
+       ! OH from HEMCO is in mol/mol, convert to molec/cm3
+       OH_MOLEC_CM3 = OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
        ! Impose a diurnal variation on OH during the day
-       ! OH from HEMCO is in kg/m3
-       OH_MOLEC_CM3 = HEM_OH * 1e-6_fp * ( AVO / 0.017) * &
+       OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                       ( State_Met%SUNCOS(I,J)  / TCOSZ(I,J)    ) * &
                       ( 86400e+0_fp            / GET_TS_CHEM() )
 
@@ -4370,7 +4322,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)                    :: HO2_MOLEC_CM3 ! HO2 conc [molec/cm3]
+    REAL(fp)                    :: HO2_MOLEC_CM3  ! HO2 conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
@@ -4378,35 +4330,24 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp) :: HO2_VV
-    REAL(fp) :: HEM_HO2
-    REAL(fp) :: TPL
 
     !=================================================================
     ! GET_HO2 begins here!
     !=================================================================
 
-    TPL = State_Met%TropLev(I, J)
-
-    IF ( L > TPL ) THEN
-       HEM_HO2 = HEM_HO2_strat(I,J,L)
-    ELSE
-       HEM_HO2 = HEM_HO2_trop(I,J,L)
-    ENDIF
-
     ! Test for sunlight...
     IF ( State_Met%SUNCOS(I,J) > 0e0_fp .and. TCOSZ(I,J) > 0e0_fp ) THEN
 
+       ! HO2 from HEMCO is in mol/mol, convert to molec/cm3
+       HO2_MOLEC_CM3 = HO2(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
        ! Impose a diurnal variation on HO2 during the day
-       HO2_VV = HEM_HO2 * ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) * &
-                          ( 86400e0_fp            / GET_TS_CHEM() )
+       HO2_MOLEC_CM3 = HO2_MOLEC_CM3 * &
+                      ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) * &
+                      ( 86400e0_fp            / GET_TS_CHEM() )
 
        ! Make sure HO2 is not negative
-       HO2_VV = MAX( HO2_VV, 0e0_fp )
-       HO2_MOLEC_CM3 = HO2_VV * State_Met%AIRNUMDEN(I,J,L)
+       HO2_MOLEC_CM3 = MAX( HO2_MOLEC_CM3, 0e+0_fp )
 
     ELSE
 
@@ -4451,7 +4392,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)                    :: ClO_MOLEC_CM3  ! ClO  conc [molec/cm3]
+    REAL(fp)                    :: ClO_MOLEC_CM3  ! ClO conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  06 Oct 2014 - H. Horowitz - initial version copied from get_br.
@@ -4462,11 +4403,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp) :: ClO_PPBV
-    REAL*8   :: ClO_FAC, LOCALTIME, HOUR
+    REAL*8 :: ClO_FAC, LOCALTIME, HOUR
 
     !=================================================================
-    ! GET_ClO begins here! copying from get_br!
+    ! GET_ClO begins here!
     !=================================================================
 
     !----------------------------------------------------------------
@@ -4503,17 +4443,20 @@ CONTAINS
        ENDIF
 
        ! Make sure that diurnal scaling factor is non-negative
-       ClO_FAC = MAX( ClO_FAC, 0E0_FP )
+       ClO_FAC = MAX( ClO_FAC, 0e+0_fp )
+
+       ! ClO from HEMCO is in mol/mol, convert to molec/cm3
+       ClO_MOLEC_CM3 = ClO(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
        ! The instantaneous concentration is the 24-h mean times
        ! the time-varying factor from the diurnal cycle
-       ClO_PPBV  = HEM_CLO(I,J,L) * ClO_FAC
-       ClO_MOLEC_CM3 = ClO_PPBV * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
+       ClO_MOLEC_CM3 = ClO_MOLEC_CM3 * ClO_FAC
 
     ELSE
 
        ! At night, ClO, HOCl, Cl goes to zero
-       ClO_MOLEC_CM3  = 0E0_FP
+       ClO_MOLEC_CM3 = 0e+0_fp
+
     ENDIF
 
   END FUNCTION GET_ClO
@@ -4551,7 +4494,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)                    :: Cl_MOLEC_CM3   ! Cl   conc [molec/cm3]
+    REAL(fp)                    :: Cl_MOLEC_CM3   ! Cl conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  19 Nov 2014 - H. Horowitz - initial version copied from get_clO.
@@ -4562,11 +4505,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp) :: Cl_PPBV
-    REAL*8   :: Cl_FAC, LOCALTIME, HOUR
+    REAL*8 :: Cl_FAC, LOCALTIME, HOUR
 
     !=================================================================
-    ! GET_Cl begins here! copying from get_ClO!
+    ! GET_Cl begins here!
     !=================================================================
 
     !----------------------------------------------------------------
@@ -4603,17 +4545,19 @@ CONTAINS
        ENDIF
 
        ! Make sure that diurnal scaling factor is non-negative
-       Cl_FAC = MAX( Cl_FAC, 0E0_FP )
+       Cl_FAC = MAX( Cl_FAC, 0e+0_fp )
+
+       ! Cl from HEMCO is in mol/mol, convert to molec/cm3
+       Cl_MOLEC_CM3 = Cl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
        ! The instantaneous concentration is the 24-h mean times
        ! the time-varying factor from the diurnal cycle
-       Cl_PPBV   = HEM_CL(I,J,L) * Cl_FAC
-       Cl_MOLEC_CM3 = Cl_PPBV * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
+       Cl_MOLEC_CM3 = Cl_MOLEC_CM3 * Cl_FAC
 
     ELSE
 
        ! At night, ClO, HOCl, Cl goes to zero
-       Cl_MOLEC_CM3   = 0E0_FP
+       Cl_MOLEC_CM3 = 0e+0_fp
 
     ENDIF
 
@@ -4650,7 +4594,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)                   :: HOCL_INST
+    REAL(fp)                   :: HOCl_INST   ! Instantaneous HOCl [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
@@ -4661,10 +4605,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)            :: HOCl_FAC, LOCALTIME, HOUR
+    REAL(fp) :: HOCl_FAC, LOCALTIME, HOUR
 
     !=================================================================
-    ! GET_HOCl begins here! copying from get_ClO!
+    ! GET_HOCl begins here!
     !=================================================================
 
     !----------------------------------------------------------------
@@ -4701,15 +4645,19 @@ CONTAINS
        ENDIF
 
        ! Make sure that diurnal scaling factor is non-negative
-       HOCl_FAC = MAX( HOCl_FAC, 0E0_FP )
+       HOCl_FAC = MAX( HOCl_FAC, 0e+0_fp )
 
-       HOCl_INST = HEM_HOCL(I,J,L) * HOCl_FAC ! ppbv
-       HOCl_INST = HOCl_INST * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
+       ! The instantaneous concentration is the 24-h mean times
+       ! the time-varying factor from the diurnal cycle
+       HOCl_INST = HOCl(I,J,L) * HOCl_FAC
+
+       ! HOCl from HEMCO is in mol/mol, convert to molec/cm3
+       HOCl_INST = HOCl_INST * State_Met%AIRNUMDEN(I,J,L)
 
     ELSE
 
        ! Concentration 0 in the dark
-       HOCl_INST = 0e0_fp
+       HOCl_INST = 0e+0_fp
 
     ENDIF
 
@@ -4739,16 +4687,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN) :: I,J,L
-    TYPE(GrdState), INTENT(IN) :: State_Grid
-    TYPE(MetState), INTENT(IN) :: State_Met
-    REAL(4),        INTENT(IN) :: NO_MO
-    REAL(4),        INTENT(IN) :: NO2_MO
-    REAL(fp),       INTENT(IN) :: O3_MO
+    INTEGER,        INTENT(IN) :: I,J,L      ! Grid box indices
+    TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
+    TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+    REAL(4),        INTENT(IN) :: NO_MO      ! Monthly NO  [mol/mol]
+    REAL(4),        INTENT(IN) :: NO2_MO     ! Monthly NO2 [mol/mol]
+    REAL(fp),       INTENT(IN) :: O3_MO      ! Monthly O3  [molec/cm3]
 !
 ! !RETURN VALUE:
 !
-    REAL(fp) :: NO2_INST
+    REAL(fp) :: NO2_INST                     ! NO2 conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  ca. 2014    - H. Horowitz - Initial version
@@ -4799,10 +4747,6 @@ CONTAINS
     !=================================================================
 
     k3 = A*exp(-EdivR/State_Met%T(I,J,L))
-
-    !Get total monthly NOx
-    NOx_MO = NO_MO + NO2_MO
-
     J_NO2 = GET_JNO2( I, J, L, State_Grid, State_Met )
     k3_O3_MO_prod = k3*O3_MO
     J_NO2_k3_O3_MO_sum = J_NO2 + k3_O3_MO_prod
@@ -4816,8 +4760,13 @@ CONTAINS
        F_NO2 = 1e+0_fp
     ENDIF
 
-    NO2_INST = F_NO2 * NOx_MO ! ppbv
-    NO2_INST = NO2_INST * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
+    ! Get total monthly NOx
+    ! NO_MO and NO2_MO from HEMCO are in mol/mol, convert to molec/cm3
+    NOx_MO = NO_MO + NO2_MO
+    NOx_MO = NOx_MO * State_Met%AIRNUMDEN(I,J,L)
+
+    ! Get instantaneous NO2 [molec/cm3]
+    NO2_INST = NOx_MO * F_NO2
 
   END FUNCTION GET_NO2
 !EOC
@@ -4885,7 +4834,6 @@ CONTAINS
 !
     REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
     REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
-    REAL(fp)              :: BOXVL
 !
 ! !DEFINED PARAMETERS:
 !
@@ -5052,9 +5000,6 @@ CONTAINS
 
     ENDIF
 
-    ! Grid box volume [cm3]
-    BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
     ! Do this AFTER application of the diurnal cycle, since polar
     ! bromine has implicit diurnal cycle driven by solar radiation
     ! and represents instantaneous concentrations (jaf, 12/16/11)
@@ -5099,8 +5044,7 @@ CONTAINS
           ENDIF
 
           ! Convert O3 to molec/cm3
-          O3_POLAR = O3_POLAR_PPB * 1e-9_fp * ( AVO * 1e+3_fp / &
-                     AIRMW ) * State_Met%AD(I,J,L) / BOXVL
+          O3_POLAR = O3_POLAR_PPB * 1e-9_fp * State_Met%AIRNUMDEN(I,J,L)
 
           ! Compute polar Br, BrO concentrations in pptv
           BrO_POLAR = BrO_POLAR * FPBL
@@ -5145,10 +5089,8 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Convert pptv mixing ratio -> molec/cm3
-    BR_MOLEC_CM3  = BR_PPTV  * 1e-12_fp * ( AVO * 1e+3_fp / AIRMW ) * &
-                    State_Met%AD(I,J,L) / BOXVL
-    BRO_MOLEC_CM3 = BRO_PPTV * 1e-12_fp * ( AVO * 1e+3_fp / AIRMW ) * &
-                    State_Met%AD(I,J,L) / BOXVL
+    BR_MOLEC_CM3  = BR_PPTV  * 1e-12_fp * State_Met%AIRNUMDEN(I,J,L)
+    BRO_MOLEC_CM3 = BRO_PPTV * 1e-12_fp * State_Met%AIRNUMDEN(I,J,L)
 
   END FUNCTION GET_BR
 !EOC
@@ -6116,121 +6058,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Reset_Hg_Diags
-!
-! !DESCRIPTION: Zeroes the relevant diagnostic fields of State_Diag for
-!  the Hg and tagged Hg simulations.  Some of these need to be done
-!  for example, at the start of each timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Reset_Hg_Diags( Input_Opt, State_Diag, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Diag_Mod, ONLY : DgnState
-    USE Time_Mod,       ONLY : Its_Time_For_Chem
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  NOTE: Not all netCDF diagnostic fields need to be zeroed.  Some fields
-!  of State_Diag are always
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Reset_Hg_Diags (in module GeosCore/mercury_mod.F90'
-
-    !=================================================================
-    ! Reset_Hg_Diags begins here!
-    !=================================================================
-
-    ! Exit if it's not a Hg sim
-    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       ErrMsg = 'Routine "Reset_Hg_Diags" was called, but this ' // &
-                'routine is only valid for Hg or tagHg simulations!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !--------------------------------------------------------------
-    ! Zero diagnostics in depo_mercury_mod.F90
-    !--------------------------------------------------------------
-    IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
-       State_Diag%FluxHg2HgPfromAirToSnow = 0.0_fp
-    ENDIF
-
-    ! These are called once per chemistry or emissions timestep
-    IF ( Its_Time_For_Chem() ) THEN
-
-       !--------------------------------------------------------------
-       ! Zero diagnostics in mercury_mod.F90
-       !--------------------------------------------------------------
-       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepChm = 0.0_f4
-       ENDIF
-
-       !-------------------------------------------------------------
-       ! Zero diagnostics in ocean_mercury_mod.F90
-       !-------------------------------------------------------------
-       IF ( State_Diag%Archive_EmisHg2rivers ) THEN
-          State_Diag%EmisHg2rivers = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
-          State_Diag%EmisHg2snowToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
-          State_Diag%FluxOCtoDeepOcean = 0.0_f4
-       ENDIF
-
-    ENDIF
-
-  END SUBROUTINE Reset_Hg_Diags
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_mercury
 !
 ! !DESCRIPTION: Subroutine INIT\_MERCURY allocates and zeroes all
@@ -7169,19 +6996,17 @@ CONTAINS
     IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) DEALLOCATE( HG2_SEASALT_LOSSRATE )
 
     ! Free pointers to HEMCO fields
-    O3            => NULL()
-    OH_trop       => NULL()
-    OH_strat      => NULL()
-    JNO2          => NULL()
-    HEM_NO        => NULL()
-    HEM_NO2       => NULL()
-    HEM_CLO       => NULL()
-    HEM_CL        => NULL()
-    HEM_OA        => NULL()
-    HEM_HOCl      => NULL()
-    HEM_HO2_trop  => NULL()
-    HEM_HO2_strat => NULL()
-    OCEAN_CONC    => NULL()
+    O3          => NULL()
+    OH          => NULL()
+    JNO2        => NULL()
+    NO          => NULL()
+    NO2         => NULL()
+    CLO         => NULL()
+    CL          => NULL()
+    OA          => NULL()
+    HOCl        => NULL()
+    HO2         => NULL()
+    OCEAN_CONC  => NULL()
 
     ! Free Hg indexing pointers
     Hg0_Id_List => NULL()

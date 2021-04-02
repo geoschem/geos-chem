@@ -14421,7 +14421,9 @@
       F1(5)=0.0
       F1(6)=0.0
 !
-      DO 110 I=1,3
+      ! Rewrite so that nested DO loops don't end on the same CONTINUE,
+      ! which may cause an warning/error on newer compilers (bmy, 1/13/21)
+      DO 109 I=1,3
          ZPL = Z(I)
          MPL = MOLAL(I)/WATER
          DO 110 J=1,4
@@ -14431,9 +14433,12 @@
             YJI   = CH*MOLAL(J+3)/WATER
             F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
             F2A(J) = F2A(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
-110   CONTINUE
+ 110     CONTINUE
+ 109  CONTINUE
 !
-      DO 330 I=4,6
+      ! Rewrite so that nested DO loops don't end on the same CONTINUE,
+      ! which may cause an warning/error on newer compilers (bmy, 1/13/21)
+      DO 329 I=4,6
          ZPL = Z(I+4)
          MPL = MOLAL(I+4)/WATER
          DO 330 J=1,4
@@ -14448,8 +14453,8 @@
             YJI   = CH*MOLAL(J+3)/WATER
             F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
             F2B(J) = F2B(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
-330   CONTINUE
-
+ 330     CONTINUE
+ 329  CONTINUE
 !
 ! *** LOG10 OF ACTIVITY COEFFICIENTS ***********************************
 !
@@ -14608,7 +14613,9 @@
 100   CONTINUE
       F2(4)=0.0
 !
-      DO 110 I=1,3
+      ! Rewrite so that nested DO loops don't end on the same CONTINUE,
+      ! which may cause an warning/error on newer compilers (bmy, 1/13/21)
+      DO 109 I=1,3
          ZPL = Z(I)
          MPL = MOLAL(I)/WATER
          DO 110 J=1,4
@@ -14618,7 +14625,8 @@
             YJI   = CH*MOLAL(J+3)/WATER
             F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
             F2(J) = F2(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
-110   CONTINUE
+ 110     CONTINUE
+ 109  CONTINUE
 !
 ! *** LOG10 OF ACTIVITY COEFFICIENTS ***********************************
 !
@@ -14776,7 +14784,9 @@
 100   CONTINUE
       F2(4)=0.0
 !
-      DO 110 I=1,3,2
+      ! Rewrite so that nested DO loops don't end on the same CONTINUE,
+      ! which may cause an warning/error on newer compilers (bmy, 1/13/21)
+      DO 109 I=1,3,2
          ZPL = Z(I)
          MPL = MOLAL(I)/WATER
          DO 110 J=2,4
@@ -14786,7 +14796,8 @@
             YJI   = CH*MOLAL(J+3)/WATER
             F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
             F2(J) = F2(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
-110   CONTINUE
+ 110     CONTINUE
+ 109  CONTINUE
 !
 ! *** LOG10 OF ACTIVITY COEFFICIENTS ***********************************
 !
@@ -14970,7 +14981,9 @@
 100   CONTINUE
       F2(4)=0.0
 !
-      DO 110 I=1,3,2
+      ! Rewrite so that nested DO loops don't end on the same CONTINUE,
+      ! which may cause an warning/error on newer compilers (bmy, 1/13/21)
+      DO 109 I=1,3,2
          ZPL = Z(I)
          MPL = MOLAL(I)/WATER
          DO 110 J=2,3
@@ -14980,7 +14993,8 @@
             YJI   = CH*MOLAL(J+3)/WATER
             F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
             F2(J) = F2(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
-110   CONTINUE
+ 110     CONTINUE
+ 109  CONTINUE
 !
 ! *** LOG10 OF ACTIVITY COEFFICIENTS ***********************************
 !

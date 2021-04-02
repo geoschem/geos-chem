@@ -36,7 +36,7 @@ MODULE PRESSURE_MOD
 #if defined( ESMF_ ) || defined( MODEL_ )
   PUBLIC  :: Accept_External_Pedge
 #endif
-#if defined( MODEL_WRF )
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
   PUBLIC  :: Accept_External_ApBp
 #endif
 !
@@ -793,9 +793,9 @@ CONTAINS
           BP(L) = b132_loc(State_Grid%NZ+2-L)
        ENDDO
 
+#if !defined( MODEL_WRF ) && !defined( MODEL_CESM )
     ELSE
 
-#if !defined( MODEL_WRF )
        WRITE( nLev, * ) State_Grid%NZ
        ErrMSg = 'Ap and Bp not defined for ' // TRIM( nLev ) // &
                 ' levels. Please add these defintions in pressure_mod.F90.'
@@ -904,7 +904,7 @@ CONTAINS
   END SUBROUTINE Accept_External_Pedge
 !EOC
 #endif
-#if defined ( MODEL_WRF )
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

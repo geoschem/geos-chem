@@ -1,7 +1,6 @@
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -33,7 +32,6 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRCLND              = FRLAND                     ! 1
   State_Met%FRLAND              = FRLAND                     ! 1
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1

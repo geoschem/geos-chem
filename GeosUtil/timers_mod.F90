@@ -1030,11 +1030,11 @@ CONTAINS
     SecsLeft  = InputSecs - REAL(IntSecs)
 
     IF ( InputSecs < 0 ) THEN ! Invalid time
-       WRITE( 6, 110 ), SavedTimers(SlotNumber)%TIMER_NAME
+       WRITE( 6, 110 ) SavedTimers(SlotNumber)%TIMER_NAME
 110    FORMAT(2x,a30,': Invalid run time - negative value')
        RETURN
     ELSEIF ( InputSecs .eq. 0 ) THEN ! Zero timer
-       WRITE( 6, 120 ), SavedTimers(SlotNumber)%TIMER_NAME
+       WRITE( 6, 120 ) SavedTimers(SlotNumber)%TIMER_NAME
 120    FORMAT(2x,a30,':  >>>>> THE TIMER DID NOT RUN <<<<<')
        RETURN
     ENDIF

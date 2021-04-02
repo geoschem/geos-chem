@@ -1,8 +1,0 @@
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOS
-! !SECTION: Date and time utility modules
-! !DESCRIPTION: These modules contain routines to compute the model date and time.
-!EOS
-!------------------------------------------------------------------------------

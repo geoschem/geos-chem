@@ -588,14 +588,6 @@ CONTAINS
    ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
    !=================================================================
 
-   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
-   ! the molecular weight stored in the species database which is
-   ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when
-   ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at
-   ! State_Chm%Spc_Units. (ewl, 8/11/16)
-
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
 110 FORMAT( 'Min and Max of each species in restart file [mol/mol]:' )
@@ -608,7 +600,7 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
-      MW_g    =  SpcInfo%emMW_g
+      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
       v_name = 'SPC_' // TRIM( SpcInfo%Name )
@@ -646,9 +638,9 @@ CONTAINS
          ENDIF
 
          ! Convert file value [mol/mol] to [kg/kg dry] for storage
-!$OMP PARALLEL DO                                                       &
-!$OMP DEFAULT( SHARED )                                                 &
-!$OMP PRIVATE( I, J, L )
+         !$OMP PARALLEL DO       &
+         !$OMP DEFAULT( SHARED ) &
+         !$OMP PRIVATE( I, J, L )
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
@@ -656,14 +648,14 @@ CONTAINS
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
 
       ELSE
 
          ! Set species to the background value converted to [kg/kg dry]
-!$OMP PARALLEL DO                                                       &
-!$OMP DEFAULT( SHARED )                                                 &
-!$OMP PRIVATE( I, J, L )
+         !$OMP PARALLEL DO       &
+         !$OMP DEFAULT( SHARED ) &
+         !$OMP PRIVATE( I, J, L )
          ! Loop over all grid boxes
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
@@ -697,7 +689,7 @@ CONTAINS
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
 
 #ifdef APM
          !================================================================
@@ -705,9 +697,9 @@ CONTAINS
          !================================================================
          WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
          IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO        &
+            !$OMP DEFAULT( SHARED  ) &
+            !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -718,12 +710,12 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:9)=='APMSPBIN3')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -734,13 +726,13 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
-!GanLuotest
+           !GanLuotest
            IF(SpcInfo%Name(1:10)=='APMSEABIN0')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -751,12 +743,12 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:10)=='APMSEABIN1')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -767,12 +759,12 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:10)=='APMDSTBIN1')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -782,12 +774,12 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:8)=='APMBCBIN')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -796,12 +788,12 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:8)=='APMOCBIN')THEN
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( I, J, L )
+              !$OMP PARALLEL DO        &
+              !$OMP DEFAULT( SHARED  ) &
+              !$OMP PRIVATE( I, J, L )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -810,7 +802,7 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
+            !$OMP END PARALLEL DO
            ENDIF
 #endif
       ENDIF
@@ -1325,6 +1317,7 @@ CONTAINS
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
    INTEGER              :: t_index            ! Time index
    LOGICAL              :: FOUND              ! Found in restart file?
+   LOGICAL, SAVE        :: FIRST = .TRUE.     ! Is this the first routine call?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=255)   :: MSG                ! message
@@ -1377,13 +1370,11 @@ CONTAINS
    ! store in State_Chm%BoundaryCond in [kg/kg dry]
    !=================================================================
 
-   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
-   ! the molecular weight stored in the species database which is
-   ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when
-   ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at
-   ! State_Chm%Spc_Units. (ewl, 8/11/16)
+   ! Print header for min/max concentration to log
+   IF ( Input_Opt%amIRoot ) THEN
+      WRITE( 6, 110 )
+110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
+   ENDIF
 
    ! Initialize BCs to all zeroes
    State_Chm%BoundaryCond = 0.e+0_fp
@@ -1396,7 +1387,7 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
-      MW_g    =  SpcInfo%emMW_g
+      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
       v_name = 'BC_' // TRIM( SpcInfo%Name )
@@ -1412,71 +1403,90 @@ CONTAINS
       ! Check if BCs are found
       IF ( FOUND ) THEN
 
+         ! Print the min & max of each species as it is read from
+         ! the BC file in mol/mol if debug is turned on in input.geos
+         IF ( Input_Opt%amIRoot ) THEN
+            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+               WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
+                               MINVAL( Ptr3D ), MAXVAL( Ptr3D )
+120            FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
+                       '  Max = ',es15.9)
+            ENDIF
+         ENDIF
+
          ! Copy data from file to State_Chm%BoundaryCond
          ! and convert from [mol/mol] to [kg/kg dry]
          State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
 
-         ! Debug
-!         Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
-!                 MINVAL(State_Chm%BoundaryCond(:,:,:,N)), &
-!                 MAXVAL(State_Chm%BoundaryCond(:,:,:,N))
+      ELSE
 
-         ! Loop over grid boxes and apply BCs to the specified buffer zone
-!$OMP PARALLEL DO                                                       &
-!$OMP DEFAULT( SHARED )                                                 &
-!$OMP PRIVATE( I, J, L )
-         DO L = 1, State_Grid%NZ
+         ! Print to log if debug is turned on in input.geos
+         IF ( Input_Opt%amIRoot ) THEN
+            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+               WRITE( 6, 130 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
+130            FORMAT('Species ', i3, ', ', a9, ': Use background = ', es15.9)
+            ENDIF
+         ENDIF
 
-            ! First loop over all latitudes of the nested domain
-            DO J = 1, State_Grid%NY
+         ! Use the background value stored in the species database
+         State_Chm%BoundaryCond(:,:,:,N) = SpcInfo%BackgroundVV &
+                                            * MW_g / AIRMW
 
-               ! West BC
-               DO I = 1, State_Grid%WestBuffer
-                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
+      ENDIF
 
-               ! East BC
-               DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
 
+      ! Loop over grid boxes and apply BCs to the specified buffer zone
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L )
+      DO L = 1, State_Grid%NZ
+
+         ! First loop over all latitudes of the nested domain
+         DO J = 1, State_Grid%NY
+
+            ! West BC
+            DO I = 1, State_Grid%WestBuffer
+               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
-            ! Then loop over the longitudes of the nested domain
-            DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-               ! South BC
-               DO J = 1, State_Grid%SouthBuffer
-                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
-
-               ! North BC
-               DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
-               ENDDO
+            ! East BC
+            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
          ENDDO
-!OMP END PARALLEL DO
 
-      ELSE
+         ! Then loop over the longitudes of the nested domain
+         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
 
-         MSG = 'No boundary condition found for '// TRIM( SpcInfo%Name )
-         CALL GC_Error( MSG, RC, LOC)
-         RETURN
+            ! South BC
+            DO J = 1, State_Grid%SouthBuffer
+               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+            ENDDO
 
-      ENDIF
+            ! North BC
+            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+            ENDDO
+         ENDDO
+
+      ENDDO
+      !OMP END PARALLEL DO
 
       ! Free pointer
       SpcInfo => NULL()
 
    ENDDO
 
-   ! Echo output
-   STAMP = TIMESTAMP_STRING()
-   WRITE( 6, 110 ) STAMP
-110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at ', a )
+   ! Reset FIRST flag
+   FIRST = .FALSE.
 
+   ! Echo output
+   IF ( Input_Opt%amIRoot ) THEN
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 140 ) STAMP
+140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+   ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions
 !EOC
@@ -1560,7 +1570,7 @@ CONTAINS
     INTEGER                 :: Hg_Cat,  topMix
     INTEGER                 :: S
     REAL(fp)                :: dep,     emis
-    REAL(fp)                :: EmMW_kg, fracNoHg0Dep
+    REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
 
     ! Strings
@@ -1595,11 +1605,6 @@ CONTAINS
     thisLoc = &
     ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_utilities_gc_mod.F90)'
 
-    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
-    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
-
     !=======================================================================
     ! Convert units to v/v dry
     !=======================================================================
@@ -1627,6 +1632,7 @@ CONTAINS
        id_O3   = Ind_('O3'  )
        id_HNO3 = Ind_('HNO3')
 
+#if !defined( MODEL_CESM )
        IF ( id_O3 > 0 ) THEN
           CALL GetHcoDiagn(                                                  &
                HcoState       = HcoState,                                    &
@@ -1646,6 +1652,7 @@ CONTAINS
                Ptr2D          = PNOxLoss_HNO3,                               &
                RC             = RC                                          )
        ENDIF
+#endif
 
        ! Reset first-time flag
        FIRST = .FALSE.
@@ -1674,6 +1681,7 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+#if !defined( MODEL_CESM )
        ! PBL top level [integral model levels]
        topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -1728,19 +1736,20 @@ CONTAINS
           !------------------------------------------------------------------
           ! Also add drydep frequencies calculated by HEMCO (e.g. from the
           ! air-sea exchange module) to DFLX.  These values are stored
-          ! in 1/s.  They are added in the same manner as the DEPSAV values
+          ! in 1/s.  They are added in the same manner as the drydep freq values
           ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
           ! (ckeller, 04/01/2014)
           !------------------------------------------------------------------
           CALL GetHcoValDep( NA, I, J, L, found, dep )
           IF ( found ) THEN
              dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%EmMW_g)  )
+                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
           ENDIF
 
           ! Free pointers
           ThisSpc => NULL()
        ENDDO
+#endif
 
        !=====================================================================
        ! Apply dry deposition frequencies
@@ -1766,9 +1775,8 @@ CONTAINS
           ! only use the lowest model layer for calculating drydep fluxes
           ! given that spc is in v/v
           dflx(I,J,N) = dflx(I,J,N) &
-                      + State_Chm%DryDepSav(I,J,ND) * spc(I,J,N)             &
-                      /  ( AIRMW                    / ThisSpc%EmMW_g        )
-
+                      + State_Chm%DryDepFreq(I,J,ND) * spc(I,J,N)             &
+                      /  ( AIRMW                    / ThisSpc%MW_g        )
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
 
@@ -1890,7 +1898,7 @@ CONTAINS
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, EmMw_kg, tmpFlx, S                    )
+       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -1903,8 +1911,8 @@ CONTAINS
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
           ThisSpc => State_Chm%SpcData(N)%Info
 
-          ! Get the (emitted) molecular weight of the species in kg
-          EmMW_kg = ThisSpc%emMW_g * 1.e-3_fp
+          ! Get the molecular weight of the species in kg
+          MW_kg = ThisSpc%MW_g * 1.e-3_fp
 
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
@@ -1912,9 +1920,9 @@ CONTAINS
           ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
           !
           ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
-          ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
+          ! (2) multiplying by ( AVO / MW_KG )    => molec/cm2/s
           !
-          ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
+          ! The term AVO/MW_kg = (molec/mol) / (kg/mol) = molec/kg
           !
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
@@ -1940,7 +1948,7 @@ CONTAINS
              IF ( S > 0 ) THEN
                 State_Diag%DryDepMix(:,:,S) = Dflx(:,:,N)                    &
                                             * 1.0e-4_fp                      &
-                                            * ( AVO / EmMW_kg  )
+                                            * ( AVO / MW_kg  )
              ENDIF
           ENDIF
 
@@ -1948,19 +1956,13 @@ CONTAINS
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
           ! (SOIL_DRYDEP will exit if it can't find a match.
-          !
-          ! Locate position of each tracer in DEPSAV
-          ! (get tracer id)
-          ! NOTE: trc_id was previously NN and drydep id D
-          ! was previously N. This is changed for convention consistency
-          ! within subroutine (ewl, 1/25/16)
           !-----------------------------------------------------------------
 	  IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N)                                         &
-	               / EmMW_kg                                             &
+	               / MW_kg                                               &
                        * AVO           * 1.e-4_fp                            &
                        * GET_TS_CONV() / GET_TS_EMIS()
 

@@ -29,7 +29,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: GET_OBK
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
-  PUBLIC  :: Set_Met_AgeOfAir
+  PUBLIC  :: Set_Clock_Tracer
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
   PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
@@ -181,14 +181,24 @@ CONTAINS
 !  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
 !  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
 !  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
-!  (5)  PMEAN     (REAL(fp)) : Altitude-weighted mean moist air pressure  [hPa]
-!  (6)  PMEAN_DRY (REAL(fp)) : Alt-weighted mean dry air partial pressure [hPa]
-!  (7)  DELP      (REAL(fp)) : Delta-P extent of grid box                 [hPa]
-!                              (Same for both moist and dry air since we
-!                              assume constant water vapor pressure
-!                              across box)
+!                              (Note that PMID_DRY and PEDGE_DRY represent local partial pressure of dry air 
+!                               (total pressure minus water vapor pressure), which is different
+!                               from the pressure that would occur in a dry hydrostatic atmosphere with the same
+!                               dry air mass distribution. The latter is needed for transport calculations
+!                               for which we have DELP_DRY. Despite similar names, DELP_DRY is fundamentally 
+!                               different from PEDGE_DRY. cdholmes 10/29/2020)
+!  (7)  DELP      (REAL(fp)) : Moist air Delta-P extent of grid box       [hPa]
+!                              (DELP is proportional to grid box moist air mass)
+!       DELP_DRY  (REAL(fp)) : Dry air Delta-P                     
+!                              (DELP_DRY is treated as proportional to grid box dry air mass,
+!                               but it is computed from dry surface pressure and Hybrid A's and B's.
+!                               This is for consistency with the assumptions about the vertical coordinate
+!                               in transport (TPCORE_FVDAS and the pressure fixer) to conserve mass. 
+!                               As a result, however, DELP_DRY is not consistent with the dry air mass 
+!                               computed from moist air mass and specific humidity, nor is it consistent
+!                               with the differences between consecutive PEDGE_DRY values. cdholmes 10/29/2020)
 !  (8)  AIRDEN    (REAL(fp)) : Mean grid box dry air density            [kg/m^3]
-!                              (defined as total dry air mass/box vol)
+!                              (defined as total dry air mass/box vol, computed from DELP_DRY (see note above))
 !  (9)  MAIRDEN   (REAL(fp)) : Mean grid box moist air density          [kg/m^3]
 !                              (defined as total moist air mass/box vol)
 !  (10) AD        (REAL(fp)) : Total dry air mass in grid box             [kg]
@@ -210,11 +220,10 @@ CONTAINS
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
     INTEGER             :: L_CG,      L_TP,       N
-    REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
-    REAL(fp)            :: Ev_mean,   PMEAN,      PMEAN_DRY, EsatA
-    REAL(fp)            :: EsatB,     EsatC,      EsatD
+    REAL(fp)            :: PEdge_Top, Esat 
+    REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
-    REAL(fp)            :: Pb,        Pt
+    REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
     LOGICAL             :: UpdtMR
 
     ! Arrays
@@ -282,7 +291,6 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-
        ! Land: LWI=1 and ALBEDO less than 69.5%
        State_Met%IsLand(I,J) = ( NINT( State_Met%LWI(I,J) ) == 1 .and. &
                                State_Met%ALBD(I,J)  <  0.695e+0_fp )
@@ -294,6 +302,9 @@ CONTAINS
        ! Ice: LWI=2 or ALBEDO > 69.5%
        State_Met%IsIce(I,J) = ( NINT( State_Met%LWI(I,J) ) == 2 .or. &
                               State_Met%ALBD(I,J)  >= 0.695e+0_fp )
+
+       ! Snow covered: ALBEDO > 40%
+       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  > 0.40e+0_fp )
 
     ENDDO
     ENDDO
@@ -307,8 +318,8 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                 ) &
     !$OMP PRIVATE( I,       J,         L,       Pedge_Top ) &
     !$OMP PRIVATE( EsatA,   EsatB,     EsatC,   EsatD     ) &
-    !$OMP PRIVATE( Esat,    SPHU_kgkg, Ev_mid,  Ev_edge   ) &
-    !$OMP PRIVATE( PMean,   Ev_mean,   PMean_Dry          )
+    !$OMP PRIVATE( Esat,    SPHU_kgkg                     ) &
+    !$OMP PRIVATE( XH2O, ADmoist                          )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -374,16 +385,8 @@ CONTAINS
        State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg / &
                                ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )
 
-       !=============================================================
-       ! Calculate water vapor partial pressures [hPa] from relative
-       ! humidity
-       !=============================================================
-
-       ! At vertical midpoint of grid box
-       Ev_mid  = State_Met%RH(I,J,L) * RHCONV * Esat
-
-       ! At bottom edge of grid box
-       Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid / State_Met%PMID(I,J,L)
+       ! Water vapor mole fraction [mol (H2O) / mol (moist air)]
+       XH2O = State_Met%AVGW(I,J,L) / ( 1.0e+0_fp + State_Met%AVGW(I,J,L) )
 
        !=============================================================
        ! Set grid box height [m]
@@ -414,18 +417,13 @@ CONTAINS
        ! Assume constant temperature and moisture across grid box.
        !
 
-       ! Grid box potential temperature [K]
-       ! NOTE: Due to the parallelization, we cannot assume that
-       ! State_Met%PEDGE(I,J,1) has been defined.  So always call
-       ! GET_PEDGE(I,J,1) to return the proper surface pressure
-       ! (bmy, 2/23/18)
+       ! Grid box potential temperature [K] at reference pressure 1000 hPa
        State_Met%THETA(I,J,L)  = State_Met%T(I,J,L) * &
-                                 ( GET_PEDGE( I, J, 1 ) / &
-                                 State_Met%PMID(I,J,L) )**0.286
+                                 ( 1000.0_fp / State_Met%PMID(I,J,L) )**0.286
 
        ! Grid box virtual temperature [K]
-       State_Met%TV(I,J,L) = State_Met%T(I,J,L) / (1 - Ev_edge / &
-                             State_Met%PEDGE(I,J,L) * ( 1 - H2OMW / AIRMW ) )
+       State_Met%TV(I,J,L) = State_Met%T(I,J,L) / (1 - XH2O * &
+                             ( 1 - H2OMW / AIRMW ) )
 
        ! Grid box box height [m]
        State_Met%BXHEIGHT(I,J,L) = Rdg0 * State_Met%TV(I,J,L) * &
@@ -461,15 +459,15 @@ CONTAINS
        !==============================================================
 
        ! Partial pressure of dry air at lower edge of grid box [hPa]
-       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) - Ev_edge
+       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) * ( 1.e+0_fp - XH2O )
 
        ! Set dry air partial pressure for level State_Grid%NZ+1 lower edge
        IF ( L == State_Grid%NZ ) THEN
-          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top - Ev_edge
+          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top * ( 1.e+0_fp - XH2O )
        ENDIF
 
        ! Partial pressure of dry air at box centroid [hPa]
-       State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) - Ev_mid
+       State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) * ( 1.e+0_fp - XH2O )
 
        ! Set previous dry P difference to current dry P difference
        ! prior to updating with new met values
@@ -504,25 +502,9 @@ CONTAINS
        State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 ) * &
                              State_Grid%AREA_M2(I,J)
 
-       !==============================================================
-       ! Set grid box dry air partial pressures at grid box
-       ! altitude-weighted mean pressure [hPa]
-       ! Assume constant humidity across grid box.
-       !==============================================================
-
-       ! Mean altitude-weighted pressures in grid box [hPa] defined as
-       ! average P(z) over z. Use in the ideal gas law yields a
-       ! mean density equivalent to total mass per volume in grid box.
-       PMEAN = State_Met%DELP(I,J,L) / log( State_Met%PEDGE(I,J,L) / PEdge_Top )
-       Ev_mean   = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
-       PMEAN_DRY = PMEAN - Ev_mean
-
-       ! NOTE: Try the below definition in the future to change the
-       ! AIRDEN equation to use the ideal gas law, thereby removing
-       ! area-independence of AIRDEN
-       !State_Met%PMEAN_DRY( I,J,L ) = State_Met%DELP_DRY(I,J,L) / &
-       !                               log( State_Met%PEDGE(I,J,L) / &
-       !                                    PEdge_Top )
+       ! Mass of moist air [kg]
+       ADmoist             = ( State_Met%DELP(I,J,L) * G0_100 ) * &
+                             State_Grid%AREA_M2(I,J)
 
        !==============================================================
        ! Set grid box densities
@@ -547,23 +529,9 @@ CONTAINS
        State_Met%AIRNUMDEN(I,J,L) = State_Met%AIRDEN(I,J,L) * 1e-3_fp * &
                                     AVO / AIRMW
 
-       ! Set grid box moist air density [kg/m3] using the ideal gas law
-       ! and pressures derived from GMAO pressure
-       !
-       !  MAIRDEN = density of moist air [kg/m^3],
-       !  given by:
-       !
-       !            Partial      Molec     Partial       Molec
-       !            pressure   * wt of   + pressure of * wt of
-       !            of dry air   air       water vapor   water
-       ! Moist      [hPa]        [g/mol]   [hPa]         [g/mol]
-       ! Air     =  ------------------------------------------------
-       ! Density    Universal gas constant * Temp * 1000  * 0.01
-       !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
-       !
-       ! NOTE: MAIRDEN is used in wetscav_mod only
-       State_Met%MAIRDEN(I,J,L) = ( PMEAN_DRY * AIRMW + Ev_mean * H2OMW ) * &
-                                  PCONV * MCONV / RSTARG / State_Met%T(I,J,L)
+       ! Set grid box moist air density [kg/m3] 
+       ! Use moist air mass and volume                           
+       State_Met%MAIRDEN(I,J,L) = ADmoist / State_Met%AIRVOL(I,J,L)
 
        !==============================================================
        ! Define the various query fields of State_Met
@@ -873,7 +841,7 @@ CONTAINS
 !EOC
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1431,30 +1399,31 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_met_ageofair
+! !IROUTINE: set_clock_tracer
 !
-! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
+! !DESCRIPTION: Subroutine Set\_Clock_Tracer adds the time step (in seconds)
 !  to every grid box every time step with a total sink at the surface every
 !  time step to reproduce GMI tracer mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Met_AgeOfAir( State_Grid, State_Met )
+  SUBROUTINE Set_Clock_Tracer( State_Chm, State_Grid )
 !
 ! !USES:
 !
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -1465,15 +1434,25 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL,  SAVE :: FIRST = .TRUE.
     INTEGER        :: I, J, L
+    INTEGER,  SAVE :: id_CLOCK
     REAL(fp), SAVE :: TimeStep
 
     !=================================================================
-    ! SET_MET_AGEOFAIR begins here!
+    ! SET_CLOCK_TRACER begins here!
     !=================================================================
 
-    ! Get timestep [s]
-    TimeStep = GET_TS_DYN()
+    IF ( FIRST ) THEN
+       ! Define species ID's  on the first call
+       id_CLOCK  = Ind_( 'CLOCK' )
+
+       ! Get timestep [s]
+       TimeStep = GET_TS_DYN()
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+    ENDIF
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -1484,10 +1463,11 @@ CONTAINS
 
        IF ( L == 1 ) THEN
           ! Set the surface to a sink
-          State_Met%AgeOfAir(I,J,L) = 0
+          State_Chm%Species(I,J,L,id_CLOCK) = 0.0_fp
        ELSE
           ! Otherwise add time step [s]
-          State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + TimeStep
+          State_Chm%Species(I,J,L,id_CLOCK) = State_Chm%Species(I,J,L,id_CLOCK)&
+                                              + TimeStep
        ENDIF
 
     ENDDO
@@ -1495,6 +1475,6 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-  END SUBROUTINE Set_Met_AgeOfAir
+  END SUBROUTINE Set_Clock_Tracer
 !EOC
 END MODULE CALC_MET_MOD

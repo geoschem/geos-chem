@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -43,7 +43,7 @@ MODULE GCHP_Chunk_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -301,7 +301,7 @@ CONTAINS
 !EOC
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -346,7 +346,9 @@ CONTAINS
     USE HCO_Utilities_GC_Mod
 
     ! Specialized subroutines
-    USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : AirQnt
+    USE Calc_Met_Mod,       ONLY : Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : Set_Clock_Tracer
     USE Calc_Met_Mod,       ONLY : GCHP_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
@@ -366,6 +368,7 @@ CONTAINS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     ! Diagnostics
+    USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
@@ -582,6 +585,9 @@ CONTAINS
     ! Pre-Run assignments
     !-------------------------------------------------------------------------
 
+    ! Zero out certain State_Diag arrays
+    CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+
     ! Eventually initialize/reset wetdep
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
        CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
@@ -650,6 +656,11 @@ CONTAINS
                                   State_Grid     = State_Grid, &
                                   State_Met      = State_Met,  &
                                   RC             = RC         )
+
+    ! Update clock tracer if relevant
+    IF (  IND_('CLOCK','A') > 0 ) THEN
+       CALL Set_Clock_Tracer( State_Chm, State_Grid )
+    ENDIF
 
     ! Call PBL quantities. Those are always needed
     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
@@ -879,7 +890,7 @@ CONTAINS
     ! Set tropospheric CH4 concentrations and fill species array with
     ! current values.
 #if defined( MODEL_GEOS )
-    IF ( .NOT. Input_Opt%LCH4EMIS .AND. ( DoTurb .OR. DoTend ) ) THEN
+    IF ( DoTurb .OR. DoTend ) THEN
 #else
     IF ( Phase /= 2 .AND. Input_Opt%ITS_A_FULLCHEM_SIM  &
          .AND. IND_('CH4','A') > 0 ) THEN
@@ -896,10 +907,12 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do chemistry now'
        CALL MAPL_TimerOn( STATE, 'GC_CHEM' )
 
-       ! Calculate TOMS O3 overhead. For now, always use it from the
-       ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
-                                 .TRUE., State_Met%TO3, RC )
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ! Calculate TOMS O3 overhead. For now, always use it from the
+          ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
+          CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
+                                    .TRUE., State_Met%TO3, RC )
+       ENDIF
 
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected

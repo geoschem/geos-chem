@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -72,7 +72,7 @@ MODULE SfcVmr_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -173,7 +173,7 @@ CONTAINS
        IF ( FOUND ) THEN
 
            ! Must have positive, non-zero MW
-           IF ( SpcInfo%emMW_g <= 0.0_fp ) THEN
+           IF ( SpcInfo%MW_g <= 0.0_fp ) THEN
               ErrMsg = 'Cannot use surface boundary condition for species '  &
                      // TRIM(SpcInfo%Name) // ' due to invalid MW!'
               CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -212,7 +212,7 @@ CONTAINS
   END SUBROUTINE fixSfcVMR_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -329,7 +329,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
              IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0.0_fp ) THEN
                 Spc(I,J,L,id_Spc) = ( Arr2d(I,J) * 1.0e-9_fp      )          &
-                                  / ( AIRMW      / SpcInfo%emMW_g )
+                                  / ( AIRMW      / SpcInfo%MW_g   )
              ENDIF  ! end selection of PBL boxes
           ENDDO
           ENDDO
@@ -347,7 +347,7 @@ CONTAINS
   END SUBROUTINE FixSfcVmr_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
