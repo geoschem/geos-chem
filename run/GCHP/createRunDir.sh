@@ -184,18 +184,18 @@ while [ "${valid_met}" -eq 0 ]; do
     read met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
-	RDI_VARS+="$(cat ${gcdir}/shared/merra2_settings.txt)\n"
+	met="merra2"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/merra2_settings.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n'
     elif [[ ${met_num} = "2" ]]; then
-	RDI_VARS+="$(cat ${gcdir}/shared/geosfp_settings.txt)\n"
+	met="geosfp"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/geosfp_settings.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
     fi
 done
-
-
 
 #-----------------------------------------------------------------
 # Ask user to define path where directoy will be created
@@ -250,9 +250,9 @@ if [ -z "$1" ]; then
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gchp_${met_name_lc}_${sim_name}
+	    rundir_name=gchp_${met}_${sim_name}
 	else
-	    rundir_name=gchp_${met_name_lc}_${sim_name}_${sim_extra_option}
+	    rundir_name=gchp_${met}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -345,11 +345,11 @@ RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc
 
 # Determine settings
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-   RDI_VARS+="$(cat ${gcdir}/shared/benchmark_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/run/shared/benchmark_settings.txt)\n"
 elif [[ ${sim_name} == "TransportTracers" ]]; then
-   RDI_VARS+="$(cat ${gcdir}/shared/transporttracer_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/run/shared/transporttracer_settings.txt)\n"
 else
-   RDI_VARS+="$(cat ${gcdir}/shared/fullchem_settings.txt)\n"
+   RDI_VARS+="$(cat ${gcdir}/run/shared/fullchem_settings.txt)\n"
 fi
 
 #--------------------------------------------------------------------

@@ -73,7 +73,7 @@ for fpath in $COPY_LIST; do
 done
 
 # Copy util directory
-cp -r utils .
+cp -r $THIS_SCRIPTS_DIRECTORY/utils utils
 
 # Make OutputDir
 mkdir -p OutputDir
@@ -88,4 +88,4 @@ rm -f ChemDir HcoDir MetDir runScriptSamples
 ln -s ${RDI_DATA_ROOT}/CHEM_INPUTS ChemDir
 ln -s ${RDI_DATA_ROOT}/HEMCO HcoDir
 ln -s $RDI_MET_DIR MetDir
-ln -s runScriptSamples runScriptSamples
+ln -s $THIS_SCRIPTS_DIRECTORY/runScriptSamples runScriptSamples
