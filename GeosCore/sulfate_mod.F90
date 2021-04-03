@@ -325,7 +325,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline global HCl from HEMCO
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCl', GLOBAL_HCl, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HCl', GLOBAL_HCl, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_HCl from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2541,7 +2541,7 @@ CONTAINS
       Ptr2D => NULL()
 #endif
 
-    IF ( FIRST ) THEN
+    !IF ( FIRST ) THEN
        ! Adjust first flag
     !   FIRST = .FALSE.
     !ENDIF

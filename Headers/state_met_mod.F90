@@ -4826,6 +4826,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'SUNCOSSUM' )
+          IF ( isDesc  ) Desc  = 'Sum of Cosine of solar zenith angle, current time (HEMCO)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'SWGDN' )
           IF ( isDesc  ) Desc  = 'Incident shortwave radiation at ground'
           IF ( isUnits ) Units = 'W m-2'

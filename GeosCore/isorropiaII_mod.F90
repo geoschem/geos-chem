@@ -424,7 +424,7 @@ CONTAINS
     ! Evaluate offline global HCl from HEMCO is using. Doing this every
     ! timestep allows usage of HEMCO's scaling and masking functionality
     IF ( USE_HCl_FROM_HEMCO ) THEN
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCl', OFFLINE_HCl, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HCl', OFFLINE_HCl, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'GLOBAL_HCl not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
