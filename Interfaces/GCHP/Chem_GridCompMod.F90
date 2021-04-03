@@ -3290,7 +3290,7 @@ CONTAINS
     CALL MAPL_Get(STATE, RUNALARM=ALARM, __RC__)
     IsChemTime = ESMF_AlarmIsRinging(ALARM, __RC__)
 
-    if (am_I_Root) WRITE(*,*) ' Chem clock is reverse? ', ESMF_ClockIsReverse(CLOCK)
+    ! if (am_I_Root) WRITE(*,*) ' Chem clock is reverse? ', ESMF_ClockIsReverse(CLOCK)
     ! Turn off alarm: only if it was on and this is phase 2 (don't turn off
     ! after phase 1 since this would prevent phase 2 from being executed).
     IF ( IsChemTime .AND. PHASE /= 1 .and. .not. ESMF_ClockIsReverse(CLOCK)) THEN
@@ -3681,7 +3681,7 @@ CONTAINS
              ELSE
                 call WRITE_PARALLEL('  Recording state to checkpoint file')
                 call Adjoint_StateRecord( GC, IMPORT, EXPORT, CLOCK, RC )
-                call WRITE_PARALLEL('  Done recording state to checkpoint files')
+                ! call WRITE_PARALLEL('  Done recording state to checkpoint files')
              ENDIF
           ENDIF
 #endif
@@ -4626,7 +4626,6 @@ CONTAINS
        _VERIFY(STATUS)
     ENDIF
     CALL CopyGCStates2Exports( am_I_Root, Input_Opt, HistoryConfig, STATUS )
-    IF ( MAPL_am_I_Root() ) WRITE(*,*) "Back from CopyGCSates2Exports"
     _VERIFY(STATUS)
 
     !=======================================================================
@@ -4671,8 +4670,6 @@ CONTAINS
 200 FORMAT( '### ',                                           / &
             '### ', a, '  |  Execution on PET # ',      i5.5, / &
             '###' )
-
-    IF (Mapl_am_i_root()) WRITE(*,*) "Returning from Run_"
 
   END SUBROUTINE Run_
 !EOC
@@ -5602,7 +5599,7 @@ CONTAINS
        ! Get the solar zenith angle and solar insolation
        ! NOTE: ZTH, SLR are allocated outside of this routine
        CALL MAPL_SunGetInsolation( LONS  = lonCtr,    &
-            LATS  = latCtr,    &
+                                   LATS  = latCtr,    &
                                    ORBIT = sunOrbit,  &
                                    ZTH   = ZTH,       &
                                    SLR   = SLR,       &

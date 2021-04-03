@@ -1618,8 +1618,8 @@ CONTAINS
     !=========================================================================
 
     ErrorMsg  = ''
-    ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' // &
-         'GeosUtil/unitconv_mod.F)'
+    ThisLoc   = ' -> at GCHP_Print_Met (in module ' // &
+         'Interfaces/GCHP/gchp_chunk_mod.F)'
 
     ! Assume success
     RC = GC_SUCCESS

@@ -206,9 +206,6 @@ CONTAINS
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
     USE HCO_Interface_Common, ONLY : GetHcoDiagn
-#ifdef FALSE
-    USE HCO_Interface_Common, ONLY : CALC_EMS_SF_ADJ
-#endif
     USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -345,7 +342,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef ADJOINT
+#if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
@@ -362,7 +359,7 @@ CONTAINS
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             'kg/m2', RC, OrigUnit=OrigUnit )
 
-#ifdef ADJOINT
+#if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
@@ -503,16 +500,6 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
        
-#ifdef FALSE
-       ! the important code in here was moved to Hco_CalcEmis so this
-       ! shouldn't be necessary anymore...?
-       if (Input_Opt%Is_Adjoint) then
-          ! the adjoint of this should be do nothing...?
-          CALL CALC_EMS_SF_ADJ(N, -TS,    &
-               Input_opt, State_chm, &
-               State_Diag, RC=RC)
-       endif
-#endif
        ! Loop over all grid boxes
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -842,7 +829,7 @@ CONTAINS
 
     ENDIF
 
-#ifdef ADJOINT
+#if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
@@ -861,7 +848,7 @@ CONTAINS
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
        RETURN
     ENDIF
-#ifdef ADJOINT
+#if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &

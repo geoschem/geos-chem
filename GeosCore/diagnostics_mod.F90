@@ -133,10 +133,10 @@ CONTAINS
     ! Set species concentration diagnostic in units specified in state_diag_mod
     !-----------------------------------------------------------------------
     IF ( State_Diag%Archive_SpeciesAdj ) THEN
-       if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-          write(*,*) 'Before diagnostic ',  &
-               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
-       ENDIF
+       ! if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       !    write(*,*) 'Before diagnostic ',  &
+       !         State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
+       ! ENDIF
        CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,         &
                                    State_Grid, State_Met, RC                 )
 
