@@ -120,8 +120,8 @@ INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
 #------------------------------------------------------------
 Turn_on_Chemistry=T
 Turn_on_emissions=T
-Turn_on_Dry_Deposition=F
-Turn_on_Wet_Deposition=F
+Turn_on_Dry_Deposition=T
+Turn_on_Wet_Deposition=T
 Turn_on_Transport=T
 Turn_on_Cloud_Conv=T
 Turn_on_PBL_Mixing=T
