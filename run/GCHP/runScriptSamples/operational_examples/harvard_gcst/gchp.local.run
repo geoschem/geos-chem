@@ -8,35 +8,26 @@ nCores=6
 # Define log
 log=gchp.log
 
-# Make sure GCHP output restart file does not exist with the original name
-# used by MAPL. Its present will cause GCHP run to fail. The output restart
-# file is renamed after a successful run, but a file with the original name
-# may persist if the previous run was unsuccessful.
-if [[ -e gcchem_internal_checkpoint ]]; then
-    rm gcchem_internal_checkpoint
-fi
-
-# Always remove cap_restart if not doing a multi-segmented run.
+# Remove cap_restart if not doing a multi-segmented run. Keeping it around
+# from a previous run will make new run start at the end time of the last run.
 if [[ -e cap_restart ]]; then
    rm cap_restart
 fi
 
 # Sync all config files with settings in runConfig.sh
 source runConfig.sh 2>&1 | tee ${log}
+
+# Only start run if no error
 if [[ $? == 0 ]]; then
 
     # Source your environment file. This requires first setting the gchp.env
     # symbolic link using script setEnvironment in the run directory. 
-    # Be sure gchp.env points to the same file for both compilation and 
-    # running. You can copy or adapt sample environment files located in 
-    # ./envSamples subdirectory.
+    # Be sure gchp.env points to the same file for both compilation and run.
     gchp_env=$(readlink -f gchp.env)
     if [ ! -f ${gchp_env} ] 
     then
        echo "ERROR: gchp.env symbolic link is not set!"
-       echo "Copy or adapt an environment file from the ./envSamples "
-       echo "subdirectory prior to running. Then set the gchp.env "
-       echo "symbolic link to point to it using ./setEnvironment.sh."
+       echo "Set symbolic link to env file using setEnvironment.sh."
        echo "Exiting."
        exit 1
     fi
@@ -51,9 +42,7 @@ if [[ $? == 0 ]]; then
     # Start the simulation. Use 6 cores.
     time mpirun -np ${nCores} ./gchp 2>&1 | tee -a ${log}
 
-    # Rename the restart (checkpoint) file for clarity and to enable reuse as
-    # a restart file. MAPL cannot read in a file with the same name as the
-    # output checkpoint filename configured in GCHP.rc.
+    # Rename the restart (checkpoint) file for clarity to include datetime
     if [ -f cap_restart ]; then
        restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
        mv gcchem_internal_checkpoint gcchem_internal_checkpoint.restart.${restart_datetime}.nc4
