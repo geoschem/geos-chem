@@ -281,7 +281,7 @@ CONTAINS
                                                          State_Grid%NZ)
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg, ErrorMsg, ThisLoc
 #ifdef ADJOINT
     LOGICAL                 :: IS_ADJ
 #endif
