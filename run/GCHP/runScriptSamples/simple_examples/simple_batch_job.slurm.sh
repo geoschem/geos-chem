@@ -17,7 +17,7 @@
 
 # Load modules (so software dependencies are available)
 module purge
-module load intel/18.0.5-fasrc01
+module load intel/19.0.5-fasrc01
 module load openmpi/4.0.1-fasrc01
 module load netcdf-fortran/4.5.2-fasrc01
 module load cmake/3.16.1-fasrc01
@@ -35,6 +35,6 @@ ulimit -v unlimited          # vmemoryuse
 ulimit -s unlimited          # stacksize
 
 # Simple GCHP launch
-rm -f cap_restart gcchem*                        # delete checkpoint/restart spec/data
+rm -f cap_restart                                # delete restart start time file if present
 ./runConfig.sh                                   # update configuration files
  srun -n 60 -N 2 -m plane=30 --mpi=pmix ./gchp   # launch 60 GCHP processes

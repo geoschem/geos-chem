@@ -31,6 +31,6 @@ ulimit -v unlimited          # vmemoryuse
 ulimit -s unlimited          # stacksize
 
 # Simple GCHP launch
-rm -f cap_restart gcchem*           # delete checkpoint/restart spec/data
+rm -f cap_restart                   # delete restart start time file if present
 ./runConfig.sh                      # update configuration files
 mpiexec -n 72 ./gchp > runlog.txt   # launch 72 GCHP processes
