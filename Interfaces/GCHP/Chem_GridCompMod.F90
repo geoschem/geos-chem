@@ -47,6 +47,7 @@ MODULE Chem_GridCompMod
   USE CMN_Size_Mod
   USE ESMF                                           ! ESMF library
   USE MAPL_Mod                                       ! MAPL library
+  USE MAPL_IOMod
   USE Charpak_Mod                                    ! String functions
   USE DiagList_Mod                                   ! Internal state prefixes
   USE Hco_Types_Mod, ONLY : ConfigObj
@@ -122,6 +123,10 @@ MODULE Chem_GridCompMod
 
   ! For mapping State_Chm%Tracers/Species arrays onto the internal state.
   TYPE(Int2SpcMap), POINTER        :: Int2Spc(:) => NULL()
+#ifdef ADJOINT
+  ! For mapping State_Chm%Tracers/Species arrays onto the internal state.
+  TYPE(Int2SpcMap), POINTER        :: Int2Adj(:) => NULL()
+#endif
 
   ! Objects for GEOS-Chem
   TYPE(OptInput)                   :: Input_Opt      ! Input Options
@@ -426,6 +431,10 @@ CONTAINS
     CHARACTER(LEN=127)            :: FullName
     LOGICAL                       :: FriendDyn, FriendTurb
 #endif
+#ifdef ADJOINT
+    INTEGER                       :: restartAttrAdjoint
+    LOGICAL                       :: useCFMaskFile
+#endif
 
     __Iam__('SetServices')
 
@@ -565,6 +574,22 @@ CONTAINS
     CALL MetVars_For_Lightning_Init( GC, MyState%myCF, __RC__ )
 #endif
 
+#ifdef ADJOINT
+    CALL ESMF_ConfigGetAttribute( myState%myCF, useCFMaskFile, &
+         Label="USE_CF_MASK_FILE:", Default=.false., __RC__ )
+
+    IF (useCFMaskFile) THEN
+       call MAPL_AddImportSpec(GC,                    &
+            SHORT_NAME         = 'CFN_MASK',            &
+            LONG_NAME          = 'cost_function_Mask',  &
+            UNITS              = '1',                   &
+            DIMS               = MAPL_DimsHorzVert,     &
+            VLOCATION          = MAPL_VLocationCenter,  &
+            RC=STATUS  )
+       _VERIFY(STATUS)
+    Endif
+#endif
+
 !
 ! !INTERNAL STATE:
 !
@@ -589,6 +614,9 @@ CONTAINS
        restartAttr = MAPL_RestartOptional    ! try to read species from file;
                                              ! use background vals if not found
     ENDIF
+#ifdef ADJOINT
+    restartAttrAdjoint = MAPL_RestartSkip
+#endif
 #endif
 
 !-- Read in species from input.geos and set FRIENDLYTO
@@ -686,6 +714,20 @@ CONTAINS
          NADV = NADV+1
          AdvSpc(NADV) = TRIM(SUBSTRS(1))
 #endif
+#ifdef ADJOINT
+         if (MAPL_am_I_Root()) &
+              WRITE(*,*) '  Adding internal spec for '''//TRIM(SPFX) // TRIM(SUBSTRS(1)) // '_ADJ'''
+         call MAPL_AddInternalSpec(GC, &
+              SHORT_NAME         = TRIM(SPFX) // TRIM(SUBSTRS(1)) // '_ADJ',  &
+              LONG_NAME          = TRIM(SUBSTRS(1)) // ' adjoint variable',  &
+              UNITS              = 'mol mol-1', &
+              DIMS               = MAPL_DimsHorzVert,    &
+              VLOCATION          = MAPL_VLocationCenter,    &
+              PRECISION          = ESMF_KIND_R8, &
+              FRIENDLYTO         = 'DYNAMICS:TURBULENCE:MOIST',  &
+              RESTART            = restartAttrAdjoint, &
+              RC                 = RC  )
+#endif
 
        ENDIF
     ENDDO
@@ -774,8 +816,24 @@ CONTAINS
                VLOCATION          = MAPL_VLocationCenter,    &
                RESTART            = restartAttr,    &
                RC                 = STATUS  )
+#ifdef ADJOINT
+          if (MAPL_am_I_Root()) &
+               WRITE(*,*) '  Adding internal spec for '''//TRIM(SPFX) // TRIM(SpcName) // '_ADJ'''
+          call MAPL_AddInternalSpec(GC, &
+               SHORT_NAME         = TRIM(SPFX) // TRIM(SpcName) // '_ADJ',  &
+               LONG_NAME          = SpcName // ' adjoint variable',  &
+               UNITS              = 'mol mol-1', &
+               PRECISION          = ESMF_KIND_R8, &
+               DIMS               = MAPL_DimsHorzVert,    &
+               VLOCATION          = MAPL_VLocationCenter,    &
+               RESTART            = restartAttrAdjoint,    &
+               RC                 = STATUS  )
+
+
 #endif
           Endif
+
+#endif
        ENDDO
     ENDIF
 
@@ -1806,6 +1864,10 @@ CONTAINS
     INTEGER                      :: h,    m,  s    ! Hour, minute, seconds
     INTEGER                      :: doy
 
+    INTEGER                     :: IL_WORLD, JL_WORLD    ! # lower indices in global grid
+    INTEGER                     :: IU_WORLD, JU_WORLD    ! # upper indices in global grid
+
+
     __Iam__('Initialize_')
 
     !=======================================================================
@@ -1831,6 +1893,10 @@ CONTAINS
     ! Initialize MAPL Generic
     CALL MAPL_GenericInitialize( GC, Import, Export, Clock, __RC__ )
 
+#ifdef ADJOINT
+    CALL MAPL_GenericStateClockAdd( GC, name='--AdjointCheckpoint', __RC__ )
+#endif
+
     ! Get Internal state.
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ ) 
 
@@ -1855,6 +1921,10 @@ CONTAINS
                    IM_WORLD    = IM_WORLD,    &  ! # of lons in global grid
                    JM_WORLD    = JM_WORLD,    &  ! # of lats  in global grid
                    LM_WORLD    = LM_WORLD,    &  ! # of levels in global grid
+                   IL_WORLD    = IL_WORLD,    &  ! start index of lons in global grid on this PET
+                   IU_WORLD    = IU_WORLD,    &  ! end   index of lons in global grid on this PET
+                   JL_WORLD    = JL_WORLD,    &  ! start index of lats in global grid on this PET
+                   JU_WORLD    = JU_WORLD,    &  ! end   index of lats in global grid on this PET
                    nymdB       = nymdB,       &  ! YYYYMMDD @ start of sim
                    nhmsB       = nhmsB,       &  ! hhmmss   @ end   of sim
                    nymdE       = nymdE,       &  ! YYYMMDD  @ start of sim
@@ -2410,6 +2480,56 @@ CONTAINS
        SpcInfo => NULL()
 
     ENDDO
+    
+#ifdef ADJOINT
+    if (Input_Opt%is_Adjoint) THEN
+       ! Now do the same for adjoint variables
+       ALLOCATE( Int2Adj(nFlds), STAT=STATUS )
+       _ASSERT(STATUS==0,'informative message here')
+
+       ! Do for every tracer in State_Chm
+       DO I = 1, nFlds
+
+          ! Get info about this species from the species database
+          N = State_Chm%Map_Advect(I)
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! Pass tracer name
+          Int2Adj(I)%Name = TRIM(ThisSpc%Name)
+
+          ! Get tracer ID
+          Int2Adj(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
+
+          ! If tracer ID is not valid, make sure all vars are at least defined.
+          IF ( Int2Spc(I)%ID <= 0 ) THEN
+             Int2Spc(I)%Internal => NULL()
+             CYCLE
+          ENDIF
+
+          ! Get internal state field
+          CALL ESMF_StateGet( INTSTATE, TRIM(SPFX) // TRIM(Int2Spc(I)%Name) // '_ADJ', &
+               GcFld, RC=STATUS )
+
+          ! This is mostly for testing 
+          IF ( STATUS /= ESMF_SUCCESS ) THEN
+             IF( am_I_Root ) THEN
+                WRITE(*,*) 'Cannot find in internal state: ', TRIM(SPFX) &
+                     //TRIM(Int2Spc(I)%Name)//'_ADJ',I
+             ENDIF
+             _ASSERT(.FALSE.,'informative message here')
+          ENDIF
+
+          ! Get pointer to field
+          CALL ESMF_FieldGet( GcFld, 0, Ptr3D, __RC__ )
+          Int2Adj(I)%Internal => Ptr3D
+
+          ! Free pointers
+          Ptr3D => NULL()
+          ThisSpc  => NULL()
+
+       ENDDO
+    ENDIF
+#endif
 
 !#if defined( MODEL_GEOS )
 !    !=======================================================================
@@ -3109,9 +3229,19 @@ CONTAINS
     ! Alarms
     type(GC_run_alarms), pointer :: GC_alarms
     type(GCRA_wrap)               :: GC_alarm_wrapper
-
+    
     ! First call?
     LOGICAL, SAVE                :: FIRST = .TRUE.
+    INTEGER                      :: NFD, K
+    LOGICAL                      :: LAST
+    TYPE(ESMF_Time        )      :: currTime, stopTime
+    TYPE(ESMF_TimeInterval)      :: tsChemInt
+    CHARACTER(len=ESMF_MAXSTR)   :: timestring1, timestring2
+#ifdef ADJOINT
+    LOGICAL                      :: isStartTime
+    REAL(ESMF_KIND_r8), POINTER  :: CostFuncMask(:,:,:) => NULL()
+#endif
+
 
     __Iam__('Run_')
 
@@ -3149,9 +3279,10 @@ CONTAINS
     CALL MAPL_Get(STATE, RUNALARM=ALARM, __RC__)
     IsChemTime = ESMF_AlarmIsRinging(ALARM, __RC__)
 
+    ! if (am_I_Root) WRITE(*,*) ' Chem clock is reverse? ', ESMF_ClockIsReverse(CLOCK)
     ! Turn off alarm: only if it was on and this is phase 2 (don't turn off
     ! after phase 1 since this would prevent phase 2 from being executed).
-    IF ( IsChemTime .AND. PHASE /= 1 ) THEN
+    IF ( IsChemTime .AND. PHASE /= 1 .and. .not. ESMF_ClockIsReverse(CLOCK)) THEN
        CALL ESMF_AlarmRingerOff(ALARM, __RC__ )
     ENDIF
 
@@ -3209,6 +3340,13 @@ CONTAINS
     !IsRunTime = .TRUE.
 #endif
 
+#ifdef ADJOINT
+    if (Input_Opt%is_adjoint .and. first) THEN
+       ! the forward model doesn't actually trigger on the final 
+       ! timestep, so we should skip the first one
+       IsRunTime = .false.
+    end if
+#endif
     ! Is it time to update tendencies?
     ! Tendencies shall only be updated when chemistry is done, which is 
     ! Phase -1 or 2.
@@ -3288,6 +3426,13 @@ CONTAINS
    HcoState%GRIDCOMP => GC
    HcoState%IMPORT   => IMPORT
    HcoState%EXPORT   => EXPORT
+#endif
+#ifdef ADJOINT
+       call MAPL_GetPointer( IMPORT, CostFuncMask, &
+            'CFN_MASK', notFoundOK=.TRUE.,         &
+            __RC__ )
+       if (MAPL_Am_I_Root() .and. .not. ASSOCIATED(CostFuncMask)) &
+            WRITE(*,*) ' No CFN_MASK import variable found'
 #endif
 
     ! Run when it's time to do so
@@ -3500,6 +3645,36 @@ CONTAINS
           _VERIFY(STATUS)
        ENDIF
 
+#ifdef ADJOINT
+          IF (IsRunTime) THEN
+             IF (Input_opt%IS_ADJOINT) THEN
+                call WRITE_PARALLEL('  Resetting state from checkpoint file')
+                ! call MAPL_GenericRefresh(GC, Import, Export, Clock, RC)
+                call Adjoint_StateRefresh( GC, IMPORT, EXPORT, CLOCK, RC )
+                ! Loop over all species and get info from spc db
+                DO N = 1, State_Chm%nSpecies
+                   ThisSpc => State_Chm%SpcData(N)%Info
+                   !IF (ThisSpc%Is_Advected) CYCLE
+                   IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
+                   IND = IND_( TRIM(ThisSpc%Name ) )
+                   IF ( IND < 0 ) CYCLE
+                   ! Get data from internal state and copy to species array
+                   CALL MAPL_GetPointer( INTERNAL, Ptr3D_R8, TRIM(SPFX) //          &
+                        TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
+                        __RC__ )
+                   State_Chm%Species(:,:,:,IND) = Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+                   if ( MAPL_am_I_Root()) WRITE(*,*)                                &
+                        'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
+
+                enddo
+             ELSE
+                call WRITE_PARALLEL('  Recording state to checkpoint file')
+                call Adjoint_StateRecord( GC, IMPORT, EXPORT, CLOCK, RC )
+                ! call WRITE_PARALLEL('  Done recording state to checkpoint files')
+             ENDIF
+          ENDIF
+#endif
+
 !       !=======================================================================
 !       ! pre-Run method array assignments. This passes the tracer arrays from
 !       ! the internal state to State_Chm. On the first call, it also fills the
@@ -3522,6 +3697,17 @@ CONTAINS
        ! Flip in the vertical
        State_Chm%Species   = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
 
+#ifdef ADJOINT
+      IF (Input_Opt%Is_Adjoint) THEN
+         DO I = 1, SIZE(Int2Adj,1)
+            IF ( Int2Adj(I)%ID <= 0 ) CYCLE
+            State_Chm%SpeciesAdj(:,:,:,Int2Adj(I)%ID) = Int2Adj(I)%Internal
+         ENDDO
+
+         ! Flip in the vertical
+         State_Chm%SpeciesAdj = State_Chm%SpeciesAdj( :, :, State_Grid%NZ:1:-1, : )
+      ENDIF
+#endif
        !=======================================================================
        ! On first call, also need to initialize the species from restart file.
        ! Only need to do this for species that are not advected, i.e. species
@@ -3532,7 +3718,11 @@ CONTAINS
        ! (advected species will be updated with tracers)
        ! ckeller, 10/27/2014
        !=======================================================================
+#ifdef ADJOINT
+       IF ( FIRST .or. Input_Opt%IS_ADJOINT) THEN
+#else
        IF ( FIRST ) THEN
+#endif
        
           ! Get Generic State
           call MAPL_GetObjectFromGC ( GC, STATE, RC=STATUS)
@@ -3543,6 +3733,7 @@ CONTAINS
           ! Loop over all species and get info from spc db
           DO N = 1, State_Chm%nSpecies
              ThisSpc => State_Chm%SpcData(N)%Info
+             IF (ThisSpc%Is_Advected) CYCLE
              IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
              IND = IND_( TRIM(ThisSpc%Name ) )
              IF ( IND < 0 ) CYCLE
@@ -3857,13 +4048,15 @@ CONTAINS
        
        ! Fix negatives!
        ! These can be brought in as an artifact of convection.
+#ifndef ADJOINT
        WHERE ( State_Chm%Species < 0.0e0 )
           State_Chm%Species = 1.0e-36
        END WHERE 
+#endif
        
        ! Execute GEOS-Chem if it's time to run it
        IF ( IsRunTime ) THEN
-       
+
           ! This is mostly for testing
 #if defined( MODEL_GEOS )
           IF ( FIRST .AND. Input_Opt%haveImpRst ) THEN
@@ -3900,6 +4093,32 @@ CONTAINS
              second = 0
 #endif
 
+#ifdef ADJOINT
+             !=======================================================================
+             ! If this is an adjoint run, we need to check for the final (first)
+             ! timestep and multiply the scaling factor adjoint by the initial concs
+             !=======================================================================
+             isStartTime = .false.
+             IF (Input_Opt%IS_ADJOINT) THEN
+                call ESMF_ClockGet(clock, currTime=currTime, startTime=stopTime,  __RC__ )
+             else
+                call ESMF_ClockGet(clock, currTime=currTime, stopTime=stopTime, __RC__ )
+             Endif
+
+                ! call ESMF_TimeIntervalSet(tsChemInt, s_r8=real(-tsChem, 8), __RC__ )
+             ! this variable is set to zero but I'm leaving it in case I need this code later
+                call ESMF_TimeIntervalSet(tsChemInt, s_r8=real(0, 8), __RC__ )
+
+                call ESMF_TimeGet(currTime + tsChemInt, timeString=timestring1, __RC__ )
+                call ESMF_TimeGet(stopTime, timeString=timestring2, __RC__ )
+
+                if (memdebuglevel > 0 .and. am_I_Root) &
+                     WRITE(*,*) '   Adjoint checking if ' // trim(timestring1) // ' == ' // trim(timestring2)
+
+                if (currTime + tsChemInt == stopTime) THEN
+                   isStartTime = .TRUE.
+                ENDIF
+#endif
              ! Run the GEOS-Chem column chemistry code for the given phase
              CALL GCHP_Chunk_Run( GC         = GC,         & ! Grid comp ref. 
                                   nymd       = nymd,       & ! Current YYYYMMDD
@@ -3924,8 +4143,11 @@ CONTAINS
 #if defined( MODEL_GEOS )
                                   FrstRewind = FirstRewind,& ! First rewind?
 #endif
+#ifdef ADJOINT
+                                  isStartTime = isStartTime, & !back to the first timestep in the reverse run?
+#endif
                                   __RC__                  )  ! Success or fail?
-       
+
              CALL MAPL_TimerOff(STATE, "DO_CHEM")
        
 #if !defined( MODEL_GEOS )
@@ -3975,6 +4197,17 @@ CONTAINS
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
           Int2Spc(I)%Internal = State_Chm%Species(:,:,:,Int2Spc(I)%ID)
        ENDDO
+#ifdef ADJOINT
+       IF (Input_Opt%Is_Adjoint) THEN
+          State_Chm%SpeciesAdj = State_Chm%SpeciesAdj(:,:,State_Grid%NZ:1:-1,:)
+
+          DO I = 1, SIZE(Int2Adj,1)
+             WRITE(*,*) 'Copying adjoint ', Int2Adj(I)%ID, ' to ', I
+             IF ( Int2Adj(I)%ID <= 0 ) CYCLE
+             Int2Adj(I)%Internal = State_Chm%SpeciesAdj(:,:,:,Int2Adj(I)%ID)
+          ENDDO
+       ENDIF
+#endif
 #endif
 
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
@@ -4519,7 +4752,17 @@ CONTAINS
     REAL, POINTER               :: Ptr3D(:,:,:)    => NULL()
     REAL(ESMF_KIND_R8), POINTER :: Ptr2D_R8(:,:)   => NULL()
     REAL(ESMF_KIND_R8), POINTER :: Ptr3D_R8(:,:,:) => NULL()
+
+    INTEGER                     :: N, K, NFD
+    CHARACTER(LEN=ESMF_MAXSTR)  :: TrcName
 #endif
+#ifdef ADJOINT
+    ! Finite difference test variables
+    INTEGER                        :: IFD, JFD, LFD
+    REAL*8                         :: CFN
+    CHARACTER(len=ESMF_MAXSTR)     :: FD_SPEC
+#endif
+
 
     __Iam__('Finalize_')
 
@@ -4576,12 +4819,30 @@ CONTAINS
 
        ! Is this a tracer?
        IND = IND_( TRIM(ThisSpc%Name) )
+#ifndef ADJOINT
        IF ( IND >= 0 ) CYCLE
+#else
+       IF ( IND >= 0 ) THEN
+          ! Get data from internal state and copy to species array
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(SPFX) // &
+               TRIM(ThisSpc%Name), &
+               notFoundOK=.TRUE., __RC__ )
+          IF ( .NOT. ASSOCIATED(Ptr3D_R8) .and. MAPL_am_I_Root() ) &
+               WRITE(*,999) TRIM(SPFX) // TRIM(ThisSpc%Name), IND
+          IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) CYCLE
+999       FORMAT(' No INTERNAL pointer found for ', a12, ' with IND ', i3)
+
+          State_Chm%Species(:,:,:,IND) = Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+          ! Verbose 
+          if ( MAPL_am_I_Root()) write(*,*)                &
+               'Species copied from INTERNAL state: ',  &
+               TRIM(ThisSpc%Name)
+       ELSE
+#endif
 
        ! Get data from internal state and copy to species array
        CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(ThisSpc%Name), &
                              notFoundOK=.TRUE., __RC__ )
-       IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) CYCLE
        Ptr3D_R8 = State_Chm%Species(:,:,State_Grid%NZ:1:-1,IND)
        Ptr3D_R8 => NULL()
 
@@ -4589,6 +4850,9 @@ CONTAINS
        if ( MAPL_am_I_Root()) write(*,*)                &
                 'Species written to INTERNAL state: ',  &
                 TRIM(ThisSpc%Name)
+#ifdef ADJOINT
+       endif
+#endif
     ENDDO
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem',  &
@@ -4726,6 +4990,31 @@ CONTAINS
     HcoState%EXPORT   => EXPORT
 #endif
 
+#ifdef ADJOINT
+    IF (Input_Opt%IS_FD_SPOT_THIS_PET .and. .not. Input_Opt%IS_FD_GLOBAL) THEN
+       FD_SPEC = transfer(state_chm%SpcData(Input_Opt%NFD)%Info%Name, FD_SPEC)
+       IFD = Input_Opt%IFD
+       JFD = Input_Opt%JFD
+       LFD = Input_Opt%LFD
+       NFD = Input_Opt%NFD
+       ! print out the cost function
+       WRITE(*,*) ' Computing final cost function'
+       CFN = 0d0
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          if (State_Chm%CostFuncMask(I,J,L) > 0d0) THEN
+             WRITE (*, 1047) I, J, L, state_chm%species(I, J, L, NFD)
+             CFN = CFN + state_chm%Species(I, J, L, NFD)
+          endif
+       ENDDO
+        ENDDO
+       ENDDO
+       WRITE(*,'(a7, e22.10)') ' CFN = ', CFN
+1047   FORMAT('  SPC(', i2, ', ', i2, ', ', i2, ') = ', e22.10)
+    ENDIF
+#endif
+
     ! Finalize HEMCO
     CALL HCOI_GC_FINAL( .FALSE., RC )
     IF ( Input_Opt%AmIRoot ) THEN
@@ -4799,6 +5088,16 @@ CONTAINS
        DEALLOCATE(Int2Spc)
     ENDIF
 
+#ifdef ADJOINT
+    ! Free Int2Adj pointer
+    IF ( ASSOCIATED(Int2Adj) ) THEN
+       DO I=1,SIZE(Int2Adj,1)
+          Int2Adj(I)%Internal => NULL()
+       ENDDO
+       DEALLOCATE(Int2Adj)
+    ENDIF
+#endif
+
     ! Deallocate the history interface between GC States and ESMF Exports
     CALL Destroy_HistoryConfig( am_I_Root, HistoryConfig, RC )
 
@@ -4863,6 +5162,7 @@ CONTAINS
                        localPet,   petCount,                             &
                        IM,         JM,       LM,                         &     
                        IM_WORLD,   JM_WORLD, LM_WORLD,                   &
+                       IL_WORLD,   IU_WORLD, JL_WORLD, JU_WORLD,         &
                        lonCtr,     latCtr,   advCount,                   &
                        nymdB,      nymdE,    nymd,    nhmsB,  nhmsE,     &
                        nhms,       year,     month,   day,    dayOfYr,   &
@@ -4910,6 +5210,10 @@ CONTAINS
     INTEGER,             INTENT(OUT), OPTIONAL :: IM_WORLD    ! Global # lons
     INTEGER,             INTENT(OUT), OPTIONAL :: JM_WORLD    ! Global # lats
     INTEGER,             INTENT(OUT), OPTIONAL :: LM_WORLD    ! Global # levs
+    INTEGER,             INTENT(OUT), OPTIONAL :: IL_WORLD    ! Global start lon index on this PET
+    INTEGER,             INTENT(OUT), OPTIONAL :: IU_WORLD    ! Global end   lon index on this PET
+    INTEGER,             INTENT(OUT), OPTIONAL :: JL_WORLD    ! Global start lat index on this PET
+    INTEGER,             INTENT(OUT), OPTIONAL :: JU_WORLD    ! Global end   lat index on this PET
                                                               
     !----------------------------------
     ! Date and time variables
@@ -4996,6 +5300,8 @@ CONTAINS
     REAL                          :: elapsedHours   ! Elapsed hours of run
     REAL(ESMF_KIND_R8)            :: dt_r8          ! chemistry timestep
 
+    CHARACTER(len=ESMF_MAXSTR)    :: OUTSTR         ! Parallel write nonsense
+
     __Iam__('Extract_')
 
     !=======================================================================
@@ -5074,7 +5380,7 @@ CONTAINS
         CALL ESMF_TimeIntervalGet( chemInterval, s_r8=dt_r8, __RC__ )
         tsChem = real(dt_r8)
 
-        IF(tsChem < tsDyn) THEN
+        IF(abs(tsChem) < abs(tsDyn)) THEN
            IF( MAPL_AM_I_ROOT() ) THEN
 #if defined( MODEL_GEOS )
               WRITE(6,*) 'GEOSCHEMCHEM_DT cannot be less than RUN_DT'
@@ -5234,6 +5540,11 @@ CONTAINS
        ! Get the upper and lower bounds of on each PET using MAPL
        CALL MAPL_GridGetInterior( Grid, IL, IU, JL, JU )
 #endif
+       ! if (PRESENT(localPet)) THEN
+       !    WRITE (*,1141) localPet, IL, IU, JL, JU
+       ! endif
+
+1141   FORMAT(' Process ', i5, ' goes from I = ', i3, ':', i3, '   J = ', i3, ':', i3)
 
     ENDIF
 
@@ -5244,6 +5555,11 @@ CONTAINS
     IF ( PRESENT( IM_WORLD ) ) IM_WORLD = globDims(1)
     IF ( PRESENT( JM_WORLD ) ) JM_WORLD = globDims(2)
     IF ( PRESENT( LM_WORLD ) ) LM_WORLD = globDims(3)
+
+    IF ( PRESENT( IL_WORLD ) ) IL_WORLD = IL
+    IF ( PRESENT( IU_WORLD ) ) IU_WORLD = IU
+    IF ( PRESENT( JL_WORLD ) ) JL_WORLD = JL
+    IF ( PRESENT( JU_WORLD ) ) JU_WORLD = JU
 
     ! Longitude values on this PET
     IF ( PRESENT( lonCtr ) ) THEN
@@ -5288,6 +5604,7 @@ CONTAINS
 
   END SUBROUTINE Extract_
 !EOC
+
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
@@ -8316,8 +8633,169 @@ CONTAINS
 !EOC
 #endif
 
+#ifdef ADJOINT
+   subroutine Adjoint_StateRecord( GC, IMPORT, EXPORT, CLOCK, RC )
+
+     ! !ARGUMENTS:
+
+     type(ESMF_GridComp), intent(inout) :: GC     ! composite gridded component 
+     type(ESMF_State),    intent(inout) :: IMPORT ! import state
+     type(ESMF_State),    intent(inout) :: EXPORT ! export state
+     type(ESMF_Clock),    intent(inout) :: CLOCK  ! the clock
+     integer, optional,   intent(  out) :: RC     ! Error code:
+     ! = 0 all is well
+     ! otherwise, error
+     !EOPI
+
+     ! LOCAL VARIABLES
+
+     character(len=ESMF_MAXSTR)                  :: IAm
+     character(len=ESMF_MAXSTR)                  :: COMP_NAME
+     integer                                     :: STATUS
+
+     type (MAPL_MetaComp), pointer               :: STATE
+     type (ESMF_State)                           :: INTERNAL
+     integer                                     :: hdr
+     character(len=ESMF_MAXSTR)                  :: FILETYPE
+     character(len=ESMF_MAXSTR)                  :: FNAME, DATESTAMP
+
+     !=============================================================================
+
+     !  Begin...
+
+     _UNUSED_DUMMY(EXPORT)
+
+     Iam = "Adjoint_StateRecord"
+     call ESMF_GridCompGet(GC, name=COMP_NAME, RC=STATUS )
+     _VERIFY(STATUS)
+     Iam = trim(COMP_NAME) // Iam
+
+     ! Get my MAPL_Generic state
+     ! -------------------------
+     CALL MAPL_GetObjectFromGC(GC, STATE, RC=STATUS)
+     _VERIFY(STATUS)
+
+     ! Get Internal State
+     call MAPL_Get( STATE, INTERNAL_ESMF_STATE=INTERNAL, __RC__ )
+
+     hdr = 0
+     ! call MAPL_GetResource( STATE   , hdr,         &
+     !      default=0, &
+     !      LABEL="INTERNAL_HEADER:", &
+     !      RC=STATUS)
+     ! _VERIFY(STATUS)
+
+     call MAPL_DateStampGet(clock, datestamp, __RC__ )
+
+     FILETYPE = 'pnc4'
+     FNAME = 'gcadj_import_checkpoint.' // trim(datestamp) // '.nc4'
+
+     call MAPL_CheckpointState(IMPORT, CLOCK, &
+          FNAME, &
+          FILETYPE, STATE, hdr/=0, &
+          RC=STATUS)
+     _VERIFY(STATUS)
+
+     FNAME = 'gcadj_internal_checkpoint.' // trim(datestamp) // '.nc4'
+
+     call MAPL_CheckpointState(INTERNAL, CLOCK, &
+          FNAME, &
+          FILETYPE, STATE, hdr/=0, &
+          RC=STATUS)
+     _VERIFY(STATUS)
+
+
+     _RETURN(ESMF_SUCCESS)
+   end subroutine Adjoint_StateRecord
+
+   subroutine Adjoint_StateRefresh( GC, IMPORT, EXPORT, CLOCK, RC )
+
+     ! !ARGUMENTS:
+
+     type(ESMF_GridComp), intent(inout) :: GC     ! composite gridded component 
+     type(ESMF_State),    intent(inout) :: IMPORT ! import state
+     type(ESMF_State),    intent(inout) :: EXPORT ! export state
+     type(ESMF_Clock),    intent(inout) :: CLOCK  ! the clock
+     integer, optional,   intent(  out) :: RC     ! Error code:
+     ! = 0 all is well
+     ! otherwise, error
+     !EOPI
+
+     ! LOCAL VARIABLES
+
+     character(len=ESMF_MAXSTR)                  :: IAm
+     character(len=ESMF_MAXSTR)                  :: COMP_NAME
+     integer                                     :: STATUS
+
+     type (MAPL_MetaComp), pointer               :: STATE
+     type (ESMF_State)                           :: INTERNAL
+     integer                                     :: hdr
+     integer                                     :: unit
+
+     character(len=ESMF_MAXSTR)                  :: FNAME, datestamp
+
+     !=============================================================================
+
+     _UNUSED_DUMMY(EXPORT)
+
+     !  Begin...
+
+     Iam = "Adjoint_StateRefresh"
+     call ESMF_GridCompGet(GC, name=COMP_NAME, RC=STATUS )
+     _VERIFY(STATUS)
+     Iam = trim(COMP_NAME) // Iam
+
+     ! Get my MAPL_Generic state
+     ! -------------------------
+     CALL MAPL_GetObjectFromGC(GC, STATE, RC=STATUS)
+     _VERIFY(STATUS)
+
+     ! Get Internal state
+     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTERNAL, __RC__ ) 
+
+     call MAPL_DateStampGet(clock, datestamp, rc=status)
+     _VERIFY(STATUS)
+
+     HDR = 0
+
+     FNAME = 'gcadj_import_checkpoint.' // trim(datestamp) // '.nc4'
+
+     call MAPL_ESMFStateReadFromFile(IMPORT, CLOCK, &
+          FNAME, &
+          STATE, .FALSE., RC=STATUS)
+     _VERIFY(STATUS)
+     UNIT = GETFILE(FNAME, RC=STATUS)
+     _VERIFY(STATUS)
+     call MAPL_DestroyFile(unit = UNIT, rc=STATUS)
+     _VERIFY(STATUS)
+     CALL FREE_FILE(UNIT, RC=STATUS)
+     _VERIFY(STATUS)
+
+     FNAME = 'gcadj_internal_checkpoint.' // trim(datestamp) // '.nc4'
+
+     call MAPL_ESMFStateReadFromFile(INTERNAL, CLOCK, &
+          FNAME, &
+          STATE, hdr/=0, RC=STATUS)
+     _VERIFY(STATUS)
+     IF (FNAME(1:1) .eq. '-' .or. &
+          FNAME(1:1) .eq. '+') THEN
+        UNIT = GETFILE(FNAME(2:), RC=STATUS)
+     else
+        UNIT = GETFILE(FNAME, RC=STATUS)
+     endif
+     _VERIFY(STATUS)
+     call MAPL_DestroyFile(unit = UNIT, rc=STATUS)
+     _VERIFY(STATUS)
+     CALL FREE_FILE(UNIT, RC=STATUS)
+     _VERIFY(STATUS)
+
+     _RETURN(ESMF_SUCCESS)
+   end subroutine Adjoint_StateRefresh
+
+#endif
+
 #ifdef MODEL_GEOS
- END MODULE GEOSCHEMchem_GridCompMod
+END MODULE GEOSCHEMchem_GridCompMod
 #else
- END MODULE Chem_GridCompMod
+END MODULE Chem_GridCompMod
 #endif

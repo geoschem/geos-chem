@@ -60,7 +60,7 @@ BKG_FREQUENCY: 0
 #                             Can exceed 24 hours (e.g. 1680000 for 7 days)
 # Record ref date (YYYYMMDD): Reference date; set to before sim start date
 # Record ref time (HHMMSS)  : Reference time 
-RECORD_FREQUENCY: 1680000 
+RECORD_FREQUENCY: 1680000
 RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
@@ -100,3 +100,8 @@ MEMORY_DEBUG_LEVEL:   0
 # %%% Option to write restart files via o-server
 #
 WRITE_RESTART_BY_OSERVER: NO
+
+#
+# %%% Adjoint variables
+#
+MODEL_PHASE: ADJOINT

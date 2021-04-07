@@ -5393,6 +5393,17 @@ CONTAINS
     TS_DYN  = Input_Opt%TS_DYN
     TS_RAD  = Input_Opt%TS_RAD
 
+    ! If we're doing the reverse integration
+    ! multiply all the timesteps by -1 here
+    if (TS_DYN < 0) THEN
+       TS_CHEM = TS_CHEM * -1
+       TS_EMIS = TS_EMIS * -1
+       TS_CONV = TS_CONV * -1
+       TS_DYN  = TS_DYN  * -1
+       TS_RAD  = TS_RAD  * -1
+    endif
+         
+
     ! NUNIT is time step in minutes for unit conversion
     TS_UNIT = -1
 

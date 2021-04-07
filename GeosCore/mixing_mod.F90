@@ -282,6 +282,10 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ErrorMsg, ThisLoc
 
+#ifdef ADJOINT
+    LOGICAL                 :: IS_ADJ
+#endif
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
@@ -338,12 +342,33 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+#endif
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             'kg/m2', RC, OrigUnit=OrigUnit )
+
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+#endif
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -358,6 +383,11 @@ CONTAINS
     ELSE
        TS = GET_TS_DYN()
     ENDIF
+#ifdef ADJOINT
+    if (Input_Opt%Is_Adjoint) then
+       TS = TS * -1
+    endif
+#endif
 
     ! First-time setup
     IF ( FIRST ) THEN
@@ -473,7 +503,7 @@ CONTAINS
        ! dry deposition and/or emissions
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
-
+       
        ! Loop over all grid boxes
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -606,6 +636,12 @@ CONTAINS
                    State_Chm%Species(I,J,L,N) = FRAC *    &
                                                 State_Chm%Species(I,J,L,N)
 
+#ifdef ADJOINT
+                   if (Input_Opt%Is_Adjoint) then
+                      State_Chm%SpeciesAdj(I,J,L,N) = FRAC *  &
+                           State_Chm%SpeciesAdj(I,J,L,N)
+                   endif
+#endif
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s.
                    ! Make sure PARANOx loss is applied to tracers. (ckeller,
                    ! 3/29/16).
@@ -682,6 +718,15 @@ CONTAINS
 
                    ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
                    FLUX = TMP * TS
+#ifdef ADJOINT
+                   IF ( I .eq. Input_Opt%IFD .and. J .eq. Input_Opt%JFD .and. &
+                        L .eq. Input_Opt%LFD .and. N .eq. Input_Opt%NFD) THEN
+                      WRITE(*,*) ' GetHcoVal(IFD,JFD) = ', TMP,  ' FLUX = ', FLUX
+                      IF ( Input_Opt%is_adjoint ) THEN
+                         WRITE(*,*) ' SpeciesAdj(FD) = ', State_Chm%SpeciesAdj(I,J,L,N)
+                      ENDIF
+                   ENDIF
+#endif
 
                    ! Add to species array
                    State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
@@ -820,6 +865,17 @@ CONTAINS
 
     ENDIF
 
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+
+#endif
     ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit, RC )
@@ -828,6 +884,17 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+
+#endif
 
     !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
@@ -869,5 +936,6 @@ CONTAINS
     DepFreq => NULL()
 
   END SUBROUTINE DO_TEND
+
 !EOC
 END MODULE MIXING_MOD

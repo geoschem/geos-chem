@@ -113,6 +113,18 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SpeciesConc
      LOGICAL                     :: Archive_SpeciesConc
 
+#ifdef ADJOINT
+     ! Adjoint variables for diagnostic output
+     REAL(f8),           POINTER :: SpeciesAdj(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesAdj
+     LOGICAL                     :: Archive_SpeciesAdj
+
+     ! Concentrations
+     REAL(f8),           POINTER :: ScaleICsAdj(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ScaleICsAdj
+     LOGICAL                     :: Archive_ScaleICsAdj
+#endif
+
      !%%%%% Budget diagnostics %%%%%
 
      REAL(f8),           POINTER :: BudgetEmisDryDepFull(:,:,:)
@@ -1087,6 +1099,16 @@ CONTAINS
     State_Diag%Map_SpeciesConc                     => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
 
+#ifdef ADJOINT
+    State_Diag%SpeciesAdj                          => NULL()
+    State_Diag%Map_SpeciesAdj                      => NULL()
+    State_Diag%Archive_SpeciesAdj                  = .FALSE.
+
+    State_Diag%ScaleICsAdj                         => NULL()
+    State_Diag%Map_ScaleICSAdj                     => NULL()
+    State_Diag%Archive_ScaleICsAdj                 = .FALSE.
+#endif
+
     State_Diag%FracOfTimeInTrop                    => NULL()
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
@@ -2054,6 +2076,57 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+#ifdef ADJOINT
+    !------------------------------------------------------------------------
+    ! Species adjoint diagnostic
+    !------------------------------------------------------------------------
+    diagId  = 'SpeciesAdj'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesAdj,                             &
+         archiveData    = State_Diag%Archive_SpeciesAdj,                     &
+         mapData        = State_Diag%Map_SpeciesAdj,                         &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Species adjoint diagnostic
+    !------------------------------------------------------------------------
+    diagId  = 'ScaleICsAdj'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%ScaleICsAdj,                            &
+         archiveData    = State_Diag%Archive_ScaleICsAdj,                    &
+         mapData        = State_Diag%Map_ScaleICsAdj,                            &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+#endif
 
     !------------------------------------------------------------------------
     ! Fraction of total time each grid box spent in the troposphere
@@ -8344,6 +8417,20 @@ CONTAINS
                    mapData  = State_Diag%Map_SpeciesConc,                    &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+#ifdef ADJOINT
+    CALL Finalize( diagId   = 'SpeciesAdj',                                  &
+                   Ptr2Data = State_Diag%SpeciesAdj,                         &
+                   mapData  = State_Diag%Map_SpeciesAdj,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ScaleICsAdj',                                 &
+                   Ptr2Data = State_Diag%ScaleICsAdj,                        &
+                   mapData  = State_Diag%Map_ScaleICsAdj,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     CALL Finalize( diagId   = 'FracOfTimeInTrop',                            &
                    Ptr2Data = State_Diag%FracOfTimeInTrop,                   &

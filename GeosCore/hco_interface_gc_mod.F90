@@ -422,6 +422,10 @@ CONTAINS
     ! Set misc. parameter
     !=======================================================================
 
+#ifdef ADJOINT
+    if ( Input_Opt%amIRoot ) WRITE(*,*) 'Setting isAdjoint to ', Input_Opt%is_adjoint
+    HcoState%isAdjoint = Input_opt%is_adjoint
+#endif
     ! Emission, chemistry and dynamics timestep in seconds
     HcoState%TS_EMIS = GET_TS_EMIS()
     HcoState%TS_CHEM = GET_TS_CHEM()
@@ -1179,6 +1183,9 @@ CONTAINS
 
     USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
     USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
+#if defined( ADJOINT )
+    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
