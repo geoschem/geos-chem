@@ -68,6 +68,7 @@ COLLECTIONS: #'AerosolMass',
              #'LevelEdgeDiags',
              #'ProdLoss',
              @##'RRTMG',
+             @##'RxnRates',
              'SpeciesConc',
              #'StateChm',
              #'StateMet',
@@ -4833,6 +4834,24 @@ COLLECTIONS: #'AerosolMass',
 @                    'RadAsymWL1_ST        ', 'GCHPchem',
 @::
 #==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.format:     'CFIO',
+  RxnRates.frequency:  010000
+  RxnRates.duration:   010000
+  RxnRates.mode:       'time-averaged'
+  RxnRates.fields:     'RxnRate_EQ001                           ', 'GIGCchem',
+                       'RxnRate_EQ002                           ', 'GIGCchem',
+::
+#==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
 # GEOS-Chem species concentrations (default = advected species)
@@ -5094,6 +5113,7 @@ COLLECTIONS: #'AerosolMass',
                           'SpeciesConc_Cl2O2          ', 'GCHPchem',
                           'SpeciesConc_Cl2            ', 'GCHPchem',
                           'SpeciesConc_Cl             ', 'GCHPchem',
+                          'SpeciesConc_CLOCK          ', 'GCHPchem',
                           'SpeciesConc_CHCl3          ', 'GCHPchem',
                           'SpeciesConc_CHBr3          ', 'GCHPchem',
                           'SpeciesConc_CH4            ', 'GCHPchem',

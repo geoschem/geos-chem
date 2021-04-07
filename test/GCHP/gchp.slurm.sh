@@ -114,6 +114,11 @@ fi
 # Clear variable
 unset log
 
+# Update the results log
+cd ..
+./intTestResults.sh
+cd ${thisDir}
+
 # Exit normally
 exit 0
 

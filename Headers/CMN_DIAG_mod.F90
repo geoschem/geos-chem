@@ -31,15 +31,15 @@ MODULE CMN_DIAG_MOD
 
   INTEGER, PARAMETER :: TOMASSPEC = 8
 
-# if defined( TOMAS40 )
+#if defined(TOMAS40)
   INTEGER, PARAMETER :: TOMASBIN  = 40
-# elif defined( TOMAS15 )
+#elif defined(TOMAS15)
   INTEGER, PARAMETER :: TOMASBIN  = 15
-# elif defined( TOMAS12 )
+#elif defined(TOMAS12)
   INTEGER, PARAMETER :: TOMASBIN  = 12
-# else
+#else
   INTEGER, PARAMETER :: TOMASBIN  = 30 ! Number of TOMAS bins
-# endif
+#endif
 
   INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC
   INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC
@@ -47,23 +47,6 @@ MODULE CMN_DIAG_MOD
   INTEGER            :: PD65
   INTEGER, PARAMETER :: MAX_DIAG = 80
   INTEGER, PARAMETER :: MAXFAM   = 40
-
-#elif defined(RRTMG)
-  !=================================================================
-  ! Settings for RRTMG radiative transfer model
-  !=================================================================
-
-  !number of rad flux and optics output types
-  !8 flux and 3*3=9 optics
-  INTEGER, PARAMETER :: PD72R=17
-
-  !total number of possible rad outputs (types*specs)
-  !there are 11 possible flux output 'species' but
-  !only 8 possible optics output 'species'
-  !for simplicity we take the largest and put up with
-  !some redundancy (should be 88+72=160)
-  INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
-  INTEGER, PARAMETER :: MAX_DIAG   = 187
 
 #else
   !=================================================================
@@ -81,10 +64,6 @@ MODULE CMN_DIAG_MOD
 #ifdef TOMAS
   INTEGER :: LD06, LD44, LD65, LD59, LD60, LD61
   INTEGER :: ND06, ND44, ND65, ND59, ND60, ND61
-#endif
-
-#ifdef RRTMG
-  INTEGER :: ND72
 #endif
 
   !=================================================================

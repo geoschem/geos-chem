@@ -195,7 +195,7 @@ CONTAINS
     INTEGER       :: KTOP(State_Grid%NZ)
     INTEGER       :: INDICATOR(State_Grid%NZ+2)
     REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
-                                              !  in a block, size can be to 
+                                              !  in a block, size can be to
                                               !  FIX(State_Grid%NZ)+1
     REAL(fp)      :: CLDF1D(State_Grid%NZ)
     REAL(fp)      :: ODNEW(State_Grid%NZ)
@@ -1393,7 +1393,7 @@ CONTAINS
 
        ! fix above top-of-atmos (L=L1U+1), must set DTAU(L1U+1)=0
        AMF2(2*L1U+1,J) = 1.e+0_fp
-       
+
        ! Twilight case - Emergent Beam, calc air mass factors below layer
        if (U0 .ge. 0.0e+0_fp) goto 16
 
@@ -2755,7 +2755,7 @@ CONTAINS
 !   UPDATE: because the RT optics output doesnt have access to the
 !   standard wavelengths we now calculate two sets of values: one
 !   for the ND21 and diag3 outputs that use the standard wavelengths
-!   and one for ND72 that interpolates the optics from RRTMG
+!   and one for RRTMG diagnostics that interpolate the optics from RRTMG
 !   wavelengths. Perhaps a switch needs adding to switch off the RT
 !   optics output (and interpolation) if this ends up costing too
 !   much and is not used, but it is ideal to have an optics output
@@ -4397,7 +4397,7 @@ CONTAINS
 
        ! at this point FTAU2(1:L2_+1) and POMEAGJ(1:8, 1:L2_+1)
        !     where FTAU2(L2_+1) = 1.0 = top-of-atmos, FTAU2(1) = surface
-       
+
        do L2 = 1,L2U+1          ! L2 = index of CTM edge- and mid-layers
           L2L = L2LEV(L2)        ! L2L = index for L2 in expanded scale(JADD)
           LZ  = ND + 2 - 2*L2L  ! LZ = index for L2 in scatt arrays
@@ -5273,24 +5273,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag,       &
-                           I,         J,         L,     &
-                           NUMDEN,    TEMP,      C_H2O, &
-                           FRAC,      RC )
+  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
+                           I,         J,          L,                         &
+                           FRAC,      RC                                    )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
-    REAL(fp),       INTENT(IN)    :: NUMDEN     ! Air # density [molec/m3]
-    REAL(fp),       INTENT(IN)    :: TEMP       ! Temperature [K]
-    REAL(fp),       INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
     REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
                                                 !  called from DO_FLEXCHEM
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5318,9 +5316,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL  :: DO_ND22
-    REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
-    REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
+    REAL(fp) :: C_O2,     C_N2, C_H2,   ITEMPK, RO1DplH2O
+    REAL(fp) :: RO1DplH2, RO1D, NUMDEN, TEMP,   C_H2O
 
     !=================================================================
     ! PHOTRATE_ADJ begins here!
@@ -5328,6 +5325,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+    TEMP    = State_Met%T(I,J,L)                                 ! K
+    NUMDEN  = State_Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
+    C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
     ! scaled value of JHNO3. NOTE: this is set in input.geos

@@ -254,7 +254,6 @@ CONTAINS
     LOGICAL                 :: DryDepSpec, EmisSpec
     REAL(f8)                :: DT_Tend
     CHARACTER(LEN=63)       :: OrigUnit
-    CHARACTER(LEN=255)      :: MSG
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
@@ -268,7 +267,7 @@ CONTAINS
     INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O
     INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO
     INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
-    INTEGER,           SAVE :: id_BrNO3
+    INTEGER,           SAVE :: id_BrNO3, id_CH4_SAB
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
@@ -282,6 +281,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ErrorMsg, ThisLoc
+
 #ifdef ADJOINT
     LOGICAL                 :: IS_ADJ
 #endif
@@ -297,11 +297,11 @@ CONTAINS
     ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
 
     ! Special case that there is no dry deposition and emissions
-    IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
+    IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%DoEmissions ) RETURN
 
     ! Initialize
     LSCHEM            = Input_Opt%LSCHEM
-    LEMIS             = Input_Opt%LEMIS
+    LEMIS             = Input_Opt%DoEmissions
     LDRYD             = Input_Opt%LDRYD
     PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
     ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
@@ -372,8 +372,8 @@ CONTAINS
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
-       MSG = 'Unit conversion error!'
-       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -410,6 +410,7 @@ CONTAINS
        id_HOBr = Ind_('HOBr' )
        id_HBr  = Ind_('HBr'  )
        id_BrNO3= Ind_('BrNO3')
+       id_CH4_SAB = Ind_('CH4_SAB')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
@@ -440,15 +441,18 @@ CONTAINS
     !=======================================================================
     ! Do for every advected species and grid box
     !=======================================================================
-!$OMP PARALLEL DO                                                           &
-!$OMP DEFAULT( SHARED                                                     ) &
-!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
-!$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
-!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
-!$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
-!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           ) &
-!$OMP PRIVATE( S                                                          )
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                 ) &
+    !$OMP PRIVATE( I,        J,            L,          L1,       L2       ) &
+    !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId ) &
+    !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2  ) &
+    !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP ) &
+    !$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA       ) &
+    !$OMP PRIVATE( S,        ErrorMsg                                     )
     DO NA = 1, nAdvect
+
+       ! Initialize PRIVATE error-handling variables
+       ErrorMsg  = ''
 
        ! Get the species ID from the advected species ID
        N = State_Chm%Map_Advect(NA)
@@ -647,15 +651,6 @@ CONTAINS
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF
 
-!                   IF (AREA_M2 .eq. 0.0_fp) THEN
-!                     PRINT*, "FLUX: ", FLUX
-!                     PRINT*, "MWkg: ", MWkg
-!                     PRINT*, "AVO: ", AVO
-!                     PRINT*, "TS: ", TS
-!                     PRINT*, "AREA_M2: ", AREA_M2
-!                     CALL FLUSH(6)
-!                   ENDIF
-
                    ! Loss in [molec/cm2/s]
                    ! Added a safe_div due to small parallelization error
                    ! (mdy, 5/15)
@@ -774,8 +769,22 @@ CONTAINS
 
              ENDIF
 
-             ! Prevent negative concentrations. (ckeller, 3/29/16)
-             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+             ! Check for negative concentrations
+             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
+             ! negative (it's a soil absorption flux).  The TagCH4 simulation
+             ! is not used regularly as of Feb 2021 -- fix this later if
+             ! need by. (bmy, 2/25/21)
+             IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+                IF ( N /= id_CH4_SAB ) THEN
+                 Print*, 'WARNING: Negative concentration for species ',     &
+                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L 
+                 ErrorMsg = 'Negative species concentations encountered.' // &
+                            ' This may be fixed by increasing the'        // &
+                            ' background concentration or by shortening'  // &
+                            ' the transport time step.'  
+                 RC = GC_FAILURE
+                ENDIF
+             ENDIF
 
           ENDDO !L
        ENDDO !J
@@ -785,16 +794,22 @@ CONTAINS
        SpcInfo  => NULL()
 
     ENDDO !N
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
+
+    ! Exit with error condition
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrorMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
     !--------------------------------------------------------------
     IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
 
-!$OMP PARALLEL DO               &
-!$OMP DEFAULT( SHARED         ) &
-!$OMP PRIVATE( I, J, L, N, NA )
+       !$OMP PARALLEL DO                         &
+       !$OMP DEFAULT( SHARED                   ) &
+       !$OMP PRIVATE( I, J, L, N, NA, ErrorMsg )
        DO NA = 1, nAdvect
 
           ! Get the species ID from the advected species ID
@@ -818,14 +833,35 @@ CONTAINS
 
              ENDIF
 
-             ! Prevent negative concentrations. (ckeller, 3/29/16)
-             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+             ! Check for negative concentrations
+             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
+             ! negative (it's a soil absorption flux).  The TagCH4 simulation
+             ! is not used regularly as of Feb 2021 -- fix this later if
+             ! need by. (bmy, 2/25/21)
+             IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+                IF ( N /= id_CH4_SAB ) THEN
+                 Print*, 'WARNING: Negative concentration for species ',     &
+                         TRIM( State_Chm%SpcData(N)%Info%Name),              &
+                         ' at (I,J,L) = ', I, J, L 
+                 ErrorMsg = 'Negative species concentations encountered.' // &
+                            ' This may be fixed by increasing the'        // &
+                            ' background concentration or by shortening'  // &
+                            ' the transport time step.'  
+                 RC = GC_FAILURE
+                ENDIF
+             ENDIF
 
           ENDDO
           ENDDO
           ENDDO
        ENDDO
-!$OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
+
+       ! Exit with error condition
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 
@@ -844,8 +880,8 @@ CONTAINS
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       MSG = 'Unit conversion error!'
-       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 #if defined( ADJOINT )  && defined ( DEBUG )

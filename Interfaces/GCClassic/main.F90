@@ -203,7 +203,6 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: LCONV
   LOGICAL                  :: LDRYD
   LOGICAL                  :: LDYNOCEAN
-  LOGICAL                  :: LEMIS
   LOGICAL                  :: LGTMM
   LOGICAL                  :: LLINOZ
   LOGICAL                  :: LNLPBL
@@ -457,7 +456,6 @@ PROGRAM GEOS_Chem
   LCONV               =  Input_Opt%LCONV
   LDRYD               =  Input_Opt%LDRYD
   LDYNOCEAN           =  Input_Opt%LDYNOCEAN
-  LEMIS               =  Input_Opt%LEMIS
   LGTMM               =  Input_Opt%LGTMM
   LLINOZ              =  Input_Opt%LLINOZ
   LNLPBL              =  Input_Opt%LNLPBL
@@ -726,16 +724,7 @@ PROGRAM GEOS_Chem
 
   ! Initialize HEMCO. This reads the HEMCO configuration file
   ! and creates entries for all data files needed for emission
-  ! calculation. Also sets some logical switches in Input_Opt
-  ! (e.g. LSOILNOX).
-  ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
-  ! is to make sure that HEMCO can still be used to read
-  ! non-emission data such as stratospheric Bry fields. If LEMIS
-  ! is set to FALSE, the emissions driver routines will make sure
-  ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
-  !
-  ! This call will also initialize the three built-in HEMCO
-  ! diagnostics (default, manual, restart).
+  ! calculation.
   IF ( Input_Opt%useTimers ) THEN
      CALL Timer_Start( "HEMCO", RC )
   ENDIF
@@ -1588,7 +1577,14 @@ PROGRAM GEOS_Chem
           ! Get the overhead column O3 for use with FAST-J
           ! NOTE: Move to CHEMISTRY section.  This now has to come after
           ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
-          CALL Get_Overhead_O3_For_FastJ( Input_Opt, State_Grid, State_Met )
+          CALL Get_Overhead_O3_For_FastJ( Input_Opt,  State_Chm,             &
+                                          State_Grid, State_Met, RC         )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Get_Overhead_O3_for_FastJ"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
 
           ! Every chemistry timestep...
           IF ( ITS_TIME_FOR_CHEM() ) THEN
@@ -2533,19 +2529,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Overhead_O3_For_FastJ( Input_Opt, State_Grid, State_Met )
+  SUBROUTINE Get_Overhead_O3_For_FastJ( Input_Opt,  State_Chm,               &
+                                        State_Grid, State_Met, RC           )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(GrdState), INTENT(IN)    :: State_Grid
     TYPE(MetState), INTENT(IN)    :: State_Met
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REMARKS:
 !  This routine makes use of variables declared in above in the main program

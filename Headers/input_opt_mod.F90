@@ -136,15 +136,13 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
-     ! EMISSIONS MENU fields
+     ! EMISSIONS fields
      !----------------------------------------
-     LOGICAL                     :: LEMIS
-     CHARACTER(LEN=255)          :: HcoConfigFile
+     LOGICAL                     :: DoEmissions
      INTEGER                     :: TS_EMIS
      LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
      LOGICAL                     :: LHCodedOrgHal
@@ -264,7 +262,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND59   ! TOMAS
      INTEGER                     :: ND60   ! TOMAS
      INTEGER                     :: ND61   ! TOMAS
-     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -651,11 +648,9 @@ CONTAINS
     !----------------------------------------
     ! EMISSIONS MENU fields
     !----------------------------------------
-    Input_Opt%LEMIS                  = .FALSE.
-    Input_Opt%HcoConfigFile          = ''
+    Input_Opt%DoEmissions            = .TRUE. ! On by default
     Input_Opt%TS_EMIS                = 0
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
     Input_Opt%LHCodedOrgHal          = .FALSE.
@@ -750,9 +745,9 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
-    Input_Opt%TPCORE_IORD            = .FALSE.
-    Input_Opt%TPCORE_JORD            = .FALSE.
-    Input_Opt%TPCORE_KORD            = .FALSE.
+    Input_Opt%TPCORE_IORD            = 0
+    Input_Opt%TPCORE_JORD            = 0
+    Input_Opt%TPCORE_KORD            = 0
     Input_Opt%TS_DYN                 = 0
 
     !----------------------------------------
@@ -810,7 +805,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
-    Input_Opt%ND72                   = 0
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

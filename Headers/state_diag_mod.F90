@@ -1092,6 +1092,7 @@ CONTAINS
     State_Diag%Archive_SpeciesRst                  = .FALSE.
 
     State_Diag%SpeciesBC                           => NULL()
+    State_Diag%Map_SpeciesBC                       => NULL()
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
     State_Diag%SpeciesConc                         => NULL()

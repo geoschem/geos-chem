@@ -1,6 +1,6 @@
 ###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
-###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
 #============================================================================
@@ -43,6 +43,7 @@ COLLECTIONS: 'Restart',
              #'LevelEdgeDiags',
              #'ProdLoss',
              ##'RRTMG',
+	     ##'RxnRates',
              #'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -202,8 +203,8 @@ COLLECTIONS: 'Restart',
                               'Chem_AeroAreaOC               ', 'GIGCchem',
                               'Chem_AeroAreaSSA              ', 'GIGCchem',
                               'Chem_AeroAreaSSC              ', 'GIGCchem',
-                              'Chem_AeroAreaBGSULF           ', 'GIGCchem',
-                              'Chem_AeroAreaICEI             ', 'GIGCchem',
+                              #'Chem_AeroAreaBGSULF           ', 'GIGCchem',
+                              #'Chem_AeroAreaICEI             ', 'GIGCchem',
                               'Chem_AeroRadiMDUST1           ', 'GIGCchem',
                               'Chem_AeroRadiMDUST2           ', 'GIGCchem',
                               'Chem_AeroRadiMDUST3           ', 'GIGCchem',
@@ -216,8 +217,8 @@ COLLECTIONS: 'Restart',
                               'Chem_AeroRadiOC               ', 'GIGCchem',
                               'Chem_AeroRadiSSA              ', 'GIGCchem',
                               'Chem_AeroRadiSSC              ', 'GIGCchem',
-                              'Chem_AeroRadiBGSULF           ', 'GIGCchem',
-                              'Chem_AeroRadiICEI             ', 'GIGCchem',
+                              #'Chem_AeroRadiBGSULF           ', 'GIGCchem',
+                              #'Chem_AeroRadiICEI             ', 'GIGCchem',
                               'Chem_WetAeroAreaMDUST1        ', 'GIGCchem',
                               'Chem_WetAeroAreaMDUST2        ', 'GIGCchem',
                               'Chem_WetAeroAreaMDUST3        ', 'GIGCchem',
@@ -230,8 +231,8 @@ COLLECTIONS: 'Restart',
                               'Chem_WetAeroAreaOC            ', 'GIGCchem',
                               'Chem_WetAeroAreaSSA           ', 'GIGCchem',
                               'Chem_WetAeroAreaSSC           ', 'GIGCchem',
-                              'Chem_WetAeroAreaBGSULF        ', 'GIGCchem',
-                              'Chem_WetAeroAreaICEI          ', 'GIGCchem',
+                              #'Chem_WetAeroAreaBGSULF        ', 'GIGCchem',
+                              #'Chem_WetAeroAreaICEI          ', 'GIGCchem',
                               'Chem_WetAeroRadiMDUST1        ', 'GIGCchem',
                               'Chem_WetAeroRadiMDUST2        ', 'GIGCchem',
                               'Chem_WetAeroRadiMDUST3        ', 'GIGCchem',
@@ -244,20 +245,20 @@ COLLECTIONS: 'Restart',
                               'Chem_WetAeroRadiOC            ', 'GIGCchem',
                               'Chem_WetAeroRadiSSA           ', 'GIGCchem',
                               'Chem_WetAeroRadiSSC           ', 'GIGCchem',
-                              'Chem_WetAeroRadiBGSULF        ', 'GIGCchem',
-                              'Chem_WetAeroRadiICEI          ', 'GIGCchem',
-                              'Chem_StatePSC                 ', 'GIGCchem',
-                              'Chem_KhetiSLAN2O5H2O          ', 'GIGCchem',
-                              'Chem_KhetiSLAN2O5HCl          ', 'GIGCchem',
-                              'Chem_KhetiSLAClNO3H2O         ', 'GIGCchem',
-                              'Chem_KhetiSLAClNO3HCl         ', 'GIGCchem',
-                              'Chem_KhetiSLAClNO3HBr         ', 'GIGCchem',
-                              'Chem_KhetiSLABrNO3H2O         ', 'GIGCchem',
-                              'Chem_KhetiSLABrNO3HCl         ', 'GIGCchem',
-                              'Chem_KhetiSLAHOClHCl          ', 'GIGCchem',
-                              'Chem_KhetiSLAHOClHBr          ', 'GIGCchem',
-                              'Chem_KhetiSLAHOBrHCl          ', 'GIGCchem',
-                              'Chem_KhetiSLAHOBrHBr          ', 'GIGCchem',
+                              #'Chem_WetAeroRadiBGSULF        ', 'GIGCchem',
+                              #'Chem_WetAeroRadiICEI          ', 'GIGCchem',
+                              #'Chem_StatePSC                 ', 'GIGCchem',
+                              #'Chem_KhetiSLAN2O5H2O          ', 'GIGCchem',
+                              #'Chem_KhetiSLAN2O5HCl          ', 'GIGCchem',
+                              #'Chem_KhetiSLAClNO3H2O         ', 'GIGCchem',
+                              #'Chem_KhetiSLAClNO3HCl         ', 'GIGCchem',
+                              #'Chem_KhetiSLAClNO3HBr         ', 'GIGCchem',
+                              #'Chem_KhetiSLABrNO3H2O         ', 'GIGCchem',
+                              #'Chem_KhetiSLABrNO3HCl         ', 'GIGCchem',
+                              #'Chem_KhetiSLAHOClHCl          ', 'GIGCchem',
+                              #'Chem_KhetiSLAHOClHBr          ', 'GIGCchem',
+                              #'Chem_KhetiSLAHOBrHCl          ', 'GIGCchem',
+                              #'Chem_KhetiSLAHOBrHBr          ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -522,6 +523,24 @@ COLLECTIONS: 'Restart',
                               'RadAsymWL1_DU         ', 'GIGCchem',
                               'RadAsymWL1_PM         ', 'GIGCchem',
                               #'RadAsymWL1_ST         ', 'GIGCchem',
+::
+#==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.format:     'CFIO',
+  RxnRates.frequency:  {FREQUENCY}
+  RxnRates.duration:   {DURATION}
+  RxnRates.mode:       'time-averaged'
+  RxnRates.fields:     'RxnRate_EQ001                           ', 'GIGCchem',
+                       'RxnRate_EQ002                           ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

@@ -46,9 +46,8 @@ MODULE GLOBAL_CH4_MOD
 !
   !========================================================================
   ! Module Variables:
-  ! BAIRDENS   : Array for air density                      [molec/cm3]
-  ! BOH        : Array for OH values                        [kg/m3]
-  ! BCl        : Array for Cl values                        [ppbv]
+  ! BOH        : Array for OH values                        [v/v]
+  ! BCl        : Array for Cl values                        [v/v]
   ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
   ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
   ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
@@ -67,7 +66,6 @@ MODULE GLOBAL_CH4_MOD
   REAL(fp)              :: TROPOCH4
 
   ! Various arrays
-  REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
   REAL(fp), ALLOCATABLE :: BOH(:,:,:)
   REAL(fp), ALLOCATABLE :: BCl(:,:,:)
 
@@ -567,9 +565,7 @@ CONTAINS
 !
     LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
     INTEGER            :: I, J, L
-
     REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-    REAL(fp)           :: BOXVL
 
     ! Number of days per month
     INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30, 31, 30, &
@@ -606,26 +602,6 @@ CONTAINS
        WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
     ENDIF
 
-    !=================================================================
-    ! (0) Calculate each box's air density [molec/cm3]
-    !     Do this for saving mean OH concentrations in CH4_DECAY
-    !     and in CH4_OHSAVE (kjw, 6/12/09)
-    !=================================================================
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! Grid box volume [cm3]
-       BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-       ! Air density [molec/cm3]
-       BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp / &
-                         BOXVL * AVO / AIRMW
-
-    ENDDO
-    ENDDO
-    ENDDO
-
     !================================================================
     ! Evaluate OH and Cl fields from HEMCO. Doing this every call
     ! allows usage of HEMCO scaling and masking features.
@@ -651,8 +627,7 @@ CONTAINS
     ! HISTORY (aka netCDF diagnostics)
     ! OH concentration in [molec/cm3] after chemistry
     !
-    ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3
-    ! (ckeller, 9/16/2014)
+    ! BOH from HEMCO is in mol/mol, convert to molec/cm3
     !=================================================================
     IF ( State_Diag%Archive_OHconcAfterChem ) THEN
        DO L = 1, State_Grid%NZ
@@ -660,7 +635,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
              State_Diag%OHconcAfterChem(I,J,L) = &
-                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+                  ( BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) )
           ELSE
              State_Diag%OHconcAfterChem(I,J,L) = 0.0_f4
           ENDIF
@@ -867,14 +842,12 @@ CONTAINS
           GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
           ! OH in [molec/cm3]
-          ! BOH is imported from HEMCO in units of kg/m3, convert
-          !  here to molec/cm3 (ckeller, 9/16/2014)
-          C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+          ! BOH from HEMCO in units of mol/mol, convert to molec/cm3
+          C_OH = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
           ! Cl in [molec/cm3]
-          ! BCl is imported from HEMCO in units of ppbv, convert
-          !  here to molec/cm3 (mps, 6/16/2017)
-          C_Cl = BCl(I,J,L) * BAIRDENS(I,J,L) * 1e-9_fp
+          ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
+          C_Cl = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
           TROPOCH4=TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
                             + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
@@ -917,158 +890,13 @@ CONTAINS
     Spc => NULL()
 
   END SUBROUTINE CH4_DECAY
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: ch4_ohsave
-!!
-!! !DESCRIPTION: Subroutine CH4\_OHSAVE archives the CH3CCl3 lifetime from the
-!!  OH used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE CH4_OHSAVE( State_Chm, State_Grid, State_Met )
-!!
-!! !USES:
-!!
-!    USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-!    USE State_Chm_Mod,      ONLY : ChmState
-!    USE State_Grid_Mod,     ONLY : GrdState
-!    USE State_Met_Mod,      ONLY : MetState
-!!
-!! !INPUT PARAMETERS:
-!!
-!    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-!    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-!    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!    ! Scalars
-!    INTEGER           :: I,       J,           L
-!    REAL(fp)          :: MASST,   AREA_M2
-!    REAL(fp)          :: KCLO,    LOSS,        OHMASS
-!    REAL(fp)          :: KCH4,    CH4LOSE,     CH4MASS
-!    REAL(fp)          :: CH4EMIS, CH4TROPMASS, BOXVL
-!    REAL(fp)          :: C_OH
-!
-!    ! Pointers
-!    REAL(fp), POINTER :: Spc(:,:,:,:)
-!
-!    !=================================================================
-!    ! CH4_OHSAVE begins here!
-!    !
-!    ! (1) Pass OH mass, total air mass, and  to "diag_oh_mod.F90"
-!    ! (2) ND59: Diagnostic for CH3CCl3 calculation
-!    !=================================================================
-!
-!    ! Point to chemical species array [kg]
-!    Spc => State_Chm%Species
-!
-!    ! Calculate OH mass and total air mass
-!    !$OMP PARALLEL DO       &
-!    !$OMP DEFAULT( SHARED ) &
-!    !$OMP PRIVATE( I, J, L, BOXVL, C_OH, OHMASS, MASST, KCLO, LOSS, KCH4 ) &
-!    !$OMP PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2 )
-!    DO L = 1, State_Grid%NZ
-!    DO J = 1, State_Grid%NY
-!    DO I = 1, State_Grid%NX
-!
-!       ! Only process tropospheric boxes (bmy, 4/17/00)
-!       IF ( State_Met%InChemGrid(I,J,L) ) THEN
-!
-!          ! Grid box volume [cm3]
-!          BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-!
-!          ! OH concentration in molec/cm3. BOH is imported
-!          ! from HEMCO in kg/m3 (ckeller, 9/16/2014)
-!          C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
-!
-!          ! Calculate OH mass [molec / box]
-!          OHMASS = C_OH * BAIRDENS(I,J,L) * BOXVL
-!
-!          ! Calculate total air mass [molec / box]
-!          MASST  = BAIRDENS(I,J,L) * BOXVL
-!
-!          ! Calculate CH3CCl3 + OH rate constant from JPL '06
-!          ! [cm3 / molec / s]
-!          KCLO = 1.64e-12_fp * EXP( -1520.e+0_fp / State_Met%T(I,J,L))
-!
-!          ! Calculate Loss term [molec / box / s]
-!          LOSS   = KCLO  * C_OH  * BAIRDENS(I,J,L) * BOXVL
-!
-!          ! Calculate CH4 + OH rate constant from JPL '06
-!          ! [cm3 / molec / s]
-!          KCH4 = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L) )
-!
-!          ! Calculate CH4 mass [molec / box] from [kg / box]
-!          CH4TROPMASS = Spc(I,J,L,1) * XNUMOL_CH4
-!          CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4
-!
-!          ! Calculate loss term  [molec /box / s]
-!          CH4LOSE = KCH4 * C_OH * BAIRDENS(I,J,L) * BOXVL
-!
-!          ! Calculate CH4 emissions [molec / box / s]
-!          !   Only for surface level
-!          ! Grid box surface area [cm2]
-!          ! HEMCO update: CH4_EMIS now in kg/m2/s (ckeller, 9/12/2014)
-!          IF ( L .GT. 1 ) THEN
-!             CH4EMIS = 0e+0_fp
-!          ELSE
-!             AREA_M2 = State_Grid%Area_M2(I,J)
-!
-!             ! [kg/m2/s]  --> [molec/box/s]
-!             CH4EMIS  = CH4_EMIS(I,J,1)
-!             CH4EMIS  = CH4EMIS * AREA_M2 * XNUMOL_CH4
-!          ENDIF
-!
-!       ELSE
-!
-!          OHMASS      = 0e+0_fp
-!          MASST       = 0e+0_fp
-!          LOSS        = 0e+0_fp
-!          CH4LOSE     = 0e+0_fp
-!          CH4TROPMASS = 0e+0_fp
-!          CH4EMIS     = 0e+0_fp
-!          CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4
-!
-!       ENDIF
-!
-!       ! Pass OH mass, total mass, and loss to "diag_oh_mod.F90",
-!       ! which calculates mass-weighted mean [OH] and CH3CCl3
-!       ! lifetime.
-!       CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, &
-!                            CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
-!
-!    ENDDO
-!    ENDDO
-!    ENDDO
-!    !$OMP END PARALLEL DO
-!
-!    ! Free pointer
-!    Spc => NULL()
-!
-!  END SUBROUTINE CH4_OHSAVE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CH4_OHSAVE
+! !IROUTINE: ch4_metrics
 !
 ! !DESCRIPTION: Computes mass-weighted mean OH columns (full-atmosphere and
 !  trop-only) that are needed to compute the overall mean OH concentration.
@@ -1243,8 +1071,8 @@ CONTAINS
           CH4conc_mcm3 = CH4conc_kgm3 / MCM3toKGM3_CH4
 
           ! OH concentration [kg m-3] and [molec cm-3]
-          OHconc_kgm3  = BOH(I,J,L)
-          OHconc_mcm3  = OHconc_kgm3 /  MCM3toKGM3_OH
+          OHconc_mcm3  = BOH(I,J,L)  * State_Met%AIRNUMDEN(I,J,L)
+          OHconc_kgm3  = OHconc_mcm3 * MCM3toKGM3_OH
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt    = airmass_kg * OHconc_kgm3
@@ -1412,7 +1240,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER           :: I,  J,    L
-    REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
+    REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE
 
     ! Strings
     CHARACTER(LEN=255)    :: ThisLoc
@@ -1664,12 +1492,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ALLOCATE( BAIRDENS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
-              STAT=RC )
-    CALL GC_CheckVar( 'global_ch4_mod.F90:BAIRDENS', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    BAIRDENS = 0e+0_fp
-
     ALLOCATE( CH4_EMIS( State_Grid%NX, State_Grid%NY, 15 ), STAT=RC )
     CALL GC_CheckVar( 'global_ch4_mod.F90:CH4_EMIS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1721,13 +1543,6 @@ CONTAINS
 !
     ! Initialize
     RC = GC_SUCCESS
-
-    ! Deallocate variables
-    IF ( ALLOCATED( BAIRDENS ) ) THEN
-       DEALLOCATE( BAIRDENS, STAT=RC )
-       CALL GC_CheckVar( 'global_ch4_mod.F90:BAIRDENS', 2, RC )
-       RETURN
-    ENDIF
 
     IF ( ALLOCATED( CH4_EMIS ) ) THEN
        DEALLOCATE( CH4_EMIS, STAT=RC )

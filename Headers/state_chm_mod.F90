@@ -439,6 +439,9 @@ CONTAINS
     State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
 
+    ! Indices for HetChem
+    State_Chm%HetInfo           => NULL()
+
     ! Mapping vectors
     State_Chm%Map_Advect        => NULL()
     State_Chm%Map_Aero          => NULL()
@@ -1519,30 +1522,6 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-    ENDIF
-
-    !========================================================================
-    ! Allocate and initialize fields only needed for FULLCHEM simulations
-    !========================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       !---------------------------------------------------------------------
-       ! KPPHvalue
-       !---------------------------------------------------------------------
-       chmId = 'KPPHvalue'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%KPPHvalue,                                &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
 
        !------------------------------------------------------------------------
        ! TOMS_MOD
@@ -1589,6 +1568,31 @@ CONTAINS
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%TOMS2,                                    &
             noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF ! ITS_A_FULLCHEM_SUM or ITS_AN_AEROSOL_SIM
+
+    !========================================================================
+    ! Allocate and initialize fields only needed for FULLCHEM simulations
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !---------------------------------------------------------------------
+       ! KPPHvalue
+       !---------------------------------------------------------------------
+       chmId = 'KPPHvalue'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%KPPHvalue,                                &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN

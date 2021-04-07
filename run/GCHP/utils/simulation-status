@@ -1,0 +1,91 @@
+#!/bin/bash
+
+USAGE_MSG="""Usage ./utils/simulation-status [-h|--help] [--no-color] LOGFILE_PATTERN1 [LOGFILE_PATTERN..]
+
+Shows the current status of a simulation based on scraping the log files.
+
+At least one log file (or glob pattern) is required. If multiple log files are found, the last
+one has the highest precedence.
+
+Required arguments:
+   LOGFILE_PATTERN..      The name or glob pattern for the log files.
+
+Optional arguments:
+   --no-color             Disables colorized output.
+   -h   --help            Prints this usage message.
+
+Examples:
+   ./utils/simulation-status runlog.txt     Print the status based on ./runlog.txt
+   ./utils/simulation-status 'log-*.txt'    Based on the last file matching 'log-*.txt'
+"""
+
+if [[ "$*" == *-h* || "$*" == *--help* ]]; then
+	echo "$USAGE_MSG"
+	exit 0
+fi
+
+if [ "$1" == '--no-color' ]; then
+	RED=''
+	NC=''
+	GREEN=''
+	ORANGE=''
+	UNDERLINE=''
+	BOLD=''
+	NORMAL=''
+	shift
+else
+	RED='\033[0;31m'
+	NC='\033[0m'
+	GREEN='\033[0;32m'
+	ORANGE='\033[0;33m'
+	UNDERLINE=$(tput smul)
+	BOLD=$(tput bold)
+	NORMAL=$(tput sgr0)
+fi
+
+tempfile=$(mktemp)
+
+# Get list of logfiles
+for LOGFILE_PATTERN in "$@"; do
+	find -name "$LOGFILE_PATTERN" >> ${tempfile}
+done
+
+if [ "$(wc -l < ${tempfile})" == "0" ]; then
+	echo "error: No log file found."
+	rm ${tempfile}
+	exit 1
+fi
+
+# Remove empty lines
+sed -i "/^$/d" ${tempfile}
+
+active_log=$(tail -n 1 ${tempfile})
+
+latest_timestep=$(grep 'AGCM Date' $active_log | tail -n 1 | grep 'AGCM Date' || echo "NO-TIMESTEPS")
+first_error=$(grep 'pe=[0-9][0-9]* FAIL at' $active_log | head -n 1 | grep 'pe=[0-9][0-9]* FAIL at' || echo "NO-ERRORS")
+
+if [[ "$latest_timestep" != "NO-TIMESTEPS" ]]; then
+	latest_datetime=$(echo $latest_timestep |  sed "s#AGCM Date: \([0-9][0-9][0-9][0-9]\)/\([0-9][0-9]\)/\([0-9][0-9]\)  *Time:  *\([0-9][0-9]\):\([0-9][0-9]\):\([0-9][0-9]\).*#\1-\2-\3T\4:\5:\6#g")
+	throughput=$(echo $latest_timestep | sed "s#.*Throughput(days/day)\[Avg Tot Run\]:  *\([0-9][^ ]*\).*#\1#g") 
+	time_remaining=$(echo $latest_timestep | sed "s#.*TimeRemaining(Est)  *\([0-9][^ ]*\).*#\1#g" | sed 's/^0*//')
+fi
+rm ${tempfile}
+
+if [ "$first_error" != "NO-ERRORS" ] && [ -n "${latest_datetime}" ]; then
+	printf "Simulation crashed at ${latest_datetime} [${RED}NOT RUNNING${NC}]\n"
+	exit 1
+fi
+
+
+if [ "$first_error" != "NO-ERRORS" ]; then
+	printf "Simulation crashed without timestepping [${RED}NOT RUNNING${NC}]\n"
+	exit 1
+fi
+
+if [ "$first_error" == "NO-ERRORS" ] && [ "$latest_timestep" == "NO-TIMESTEPS" ]; then
+	printf "Simulation is starting up [${ORANGE}INITIALIZING${NC}]\n"
+	exit 1
+fi
+
+printf "Simulation at ${BOLD}$latest_datetime${NORMAL} (throughput: ${UNDERLINE}$throughput d/d${NORMAL}, time remaining: $time_remaining) [${GREEN}RUNNING${NC}]\n"
+exit 0
