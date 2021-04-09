@@ -3983,18 +3983,6 @@ CONTAINS
       N =Input_Opt%N_ADVECT			
     ENDIF  
 	
-	! Test if there is an "?ALL" wildcard present as the first/only substring
-    ! argument to the ObsPack output Species Line. 
-    IF ( N==1 .AND. INDEX( SUBSTRS(1) , '?ALL' ) >  0)  THEN
-
-	  ! If wildcard for all species is requested then update the 
-      ! list of species to track to be the list of advected species 
-	  SUBSTRS= Input_Opt%AdvectSpc_Name
-
-	  ! And update the number of species to track with ObsPack as the # of advected species.  
-	  N =Input_Opt%N_ADVECT	
-    ENDIF 
-	
     ! Populate the ObsPack species name list
     Input_Opt%ObsPack_nSpc = N
     DO S = 1, Input_Opt%ObsPack_nSpc
