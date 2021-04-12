@@ -770,6 +770,7 @@ fi
 
 # Sample restarts for several simulations do not contain all species. For those
 # simulations, print a warning and change the time cycle option in HEMCO config
+# so that we do not force an error if not found (i.e. EFYO --> EY)
 if [[ "x${sim_extra_option}" == "xaciduptake"        ||
       "x${sim_extra_option}" == "xmarinePOA"         ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
@@ -777,8 +778,8 @@ if [[ "x${sim_extra_option}" == "xaciduptake"        ||
       "x${sim_name}"         == "xPOPs"              ||
       "x${sim_name}"         == "xtagCH4"            ||
       "x${sim_name}"         == "xtagO3"             ]]; then
-    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFY"
-    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY "
+    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
+    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
     sed_ie "s|${old}|${new}|" HEMCO_Config.rc
 
     printf "\n  -- The sample restart provided for this simulation may not"
