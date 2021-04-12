@@ -1228,18 +1228,17 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#ifdef MODEL_CLASSIC
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: iCOL, iAF
+
+#ifdef MODEL_CLASSIC
     CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
     INTEGER            :: ZBND
+    REAL(sp), POINTER  :: TMP_Ptr3D(:,:,:)
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
-
-    ! Subroutine call temporaries
-    INTEGER            :: iCOL, iAF
-    REAL(sp), POINTER  :: TMP_Ptr3D(:,:,:)
 
     iCOL = HcoState%Diagn%HcoDiagnIDManual
     IF ( PRESENT(COL) ) THEN
@@ -1395,17 +1394,16 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#ifdef MODEL_CLASSIC
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: iCOL, iAF
+
+#ifdef MODEL_CLASSIC
     CHARACTER(LEN=90)  :: TMP_DiagnFldName            ! Temporary diagnostic fld name
+    REAL(sp), POINTER  :: TMP_Ptr2D(:,:)
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
-
-    ! Subroutine call temporaries
-    INTEGER            :: iCOL, iAF
-    REAL(sp), POINTER  :: TMP_Ptr2D(:,:)
 
     TMP_MDL_target => NULL()
     TMP_Ptr2D => NULL()

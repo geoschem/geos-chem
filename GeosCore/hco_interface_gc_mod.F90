@@ -351,9 +351,11 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harmonized Emissions Component'
+#ifdef MODEL_CLASSIC
        IF ( Input_Opt%LIMGRID ) THEN
          WRITE( 6, '(a)' ) 'HEMCO is running on a different grid than the model', State_Grid_HCO%GridRes
        ENDIF
+#endif
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
  100   FORMAT( '%%%%%', 15x, a,      17x, '%%%%%' )
@@ -730,12 +732,17 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly
     ! connected.
     !-----------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
       ! Use the HEMCO "intermediate" grid -- allocate arrays accordingly
       CALL ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, HMRC, State_Grid_HCO )
     ELSE
       CALL ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, HMRC )
     ENDIF
+#else
+    CALL ExtState_InitTargets( HcoState, ExtState, Input_Opt, State_Grid, HMRC )
+#endif
+
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN

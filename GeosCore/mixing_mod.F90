@@ -220,7 +220,9 @@ CONTAINS
     USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 
     use timers_mod
+#ifdef MODEL_CLASSIC
     use hco_utilities_gc_mod, only: TMP_MDL ! danger
+#endif
 !
 ! !INPUT PARAMETERS:
 !

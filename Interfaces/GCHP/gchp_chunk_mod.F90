@@ -622,7 +622,7 @@ CONTAINS
     ! HEMCO components (eventually moved to a separate GridComp?)
     USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
     USE HCO_Interface_Common, ONLY : SetHcoTime
-    USE HCO_Utilities_GC_Mod
+    USE HCO_Interface_GC_Mod, ONLY : Compute_Sflx_For_Vdiff
 
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt
