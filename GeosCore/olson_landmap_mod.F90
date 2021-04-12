@@ -336,7 +336,7 @@ CONTAINS
 !
     USE CMN_SIZE_Mod,         ONLY : NSURFTYPE
     USE ErrCode_Mod
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Met_Mod,        ONLY : MetState
     USE State_Grid_Mod,       ONLY : GrdState
@@ -375,6 +375,9 @@ CONTAINS
     CHARACTER(LEN=10)  :: Name
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
+    ! Pointers
+    REAL(f4), POINTER :: Ptr2D(:,:)
+
     !=======================================================================
     ! Init_LandTypeFrac begins here!
     !=======================================================================
@@ -392,7 +395,7 @@ CONTAINS
        ! (variable names are LANDTYPE00, LANDTYPE01 .. LANDTYPE72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'LANDTYPE', i2.2 )
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Name, State_Met%LandTypeFrac(:,:,T), RC, FOUND=FND )
+       CALL HCO_GC_GetPtr( Input_Opt, State_Grid, Name, Ptr2D, RC, FOUND=FND )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS .or. .not. FND ) THEN
@@ -400,6 +403,12 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+     
+       ! Copy into State_Met%LandTypeFrac
+       State_Met%LandTypeFrac(:,:,T) = Ptr2D
+
+       ! Free pointer
+       Ptr2D => NULL()
 
     ENDDO
 
