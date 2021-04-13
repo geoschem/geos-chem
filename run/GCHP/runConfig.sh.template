@@ -235,9 +235,9 @@ inst_collections=(ConcAboveSfc      \
 #   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
 #   (3) MAPL ExtData (handles GCHP inputs):
 #         - For root thread (single core) prints set CAP.EXTDATA logger
-#           'root_level' to DEBUG in logging.yaml
+#           'root_level' to DEBUG in logging.yml
 #         - For prints by all threads set CAP.EXTDATA logger 'level' to
-#           DEBUG in logging.yaml 
+#           DEBUG in logging.yml 
 #
 # WARNING: Turning on debug prints significantly slows down the model!
 #          Remember to turn them back off before doing a long simulation.
