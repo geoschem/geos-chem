@@ -217,12 +217,13 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
-      !$OMP CRITICAL
 
       ! Check if we have to load the data.
       IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
 
       ! due to a compiler bug in ifort 19
       ! we have to use PRESENT and not copy the value, as sometimes it becomes
@@ -286,12 +287,13 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
-      ! The below section must be OMP CRITICAL because it is stateful.
-      ! The first call to the critical section will update the container!!
-      !$OMP CRITICAL
 
       ! Check if we have to load the data.
       IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+
+      ! The below section must be OMP CRITICAL because it is stateful.
+      ! The first call to the critical section will update the container!!
+      !$OMP CRITICAL
 
       CALL GetHcoValDep ( Input_Opt, State_Grid, TrcID, 1, 1, 1, Found=TMP_Found, &
                           Dep=TMP_Value )
@@ -1281,10 +1283,6 @@ CONTAINS
         ! then demoted again for output.
         CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
                           Ptr3D=TMP_Ptr3D,    COL=iCOL,  AutoFill=iAF )
-
-        ! If failure, return up the chain. The calls to this function will
-        ! be able to propagate the error above.
-        IF ( RC /= GC_SUCCESS ) RETURN
         
         ! If not found, return
         IF ( ASSOCIATED( TMP_Ptr3D ) ) THEN
@@ -1326,6 +1324,7 @@ CONTAINS
       ENDIF
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
+
     ELSE
 #endif
       ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
@@ -1449,10 +1448,6 @@ CONTAINS
         ! then demoted again for output.
         CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
                           Ptr2D=TMP_Ptr2D,    COL=iCOL,  AutoFill=iAF )
-
-        ! If failure, return up the chain. The calls to this function will
-        ! be able to propagate the error above.
-        IF ( RC /= GC_SUCCESS ) RETURN
         
         ! If not found, return
         IF ( ASSOCIATED( TMP_Ptr2D ) ) THEN
@@ -1491,6 +1486,7 @@ CONTAINS
       ENDIF
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
+
     ELSE
 #endif
       ! Not GC-Classic or not on-demand intermediate grid, just shim around calls
