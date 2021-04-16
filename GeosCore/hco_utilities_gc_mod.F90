@@ -1239,7 +1239,9 @@ CONTAINS
     REAL(sp), POINTER  :: TMP_Ptr3D(:,:,:)
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
+#endif
 
+    ! Initialize local variables
     iCOL = HcoState%Diagn%HcoDiagnIDManual
     IF ( PRESENT(COL) ) THEN
       iCOL = COL
@@ -1250,6 +1252,7 @@ CONTAINS
       iAF = AutoFill
     ENDIF
 
+#ifdef MODEL_CLASSIC
     TMP_MDL_target => NULL()
     TMP_Ptr3D => NULL()
 
@@ -1404,10 +1407,9 @@ CONTAINS
     REAL(sp), POINTER  :: TMP_Ptr2D(:,:)
     REAL(hp), POINTER  :: TMP_MDL_target(:,:,:)       ! Pointer to ease switcheroo of the model target buffer
     REAL(sp), POINTER  :: TMP_MDL_target4(:,:,:)      ! Pointer to ease switcheroo of the model target buffer
+#endif
 
-    TMP_MDL_target => NULL()
-    TMP_Ptr2D => NULL()
-
+    ! initialize local variables
     iCOL = HcoState%Diagn%HcoDiagnIDManual
     IF ( PRESENT(COL) ) THEN
       iCOL = COL
@@ -1417,6 +1419,10 @@ CONTAINS
     IF ( PRESENT(AutoFill) ) THEN
       iAF = AutoFill
     ENDIF
+
+#ifdef MODEL_CLASSIC
+    TMP_MDL_target => NULL()
+    TMP_Ptr2D => NULL()
 
     IF ( Input_Opt%LIMGRID ) THEN
       ! The below section must be OMP CRITICAL because it is stateful.
