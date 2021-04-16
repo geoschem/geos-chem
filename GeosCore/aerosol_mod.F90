@@ -175,8 +175,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState
@@ -336,10 +336,9 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
-
     IF ( RC /= GC_SUCCESS ) RETURN
 #if !defined( MODEL_CESM )
-    CALL HCO_EvalFld( HcoState, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
     FND = .True.
     RC  = GC_SUCCESS

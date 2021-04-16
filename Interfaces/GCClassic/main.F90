@@ -758,7 +758,7 @@ PROGRAM GEOS_Chem
   IF ( notDryRun ) THEN
 
      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
-     CALL Init_LandTypeFrac( Input_Opt, State_Met, RC )
+     CALL Init_LandTypeFrac( Input_Opt, State_Grid, State_Met, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_LandTypeFrac"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1119,7 +1119,7 @@ PROGRAM GEOS_Chem
        IF ( ITS_A_NEW_DAY() .and. notDryRun ) THEN
 
           ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
-          CALL Get_XlaiNative_from_HEMCO( Input_Opt, State_Met, RC )
+          CALL Get_XlaiNative_from_HEMCO( Input_Opt, State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1231,7 +1231,7 @@ PROGRAM GEOS_Chem
 
              ! Copy UV Albedo data (for photolysis) into the
              ! State_Met%UVALBEDO field. (bmy, 3/20/15)
-             CALL Get_UvAlbedo( Input_Opt, State_Met, RC )
+             CALL Get_UvAlbedo( Input_Opt, State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1514,6 +1514,9 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
+          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+
+          ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
           ! emission rates) to the tracer arrays and performs PBL
           ! mixing.

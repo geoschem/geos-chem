@@ -58,17 +58,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_XlaiNative_from_HEMCO( Input_Opt, State_Met, RC )
+  SUBROUTINE Get_XlaiNative_from_HEMCO( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
+    USE CMN_SIZE_Mod,         ONLY : NSURFTYPE
     USE ErrCode_Mod
-    USE HCO_EmisList_Mod,  ONLY : Hco_GetPtr
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Met_Mod,     ONLY : MetState
-    USE Time_Mod,          ONLY : ITS_A_NEW_DAY
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Met_Mod,        ONLY : MetState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE Time_Mod,             ONLY : ITS_A_NEW_DAY
 !
 ! !INPUT PARAMETERS:
 !
@@ -76,6 +76,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -93,13 +94,11 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: T
+    LOGICAL            :: FND
 
     ! Strings
     CHARACTER(LEN=6)   :: Name
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Pointers
-    REAL(f4), POINTER  :: Ptr2D(:,:)
 
     !========================================================================
     ! Get_XlaiNative_from_HEMCO begins here!
@@ -111,9 +110,6 @@ CONTAINS
     ThisLoc = &
       ' -> at Get_XLAI_From_HEMCO (in module GeosCore/modis_lai_mod.F90)'
 
-    ! Free pointer
-    Ptr2d => NULL()
-
     ! Loop over the # of Olson land types
     DO T = 1, NSURFTYPE
 
@@ -121,20 +117,14 @@ CONTAINS
        ! (variable names are XLAI00, XLAI01, .. XLAI72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'XLAI' , i2.2 )
-       CALL HCO_GetPtr( HcoState, Name, Ptr2D, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Name, State_Met%XLAI_NATIVE(:,:,T), RC, FOUND=FND )
 
        ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to HEMCO field: ' // TRIM( Name )
+       IF ( RC /= GC_SUCCESS .or. .not. FND ) THEN
+          ErrMsg = 'Could not read HEMCO field: ' // TRIM( Name )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Copy into State_Met%XLAI_NATIVE
-       State_Met%XLAI_NATIVE(:,:,T) = Ptr2D
-
-       ! Free pointer
-       Ptr2D => NULL()
 
     ENDDO
 

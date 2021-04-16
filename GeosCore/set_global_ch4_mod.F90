@@ -53,8 +53,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE HCO_Error_Mod
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,  ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState, Ind_
     USE State_Diag_Mod,    ONLY : DgnState
@@ -132,13 +131,13 @@ CONTAINS
     id_CH4 = Ind_( 'CH4' )
 
     ! Use the NOAA spatially resolved data where available
-    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, &
-                      FOUND=FOUND )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', State_Chm%SFC_CH4, RC, &
+                         FOUND=FOUND )
     IF (.NOT. FOUND ) THEN
        FOUND = .TRUE.
        ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
        ! https://doi.org/10.5194/gmd-10-2057-2017a
-       CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, &
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', State_Chm%SFC_CH4, RC, &
                          FOUND=FOUND )
     ENDIF
     IF (.NOT. FOUND ) THEN

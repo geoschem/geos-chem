@@ -94,11 +94,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_Calc_Mod,     ONLY : Hco_EvalFld
-    USE HCO_State_GC_Mod, ONLY : HcoState
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Chm_Mod,    ONLY : ChmState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Chm_Mod,        ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -227,7 +226,7 @@ CONTAINS
     ELSE
 
        ! Evalulate the first day TOMS O3 columns from HEMCO
-       CALL HCO_EvalFld( HcoState, 'TOMS1_O3_COL', State_Chm%TOMS1, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'TOMS1_O3_COL', State_Chm%TOMS1, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS1_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
@@ -235,7 +234,7 @@ CONTAINS
        ENDIF
 
        ! Evalulate the last day TOMS O3 columns from HEMCO
-       CALL HCO_EvalFld( HcoState, 'TOMS2_O3_COL', State_Chm%TOMS2, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'TOMS2_O3_COL', State_Chm%TOMS2, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS2_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )

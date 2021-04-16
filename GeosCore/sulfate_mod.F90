@@ -216,8 +216,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -309,7 +309,7 @@ CONTAINS
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        ! Evaluate offline global OH from HEMCO
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', GLOBAL_OH, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', GLOBAL_OH, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_OH from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -317,7 +317,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline global HNO3 from HEMCO
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', GLOBAL_HNO3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HNO3', GLOBAL_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_HNO3 from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -325,7 +325,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline global HCl from HEMCO
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCl', GLOBAL_HCl, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HCl', GLOBAL_HCl, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_HCl from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -878,8 +878,9 @@ CONTAINS
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
     USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1026,7 +1027,7 @@ CONTAINS
     ! READ IN HEMCO EMISSIONS
     !================================================================
     DgnName = 'SO4_ANTH'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
     IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
        CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
     ELSE
@@ -1815,8 +1816,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
@@ -1927,7 +1927,7 @@ CONTAINS
     f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
     ! Evaluate offline global NO3 from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_NO3', GLOBAL_NO3, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', GLOBAL_NO3, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for GLOBAL_NO3 from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2135,8 +2135,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
@@ -2213,7 +2212,7 @@ CONTAINS
     F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
     ! Evaluate offline fields from HEMCO for P(H2O2)
-    CALL HCO_EvalFld( HcoState, 'PH2O2', PH2O2m, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PH2O2', PH2O2m, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for PH2O2 from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2221,7 +2220,7 @@ CONTAINS
     ENDIF
 
     ! Evaluate offline fields from HEMCO for J(H2O2)
-    CALL HCO_EvalFld( HcoState, 'JH2O2', JH2O2, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'JH2O2', JH2O2, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for JH2O2 from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2317,9 +2316,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
     USE ERROR_MOD,            ONLY : SAFE_DIV
-    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
     USE State_Chm_Mod,        ONLY : ChmState
@@ -2328,6 +2324,8 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld, HCO_GC_GetDiagn, LoadHcoValEmis
 #ifdef APM
     USE APM_DRIV_MOD,         ONLY : PSO4GAS
     USE APM_DRIV_MOD,         ONLY : XO3
@@ -2453,6 +2451,7 @@ CONTAINS
     REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
+    REAL(f4), POINTER     :: Ptr2D(:,:) => NULL()
 
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2508,55 +2507,73 @@ CONTAINS
 
        ! Sea salt density, fine mode
 #if !defined( MODEL_CESM )
-       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_FINE', &
-                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_FINE', &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
 
-       ! Trap potential errors
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_FINE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+      ! Trap potential errors
+      IF ( RC /= HCO_SUCCESS ) THEN
+        ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
+        CALL GC_Error( ErrMsg, RC, ThisLoc )
+        RETURN
+      ENDIF
 
-       ! Sea salt density, coarse mode
-       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_COARSE', &
-                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
+      IF ( ASSOCIATED( Ptr2D ) ) THEN
+        ALLOCATE( NDENS_SALA( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        NDENS_SALA(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
 
-       ! Trap potential errors
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+      ! Sea salt density, coarse mode
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_COARSE', &
+                        StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+
+      ! Trap potential errors
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      IF ( ASSOCIATED( Ptr2D ) ) THEN
+        ALLOCATE( NDENS_SALC( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        NDENS_SALC(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
 #endif
 
+    !IF ( FIRST ) THEN
        ! Adjust first flag
     !   FIRST = .FALSE.
     !ENDIF
 
     ! If offline aerosol simulation, evaluate fields from HEMCO
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', O3m, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', O3m, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_O3 from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_HCOOH', GLOBAL_HCOOH, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_HCOOH', GLOBAL_HCOOH, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_HCOOH from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_ACTA', GLOBAL_ACTA, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_ACTA', GLOBAL_ACTA, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for GLOBAL_ACTA from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
+
+    ! Load emissions into buffer first for ALK1, ALK2 
+    ! BEFORE entering loop (hplin, 9/27/20)
+    CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALA )
+    CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALC, AltBuffer=.true. )
 
     ! Loop over chemistry grid boxes
     ! NOTE: Bob Yantosca verified that these !$OMP PRIVATE statements
@@ -3854,11 +3871,17 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Deallocate if allocated
+    IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE ( NDENS_SALA )
+    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE ( NDENS_SALC )
+
     ! Free pointers
     Spc     => NULL()
     SSAlk   => NULL()
     H2O2s   => NULL()
     SO2s    => NULL()
+    NDENS_SALA => NULL()
+    NDENS_SALC => NULL()
 
   END SUBROUTINE CHEM_SO2
 !EOC
@@ -8047,8 +8070,8 @@ CONTAINS
 
        ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
        ! kg/m2/s.
-       !CALL GetHcoVal( id_SALA, I, J, 1, FOUND, Emis=ALK1 )
-       !CALL GetHcoVal( id_SALC, I, J, 1, FOUND, Emis=ALK2 )
+       !CALL GetHcoValEmis( Input_Opt, State_Grid, id_SALA, I, J, 1, FOUND, ALK1 )
+       !CALL GetHcoValEmis( Input_Opt, State_Grid, id_SALC, I, J, 1, FOUND, ALK2, AltBuffer=.true. )
 
        ! kg/m2/s --> kg. Weight by fraction of PBL
        ALK1 = MAX(ALK1,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS

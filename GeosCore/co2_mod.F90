@@ -143,13 +143,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -169,6 +169,8 @@ CONTAINS
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
 !  the balanced biosphere fluxes will make STT negative. (pns, bmy, 8/16/05)
+!
+!  The HEMCO grid no longer is restricted to the model grid (hplin, 6/14/20)
 !
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam - Initial version
@@ -229,19 +231,6 @@ CONTAINS
     ! Species ID setup and error checks (first-time only)
     !=================================================================
     IF ( FIRST ) THEN
-
-       !--------------------------------------------------------------
-       ! Error check: For now, the emission grid must be
-       ! on the simulation grid.
-       !--------------------------------------------------------------
-       IF ( HcoState%NX /= State_Grid%NX .OR. &
-            Hcostate%NY /= State_Grid%NY .OR. &
-            Hcostate%NZ /= State_Grid%NZ     ) THEN
-          ErrMsg = 'The HEMCO grid not same as the sim. grid!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
        ! Set first-time flag to false
        FIRST = .FALSE.
     ENDIF
@@ -262,7 +251,7 @@ CONTAINS
        Spc => State_Chm%Species
 
        ! Evalulate the CO2 production from HEMCO
-       CALL HCO_EvalFld( HcoState, 'CO2_COPROD', CO2_COPROD, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CO2_COPROD', CO2_COPROD, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'CO_COPROD not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

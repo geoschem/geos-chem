@@ -31,6 +31,7 @@ MODULE GC_Grid_Mod
 !
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
   PUBLIC  :: Compute_Grid
+  PUBLIC  :: Compute_Scaled_Grid
 #endif
   PUBLIC  :: GET_IJ
   PUBLIC  :: SetGridFromCtr
@@ -473,6 +474,190 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Compute_Grid
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_Scaled_Grid
+!
+! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid State
+!  object ("Destination") by performing a linear scaling refinement of the primary
+!  ("Source") Grid. e.g. a scale of 2 will yield 2 x 2.5 -> 1 x 1.25.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Scaled_Grid( Input_Opt, State_Grid, State_Grid_Dst, XScale, YScale, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : Init_State_Grid, Allocate_State_Grid
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN   ) :: State_Grid        ! Grid State object, orig
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid_Dst    ! Grid State object, scaled
+    INTEGER,        INTENT(IN   ) :: XScale            ! Long dimension scale (>=1)
+    INTEGER,        INTENT(IN   ) :: YScale            ! Lat  dimension scale (>=1)
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC                ! Success/failure?
+!
+! !REMARKS:
+!  Unlike Compute_Grid, Compute_Scaled_Grid takes care of allocating
+!  the State_Grid_Dst derived type object.
+!  Only works with rectilinear lat-lon (assumptions given)
+!
+! !REVISION HISTORY:
+!  15 Jun 2020 - H.P. Lin    - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                       :: I, J, L, II, JJ
+    REAL(fp)                      :: delta
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
+    ! Code begins here!
+    RC = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Compute_Scaled_Grid (in module GeosUtil/gc_grid_mod.F90)'
+
+    ! Verify the scales are correct
+    IF ( XScale .lt. 1 .or. YScale .lt. 1 ) THEN
+      RC = GC_FAILURE
+      ErrMsg = 'Cannot scale Compute_Scaled_Grid to a negative factor!'
+      CALL GC_Error( ErrMsg, RC, ThisLoc )
+    ENDIF
+
+    ! Initialize the destination object for safety sake
+    CALL Init_State_Grid ( Input_Opt, State_Grid_Dst, RC )
+
+    ! First, copy generic properties of the grid state information
+    State_Grid_Dst%HalfPolar  = State_Grid%HalfPolar
+    State_Grid_Dst%NestedGrid = State_Grid%NestedGrid
+
+    ! The vertical direction is NOT scaled!
+    State_Grid_Dst%NZ   = State_Grid%NZ
+
+    ! Compute the scaling. First NX, NY will be x number the scaled grid boxes
+    State_Grid_Dst%NX   = State_Grid%NX * XScale
+    State_Grid_Dst%NY   = State_Grid%NY * YScale
+
+    State_Grid_Dst%XMin = State_Grid%XMin
+    State_Grid_Dst%XMax = State_Grid%XMax
+    State_Grid_Dst%YMin = State_Grid%YMin
+    State_Grid_Dst%YMax = State_Grid%YMax
+
+    ! The delta is also divided. Note however that the polar boxes
+    ! will also be evenly divided so you may have more than 1 1/2-sized polar box.
+    !
+    ! LATITUDE EDGES example:
+    !   [deg_Src]                   [deg_Dst]
+    !    90.0                        90.0
+    !                                89.5*   * additional polar edge
+    !    89.0                        89.0
+    !                                88.0
+    !    87.0                        87.0
+    !     ...  in 2x2.5 grid          ...  in 1xLon grid (2x scaling)
+    State_Grid_Dst%DX   = State_Grid%DX / XScale
+    State_Grid_Dst%DY   = State_Grid%DY / YScale
+
+    ! Now, allocate the derived type object as we have NX, NY and NZ now!
+    CALL Allocate_State_Grid ( Input_Opt, State_Grid_Dst, RC )
+
+    IF ( Input_Opt%amIRoot ) THEN
+      WRITE(6,*) "GC_GRID_MOD: Scaled grid NX, NY, DX, DY", State_Grid_Dst%NX, State_Grid_Dst%NY, &
+                 State_Grid_Dst%DX, State_Grid_Dst%DY
+    ENDIF
+
+    ! Now, fill in the appropriate fields. Note that we do not fill
+    ! all available fields in State_Grid, only the ones that are used
+    ! by HEMCO for now. This is just to save development time (hplin, 6/15/20) <-- person to blame
+    ! XMid, YMid, XEdge, YEdge, YSin, Area_M2
+
+    ! First, construct the edges. The end goals is that the edges
+    ! of the destination grid will be equal as the original grid, plus the refined edges.
+    ! So, fill in the original edges, then interpolate
+    DO I = 1, State_Grid%NX+1         ! For each original longitude EDGE...
+      II = 1 + XScale * (I - 1)
+      State_Grid_Dst%XEdge(II,:) = State_Grid%XEdge(I,1)
+
+      ! Fill in the gaps above, except if there isnt one
+      IF ( II .lt. State_Grid_Dst%NX ) THEN
+        Delta = (State_Grid%XEdge(I+1,1) - State_Grid%XEdge(I,1)) / XScale
+        DO JJ = 1, XScale
+          State_Grid_Dst%XEdge(II+JJ,:) = State_Grid_Dst%XEdge(II,:) + Delta * JJ
+        ENDDO
+      ENDIF
+    ENDDO
+
+    ! For latitude, do the same
+    DO I = 1, State_Grid%NY+1
+      II = 1 + YScale * (I - 1)
+      State_Grid_Dst%YEdge(:,II) = State_Grid%YEdge(1,I)
+
+      ! Fill in the gaps above, except if there isnt one
+      IF ( II .lt. State_Grid_Dst%NY ) THEN
+        Delta = (State_Grid%YEdge(1,I+1) - State_Grid%YEdge(1,I)) / YScale
+        DO JJ = 1, YScale
+          State_Grid_Dst%YEdge(:,II+JJ) = State_Grid_Dst%YEdge(:,II) + Delta * JJ
+        ENDDO
+      ENDIF
+    ENDDO
+
+    DO J = 1, State_Grid_Dst%NY+1   ! Including edges!
+    DO I = 1, State_Grid_Dst%NX
+      State_Grid_Dst%YEdge_R(I,J) = ( PI_180 * State_Grid_Dst%YEdge(I,J) )
+      State_Grid_Dst%YSIN(I,J) = SIN( State_Grid_Dst%YEdge_R(I,J) )
+    ENDDO
+    ENDDO
+
+    ! Compute surface areas and midpoints
+    DO J = 1, State_Grid_Dst%NY
+    DO I = 1, State_Grid_Dst%NX
+      State_Grid_Dst%XMid(I,J) = (State_Grid_Dst%XEdge(I,J) + State_Grid_Dst%XEdge(I+1,J)) / 2.0
+      State_Grid_Dst%YMid(I,J) = (State_Grid_Dst%YEdge(I,J) + State_Grid_Dst%YEdge(I,J+1)) / 2.0
+
+      ! Grid box surface areas [m2]
+      State_Grid_Dst%Area_M2(I,J) = ( State_Grid_Dst%DX * PI_180 ) * ( Re**2 ) * &
+                                    ( SIN( State_Grid_Dst%YEdge_R(I,J+1) ) - SIN( State_Grid_Dst%YEdge_R(I,J  ) ))
+    ENDDO
+    ENDDO
+
+    IF ( Input_Opt%amIRoot ) THEN
+      WRITE( 6, '(''%%%%%%%%%%%%%%% SCALED (HEMCO) GRID %%%%%%%%%%%%%%%'')' )
+      WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
+      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XMid(I,1), I=1,State_Grid_Dst%NX )
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
+      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XEdge(I,1), I=1,State_Grid_Dst%NX+1 )
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
+      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YMid(1,J), J=1,State_Grid_Dst%NY )
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
+      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YEdge(1,J), J=1,State_Grid_Dst%NY+1 )
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(''SIN( grid box latitude edges )'')' )
+      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YSIN(1,J), J=1,State_Grid_Dst%NY+1 )
+    ENDIF
+  END SUBROUTINE Compute_Scaled_Grid
 !EOC
 #endif
 !------------------------------------------------------------------------------
