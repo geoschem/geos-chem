@@ -3640,7 +3640,7 @@ CONTAINS
     UNITCHANGE_KGM2 = .FALSE.
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, .FALSE., RC )
     ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial species units: ' // TRIM(State_Chm%Spc_Units)
        LOC = 'Routine AQOXID in tomas_mod.F90'
@@ -3866,7 +3866,7 @@ CONTAINS
     ! Convert State_Chm%Species units back to original units
     ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
     IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
     ENDIF
 
     ! Check that species units are as expected (ewl, 9/29/15)
