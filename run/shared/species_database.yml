@@ -2717,7 +2717,7 @@ N2O5:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: tr2ue
+  Is_Photolysis: true
   MW_g: 108.02
 NAP:
   Formula: C10H8

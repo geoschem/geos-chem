@@ -267,7 +267,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND59   ! TOMAS
      INTEGER                     :: ND60   ! TOMAS
      INTEGER                     :: ND61   ! TOMAS
-     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -418,6 +417,21 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
      LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
 #endif
+
+#ifdef ADJOINT
+     !----------------------------------------
+     ! GCHP adjoint fields
+     !---------------------------------------
+     LOGICAL                     :: IS_ADJOINT
+     LOGICAL                     :: IS_FD_SPOT, IS_FD_GLOBAL
+     INTEGER                     :: FD_STEP
+     LOGICAL                     :: IS_FD_SPOT_THIS_PET
+     INTEGER                     :: IFD, JFD, NFD, LFD, NFD_ADJ
+     INTEGER                     :: CF_IMIN, CF_IMAX
+     INTEGER                     :: CF_JMIN, CF_JMAX
+     INTEGER                     :: CF_LMIN, CF_LMAX
+#endif
+
      !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------
@@ -799,7 +813,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
-    Input_Opt%ND72                   = 0
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -931,6 +944,21 @@ CONTAINS
 #else
     Input_Opt%AlwaysSetH2O           = .FALSE.
     Input_Opt%TurnOffHetRates        = .FALSE.
+#endif
+
+#ifdef ADJOINT
+    !----------------------------------------
+    ! Fields for adoint
+    !---------------------------------------
+    Input_Opt%IS_ADJOINT             = .FALSE.
+    Input_Opt%IS_FD_SPOT             = .FALSE.
+    Input_Opt%IS_FD_GLOBAL           = .FALSE.
+    Input_Opt%IS_FD_SPOT_THIS_PET    = .FALSE.
+    Input_Opt%FD_STEP                = -999
+    Input_Opt%IFD                    = -999
+    Input_Opt%JFD                    = -999
+    Input_Opt%NFD                    = -999
+    Input_Opt%LFD                    = -999
 #endif
 
     !----------------------------------------

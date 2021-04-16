@@ -114,9 +114,8 @@ ObsPack output species  : NO CO O3
 #####                                                                     #####
 #####  BPCH_DIAG=y IS ALREADY TURNED ON BY DEFAULT FOR:                   #####
 #####  (1) TOMAS simulations                                              #####
-#####  (2) RRTMG simulations                                              #####
-#####  (3) Hg simulations                                                 #####
-#####  (4) POPs simulatons                                                #####
+#####  (2) Hg simulations                                                 #####
+#####  (3) POPs simulatons                                                #####
 #####                                                                     #####
 #####  FOR ALL OTHER SIMULATIONS, BPCH DIAGNOSTICS ARE TURNED OFF BY      #####
 #####  DEFAULT (i.e. BPCH_DIAG=n IS USED UNLESS YOU SPECIFY OTHERWISE).   #####
@@ -150,7 +149,6 @@ ND53: POPs Emissions    :  0   all
 ND59: TOMAS aerosol emis:  0   all
 ND60: TOMAS rate        :  0   all
 ND61: TOMAS 3D rate     :  0   all
-ND72: Radiative output  :  0   all
 ------------------------+------------------------------------------------------
 %%% PLANEFLIGHT MENU %%%:
 Turn on plane flt diag? : F

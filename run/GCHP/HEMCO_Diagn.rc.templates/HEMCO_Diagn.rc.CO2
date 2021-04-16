@@ -1,0 +1,37 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the Transport Tracers simulation.
+#
+# !REVISION HISTORY:
+#  13 Feb 2018 - E. Lundgren - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name               Spec              ExtNr  Cat Hier Dim OutUnit       LongName
+
+###############################################################################
+###### CMS-Flux emissions                                                 #####
+###############################################################################
+EmisCO2_Total       CO2     0    -1  -1    2  kg/m2/s  CO2_emission_flux_from_all_sectors
+EmisCO2_Fossil      CO2     0   101  -1    2  kg/m2/s  CO2_emission_flux_from_fossil_fuels
+EmisCO2_Ocean       CO2     0   102  -1    2  kg/m2/s  CO2_emission_flux_from_oceans
+EmisCO2_Biological  CO2     0   103  -1    2  kg/m2/s  CO2_emission_flux_from_biological_activity
+EmisCO2_Biofuel     CO2     0   104  -1    2  kg/m2/s  CO2_emission_flux_from_biofuels
+EmisCO2_Bionet      CO2     0   105  -1    2  kg/m2/s  CO2_emission_flux_from_bionet
+SFEmisCO2_Total       CO2    -1    -1  -1    2  kg/m2/s  CO2_emission_flux_from_all_sectors
+SFEmisCO2_Fossil      CO2     0   101  -1    2  kg/m2/s  CO2_emission_flux_from_fossil_fuels
+SFEmisCO2_Ocean       CO2     0   102  -1    2  kg/m2/s  CO2_emission_flux_from_oceans
+SFEmisCO2_Biological  CO2     0   103  -1    2  kg/m2/s  CO2_emission_flux_from_biological_activity
+SFEmisCO2_Biofuel     CO2     0   104  -1    2  kg/m2/s  CO2_emission_flux_from_biofuels
+SFEmisCO2_Bionet      CO2     0   105  -1    2  kg/m2/s  CO2_emission_flux_from_bionet
+
+#EOC

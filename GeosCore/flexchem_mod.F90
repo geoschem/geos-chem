@@ -41,8 +41,8 @@ MODULE FlexChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER               :: id_OH,  id_HO2, id_O3P, id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4
+  INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
+  INTEGER               :: id_PCO, id_LCH4, id_SALA
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -90,8 +90,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
 !
 ! !USES:
 !
@@ -162,14 +162,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,  IsLocNoon
-    INTEGER                :: I,         J,        L,         N
-    INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      Day
-    INTEGER                :: WAVELENGTH
-    INTEGER                :: IERR,      S
-    INTEGER                :: Thread
-    REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
+    LOGICAL                :: prtDebug,   IsLocNoon
+    INTEGER                :: I,          J,         L,       N
+    INTEGER                :: NA,         F,         SpcID,   KppID
+    INTEGER                :: P,          MONTH,     YEAR,    Day
+    INTEGER                :: WAVELENGTH, IERR,      S,       Thread
+    REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT
 
     ! Strings
@@ -179,7 +177,8 @@ CONTAINS
     ! SAVEd scalars
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
-    REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
+
+    ! For
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -188,18 +187,19 @@ CONTAINS
 #endif
 
     ! Arrays
-    INTEGER                :: ICNTRL     (                  20               )
-    INTEGER                :: ISTATUS    (                  20               )
-    REAL(dp)               :: RCNTRL     (                  20               )
-    REAL(dp)               :: RSTATE     (                  20               )
+    INTEGER                :: ICNTRL (20)
+    INTEGER                :: ISTATUS(20)
+    REAL(dp)               :: RCNTRL (20)
+    REAL(dp)               :: RSTATE (20)
+    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
+                                     State_Grid%NZ, State_Chm%nAdvect       )
 #ifdef MODEL_GEOS
-    REAL(f4)               :: GLOB_RCONST(State_Grid%NX,State_Grid%NY, &
-                                          State_Grid%NZ,NREACT               )
-    REAL(f4)               :: GLOB_JVAL  (State_Grid%NX,State_Grid%NY, &
-                                          State_Grid%NZ,JVN_                 )
+    ! Special arrays only for running GEOS-Chem in the GEOS ESM
+    REAL(f4)               :: GLOB_RCONST(State_Grid%NX, State_Grid%NY,      &
+                                          State_Grid%NZ, NREACT             )
+    REAL(f4)               :: GLOB_JVAL(State_Grid%NX,   State_Grid%NY,      &
+                                        State_Grid%NZ,   JVN_               )
 #endif
-    REAL(fp)               :: Before     (State_Grid%NX,State_Grid%NY, &
-                                          State_Grid%NZ,State_Chm%nAdvect    )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -518,7 +518,6 @@ CONTAINS
     ! Absolute tolerance
     ATOL      = 1e-2_dp
 
-
     ! Relative tolerance
     IF ( Input_Opt%LUCX  ) THEN
        ! UCX-based mechanisms
@@ -578,60 +577,47 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! NOTE: The following variables are held THREADPRIVATE and
-    ! therefore do not need to be included in the !$OMP PRIVATE
-    ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN,
-    ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
+    ! MAIN LOOP: Compute reaction rates and call chemical solver
+    !
+    ! Variables not listed here are held THREADPRIVATE in gckpp_Global.F90
+    ! !$OMP COLLAPSE(3) vectorizes the loop and !$OMP DYNAMIC(24) sends
+    ! 24 boxes at a time to each core... then when that core is finished,
+    ! it gets a nother chunk of 24 boxes.  This should lead to better
+    ! load balancing, and will spread the sunrise/sunset boxes across
+    ! more cores.
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
-    !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  ISTATUS                   )&
-    !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-    !$OMP PRIVATE  ( Vloc,     Aout,     Thread,  RC,    S                  )&
-    !$OMP PRIVATE  ( OHreact                                                )&
-    !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
-    !$OMP SCHEDULE ( DYNAMIC,  1                                            )
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,        L,       N                           )&
+    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
+    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       !====================================================================
-       ! For safety sake, initialize certain variables for each grid
-       ! box (I,J,L), whether or not chemistry will be done there.
-       !====================================================================
-       HET       = 0.0_dp    ! Het chem array
-       IERR      = 0         ! Success or failure flag
-       ISTATUS   = 0.0_dp    ! Rosenbrock output
-       PHOTOL    = 0.0_dp    ! Photolysis array
-       RCNTRL    = 0.0_fp    ! Rosenbrock input
-       RSTATE    = 0.0_dp    ! Rosenbrock output
-       SO4_FRAC  = 0.0_fp    ! Fraction of SO4 available for photolysis
-       P         = 0         ! GEOS-Chem photolyis species ID
-       LCH4      = 0.0_fp    ! For P/L diagnostics: Methane loss rate
-       PCO_TOT   = 0.0_fp    ! For P/L diagnostics: Total CO production
-       PCO_CH4   = 0.0_fp    ! For P/L diagnostics: CO production from CH4
-       PCO_NMVOC = 0.0_fp    ! For P/L diagnostics: Total CO from NMVOC
-
-       ! Grid-box latitude [degrees]
-       YLAT      = State_Grid%YMid(I,J)
-
-       ! Temperature [K]
-       TEMP      = State_Met%T(I,J,L)
-
-       ! Pressure [hPa]
-       PRESS     = GET_PCENTER( I, J, L )
-
-       ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
-       NUMDEN    = State_Met%AIRNUMDEN(I,J,L)
-
-       ! mje H2O arrives in g/kg needs to be in mol cm-3
-       H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-
+       !=====================================================================
+       ! Initialize private loop  variables for each (I,J,L)
+       ! Other private variables will be assigned in Set_Kpp_GridBox_Values
+       !=====================================================================
+       HET       = 0.0_dp                   ! Het chem array
+       IERR      = 0                        ! KPP success or failure flag
+       ISTATUS   = 0.0_dp                   ! Rosenbrock output
+       PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
+       RCNTRL    = 0.0_fp                   ! Rosenbrock input
+       RSTATE    = 0.0_dp                   ! Rosenbrock output
+       SO4_FRAC  = 0.0_fp                   ! Frac of SO4 avail for photolysis
+       P         = 0                        ! GEOS-Chem photolyis species ID
+       LCH4      = 0.0_fp                   ! P/L diag: Methane loss rate
+       PCO_TOT   = 0.0_fp                   ! P/L diag: Total P(CO)
+       PCO_CH4   = 0.0_fp                   ! P/L diag: P(CO) from CH4
+       PCO_NMVOC = 0.0_fp                   ! P/L diag: P(CO) from NMVOC
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
-       ! Get the thread number
-       Thread    = OMP_GET_THREAD_NUM() + 1
+       Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
 #endif
 
@@ -675,10 +661,8 @@ CONTAINS
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( Input_Opt, State_Diag,      &
-                             I,         J,          L,   &
-                             NUMDEN,    TEMP,       H2O, &
-                             SO4_FRAC,  IERR )
+          CALL PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met, I,            &
+                             J,         L,          SO4_FRAC,  IERR         )
 
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
@@ -803,15 +787,25 @@ CONTAINS
           IF ( I >  State_Grid%NX - State_Grid%WestBuffer  ) CYCLE
        ENDIF
 
-       !====================================================================
+       !=====================================================================
        ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
-       !====================================================================
+       !=====================================================================
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "  -> Init KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_Start( "  -> Init KPP", RC,                             &
+                            InLoop=.TRUE.,   ThreadNum=Thread               )
        ENDIF
-       CALL Init_KPP( )
+
+       ! Initialize KPP for this grid box
+       CALL Init_KPP()
+
+       ! Copy values at each gridbox into variables in gckpp_Global.F90
+       CALL Set_Kpp_GridBox_Values( Input_Opt, State_Chm, State_Grid,        &
+                                    State_Met, I,         J,                 &
+                                    L,         RC                           )
+
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End  ( "  -> Init KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_End  ( "  -> Init KPP", RC,                             &
+                            InLoop=.TRUE.,   ThreadNum=Thread               )
        ENDIF
 
        !====================================================================
@@ -823,7 +817,9 @@ CONTAINS
                                InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
 
+          ! Compute heterogeneous rates
           CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
+
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "  -> Het chem rates", RC, &
                              InLoop=.TRUE., ThreadNum=Thread )
@@ -831,56 +827,26 @@ CONTAINS
        ENDIF
 
        !====================================================================
-       ! Initialize species concentrations
+       ! Start KPP main timer and prepare arrays
        !====================================================================
-
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
-       ! Loop over KPP Species
-       DO N = 1, NSPEC
-
-          ! GEOS-Chem species ID
-          SpcID = State_Chm%Map_KppSpc(N)
-
-          ! Initialize KPP species concentration array
-          IF ( SpcID .eq. 0) THEN
-             C(N) = 0.0_dp
-          ELSE
-             C(N) = State_Chm%Species(I,J,L,SpcID)
-          ENDIF
-
-       ENDDO
-
-       ! Zero out dummy species index in KPP
+       ! Zero out dummy species index in KPP after call to SET_HET
        DO F = 1, NFAM
           KppID = PL_Kpp_Id(F)
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
-
-       IF ( .not. Input_Opt%LUCX ) THEN
-          ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
-          ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
-          C(ind_H2O) = H2O
-       ENDIF
-
-       !==================================================================
-       ! Update KPP rates
-       !==================================================================
-
-       !--------------------------------------------------------------------
-       ! VAR and FIX are chunks of array C (mps, 2/24/16)
-       !
-       ! NOTE: Because VAR and FIX are !$OMP THREADPRIVATE, they
-       ! cannot appear in an EQUIVALENCE statement.  Therfore, we
-       ! will just copy the relevant elements of C to VAR and FIX
-       ! here. (bmy, 3/28/16)
-       !--------------------------------------------------------------------
+       ! Set VAR and FIX arrays
+       ! This has to be done after the zeroing above
        VAR(1:NVAR) = C(1:NVAR)
        FIX         = C(NVAR+1:NSPEC)
 
+       !====================================================================
+       ! Update reaction rates
+       !====================================================================
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
@@ -906,14 +872,14 @@ CONTAINS
           ENDDO
        ENDIF
 
-       !=================================================================
+       !=====================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !
        ! NOTE: Because RCNTRL(3) is set to an array value that
        ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
        ! within the OpenMP parallel loop and define it just
        ! before the call to to Integrate. (bmy, 3/24/16)
-       !=================================================================
+       !=====================================================================
 
        ! Zero all slots of RCNTRL
        RCNTRL    = 0.0_fp
@@ -921,12 +887,12 @@ CONTAINS
        ! Starting value for integration time step
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
-       !=================================================================
+       !=====================================================================
        ! Integrate the box forwards
-       !=================================================================
-
+       !=====================================================================
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     Integrate 1", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_Start( "     Integrate 1", RC,                          &
+                            InLoop=.TRUE.,      ThreadNum=Thread            )
        ENDIF
 
        ! Call the KPP integrator
@@ -1118,6 +1084,7 @@ CONTAINS
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species
        !====================================================================
+
        ! Loop over KPP species
        DO N = 1, NSPEC
 
@@ -1402,6 +1369,167 @@ CONTAINS
     FIRSTCHEM = .FALSE.
 
   END SUBROUTINE Do_FlexChem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_Kpp_GridBox_Values
+!
+! !DESCRIPTION: Populates KPP variables in the gckpp_Global.F90 module
+!  for a particular (I,J,L) grid box.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_Kpp_GridBox_Values( Input_Opt, State_Chm, State_Grid,       &
+                                     State_Met, I,         J,                &
+                                     L,         RC                          )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GcKpp_Global
+    USE GcKpp_Parameters
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PhysConstants,   ONLY : CONSVAP
+    USE Pressure_Mod,    ONLY : Get_Pcenter
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
+
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    TYPE(ChmState), INTENT(IN)  :: State_Chm
+    TYPE(GrdState), INTENT(IN)  :: State_Grid
+    TYPE(MetState), INTENT(IN)  :: State_Met
+    INTEGER,        INTENT(IN)  :: I, J, L
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC
+!
+! !RETURN VALUE:
+!
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: F,       N,       NA,    KppId,    SpcId
+    REAL(f8) :: CONSEXP, VPRESH2O
+
+    !========================================================================
+    ! Set_Kpp_GridBox_Values begins here!
+    !========================================================================
+
+    ! Initialization
+    RC          = GC_SUCCESS                        ! Success or failure?
+    nAeroType   = State_Chm%nAeroType               ! # of aerosol types
+    NA          = nAeroType                         ! Local copy
+
+    !========================================================================
+    ! Copy various quantities at each grid box into gckpp_Global variables
+    !========================================================================
+    AClAREA     = State_Chm%AClArea(I,J,L)          ! SSA+SNA area [cm2/cm3]
+    AClRADI     = State_Chm%AClRadi(I,J,L)          ! SSA+SNA radius [cm]
+    AClVOL      = AClArea * AClRadi / 3e+0_fp       ! SSA+SNA volume [cm3/cm3]
+    AWATER(:)   = State_Chm%IsorropAeroH2O(I,J,L,:) ! Aerosol water
+    GAMMA_HO2   = Input_Opt%GAMMA_HO2
+    H_PLUS      = State_Chm%IsorropHplus(I,J,L,1)   ! Proton activity [1]
+    MHSO4       = State_Chm%IsorropBisulfate(I,J,L) ! Bisulvate conc [M]
+    MNO3        = State_Chm%IsorropNitrate(I,J,L,1) ! Nitrate conc [M]
+    MSO4        = State_Chm%IsorropSulfate(I,J,L)   ! Sulfate conc [M]
+    NUMDEN      = State_Met%AIRNUMDEN(I,J,L)        ! Air density [molec/cm3]
+    H2O         = State_Met%AVGW(I,J,L) * NUMDEN    ! H2O conc [molec/cm3]
+    OMOC_POA    = State_Chm%OMOC_POA(I,J)           ! OM:OC ratio, POA [1]
+    OMOC_OPOA   = State_Chm%OMOC_OPOA(I,J)          ! OM:OC ratio, OPOA [1]
+    PRESS       = Get_Pcenter( I, J, L )            ! Pressure [hPa]
+    QICE        = State_Met%QI(I,J,L)               ! Ice MR [kg/kg dry air]
+    QLIQ        = State_Met%QL(I,J,L)               ! Water MR [kg/kg dry air]
+    SPC_SALA    = State_Chm%Species(I,J,L,id_SALA)  ! Seasalt conc [molec/cm3]
+    SUNCOS      = State_Met%SUNCOSmid(I,J)          ! cos(solar zenith angle)
+    TEMP        = State_Met%T(I,J,L)                ! Temperature [K]
+    VAIR        = State_Met%AIRVOL(I,J,L)*1.0e6_f8  ! Volume of air (cm3)
+    XTEMP       = SQRT( TEMP )                      ! Temp**0.5 [K]
+    XAREA(1:NA) = State_Chm%AeroArea(I,J,L,1:NA)    ! Aer area [cm2/cm3]
+    XDENA       = NUMDEN                            ! Air dens [molec/cm3]
+    XRADI(1:NA) = State_Chm%AeroRadi(I,J,L,1:NA)    ! Aer eff radius [cm]
+    XVOL(1:NA)  = XAREA(1:NA) * XRADI(1:NA) / 3e+0_fp     ! Aer vol [cm3/cm3]
+    XH2O(1:NA)  = State_Chm%AeroH2O(I,J,L,1:NA) * 1e-6_fp ! Aer water [cm3/cm3]
+
+    !========================================================================
+    ! Copy species concentrations into gckpp_Global variables
+    !========================================================================
+    DO N = 1, NSPEC
+       SpcID = State_Chm%Map_KppSpc(N)
+       IF ( SpcId > 0 ) THEN
+          C(N) = State_Chm%Species(I,J,L,SpcID)
+       ELSE
+          C(N) = 0.0_f8
+       ENDIF
+    ENDDO
+
+    !========================================================================
+    ! Copy quantities for UCX into gckpp_Global variables
+    !========================================================================
+    IF ( Input_Opt%LUCX ) THEN
+
+       !---------------------------
+       ! If UCX is turned on ...
+       !---------------------------
+
+       ! ... copy sticking coefficients for PSC reactions on SLA
+       ! ... to the proper gckpp_Global variable
+       KHETI_SLA  = State_Chm%KHETI_SLA(I,J,L,:)
+
+       ! ... check if we are in the stratosphere
+       STRATBOX   = State_Met%InStratosphere(I,J,L)
+
+       ! ... check if there are solid PSCs at this grid box
+       PSCBOX     = ( ( Input_Opt%LPSCCHEM                ) .and.            &
+                      ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. STRATBOX  )
+
+       ! ... check if there is surface NAT at this grid box
+       NATSURFACE = ( PSCBOX .and. ( C(ind_NIT) > 0.0_f8 )                  )
+
+    ELSE
+
+       !---------------------------
+       ! If UCX is turned off ...
+       !---------------------------
+
+       ! ... set H2O concentration from the meteorology
+       C(ind_H2O) = H2O
+
+       ! ... zero out UCX-related quantities
+       KHETI_SLA  = 0.0_f8
+       STRATBOX   = .FALSE.
+       PSCBOX     = .FALSE.
+       NATSURFACE = .FALSE.
+
+    ENDIF
+
+    !========================================================================
+    ! Calculate RH [%] and copy into gckpp_Global variables
+    ! Not clear why this calc is slightly different than State_Met%RH
+    !========================================================================
+    CONSEXP  = 17.2693882_f8 * ( TEMP - 273.16_f8 ) / ( TEMP - 35.86_f8 )
+    VPRESH2O = CONSVAP * EXP( CONSEXP ) / TEMP
+    RELHUM   = ( H2O / VPRESH2O ) * 100_f8
+
+  END SUBROUTINE Set_Kpp_GridBox_Values
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2036,6 +2164,8 @@ CONTAINS
     id_O3P                   = Ind_( 'O'            )
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           )
+    id_SALA                  = Ind_( 'SALA'         )
+
 #ifdef MODEL_GEOS
     ! ckeller
     id_O3                    = Ind_( 'O3'           )
