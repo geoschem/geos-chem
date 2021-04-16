@@ -4694,7 +4694,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL, SAVE           :: first    = .TRUE.
     INTEGER, SAVE           :: id_O3    = -1
     INTEGER, SAVE           :: id_HNO3  = -1
 
@@ -4779,44 +4778,40 @@ CONTAINS
     ! HEMCO intermediate grid feature, as we want the regridded data to
     ! be kept for the rest of this subroutine call.
     !=======================================================================
-    IF ( FIRST ) THEN
-      ! Get species IDs
-      id_O3   = Ind_('O3'  )
-      id_HNO3 = Ind_('HNO3')
+
+    ! Get species IDs
+    id_O3   = Ind_('O3'  )
+    id_HNO3 = Ind_('HNO3')
 
 #if !defined( MODEL_CESM )
-       IF ( id_O3 > 0 ) THEN
-          CALL HCO_GC_GetDiagn(                                              &
-               Input_Opt,  State_Grid,                                       &
-               DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                &
-               StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = Ptr2D,                                       &
-               RC             = RC                                          )
-       ENDIF
-
-       IF( ASSOCIATED( Ptr2D )) THEN
-          ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-          PNOxLoss_O3(:,:) = Ptr2D(:,:)
-       ENDIF
-       Ptr2D => NULL()
-
-       IF ( id_HNO3 > 0 ) THEN
-          CALL HCO_GC_GetDiagn(                                              &
-               Input_Opt,  State_Grid,                                       &
-               DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',              &
-               StopIfNotFound = .FALSE.,                                     &
-               Ptr2D          = Ptr2D,                                       &
-               RC             = RC                                          )
-       ENDIF
-
-       IF( ASSOCIATED( Ptr2D )) THEN
-          ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-          PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
-       ENDIF
-
-       Ptr2D => NULL()
-#endif
+    IF ( id_O3 > 0 ) THEN
+       CALL HCO_GC_GetDiagn(                                              &
+            Input_Opt,  State_Grid,                                       &
+            DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                &
+            StopIfNotFound = .FALSE.,                                     &
+            Ptr2D          = Ptr2D,                                       &
+            RC             = RC                                          )
     ENDIF
+    IF( ASSOCIATED( Ptr2D )) THEN
+       ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       PNOxLoss_O3(:,:) = Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+
+    IF ( id_HNO3 > 0 ) THEN
+       CALL HCO_GC_GetDiagn(                                              &
+            Input_Opt,  State_Grid,                                       &
+            DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',              &
+            StopIfNotFound = .FALSE.,                                     &
+            Ptr2D          = Ptr2D,                                       &
+            RC             = RC                                          )
+    ENDIF
+    IF( ASSOCIATED( Ptr2D )) THEN
+       ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+#endif
 
     !=======================================================================
     ! Add emissions & deposition values calculated in HEMCO.
