@@ -80,6 +80,7 @@ COLLECTIONS: 'Emissions',
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:         '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:           'CFIO',
+  Emissions.monthly:          1
   Emissions.frequency:        010000
   Emissions.duration:         010000
   Emissions.mode:             'time-averaged'
@@ -96,6 +97,7 @@ COLLECTIONS: 'Emissions',
 # species as needed to the example below (advected only)
   Budget.template:            '%y4%m2%d2_%h2%n2z.nc4',
   Budget.format:              'CFIO',
+  Budget.monthly:             1
   Budget.frequency:           010000
   Budget.duration:            010000
   Budget.mode:                'time-averaged'
@@ -126,6 +128,7 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_CO2           ', 'GCHPchem',
   			      'CloudConvFlux_PassiveTracer ', 'GCHPchem',
+  CloudConvFlux.monthly:        1
 ::
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
@@ -140,6 +143,7 @@ COLLECTIONS: 'Emissions',
                               'Met_PFILSAN        ', 'GCHPchem',
                               'Met_PFLCU          ', 'GCHPchem',
                               'Met_PFLLSAN        ', 'GCHPchem',
+  LevelEdgeDiags.monthly:        1
 ::
 #==============================================================================
   SpeciesConc.template:   '%y4%m2%d2_%h2%n2z.nc4',
@@ -149,6 +153,7 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.mode:       'time-averaged'
   SpeciesConc.fields:     'SpeciesConc_CO2                     ', 'GCHPchem',
   			  'SpeciesConc_PassiveTracer           ', 'GCHPchem',
+  SpeciesConc.monthly:        1
 ::
 #===================================================================
 # Species concentrations (per advected species) - time-averaged values
@@ -333,4 +338,5 @@ COLLECTIONS: 'Emissions',
                               'Met_V              ', 'GCHPchem',
                               'Met_V10M           ', 'GCHPchem',
                               'Met_Z0             ', 'GCHPchem',
+  StateMet.monthly:        1
 ::
