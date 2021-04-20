@@ -1,4 +1,4 @@
-EXPID:  OutputDir/GCHP
+EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
 VERSION: 1
@@ -80,6 +80,7 @@ COLLECTIONS: 'Emissions',
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:         '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:           'CFIO',
+  Emissions.timestampStart:   .true.
   Emissions.monthly:          1
   Emissions.frequency:        010000
   Emissions.duration:         010000
@@ -97,6 +98,7 @@ COLLECTIONS: 'Emissions',
 # species as needed to the example below (advected only)
   Budget.template:            '%y4%m2%d2_%h2%n2z.nc4',
   Budget.format:              'CFIO',
+  Budget.timestampStart:      .true.
   Budget.monthly:             1
   Budget.frequency:           010000
   Budget.duration:            010000
@@ -128,6 +130,7 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_CO2           ', 'GCHPchem',
   			      'CloudConvFlux_PassiveTracer ', 'GCHPchem',
+  CloudConvFlux.timestampStart: .true.
   CloudConvFlux.monthly:        1
 ::
 #==============================================================================
@@ -143,6 +146,7 @@ COLLECTIONS: 'Emissions',
                               'Met_PFILSAN        ', 'GCHPchem',
                               'Met_PFLCU          ', 'GCHPchem',
                               'Met_PFLLSAN        ', 'GCHPchem',
+  LevelEdgeDiags.timestampStart: .true.
   LevelEdgeDiags.monthly:        1
 ::
 #==============================================================================
@@ -153,6 +157,7 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.mode:       'time-averaged'
   SpeciesConc.fields:     'SpeciesConc_CO2                     ', 'GCHPchem',
   			  'SpeciesConc_PassiveTracer           ', 'GCHPchem',
+  SpeciesConc.timestampStart: .true.
   SpeciesConc.monthly:        1
 ::
 #===================================================================
@@ -164,6 +169,7 @@ COLLECTIONS: 'Emissions',
   Adjoint.mode:       'instantaneous'
   Adjoint.backwards:  1
   Adjoint.fields:     'SpeciesAdj_CO2                  ', 'GCHPchem',
+  Adjoint.timestampStart: .true.
 ::
 #==============================================================================
   StateMet_avg.template:      '%y4%m2%d2_%h2%n2z.nc4',
@@ -338,5 +344,6 @@ COLLECTIONS: 'Emissions',
                               'Met_V              ', 'GCHPchem',
                               'Met_V10M           ', 'GCHPchem',
                               'Met_Z0             ', 'GCHPchem',
+  StateMet.timestampStart: .true.
   StateMet.monthly:        1
 ::
