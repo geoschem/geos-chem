@@ -2310,10 +2310,9 @@ CONTAINS
 #endif
 
     ! Cannot have active H2O without stratospheric chemistry
-    IF ( (.not.Input_Opt%LUCX) .and. Input_Opt%LACTIVEH2O ) THEN
-       ErrMsg = 'Cannot have active H2O without full strat chem!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( .not.Input_Opt%LUCX ) THEN
+       Input_Opt%LACTIVEH2O   = .FALSE.
+       Input_Opt%LStaticH2OBC = .FALSE.
     ENDIF
 
     ! FAST-JX is only used for fullchem and offline aerosol
