@@ -2039,7 +2039,7 @@ CONTAINS
              CALL ESMF_AttributeGet( GcFld, NAME="FriendlyToMOIST", &
                                      VALUE=FRIENDLY, RC=STATUS )
           ENDIF
-          IF ( FRIENDLY == Input_Opt%LCONV ) THEN
+          IF ( FRIENDLY .eqv. Input_Opt%LCONV ) THEN
              WRITE(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
              WRITE(*,*) 'GEOS-Chem convection and MOIST friendly on/off ', &
                         'at the same time', FRIENDLY, Input_Opt%LCONV,     &
