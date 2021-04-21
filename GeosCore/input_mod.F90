@@ -2240,6 +2240,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LACTIVEH2O
 
+    ! Use static strat H2O boundary condition?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTATICH2OBC', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%LStaticH2OBC
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2365,6 +2373,8 @@ CONTAINS
                             Input_Opt%LUCX
        WRITE( 6, 100     ) 'Online strat. H2O?          : ', &
                             Input_Opt%LACTIVEH2O
+       WRITE( 6, 100     ) 'Use robust strat H2O BC?    : ', &
+                            Input_Opt%LStaticH2OBC
        WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', &
                             Input_Opt%USE_ONLINE_O3
        WRITE( 6, 100     ) 'Ozone from met for FAST-JX? : ', &

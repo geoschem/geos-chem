@@ -3676,8 +3676,12 @@ CONTAINS
        IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
           ! Level with minimum temperature,
           ! use MASK to screen for >10 hPa
-          LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
-                           MASK=(State_Met%PMID(I,J,:) >= 10) )
+          If (Input_Opt%LStaticH2OBC) Then
+             LEVCPT = MINLOC(ABS(State_Met%PMID(I,J,:) - 70), DIM=1)
+          Else
+             LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
+                              MASK=(State_Met%PMID(I,J,:) >= 10) )
+          End If
        ELSE
           LEVCPT = -1
        ENDIF

@@ -145,6 +145,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOILNOX
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
+     LOGICAL                     :: LStaticH2OBC
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
      LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
@@ -658,6 +659,7 @@ CONTAINS
     Input_Opt%LSOILNOX               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%LStaticH2OBC           = .FALSE.
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
