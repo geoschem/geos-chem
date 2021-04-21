@@ -575,13 +575,6 @@ replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
 replace_val REVERSE_TIME "0"          CAP.rc
 
-#### Set debug level
-print_msg " "
-print_msg "Debug levels:"
-print_msg "-------------"
-replace_val DEBUG_LEVEL ${MAPL_EXTDATA_DEBUG_LEVEL} ExtData.rc
-replace_val MEMORY_DEBUG_LEVEL ${MEMORY_DEBUG_LEVEL} GCHP.rc
-
 ##### Set commonly changed settings in input.geos
 print_msg " "
 print_msg "Components on/off:"

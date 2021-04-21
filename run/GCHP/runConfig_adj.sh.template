@@ -116,20 +116,19 @@ INITIAL_RESTART=gcchem_internal_restart.{DATE2}_{TIME2}z.nc4
 # You can specify a custom initial restart file by overwriting the default.
 
 #------------------------------------------------------------
-#    Turn Components On/Off, and other settings in input.geos
+#    Turn Components On/Off
 #------------------------------------------------------------
+# WARNING: these settings will override manual updates you make to config files!
+# input.geos
 Turn_on_Chemistry=T
-Turn_on_emissions=T
 Turn_on_Dry_Deposition=F
 Turn_on_Wet_Deposition=F
 Turn_on_Transport=T
 Turn_on_Cloud_Conv=T
 Turn_on_PBL_Mixing=T
 Turn_on_Non_Local_Mixing=T
-# Settings for UCX
-Use_CH4_emis=F
-Init_strat_H2O=T
-# WARNING: these settings will override manual updates you make to input.geos!
+# HEMCO_Config.rc
+Turn_on_Base_Emissions=true
 
 #------------------------------------------------
 #    Timesteps
@@ -230,18 +229,18 @@ inst_collections=(ConcAboveSfc      \
 #------------------------------------------------
 #    Debug Options
 #------------------------------------------------
-MAPL_EXTDATA_DEBUG_LEVEL=0
-MEMORY_DEBUG_LEVEL=0
-# Set MAPL ExtData debug flag to 0 for no extra MAPL debug log output, or 1 to
-# print information to log. Using this flag is most helpful for debugging
-# issues with file read (MAPL ExtData).
-#
-# Set memory debug flag to 0 to print memory only once per timestep. Set to
-# 1 to enable memory prints at additional locations throughout the run.
-#
-# For GEOS-Chem debug prints, turn on ND70 in input.geos manually.       
+# Run-time debug options in config files are not set from this file.
+# Try the following manually instead to enable debug prints:
+#   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in input.geos
+#   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
+#   (3) MAPL ExtData (handles GCHP inputs):
+#         - For root thread (single core) prints set CAP.EXTDATA logger
+#           'root_level' to DEBUG in logging.yml
+#         - For prints by all threads set CAP.EXTDATA logger 'level' to
+#           DEBUG in logging.yml 
 #
 # WARNING: Turning on debug prints significantly slows down the model!
+#          Remember to turn them back off before doing a long simulation.
 
 #------------------------------------------------------------------
 #    Dust mass tuning factor (only if using HEMCO dust extension)
@@ -576,19 +575,11 @@ replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
 replace_val REVERSE_TIME "1"          CAP.rc
 
-#### Set debug level
-print_msg " "
-print_msg "Debug levels:"
-print_msg "-------------"
-replace_val DEBUG_LEVEL ${MAPL_EXTDATA_DEBUG_LEVEL} ExtData.rc
-replace_val MEMORY_DEBUG_LEVEL ${MEMORY_DEBUG_LEVEL} GCHP.rc
-
 ##### Set commonly changed settings in input.geos
 print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
 replace_val "Turn on Chemistry?"        ${Turn_on_Chemistry}        input.geos
-replace_val "Turn on emissions?"	${Turn_on_emissions}        input.geos
 replace_val "Turn on Transport"	        ${Turn_on_Transport}        input.geos
 replace_val "Turn on Cloud Conv?"	${Turn_on_Cloud_Conv}       input.geos
 replace_val "Turn on PBL Mixing?"	${Turn_on_PBL_Mixing}       input.geos
@@ -597,11 +588,15 @@ replace_val "Turn on Dry Deposition?"   ${Turn_on_Dry_Deposition}   input.geos
 replace_val "Turn on Wet Deposition?"   ${Turn_on_Wet_Deposition}   input.geos
 replace_val AdvCore_Advection           ${ADVCORE_ADVECTION}        GCHP.rc
 
-print_msg " "
-print_msg "Switches for UCX:"
-print_msg "------------------"
-replace_val " => Use CH4 emissions?"    ${Use_CH4_emis}             input.geos
-replace_val " => Set init. strat. H2O"  ${Init_strat_H2O}           input.geos
+#### Set options in HEMCO_Config.rc
+print_msg ""
+print_msg "HEMCO settings:"
+print_msg "---------------"
+replace_val "--> EMISSIONS" ${Turn_on_Base_Emissions} HEMCO_Config.rc
+print_msg "NOTE: Includes base emissions only. Turning Extensions on/off must be done manually in HEMCO_Config.rc."
+if [[ ${dustSetting[3]} = "on" ]]; then
+    replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
+fi
 
 #### Set timesteps. This includes updating ExtData.rc entries for PS2,
 #### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
@@ -678,14 +673,6 @@ if [[ ${#inst_collections[@]} > 0 ]]; then
       replace_val $c.frequency   ${inst_freq}      HISTORY.rc  
       replace_val $c.duration    ${inst_dur}       HISTORY.rc
    done
-fi
-
-#### Set options in HEMCO_Config.rc
-print_msg ""
-if [[ ${dustSetting[3]} = "on" ]]; then
-    print_msg "HEMCO settings:"
-    print_msg "---------------"
-    replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
 
 
