@@ -513,7 +513,6 @@ fi
 
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
-echo "Removing adjoint history collections"
 sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
 sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
 replace_val SFEmissions.backwards 0 HISTORY.rc
@@ -666,10 +665,10 @@ print_msg "------------"
 
 if [[ ${#timeAvg_collections[@]} > 0 ]]; then
    for c in ${timeAvg_collections[@]}; do
-      replace_val $c.mode        "'time-averaged'" HISTORY.rc
-      replace_val $c.frequency   ${timeAvg_freq}   HISTORY.rc  
-      replace_val $c.duration    ${timeAvg_dur}    HISTORY.rc
+      replace_val $c.mode        "'time-averaged'"  HISTORY.rc
       replace_val $c.monthly     ${timeAvg_monthly} HISTORY.rc  
+      replace_val $c.frequency   ${timeAvg_freq}    HISTORY.rc
+      replace_val $c.duration    ${timeAvg_dur}     HISTORY.rc
    done
 fi
 if [[ ${#inst_collections[@]} > 0 ]]; then
