@@ -38,7 +38,7 @@ ulimit -s unlimited          # stacksize
 cd $PBS_O_WORKDIR
 
 # Simple GCHP launch
-rm -f cap_restart gcchem*           # delete checkpoint/restart spec/data
+rm -f cap_restart                   # delete restart start time file if present
 ./runConfig.sh                      # update configuration files
 mpiexec -n 48 ./gchp > runlog.txt   # launch 48 GCHP processes
 
