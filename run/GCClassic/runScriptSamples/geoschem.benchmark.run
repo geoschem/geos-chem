@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 48
 #SBATCH -N 1
 #SBATCH -t 0-12:00
 #SBATCH -p huce_cascade
@@ -58,9 +58,9 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # Define GEOS-Chem version number (X.Y.Z)
 version=13.0.0
 
-# Define version ID (prefix "GC_" to the version
+# Define version ID (prefix "GCC_" to the version
 # so that file names won't begin with a number)
-id=GC_$version
+id=GCC_$version
 
 # Define GEOS-Chem log file
 log=$id.log
