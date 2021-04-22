@@ -1324,11 +1324,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef MODEL_GEOS
     INTEGER, PARAMETER  ::  LSPH_ = 200
-#else
-    INTEGER, PARAMETER  ::  LSPH_ = 100
-#endif
 
     ! RZ      Distance from centre of Earth to each point (cm)
     ! RQ      Square of radius ratios

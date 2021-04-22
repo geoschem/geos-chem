@@ -684,10 +684,14 @@ CONTAINS
        Input_Opt%MetField = 'GEOSFP'
     CASE( 'MERRA-2', 'MERRA2' )
        Input_Opt%MetField = 'MERRA2'
+    CASE( 'MODELE2.1' )
+       Input_Opt%MetField = 'MODELE2.1'
+    CASE( 'MODELE2.2' )
+       Input_Opt%MetField = 'MODELE2.2'
     CASE DEFAULT
        ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  // &
-                ' met field. Supported met fields are GEOS-FP '   // &
-                ' and MERRA-2. Please check your "input.geos" file.'
+                ' met field. Supported met fields are GEOS-FP, '   // &
+                ' MERRA-2 and ModelE2.1. Please check your "input.geos" file.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     END SELECT
@@ -997,9 +1001,13 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Compute X grid dimension
-    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / &
-                             State_Grid%DX )
+    ! Center on Int'l Date Line?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Center 180', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) State_Grid%Center180
 
     !-----------------------------------------------------------------
     ! Latitude range
@@ -1038,10 +1046,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Compute Y grid dimension
-    State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / &
-                             State_Grid%DY ) + 1
 
     ! Use half-sized polar boxes?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Half Polar', RC )
@@ -1109,6 +1113,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Compute grid horizontal dimensions
+    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / State_Grid%DX )
+    IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid ) THEN
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY ) + 1
+    ELSE
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY )
+    ENDIF
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -1132,6 +1144,8 @@ CONTAINS
                         State_Grid%NZ
        WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', &
                         State_Grid%HalfPolar
+       WRITE( 6, 130 ) 'Center on Intl Date Line?   : ', &
+                        State_Grid%Center180
        WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', &
                         State_Grid%NestedGrid
        WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', &

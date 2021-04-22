@@ -416,7 +416,7 @@ CONTAINS
     ENDIF
 
     ! Error check THISNYMDb
-    IF ( THISNYMDb < 19000101 ) THEN
+    IF ( THISNYMDb < 17500101 ) THEN
        ErrMsg = 'NYMDb must be in the format YYYYMMDD!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -496,7 +496,7 @@ CONTAINS
     ENDIF
 
     ! Error check THISNYMDe
-    IF ( THISNYMDe < 19000101 ) THEN
+    IF ( THISNYMDe < 17500101 ) THEN
        ErrMsg = 'NYMDe must be in the format YYYYMMDD!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -4015,8 +4015,7 @@ CONTAINS
     CALL YMD_EXTRACT( HHMMSS, HH, II, SS )
 
     ! 2-digit year number (e.g. "97" instead of "1997")
-    YY = YYYY - 1900
-    IF ( YY >= 100 ) YY = YY - 100
+    YY = MODULO( YYYY, 100 )
 
     ! For other platforms, use an F90 internal write (bmy, 9/29/03)
     WRITE( YYYY_STR, '(i4.4)' ) YYYY

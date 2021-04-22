@@ -548,9 +548,15 @@ CONTAINS
     ! Convection timestep [s]
     NDT      = TS_DYN
 
-    ! Internal time step for convective mixing is 300 sec.
-    ! Doug Rotman (LLNL) says that 450 sec works just as well.
-    NS       = NDT / 300                ! Num internal timesteps (int)
+    IF ( State_Grid%NZ > 72 .or. &
+         Input_Opt%MetField == "MODELE2.1" ) THEN 
+       ! Higher vertical resolution runs need shorter convective timestep
+       NS       = NDT / 60
+    ELSE
+       ! Internal time step for convective mixing is 300 sec.
+       ! Doug Rotman (LLNL) says that 450 sec works just as well.
+       NS       = NDT / 300                ! Num internal timesteps (int)
+    ENDIF
     NS       = MAX( NS, 1 )             ! Set lower bound to 1
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep

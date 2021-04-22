@@ -13,6 +13,7 @@ Use GC classic timers?  : F
 %%% GRID MENU %%%       :
 Grid resolution         : {RES}
 Longitude min/max       : {LON_RANGE}
+ Center on 180E/W?      : {CENTER_180}
 Latitude  min/max       : {LAT_RANGE}
  Half-sized polar boxes?: {HALF_POLAR}
 Number of levels        : {NLEV}

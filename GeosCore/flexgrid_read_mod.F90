@@ -519,7 +519,9 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2'  ) THEN
        ! Convert pressure quantities from [Pa] -> [hPa]
        State_Met%SLP     = State_Met%SLP     * 1e-2_fp
        State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
@@ -1284,7 +1286,9 @@ CONTAINS
 
     ENDWHERE
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
        ! Convert PS1_WET from [Pa] to [hPa]
        State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
     ENDIF
@@ -1461,7 +1465,9 @@ CONTAINS
 
     ENDWHERE
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
        ! Convert PS2_WET from [Pa] to [hPa]
        State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
     ENDIF
