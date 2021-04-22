@@ -8,16 +8,19 @@ This repository contains the __GEOS-Chem science codebase__.  Included in this r
 
   * The source code for GEOS-Chem science routines;
   * Scripts to create GEOS-Chem run directories;
+  * Template configuration files that specify run-time options;
   * Scripts to run GEOS-Chem tests;
   * Driver routines (e.g. `main.F90`) that enable GEOS-Chem to be run in several different implementations (as GEOS-Chem "Classic", as GCHP, etc.)
+
+### Version 12.9.3 and prior
+
+GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.  For this reason, the latest release is frozen at 12.9.3. 
 
 ### Version 13.0.0 and later
 
 GEOS-Chem 13.0.0 and later versions use this "Science Codebase" repository as a  submodule within the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) repositories.
 
-### Version 12.9.3 and prior
-
-GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.  For this reason, the latest release is frozen at 12.9.3. All future GEOS-Chem releases will be issued in the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) repositories.
+Releases for GEOS-Chem 13.0.0 and later versions will be issued at the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) Github repositories.
 
 ## User Manuals
 
