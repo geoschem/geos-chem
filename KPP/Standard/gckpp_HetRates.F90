@@ -6903,15 +6903,15 @@ MODULE GCKPP_HETRATES
             ! sulfate aerosol
             XSTKCF = GAM
          ELSEIF (N == 11) THEN
-            ! Fine sea salt first - using gamma from Sherwenw et al. 2016
-            IF (SSAlk(1).lt.0.05) THEN
+            ! Fine sea salt first - using gamma from Sherwen et al. 2016
+            IF (SSAlk(1).gt.0.05) THEN
                 XSTKCF = 0.01
             ELSE
                 XSTKCF = 0e+0_fp
             ENDIF
          ELSEIF ( N == 12) THEN
-            ! Now coarse sea salt - using gamma from Sherwenw et al. 2016
-            IF (SSAlk(2).lt.0.05) THEN
+            ! Now coarse sea salt - using gamma from Sherwen et al. 2016
+            IF (SSAlk(2).gt.0.05) THEN
                 XSTKCF = 0.01
             ELSE
                 XSTKCF = 0e+0_fp
