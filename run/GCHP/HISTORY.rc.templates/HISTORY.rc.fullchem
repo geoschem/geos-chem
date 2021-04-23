@@ -118,7 +118,7 @@ COLLECTIONS: #'AerosolMass',
 #
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
-  Emissions.template:       '%y4%m2%d2_%h2%n2z.nc',
+  Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:         'CFIO',
   Emissions.timestampStart: .true.
   Emissions.monthly:        1
@@ -597,7 +597,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry and aerosol-only simulations
 #==============================================================================
-  AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc',
+  AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AerosolMass.format:         'CFIO',
   AerosolMass.timestampStart: .true.
   AerosolMass.monthly:        1
@@ -630,7 +630,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry or aerosol-only simulations
 #==============================================================================
-  Aerosols.template:       '%y4%m2%d2_%h2%n2z.nc',
+  Aerosols.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Aerosols.format:         'CFIO',
   Aerosols.timestampStart: .true.
   Aerosols.monthly:        1
@@ -743,7 +743,7 @@ COLLECTIONS: #'AerosolMass',
 # due to a single component (e.g. chemistry); default = ozone only; add more
 # species as needed (advected only)
 #==============================================================================
-  Budget.template:        '%y4%m2%d2_%h2%n2z.nc',
+  Budget.template:        '%y4%m2%d2_%h2%n2z.nc4',
   Budget.format:          'CFIO',
   Budget.timestampStart:  .true.
   Budget.monthly:         1
@@ -3804,7 +3804,7 @@ COLLECTIONS: #'AerosolMass',
 @#
 @# Available for all simulations
 @#=============================================================================
-@  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  CloudConvFlux.format:         'CFIO',
 @  CloudConvFlux.timestampStart: .true.
 @  CloudConvFlux.monthly:        1
@@ -4042,7 +4042,7 @@ COLLECTIONS: #'AerosolMass',
 @# (2) All of the fields in the collection must be turned on.
 @# (3) This collection is best used with mode "instantaneous".
 @#=============================================================================
-@  ConcAboveSfc.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  ConcAboveSfc.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  ConcAboveSfc.format:         'CFIO',
 @  ConcAboveSfc.timestampStart: .true.
 @  ConcAboveSfc.frequency:      010000
@@ -4064,7 +4064,7 @@ COLLECTIONS: #'AerosolMass',
 # HO2:      Available for all full-chemistry simulations
 # O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
 #==============================================================================
-  ConcAfterChem.template:       '%y4%m2%d2_%h2%n2z.nc',
+  ConcAfterChem.template:       '%y4%m2%d2_%h2%n2z.nc4',
   ConcAfterChem.format:         'CFIO',
   ConcAfterChem.timestampStart: .true.
   ConcAfterChem.monthly:        1
@@ -4083,7 +4083,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for all simuations that have dry-depositing species
 #==============================================================================
-  DryDep.template:        '%y4%m2%d2_%h2%n2z.nc',
+  DryDep.template:        '%y4%m2%d2_%h2%n2z.nc4',
   DryDep.format:          'CFIO',
   DryDep.timestampStart:  .true.
   DryDep.monthly:         1
@@ -4418,7 +4418,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for all full-chemistry simulations
 #==============================================================================
-  JValues.template:       '%y4%m2%d2_%h2%n2z.nc',
+  JValues.template:       '%y4%m2%d2_%h2%n2z.nc4',
   JValues.format:         'CFIO',
   JValues.timestampStart: .true.
   JValues.monthly:        1
@@ -4625,7 +4625,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry simulations (all variations)
 #=============================================================================
-  KppDiags.template:       '%y4%m2%d2_%h2%n2z.nc',
+  KppDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
   KppDiags.format:         'CFIO',
   KppDiags.timestampStart: .true.
   KppDiags.monthly:        1
@@ -4652,7 +4652,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry and CH4 simulations only.
 #==============================================================================
-  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc',
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
   Metrics.format:             'CFIO',
   Metrics.timestampStart:     .true.
   Metrics.monthly:            1
@@ -4671,7 +4671,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for all simulations
 #==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc',
+  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
   LevelEdgeDiags.format:         'CFIO',
   LevelEdgeDiags.timestampStart: .true.
   LevelEdgeDiags.monthly:        1
@@ -4693,7 +4693,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
 #==============================================================================
-  ProdLoss.template:       '%y4%m2%d2_%h2%n2z.nc',
+  ProdLoss.template:       '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.format:         'CFIO',
   ProdLoss.timestampStart: .true.
   ProdLoss.monthly:        1
@@ -4729,7 +4729,7 @@ COLLECTIONS: #'AerosolMass',
 @#
 @# Available for full-chemistry
 @#=============================================================================
-@  RRTMG.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  RRTMG.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  RRTMG.format:         'CFIO',
 @  RRTMG.timestampStart: .true.
 @  RRTMG.monthly:        1
@@ -4870,7 +4870,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for the fullchem simulations.
 #==============================================================================
-  RxnRates.template:       '%y4%m2%d2_%h2%n2z.nc',
+  RxnRates.template:       '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.format:         'CFIO',
   RxnRates.timestampStart: .true.
   RxnRates.monthly:        1
@@ -4887,7 +4887,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for all simulations
 #==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc',
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.format:         'CFIO',
   SpeciesConc.timestampStart: .true.
   SpeciesConc.monthly:        1
@@ -5206,7 +5206,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for full-chemistry and aerosols-only simulations
 #=============================================================================
-  StateChm.template:       '%y4%m2%d2_%h2%n2z.nc',
+  StateChm.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StateChm.format:         'CFIO',
   StateChm.timestampStart: .true.
   StateChm.monthly:        0
@@ -5243,7 +5243,7 @@ COLLECTIONS: #'AerosolMass',
 #
 # Available for all simulations
 #==============================================================================
-  StateMet.template:       '%y4%m2%d2_%h2%n2z.nc',
+  StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.format:         'CFIO',
   StateMet.timestampStart: .true.
   StateMet.monthly:        1
@@ -5340,7 +5340,7 @@ COLLECTIONS: #'AerosolMass',
 @#
 @# Available for full-chemistry simulations
 @#==============================================================================
-@  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  StratBM.format:         'CFIO',
 @  StratBM.timestampStart: .true.
 @  StratBM.monthly:        1
@@ -5362,7 +5362,7 @@ COLLECTIONS: #'AerosolMass',
 @#
 @# Available for all simulations that have soluble species
 @#=============================================================================
-@  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  WetLossConv.format:         'CFIO',
 @  WetLossConv.timestampStart: .true.
 @  WetLossConv.monthly:        1
@@ -5665,7 +5665,7 @@ COLLECTIONS: #'AerosolMass',
 @#
 @# Available for all simulations that have soluble species
 @#=============================================================================
-@  WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc',
+@  WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc4',
 @  WetLossLS.format:         'CFIO',
 @  WetLossLS.timestampStart: .true.
 @  WetLossLS.monthly:        1

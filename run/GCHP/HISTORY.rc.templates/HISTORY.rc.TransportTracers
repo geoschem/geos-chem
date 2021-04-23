@@ -104,7 +104,7 @@ COLLECTIONS: 'Emissions',
 #
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
-  Emissions.template:       '%y4%m2%d2_%h2%n2z.nc',
+  Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:         'CFIO',
   Emissions.timestampStart: .true.
   Emissions.monthly:         1
@@ -126,7 +126,7 @@ COLLECTIONS: 'Emissions',
 # Budget defined as species kg/s in the column (full, troposphere, or PBL) 
 # due to a single component (e.g. chemistry); default = ozone only; add more 
 # species as needed to the example below (advected only)
-  Budget.template:       '%y4%m2%d2_%h2%n2z.nc',
+  Budget.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Budget.format:         'CFIO',
   Budget.timestampStart: .true.
   Budget.monthly:        1
@@ -309,7 +309,7 @@ COLLECTIONS: 'Emissions',
                     'BudgetWetDepPBL_Be10Strat                    ', 'GCHPchem',
 ::					     
 #===============================================================================
-  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc',
+  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
   CloudConvFlux.format:         'CFIO',
   CloudConvFlux.timestampStart: .true.
   CloudConvFlux.monthly:        1
@@ -331,7 +331,7 @@ COLLECTIONS: 'Emissions',
                            'CloudConvFlux_COUniformEmis25dayTracer', 'GCHPchem',
 ::
 #==============================================================================
-  DryDep.template:         '%y4%m2%d2_%h2%n2z.nc',
+  DryDep.template:         '%y4%m2%d2_%h2%n2z.nc4',
   DryDep.format:           'CFIO',
   DryDep.timestampStart:   .true.
   DryDep.monthly:          1
@@ -352,7 +352,7 @@ COLLECTIONS: 'Emissions',
                            'DryDepVel_Be10Strat   ', 'GCHPchem',
 ::
 #==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc',
+  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
   LevelEdgeDiags.format:         'CFIO',
   LevelEdgeDiags.timestampStart: .true.
   LevelEdgeDiags.monthly:        1
@@ -368,7 +368,7 @@ COLLECTIONS: 'Emissions',
                             'Met_PFLLSAN        ', 'GCHPchem',
 ::
 #==============================================================================
-  RadioNuclide.template:       '%y4%m2%d2_%h2%n2z.nc',
+  RadioNuclide.template:       '%y4%m2%d2_%h2%n2z.nc4',
   RadioNuclide.format:         'CFIO',
   RadioNuclide.timestampStart: .true.
   RadioNuclide.monthly:         1
@@ -385,7 +385,7 @@ COLLECTIONS: 'Emissions',
                             'RadDecay_Be10Strat      ', 'GCHPchem',
 ::
 #==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc',
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.format:         'CFIO',
   SpeciesConc.timestampStart: .true.
   SpeciesConc.monthly:        1
@@ -407,7 +407,7 @@ COLLECTIONS: 'Emissions',
                             'SpeciesConc_COUniformEmis25dayTracer', 'GCHPchem',
 ::
 #==============================================================================
-  StateMet.template:        '%y4%m2%d2_%h2%n2z.nc',
+  StateMet.template:        '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.format:          'CFIO',
   StateMet.timestampStart:  .true.
   StateMet.monthly:         1
@@ -496,7 +496,7 @@ COLLECTIONS: 'Emissions',
                             'Met_Z0             ', 'GCHPchem',
 ::
 #==============================================================================
-  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc',
+  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
   WetLossConv.format:         'CFIO',
   WetLossConv.timestampStart: .true.
   WetLossConv.monthly:        1
@@ -517,7 +517,7 @@ COLLECTIONS: 'Emissions',
                             'WetLossConvFrac_Be10Strat   ', 'GCHPchem',
 ::
 #==============================================================================
-  WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc',
+  WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc4',
   WetLossLS.format:         'CFIO',
   WetLossLS.timestampStart: .true.
   WetLossLS.monthly:        1
