@@ -183,6 +183,7 @@ Warnings:                    1
     --> Emit I2                :       true
 130     TOMAS_Jeagle           : off   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
 131     TOMAS_DustDead         : off   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
+    --> Mass tuning factor     : -999.0e0
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -2327,10 +2328,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2017/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2017/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2017/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2017/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -2338,26 +2339,26 @@ Warnings:                    1
 # --- Offline biogenic VOC emissions ---
 #==============================================================================
 (((OFFLINE_BIOGENICVOC
-0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
-0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
-0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
-0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2017/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
-0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
-0 BIOGENIC_ISOP_SOAP -                                                                                                      -             -                     - -  -        SOAP 610 4 2
-0 BIOGENIC_ISOP_SOAS -                                                                                                      -             -                     - -  -        SOAS 610 4 2
-0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
-0 BIOGENIC_LIMO_SOAP -                                                                                                      -             -                     - -  -        SOAP 611 4 2
-0 BIOGENIC_LIMO_SOAS -                                                                                                      -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
-0 BIOGENIC_MTPA_SOAP -                                                                                                      -             -                     - -  -        SOAP 611 4 2
-0 BIOGENIC_MTPA_SOAS -                                                                                                      -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
-0 BIOGENIC_MTPO_SOAP -                                                                                                      -             -                     - -  -        SOAP 611 4 2
-0 BIOGENIC_MTPO_SOAS -                                                                                                      -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
-0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
-0 BIOGENIC_SESQ_SOAP -                                                                                                      -             -                     - -  -        SOAP 612 4 2
-0 BIOGENIC_SESQ_SOAS -                                                                                                      -             -                     - -  -        SOAS 612 4 2
+0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
+0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
+0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
+0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2021/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
+0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
+0 BIOGENIC_ISOP_SOAP -                                                                                   -             -                     - -  -        SOAP 610 4 2
+0 BIOGENIC_ISOP_SOAS -                                                                                   -             -                     - -  -        SOAS 610 4 2
+0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
+0 BIOGENIC_LIMO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
+0 BIOGENIC_LIMO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
+0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
+0 BIOGENIC_MTPA_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
+0 BIOGENIC_MTPA_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
+0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
+0 BIOGENIC_MTPO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
+0 BIOGENIC_MTPO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
+0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
+0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
+0 BIOGENIC_SESQ_SOAP -                                                                                   -             -                     - -  -        SOAP 612 4 2
+0 BIOGENIC_SESQ_SOAS -                                                                                   -             -                     - -  -        SOAS 612 4 2
 )))OFFLINE_BIOGENICVOC
 
 #==============================================================================
@@ -2365,14 +2366,14 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
-0 SEASALT_SALAAL  -                                                                                                        -            -                     - -  -       SALAAL  615 3 2
-0 SEASALT_SALACL  -                                                                                                        -            -                     - -  -       SALACL  616 3 2
-0 SEASALT_BrSALA  -                                                                                                        -            -                     - -  -       BrSALA  617 3 2
-0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
-0 SEASALT_SALCAL  -                                                                                                        -            -                     - -  -       SALCAL  615 3 2
-0 SEASALT_SALCCL  -                                                                                                        -            -                     - -  -       SALCCL  616 3 2
-0 SEASALT_BrSALC  -                                                                                                        -            -                     - -  -       BrSALC  617 3 2
+0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
+0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
+0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
+0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
+0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
+0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
+0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
+0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
 ))).not.SeaSalt
 )))OFFLINE_SEASALT
 
@@ -2381,7 +2382,7 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SOILNOX
 (((.not.SoilNOx
-0 SOILNOX_NO  $ROOT/OFFLINE_SOILNOX/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/soilnox_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SOIL_NOx 1980-2017/1-12/1-31/* C xy kg/m2/s NO - 3 2
+0 SOILNOX_NO  $ROOT/OFFLINE_SOILNOX/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/soilnox_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SOIL_NOx 1980-2021/1-12/1-31/* C xy kg/m2/s NO - 3 2
 ))).not.SoilNOx
 )))OFFLINE_SOILNOX
 
@@ -2726,7 +2727,7 @@ Warnings:                    1
 # --- GEOS-Chem restart file ---
 #==============================================================================
 (((GC_RESTART
-* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH CYS xyz 1 * - 1 1
+* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFY xyz 1 * - 1 1
 * TMPU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 * SPHU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1           $YYYY/$MM/$DD/$HH EY  xyz 1 * - 1 1
 * PS1DRY         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY          $YYYY/$MM/$DD/$HH EY  xy  1 * - 1 1

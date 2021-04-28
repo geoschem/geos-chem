@@ -1,7 +1,7 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : 20160701 000000
-End   YYYYMMDD, hhmmss  : 20160701 010000
+Start YYYYMMDD, hhmmss  : ${RDI_SIM_START_DATE} ${RDI_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RDI_SIM_END_DATE} ${RDI_SIM_END_TIME}
 Run directory           : ./
 Root data directory     : ${RDI_DATA_ROOT}
 Met field               : ${RDI_MET}

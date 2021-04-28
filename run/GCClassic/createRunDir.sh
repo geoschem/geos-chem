@@ -6,11 +6,11 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name GC_{res}_{simulation}.
+# default name GC_{met}_{simulation}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
-# Initial version: M. Sulprizio, 6/24/2020 (based off GCHPctm/createRunDir.sh)
+# Initial version: M. Sulprizio, 6/24/2020 (based off GCHP/createRunDir.sh)
 
 srcrundir=$(pwd -P)
 cd ${srcrundir}
@@ -22,6 +22,10 @@ cd ${srcrundir}
 
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
+
+# Initialize Run Directory Initialization (RDI) variables
+RDI_VARS=""
+RDI_VARS+="RDI_GC_MODE='GCClassic'\n"
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -64,6 +68,8 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 	fi
     done
 fi
+
+RDI_VARS+="RDI_DATA_ROOT=$GC_DATA_ROOT\n"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -109,6 +115,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
+
+RDI_VARS+="RDI_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -215,45 +223,48 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	read pops_num
 	valid_pops=1
 	if [[ ${pops_num} = "1" ]]; then
-	    POP_SPC="BaP"
-	    POP_XMW="252.31d-3"
-	    POP_KOA="3.02d11"
-	    POP_KBC="7.94d13"
-	    POP_K_POPG_OH="50d-12"
-	    POP_K_POPG_O3A="0d0"
-	    POP_K_POPG_O3B="2.8d15"
-	    POP_HSTAR="3.10d-5"
-	    POP_DEL_H="-110d3"
-	    POP_DEL_Hw="43d0"
+	    sim_extra_option="BaP"
 	elif [[ ${pops_num} = "2" ]]; then
-	    POP_SPC="PHE"
-	    POP_XMW="178.23d-3"
-	    POP_KOA="4.37d7"
-	    POP_KBC="1.0d10"
-	    POP_K_POPG_OH="2.7d-11"
-	    POP_K_POPG_O3A="0d0"
-	    POP_K_POPG_O3B="2.15d15"
-	    POP_HSTAR="1.74d-3"
-	    POP_DEL_H="-74d3"
-	    POP_DEL_Hw="47d0"
+	    sim_extra_option="PHE"
 	elif [[ ${pops_num} = "3" ]]; then
-	    POP_SPC="PYR"
-	    POP_XMW="202.25d-3"
-	    POP_KOA="7.24d8"
-	    POP_KBC="1.0d11"
-	    POP_K_POPG_OH="50d-12"
-	    POP_K_POPG_O3A="0d0"
-	    POP_K_POPG_O3B="3.0d15"
-	    POP_HSTAR="5.37d-4"
-	    POP_DEL_H="-87d3"
-	    POP_DEL_Hw="43d0"
+	    sim_extra_option="PYR"
 	else
 	    valid_pops=0
 	    printf "Invalid POPs type. Try again.\n"
 	fi
     done
-    # Use the POPs species to set the extra option
-    sim_extra_option=${POP_SPC}
+fi
+
+RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
+
+# Determine settings based on simulation type
+SettingsDir="${gcdir}/run/shared/settings"
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
+elif [[ ${sim_name} = "aerosol" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/aerosol.txt)\n"
+elif [[ ${sim_name} == "CH4" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/CH4.txt)\n"
+elif [[ ${sim_name} == "CO2" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/CO2.txt)\n"
+elif [[ ${sim_name} == "Hg" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/Hg.txt)\n"
+elif [[ ${sim_extra_option} == "BaP" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/POPs_BaP.txt)\n"
+elif [[ ${sim_extra_option} == "PHE" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/POPs_PHE.txt)\n"
+elif [[ ${sim_extra_option} == "PYR" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/POPs_PYR.txt)\n"
+elif [[ ${sim_name} == "tagCO" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/tagCO.txt)\n"
+elif [[ ${sim_name} == "tagCH4" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/tagCH4.txt)\n"
+elif [[ ${sim_name} == "tagO3" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/tagO3.txt)\n"
+elif [[ ${sim_name} == "TransportTracers" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
+else
+    RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
 fi
 
 #-----------------------------------------------------------------
@@ -267,31 +278,13 @@ while [ "${valid_met}" -eq 0 ]; do
     read met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
-	met_name='MERRA2'
-	met_name_lc="merra2"
-	met_dir='MERRA2'
-	met_resolution='05x0625'
-	met_native='0.5x0.625'
-	met_latres='05'
-	met_lonres='0625'
-	met_extension='nc4'
-	met_cn_year='2015'
-	pressure_unit='Pa '
-	pressure_scale='0.01'
-	offline_dust_sf='3.86e-4'
+	met="merra2"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+	RDI_VARS+="RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n"
     elif [[ ${met_num} = "2" ]]; then
-	met_name='GEOSFP'
-	met_name_lc="geosfp"
-	met_dir='GEOS_FP'
-	met_resolution='025x03125'
-	met_native='0.25x0.3125'
-	met_latres='025'
-	met_lonres='03125'
-	met_extension='nc'
-	met_cn_year='2011'
-	pressure_unit='hPa'
-	pressure_scale='1.0 '
-	offline_dust_sf='6.42e-5'
+	met="geosfp"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+	RDI_VARS+="RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -314,21 +307,13 @@ while [ "${valid_res}" -eq 0 ]; do
     read res_num
     valid_res=1
     if [[ ${res_num} = "1" ]]; then
-	grid_res='4x5'
-	grid_res_long='4.0x5.0'
-	grid_dir=$grid_res
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/4x5.txt)\n"
     elif [[ ${res_num} = "2" ]]; then
-	grid_res='2x25'
-	grid_res_long='2.0x2.5'
-	grid_dir='2x2.5'
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
     elif [[ ${res_num} = "3" ]]; then
-	grid_res='05x0625'
-	grid_res_long='0.5x0.625'
-	grid_dir=$grid_res_long
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
     elif [[ ${res_num} = "4" ]]; then
-	grid_res='025x03125'
-	grid_res_long='0.25x0.3125'
-	grid_dir=$grid_res_long
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
     else
 	valid_res=0
 	printf "Invalid horizontal resolution option. Try again.\n"
@@ -348,47 +333,47 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	read domain_num
 	valid_domain=1
 	if [[ ${domain_num} = "1" ]]; then
-	    domain_name="global"
-	    lon_range="-180.0 180.0"
-	    lat_range=" -90.0  90.0"
-	    half_polar="T"
-	    nested_sim="F"
-	    buffer_zone="0  0  0  0"
+	    RDI_VARS+="RDI_GRID_DOMAIN_NAME='global'\n"
+	    RDI_VARS+="RDI_GRID_LON_RANGE='-180.0 180.0'\n"
+	    RDI_VARS+="RDI_GRID_LAT_RANGE=' -90.0  90.0'\n"
+	    RDI_VARS+="RDI_GRID_HALF_POLAR='T'\n"
+	    RDI_VARS+="RDI_GRID_NESTED_SIM='F'\n"
+	    RDI_VARS+="RDI_GRID_BUFFER_ZONE='0  0  0  0'\n"
 	else
-	    domain_name="AS"
-	    half_polar="F"
-	    nested_sim="T"
-	    buffer_zone="3  3  3  3"
+	    RDI_VARS+="RDI_GRID_DOMAIN_NAME='AS'\n"
+	    RDI_VARS+="RDI_GRID_HALF_POLAR='F'\n"
+	    RDI_VARS+="RDI_GRID_NESTED_SIM='T'\n"
+	    RDI_VARS+="RDI_GRID_BUFFER_ZONE='3  3  3  3'\n"
 	    if [[ ${domain_num} = "2" ]]; then
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            lon_range=" 60.0 150.0"
-		    lat_range="-11.0  55.0"
+	            RDI_VARS+="RDI_GRID_LON_RANGE=' 60.0 150.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE='-11.0  55.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            lon_range=" 70.0 140.0"
-		    lat_range=" 15.0  55.0"
+	            RDI_VARS+="RDI_GRID_LON_RANGE=' 70.0 140.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 15.0  55.0'\n"
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
-		domain_name="EU"
+		RDI_VARS+="RDI_GRID_DOMAIN_NAME='EU'\n"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            lon_range="-30.0 50.0"
-		    lat_range=" 30.0 70.0"
+	            RDI_VARS+="RDI_GRID_LON_RANGE='-30.0 50.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 30.0 70.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            lon_range="-15.0  40.0"
-		    lat_range=" 32.75 61.25"
+	            RDI_VARS+="RDI_GRID_LON_RANGE='-15.0  40.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 32.75 61.25'\n"
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
-		domain_name="NA"
+		RDI_VARS+="RDI_GRID_DOMAIN_NAME='NA'\n"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            lon_range="-140.0 -40.0"
-		    lat_range="  10.0  70.0"
+	            RDI_VARS+="RDI_GRID_LON_RANGE='-140.0 -40.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE='  10.0  70.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            lon_range="-130.0  -60.0"
-		    lat_range="   9.75  60.0"
+	            RDI_VARS+="RDI_GRID_LON_RANGE='-130.0  -60.0'\n"
+		    RDI_VARS+="RDI_GRID_LAT_RANGE='   9.75  60.0'\n"
 		fi
 	    elif [[ ${domain_num} = "5" ]]; then
-		domain_name="custom"
-	        lon_range="MinLon MaxLon"
-	        lat_range="MinLat MaxLat"
+		RDI_VARS+="RDI_GRID_DOMAIN_NAME='custom'\n"
+	        RDI_VARS+="RDI_GRID_LON_RANGE='MinLon MaxLon'\n"
+	        RDI_VARS+="RDI_GRID_LAT_RANGE='MinLat MaxLat'\n"
 	        printf "\n  -- You will need to manually set longitude and latitude"
 		printf "\n     bounds in the Grid Menu of input.geos.\n"
 	    else
@@ -398,11 +383,11 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
         fi
     done
 else
-    lon_range="-180.0 180.0"
-    lat_range=" -90.0  90.0"
-    half_polar="T"
-    nested_sim="F"
-    buffer_zone="0  0  0  0"
+    RDI_VARS+="RDI_GRID_LON_RANGE='-180.0 180.0'\n"
+    RDI_VARS+="RDI_GRID_LAT_RANGE=' -90.0  90.0'\n"
+    RDI_VARS+="RDI_GRID_HALF_POLAR='T'\n"
+    RDI_VARS+="RDI_GRID_NESTED_SIM='F'\n"
+    RDI_VARS+="RDI_GRID_BUFFER_ZONE='0  0  0  0'\n"
 fi
 
 #-----------------------------------------------------------------
@@ -417,9 +402,9 @@ while [ "${valid_lev}" -eq 0 ]; do
     read lev_num
     valid_lev=1
     if [[ ${lev_num} = "1" ]]; then
-	grid_lev='72'
+	RDI_VARS+="RDI_GRID_NLEV='72'\n"
     elif [[ ${lev_num} = "2" ]]; then
-	grid_lev='47'
+	RDI_VARS+="RDI_GRID_NLEV='47'\n"
     else
 	valid_lev=0
 	printf "Invalid vertical resolution option. Try again.\n"
@@ -479,9 +464,9 @@ if [ -z "$1" ]; then
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gc_${met_name_lc}_${sim_name}
+	    rundir_name=gc_${met}_${sim_name}
 	else
-	    rundir_name=gc_${met_name_lc}_${sim_name}_${sim_extra_option}
+	    rundir_name=gc_${met}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -493,7 +478,6 @@ fi
 # Ask user for a new run directory name if specified one exists
 #-----------------------------------------------------------------
 rundir=${rundir_path}/${rundir_name}
-
 valid_rundir=0
 while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
@@ -523,27 +507,14 @@ cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
 cp ./README                                 ${rundir}
 cp ./gitignore                              ${rundir}/.gitignore
-cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-
-# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
-# so skip copying it unless the file exists (bmy, 12/11/20)
-if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
-    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}  ${rundir}/HEMCO_Diagn.rc
-fi
-
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
-cp -r ./runScriptSamples ${rundir}
-mkdir ${rundir}/OutputDir
 
 # Set permissions
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
-chmod 744 ${rundir}/runScriptSamples/*
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -564,6 +535,7 @@ fi
 
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
+ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
 
 # Create build directory
 mkdir ${rundir}/build
@@ -574,45 +546,23 @@ printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n 
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Replace token strings in certain files
-sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   input.geos
-sed_ie "s|{MET}|${met_name}|"             input.geos
-sed_ie "s|{SIM}|${sim_name}|"             input.geos
-sed_ie "s|{RES}|${grid_res_long}|"        input.geos
-sed_ie "s|{NLEV}|${grid_lev}|"            input.geos
-sed_ie "s|{LON_RANGE}|${lon_range}|"      input.geos
-sed_ie "s|{LAT_RANGE}|${lat_range}|"      input.geos
-sed_ie "s|{HALF_POLAR}|${half_polar}|"    input.geos
-sed_ie "s|{NESTED_SIM}|${nested_sim}|"    input.geos
-sed_ie "s|{BUFFER_ZONE}|${buffer_zone}|"  input.geos
-sed_ie "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   HEMCO_Config.rc
-sed_ie "s|{GRID_DIR}|${grid_dir}|"        HEMCO_Config.rc
-sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
-sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
-sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
-sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
+# Save RDI variables to file
+echo -e "$RDI_VARS" > rdi_vars.txt
+sort -o rdi_vars.txt rdi_vars.txt
 
-# Special handling for start/end date based on simulation so that
-# start year/month/day matches default initial restart file.
-if [[ "x${sim_name}" == "xHg"     ||
-      "x${sim_name}" == "xCH4"    ||
-      "x${sim_name}" == "xtagCH4" ||
-      "x${sim_name}" == "xTransportTracers" ]]; then
-    startdate="20190101"
-    enddate="20190201"
-else
-    startdate="20190701"
-    enddate="20190801"
+# Call init_rd.sh
+${srcrundir}/init_rd.sh rdi_vars.txt
+
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    set_common_settings ${sim_extra_option}
 fi
-starttime="000000"
-endtime="000000"
-sed_ie "s|{DATE1}|${startdate}|"  input.geos
-sed_ie "s|{DATE2}|${enddate}|"    input.geos
-sed_ie "s|{TIME1}|${starttime}|"  input.geos
-sed_ie "s|{TIME2}|${endtime}|"    input.geos
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
+
+
+
+printf "\n  -- This run directory has been set up for $RDI_SIM_START - RDI_SIM_END_DATE."
 printf "\n     You may modify these settings in input.geos.\n"
 
 sed_ie "s|{FREQUENCY}|00000100 000000|"  HISTORY.rc
@@ -621,11 +571,7 @@ sed_ie "s|{DURATION}|00000100 000000|"   HISTORY.rc
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
-# Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP.
-if [[ "x${sim_name}" == "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
-fi
+
 
 # Modify input files for benchmark that are specific to GEOS-Chem Classic
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
@@ -732,35 +678,35 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     # Aerosol-only simulations can use the fullchem restart since all of the
     #  aerosol species are included
     if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${RDI_SIM_START_DATE}_0000z.nc4
     elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
+	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${RDI_SIM_START_DATE}_0000z.nc4
     else
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${RDI_SIM_START_DATE}_0000z.nc4
     fi
 	
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
     # For TransportTracers, use restart from latest benchmark
-    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${RDI_SIM_START_DATE}_0000z.nc4
 	
 elif [[ "x${sim_name}" == "xPOPs" ]]; then
 
     # For POPs, the extra option is in the restart file name
-    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${RDI_SIM_START_DATE}_0000z.nc4
 
 else
 
     # For other specialty simulations, use previoiusly saved restarts
-    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${RDI_SIM_START_DATE}_0000z.nc4
 
 fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
+    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${RDI_SIM_START_DATE}_0000z.nc4 2>/dev/null
 elif [[ -f ${sample_rst} ]]; then
-    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${RDI_SIM_START_DATE}_0000z.nc4
 else
     printf "\n  -- No sample restart provided for this simulation."
     printf "\n     You will need to provide an initial restart file or disable"

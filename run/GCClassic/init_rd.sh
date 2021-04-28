@@ -48,19 +48,13 @@ variables=$(echo $variables | sort | uniq)
 envsubst_list="$(printf '${%s} ' $variables)"
 
 COPY_LIST="""
-input.nml
-logging.yaml
 HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
 HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RDI_SIM_NAME}
 """
 
 SUBST_LIST="""
-runConfig.sh.template
-ExtData.rc.templates/ExtData.rc.${RDI_SIM_NAME}
-GCHP.rc.template
 input.geos.templates/input.geos.${RDI_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RDI_SIM_NAME}
-CAP.rc.template
 """
 
 function filename_with_suffixes_removed() {
@@ -84,7 +78,5 @@ for fpath in $SUBST_LIST; do
 done
 
 # Make links
-rm -f ChemDir HcoDir MetDir
-ln -s ${RDI_DATA_ROOT}/CHEM_INPUTS ChemDir
-ln -s ${RDI_DATA_ROOT}/HEMCO HcoDir
-ln -s $RDI_MET_DIR MetDir
+rm -f runScriptSamples
+ln -s $THIS_SCRIPTS_DIRECTORY/runScriptSamples runScriptSamples

@@ -6,7 +6,7 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{simulation}.
+# default name gchp_{met}_{simulation}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
@@ -15,16 +15,17 @@
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
-gcdir=$(pwd)
-cd ../../../..
-gchpdir=$(pwd)
+gcdir=$(pwd -P)
+cd ../../
+wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
 
-# Initialize RDI_VARS
+# Initialize Run Directory Initialization (RDI) variables
 RDI_VARS=""
+RDI_VARS+="RDI_GC_MODE='GCHP'\n"
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -53,8 +54,7 @@ fi
 if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
-    while [ "$valid_path" -eq 0 ]
-    do
+    while [ "$valid_path" -eq 0 ]; do
 	read -e extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
@@ -110,7 +110,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  5. Acid uptake on dust\n"
     printf "  6. TOMAS\n"
     printf "  7. APM\n"
-    printf "  8. Standard w/ RRTMG\n"
+    printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
@@ -143,7 +143,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
-	    printf "  1. TOASS with 40 bins\n"
+	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option
@@ -173,6 +173,18 @@ elif [[ ${sim_name} = "TransportTracers" ]]; then
    sim_extra_option=none
 fi
 
+RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
+
+# Determine settings based on simulation type
+SettingsDir="${gcdir}/run/shared/settings"
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+   RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
+elif [[ ${sim_name} == "TransportTracers" ]]; then
+   RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
+else
+   RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
+fi
+
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
@@ -185,11 +197,11 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/merra2_settings.txt)\n"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n'
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/geosfp_settings.txt)\n"
+	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
 	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n'
     else
 	valid_met=0
@@ -198,7 +210,7 @@ while [ "${valid_met}" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define path where directoy will be created
+# Ask user to define path where directory will be created
 #-----------------------------------------------------------------
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
@@ -206,7 +218,7 @@ while [ "$valid_path" -eq 0 ]; do
     read -e rundir_path
 
     # Test for quitting
-    if [[ "x${rundir_path}" = "xq" ]]; then
+    if [[ "x${rundir_path}" == "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
     fi
@@ -303,26 +315,29 @@ chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
 
 # Copy species database; append APM or TOMAS species if needed
+# Also copy APM input files to the run directory
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cp ${gcdir}/run/shared/apm_tmp.dat ${rundir}/apm_tmp.dat
+    cp ${gcdir}/run/shared/input.apm   ${rundir}/input.apm
 fi
 
 # If benchmark simulation, put run script in directory
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-    cp ${gcdir}/run/GCHP/runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
+if [[ ${sim_extra_option} == "benchmark" ]]; then
+    cp ./runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
 
-# Create symbolic links to data directories, restart files, code, run scripts
-ln -s ${gchpdir}                                ${rundir}/CodeDir
-if [ "${met_name}" == "GEOSFP" ]; then
-   ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
-else
-   ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
-fi
+# Create symbolic link to code directory
+ln -s ${wrapperdir} ${rundir}/CodeDir
+ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
+
+#--------------------------------------------------------------------
+# Link to sample restart files
+#--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 for N in 24 48 90 180 360
 do
@@ -340,31 +355,24 @@ do
     fi
 done
 
-# Put RDI_RESTART_FILE='initial_GEOSChem_rst.c${CS_RES}'_fullchem.nc in RDI vars
+# Add RDI_RESTART_FILE to RDI vars
 RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
-
-# Determine settings
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-   RDI_VARS+="$(cat ${gcdir}/run/shared/benchmark_settings.txt)\n"
-elif [[ ${sim_name} == "TransportTracers" ]]; then
-   RDI_VARS+="$(cat ${gcdir}/run/shared/transporttracer_settings.txt)\n"
-else
-   RDI_VARS+="$(cat ${gcdir}/run/shared/fullchem_settings.txt)\n"
-fi
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
 
+# Save RDI variables to file
 echo -e "$RDI_VARS" > rdi_vars.txt
+sort -o rdi_vars.txt rdi_vars.txt
 
 # Call init_rd.sh
 ${srcrundir}/init_rd.sh rdi_vars.txt
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
 
