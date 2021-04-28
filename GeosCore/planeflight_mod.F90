@@ -1092,6 +1092,24 @@ CONTAINS
             TRIM(NAME) .EQ. 'Twbi'   .OR. & ! NOAA Tower
             TRIM(NAME) .EQ. 'Twgc'   .OR. & ! NOAA Tower
             TRIM(NAME) .EQ. 'Twkt' ) THEN   ! NOAA Tower
+
+          ! Make sure it is the users intention for 'S' to represent
+          ! surface observations
+          IF ( NAME(1:1) .EQ. 'S' .and. Input_Opt%amIRoot ) THEN
+             WRITE( 6, '(a)') 'WARNING: Names beginning with "S" are '
+             WRITE( 6, '(a)') 'assumed to be NOAA Surface observations. '
+             WRITE( 6, '(a)') 'Vertical coordinates are assumed to be '
+             WRITE( 6, '(a)') 'altitude and will be converted to pressure. '
+             WRITE( 6, '(a)') 'In routine PLANEFLIGHT, L=1 is forced. '
+             WRITE( 6, '(a)') 'If this is intended, you may comment out the '
+             WRITE( 6, '(a)') 'call to GEOS_CHEM_STOP in routine '
+             WRITE( 6, '(a)') 'READ_POINTS (planeflight_mod.F90). Otherwise,'
+             WRITE( 6, '(a)') 'remove "S" from the IF statement in the same ' 
+             WRITE( 6, '(a)') 'location.'
+             WRITE( 6, '(a)') REPEAT( '=', 79 )
+          ENDIF
+          CALL GEOS_CHEM_STOP
+
           ! Change units
           ! NOTE: PHIS is now in units of [m], so we don't need to
           ! divide by g0 again (see issue geoschem/geos-chem #531)
@@ -1660,27 +1678,13 @@ CONTAINS
           ! Return grid box indices for the chemistry region
           CALL TEST_VALID( M, I, J, L, Input_Opt, State_Grid, State_Met, RC )
 
-          ! If this is a surface observation, set L=1
+          ! If this is a surface observation, force L=1
           !
           ! NOAA Surface observations start with 'S' in Planeflight.dat
           ! Other surface observation strings can be added here
           NAME = ADJUSTL(PTYPE(M))
           IF ( NAME(1:1)  .EQ. 'S' ) THEN
-
-             ! Make sure it is the users intention to set L=1
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, '(a)') 'WARNING: NOAA Surface Observation. '
-                WRITE( 6, '(a)') 'Forcing L=1. If this is intended, '
-                WRITE( 6, '(a)') 'you may comment out the call to '
-                WRITE( 6, '(a)') 'GEOS_CHEM_STOP in routine '
-                WRITE( 6, '(a)') 'PLANEFLIGHT (planeflight_mod.F90)'
-                WRITE( 6, '(a)') REPEAT( '=', 79 )
-             ENDIF
-             CALL GEOS_CHEM_STOP
-
-             ! Force L=1
              L = 1
-
           ENDIF
 
           ! Initialize reaction counter
