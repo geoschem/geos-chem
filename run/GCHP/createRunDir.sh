@@ -439,6 +439,7 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     num_nodes=2
     num_cores_per_node=24
     grid_res=48
+    timeAvg_monthly="1"
     timeAvg_freq="7440000"
     inst_freq="7440000"
     start_time="000000"
@@ -446,7 +447,7 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency and duration is 31 days."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is monthly average."
 elif [ "${sim_type}" == "CO2" ]; then
     total_cores=48
     num_nodes=2
@@ -462,6 +463,7 @@ else
     num_nodes=1
     num_cores_per_node=24
     grid_res=24
+    timeAvg_monthly=0
     timeAvg_freq="010000"
     inst_freq="010000"
     start_time="000000"
@@ -469,7 +471,7 @@ else
     dYYYYMMDD="00000000"
     dHHmmSS="010000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency and duration is hourly."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is hourly average."
 fi
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
 timeAvg_dur=${timeAvg_freq}
@@ -480,6 +482,7 @@ sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
 sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig.sh
 sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
 sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
@@ -493,6 +496,7 @@ if [ "${sim_name}" == "CO2" ]; then
     sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
     sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
     sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig_adj.sh
     sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
     sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
     sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
