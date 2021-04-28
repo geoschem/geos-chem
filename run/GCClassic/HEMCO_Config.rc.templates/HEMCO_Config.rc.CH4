@@ -54,12 +54,14 @@ Warnings:                    1
     --> GC_BCs                 :       false    # 1980-2021
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
-    --> CanMex                 :       false    # Can:2013,Mex:2010
+    --> Sheng_Canada           :       false    # 2013
+    --> Scarpelli_Mexico       :       true     # 2015
     --> MIX                    :       false    # 2008
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> GFEI                   :       true     # 2012
     --> EDGARv432              :       true     # 1970-2012
-    --> QFED2                  :       true     # 2009-2015
+    --> QFED2                  :       false    # 2009-2015
+    --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
@@ -183,29 +185,37 @@ Warnings:                    1
 )))GEPA
 
 #==============================================================================
-# --- Mexico oil and gas (Sheng et al., Atmos. Environ., 2017) ---
+# --- Mexico anthropogenic emissions ---
+#
+# (Scarpelli et. al, Environ. Res. Lett., 2020) ---
 #==============================================================================
-(((CanMex
-### Oil ###
-0 MEX_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Oil              2010/1/1/0 C xy molec/cm2/s CH4 1001 1 20
-
-### Gas ###
-0 MEX_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Production   2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Processing   2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Transmission 2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Distribution 2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
+(((Scarpelli_Mexico
+0 MEX_OIL               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
+0 MEX_GAS               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 30
+0 MEX_COAL              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 30
+0 MEX_LIVESTOCK_A       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 30
+0 MEX_LIVESTOCK_B       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 30
+0 MEX_LANDFILLS         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 30
+0 MEX_WASTEWATER        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 30
+0 MEX_RICE              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 30
+0 MEX_OTHER             $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 30
 
 ### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 MEX_COAST_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Oil              2010/1/1/0 C xy molec/cm2/s CH4 1010 1 1
-0 MEX_COAST_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Production   2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Processing   2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Transmission 2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Distribution 2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
+0 MEX_OIL_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 1
+0 MEX_GAS_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 1
+0 MEX_COAL_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 1
+0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
+0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
+0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
+0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
+0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
+
+)))Scarpelli_Mexico
 
 #==============================================================================
 # --- Canada oil and gas (Sheng et al., Atmos. Environ., 2017) ---
 #==============================================================================
-
+(((Sheng_Canada
 ### Oil ###
 0 CAN_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Oil          2013/1/1/0 C xy molec/cm2/s CH4 1002 1 60
 
@@ -221,7 +231,7 @@ Warnings:                    1
 0 CAN_COAST_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Processing   2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
 0 CAN_COAST_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Transmission 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
 0 CAN_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Distribution 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-)))CanMex
+)))Sheng_Canada
 
 #==============================================================================
 # --- MIX v1.1 (Asia) ---
@@ -237,13 +247,12 @@ Warnings:                    1
 #==============================================================================
 # --- Global Fuel Exploitation Inventory (Scarpelli et al., 2020) ---
 #
-# This inventory will replace EDGAR (oil, gas, & coal), GEPA (oil, gas, & coal),
-# and CanMex (oil & gas); Set to hier=100
+# This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
 (((GFEI
-0 GFEI_CH4_OIL  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Oil_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  1 100
-0 GFEI_CH4_GAS  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Gas_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  2 100
-0 GFEI_CH4_COAL $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Coal.nc     emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  3 100
+0 GFEI_CH4_OIL  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Oil_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Gas_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Coal.nc     emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  3 5
 )))GFEI
 
 #==============================================================================
@@ -326,13 +335,22 @@ Warnings:                    1
 )))QFED2
 
 #==============================================================================
+# --- Updated GFED4 biomass burning ---
+#
+# Emissions through 2019 obtained from Yuzhong Zhang
+#==============================================================================
+(((UPDATED_GFED4
+0 UPDATED_GFED4_CH4    $ROOT/CH4/v2020-09/GFED/GFED4_CH4_FIRE_$YYYY.nc emi_ch4 2009-2019/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 3
+)))UPDATED_GFED4
+
+#==============================================================================
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 #
 # NOTES:
 # - Use either this inventory or the wetland extension -- not both!
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4   $ROOT/CH4/v2020-04/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4  $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -743,12 +761,15 @@ Warnings:                    1
 #==============================================================================
 # Country/region masks
 #==============================================================================
-(((CanMex
+(((Scarpelli_Mexico
 1001 MEXICO_MASK     $ROOT/MASKS/v2018-09/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
 1010 MEX_MASK_MIRROR $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+)))Scarpelli_Mexico
+
+(((Sheng_Canada
 1002 CANADA_MASK     $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 1011 CAN_MASK_MIRROR $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-)))CanMex
+)))Sheng_Canada
 
 (((MIX
 1006 ASIA_MASK       $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
