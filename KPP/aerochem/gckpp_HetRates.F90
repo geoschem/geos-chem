@@ -1264,7 +1264,11 @@ MODULE GcKpp_HetRates
     end do
 
     ! Mean branch ratio for reaction of interest in cloud (averaged over ice and liquid)
-    branch = kIb / kI
+    if ( kI > 0.0_dp ) then
+       branch = kIb / kI
+    else
+       branch = 0.0_dp
+    endif
 
     !!------------------------------------------------------------------------
     !! Grid-average loss frequency; Add in-cloud and entrainment rates in series
