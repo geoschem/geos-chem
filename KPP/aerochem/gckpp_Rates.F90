@@ -254,8 +254,8 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, cf
     REAL(kind=dp)             :: k0, k1, kr, nc, f,  rate
     !
-    k0   = a0 * ( TEMP / 300.0_dp )**c0
-    k1   = a1 * ( TEMP / 300.0_dp )**c1
+    k0   = a0 * TEMP_OVER_K300**c0
+    k1   = a1 * TEMP_OVER_K300**c1
     k0   = k0 * NUMDEN
     kr   = k0 / k1
     nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
@@ -345,7 +345,7 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a0, b0
     REAL(kind=dp)             :: rate
     !
-    rate = a0 * ( 300.0_dp / TEMP )**b0
+    rate = a0 * K300_OVER_TEMP**b0
   END FUNCTION GCARR_ab
 
   FUNCTION GCARR_ac( a0, c0 ) RESULT( rate )
@@ -366,7 +366,7 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0
     REAL(kind=dp)             :: rate
     !
-    rate = a0 * EXP( c0 / TEMP ) * ( 300.0_dp / TEMP )**b0
+    rate = a0 * EXP( c0 / TEMP ) * K300_OVER_TEMP**b0
   END FUNCTION GCARR_abc
 
   FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( rate )
@@ -421,7 +421,7 @@ CONTAINS
     REAL(kind=dp)             :: r0, r1, rate
     !
     r0   =  a0 * EXP( c0 / TEMP )
-    r1   =  a1 * EXP( c1 / TEMP ) * ( 300.0_dp / TEMP )**b1
+    r1   =  a1 * EXP( c1 / TEMP ) * K300_OVER_TEMP**b1
     rate =  r0 / ( 1.0_dp + r1 )
   END FUNCTION GC_TBRANCH_2_acabc
 
@@ -598,16 +598,15 @@ CONTAINS
     REAL(kind=dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, rate
     !
-    TEMP300 = ( 300.0_dp / TEMP )
     r0      = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
-    klo1    = 5.9E-33_dp * TEMP300
-    khi1    = 1.1E-12_dp * TEMP300**(-1.3_dp)
+    klo1    = 5.9E-33_dp * K300_OVER_TEMP
+    khi1    = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
     xyrat1  = klo1 * NUMDEN / khi1
     blog1   = LOG10( xyrat1 )
     fexp1   = 1.0_dp / ( 1.0_dp + blog1*blog1 )
     kco1    = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
     klo2    = 1.5E-13_dp
-    khi2    = 2.1E+09_dp * TEMP300**(-6.1_dp)
+    khi2    = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
     xyrat2  = klo2 * NUMDEN / khi2
     blog2   = LOG10( xyrat2 )
     fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
@@ -706,7 +705,7 @@ CONTAINS
     !
     r0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP(  0.97_dp * a1 ) * NUMDEN
-    yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )** 8.1_dp )
+    yyyn   = 0.826_dp * ( K300_OVER_TEMP**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
     zzyn   = ( 1.0_dp / ( 1.0_dp + ( aaa  * aaa  ) ) )
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
@@ -797,7 +796,7 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
     REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
     xyrat = rlow / a2                                  ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
@@ -836,8 +835,8 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv
     REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
-    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 )
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
+    rhigh = a2 * ( K300_OVER_TEMP**b2 )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
@@ -859,8 +858,8 @@ CONTAINS
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    c1,    a2,   b2,   c2,  fv
     REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * EXP( c1 / TEMP ) * NUMDEN
-    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 ) * EXP( c2 / TEMP )
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * EXP( c1 / TEMP ) * NUMDEN
+    rhigh = a2 * ( K300_OVER_TEMP**b2 ) * EXP( c2 / TEMP )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )

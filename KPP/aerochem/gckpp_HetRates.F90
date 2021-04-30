@@ -355,56 +355,51 @@ MODULE GcKpp_HetRates
     HET = 0.0_dp
 
     ! Calculate genuine first-order uptake reactions first
-    HET(ind_GLYX,   1) = Het1stOrderUptakeGLYX(  H%GLYX%SrMw                )
-    HET(ind_HMML,   1) = Het1stOrderUptakeIEPOX( H%HMML%SrMw,   .TRUE.      )
-    HET(ind_HO2,    1) = Het1stOrderUptakeHO2(   H%HO2%SrMw                 )
-    HET(ind_ICHE,   1) = Het1stOrderUptakeIEPOX( H%ICHE%SrMw,   .FALSE.     )
-    HET(ind_IEPOXA, 1) = Het1stOrderUptakeIEPOX( H%IEPOXA%SrMw, .FALSE.     )
-    HET(ind_IEPOXB, 1) = Het1stOrderUptakeIEPOX( H%IEPOXB%SrMw, .FALSE.     )
-    HET(ind_IEPOXD, 1) = Het1stOrderUptakeIEPOX( H%IEPOXD%SrMw, .FALSE.     )
-    HET(ind_MGLY,   1) = Het1stOrderUptakeMGLY(  H%MGLY%SrMw                )
-    HET(ind_NO2,    1) = Het1stOrderUptakeNO2(   H%NO2%SrMw                 )
-    HET(ind_NO3,    1) = Het1stOrderUptakeNO3(   H%NO3%SrMw                 )
-    HET(ind_PYAC,   1) = Het1stOrderUptakeMGLY(  H%PYAC%SrMw                )
+    HET(ind_GLYX,   1) = Het1stOrderUptakeGLYX(  SR_MW(ind_GLYX)            )
+    HET(ind_HMML,   1) = Het1stOrderUptakeIEPOX( SR_MW(ind_HMML),   .TRUE.  )
+    HET(ind_HO2,    1) = Het1stOrderUptakeHO2(   SR_MW(ind_HO2)             )
+    HET(ind_ICHE,   1) = Het1stOrderUptakeIEPOX( SR_MW(ind_ICHE),   .FALSE. )
+    HET(ind_IEPOXA, 1) = Het1stOrderUptakeIEPOX( SR_MW(ind_IEPOXA), .FALSE. )
+    HET(ind_IEPOXB, 1) = Het1stOrderUptakeIEPOX( SR_MW(ind_IEPOXB), .FALSE. )
+    HET(ind_IEPOXD, 1) = Het1stOrderUptakeIEPOX( SR_MW(ind_IEPOXD), .FALSE. )
+    HET(ind_MGLY,   1) = Het1stOrderUptakeMGLY(  SR_MW(ind_MGLY)            )
+    HET(ind_NO2,    1) = Het1stOrderUptakeNO2(   SR_MW(ind_NO2)             )
+    HET(ind_NO3,    1) = Het1stOrderUptakeNO3(   SR_MW(ind_NO3)             )
+    HET(ind_PYAC,   1) = Het1stOrderUptakeMGLY(  SR_MW(ind_PYAC)            )
 
     ! These VOC species use the same rate-law function for 1st-order uptake
-    HET(ind_LVOC,   1) = Het1stOrderUptakeVOC(   H%LVOC%SrMw,   1.0E+0_dp   )
-    HET(ind_IDN,    1) = Het1stOrderUptakeVOC(   H%IDN%SrMw,    5.0E-3_dp   )
-    HET(ind_IHN1,   1) = Het1stOrderUptakeVOC(   H%IHN1%SrMw,   5.0E-3_dp   )
-    HET(ind_IHN2,   1) = Het1stOrderUptakeVOC(   H%IHN2%SrMw,   5.0E-2_dp   )
-    HET(ind_IHN3,   1) = Het1stOrderUptakeVOC(   H%IHN3%SrMw,   5.0E-3_dp   )
-    HET(ind_IHN4,   1) = Het1stOrderUptakeVOC(   H%IHN4%SrMw,   5.0E-3_dp   )
-    HET(ind_INPB,   1) = Het1stOrderUptakeVOC(   H%INPB%SrMw,   5.0E-3_dp   )
-    HET(ind_INPD,   1) = Het1stOrderUptakeVOC(   H%INPD%SrMw,   5.0E-3_dp   )
-    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(   H%ITCN%SrMw,   5.0E-3_dp   )
-    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(   H%ITHN%SrMw,   5.0E-3_dp   )
-    HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC(   H%MCRHN%SrMw,  5.0E-3_dp   )
-    HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC(   H%MCRHNB%SrMw, 5.0E-3_dp   )
-    HET(ind_MVKN,   1) = Het1stOrderUptakeVOC(   H%MVKN%SrMw,   5.0E-3_dp   )
-    HET(ind_R4N2,   1) = Het1stOrderUptakeVOC(   H%R4N2%SrMw,   5.0E-3_dp   )
-    HET(ind_MONITS, 1) = Het1stOrderUptakeVOC(   H%MONITS%SrMw, 1.0E-2_dp   )
-    HET(ind_MONITU, 1) = Het1stOrderUptakeVOC(   H%MONITU%SrMw, 1.0E-2_dp   )
-    HET(ind_HONIT,  1) = Het1stOrderUptakeVOC(   H%HONIT%SrMw,  1.0E-2_dp   )
+    HET(ind_LVOC,   1) = Het1stOrderUptakeVOC( SR_MW(ind_LVOC),   1.0E+0_dp )
+    HET(ind_IDN,    1) = Het1stOrderUptakeVOC( SR_MW(ind_IDN),    5.0E-3_dp )
+    HET(ind_IHN1,   1) = Het1stOrderUptakeVOC( SR_MW(ind_IHN1),   5.0E-3_dp )
+    HET(ind_IHN2,   1) = Het1stOrderUptakeVOC( SR_MW(ind_IHN2),   5.0E-2_dp )
+    HET(ind_IHN3,   1) = Het1stOrderUptakeVOC( SR_MW(ind_IHN3),   5.0E-3_dp )
+    HET(ind_IHN4,   1) = Het1stOrderUptakeVOC( SR_MW(ind_IHN4),   5.0E-3_dp )
+    HET(ind_INPB,   1) = Het1stOrderUptakeVOC( SR_MW(ind_INPB),   5.0E-3_dp )
+    HET(ind_INPD,   1) = Het1stOrderUptakeVOC( SR_MW(ind_INPD),   5.0E-3_dp )
+    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC( SR_MW(ind_ITCN),   5.0E-3_dp )
+    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC( SR_MW(ind_ITHN),   5.0E-3_dp )
+    HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC( SR_MW(ind_MCRHN),  5.0E-3_dp )
+    HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC( SR_MW(ind_MCRHNB), 5.0E-3_dp )
+    HET(ind_MVKN,   1) = Het1stOrderUptakeVOC( SR_MW(ind_MVKN),   5.0E-3_dp )
+    HET(ind_R4N2,   1) = Het1stOrderUptakeVOC( SR_MW(ind_R4N2),   5.0E-3_dp )
+    HET(ind_MONITS, 1) = Het1stOrderUptakeVOC( SR_MW(ind_MONITS), 1.0E-2_dp )
+    HET(ind_MONITU, 1) = Het1stOrderUptakeVOC( SR_MW(ind_MONITU), 1.0E-2_dp )
+    HET(ind_HONIT,  1) = Het1stOrderUptakeVOC( SR_MW(ind_HONIT),  1.0E-2_dp )
 
     ! Aerosol-phase organic nitrate formed from monoterpene precursors
     ! (species IONITA and MONITA) have constant 1st order uptake rates.
     HET(ind_IONITA, 1) = 2.78E-4_dp
     HET(ind_MONITA, 1) = 2.78E-4_dp
 
-!#### KPP DEBUG
-!goto 9999
-
     !========================================================================
     ! NOy uptake in clouds
     !========================================================================
     HET(ind_NO2,    1) = HET(ind_NO2, 1)                                     &
-                       + CloudHet( CldFr, Aliq, Aice,                        &
-                                   rLiq,  rIce, Temp,   NUMDEN,               &
-                                   H%NO2%MW_g,  1e-8_dp, 0.0_dp             )
+                       + CloudHet( CldFr, Aliq,           Aice,   rLiq,      &
+                                   rIce,  SR_MW(ind_NO2), 1e-8_dp, 0.0_dp   )
     HET(ind_NO3,    1) = HET(ind_NO3, 1)                                     &
-                       + CloudHet( CldFr, Aliq, Aice,                        &
-                                   rLiq,  rIce, Temp,    NUMDEN,              &
-                                   H%NO3%MW_g,  0.002_dp, 0.001_dp          )
+                       + CloudHet( CldFr, Aliq,           Aice,     rLiq,    &
+                                   rIce,  SR_MW(ind_NO3), 0.002_dp, 0.001_dp)
 
     ! Reactive uptake coefficient for N2O5 on liquid water cloud
     ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
@@ -414,9 +409,8 @@ MODULE GcKpp_HetRates
     gammaLiq = ( 0.03_dp / 0.019_dp ) * &
        exp( -25.5265_dp + 9283.76_dp / Temp - 851801.0_dp / Temp**2 )
 
-    HET(ind_N2O5,   3) = CloudHet( CldFr, Aliq, Aice,                        &
-                                   rLiq,  rIce, Temp,    NUMDEN,              &
-                                   H%N2O5%MW_g, gammaLiq, 0.02_dp           )
+    HET(ind_N2O5,   3) = CloudHet( CldFr, Aliq,            Aice,     rLiq,   &
+                                   rIce,  SR_MW(ind_N2O5), gammaLiq, 0.02_dp)
 
     ! Now calculate reaction rates where the educt can be consumed.
     ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
@@ -436,34 +430,34 @@ MODULE GcKpp_HetRates
     ! Cl- enhanced NO3 hydrolysis (XW 2018-03-16)
     !------------------------------------------------------------------------
     kITemp          = HetNO3_Cl( NUMDEN, AClRADI,     (1-CldFr)*AClAREA,      &
-                                 Temp, clConc_SALA, 1,                       &
+                                 Temp, clConc_SALA, 1,                        &
                                  H                                          )
 
     HET(ind_NO3, 2) = kITemp
 
     kITemp          = HetNO3_Cl( NUMDEN, XRADI(12),  (1-CldFr)*XAREA(12),     &
-                                 Temp, clConc_SALC, 2,                       &
-                                 H                                          )
+                                 Temp, clConc_SALC, 2,                        &
+                                 H                                           )
 
     HET(ind_NO3, 3) = kITemp
 
     !------------------------------------------------------------------------
     ! ClNO3 and BrNO3 hydrolysis (update: XW 2019-06-08)
     !------------------------------------------------------------------------
-    gammaLiq = MAX( 0.0021_dp*Temp - 0.561_dp, 1e-30_dp )
-    gammaIce = 5.3e-4_dp * exp(1100.0_dp / Temp)
+    gammaLiq          = MAX( 0.0021_dp*Temp - 0.561_dp, 1e-30_dp )
+    gammaIce          = 5.3e-4_dp * exp(1100.0_dp / Temp)
     kITemp            = HETBrNO3( NUMDEN, Temp, CldFr, H )
-    kITemp = kITemp   + CloudHet( CldFr, Aliq,  Aice,                        &
-                                  rLiq,  rIce,  Temp, NUMDEN,                 &
-                                  H%BrNO3%MW_g, gammaLiq, gammaIce          )
+    kITemp = kITemp   + CloudHet( CldFr,    Aliq,     Aice,                  &
+                                  rLiq,     rIce,     SR_MW(ind_BrNO3),      &
+                                  gammaLiq, gammaIce                        )
 
     HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), kITemp          )
-    kITemp            = HETClNO3( NUMDEN,       Temp, clConc_SALA,            &
+    kITemp            = HETClNO3( NUMDEN,       Temp, clConc_SALA,           &
                                   brConc_SALA, CldFr, H                     )
 
     kITemp            = kITemp                                               &
                       + HETClNO3_TCld(                                       &
-                                  NUMDEN,       rLiq,  rIce,                  &
+                                  NUMDEN,       rLiq,  rIce,                 &
                                   ALiq,        AIce,  VAir,                  &
                                   Temp,        CldFr, clConc_CldA,           &
                                   clConc_CldC, clConc_Cldg, brConc_CldA,     &
@@ -906,13 +900,13 @@ MODULE GcKpp_HetRates
     ! OH + Cl on accumulation-mode sea-salt
     gamma          = 0.04_dp * clConc_SALA
     rate           = ArsL1k(   AClArea,   AClRadi,       NUMDEN,              &
-                               gamma,     XTEMP,         H%OH%SrMw          )
+                               gamma,     SR_TEMP,         H%OH%SrMw          )
     HET(ind_OH, 1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), rate               )
 
     ! OH + Cl on coarse-mode sea-salt
     gamma          = 0.04_dp * clConc_SALC
     rate           = ArsL1k(   XAREA(12), XRADI(12),     NUMDEN,              &
-                               gamma,     XTEMP,         H%OH%SrMw          )
+                               gamma,     SR_TEMP,         H%OH%SrMw          )
     HET(ind_OH, 2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), rate               )
 
     !------------------------------------------------------------------------
@@ -1123,7 +1117,7 @@ MODULE GcKpp_HetRates
     !========================================================================
 !### KPP DEBUG
 9999 continue
-#include "print_het.H"
+!#include "print_het.H"
 
     H => NULL()
 
@@ -1155,9 +1149,8 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-  FUNCTION CloudHet( fc,    Aliq,      Aice,      rLiq,      rIce,      &
-                     T,     airNumDen, molmass_g, gammaLiq,  gammaIce,  &
-                            branchLiq, branchIce     ) &
+  FUNCTION CloudHet( fc,    Aliq,      Aice,     rLiq,      rIce,            &
+                     SrMw,  gammaLiq,  gammaIce, branchLiq, branchIce       )&
                      RESULT( kHet )
 !
 ! !INPUT PARAMETERS:
@@ -1168,10 +1161,7 @@ MODULE GcKpp_HetRates
                                                !  (grid average, not in-cloud)
     REAL(dp),         INTENT(IN) :: rLiq       ! Effective radius for liquid
     REAL(dp),         INTENT(IN) :: rIce       !  and ice clouds, cm
-    REAL(dp),         INTENT(IN) :: T          ! Temperature, K
-    REAL(dp),         INTENT(IN) :: airNumDen  ! Air number density,
-                                               !  molec/cm3
-    REAL(dp),         INTENT(IN) :: molmass_g  ! molar weight, g/mole
+    REAL(dp),         INTENT(IN) :: SrMw       ! SQRT(molar weight, g/mole)
     REAL(dp),         INTENT(IN) :: gammaLiq   ! Gamma values on liquid water
     REAL(dp),         INTENT(IN) :: gammaIce   !   and water ice
     REAL(dp),         OPTIONAL   :: branchLiq  ! Fraction of reactant consumed in a particular reaction branch
@@ -1188,7 +1178,7 @@ MODULE GcKpp_HetRates
 !DEFINED PARAMETERS:
 
     ! Residence time of air in clouds, s
-    real(dp), parameter :: tauc = 3600
+    real(dp), parameter :: tauc = 3600.0
 
 !LOCAL VARIABLES:
 
@@ -1265,7 +1255,7 @@ MODULE GcKpp_HetRates
 
        ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
        ! Pass radius in cm and mass in g.
-       ktmp = arsl1k( area, rd, airnumden, gam, sqrt(T), sqrt(molmass_g))
+       ktmp = arsl1k( area, rd, NUMDEN, gam, SR_TEMP, SrMw )
        kI   = kI + ktmp
 
        ! In-cloud loss frequency for particular reaction branch, 1/s
@@ -1516,7 +1506,7 @@ MODULE GcKpp_HetRates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    rate = ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, SR_TEMP, SrMw )
 
   END FUNCTION HetIUptakebySALA
 !EOC
@@ -1546,7 +1536,7 @@ MODULE GcKpp_HetRates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    rate = ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, SR_TEMP, SrMw )
 
   END FUNCTION HetIUptakebySALC
 !EOC
@@ -1578,12 +1568,12 @@ MODULE GcKpp_HetRates
 !------------------------------------------------------------------------------
 !BOC
     ! Uptake rate of iodine by tropospheric sulfate (N=8)
-    rate = ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, XTEMP, SrMw )
+    rate = ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! For UCX-based mechanisms also allow reaction on stratospheric
     ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
     IF ( LUCX ) THEN
-       rate = rate + ArsL1k( XAREA(13), XRADI(13), NUMDEN, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(13), XRADI(13), NUMDEN, gamma, SR_TEMP, SrMw )
     ENDIF
 
   END FUNCTION HETIUptakeBySulf
@@ -1649,7 +1639,7 @@ MODULE GcKpp_HetRates
        ENDIF
 
        ! Uptake by tropospheric sulfate (aerosol type 8)
-       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, XTEMP, SrMw )
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ENDIF
 
@@ -1696,22 +1686,22 @@ MODULE GcKpp_HetRates
     gamma = GAMMA_HO2
 
     ! Uptake by mineral dust (aerosol types 1-7)
-    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
-    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-    rate  = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Skip uptake on stratospheric sulfate (aerosol type 13)
     ! and on irregular ice cloud (aerosol type 14)
@@ -1781,7 +1771,7 @@ MODULE GcKpp_HetRates
        ENDIF
 
        ! Uptake by tropospheric sulfate (aerosol type 8)
-       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, XTEMP, SrMw )
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ENDIF
 
@@ -1835,7 +1825,7 @@ MODULE GcKpp_HetRates
        gamma = 3.6e-7_dp
 
        ! Uptake by tropospheric sulfate (aerosol type 8)
-       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, XTEMP, SrMw )
+       rate  = rate + ArsL1k( XAREA(8), XRADI(8), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ENDIF
 
@@ -1880,25 +1870,25 @@ MODULE GcKpp_HetRates
 
     ! Uptake by mineral dust (aerosol types 1-7)
     gamma = 1.0e-8_dp
-    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by tropospheric sulfate (aerosol type 8)
     gamma = 5e-6_dp
-    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by black carbon (aerosol type 9)
     gamma = 1e-4_dp
-    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by black carbon (aerosol type 10)
     gamma = 1e-6_dp
-    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by fine & coarse sea salt (aerosol types 11-12)
     if ( relhum < 40.0_dp ) then
@@ -1908,14 +1898,14 @@ MODULE GcKpp_HetRates
     else
        gamma = 1.0e-8_dp + (1e-4_dp - 1e-8_dp) * (relhum - 40.0_dp)/30.0_dp
     endif
-    rate  = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by stratospheric sulfate (aerosol type 13)
     ! and by irregular ice cloud (aerosol type 14)
     gamma = 1.0e-4_dp
     rate  = rate + XAREA(13) * gamma
-    rate  = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, SR_TEMP, SrMw )
 
   END FUNCTION Het1stOrderUptakeNO2
 !EOC
@@ -1960,13 +1950,13 @@ MODULE GcKpp_HetRates
 
     ! Uptake by mineral dust (aerosol types 1-7)
     gamma = 0.01_dp
-    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, XTEMP, SrMw )
-    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(1 ), XRADI(1 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(2 ), XRADI(2 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(3 ), XRADI(3 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(4 ), XRADI(4 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(5 ), XRADI(5 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(6 ), XRADI(6 ), NUMDEN, gamma, SR_TEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(7 ), XRADI(7 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by black carbon (aerosol type 9)
     if ( relhum < 50.0_dp ) then
@@ -1974,17 +1964,17 @@ MODULE GcKpp_HetRates
     else
        gamma = 1.0e-3_dp
     endif
-    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by organic carbon (aerosol type 10)
     gamma = 0.005_dp
-    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ! Uptake by stratospheric sulfate (aerosol type 13)
     ! and by irregular ice cloud (aerosol type 14)
     gamma = 0.1_dp
     rate  = rate + XAREA(13) * gamma
-    rate  = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, XTEMP, SrMw )
+    rate  = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, SR_TEMP, SrMw )
 
   END FUNCTION Het1stOrderUptakeNO3
 !EOC
@@ -2027,20 +2017,20 @@ MODULE GcKpp_HetRates
     IF ( RELHUM >= CRITRH ) THEN
 
        ! Uptake by tropospheric sulfate (aerosol type 8)
-       rate = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(8 ), XRADI(8 ), NUMDEN, gamma, SR_TEMP, SrMw )
 
        ! Uptake by black carbon and organic carbon (aerosol types 9-10)
-       rate = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, XTEMP, SrMw )
-       rate = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(9 ), XRADI(9 ), NUMDEN, gamma, SR_TEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(10), XRADI(10), NUMDEN, gamma, SR_TEMP, SrMw )
 
        ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-       rate = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, XTEMP, SrMw )
-       rate = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(11), XRADI(11), NUMDEN, gamma, SR_TEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(12), XRADI(12), NUMDEN, gamma, SR_TEMP, SrMw )
 
        ! Uptake by stratospheric sulfate (aerosol type 13)
        ! and by irregular ice cloud (aerosol type 14)
        rate = rate + XAREA(13) * gamma
-       rate = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, XTEMP, SrMw )
+       rate = rate + ArsL1k( XAREA(14), XRADI(14), NUMDEN, gamma, SR_TEMP, SrMw )
 
     ENDIF
 
@@ -2159,7 +2149,7 @@ MODULE GcKpp_HetRates
 
             !For SNA aerosol...
             ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+fineSSA aerosol
-            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, NUMDEN, XSTKCF, XTEMP, (A**0.5_DP) )
+            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, NUMDEN, XSTKCF, SR_TEMP, (A**0.5_DP) )
 
             !Calculate ClNO2 yield on SNA(+ORG) aerosol using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2188,7 +2178,7 @@ MODULE GcKpp_HetRates
             SA     = output(4)
 
             !For coarse mode SSA aerosol ...
-            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, NUMDEN, XSTKCF, XTEMP, (A**0.5_DP))
+            ADJUSTEDRATE=ArsL1k( (1.0_dp-CldFr)*SA, Rp, NUMDEN, XSTKCF, SR_TEMP, (A**0.5_DP))
 
             !Calculate ClNO2 yield using kN2O5 from above
             ! phi = kClNO2/kN2O5 (from ClNO2 and HNO3 production pathways)
@@ -2200,7 +2190,7 @@ MODULE GcKpp_HetRates
          ELSE
             !For all other aerosol types...
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ArsL1k((1-CldFr)*XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ArsL1k((1-CldFr)*XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                (A**0.5_DP))
          ENDIF
 
@@ -2561,7 +2551,7 @@ MODULE GcKpp_HetRates
       SA     = output(4)
 
       ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
-      kISum(1) = ArsL1k( (1-CldFr)*SA, Rp, NUMDEN, XSTKCF, XTEMP, XSQM )
+      kISum(1) = ArsL1k( (1-CldFr)*SA, Rp, NUMDEN, XSTKCF, SR_TEMP, XSQM )
       kISum(1) = ClNO2_yield * kISum(1)
 
       kISum(2) = XSTKCF
@@ -2649,7 +2639,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -2715,7 +2705,7 @@ MODULE GcKpp_HetRates
       XStkCf = Gamma_HX_Uptake( rAer, denAir, X, TK )
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,XTemp,XSqM)
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,SR_TEMP,XSqM)
 
     END FUNCTION HETHXUptake
 !EOC
@@ -2769,7 +2759,7 @@ MODULE GcKpp_HetRates
       ENDIF
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, XTemp, XSqM )
+      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, SR_TEMP, XSqM )
 
     END FUNCTION HETO3_SS
 !EOC
@@ -2910,7 +2900,7 @@ MODULE GcKpp_HetRates
     gamma = Gamma_NO3( rAer, TK, clConc, X, H ) * 0.01_dp
 
     ! Reaction rate for surface of aerosol [1/s]
-    rate = ArsL1k( AAer, rAer, denAir, gamma, XTemp, H%NO3%SrMw )
+    rate = ArsL1k( AAer, rAer, denAir, gamma, SR_TEMP, H%NO3%SrMw )
 
   END FUNCTION HETNO3_Cl
 !EOC
@@ -3011,15 +3001,16 @@ MODULE GcKpp_HetRates
          Y = 2
       ENDIF
 
-      CALL GAMMA_ClNO2( rLiq,   denAir, TK,        pH,   clConc,              &
-                        brConc, Y,      GAM_ClNO2, r_gp, H                   )
+      CALL GAMMA_ClNO2( rLiq,   denAir, TK,        pH,   clConc,             &
+                        brConc, Y,      GAM_ClNO2, r_gp, H                  )
       X1 = GAM_ClNO2
       r1 = r_gp * r_ac
 
       X2 = 0
 
-      kISum = CloudHet( CldFr, Aliq,   Aice,         rLiq, rIce,             &
-                        TK,    denAir, H%ClNO2%MW_g, X1,   X2,  r1               )
+      kISum = CloudHet( CldFr, Aliq, Aice,                                   &
+                        rLiq,  rIce, SR_MW(ind_ClNO2),                       &
+                        X1,    X2,   r1                                     )
 
     END FUNCTION HetClNO2_TCld
 !EOC
@@ -3072,7 +3063,7 @@ MODULE GcKpp_HetRates
                         brConc, X,      GAM_ClNO2, r_gp, H                  )
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K( AAer, rAer, denAir, GAM_ClNO2, XTemp, XSqM ) * r_gp
+      kISum = Arsl1K( AAer, rAer, denAir, GAM_ClNO2, SR_TEMP, XSqM ) * r_gp
 
     END FUNCTION HETClNO2
 !EOC
@@ -3364,7 +3355,7 @@ MODULE GcKpp_HetRates
                             clConc, brConc, GAM_ClNO3, r_gp, H              )
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K( AAer, rAer, denAir, GAM_ClNO3, XTemp, XSqM ) * r_gp
+      kISum = Arsl1K( AAer, rAer, denAir, GAM_ClNO3, SR_TEMP, XSqM ) * r_gp
 
     END FUNCTION HETClNO3_SS
 !EOC
@@ -3424,7 +3415,7 @@ MODULE GcKpp_HetRates
       ENDIF
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, XTemp, XSqM ) * r_gp
+      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, SR_TEMP, XSqM ) * r_gp
 
     END FUNCTION HETHOBr_SS
 !EOC
@@ -3503,10 +3494,11 @@ MODULE GcKpp_HetRates
       ENDIF
 
       ! Reaction on liquid clouds (tropospheric only)
-      X1 = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc, H )
-      X2 = 0.0_dp
-      kISum = CloudHet( CldFr, Aliq,   Aice,      rLiq, rIce,               &
-                        TK,    denAir, H%O3%MW_g, X1,   X2,   r_ac               )
+      X1    = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc, H )
+      X2    = 0.0_dp
+      kISum = CloudHet( CldFr, Aliq, Aice,                                   &
+                        rLiq,  rIce, SR_MW(ind_O3),                          &
+                        X1,    X2,   r_ac                                   )
 
     END FUNCTION HETO3_TCld
 !EOC
@@ -3658,7 +3650,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP,XSQM)
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP,XSQM)
             ENDIF
 
             ! Add to overall reaction rate
@@ -3752,10 +3744,10 @@ MODULE GcKpp_HetRates
             ! factor in this case, including c-bar
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE IF (N .eq. 11) THEN
-            ADJUSTEDRATE =ArsL1k((1-CldFr)*AClAREA,AClRADI,NUMDEN,XSTKCF,XTEMP,XSQM)*r_gp
+            ADJUSTEDRATE =ArsL1k((1-CldFr)*AClAREA,AClRADI,NUMDEN,XSTKCF,SR_TEMP,XSQM)*r_gp
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -3840,7 +3832,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSEIF (XStkCf.gt.0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -3924,7 +3916,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSEIF (XStkCf.gt.0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTemp,XSQM)
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP,XSQM)
          ENDIF
 
          ! Add to overall reaction rate
@@ -4048,8 +4040,8 @@ MODULE GcKpp_HetRates
          r2 = 0.0_dp
       ENDIF
 
-      kISum = CloudHet( CldFr,  Aliq,   Aice,         rLiq, rIce,             &
-                        TK,     denAir, H%ClNO3%MW_g, X1,   X2,   r1,   r2         )
+      kISum = CloudHet( CldFr,            Aliq, Aice, rLiq, rIce,            &
+                        SR_MW(ind_ClNO3), X1,   X2,   r1,   r2              )
 
     END FUNCTION HetClNO3_TCld
 !EOC
@@ -4183,8 +4175,8 @@ MODULE GcKpp_HetRates
          r2 = 0.0_dp
       ENDIF
 
-      kISum = CloudHet( CldFr,  Aliq,   Aice,        rLiq, rIce,              &
-                        TK,     denAir, H%HOBr%MW_g, X1,   X2,   r1,   r2          )
+      kISum = CloudHet( CldFr,           Aliq, Aice, rLiq, rIce,             &
+                        SR_MW(ind_HOBr), X1,   X2,   r1,   r2               )
 
     END FUNCTION HetHOBr_TCld
 !EOC
@@ -4877,7 +4869,7 @@ MODULE GcKpp_HetRates
          ELSE
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ArsL1k( (1-CldFr)*XAREA(N), XRADI(N), denAir,       &
-                                 XSTKCF,             XTEMP,    XSQM         )
+                                 XSTKCF,             SR_TEMP,    XSQM         )
          ENDIF
 
          ! Add to overall reaction rate
@@ -4959,7 +4951,7 @@ MODULE GcKpp_HetRates
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE IF (XSTKCF .GT. 0.0e+0_dp) THEN
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                XSQM)
          ENDIF
 
@@ -5036,7 +5028,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5114,7 +5106,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5193,7 +5185,7 @@ MODULE GcKpp_HetRates
                ADJUSTEDRATE = XAREA(N) * XSTKCF
             ELSE
                ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,XTEMP, &
+               ADJUSTEDRATE=ArsL1k(XAREA(N),XRADI(N),NUMDEN,XSTKCF,SR_TEMP, &
                                   (A**0.5_DP))
             ENDIF
 
@@ -5314,8 +5306,8 @@ MODULE GcKpp_HetRates
          r2 = 0.0_dp
       ENDIF
 
-      kISum = CloudHet( CldFr, Aliq,   Aice,        rLiq, rIce,              &
-                        TK,    denAir, H%HOCl%MW_g, X1,   X2,   r1,   r2          )
+      kISum = CloudHet( CldFr,           Aliq, Aice, rLiq, rIce,             &
+                        SR_MW(ind_HOCl), X1,   X2,   r1,   r2               )
 
     END FUNCTION HetHOCl_TCld
 !EOC
@@ -5368,7 +5360,7 @@ MODULE GcKpp_HetRates
       ENDIF
 
       ! Reaction rate
-      kISum = ArsL1k( AAer, rAer, denAir, XSTKCF, XTEMP, XSQM )
+      kISum = ArsL1k( AAer, rAer, denAir, XSTKCF, SR_TEMP, XSQM )
 
     END FUNCTION HETHOCl_SS
 !EOC
@@ -6567,7 +6559,8 @@ MODULE GcKpp_HetRates
 
     ! If gamma or radius is very small, set rate to zero and return
     IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
-       rate = 1.0e-30_dp  !0.0_dp
+       !rate = 1.0e-30_dp
+       rate = 0.0_dp
        RETURN
     ENDIF
 

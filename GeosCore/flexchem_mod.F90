@@ -1398,7 +1398,6 @@ CONTAINS
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -1442,31 +1441,33 @@ CONTAINS
     !========================================================================
     ! Copy various quantities at each grid box into gckpp_Global variables
     !========================================================================
-    AClAREA     = State_Chm%AClArea(I,J,L)          ! SSA+SNA area [cm2/cm3]
-    AClRADI     = State_Chm%AClRadi(I,J,L)          ! SSA+SNA radius [cm]
-    AClVOL      = AClArea * AClRadi / 3e+0_fp       ! SSA+SNA volume [cm3/cm3]
-    AWATER(:)   = State_Chm%IsorropAeroH2O(I,J,L,:) ! Aerosol water
-    GAMMA_HO2   = Input_Opt%GAMMA_HO2
-    H_PLUS      = State_Chm%IsorropHplus(I,J,L,1)   ! Proton activity [1]
-    MHSO4       = State_Chm%IsorropBisulfate(I,J,L) ! Bisulvate conc [M]
-    MNO3        = State_Chm%IsorropNitrate(I,J,L,1) ! Nitrate conc [M]
-    MSO4        = State_Chm%IsorropSulfate(I,J,L)   ! Sulfate conc [M]
-    NUMDEN      = State_Met%AIRNUMDEN(I,J,L)        ! Air density [molec/cm3]
-    H2O         = State_Met%AVGW(I,J,L) * NUMDEN    ! H2O conc [molec/cm3]
-    OMOC_POA    = State_Chm%OMOC_POA(I,J)           ! OM:OC ratio, POA [1]
-    OMOC_OPOA   = State_Chm%OMOC_OPOA(I,J)          ! OM:OC ratio, OPOA [1]
-    PRESS       = Get_Pcenter( I, J, L )            ! Pressure [hPa]
-    QICE        = State_Met%QI(I,J,L)               ! Ice MR [kg/kg dry air]
-    QLIQ        = State_Met%QL(I,J,L)               ! Water MR [kg/kg dry air]
-    SPC_SALA    = State_Chm%Species(I,J,L,id_SALA)  ! Seasalt conc [molec/cm3]
-    SUNCOS      = State_Met%SUNCOSmid(I,J)          ! cos(solar zenith angle)
-    TEMP        = State_Met%T(I,J,L)                ! Temperature [K]
-    VAIR        = State_Met%AIRVOL(I,J,L)*1.0e6_f8  ! Volume of air (cm3)
-    XTEMP       = SQRT( TEMP )                      ! Temp**0.5 [K]
-    XAREA(1:NA) = State_Chm%AeroArea(I,J,L,1:NA)    ! Aer area [cm2/cm3]
-    XRADI(1:NA) = State_Chm%AeroRadi(I,J,L,1:NA)    ! Aer eff radius [cm]
-    XVOL(1:NA)  = XAREA(1:NA) * XRADI(1:NA) / 3e+0_fp     ! Aer vol [cm3/cm3]
-    XH2O(1:NA)  = State_Chm%AeroH2O(I,J,L,1:NA) * 1e-6_fp ! Aer water [cm3/cm3]
+    AClAREA        = State_Chm%AClArea(I,J,L)         ! SSA+SNA area [cm2/cm3]
+    AClRADI        = State_Chm%AClRadi(I,J,L)         ! SSA+SNA radius [cm]
+    AClVOL         = AClArea * AClRadi / 3.0_dp       ! SSA+SNA volume [cm3/cm3]
+    AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)! Aerosol water
+    GAMMA_HO2      = Input_Opt%GAMMA_HO2
+    H_PLUS         = State_Chm%IsorropHplus(I,J,L,1)  ! Proton activity [1]
+    MHSO4          = State_Chm%IsorropBisulfate(I,J,L)! Bisulvate conc [M]
+    MNO3           = State_Chm%IsorropNitrate(I,J,L,1)! Nitrate conc [M]
+    MSO4           = State_Chm%IsorropSulfate(I,J,L)  ! Sulfate conc [M]
+    NUMDEN         = State_Met%AIRNUMDEN(I,J,L)       ! Air density [molec/cm3]
+    H2O            = State_Met%AVGW(I,J,L) * NUMDEN   ! H2O conc [molec/cm3]
+    OMOC_POA       = State_Chm%OMOC_POA(I,J)          ! OM:OC ratio, POA [1]
+    OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)         ! OM:OC ratio, OPOA [1]
+    PRESS          = Get_Pcenter( I, J, L )           ! Pressure [hPa]
+    QICE           = State_Met%QI(I,J,L)              ! Ice MR [kg/kg dry air]
+    QLIQ           = State_Met%QL(I,J,L)              ! Water MR [kg/kg dry air]
+    SPC_SALA       = State_Chm%Species(I,J,L,id_SALA) ! Seasalt conc [molec/cm3]
+    SUNCOS         = State_Met%SUNCOSmid(I,J)         ! cos(solar zenith angle)
+    TEMP           = State_Met%T(I,J,L)               ! Temperature [K]
+    TEMP_OVER_K300 = TEMP / 300.0_dp
+    K300_OVER_TEMP = 300.0_dp / TEMP
+    SR_TEMP        = SQRT( TEMP )                     ! Temp**0.5 [K]
+    VAIR           = State_Met%AIRVOL(I,J,L)*1.0e6_dp ! Volume of air (cm3)
+    XAREA(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)   ! Aer area [cm2/cm3]
+    XRADI(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)   ! Aer eff radius [cm]
+    XVOL(1:NA)     = XAREA(1:NA) * XRADI(1:NA) / 3.0_dp  ! Aer vol [cm3/cm3]
+    XH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA)*1.0e-6_dp ! Aer H2O [cm3/cm3]
 
     !========================================================================
     ! Copy species concentrations into gckpp_Global variables
@@ -2096,6 +2097,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Parameters, ONLY : nFam, nReact
+    USE Gckpp_Global,     ONLY : MW, SR_MW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
@@ -2245,6 +2247,16 @@ CONTAINS
                                State_Diag%Archive_HO2concAfterChem      .or. &
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
+
+    !=======================================================================
+    ! Save molecular weight information into KPP arrays from gckpp_Global,
+    ! as these are needed for the heterogeneous chemistry routines
+    !=======================================================================
+    DO KppId = 1, State_Chm%nKppSpc                    ! Kpp species Id
+       N            = State_Chm%Map_KppSpc(KppId)      ! GC species Id
+       MW(KppId)    = State_Chm%SpcData(N)%Info%MW_g   ! Mol wt [g]
+       SR_MW(KppId) = SQRT( MW(KppId ) )               ! SQRT( Mol wt )
+    ENDDO
 
     !=======================================================================
     ! Allocate arrays
