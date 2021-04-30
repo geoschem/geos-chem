@@ -397,6 +397,7 @@ MODULE GcKpp_HetRates
     HET(ind_NO2,    1) = HET(ind_NO2, 1)                                     &
                        + CloudHet( CldFr, Aliq,           Aice,   rLiq,      &
                                    rIce,  SR_MW(ind_NO2), 1e-8_dp, 0.0_dp   )
+
     HET(ind_NO3,    1) = HET(ind_NO3, 1)                                     &
                        + CloudHet( CldFr, Aliq,           Aice,     rLiq,    &
                                    rIce,  SR_MW(ind_NO3), 0.002_dp, 0.001_dp)
@@ -429,17 +430,14 @@ MODULE GcKpp_HetRates
     !------------------------------------------------------------------------
     ! Cl- enhanced NO3 hydrolysis (XW 2018-03-16)
     !------------------------------------------------------------------------
-    kITemp          = HetNO3_Cl( NUMDEN, AClRADI,     (1-CldFr)*AClAREA,      &
-                                 Temp, clConc_SALA, 1,                        &
-                                 H                                          )
+    HET(ind_NO3, 2) = HetNO3_Cl( AClRADI,     ClearFr * AClAREA,             &
+                                 clConc_SALA, 1                             )
 
-    HET(ind_NO3, 2) = kITemp
+    HET(ind_NO3, 3) = HetNO3_Cl( XRADI(12),   ClearFr * XAREA(12),           &
+                                 clConc_SALC, 2                             )
 
-    kITemp          = HetNO3_Cl( NUMDEN, XRADI(12),  (1-CldFr)*XAREA(12),     &
-                                 Temp, clConc_SALC, 2,                        &
-                                 H                                           )
-
-    HET(ind_NO3, 3) = kITemp
+!### KPP DEBUG
+goto 9999
 
     !------------------------------------------------------------------------
     ! ClNO3 and BrNO3 hydrolysis (update: XW 2019-06-08)
@@ -2780,7 +2778,7 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Gamma_NO3( radius, T, C_X, X, H ) RESULT( gamma )
+  FUNCTION Gamma_NO3( radius, C_X, X ) RESULT( gamma )
 !
 ! !USES:
 !
@@ -2789,10 +2787,8 @@ MODULE GcKpp_HetRates
 ! !INPUT PARAMETERS:
 !
     REAL(dp),       INTENT(IN) :: Radius
-    REAL(dp),       INTENT(IN) :: T        ! Temperature (K)
     REAL(dp),       INTENT(IN) :: C_X      ! Cl- Concentration (mol/L)
     INTEGER,        INTENT(IN) :: X        ! X = 1 fine; 2 coarse
-    TYPE(HetState), POINTER    :: H        ! Hetchem species metadata
 !
 ! !RETURN VALUE:
 !
@@ -2815,11 +2811,11 @@ MODULE GcKpp_HetRates
       REAL(dp) :: H_K0_O3
 
       ! Henry's law [M/atm]
-      H_K0_O3 = H%O3%K0 * con_atm_bar
-      H_X     = H_K0_O3 * EXP( H%O3%CR * ( 1.0_dp/T - 1.0_dp/H%O3%TK ) )
+      H_K0_O3 = HENRY_K0(ind_O3) * con_atm_bar
+      H_X     = H_K0_O3 * EXP( HENRY_CR(ind_O3) * (1.0_dp/TEMP - 1.0_dp/T_298) )
 
       ! O3 mol wt (kg/mol)
-      M_X = H%O3%MW_g * 1.0e-3_dp
+      M_X = MW(ind_O3) * 1.0e-3_dp
 
       WaterC = AWATER(X) / 18.0e+12_dp                      ! mol/cm3 air
       IF (X == 1) THEN
@@ -2831,13 +2827,13 @@ MODULE GcKpp_HetRates
       WaterC = WaterC / Vol                                 ! mol/L aerosol
 
       ! HNO3 mol wt (kg/mol)
-      M_X = H%NO3%MW_g * 1.0e-3_dp
+      M_X = MW(ind_NO3) * 1.0e-3_dp
 
       ! Mass accommodation coefficient
       ab = 1.3e-2_dp
 
       ! Thermal velocity [cm/s]
-      cavg = SQRT( 8.0_dp * RStarG * T / ( Pi * M_X ) ) *1.0e2_dp
+      cavg = SQRT( 8.0_dp * RStarG * TEMP / ( Pi * M_X ) ) * 1.0e2_dp
 
       ! Liquid phase diffusion coefficient [cm2/s] for NO3
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
@@ -2857,7 +2853,7 @@ MODULE GcKpp_HetRates
       !    K_tot = 1.0e-2_dp
       ! ENDIF
 
-      gb = 4.0_dp * H_X * con_R * T * l_r * k_tot / cavg
+      gb = 4.0_dp * H_X * con_R * TEMP * l_r * k_tot / cavg
 
       gb = gb * REACTODIFF_CORR( Radius, l_r)
 
@@ -2877,21 +2873,18 @@ MODULE GcKpp_HetRates
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HETNO3_Cl( denAir, rAer, AAer, TK, clConc, X, H ) RESULT( rate )
+  FUNCTION HETNO3_Cl( rAer, AAer, clConc, X ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp),       INTENT(IN) :: denAir  ! Density of air (#/cm3)
-    REAL(dp),       INTENT(IN) :: rAer    ! Radius of aerosol (cm)
-    REAL(dp),       INTENT(IN) :: AAer    ! Area of aerosol (cm2/cm3)
-    REAL(dp),       INTENT(IN) :: TK      ! Temperature (K)
-    REAL(dp),       INTENT(IN) :: clConc  ! Cloride concentration (mol/L)
-    INTEGER,        INTENT(IN) :: X       ! 1=fine sea salt; 2=coarse sea salt
-    TYPE(HetState), POINTER    :: H       ! Hetchem species metadata
+    REAL(dp), INTENT(IN) :: rAer    ! Radius of aerosol (cm)
+    REAL(dp), INTENT(IN) :: AAer    ! Area of aerosol (cm2/cm3)
+    REAL(dp), INTENT(IN) :: clConc  ! Cloride concentration (mol/L)
+    INTEGER,  INTENT(IN) :: X       ! 1=fine sea salt; 2=coarse sea salt
 !
 ! !RETURN VALUE:
 !
-    REAL(dp)                   :: rate    ! NO3(g) reaction rate on Cl- [1/s]
+    REAL(dp)             :: rate    ! NO3(g) reaction rate on Cl- [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2901,10 +2894,10 @@ MODULE GcKpp_HetRates
     REAL(dp) :: gamma
 
     ! Compute reactive uptake coefficient [1]
-    gamma = Gamma_NO3( rAer, TK, clConc, X, H ) * 0.01_dp
+    gamma = Gamma_NO3( rAer, clConc, X ) * 0.01_dp
 
     ! Reaction rate for surface of aerosol [1/s]
-    rate = ArsL1k( AAer, rAer, denAir, gamma, SR_TEMP, H%NO3%SrMw )
+    rate = ArsL1k( AAer, rAer, NUMDEN, gamma, SR_TEMP, SR_MW(ind_NO3) )
 
   END FUNCTION HETNO3_Cl
 !EOC

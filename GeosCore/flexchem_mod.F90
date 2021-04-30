@@ -2097,7 +2097,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Parameters, ONLY : nFam, nReact
-    USE Gckpp_Global,     ONLY : MW, SR_MW
+    USE Gckpp_Global,     ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
@@ -2160,59 +2160,59 @@ CONTAINS
     ENDIF
 
     ! Initialize species flags
-    id_CH4                   = Ind_( 'CH4', 'A'     ) ! CH4 advected species
-    id_HO2                   = Ind_( 'HO2'          )
-    id_O3P                   = Ind_( 'O'            )
-    id_O1D                   = Ind_( 'O1D'          )
-    id_OH                    = Ind_( 'OH'           )
-    id_SALA                  = Ind_( 'SALA'         )
+    id_CH4      = Ind_( 'CH4', 'A'     ) ! CH4 advected species
+    id_HO2      = Ind_( 'HO2'          )
+    id_O3P      = Ind_( 'O'            )
+    id_O1D      = Ind_( 'O1D'          )
+    id_OH       = Ind_( 'OH'           )
+    id_SALA     = Ind_( 'SALA'         )
 
 #ifdef MODEL_GEOS
     ! ckeller
-    id_O3                    = Ind_( 'O3'           )
-    id_A3O2                  = Ind_( 'A3O2'         )
-    id_ATO2                  = Ind_( 'ATO2'         )
-    id_BRO2                  = Ind_( 'BRO2'         )
-    id_ETO2                  = Ind_( 'ETO2'         )
-    id_LIMO2                 = Ind_( 'LIMO2'        )
-    id_MO2                   = Ind_( 'MO2'          )
-    id_PIO2                  = Ind_( 'PIO2'         )
-    id_PO2                   = Ind_( 'PO2'          )
-    id_PRN1                  = Ind_( 'PRN1'         )
-    id_R4N1                  = Ind_( 'R4N1'         )
-    id_R4O2                  = Ind_( 'R4O2'         )
-    id_TRO2                  = Ind_( 'TRO2'         )
-    id_XRO2                  = Ind_( 'XRO2'         )
-    id_IHOO1                 = Ind_( 'IHOO1'        )
-    id_IHOO4                 = Ind_( 'IHOO4'        )
-    id_IHCOO                 = Ind_( 'IHCOO'        )
-    id_IHPOO1                = Ind_( 'IHPOO1'       )
-    id_IHPOO2                = Ind_( 'IHPOO2'       )
-    id_IHPOO3                = Ind_( 'IHPOO3'       )
-    id_IEPOXAOO              = Ind_( 'IEPOXAOO'     )
-    id_IEPOXBOO              = Ind_( 'IEPOXBOO'     )
-    id_C4HVP1                = Ind_( 'C4HVP1'       )
-    id_C4HVP2                = Ind_( 'C4HVP2'       )
-    id_HPALD1OO              = Ind_( 'HPALD1OO'     )
-    id_HPALD2OO              = Ind_( 'HPALD2OO'     )
-    id_ISOPNOO1              = Ind_( 'ISOPNOO1'     )
-    id_ISOPNOO2              = Ind_( 'ISOPNOO2'     )
-    id_INO2B                 = Ind_( 'INO2B'        )
-    id_INO2D                 = Ind_( 'INO2D'        )
-    id_IDHNBOO               = Ind_( 'IDHNBOO'      )
-    id_IDHNDOO1              = Ind_( 'IDHNDOO1'     )
-    id_IDHNDOO2              = Ind_( 'IDHNDOO2'     )
-    id_IHPNBOO               = Ind_( 'IHPNBOO'      )
-    id_IHPNDOO               = Ind_( 'IHPNDOO'      )
-    id_ICNOO                 = Ind_( 'ICNOO'        )
-    id_IDNOO                 = Ind_( 'IDNOO'        )
+    id_O3       = Ind_( 'O3'           )
+    id_A3O2     = Ind_( 'A3O2'         )
+    id_ATO2     = Ind_( 'ATO2'         )
+    id_BRO2     = Ind_( 'BRO2'         )
+    id_ETO2     = Ind_( 'ETO2'         )
+    id_LIMO2    = Ind_( 'LIMO2'        )
+    id_MO2      = Ind_( 'MO2'          )
+    id_PIO2     = Ind_( 'PIO2'         )
+    id_PO2      = Ind_( 'PO2'          )
+    id_PRN1     = Ind_( 'PRN1'         )
+    id_R4N1     = Ind_( 'R4N1'         )
+    id_R4O2     = Ind_( 'R4O2'         )
+    id_TRO2     = Ind_( 'TRO2'         )
+    id_XRO2     = Ind_( 'XRO2'         )
+    id_IHOO1    = Ind_( 'IHOO1'        )
+    id_IHOO4    = Ind_( 'IHOO4'        )
+    id_IHCOO    = Ind_( 'IHCOO'        )
+    id_IHPOO1   = Ind_( 'IHPOO1'       )
+    id_IHPOO2   = Ind_( 'IHPOO2'       )
+    id_IHPOO3   = Ind_( 'IHPOO3'       )
+    id_IEPOXAOO = Ind_( 'IEPOXAOO'     )
+    id_IEPOXBOO = Ind_( 'IEPOXBOO'     )
+    id_C4HVP1   = Ind_( 'C4HVP1'       )
+    id_C4HVP2   = Ind_( 'C4HVP2'       )
+    id_HPALD1OO = Ind_( 'HPALD1OO'     )
+    id_HPALD2OO = Ind_( 'HPALD2OO'     )
+    id_ISOPNOO1 = Ind_( 'ISOPNOO1'     )
+    id_ISOPNOO2 = Ind_( 'ISOPNOO2'     )
+    id_INO2B    = Ind_( 'INO2B'        )
+    id_INO2D    = Ind_( 'INO2D'        )
+    id_IDHNBOO  = Ind_( 'IDHNBOO'      )
+    id_IDHNDOO1 = Ind_( 'IDHNDOO1'     )
+    id_IDHNDOO2 = Ind_( 'IDHNDOO2'     )
+    id_IHPNBOO  = Ind_( 'IHPNBOO'      )
+    id_IHPNDOO  = Ind_( 'IHPNDOO'      )
+    id_ICNOO    = Ind_( 'ICNOO'        )
+    id_IDNOO    = Ind_( 'IDNOO'        )
 #endif
 
     ! Set flags to denote if each species is defined
-    ok_HO2                   = ( id_HO2 > 0         )
-    ok_O1D                   = ( id_O1D > 0         )
-    ok_O3P                   = ( id_O3P > 0         )
-    ok_OH                    = ( id_OH  > 0         )
+    ok_HO2      = ( id_HO2 > 0         )
+    ok_O1D      = ( id_O1D > 0         )
+    ok_O3P      = ( id_O3P > 0         )
+    ok_OH       = ( id_OH  > 0         )
 
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
@@ -2249,13 +2249,15 @@ CONTAINS
                                State_Diag%Archive_O3PconcAfterChem          )
 
     !=======================================================================
-    ! Save molecular weight information into KPP arrays from gckpp_Global,
-    ! as these are needed for the heterogeneous chemistry routines
+    ! Save physical parameters from the species database into KPP arrays
+    ! in gckpp_Global.F90.  These are for the hetchem routines.
     !=======================================================================
-    DO KppId = 1, State_Chm%nKppSpc                    ! Kpp species Id
-       N            = State_Chm%Map_KppSpc(KppId)      ! GC species Id
-       MW(KppId)    = State_Chm%SpcData(N)%Info%MW_g   ! Mol wt [g]
-       SR_MW(KppId) = SQRT( MW(KppId ) )               ! SQRT( Mol wt )
+    DO KppId = 1, State_Chm%nKppSpc
+       N               = State_Chm%Map_KppSpc(KppId)
+       MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
+       SR_MW(KppId)    = SQRT( MW(KppId ) )
+       HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
+       HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
     ENDDO
 
     !=======================================================================

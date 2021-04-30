@@ -126,6 +126,9 @@ MODULE gckpp_Global
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
   REAL(kind=dp), PARAMETER :: con_R       = 0.083144598_dp
 
+  ! Reference temperature
+  REAL(kind=dp), PARAMETER :: T_298       = 298.15_dp
+
   !--------------------------------------------------------------------------
   ! Add more global variables here, so that they can be used
   ! in inlined functions that will get written to gckpp_Rates.F90
@@ -167,6 +170,10 @@ MODULE gckpp_Global
   ! H2O concentration
   REAL(kind=dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
+
+  ! Henry's law constants (do not need to be THREADPRIVATE)
+  REAL(kind=dp) :: HENRY_K0(NSPEC)
+  REAL(kind=dp) :: HENRY_CR(NSPEC)
 
   ! Array for heterogeneous rates
   !
