@@ -473,41 +473,42 @@ goto 9999
 
     ! ClNO3 + H2O Overall rate
     HET(ind_ClNO3, 1) = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), rate            )
-!^^^^ Identical w/r/t ref up to here ^^^^
-
-    !------------------------------------------------------------------------
-    ! HOBr + HBr (update: XW 2019-06-08)
-    !------------------------------------------------------------------------
-    rate = HETHOBr_HBr( H%HOBr%MW_g, 0.0_dp, Input_Opt                      )
-
-    rate = rate + HETHOBr_TCld( rLiq,         rIce,        ALiq,             &
-                                AIce,         VAir,        CldFr,            &
-                                hConc_Sul,    hConc_LCl,   hConc_ICl,        &
-                                clConc_CldA,  clConc_CldC, clConc_Cldg,      &
-                                brConc_CldA,  brConc_CldC, brConc_Cldg,      &
-                                HSO3conc_Cld, SO3conc_Cld, hno3_th,          &
-                                hcl_th,       hbr_th,      6                )
-
-    HET(ind_HOBr,  1) = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), rate             )
 !### KPP DEBUG
 goto 9999
 
-    !------------------------------------------------------------------------
-    ! HOBr + HCl (update: XW 2019-06-08)
-    !------------------------------------------------------------------------
-    kITemp = HETHOBr_HCl( H%HOBr%MW_g, 0.0_dp, Input_Opt                    )
-
-    kITemp = kITemp                                                          &
-           + HETHOBr_TCld( rLiq,        rIce,                   &
-                           ALiq,        AIce,        VAir,                   &
-                           CldFr,       hConc_Sul,              &
-                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-                           hbr_th,      5,           H                      )
-
-    HET(ind_HOBr,  2) = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), kITemp           )
+!!^^^^ Identical w/r/t ref up to here ^^^^
+!
+!    !------------------------------------------------------------------------
+!    ! HOBr + HBr (update: XW 2019-06-08)
+!    !------------------------------------------------------------------------
+!    rate = HETHOBr_HBr( H%HOBr%MW_g, 0.0_dp, Input_Opt                      )
+!
+!    rate = rate + HETHOBr_TCld( rLiq,         rIce,        ALiq,             &
+!                                AIce,         VAir,        CldFr,            &
+!                                hConc_Sul,    hConc_LCl,   hConc_ICl,        &
+!                                clConc_CldA,  clConc_CldC, clConc_Cldg,      &
+!                                brConc_CldA,  brConc_CldC, brConc_Cldg,      &
+!                                HSO3conc_Cld, SO3conc_Cld, hno3_th,          &
+!                                hcl_th,       hbr_th,      6                )
+!
+!    HET(ind_HOBr,  1) = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), rate             )
+!
+!    !------------------------------------------------------------------------
+!    ! HOBr + HCl (update: XW 2019-06-08)
+!    !------------------------------------------------------------------------
+!    kITemp = HETHOBr_HCl( H%HOBr%MW_g, 0.0_dp, Input_Opt                    )
+!
+!    kITemp = kITemp                                                          &
+!           + HETHOBr_TCld( rLiq,        rIce,                   &
+!                           ALiq,        AIce,        VAir,                   &
+!                           CldFr,       hConc_Sul,              &
+!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+!                           hbr_th,      5,           H                      )
+!
+!    HET(ind_HOBr,  2) = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), kITemp           )
 !
 !    !------------------------------------------------------------------------
 !    ! HOBr + BrSalA/C (update: XW 2019-06-08)
@@ -1177,7 +1178,7 @@ goto 9999
 !DEFINED PARAMETERS:
 
     ! Residence time of air in clouds, s
-    real(dp), parameter :: tauc = 3600.0
+    real(dp), parameter :: tauc = 3600.0_dp
 
 !LOCAL VARIABLES:
 
@@ -1189,80 +1190,66 @@ goto 9999
 
     ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface area,
     ! then return zero uptake
-    if ( (fc < 0.0001) .or. ((ALiq + AIce) <= 0) ) then
+    if ( ( fc < 0.0001_dp ) .or. ( ( ALiq + AIce ) <= 0.0_dp ) ) then
        kHet = 0.0_dp
        return
     endif
 
-    !------------------------------------------------------------------------
+    !=======================================================================
     ! Loss frequency inside cloud
     !
     ! Assume both water and ice phases are inside the same cloud, so mass
     ! transport to both phases works in parallel (additive)
-    !------------------------------------------------------------------------
+    !=======================================================================
 
-    ! initialize loss, 1/s
-    kI  = 0 ! total loss rate of a gas in cloud
-    kIb = 0 ! loss rate for specific reaction branch
+    ! initialize loss [1/s]
+    kI  = 0.0_dp   ! total loss rate of a gas in cloud
+    kIb = 0.0_dp   ! loss rate for liquid or ice branch
 
-    ! Loop over water (K=1) and ice (K=2)
-    do K=1, 2
+    !-----------------------------------------------------------------------
+    ! Liquid branch
+    !-----------------------------------------------------------------------
 
-       ! initialize reactions partitioning factor
-       branch = 1.0e0_dp
+    ! Partitioning factor
+    branch = 1.0_dp
+    IF ( PRESENT( branchLiq ) ) branch = branchLiq
 
-       ! Liquid water cloud
-       if (K==1) then
+    ! Convert grid-average cloud condensate surface area density
+    ! to in-cloud surface area density
+    area = Safe_Div( aLiq, fc, 0.0_dp )
 
-          ! gamma, unitless
-          gam = gammaLiq
+    ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
+    ! Pass radius in cm and mass in g.
+    ktmp = ArsL1K( area, rLiq, NUMDEN, gammaLiq, SR_TEMP, SrMw )
+    kI   = kI + ktmp
 
-          ! Liquid particle radius, cm
-          rd = rLiq
+    ! In-cloud loss frequency for particular reaction branch, 1/s
+    kIb  = kIb + ktmp * branch
 
-          ! Liquid surface area density, cm2/cm3
-          area = Aliq
+    !------------------------------------------------------------------
+    ! Ice branch
+    !------------------------------------------------------------------
 
-          if ( present(branchLiq) ) branch = branchLiq
+    ! Partitioning factor
+    branch = 1.0_dp
+    IF ( PRESENT( branchIce ) ) branch = branchIce
 
-       ! Ice water cloud
-       elseif (K==2) then
+    ! Convert grid-average cloud condensate surface area density
+    ! to in-cloud surface area density
+    area = Safe_Div( aIce, fc, 0.0_dp )
 
-          ! gamma, unitless
-          gam = gammaIce
+    ! In-cloud loss frequency, combining ice and liquid in parallel [1/s]
+    ! Pass radius in cm and mass in g.
+    ktmp = ArsL1K( area, rIce, NUMDEN, gammaIce, SR_TEMP, SrMw )
+    kI   = kI + ktmp
 
-          ! Ice particle effective radius, cm
-          rd = rIce
+    ! In-cloud loss frequency for liquid reaction branch [1/s]
+    kIb  = kIb + ktmp * branch
 
-          ! Ice surface area density, cm2/cm3
-          area = Aice
-
-          if ( present(branchIce) ) branch = branchIce
-
-       else
-
-          print*, 'CloudHet: index value exceeded'
-          call GEOS_CHEM_STOP
-
-       endif
-
-       ! Skip calculation if there is no surface area
-       if (area <= 0) cycle
-
-       ! Convert grid-average cloud condensate surface area density to in-cloud surface area density
-       area = safe_div(area, fc, 0.e+0_dp)
-
-       ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
-       ! Pass radius in cm and mass in g.
-       ktmp = arsl1k( area, rd, NUMDEN, gam, SR_TEMP, SrMw )
-       kI   = kI + ktmp
-
-       ! In-cloud loss frequency for particular reaction branch, 1/s
-       kIb = kIb + ktmp * branch
-
-    end do
-
-    ! Mean branch ratio for reaction of interest in cloud (averaged over ice and liquid)
+    !------------------------------------------------------------------
+    ! Mean branch ratio for reaction of interest in cloud
+    ! (averaged over ice and liquid)
+    !------------------------------------------------------------------
     if ( kI > 0.0_dp ) then
        branch = kIb / kI
     else
@@ -1315,9 +1302,10 @@ goto 9999
 
     ! Overall loss rate in a particular reaction branch, 1/s
     kHet = kHet * branch
-    ! Note: CloudHet currently requires calling CloudHet N times for N reaction branches.
-    ! Returning both total loss frequency and mean branch ratio would allow calculation of
-    ! all loss rates with N-1 calls to CloudHet (more efficient) (C.D. Holmes)
+    ! Note: CloudHet currently requires calling CloudHet N times for
+    ! N reaction branches.  Returning both total loss frequency and mean
+    ! branch ratio would allow calculation of all loss rates with N-1 calls
+    ! to CloudHet (more efficient) (C.D. Holmes)
 
   END FUNCTION CloudHet
 !EOC
