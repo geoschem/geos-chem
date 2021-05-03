@@ -127,7 +127,7 @@ MODULE gckpp_Global
   REAL(kind=dp), PARAMETER :: con_R       = 0.083144598_dp
 
   ! Reference temperature
-  REAL(kind=dp), PARAMETER :: T_298       = 298.15_dp
+  REAL(kind=dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
 
   !--------------------------------------------------------------------------
   ! Add more global variables here, so that they can be used

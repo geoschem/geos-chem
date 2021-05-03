@@ -1325,7 +1325,7 @@ NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);       
 //
 // Heterogeneous reactions
 //
-HO2 = O2 :                                   HET(ind_HO2,1);                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+HO2 = H2O :                                  HET(ind_HO2,1);                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 NO2 = 0.500HNO3 + 0.500HNO2 :                HET(ind_NO2,1);
 NO3 = HNO3 :                                 HET(ind_NO3,1);
 NO3 = NIT :                                  HET(ind_NO3,2);                      {2018/03/16; XW}
