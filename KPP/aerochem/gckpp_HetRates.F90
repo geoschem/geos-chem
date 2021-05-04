@@ -161,7 +161,7 @@ MODULE GcKpp_HetRates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-  CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -394,13 +394,15 @@ MODULE GcKpp_HetRates
     !========================================================================
     ! NOy uptake in clouds
     !========================================================================
-    HET(ind_NO2,    1) = HET(ind_NO2, 1)                                     &
-                       + CloudHet( CldFr, Aliq,           Aice,   rLiq,      &
-                                   rIce,  SR_MW(ind_NO2), 1e-8_dp, 0.0_dp   )
+    HET(ind_NO2, 1) = HET(ind_NO2, 1)                                        &
+                    + CloudHet( CldFr,  Aliq,           Aice,    rLiq,       &
+                                rIce,   SR_MW(ind_NO2), 1e-8_dp, 0.0_dp,     &
+                                1.0_dp, 1.0_dp                              )
 
-    HET(ind_NO3,    1) = HET(ind_NO3, 1)                                     &
-                       + CloudHet( CldFr, Aliq,           Aice,     rLiq,    &
-                                   rIce,  SR_MW(ind_NO3), 0.002_dp, 0.001_dp)
+    HET(ind_NO3, 1) = HET(ind_NO3, 1)                                        &
+                    + CloudHet( CldFr,  Aliq,           Aice,     rLiq,      &
+                                rIce,   SR_MW(ind_NO3), 0.002_dp, 0.001_dp,  &
+                                1.0_dp, 1.0_dp                              )
 
     ! Reactive uptake coefficient for N2O5 on liquid water cloud
     ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
@@ -410,8 +412,9 @@ MODULE GcKpp_HetRates
     gammaLiq = ( 0.03_dp / 0.019_dp ) * &
        exp( -25.5265_dp + 9283.76_dp / Temp - 851801.0_dp / Temp**2 )
 
-    HET(ind_N2O5,   3) = CloudHet( CldFr, Aliq,            Aice,     rLiq,   &
-                                   rIce,  SR_MW(ind_N2O5), gammaLiq, 0.02_dp)
+    HET(ind_N2O5, 3) = CloudHet( CldFr,  Aliq,            Aice,     rLiq,    &
+                                 rIce,   SR_MW(ind_N2O5), gammaLiq, 0.02_dp, &
+                                 1.0_dp, 1.0_dp                             )
 
     ! Now calculate reaction rates where the educt can be consumed.
     ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
@@ -448,20 +451,18 @@ MODULE GcKpp_HetRates
     rate        = HetBrNO3( ClearFr, SR_MW(ind_BrNO3), gammaLiq             )
 
     ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
-    rate = rate + CloudHet( CldFr, Aliq,             Aice,    rLiq,          &
-                            rIce,  SR_MW(ind_BrNO3), gammaLiq, gammaIce     )
+    rate = rate + CloudHet( CldFr,  Aliq,             Aice,    rLiq,         &
+                            rIce,   SR_MW(ind_BrNO3), gammaLiq, gammaIce,    &
+                            1.0_dp, 1.0_dp                                  )
 
     ! BrNO3 + H2O overall rate
     HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), rate            )
-
-!### KPP DEBUG
-goto 9999
 
     !-----------------------------------------------------------------------
     ! ClNO3 hydrolysis (update: XW 2019-06-08)
     !-----------------------------------------------------------------------
 
-    ! ClNO3 + H2O hydrolysis rate
+    ! ClNO3 + H2O hydrolysis rate in clear sky
     rate = HetClNO3( ClearFr, SR_MW(ind_ClNO3), clConc_SALA, brConc_SALA    )
 
     ! Add ClNO3 + H2O hydrolysis in tropospheric cloud
@@ -473,10 +474,10 @@ goto 9999
 
     ! ClNO3 + H2O Overall rate
     HET(ind_ClNO3, 1) = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), rate            )
+!!^^^^ Identical w/r/t ref up to here ^^^^
+
 !### KPP DEBUG
 goto 9999
-
-!!^^^^ Identical w/r/t ref up to here ^^^^
 !
 !    !------------------------------------------------------------------------
 !    ! HOBr + HBr (update: XW 2019-06-08)
@@ -1149,8 +1150,8 @@ goto 9999
 ! !INTERFACE:
 !
   FUNCTION CloudHet( fc,    Aliq,      Aice,     rLiq,      rIce,            &
-                     SrMw,  gammaLiq,  gammaIce, branchLiq, branchIce       )&
-                     RESULT( kHet )
+                     SrMw,  gammaLiq,  gammaIce, branchLiq, branchIce        &
+                   ) RESULT( kHet )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1163,9 +1164,9 @@ goto 9999
     REAL(dp), INTENT(IN) :: SrMw       ! SQRT(molar weight, g/mole)
     REAL(dp), INTENT(IN) :: gammaLiq   ! Gamma values on liquid water
     REAL(dp), INTENT(IN) :: gammaIce   !   and water ice
-    REAL(dp), OPTIONAL   :: branchLiq  ! Fraction of reactant consumed
+    REAL(dp), INTENT(IN) :: branchLiq  ! Fraction of reactant consumed
                                        !  in a particular reaction branch
-    REAL(dp), OPTIONAL   :: branchIce  !  in liquid and ice, fraction [0-1]
+    REAL(dp), INTENT(IN) :: branchIce  !  in liquid and ice, fraction [0-1]
 !
 ! !RETURN VALUE:
 !
@@ -1174,26 +1175,25 @@ goto 9999
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-!DEFINED PARAMETERS:
-
+!
+! !DEFINED PARAMETERS:
+!
     ! Residence time of air in clouds, s
-    real(dp), parameter :: tauc = 3600.0_dp
+    REAL(dp), PARAMETER :: tauc = 3600.0_dp
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: kI, gam, rd, area
+    REAL(dp) :: kk, ff, xx, branch, kIb, ktmp
 
-!LOCAL VARIABLES:
-
-    real(dp) :: kI, gam, rd, area
-    real(dp) :: kk, ff, xx, branch, kIb, ktmp
-    integer  :: K
-
-!------------------------------------------------------------------------------
-
+    !=======================================================================
     ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface area,
     ! then return zero uptake
-    if ( ( fc < 0.0001_dp ) .or. ( ( ALiq + AIce ) <= 0.0_dp ) ) then
+    !=======================================================================
+    IF ( ( fc < 0.0001_dp ) .or. ( ( ALiq + AIce ) <= 0.0_dp ) ) THEN
        kHet = 0.0_dp
-       return
-    endif
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Loss frequency inside cloud
@@ -1210,10 +1210,6 @@ goto 9999
     ! Liquid branch
     !-----------------------------------------------------------------------
 
-    ! Partitioning factor
-    branch = 1.0_dp
-    IF ( PRESENT( branchLiq ) ) branch = branchLiq
-
     ! Convert grid-average cloud condensate surface area density
     ! to in-cloud surface area density
     area = Safe_Div( aLiq, fc, 0.0_dp )
@@ -1224,15 +1220,11 @@ goto 9999
     kI   = kI + ktmp
 
     ! In-cloud loss frequency for particular reaction branch, 1/s
-    kIb  = kIb + ktmp * branch
+    kIb  = kIb + ( ktmp * branchLiq )
 
     !------------------------------------------------------------------
     ! Ice branch
     !------------------------------------------------------------------
-
-    ! Partitioning factor
-    branch = 1.0_dp
-    IF ( PRESENT( branchIce ) ) branch = branchIce
 
     ! Convert grid-average cloud condensate surface area density
     ! to in-cloud surface area density
@@ -1244,7 +1236,7 @@ goto 9999
     kI   = kI + ktmp
 
     ! In-cloud loss frequency for liquid reaction branch [1/s]
-    kIb  = kIb + ktmp * branch
+    kIb  = kIb + ( ktmp * branchIce )
 
     !------------------------------------------------------------------
     ! Mean branch ratio for reaction of interest in cloud
@@ -2907,8 +2899,8 @@ goto 9999
                             AIce,     VAir,     TK,       CldFr,             &
                             pH,       clConc_A, clConc_C, clConc_g,          &
                             brConc_A, brConc_C, brConc_g, X,                 &
-                            H                                              ) &
-                          RESULT( kISum )
+                            H                                                &
+                          ) RESULT( rate )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2942,7 +2934,7 @@ goto 9999
 !
 ! !RETURN VALUE:
 !
-      REAL(dp)                   :: kISum       ! Rxn rate
+      REAL(dp)                   :: rate        ! Rxn rate [1/s]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2954,14 +2946,14 @@ goto 9999
       INTEGER  :: Y
 
       ! Initialize the return value
-      kISum = 0.0_dp
+      rate = 0.0_dp
 
       ! Return if we are in the stratosphere
       ! This skips unneccesary computations & function calls
       IF ( StratBox ) RETURN
 
       ! Continue initializing
-      X1    = 0.0_dp
+      X1 = 0.0_dp
 
       ! Cloud halide concentration, put fine and coarse mode together
       clConc = clConc_A + clConc_C + clConc_g
@@ -2989,14 +2981,11 @@ goto 9999
 
       CALL GAMMA_ClNO2( rLiq,   denAir, TK,        pH,   clConc,             &
                         brConc, Y,      GAM_ClNO2, r_gp, H                  )
-      X1 = GAM_ClNO2
-      r1 = r_gp * r_ac
-
-      X2 = 0
-
-      kISum = CloudHet( CldFr, Aliq, Aice,                                   &
-                        rLiq,  rIce, SR_MW(ind_ClNO2),                       &
-                        X1,    X2,   r1                                     )
+      X1   = GAM_ClNO2
+      r1   = r_gp * r_ac
+      X2   = 0.0_fp
+      rate = CloudHet( CldFr,            Aliq, Aice, rLiq, rIce,             &
+                       SR_MW(ind_ClNO2), X1,   X2,   r1,   1.0_dp           )
 
     END FUNCTION HetClNO2_TCld
 !EOC
@@ -3479,9 +3468,8 @@ goto 9999
       ! Reaction on liquid clouds (tropospheric only)
       X1    = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc, H )
       X2    = 0.0_dp
-      kISum = CloudHet( CldFr, Aliq, Aice,                                   &
-                        rLiq,  rIce, SR_MW(ind_O3),                          &
-                        X1,    X2,   r_ac                                   )
+      kISum = CloudHet( CldFr,         Aliq, Aice, rLiq,  rIce,              &
+                        SR_MW(ind_O3), X1,   X2,   r_ac,  1.0_dp            )
 
     END FUNCTION HETO3_TCld
 !EOC
@@ -4463,13 +4451,13 @@ goto 9999
 !
 ! !IROUTINE: Gamma_ClNO3_AER
 !
-! !DESCRIPTION: Function GAMMA\_ClNO3\_AER calculates reactive uptake coef.
-!               for ClNO3 + Cl-/Br-
+! !DESCRIPTION: Calculates reactive uptake coefficients for ClNO3 + Cl-
+!  or ClNO3 + Br-.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GAMMA_ClNO3_AER( Radius, X, M, C_Y1, C_Y2, gamma, r_gp )
+  SUBROUTINE Gamma_ClNO3_Aer( Radius, X, M, C_Y1, C_Y2, gamma, r_gp )
 !
 ! !USES:
 !
@@ -4477,12 +4465,11 @@ goto 9999
 !
 ! !INPUT PARAMETERS:
 !
-    ! Radius (cm), n_air (#/cm), and X (1 for Cl and 2 for Br)
     REAL(dp), INTENT(IN)  :: Radius   ! Radius (cm)
-    INTEGER,  INTENT(IN)  :: X        ! 1=Cl-,2=Br-,3=hydrosis
+    INTEGER,  INTENT(IN)  :: X        ! 1=Cl-,  2=Br-,     3=hydrolysis
+    INTEGER,  INTENT(IN)  :: M        ! 1=fine, 2= coarse, 3=cloud
     REAL(dp), INTENT(IN)  :: C_Y1     ! Concentration (mol/L)
     REAL(dp), INTENT(IN)  :: C_Y2     ! Concentration (mol/L)
-    INTEGER,  INTENT(IN)  :: M        ! 1=fine, 2= coarse, 3=cloud
 !
 ! !OUTPUT PARAMETER:
 !
@@ -4495,14 +4482,13 @@ goto 9999
 !
 ! ! DEFINED PARAMETERS:
 !
-    ! Inverse of mass accommodation coefficient
-    REAL(dp), PARAMETER :: inv_ab = 1.0_dp / 0.108_dp
+    REAL(dp), PARAMETER :: inv_ab = 1.0_dp / 0.108_dp   ! 1 / mass accum coeff
+    REAL(dp), PARAMETER :: k_0    = 1.2e+5_dp ** 2.0_dp ! H2k0
 !
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(dp) :: M_X, fCl
-    REAL(dp) :: cavg, D_l, k_0, k_2, k_tot
+    REAL(dp) :: M_X, fCl, cavg,   D_l, k_2, k_tot
     REAL(dp) :: gb1, gb2, gb_tot, gb0, gbr
 
     ! Mol wt of ClNO3 (kg/mol)
@@ -4526,17 +4512,16 @@ goto 9999
     !-----------------------------------------------------------------------
 
     ! thermal velocity (cm/s)
-    cavg = SQRT( 8.0_dp * RStarG * TEMP / ( Pi * M_X ) ) * 1.0e2_dp
+    cavg = SQRT( 8.0_dp * RStarG * TEMP / ( Pi * M_X ) ) * 1.0e+2_dp
 
     !cm2 s-1
     D_l  = 5.0e-6_dp
 
     ! H*sqrt(kb)=10^6 (M/s)^½ s-1
-    gb2   = 4.0_dp * con_R * TEMP * 1.0e6_dp * SQRT( C_Y2 * D_l ) / cavg
+    gb2   = 4.0_dp * con_R * TEMP * 1.0e+6_dp * SQRT( C_Y2 * D_l ) / cavg
 
-    !cm2 s-1.
-    !k_2 = (1.0e6_dp ** 2.0_dp) * C_Y2 !H2k2Br
-    k_2 = 1.0e12_dp * C_Y2             !H2k2Br
+    ! H2k2br cm2 s-1.
+    k_2 = 1.0e+12_dp * C_Y2
 
     !-----------------------------------------------------------------------
     ! Calculate gb1 for ClNO3 + Cl-
@@ -4545,24 +4530,20 @@ goto 9999
     ! but Cl2 rather than HOCl formed. gb2 can be calculated reversely from
     ! gb1 = gb0 hydrolysis
     !-----------------------------------------------------------------------
-    gb0       = 4.0e0_dp * con_R * TEMP * 1.2e5_dp * SQRT( D_l ) / cavg
-
-    !k_0       = 1.2e5_dp ** 2.0_dp !H2k0
-    k_0       = 1.2e10_dp
-
-    k_tot     = k_0 + k_2 !H2(k0+k2Br)
-    gb_tot    = 4.0e0_dp * con_R * TEMP * SQRT( k_tot * D_l ) /cavg
-    gbr       = k_2/k_tot
+    gb0    = 4.0_dp * con_R * TEMP * 1.2e+5_dp * SQRT( D_l ) / cavg
+    k_tot  = k_0 + k_2   !H2(k0+k2Br)
+    gb_tot = 4.0_dp * con_R * TEMP * SQRT( k_tot * D_l ) /cavg
+    gbr    = k_2 / k_tot
 
     ! Reaction probability [1]
-    gamma = 1.0_dp / ( inv_ab  +  1.0_dp/gb_tot)
+    gamma = 1.0_dp / ( inv_ab  +  1.0_dp/gb_tot )
 
     ! 1=fine, 2=coarse, 3=cloud
     SELECT CASE( M )
        CASE( 1 )
           fCl = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
        CASE( 2 )
-          fCl = 1.0e0_dp
+          fCl = 1.0_dp
        CASE DEFAULT
           fCl = 0.0_dp
     END SELECT
@@ -4577,7 +4558,7 @@ goto 9999
           r_gp = ( 1.0_dp - gbr ) * ( 1.0_dp - fCl )
     END SELECT
 
-    END SUBROUTINE GAMMA_ClNO3_AER
+  END SUBROUTINE Gamma_ClNO3_Aer
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4613,49 +4594,48 @@ goto 9999
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED_PARAMETERS
+!
+    REAL(dp), PARAMETER :: twenty = 1.0_dp / 0.5_dp
+!
 ! !LOCAL VARIABLES:
 !
-     ! Scalars
-     REAL(dp) :: rgs, H2Os, cavg, kks, g1, g2, g3
+    ! Scalars
+    REAL(dp) :: rgs, H2Os, cavg, kks, g1, g2, g3
 
-     ! Initialize
-     gamma = 0.0_dp
-     r_gp  = 0.0_dp
-     rgs   = 0.0_dp
-     H2Os  = 0.0_dp
-     cavg  = 0.0_dp
-     g1    = 0.0_dp
-     g2    = 0.0_dp
-     g3    = 0.0_dp
+    ! Initialize
+    gamma = 0.0_dp
+    r_gp  = 0.0_dp
 
-     ! ClNO3 + HCl
-     rgs   = 0.24_dp
-     g1    = rgs * hcl_th
+    ! ClNO3 + HCl
+    rgs   = 0.24_dp
+    g1    = rgs * hcl_th
 
-     ! ClNO3 + HBr
-     rgs   = 0.56_dp
-     g2    = rgs * hbr_th
+    ! ClNO3 + HBr
+    rgs   = 0.56_dp
+    g2    = rgs * hbr_th
 
-     ! ClNO3 + H2O
-     ! cavg = thermal velocity (cm/s)
-     cavg  = SQRT( 8.0_dp * RStarG * TEMP / ( Pi * 9.745e-2_dp ) ) *1.0e2_dp
-     H2Os  = 1e15_dp - 3.0_dp * 2.7e14_dp * hno3_th
-     kks   = 4.0_dp * 5.2e-17_dp * exp( 2032.0_dp / TEMP )
-     g3    = 1.0_dp / ( 20.0_dp + cavg / ( kks* H2Os ) )   ! 1.0/0.5 = 20
-     gamma = g1 + g2 + g3
+    ! ClNO3 + H2O
+    ! cavg = thermal velocity (cm/s)
+    cavg  = SQRT( 8.0_dp * RSTARG * TEMP / ( PI * 9.745e-2_dp ) ) * 100.0_dp
+    H2Os  = 1e+15_dp - ( 3.0_dp * 2.7e+14_dp * hno3_th )
+    kks   = 4.0_dp * 5.2e-17_dp * exp( 2032.0_dp / TEMP )
+    g3    = 1.0_dp / ( twenty + cavg / ( kks* H2Os ) )   ! 1.0/0.5 = 20
+    gamma = g1 + g2 + g3
 
-     ! Return the proper value
-     r_gp = 0.0_dp
-     SELECT CASE( X )
-        CASE( 1 )
-           r_gp = g1 / gamma     ! HCl-
-        CASE( 2 )
-           r_gp = g2 / gamma     ! HBr-
-        CASE DEFAULT
-           r_gp = g3 / gamma     ! Hydrolysis
-     END SELECT
+    ! Return the proper value
+    SELECT CASE( X )
+       CASE( 1 )
+          r_gp = g1 / gamma     ! HCl-
+       CASE( 2 )
+          r_gp = g2 / gamma     ! HBr-
+       CASE( 3 )
+          r_gp = g3 / gamma     ! Hydrolysis
+       CASE DEFAULT
+          r_gp = 0.0_dp
+    END SELECT
 
-    END SUBROUTINE Gamma_ClNO3_Ice
+  END SUBROUTINE Gamma_ClNO3_Ice
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
