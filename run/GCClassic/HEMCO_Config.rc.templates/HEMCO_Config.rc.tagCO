@@ -56,7 +56,6 @@ Mask fractions:              false
     --> APEI                   :       false    # 1989-2014
     --> NEI2011_HOURLY         :       false    # 2006-2013
     --> NEI2011_MONMEAN        :       false    # 2006-2013
-    --> MIX                    :       false    # 2008-2010
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> CEDS                   :       true     # 1970-2017
@@ -216,31 +215,6 @@ Mask fractions:              false
 0 NEI11_PTNONIPM_CO_eur  -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
 0 NEI11_PTNONIPM_CO_oth  -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
 )))NEI2011_MONMEAN
-
-#==============================================================================
-# --- MIX v1.1 (Asia) ---
-#==============================================================================
-(((MIX
-0 MIX_CO_IND       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_INDUSTRY    2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_IND_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_IND_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_IND_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_POW       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_POWER       2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_POW_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_POW_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_POW_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_RES       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_RES_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_RES_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_RES_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_TRA       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_TRANSPORT   2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_TRA_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_TRA_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_TRA_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-)))MIX
 
 #==============================================================================
 # --- DICE-Africa emission inventory (Marais and Wiedinmyer, ES&T, 2016) ---
@@ -1136,7 +1110,7 @@ Mask fractions:              false
 #==============================================================================
 # --- Annual scale factors ---
 #==============================================================================
-(((MIX.or.HTAP
+(((HTAP
 1  TOTFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 1985-2010/1/1/0 C xy 1  1
 5  TOTFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2002/1/1/0      C xy 1 -1
 27 TOTFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2008-2010/1/1/0 C xy 1 -1
@@ -1147,14 +1121,14 @@ Mask fractions:              false
 28 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
 19 SOLFUEL_2008      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008/1/1/0      C xy 1 -1
 29 SOLFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008-2010/1/1/0 C xy 1 -1
-)))MIX.or.HTAP
+)))HTAP
 
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
+(((APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy 1 1
-)))APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
+)))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
 
 #==============================================================================
 # --- Seasonal scale factors ---
@@ -1281,10 +1255,6 @@ Mask fractions:              false
 (((APEI
 1002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc                  MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
-
-(((MIX
-1006 ASIA_MASK   $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc         MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
 
 (((NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
 1007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                      MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60

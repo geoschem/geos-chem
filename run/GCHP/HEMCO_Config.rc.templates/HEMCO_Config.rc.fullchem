@@ -60,7 +60,6 @@ Warnings:                    1
     --> APEI                   :       false    # 1989-2014
     --> NEI2011_HOURLY         :       false    # 2006-2013
     --> NEI2011_MONMEAN        :       false    # 2006-2013
-    --> MIX                    :       false    # 2008-2010
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> CEDS                   :       true     # 1970-2017
@@ -623,73 +622,6 @@ Warnings:                    1
 0 NEI11_PTNONIPM_OCPI  $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_ptnonipm.nc POC      2006-2013/1-12/1/0 RF xyz kg/m2/s  OCPI 26/222/257/1007/72     1   50
 0 NEI11_PTNONIPM_OCPO  -                                                                       -        -                  -  -   -        OCPO 26/222/257/1007/73     1   50
 )))NEI2011_MONMEAN
-
-#==============================================================================
-# --- MIX v1.1 (Asia) ---
-#==============================================================================
-(((MIX
-0 MIX_NO_IND   $ROOT/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc   NO_INDUSTRY      2008-2010/1-12/1/0 RF xy kg/m2/s  NO   1/27/25/1006      1 45
-0 MIX_NO_POW   $ROOT/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc   NO_POWER         2008-2010/1-12/1/0 RF xy kg/m2/s  NO   1/27/25/1006      1 45
-0 MIX_NO_RES   $ROOT/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc   NO_RESIDENTIAL   2008-2010/1-12/1/0 RF xy kg/m2/s  NO   1/27/25/1006      1 45
-0 MIX_NO_TRA   $ROOT/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc   NO_TRANSPORT     2008-2010/1-12/1/0 RF xy kg/m2/s  NO   1/27/25/1006      1 45
-0 MIX_CO_IND   $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc   CO_INDUSTRY      2008-2010/1-12/1/0 RF xy kg/m2/s  CO   6/28/26/1006      1 45
-0 MIX_SOAP_IND -                                                   -                -                  -  -  -        SOAP 6/28/26/1006/280  1 45
-0 MIX_CO_POW   $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc   CO_POWER         2008-2010/1-12/1/0 RF xy kg/m2/s  CO   6/28/26/1006      1 45
-0 MIX_SOAP_POW -                                                   -                -                  -  -  -        SOAP 6/28/26/1006/280  1 45
-0 MIX_CO_RES   $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc   CO_RESIDENTIAL   2008-2010/1-12/1/0 RF xy kg/m2/s  CO   6/28/26/1006      1 45
-0 MIX_SOAP_RES -                                                   -                -                  -  -  -        SOAP 6/28/26/1006/280  1 45
-0 MIX_CO_TRA   $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc   CO_TRANSPORT     2008-2010/1-12/1/0 RF xy kg/m2/s  CO   6/28/26/1006      1 45
-0 MIX_SOAP_TRA -                                                   -                -                  -  -  -        SOAP 6/28/26/1006/280  1 45
-0 MIX_SO2_IND  $ROOT/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc  SO2_INDUSTRY     2008-2010/1-12/1/0 RF xy kg/m2/s  SO2  11/29/1006        1 45
-0 MIX_SO4_IND  -                                                   -                -                  -  -  -        SO4  11/29/63/1006     1 45
-0 MIX_pFe_IND  -                                                   -                -                  -  -  -        pFe  11/29/66/1006     1 45
-0 MIX_SO2_POW  $ROOT/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc  SO2_POWER        2008-2010/1-12/1/0 RF xy kg/m2/s  SO2  11/29/1006        1 45
-0 MIX_SO4_POW  -                                                   -                -                  -  -  -        SO4  11/29/63/1006     1 45
-0 MIX_pFe_POW  -                                                   -                -                  -  -  -        pFe  11/29/66/1006     1 45
-0 MIX_SO2_RES  $ROOT/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc  SO2_RESIDENTIAL  2008-2010/1-12/1/0 RF xy kg/m2/s  SO2  11/29/1006        1 45
-0 MIX_SO4_RES  -                                                   -                -                  -  -  -        SO4  11/29/63/1006     1 45
-0 MIX_pFe_RES  -                                                   -                -                  -  -  -        pFe  11/29/66/1006     1 45
-0 MIX_SO2_TRA  $ROOT/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc  SO2_TRANSPORT    2008-2010/1-12/1/0 RF xy kg/m2/s  SO2  11/29/1006        1 45
-0 MIX_SO4_TRA  -                                                   -                -                  -  -  -        SO4  11/29/63/1006     1 45
-0 MIX_pFe_TRA  -                                                   -                -                  -  -  -        pFe  11/29/66/1006     1 45
-0 MIX_NH3_IND  $ROOT/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc  NH3_INDUSTRY     2008-2010/1-12/1/0 RF xy kg/m2/s  NH3  1006              1 45
-0 MIX_NH3_POW  $ROOT/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc  NH3_POWER        2008-2010/1-12/1/0 RF xy kg/m2/s  NH3  1006              1 45
-0 MIX_NH3_RES  $ROOT/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc  NH3_RESIDENTIAL  2008-2010/1-12/1/0 RF xy kg/m2/s  NH3  1006              1 45
-0 MIX_NH3_TRA  $ROOT/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc  NH3_TRANSPORT    2008-2010/1-12/1/0 RF xy kg/m2/s  NH3  1006              1 45
-0 MIX_NH3_AGR  $ROOT/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc  NH3_AGRICULTURE  2008-2010/1-12/1/0 RF xy kg/m2/s  NH3  1006              1 45
-0 MIX_CH2O_IND $ROOT/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc CH2O_INDUSTRY    2008-2010/1-12/1/0 RF xy kg/m2/s  CH2O 26/1006           1 45
-0 MIX_CH2O_POW $ROOT/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc CH2O_POWER       2008-2010/1-12/1/0 RF xy kg/m2/s  CH2O 26/1006           1 45
-0 MIX_CH2O_RES $ROOT/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc CH2O_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kg/m2/s  CH2O 26/1006           1 45
-0 MIX_CH2O_TRA $ROOT/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc CH2O_TRANSPORT   2008-2010/1-12/1/0 RF xy kg/m2/s  CH2O 26/1006           1 45
-0 MIX_C2H6_IND $ROOT/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc C2H6_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s C2H6 26/1006/45        1 45
-0 MIX_C2H6_POW $ROOT/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc C2H6_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s C2H6 26/1006/45        1 45
-0 MIX_C2H6_RES $ROOT/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc C2H6_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s C2H6 26/1006/45        1 45
-0 MIX_C2H6_TRA $ROOT/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc C2H6_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s C2H6 26/1006/45        1 45
-0 MIX_C3H8_IND $ROOT/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc C3H8_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s C3H8 26/1006/46        1 45
-0 MIX_C3H8_POW $ROOT/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc C3H8_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s C3H8 26/1006/46        1 45
-0 MIX_C3H8_RES $ROOT/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc C3H8_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s C3H8 26/1006/46        1 45
-0 MIX_C3H8_TRA $ROOT/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc C3H8_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s C3H8 26/1006/46        1 45
-0 MIX_ALK4_IND $ROOT/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc ALK4_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s ALK4 26/1006/42        1 45
-0 MIX_ALK4_POW $ROOT/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc ALK4_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s ALK4 26/1006/42        1 45
-0 MIX_ALK4_RES $ROOT/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc ALK4_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s ALK4 26/1006/42        1 45
-0 MIX_ALK4_TRA $ROOT/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc ALK4_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s ALK4 26/1006/42        1 45
-0 MIX_ACET_IND $ROOT/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc ACET_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s ACET 26/1006/40        1 45
-0 MIX_ACET_POW $ROOT/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc ACET_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s ACET 26/1006/40        1 45
-0 MIX_ACET_RES $ROOT/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc ACET_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s ACET 26/1006/40        1 45
-0 MIX_ACET_TRA $ROOT/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc ACET_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s ACET 26/1006/40        1 45
-0 MIX_MEK_IND  $ROOT/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc  MEK_INDUSTRY     2008-2010/1-12/1/0 RF xy kgC/m2/s MEK  26/1006/48        1 45
-0 MIX_MEK_POW  $ROOT/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc  MEK_POWER        2008-2010/1-12/1/0 RF xy kgC/m2/s MEK  26/1006/48        1 45
-0 MIX_MEK_RES  $ROOT/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc  MEK_RESIDENTIAL  2008-2010/1-12/1/0 RF xy kgC/m2/s MEK  26/1006/48        1 45
-0 MIX_MEK_TRA  $ROOT/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc  MEK_TRANSPORT    2008-2010/1-12/1/0 RF xy kgC/m2/s MEK  26/1006/48        1 45
-0 MIX_ALD2_IND $ROOT/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc ALD2_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s ALD2 26/1006/41        1 45
-0 MIX_ALD2_POW $ROOT/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc ALD2_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s ALD2 26/1006/41        1 45
-0 MIX_ALD2_RES $ROOT/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc ALD2_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s ALD2 26/1006/41        1 45
-0 MIX_ALD2_TRA $ROOT/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc ALD2_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s ALD2 26/1006/41        1 45
-0 MIX_PRPE_IND $ROOT/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc PRPE_INDUSTRY    2008-2010/1-12/1/0 RF xy kgC/m2/s PRPE 26/1006/49        1 45
-0 MIX_PRPE_POW $ROOT/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc PRPE_POWER       2008-2010/1-12/1/0 RF xy kgC/m2/s PRPE 26/1006/49        1 45
-0 MIX_PRPE_RES $ROOT/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc PRPE_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kgC/m2/s PRPE 26/1006/49        1 45
-0 MIX_PRPE_TRA $ROOT/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc PRPE_TRANSPORT   2008-2010/1-12/1/0 RF xy kgC/m2/s PRPE 26/1006/49        1 45
-)))MIX
 
 #==============================================================================
 # --- DICE-Africa emission inventory (Marais and Wiedinmyer, ES&T, 2016) ---
@@ -1865,7 +1797,7 @@ Warnings:                    1
 #
 # NOTES:
 # - Xiao et al. C3H8 emissions are used in place of CEDS
-# - Priority is set to 10 to overwrite CEDS, but not newer regional inventories (NEI2011, MIX)
+# - Priority is set to 10 to overwrite CEDS, but not newer regional inventories (NEI2011)
 #==============================================================================
 (((XIAO_C3H8
 0 XIAO_C3H8    $ROOT/XIAO/v2014-09/C3H8_C2H6_ngas.geos.1x1.nc C3H8         1985/1/1/0 C xy kgC/m2/s C3H8 6/7/26/22/46 1 10
@@ -3637,7 +3569,7 @@ Warnings:                    1
 #==============================================================================
 # --- Annual scale factors ---
 #==============================================================================
-(((MIX.or.HTAP.or.XIAO_C3H8
+(((HTAP.or.XIAO_C3H8
 1  TOTFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 1985-2010/1/1/0 C xy 1  1
 5  TOTFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2002/1/1/0      C xy 1 -1
 27 TOTFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2008-2010/1/1/0 C xy 1 -1
@@ -3650,15 +3582,15 @@ Warnings:                    1
 15 SOLFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2002/1/1/0      C xy 1 -1
 19 SOLFUEL_2008      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008/1/1/0      C xy 1 -1
 29 SOLFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008-2010/1/1/0 C xy 1 -1
-)))MIX.or.HTAP.or.XIAO_C3H8
+)))HTAP.or.XIAO_C3H8
 
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
+(((APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
 25 EDGAR_TODNOX $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless 1
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
-)))APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
+)))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
 
 #==============================================================================
 # --- Day-of-week scale factors ---
@@ -4006,10 +3938,6 @@ Warnings:                    1
 (((APEI
 1002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc                  MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
-
-(((MIX
-1006 ASIA_MASK   $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc         MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
 
 (((NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
 1007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                      MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
