@@ -112,7 +112,7 @@ MODULE gckpp_Global
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
   REAL(dp), PARAMETER :: CRITRH      = 35.0e+0_dp
 
-  ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous 
+  ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous
   ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
   ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
   ! (which is the precursor of IEPOX).
@@ -132,7 +132,7 @@ MODULE gckpp_Global
   ! Add more global variables here, so that they can be used
   ! in inlined functions that will get written to gckpp_Rates.F90
   !--------------------------------------------------------------------------
-  
+
   ! H2O concentration
   REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
@@ -193,13 +193,13 @@ MODULE gckpp_Global
   ! HET(ind_HOI,    5) : HOI    +  SALACL       # breakdown by SALACL
   ! HET(ind_HOI,    6) : HOI    +  SALCCL       # breakdown by SALCCL
   ! HET(ind_HONIT,  1) : HONIT  uptake          # 1st order loss rxn
-  ! HET(ind_I2O2,   1) : I2O2   -> AERI         # uptake by SO4 
+  ! HET(ind_I2O2,   1) : I2O2   -> AERI         # uptake by SO4
   ! HET(ind_I2O2,   2) : I2O2   -> ISALA        # uptake by SALA
   ! HET(ind_I2O2,   3) : I2O2   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O3,   1) : I2O3   -> AERI         # uptake by SO4 
+  ! HET(ind_I2O3,   1) : I2O3   -> AERI         # uptake by SO4
   ! HET(ind_I2O3,   2) : I2O3   -> ISALA        # uptake by SALA
   ! HET(ind_I2O3,   3) : I2O3   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O4,   1) : I2O4   -> AERI         # uptake by SO4 
+  ! HET(ind_I2O4,   1) : I2O4   -> AERI         # uptake by SO4
   ! HET(ind_I2O4,   2) : I2O4   -> ISALA        # uptake by SALA
   ! HET(ind_I2O4,   3) : I2O4   -> ISALC        # uptake by SALC
   ! HET(ind_ICHE,   1) : ICHE   uptake          # 1st order loss rxn
@@ -240,7 +240,7 @@ MODULE gckpp_Global
   ! HET(ind_NO3,    2) : NO3    uptake on N2O5  # Liquid water cloud
   ! HET(ind_NO3,    3) : Cl-                    # Enhanced NO3 hydrolysis
   ! HET(ind_N2O5,   1) : N2O5  + H2O            # Where educt is consumed
-  ! HET(ind_N2O5,   2) : N2O5  + HCl          
+  ! HET(ind_N2O5,   2) : N2O5  + HCl
   ! HET(ind_N2O5,   3) : N2O5  + H2O            # On liquid cloud water
   ! HET(ind_N2O5,   4) : N2O5  + SALACL
   ! HET(ind_N2O5,   5) : N2O5  + SALCCL
@@ -248,7 +248,7 @@ MODULE gckpp_Global
   ! HET(ind_O3,     2) : O3    + BrSALA
   ! HET(ind_O3,     3) : O3    + BrSALC
   ! HET(ind_OH,     1) : OH    + SALACL
-  ! HET(ind_OH,     2) : OH    + SALCCL 
+  ! HET(ind_OH,     2) : OH    + SALCCL
   ! HET(ind_PYAC,   1) : PYAC  uptake           # 1st order loss rxn
   ! HET(ind_R4N2,   1) : R4N2  uptake           # 1st order loss rxn
   REAL(kind=dp) :: HET(NSPEC,8)
@@ -298,7 +298,7 @@ MODULE gckpp_Global
      REAL(dp) :: HBr_th        ! HBr theta
      REAL(dp) :: HCl_th        ! HCl theta
      REAL(dp) :: hConc_ICl     ! Liquid phase pH, Cl-
-     REAL(dp) :: hConc_LCl     ! Liquid phase pH, Cl- 
+     REAL(dp) :: hConc_LCl     ! Liquid phase pH, Cl-
      REAL(dp) :: hConc_SSA     ! Liquid phase pH, fine sea salt
      REAL(dp) :: hConc_SSC     ! Liquid phase pH, coarse sea salt
      REAL(dp) :: hConc_Sul     ! Liquid phase pH, sulfate

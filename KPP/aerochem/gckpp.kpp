@@ -823,6 +823,55 @@ PH2O2 : H2O2;
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
+  ! Rate-law functions for iodine species
+  ! (HI, I2O2, I2O3, I2O4, IONO2, IONO3)
+  !=========================================================================
+
+  FUNCTION IuptkBySulf1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by sulfate (aerosol types #8 and #13).
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Uptake rate of iodine by tropospheric sulfate (N=8)
+    k = Ars_L1k( H=>xArea(8), H=>xRadi(8), gamma, srMw )
+
+    ! For UCX-based mechanisms also allow reaction on stratospheric
+    ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
+    IF ( H=>is_UCX ) THEN
+       k = k + Ars_L1k( H=>xArea(13), H=>xRadi(13), gamma, srMw )
+    ENDIF
+
+  END FUNCTION IuptkBySulf1stOrd
+
+  FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by accumulation-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H=>xArea(11), H=>xRadi(11), gamma, srMw )
+  END FUNCTION IuptkbySALA1stOrd
+
+  FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by coarse-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H=>xArea(12), H=>xRadi(12), gamma, srMw )
+  END FUNCTION IuptkBySALC1stOrd
+
+  !=========================================================================
   ! Rate-law functions for VOC species
   !=========================================================================
 

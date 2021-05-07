@@ -783,7 +783,7 @@ CONTAINS
   !#########################################################################
 
   FUNCTION Ars_L1k( area, radius, gamma, srMw ) RESULT( k )
-    ! 
+    !
     ! Calculates the 1st-order loss rate of species on wet aerosol surface.
     !
     REAL(dp), INTENT(IN) :: area, radius, gamma, srMw
@@ -839,6 +839,55 @@ CONTAINS
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
+  ! Rate-law functions for iodine species 
+  ! (HI, I2O2, I2O3, I2O4, IONO2, IONO3)
+  !=========================================================================
+
+  FUNCTION IuptkBySulf1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by sulfate (aerosol types #8 and #13).
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Uptake rate of iodine by tropospheric sulfate (N=8)
+    k = Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+
+    ! For UCX-based mechanisms also allow reaction on stratospheric
+    ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
+    IF ( H%is_UCX ) THEN
+       k = k + Ars_L1k( H%xArea(13), H%xRadi(13), gamma, srMw )
+    ENDIF
+
+  END FUNCTION IuptkBySulf1stOrd
+
+  FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by accumulation-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
+  END FUNCTION IuptkbySALA1stOrd
+
+  FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by coarse-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+  END FUNCTION IuptkBySALC1stOrd
+
+  !=========================================================================
   ! Rate-law functions for VOC species
   !=========================================================================
 
@@ -868,7 +917,7 @@ CONTAINS
 
   FUNCTION EpoxUptkGamma( srMw, H ) RESULT( gamma )
     !
-    ! Gomputes the GAMMA uptake probability for EPOXUPTK hydrolysis to 
+    ! Gomputes the GAMMA uptake probability for EPOXUPTK hydrolysis to
     ! form 2-methyltetrols (AITET). (eam, 2014).
     !
     ! Calculation is only done for inorganic aqueous phase aerosols.
@@ -976,7 +1025,7 @@ CONTAINS
     IF ( RELHUM >= CRITRH ) THEN
        !
        ! Define gamma for MGLY: Obtained by scaling gamma GLYX by the
-       ! ratio of effective Henry's law constants for GLYX (3d7) and 
+       ! ratio of effective Henry's law constants for GLYX (3d7) and
        ! MGLY (3.7d3) (eam, 02/2015):
        gamma = 3.6e-7_dp
        !
@@ -1725,20 +1774,20 @@ SUBROUTINE Update_RCONST ( )
   RCONST(644) = (HET(ind_O3,3))
   RCONST(645) = (HET(ind_HBr,1))
   RCONST(646) = (HET(ind_HBr,2))
-  RCONST(647) = (HET(ind_HI,1))
-  RCONST(648) = (HET(ind_HI,2))
-  RCONST(649) = (HET(ind_HI,3))
+  RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
+  RCONST(648) = (IuptkBySALA1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
+  RCONST(649) = (IuptkBySALC1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
   RCONST(650) = (HET(ind_HOI,1))
   RCONST(651) = (HET(ind_HOI,2))
-  RCONST(652) = (HET(ind_I2O2,1))
-  RCONST(653) = (HET(ind_I2O2,2))
-  RCONST(654) = (HET(ind_I2O2,3))
-  RCONST(655) = (HET(ind_I2O3,1))
-  RCONST(656) = (HET(ind_I2O3,2))
-  RCONST(657) = (HET(ind_I2O3,3))
-  RCONST(658) = (HET(ind_I2O4,1))
-  RCONST(659) = (HET(ind_I2O4,2))
-  RCONST(660) = (HET(ind_I2O4,3))
+  RCONST(652) = (IuptkBySulf1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(653) = (IuptkBySALA1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(654) = (IuptkBySALC1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(655) = (IuptkBySulf1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(656) = (IuptkBySALA1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(657) = (IuptkBySALC1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(658) = (IuptkBySulf1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
+  RCONST(659) = (IuptkBySALA1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
+  RCONST(660) = (IuptkBySALC1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
   RCONST(661) = (HET(ind_IONO,1))
   RCONST(662) = (HET(ind_IONO,2))
   RCONST(663) = (HET(ind_IONO2,1))

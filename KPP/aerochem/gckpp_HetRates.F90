@@ -145,28 +145,8 @@ CONTAINS
     ! Zero the HET array
     HET = 0.0_dp
 
-    ! Calculate genuine first-order uptake reactions first
-
-    ! These VOC species use the same rate-law function for 1st-order uptake
-!    HET(ind_LVOC,   1) = Het1stOrderUptakeVOC(SR_MW(ind_LVOC),   1.0E+0_dp, H)
-!    HET(ind_IDN,    1) = Het1stOrderUptakeVOC(SR_MW(ind_IDN),    5.0E-3_dp, H)
-!    HET(ind_IHN1,   1) = Het1stOrderUptakeVOC(SR_MW(ind_IHN1),   5.0E-3_dp, H)
-!    HET(ind_IHN2,   1) = Het1stOrderUptakeVOC(SR_MW(ind_IHN2),   5.0E-2_dp, H)
-!    HET(ind_IHN3,   1) = Het1stOrderUptakeVOC(SR_MW(ind_IHN3),   5.0E-3_dp, H)
-!    HET(ind_IHN4,   1) = Het1stOrderUptakeVOC(SR_MW(ind_IHN4),   5.0E-3_dp, H)
 !### KPP DEBUG
 goto 9999
-!    HET(ind_INPB,   1) = Het1stOrderUptakeVOC(SR_MW(ind_INPB),   5.0E-3_dp, H)
-!    HET(ind_INPD,   1) = Het1stOrderUptakeVOC(SR_MW(ind_INPD),   5.0E-3_dp, H)
-!    HET(ind_ITCN,   1) = Het1stOrderUptakeVOC(SR_MW(ind_ITCN),   5.0E-3_dp, H)
-!    HET(ind_ITHN,   1) = Het1stOrderUptakeVOC(SR_MW(ind_ITHN),   5.0E-3_dp, H)
-!    HET(ind_MCRHN,  1) = Het1stOrderUptakeVOC(SR_MW(ind_MCRHN),  5.0E-3_dp, H)
-!    HET(ind_MCRHNB, 1) = Het1stOrderUptakeVOC(SR_MW(ind_MCRHNB), 5.0E-3_dp, H)
-!    HET(ind_MVKN,   1) = Het1stOrderUptakeVOC(SR_MW(ind_MVKN),   5.0E-3_dp, H)
-!    HET(ind_R4N2,   1) = Het1stOrderUptakeVOC(SR_MW(ind_R4N2),   5.0E-3_dp, H)
-!    HET(ind_MONITS, 1) = Het1stOrderUptakeVOC(SR_MW(ind_MONITS), 1.0E-2_dp, H)
-!    HET(ind_MONITU, 1) = Het1stOrderUptakeVOC(SR_MW(ind_MONITU), 1.0E-2_dp, H)
-!    HET(ind_HONIT,  1) = Het1stOrderUptakeVOC(SR_MW(ind_HONIT),  1.0E-2_dp, H)
 
     ! Aerosol-phase organic nitrate formed from monoterpene precursors
     ! (species IONITA and MONITA) have constant 1st order uptake rates.
@@ -773,115 +753,97 @@ goto 9999
 !
 !    HET(ind_ClNO2, 6) = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), kITemp          )
 
-    !========================================================================
-    ! Iodine chemistry (forming AERI, ISALA and ISALC)
-    !========================================================================
 
-    !------------------------------------------------------------------------
-    ! Uptake of iodine species on tropospheric sulfate (aerosol type #8)
-    !------------------------------------------------------------------------
-    HET(ind_HI,   1) = HetIUptakebySulf(    SR_MW(ind_HI),    0.10_dp, H    )
-    HET(ind_I2O2, 1) = HetIUptakebySulf(    SR_MW(ind_I2O2),  0.02_dp, H    )
-    HET(ind_I2O3, 1) = HetIUptakebySulf(    SR_MW(ind_I2O3),  0.02_dp, H    )
-    HET(ind_I2O4, 1) = HetIUptakebySulf(    SR_MW(ind_I2O4),  0.02_dp, H    )
-
-    !------------------------------------------------------------------------
-    ! Uptake of iodine species on accum-mode sea salt (aerosol type #11)
-    !------------------------------------------------------------------------
-
-    ! Case 1: Uptake on fine sea-salt regardless of acidity
-    HET(ind_HI,   2)    = HetIUptakebySALA( SR_MW(ind_HI),    0.10_dp, H    )
-    HET(ind_I2O2, 2)    = HetIUptakebySALA( SR_MW(ind_I2O2),  0.02_dp, H    )
-    HET(ind_I2O3, 2)    = HetIUptakebySALA( SR_MW(ind_I2O3),  0.02_dp, H    )
-    HET(ind_I2O4, 2)    = HetIUptakebySALA( SR_MW(ind_I2O4),  0.02_dp, H    )
-
-    ! Case 2: Uptake on alkaline fine sea-salt only
-    IF ( H%SSAlk(1) > 0.05_dp ) THEN
-       HET(ind_HOI,  1) = HetIUptakebySALA( SR_MW(ind_HOI),   0.01_dp, H    )
-       HET(ind_IONO, 1) = HetIUptakebySALA( SR_MW(ind_IONO),  0.02_dp, H    )
-       HET(ind_IONO2,1) = HetIUptakebySALA( SR_MW(ind_IONO2), 0.01_dp, H    )
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Uptake reactions on coarse-mode sea salt (aerosol type #12)
-    !------------------------------------------------------------------------
-
-    ! Case 3: Uptake on coarse sea-salt regardless of acidity
-    HET(ind_HI,   3)    = HetIUptakebySALC( SR_MW(ind_HI),    0.10_dp, H    )
-    HET(ind_I2O2, 3)    = HetIUptakebySALC( SR_MW(ind_I2O2),  0.02_dp, H    )
-    HET(ind_I2O3, 3)    = HetIUptakebySALC( SR_MW(ind_I2O3),  0.02_dp, H    )
-    HET(ind_I2O4, 3)    = HetIUptakebySALC( SR_MW(ind_I2O4),  0.02_dp, H    )
-
-    ! Case 4: Uptake on alkaline cosea-salt only
-    IF ( H%SSAlk(2) > 0.05_dp ) THEN
-       HET(ind_HOI,  2) = HetIUptakebySALC( SR_MW(ind_HOI),   0.01_dp, H    )
-       HET(ind_IONO, 2) = HetIUptakebySALC( SR_MW(ind_IONO),  0.02_dp, H    )
-       HET(ind_IONO2,2) = HetIUptakebySALC( SR_MW(ind_IONO2), 0.01_dp, H    )
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
-    ! Assume a ratio of IBr:ICl = 0.15:0.85
-    !------------------------------------------------------------------------
-    IF ( H%SSAlk(1) <= 0.05_fp ) THEN
-
-       ! Breakdown of HOI on acidic BrSALA
-       rate = 0.15_dp * HetIUptakeBySALA( SR_MW(ind_HOI),  0.01_dp, H       )
-       HET(ind_HOI,  3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), rate         )
-
-       ! Breakdown of IONO on acidic BrSALA
-       rate = 0.15_dp * HetIUptakeBySALA(SR_MW(ind_IONO),  0.02_dp, H       )
-       HET(ind_IONO, 3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), rate        )
-
-       ! Breakdown of IONO2 on acidic BrSALA
-       rate = 0.15_dp * HetIUptakeBySALA(SR_MW(ind_IONO2), 0.01_dp, H       )
-       HET(ind_IONO2,3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), rate       )
-
-       ! Breakdown of HOI on acidic SALACL
-       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_HOI),   0.01_dp, H       )
-       HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), rate         )
-
-       ! Breakdown of IONO on acidic SALACL
-       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_IONO), 0.02_dp,  H       )
-       HET(ind_IONO, 5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), rate        )
-
-       ! Breakdown of IONO2 on acidic SALACL
-       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_IONO2),0.01_dp,  H       )
-       HET(ind_IONO2,5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), rate       )
-
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Breakdown of iodine species on acidic sea-salt (coarse mode)
-    ! Assume a ratio of IBr:ICl = 0.15:0.85
-    !------------------------------------------------------------------------
-    IF ( H%SSAlk(2) <= 0.05_fp ) THEN
-
-       ! Breakdown of HOI on acidic BrSALC
-       rate = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_HOI),    0.01_dp, H      )
-       HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), rate         )
-
-       ! Breakdown of IONO on acidic BrSALC
-       rate = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_IONO),   0.02_dp, H      )
-       HET(ind_IONO, 4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), rate        )
-
-       ! Breakdown of IONO2 on acidic BrSALC
-       rate  = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_IONO2), 0.01_dp, H      )
-       HET(ind_IONO2,4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), rate       )
-
-       ! Breakdown of HOI on acidic SALCCL
-       rate  = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_HOI),   0.01_dp, H      )
-       HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), rate         )
-
-       ! Breakdown of IONO on acidic SALCCL
-       rate = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_IONO), 0.02_dp, H        )
-       HET(ind_IONO, 6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), rate        )
-
-       ! Breakdown of IONO2 on acidic SALCCL
-       rate = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_IONO2),0.01_dp, H        ) 
-       HET(ind_IONO2,6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), rate       )
-
-    ENDIF
+!### THESE FUNCTIONS ARE BEING PEELED OUT INTO gckpp.kpp
+!    !========================================================================
+!    ! Iodine chemistry (forming AERI, ISALA and ISALC)
+!    !========================================================================
+!
+!    !------------------------------------------------------------------------
+!    ! Uptake of iodine species on accum-mode sea salt (aerosol type #11)
+!    !------------------------------------------------------------------------
+!
+!    ! Case 2: Uptake on alkaline fine sea-salt only
+!    IF ( H%SSAlk(1) > 0.05_dp ) THEN
+!       HET(ind_HOI,  1) = HetIUptakebySALA( SR_MW(ind_HOI),   0.01_dp, H    )
+!       HET(ind_IONO, 1) = HetIUptakebySALA( SR_MW(ind_IONO),  0.02_dp, H    )
+!       HET(ind_IONO2,1) = HetIUptakebySALA( SR_MW(ind_IONO2), 0.01_dp, H    )
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! Uptake reactions on coarse-mode sea salt (aerosol type #12)
+!    !------------------------------------------------------------------------
+!
+!    ! Case 4: Uptake on alkaline cosea-salt only
+!    IF ( H%SSAlk(2) > 0.05_dp ) THEN
+!       HET(ind_HOI,  2) = HetIUptakebySALC( SR_MW(ind_HOI),   0.01_dp, H    )
+!       HET(ind_IONO, 2) = HetIUptakebySALC( SR_MW(ind_IONO),  0.02_dp, H    )
+!       HET(ind_IONO2,2) = HetIUptakebySALC( SR_MW(ind_IONO2), 0.01_dp, H    )
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+!    ! Assume a ratio of IBr:ICl = 0.15:0.85
+!    !------------------------------------------------------------------------
+!    IF ( H%SSAlk(1) <= 0.05_fp ) THEN
+!
+!       ! Breakdown of HOI on acidic BrSALA
+!       rate = 0.15_dp * HetIUptakeBySALA( SR_MW(ind_HOI),  0.01_dp, H       )
+!       HET(ind_HOI,  3) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALA), rate         )
+!
+!       ! Breakdown of IONO on acidic BrSALA
+!       rate = 0.15_dp * HetIUptakeBySALA(SR_MW(ind_IONO),  0.02_dp, H       )
+!       HET(ind_IONO, 3) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALA), rate        )
+!
+!       ! Breakdown of IONO2 on acidic BrSALA
+!       rate = 0.15_dp * HetIUptakeBySALA(SR_MW(ind_IONO2), 0.01_dp, H       )
+!       HET(ind_IONO2,3) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALA), rate       )
+!
+!       ! Breakdown of HOI on acidic SALACL
+!       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_HOI),   0.01_dp, H       )
+!       HET(ind_HOI,  5) = kIIR1Ltd( C(ind_HOI), C(ind_SALACL), rate         )
+!
+!       ! Breakdown of IONO on acidic SALACL
+!       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_IONO), 0.02_dp,  H       )
+!       HET(ind_IONO, 5) = kIIR1Ltd( C(ind_IONO), C(ind_SALACL), rate        )
+!
+!       ! Breakdown of IONO2 on acidic SALACL
+!       rate = 0.85_dp * HetIUptakeBySALA(SR_MW(ind_IONO2),0.01_dp,  H       )
+!       HET(ind_IONO2,5) = kIIR1Ltd( C(ind_IONO2), C(ind_SALACL), rate       )
+!
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! Breakdown of iodine species on acidic sea-salt (coarse mode)
+!    ! Assume a ratio of IBr:ICl = 0.15:0.85
+!    !------------------------------------------------------------------------
+!    IF ( H%SSAlk(2) <= 0.05_fp ) THEN
+!
+!       ! Breakdown of HOI on acidic BrSALC
+!       rate = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_HOI),    0.01_dp, H      )
+!       HET(ind_HOI,  4) = kIIR1Ltd( C(ind_HOI), C(ind_BrSALC), rate         )
+!
+!       ! Breakdown of IONO on acidic BrSALC
+!       rate = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_IONO),   0.02_dp, H      )
+!       HET(ind_IONO, 4) = kIIR1Ltd( C(ind_IONO), C(ind_BrSALC), rate        )
+!
+!       ! Breakdown of IONO2 on acidic BrSALC
+!       rate  = 0.15_dp * HetIUptakeBySALC(SR_MW(ind_IONO2), 0.01_dp, H      )
+!       HET(ind_IONO2,4) = kIIR1Ltd( C(ind_IONO2), C(ind_BrSALC), rate       )
+!
+!       ! Breakdown of HOI on acidic SALCCL
+!       rate  = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_HOI),   0.01_dp, H      )
+!       HET(ind_HOI,  6) = kIIR1Ltd( C(ind_HOI), C(ind_SALCCL), rate         )
+!
+!       ! Breakdown of IONO on acidic SALCCL
+!       rate = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_IONO), 0.02_dp, H        )
+!       HET(ind_IONO, 6) = kIIR1Ltd( C(ind_IONO), C(ind_SALCCL), rate        )
+!
+!       ! Breakdown of IONO2 on acidic SALCCL
+!       rate = 0.85_dp * HetIUptakeBySALC(SR_MW(ind_IONO2),0.01_dp, H        ) 
+!       HET(ind_IONO2,6) = kIIR1Ltd( C(ind_IONO2), C(ind_SALCCL), rate       )
+!
+!    ENDIF
 
     !========================================================================
     ! Cleanup & quit
@@ -5346,50 +5308,6 @@ goto 9999
   ! Rate-law functions for iodine species 
   ! (HI, I2O2, I2O3, I2O4, IONO2, IONO3)
   !=========================================================================
-
-  FUNCTION HetIUptakebySALA( srMw, gamma, H ) RESULT( k )
-    !
-    ! Computes the reaction rate [1/s] for uptake of iodine species
-    ! by accumulation-mode sea-salt aerosol.
-    !
-    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    !
-    k = ArsL1k( H%xArea(11), H%xRadi(11), NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION HetIUptakebySALA
-
-  FUNCTION HetIUptakebySALC( srMw, gamma, H ) RESULT( k )
-    !
-    ! Computes the reaction rate [1/s] for uptake of iodine species
-    ! by coarse-mode sea-salt aerosol.
-    !
-    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    !
-    k = ArsL1k( H%xArea(12), H%xRadi(12), NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION HetIUptakebySALC
-
-  FUNCTION HETIUptakeBySulf( srMw, gamma, H ) RESULT( k )
-    !
-    ! Computes the reaction rate [1/s] for uptake of iodine species
-    ! by sulfate (aerosol types #8 and #13).
-    !
-    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    !
-    ! Uptake rate of iodine by tropospheric sulfate (N=8)
-    k = ArsL1k( H%xArea(8), H%xRadi(8), NUMDEN, gamma, SR_TEMP, srMw )
-
-    ! For UCX-based mechanisms also allow reaction on stratospheric
-    ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
-    IF ( H%is_UCX ) THEN
-       k = k + ArsL1k(H%xArea(13), H%xRadi(13), NUMDEN, gamma, SR_TEMP, srMw)
-    ENDIF
-
-  END FUNCTION HETIUptakeBySulf
 
   !=========================================================================
   ! Rate-law functions for NO2
