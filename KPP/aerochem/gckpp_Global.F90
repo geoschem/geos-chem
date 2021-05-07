@@ -94,86 +94,52 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-
   !-----------------------------------------------------------------------
   ! Add parameters to isolate a box for debugging
   !-----------------------------------------------------------------------
-  INTEGER,       PARAMETER :: I_dbg = 50
-  INTEGER,       PARAMETER :: J_dbg = 2
-  INTEGER,       PARAMETER :: L_dbg = 44
+  INTEGER,  PARAMETER :: I_dbg = 50
+  INTEGER,  PARAMETER :: J_dbg = 2
+  INTEGER,  PARAMETER :: L_dbg = 44
 
   !-----------------------------------------------------------------------
   ! Add more inlined global parameters for heterogeneous chemistry here
   !-----------------------------------------------------------------------
 
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(kind=dp), PARAMETER :: HetMinLife  = 1.e-3_dp
-  REAL(kind=dp), PARAMETER :: HetMinRate  = 1.0_dp / HetMinLife
+  REAL(dp), PARAMETER :: HetMinLife  = 1.e-3_dp
+  REAL(dp), PARAMETER :: HetMinRate  = 1.0_dp / HetMinLife
 
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
-  REAL(kind=dp), PARAMETER :: CRITRH      = 35.0e+0_dp
+  REAL(dp), PARAMETER :: CRITRH      = 35.0e+0_dp
 
   ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous 
   ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
   ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
   ! (which is the precursor of IEPOX).
-  REAL(kind=dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
+  REAL(dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
 
   ! Conversion factor from atm to bar
-  REAL(kind=dp), PARAMETER :: con_atm_bar = 1.0_dp / 1.01325_dp
+  REAL(dp), PARAMETER :: con_atm_bar = 1.0_dp / 1.01325_dp
 
   ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(kind=dp), PARAMETER :: con_R       = 0.083144598_dp
+  REAL(dp), PARAMETER :: con_R       = 0.083144598_dp
 
   ! Reference temperature
-  REAL(kind=dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
+  REAL(dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
 
   !--------------------------------------------------------------------------
   ! Add more global variables here, so that they can be used
   ! in inlined functions that will get written to gckpp_Rates.F90
   !--------------------------------------------------------------------------
-
-  !%% OGICALS %%%%
-
-  LOGICAL :: NATSURFACE, PSCBOX, STRATBOX
-  !$OMP THREADPRIVATE( NATSURFACE, PSCBOX, STRATBOX )
-
-  !%% INTEGERS %%%%
-
-  INTEGER :: NAEROTYPE
-  !$OMP THREADPRIVATE( NAEROTYPE )
-
-  !%% REALS %%%%
-
-  ! Fine SSA+SNA aerosol area [cm2 aerosol/cm3 air]
-  REAL(kind=dp) :: AClAREA
-  !$OMP THREADPRIVATE( AClAREA )
-
-  ! Fine SSA+SNA aerosol radius [cm]
-  REAL(kind=dp) :: AClRADI
-  !$OMP THREADPRIVATE( AClRADI )
-
-  ! Fine SSA+SNA aerosol volume (cm3 aerosol/cm3 air)
-  REAL(kind=dp) :: AClVOL
-  !$OMP THREADPRIVATE( AClVol )
-
-  ! Isorropia aerosol water (coarse & fine modes)
-  REAL(kind=dp) :: AWATER(2)
-  !$OMP THREADPRIVATE( AWATER )
-
-  ! Proton activity [unitless] and H+ concentration [M]
-  ! (assumed equivalent - for now):
-  REAL(kind=dp) :: GAMMA_HO2
-  !$OMP THREADPRIVATE( GAMMA_HO2 )
-
+  
   ! H2O concentration
-  REAL(kind=dp) :: H2O
+  REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
 
   ! Henry's law constants (do not need to be THREADPRIVATE)
-  REAL(kind=dp) :: HENRY_K0(NSPEC)
-  REAL(kind=dp) :: HENRY_CR(NSPEC)
+  REAL(dp) :: HENRY_K0(NSPEC)
+  REAL(dp) :: HENRY_CR(NSPEC)
 
   ! Array for heterogeneous rates
   !
@@ -288,67 +254,88 @@ MODULE gckpp_Global
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 
-  ! Proton activity [unitless] and H+ concentration [M]
-  ! (assumed equivalent - for now):
-  REAL(kind=dp) :: H_PLUS
-  !$OMP THREADPRIVATE( H_PLUS )
-
-  ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-  REAL(kind=dp) :: KHETI_SLA(11)
-  !$OMP THREADPRIVATE( KHETI_SLA )
-
-  ! Bisulfate (general acid), nitrate, sulfate concentrations [M]:
-  REAL(kind=dp) :: MHSO4, MNO3, MSO4
-  !$OMP THREADPRIVATE( MHSO4, MNO3, MSO4 )
-
   ! Array for photolysis rates
-  REAL(kind=dp) :: PHOTOL(1000)
+  REAL(dp) :: PHOTOL(1000)
   !$OMP THREADPRIVATE( PHOTOL )
 
-  ! Ice and water mixing ratios (kg ice/kg dry air)
-  REAL(kind=dp) :: QICE, QLIQ
-  !$OMP THREADPRIVATE( QICE, QLIQ )
-
-  ! Organic mattter to organic carbon ratios
-  REAL(kind=dp) :: OMOC_POA, OMOC_OPOA
-  !$OMP THREADPRIVATE( OMOC_POA, OMOC_OPOA )
-
   ! Pressure and relative humidity
-  REAL(kind=dp) :: PRESS, RELHUM
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
   !$OMP THREADPRIVATE( PRESS, RELHUM )
 
-  ! Aerosol concentrations
-  REAL(kind=dp) :: SPC_SALA
-  !$OMP THREADPRIVATE( SPC_SALA )
-
   ! Cosine of solar zenith angle
-  REAL(kind=dp) :: SUNCOS
+  REAL(dp) :: SUNCOS
   !$OMP THREADPRIVATE( SUNCOS )
 
-  ! Volume of air (cm3)
-  REAL(kind=dp) :: VAir
-  !$OMP THREADPRIVATE( Vair )
-
-  ! Aerosol specific surface area (cm3 H2O/cm3 air)
-  REAL(kind=dp) :: XAREA(14)
-  !$OMP THREADPRIVATE( XAREA )
-
-  ! Aerosol water content, cm3(H2O)/cm3(air)
-  REAL(kind=dp) :: XH2O(14)
-  !$OMP THREADPRIVATE( XH2O )
-
-  ! Aerosol effective radius (cm)
-  REAL(kind=dp) :: XRADI(14)
-  !$OMP THREADPRIVATE( XRADI )
-
-  ! Square root of temperature [K]
-  REAL(kind=dp) :: XTEMP
-  !$OMP THREADPRIVATE( XTEMP )
-
-  ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-  REAL(kind=dp) :: XVOL(14)
-  !$OMP THREADPRIVATE( XVOL )
-
+  TYPE, PUBLIC :: HetState
+     LOGICAL  :: NATSURFACE    ! Is there NAT in this box?
+     LOGICAL  :: PSCBOX        ! Does this box have Polar Strat Clouds?
+     LOGICAL  :: STRATBOX      ! Is this box in the stratosphere?
+     INTEGER  :: NAEROTYPE     ! Number of aerosol types
+     LOGICAL  :: is_UCX        ! Are we using the UCX mechanism?
+     REAL(dp) :: aClArea       ! Fine SSA+SNA aerosol area [cm2/cm3]
+     REAL(dp) :: aClRadi       ! Fine SSA+SNA aerosol radius [cm]
+     REAL(dp) :: aClVol        ! Fine SSA+SNA aerosol volume [cm3/cm3]
+     REAL(dp) :: aIce          ! Ice surface area
+     REAL(dp) :: aLiq          ! Liquid surface area
+     REAL(dp) :: aWater(2)     ! ISORROPIA aerosol water (fine & coarse)
+     REAL(dp) :: BrConc_CldA   ! Br- in cloud (fine sea salt)   [mol/kg water]
+     REAL(dp) :: BrConc_CldC   ! Br- in cloud (coarse sea salt) [mol/kg water]
+     REAL(dp) :: BrConc_CldG   ! Br- in cloud (gas-phase)       [mol/kg water]
+     REAL(dp) :: BrConc_SALA   ! Br- in fine sea salt aerosol   [mol/kg water]
+     REAL(dp) :: BrConc_SALC   ! Br- in coarse sea salt aerosol [mol/kg water]
+     REAL(dp) :: ClConc_CldA   ! Br- in cloud (fine sea salt)   [mol/kg water]
+     REAL(dp) :: ClConc_CldC   ! Br- in cloud (coarse sea salt) [mol/kg water]
+     REAL(dp) :: ClConc_CldG   ! Cl- in cloud (gas-phase)       [mol/kg water]
+     REAL(dp) :: ClConc_SALA   ! Cl- in fine sea salt           [mol/kg water]
+     REAL(dp) :: ClConc_SALC   ! Cl- in coarse sea salt         [mol/kg water]
+     REAL(dp) :: cldFr         ! Cloud fraction [1]
+     REAL(dp) :: clearFr       ! Clear sky fraction [1]
+     REAL(dp) :: fupdateHOBr   !
+     REAL(dp) :: fupdateHOCl   !
+     REAL(dp) :: gamma_HO2     ! Uptake reaction probability for HO2 [1]
+     REAL(dp) :: H2O           ! H2O concentration
+     REAL(dp) :: HBr_th        ! HBr theta
+     REAL(dp) :: HCl_th        ! HCl theta
+     REAL(dp) :: hConc_ICl     ! Liquid phase pH, Cl-
+     REAL(dp) :: hConc_LCl     ! Liquid phase pH, Cl- 
+     REAL(dp) :: hConc_SSA     ! Liquid phase pH, fine sea salt
+     REAL(dp) :: hConc_SSC     ! Liquid phase pH, coarse sea salt
+     REAL(dp) :: hConc_Sul     ! Liquid phase pH, sulfate
+     REAL(dp) :: HetTemp(3)    !
+     REAL(dp) :: HNO3_th       ! HNO3 theta
+     REAL(dp) :: HSO3conc_Cld  !
+     REAL(dp) :: H_PLUS        ! Proton activity [1] and H+ concentration [M]
+     REAL(dp) :: KHETI_SLA(11) ! Uptake probabilities for PSC reactions on SLA
+     REAL(dp) :: mHSO4         ! Bisulfate concentration [M]
+     REAL(dp) :: mNO3          ! Nitrate concentration [M]
+     REAL(dp) :: mSO4          ! Sulfate concentration [M]
+     REAL(dp) :: NitConc_SALA  ! Cl- in fine sea salt           [mol/kg water]
+     REAL(dp) :: NitConc_SALC  ! Cl- in coarse sea salt         [mol/kg water]
+     REAL(dp) :: PI            ! PI constant
+     REAL(dp) :: pHCloud       !
+     REAL(dp) :: pHSSA(2)      !
+     REAL(dp) :: OMOC_POA      ! Organic matter/organic carbon in POA
+     REAL(dp) :: OMOC_OPOA     ! Organic matter/organic carbon in POA
+     REAL(dp) :: qIce          ! Ice mixing ratio [kg/kg]
+     REAL(dp) :: qLIq          ! Water mixing ratio [kg/kg]
+     REAL(dp) :: rIce          ! Ice radius
+     REAL(dp) :: rLiq          ! Liquid radius
+     REAL(dp) :: RGASLATM      ! Gas constant [L*atm/K/mole]
+     REAL(dp) :: RSTARG        ! Gas constant [J/K/mole]
+     REAL(dp) :: SPC_SALA      ! SALA concentration
+     REAL(dp) :: SO3conc_Cld   !
+     REAL(dp) :: SSAlk(2)      ! Sea salt alkalinity (fine, coarse)
+     REAL(dp) :: vAir          ! Volume of air [cm3]
+     REAL(dp) :: vIce          ! Ice volume [cm3]
+     REAL(dp) :: vLiq          ! Liquid volume [cm3]
+     REAL(dp) :: xArea(14)     ! Aerosol specific sfc area [cm3 H2O/cm3 air]
+     REAL(dp) :: xH2O(14)      ! Aerosol water content [cm3 H2O/cm3 air]
+     REAL(dp) :: xRadi(14)     ! Aerosol effective radius (cm)
+     REAL(dp) :: xVol(14)      ! Aerosol specific volume [cm3/cm3 air]
+  END TYPE HetState
+  TYPE(HetState), TARGET, PUBLIC :: State_Het
+  !$OMP THREADPRIVATE( State_Het )
 
 ! INLINED global variable declarations
 

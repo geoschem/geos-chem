@@ -30,106 +30,14 @@ CONTAINS
 
 
 
-! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
-
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!  User-defined Rate Law functions
-!  Note: the default argument type for rate laws, as read from the equations file, is single precision
-!        but all the internal calculations are performed in double precision
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-!~~~>  Arrhenius
-   REAL(kind=dp) FUNCTION ARR( A0,B0,C0 )
-      REAL A0,B0,C0      
-      ARR =  DBLE(A0) * EXP(-DBLE(B0)/TEMP) * (TEMP/300.0_dp)**DBLE(C0)
-   END FUNCTION ARR        
-
-!~~~> Simplified Arrhenius, with two arguments
-!~~~> Note: The argument B0 has a changed sign when compared to ARR
-   REAL(kind=dp) FUNCTION ARR2( A0,B0 )
-      REAL A0,B0           
-      ARR2 =  DBLE(A0) * EXP( DBLE(B0)/TEMP )              
-   END FUNCTION ARR2          
-
-   REAL(kind=dp) FUNCTION EP2(A0,C0,A2,C2,A3,C3)
-      REAL A0,C0,A2,C2,A3,C3
-      REAL(kind=dp) K0,K2,K3            
-      K0 = DBLE(A0) * EXP(-DBLE(C0)/TEMP)
-      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-      K3 = DBLE(A3) * EXP(-DBLE(C3)/TEMP)
-      K3 = K3*CFACTOR*1.0E6_dp
-      EP2 = K0 + K3/(1.0_dp+K3/K2 )
-   END FUNCTION EP2
-
-   REAL(kind=dp) FUNCTION EP3(A1,C1,A2,C2) 
-      REAL A1, C1, A2, C2
-      REAL(kind=dp) K1, K2      
-      K1 = DBLE(A1) * EXP(-DBLE(C1)/TEMP)
-      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-      EP3 = K1 + K2*(1.0E6_dp*CFACTOR)
-   END FUNCTION EP3 
-
-   REAL(kind=dp) FUNCTION FALL ( A0,B0,C0,A1,B1,C1,CF)
-      REAL A0,B0,C0,A1,B1,C1,CF
-      REAL(kind=dp) K0, K1     
-      K0 = DBLE(A0) * EXP(-DBLE(B0)/TEMP)* (TEMP/300.0_dp)**DBLE(C0)
-      K1 = DBLE(A1) * EXP(-DBLE(B1)/TEMP)* (TEMP/300.0_dp)**DBLE(C1)
-      K0 = K0*CFACTOR*1.0E6_dp
-      K1 = K0/K1
-      FALL = (K0/(1.0_dp+K1))*   &
-           DBLE(CF)**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
-   END FUNCTION FALL
-
-  !---------------------------------------------------------------------------
-
-  ELEMENTAL REAL(kind=dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
-
-    INTRINSIC LOG10
-
-    REAL(kind=dp), INTENT(IN) :: temp      ! temperature [K]
-    REAL(kind=dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-    REAL, INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
-    REAL, INTENT(IN) :: n         ! exponent for low pressure limit
-    REAL, INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
-    REAL, INTENT(IN) :: m         ! exponent for high pressure limit
-    REAL, INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
-    REAL(kind=dp) :: zt_help, k0_T, kinf_T, k_ratio
-
-    zt_help = 300._dp/temp
-    k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
-    kinf_T  = kinf_300K * zt_help**(m)        ! k_inf at current T
-    k_ratio = k0_T/kinf_T
-    k_3rd   = k0_T/(1._dp+k_ratio)*fc**(1._dp/(1._dp+LOG10(k_ratio)**2))
-
-  END FUNCTION k_3rd
-
-  !---------------------------------------------------------------------------
-
-  ELEMENTAL REAL(kind=dp) FUNCTION k_arr (k_298,tdep,temp)
-    ! Arrhenius function
-
-    REAL,     INTENT(IN) :: k_298 ! k at T = 298.15K
-    REAL,     INTENT(IN) :: tdep  ! temperature dependence
-    REAL(kind=dp), INTENT(IN) :: temp  ! temperature
-
-    INTRINSIC EXP
-
-    k_arr = k_298 * EXP(tdep*(1._dp/temp-3.3540E-3_dp)) ! 1/298.15=3.3540e-3
-
-  END FUNCTION k_arr
-
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!  End of User-defined Rate Law functions
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-! End Rate Law Functions from KPP_HOME/util/UserRateLaws
-
-
 ! Begin INLINED Rate Law Functions
 
 
+  !#########################################################################
+  !#####          RATE-LAW FUNCTIONS FOR GAS-PHASE REACTIONS           #####
+  !#########################################################################
 
-  FUNCTION ARRPLUS_ade( a0, d0, e0 ) RESULT( rate )
+  FUNCTION ARRPLUS_ade( a0, d0, e0 ) RESULT( k )
     ! Modified Arrhenius law, skipping computation of EXP( -b0/T )
     ! and ( 300/T )**c0 terms, which evaluate to 1 when b0 = c0 = 0.
     ! This avoids excess CPU cycles. (bmy, 12/18/20)
@@ -147,13 +55,13 @@ CONTAINS
     !    IHOO4 + MO2   = CH2O + 0.5HC5A + 1.5HO2 +  0.5MCRHP + 0.5CO + 0.5OH
     !
     REAL(kind=dp), INTENT(IN) :: a0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) )
+    k = MAX( k, 0.0_dp )
   END FUNCTION ARRPLUS_ade
 
-  FUNCTION ARRPLUS_abde( a0, b0, d0, e0 ) RESULT( rate )
+  FUNCTION ARRPLUS_abde( a0, b0, d0, e0 ) RESULT( k )
     ! Modified Arrhenius law, skipping computation of ( T/300 )**c0,
     ! which evaluates to 1 when c0=0.  This avoids excess CPU cycles.
     ! (bmy, 12/18/20)
@@ -167,40 +75,40 @@ CONTAINS
     !    IHOO4       = MACR + OH + CH2O
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
+    k = MAX( k, 0.0_dp )
   END FUNCTION ARRPLUS_abde
 
-  FUNCTION TUNPLUS_abcde( a0, b0, c0, d0, e0 ) RESULT( rate )
+  FUNCTION TUNPLUS_abcde( a0, b0, c0, d0, e0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    IHOO1 = 1.5OH + ...
     !    IHOO4 = 1.5OH + ...
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = rate * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) )
+    k = k * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
+    k = MAX( k, 0.0_dp )
   END FUNCTION TUNPLUS_abcde
 
-  FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
+  FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    ISOP + OH = LISOPOH + IHOO1
     !    ISOP + OH = LISOPOH + IHOO4
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0, f0, g0
-    REAL(kind=dp)             :: k0, k1, k2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
-    k0   = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
-    k1   = f0 * EXP( g0 / TEMP )
-    k2   = c0 * k0 / ( k0 + k1 )
-    rate = a0 * EXP( b0 / TEMP ) * ( 1.0_dp - k2 )
+    k0 = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
+    k1 = f0 * EXP( g0 / TEMP )
+    k2 = c0 * k0 / ( k0 + k1 )
+    k  = a0 * EXP( b0 / TEMP ) * ( 1.0_dp - k2 )
   END FUNCTION GC_ISO1
 
-  FUNCTION GC_ISO2( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
+  FUNCTION GC_ISO2( a0, b0, c0, d0, e0, f0, g0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O
     !              + 0.15HPALD3 + 0.25HPALD1 + 0.4HO2
@@ -210,15 +118,15 @@ CONTAINS
     !              + 0.3ATOOH + LISOPOH
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0, f0, g0
-    REAL(kind=dp)             :: k0, k1, k2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
-    k0   = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
-    k1   = f0 * EXP( g0 / TEMP )
-    k2   = c0 * k0 / ( k0 + k1 )
-    rate = a0 * EXP( b0 / TEMP ) * k2
+    k0 = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
+    k1 = f0 * EXP( g0 / TEMP )
+    k2 = c0 * k0 / ( k0 + k1 )
+    k  = a0 * EXP( b0 / TEMP ) * k2
   END FUNCTION GC_ISO2
 
-  FUNCTION GC_EPO_a( a1, e1, m1 ) RESULT( rate )
+  FUNCTION GC_EPO_a( a1, e1, m1 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    RIPA   + OH = 0.67IEPOXA   + 0.33IEPOXB   + OH + 0.005LVOC
     !    RIPB   + OH = 0.68IEPOXA   + 0.321IEPOB   + OH + 0.005LVOC
@@ -234,13 +142,13 @@ CONTAINS
     !    ICN    + OH = NO2          + ICHE
     !
     REAL(kind=dp), INTENT(IN) :: a1, e1, m1
-    REAL(kind=dp)             :: k1, rate
+    REAL(kind=dp)             :: k1, k
     !
-    k1   = 1.0_dp / ( m1 * NUMDEN + 1.0_dp )
-    rate = a1 * EXP( e1 / TEMP ) *  K1
+    k1 = 1.0_dp / ( m1 * NUMDEN + 1.0_dp )
+    k  = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO_a
 
-  FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( rate )
+  FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    MACR1OO + NO2 = MPAN
     !    MACRNO2 + NO2 = MPAN + NO2
@@ -252,18 +160,18 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, cf
-    REAL(kind=dp)             :: k0, k1, kr, nc, f,  rate
+    REAL(kind=dp)             :: k0, k1, kr, nc, f,  k
     !
-    k0   = a0 * TEMP_OVER_K300**c0
-    k1   = a1 * TEMP_OVER_K300**c1
-    k0   = k0 * NUMDEN
-    kr   = k0 / k1
-    nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
-    f    = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
-    rate = k0 * k1 * f / ( k0 + k1 )
+    k0 = a0 * TEMP_OVER_K300**c0
+    k1 = a1 * TEMP_OVER_K300**c1
+    k0 = k0 * NUMDEN
+    kr = k0 / k1
+    nc = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
+    f  = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
+    k  = k0 * k1 * f / ( k0 + k1 )
   END FUNCTION GC_PAN_acac
 
-  FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( rate )
+  FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    IHOO1    + NO = IHN2
     !    IHOO4    + NO = IHN4
@@ -285,21 +193,21 @@ CONTAINS
     !    MCROHOO  + NO = MCRHN
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, n,  x0, y0
-    REAL(kind=dp)             :: k0, k1, k2, k3, k4, rate
+    REAL(kind=dp)             :: k0, k1, k2, k3, k4, k
     !
-    k0   = 2.0E-22_dp * EXP( n )
-    k1   = 4.3E-1_dp * ( TEMP / 298.0_dp )**(-8)
-    k0   = k0 * NUMDEN
-    k1   = k0 / k1
-    k2   = ( k0 / ( 1.0_dp + k1 ) ) &
-         * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10(k1) )**2) )
-    k3   = k2 / ( k2 + c0 )
-    k4   = A0 * ( x0 - TEMP*y0 )
-    rate = k4 * EXP( b0 / TEMP ) * k3
-    rate = MAX( rate, 0.0_dp )
+    k0 = 2.0E-22_dp * EXP( n )
+    k1 = 4.3E-1_dp * ( TEMP / 298.0_dp )**(-8)
+    k0 = k0 * NUMDEN
+    k1 = k0 / k1
+    k2 = ( k0 / ( 1.0_dp + k1 ) ) &
+       * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10(k1) )**2) )
+    k3 = k2 / ( k2 + c0 )
+    k4 = A0 * ( x0 - TEMP*y0 )
+    k  = k4 * EXP( b0 / TEMP ) * k3
+    k  = MAX( k, 0.0_dp )
   END FUNCTION GC_NIT
 
-  FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( rate )
+  FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !   IHOO1    + NO =      NO2 + ...
     !   IHOO4    + NO =      NO2 + ...
@@ -323,53 +231,53 @@ CONTAINS
     !   MCROHOO  + NO =      NO2 + ...
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, n,  x0, y0
-    REAL(kind=dp)             :: k0, k1, k2, k3, k4, rate
+    REAL(kind=dp)             :: k0, k1, k2, k3, k4, k
     !
-    k0   = 2.0E-22_dp * EXP( n )
-    k1   = 4.3E-1_dp * ( TEMP / 298.0_dp)**(-8)
-    k0   = k0 * NUMDEN
-    k1   = k0 / k1
-    k2   = ( K0 / ( 1.0_dp +K1 ) )                                          &
-         * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10( k1 ) )**2) )
-    k3   = c0/ ( k2 + c0 )
-    k4   = a0 * ( x0 - TEMP*y0 )
-    rate = k4 * EXP( b0 / TEMP ) * k3
-    rate = MAX( rate, 0.0_dp )
+    k0 = 2.0E-22_dp * EXP( n )
+    k1 = 4.3E-1_dp * ( TEMP / 298.0_dp)**(-8)
+    k0 = k0 * NUMDEN
+    k1 = k0 / k1
+    k2 = ( K0 / ( 1.0_dp +K1 ) )                                            &
+       * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10( k1 ) )**2) )
+    k3 = c0/ ( k2 + c0 )
+    k4 = a0 * ( x0 - TEMP*y0 )
+    k  = k4 * EXP( b0 / TEMP ) * k3
+    k  = MAX( k, 0.0_dp )
   END FUNCTION GC_ALK
 
-  FUNCTION GCARR_ab( a0, b0 ) RESULT( rate )
+  FUNCTION GCARR_ab( a0, b0 ) RESULT( k )
     ! Arrhenius function, skipping computation of EXP( c0/T ),
     ! which evaluates to 1 when c0=0.  This avoids excess CPU
     ! cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * K300_OVER_TEMP**b0
+    k = a0 * K300_OVER_TEMP**b0
   END FUNCTION GCARR_ab
 
-  FUNCTION GCARR_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GCARR_ac( a0, c0 ) RESULT( k )
     ! Arrhenius function, skipping computation of ( 300/T )**b0,
     ! which evaluates to 1 when b0=0.  This avoids excess CPU
     ! cycles (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP )
+    k = a0 * EXP( c0 / TEMP )
   END FUNCTION GCARR_ac
 
-  FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( rate )
+  FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( k )
     ! Arrhenius function, using all 3 terms.
     ! Use this when a0, b0, c0 are all nonzero.
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP ) * K300_OVER_TEMP**b0
+    k = a0 * EXP( c0 / TEMP ) * K300_OVER_TEMP**b0
   END FUNCTION GCARR_abc
 
-  FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    HO2 + HO2 = H2O2 + O2
     !
@@ -380,15 +288,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = ( r0     + r1         * NUMDEN                           ) &
-         * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = ( k0     + k1         * NUMDEN                           )          &
+       * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
   END FUNCTION GC_HO2HO2_acac
 
-  FUNCTION GC_TBRANCH_1_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_1_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    MO2 + MO2 = CH2O  + MOH + O2
     !    MO2 + MO2 = 2CH2O + 2HO2
@@ -400,14 +308,14 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = r0 / ( 1.0_dp + r1 )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = k0 / ( 1.0_dp + k1 )
   END FUNCTION GC_TBRANCH_1_acac
 
-  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( k )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    C3H8 + OH = B3O2
     !    C3H8 + OH = A3O2
@@ -418,14 +326,14 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   =  a0 * EXP( c0 / TEMP )
-    r1   =  a1 * EXP( c1 / TEMP ) * K300_OVER_TEMP**b1
-    rate =  r0 / ( 1.0_dp + r1 )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP ) * K300_OVER_TEMP**b1
+    k  = k0 / ( 1.0_dp + k1 )
   END FUNCTION GC_TBRANCH_2_acabc
 
-  FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( k )
     ! Carbon Dependence of RO2+HO2, used in these reactions:
     !    A3O2 + HO2 = RA3P
     !    PO2  + HO2 = PP
@@ -440,13 +348,13 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP )
-    rate = rate * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
+    k = a0 * EXP( c0 / TEMP )
+    k = k * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
   END FUNCTION GC_RO2HO2_aca
 
-  FUNCTION GC_DMSOH_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_DMSOH_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Reaction rate for:
     !    DMS + OH = 0.750SO2 + 0.250MSA + MO2
     !
@@ -457,13 +365,14 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = ( r0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + r1 * 0.2095e0_dp )
+    REAL(kind=dp)             :: k0, k1, k
+    !
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = ( k0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + k1 * 0.2095e0_dp )
   END FUNCTION GC_DMSOH_acac
 
-  FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for:
     !    GLYX + NO3 = HNO3 + HO2 + 2CO
     !    i.e. the HO2 + 2*CO branch
@@ -474,15 +383,15 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: O2, rate
+    REAL(kind=dp)             :: O2, k
     !
     ! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18)
-    O2   = NUMDEN * 0.2095e0_dp
-    rate = a0 * EXP( c0 / TEMP )
-    rate = rate * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
+    O2 = NUMDEN * 0.2095_dp
+    k  = a0 * EXP( c0 / TEMP )
+    k   = k * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
   END FUNCTION GC_GLYXNO3_ac
 
-  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( rate )
+  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    HNO3  + OH = H2O + NO3
     !    HONIT + OH = NO3 + HAC
@@ -495,16 +404,16 @@ CONTAINS
     ! these terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, a2, c2
-    REAL(kind=dp)             :: r0, r1, r2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
     ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    r2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
-    rate = r0 + r2 / ( 1.0_dp + r2/r1 )
+    k0   = a0 * EXP( c0 / TEMP )
+    k1   = a1 * EXP( c1 / TEMP )
+    k2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
+    k = k0 + k2 / ( 1.0_dp + k2/k1 )
   END FUNCTION GC_OHHNO3_acacac
 
-  FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( rate )
+  FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    GLYC + OH = 0.732CH2O + 0.361CO2  + 0.505CO    + 0.227OH
     !              + 0.773HO2  + 0.134GLYX + 0.134HCOOH
@@ -516,15 +425,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0
-    REAL(kind=dp)             :: glyc_frac, rate
+    REAL(kind=dp)             :: glyc_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 73.0_dp
     !
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
-    rate      = a0 * glyc_frac
+    k         = a0 * glyc_frac
   END FUNCTION GC_GLYCOH_A_a
 
-  FUNCTION GC_GLYCOH_B_a( a0 ) RESULT( rate )
+  FUNCTION GC_GLYCOH_B_a( a0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    GLYC + OH = HCOOH + OH + CO
     ! which is the "B" branch of GLYC + OH.
@@ -535,15 +444,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0
-    REAL(kind=dp)             :: glyc_frac, rate
+    REAL(kind=dp)             :: glyc_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 73.0_dp
     !
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
-    rate      = a0 * ( 1.0_dp - glyc_frac )
+    k         = a0 * ( 1.0_dp - glyc_frac )
   END FUNCTION GC_GLYCOH_B_a
 
-  FUNCTION GC_HACOH_A_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_HACOH_A_ac( a0, c0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    HAC + OH = MGLY + HO2
     ! which is the "A" branch of HAC + OH.
@@ -554,36 +463,36 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp)             :: k0, hac_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
     !
-    r0       = a0 * EXP( c0 / TEMP )
+    k0       = a0 * EXP( c0 / TEMP )
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
-    rate     = r0 * hac_frac
+    k        = k0 * hac_frac
   END FUNCTION GC_HACOH_A_ac
 
-  FUNCTION GC_HACOH_B_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_HACOH_B_ac( a0, c0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    HAC + OH = 0.5HCOOH + OH + 0.5ACTA + 0.5CO2 + 0.5CO + 0.5MO2
     ! which is the "B" branch of HAC + OH.
     !
     ! For this reaction, this Arrhenius law term evaluates to 1:
-    !    (300/T)**b0
+    !    (300/T)**b0}
     ! because b0 = 0.  Therefore we can skip computing this
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp)             :: k0, hac_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
     !
-    r0       = a0 * EXP( c0 / TEMP )
+    k0       = a0 * EXP( c0 / TEMP )
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
-    rate     = r0 * ( 1.0_dp - hac_frac )
+    k        = k0 * ( 1.0_dp - hac_frac )
   END FUNCTION GC_HACOH_B_ac
 
-  FUNCTION GC_OHCO_a( a0 ) RESULT( rate )
+  FUNCTION GC_OHCO_a( a0 ) RESULT( k )
     ! Reaction rate for:
     !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
     !
@@ -596,25 +505,25 @@ CONTAINS
     !
     REAL(kind=dp)             :: r0,     klo1,   klo2,  khi1,    khi2
     REAL(kind=dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
-    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, rate
+    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
     !
-    r0      = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
-    klo1    = 5.9E-33_dp * K300_OVER_TEMP
-    khi1    = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
-    xyrat1  = klo1 * NUMDEN / khi1
-    blog1   = LOG10( xyrat1 )
-    fexp1   = 1.0_dp / ( 1.0_dp + blog1*blog1 )
-    kco1    = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
-    klo2    = 1.5E-13_dp
-    khi2    = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
-    xyrat2  = klo2 * NUMDEN / khi2
-    blog2   = LOG10( xyrat2 )
-    fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
-    kco2    = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
-    rate    = kco1 + kco2
+    r0     = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
+    klo1   = 5.9E-33_dp * K300_OVER_TEMP
+    khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
+    xyrat1 = klo1 * NUMDEN / khi1
+    blog1  = LOG10( xyrat1 )
+    fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
+    kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+    klo2   = 1.5E-13_dp
+    khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
+    xyrat2 = klo2 * NUMDEN / khi2
+    blog2  = LOG10( xyrat2 )
+    fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
+    kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
+    k      = kco1 + kco2
   END FUNCTION GC_OHCO_a
 
-  FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions:
     !    MO2  + NO = MENO3
     ! in which the "a1" parameter equals exactly 1.
@@ -625,18 +534,18 @@ CONTAINS
     ! because b0 = b1 = c1 = 0.  Therefore we can skip computing
     ! these terms.  This avoids excess CPU cycles. (bmy, 1/4/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp), PARAMETER  :: fyrno3 = 3.0e-4_dp
-    REAL(kind=dp)             :: rate
-    !
     ! Special treatment for methyl nitrate based on observations
     ! as Carter and Atkinson formulation does not apply to C1.
     ! Value based on upper limit of Flocke et al. 1998 as applied
     ! in Fisher et al. 2018
-    rate  = a0 * EXP( c0 / TEMP ) * fyrno3
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: k
+    !
+    k  = a0 * EXP( c0 / TEMP ) * 3.0e-4_dp
   END FUNCTION GC_RO2NO_A1_ac
 
-  FUNCTION GC_RO2NO_B1_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B1_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    MO2 + NO = CH2O + NO2 + HO2
     ! in which the "a1" parameter equals exactly 1.
@@ -649,12 +558,12 @@ CONTAINS
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
     REAL(kind=dp), PARAMETER  :: one_minus_fyrno3 = 1.0_dp - 3.0e-4_dp
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP ) * one_minus_fyrno3
+    k = a0 * EXP( c0 / TEMP ) * one_minus_fyrno3
   END FUNCTION GC_RO2NO_B1_ac
 
-  FUNCTION GC_RO2NO_A2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A2_aca( a0, c0, a1 ) RESULT( k )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions,
     !    ETO2 + NO = ETNO3
     !    A3O2 + NO = NPRNO3
@@ -669,20 +578,20 @@ CONTAINS
     ! these terms.  This avoids excess CPU cycles. (bmy, 1/4/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0,  c0,   a1
-    REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
+    REAL(kind=dp)             :: k0,  k, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP )
+    k0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP( 0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
     zzyn   = ( 1.0_dp / ( 1.0_dp + ( aaa *  aaa  ) ) )
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
-    rate   = r0 * fyrno3
+    k      = k0 * fyrno3
   END FUNCTION GC_RO2NO_A2_aca
 
-  FUNCTION GC_RO2NO_B2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B2_aca( a0, c0, a1 ) RESULT( k )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    ETO2 + NO = NO2 +     HO2 + ...
     !    A3O2 + NO = NO2 +     HO2 + ...
@@ -700,20 +609,20 @@ CONTAINS
     ! This avoids IF statements, which saves CPU cycles (bmy, 1/4/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0,  c0,   a1
-    REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
+    REAL(kind=dp)             :: k0,  k, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP )
+    k0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP(  0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( K300_OVER_TEMP**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
     zzyn   = ( 1.0_dp / ( 1.0_dp + ( aaa  * aaa  ) ) )
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
-    rate   = r0 * ( 1.0_dp - fyrno3 )
+    k      = k0 * ( 1.0_dp - fyrno3 )
   END FUNCTION GC_RO2NO_B2_aca
 
-  FUNCTION GCJPLEQ_acabab( a0, c0, a1, b1, a2, b2, fv ) RESULT( rate )
+  FUNCTION GCJPLEQ_acabab( a0, c0, a1, b1, a2, b2, fv ) RESULT( k )
     ! Calculates the equilibrium constant
     ! Find the backwards reaction by K=kforward/kbackwards
     ! Calculates the rate constant of the forward reaction
@@ -733,14 +642,14 @@ CONTAINS
     ! more computationally efficient. (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, a2, b2, fv
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0    = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
-    r1    = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
-    rate  = r1 / r0
+    k0 = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
+    k1 = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
+    k  = k1 / k0
   END FUNCTION GCJPLEQ_acabab
 
-  FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1 is Arrhenius parameters for the lower-limit rate.
     ! a2 is Arrhenius parameters for the upper-limit rate.
@@ -758,17 +667,17 @@ CONTAINS
     ! these terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,   a2,   fv
-    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   a2,    fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, k
     !
     rlow  = a1 * NUMDEN
     xyrat = rlow / a2         ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aa
 
-  FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
     ! a2     is  the Arrhenius parameters for the upper-limit rate.
@@ -793,17 +702,17 @@ CONTAINS
     ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
-    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,   fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, k
     !
     rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
     xyrat = rlow / a2                                  ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aba
 
-  FUNCTION GCJPLPR_abab( a1, b1, a2, b2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_abab( a1, b1, a2, b2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
     ! a2, b2 are the Arrhenius parameters for the upper-limit rate.
@@ -833,17 +742,17 @@ CONTAINS
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv
-    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, k
     !
     rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
     rhigh = a2 * ( K300_OVER_TEMP**b2 )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abab
 
-  FUNCTION GCJPLPR_abcabc( a1, b1, c1, a2, b2, c2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_abcabc( a1, b1, c1, a2, b2, c2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1, c1 are the Arrhenius parameters for the lower-limit rate.
     ! a2, b2, c2 are the Arrhenius parameters for the upper-limit rate.
@@ -856,15 +765,257 @@ CONTAINS
     !    MPN  {+M} = MO2 + NO2
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    c1,    a2,   b2,   c2,  fv
-    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, k
     !
     rlow  = a1 * ( K300_OVER_TEMP**b1 ) * EXP( c1 / TEMP ) * NUMDEN
     rhigh = a2 * ( K300_OVER_TEMP**b2 ) * EXP( c2 / TEMP )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abcabc
+
+  !#########################################################################
+  !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####
+  !#####                                                               #####
+  !#####     Use "%" to denote fields of derived-type objects;        #####
+  !#####     KPP 2.3.2_gc+ will convert them to percent signs.         #####
+  !#########################################################################
+
+  FUNCTION Ars_L1k( area, radius, gamma, srMw ) RESULT( k )
+    ! 
+    ! Calculates the 1st-order loss rate of species on wet aerosol surface.
+    !
+    REAL(dp), INTENT(IN) :: area, radius, gamma, srMw
+    REAL(dp)             :: k, dfkg
+    !
+    ! If gamma or radius is very small, set rate to zero and return
+    IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
+       k = 0.0_dp
+       RETURN
+    ENDIF
+    !
+    ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *                              &
+           SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
+    !
+    ! Compute ArsL1k according to the formula listed above
+    k = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * SR_TEMP) )
+  END FUNCTION Ars_L1k
+
+  !=========================================================================
+  ! Rate-law functions for VOC species
+  !=========================================================================
+
+  FUNCTION HO2uptk1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of HO2.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: k              ! Reaction rate [1/s]
+    !
+    k = 0.0_dp
+    !
+    ! Uptake by mineral dust (aerosol types 1-7)
+    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
+    !
+    ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
+    k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
+    !
+    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+    k = k + Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+    !
+    ! Skip uptake on strat sulfate (#13) and irregular ice cloud (#14)
+  END FUNCTION HO2uptk1stOrd
+
+  !=========================================================================
+  ! Rate-law functions for VOC species
+  !=========================================================================
+
+  FUNCTION GLYXuptk1stOrd( srMw, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st-order uptake of GLYX.
+    ! Only consider inorganic aqueous aerosols with RH > 35%
+    ! and use diffe rent uptake for day & night.
+    !
+    REAL(dp),       INTENT(IN) :: srMw   ! sqrt( mol wt )
+    TYPE(HetState), INTENT(IN) :: H      ! Hetchem State
+    REAL(dp)                   :: k      ! rxn rate [1/s]
+    REAL(dp)                   :: gamma  ! local vars
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    IF ( RELHUM >= CRITRH ) THEN
+       IF ( SUNCOS > 0.0_dp ) THEN
+          gamma = 4.4e-3_dp   ! cf Liggio et al 2005
+       ELSE
+          gamma = 8.0e-6_dp   ! F. McNeill, to E. Marais (2015)
+       ENDIF
+       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+    ENDIF
+  END FUNCTION GLYXuptk1stOrd
+
+  FUNCTION EpoxUptkGamma( srMw, H ) RESULT( gamma )
+    !
+    ! Gomputes the GAMMA uptake probability for EPOXUPTK hydrolysis to 
+    ! form 2-methyltetrols (AITET). (eam, 2014).
+    !
+    ! Calculation is only done for inorganic aqueous phase aerosols.
+    ! This calculation uses the parameterization of Gaston et al., EST, 2014.
+    ! Redistribution of products (e.g. AITET) to yield organosulfates and
+    ! organonitrates is done in SOA_CHEMISTRY in carbon_mod.F.
+    ! This is only done for IEPOX and HMML if it's an SOA simulation
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt(mol wt)
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: gamma          ! Uptake prob [1]
+    REAL(dp) :: aervol, kpart, xmms, val1, val2, val3, valtmp ! local vars
+    !
+    ! Gas-phase diffusion constant [cm2/s]:
+    REAL(dp), PARAMETER :: DIFF_N2O5_STD = 1.0e-1_dp
+    !
+    ! Mass accommodation coefficient [unitless]:
+    REAL(dp), PARAMETER :: MACOEFF = 1.0e-1_dp
+    REAL(dp), PARAMETER :: K_HPLUS = 3.6e-2_dp
+    REAL(dp), PARAMETER :: K_NUC   = 2.0e-4_dp
+    REAL(dp), PARAMETER :: K_HSO4  = 7.3e-4_dp
+    REAL(dp), PARAMETER :: K_HYDRO = 0.0e+0_dp
+    !
+    ! Initialize
+    gamma  = 0.0_dp
+    valTmp = 0.0_dp
+    !
+    ! Calculate aerosol volume (use formula in aerosol_mod.F):
+    aerVol = ( H%xArea(8) *  H%xRadi(8) ) / 3.0_dp
+    !
+    ! Calculate mean molecular speed [cm/s]:
+    xmms = SQRT( ( 2.117e+8_dp * TEMP ) / ( srMw * srMw ) )
+    !
+    ! Calculate first-order particle-phase reaction rate:
+    ! (assume [H+] = proton activity)
+    ! KHYDRO is only important for alkylnitrates (not currently used).
+    kPart = ( K_HPLUS * H%H_PLUS                          ) &
+          + ( K_NUC   * H%H_PLUS * ( H%mNO3 + H%mSO4 )    ) &
+          + ( K_HSO4  * H%mHSO4                           ) &
+          + ( K_HYDRO                                     )
+    !
+    ! Calculate the first uptake parameterization term:
+    val1 = ( H%xRadi(8) * xmms ) / ( 4.0_dp * DIFF_N2O5_STD )
+    !
+    ! Calculate the second uptake parameterization term:
+    val2 = ( 1.0_dp / MACOEFF )
+    !
+    ! Calculate the third uptake parameterization term:
+    IF ( H%xArea(8) > 0.0_dp .and. XMMS > 0.0_dp ) THEN
+       valTmp = ( 4.0_dp * aerVol * H%RGASLATM * TEMP * HSTAR_EPOX * kPart )&
+              / ( H%xArea(8) * xmms                                        )
+    ENDIF
+    !
+    val3 = 0.0_dp
+    IF ( valTmp > 0.0_dp ) val3 = 1.0_dp / valtmp
+    !
+    ! Account for small reaction rates:
+    gamma = 0.0_dp
+    IF ( kPart >= 1.e-8_dp ) gamma = 1.0_dp / ( val1 + val2 + val3 )
+    IF ( gamma <  0.0_dp   ) gamma = 0.0_dp
+  END FUNCTION EpoxUptkGamma
+
+  FUNCTION IEPOXuptk1stOrd( srMw, doScale, H ) RESULT( k )
+    !
+    ! Sets the heterogenous chemistry rate for first-order
+    ! uptake of ICHE, IEPOXA, IEPOXB, and IEPOXD.
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
+    LOGICAL,        INTENT(IN) :: doScale        ! =T for HMML, else F
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: gamma          ! local vars
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       !
+       ! Get GAMMA for IEPOX hydrolysis
+       gamma = EpoxUptkGamma( srMw, H )
+       !
+       ! Scale down gamma if [H+] > 8d-5 (cf Riedel et al, 2015)
+       IF ( doScale .and. ( H%H_PLUS > 8.0e-5_dp ) ) THEN
+          gamma = gamma / 30.0_dp
+       ENDIF
+       !
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+    ENDIF
+  END FUNCTION IEPOXuptk1stOrd
+
+  FUNCTION MGLYuptk1stOrd( srMw, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of MGLY and PYAC.
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       !
+       ! Define gamma for MGLY: Obtained by scaling gamma GLYX by the
+       ! ratio of effective Henry's law constants for GLYX (3d7) and 
+       ! MGLY (3.7d3) (eam, 02/2015):
+       gamma = 3.6e-7_dp
+       !
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+    ENDIF
+  END FUNCTION MGLYuptk1stOrd
+
+  FUNCTION VOCuptk1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the rxn rate [1/s]for 1st-order uptake of several VOC species.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Initialize
+    k  = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       !
+       ! Uptake by tropospheric sulfate (aerosol type 8)
+       k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), gamma, srMw )
+       !
+       ! Uptake by black carbon and organic carbon (aerosol types 9-10)
+       k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
+       !
+       ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+       k = k + Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+       !
+       ! Uptake by stratospheric sulfate (aerosol type 13)
+       ! and by irregular ice cloud (aerosol type 14)
+       k = k + H%xArea(13) * gamma
+       k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
+    ENDIF
+  END FUNCTION VOCuptk1stOrd
 
 ! End INLINED Rate Law Functions
 
@@ -1528,7 +1679,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(598) = (GCARR_ac(1.56d-11,117.0d0))
   RCONST(599) = (GCARR_ac(1.40d-12,700.0d0))
   RCONST(600) = (GCARR_ac(2.60d-12,350.0d0))
-  RCONST(601) = (HET(ind_HO2,1))
+  RCONST(601) = (HO2uptk1stOrd(SR_MW(ind_HO2),0.2_dp,State_Het))
   RCONST(602) = (HET(ind_NO2,1))
   RCONST(603) = (HET(ind_NO3,1))
   RCONST(604) = (HET(ind_NO3,2))
@@ -1604,31 +1755,31 @@ SUBROUTINE Update_RCONST ( )
   RCONST(674) = (HET(ind_HOI,4))
   RCONST(675) = (HET(ind_HOI,5))
   RCONST(676) = (HET(ind_HOI,6))
-  RCONST(677) = (HET(ind_GLYX,1))
-  RCONST(678) = (HET(ind_MGLY,1))
-  RCONST(679) = (HET(ind_IEPOXA,1))
-  RCONST(680) = (HET(ind_IEPOXB,1))
-  RCONST(681) = (HET(ind_IEPOXD,1))
-  RCONST(682) = (HET(ind_LVOC,1))
-  RCONST(683) = (HET(ind_MVKN,1))
-  RCONST(684) = (HET(ind_R4N2,1))
-  RCONST(685) = (HET(ind_MONITS,1))
-  RCONST(686) = (HET(ind_MONITU,1))
-  RCONST(687) = (HET(ind_HONIT,1))
-  RCONST(688) = (HET(ind_PYAC,1))
-  RCONST(689) = (HET(ind_HMML,1))
-  RCONST(690) = (HET(ind_IHN1,1))
-  RCONST(691) = (HET(ind_IHN2,1))
-  RCONST(692) = (HET(ind_IHN3,1))
-  RCONST(693) = (HET(ind_IHN4,1))
-  RCONST(694) = (HET(ind_ICHE,1))
-  RCONST(695) = (HET(ind_INPD,1))
-  RCONST(696) = (HET(ind_INPB,1))
-  RCONST(697) = (HET(ind_IDN,1))
-  RCONST(698) = (HET(ind_ITCN,1))
-  RCONST(699) = (HET(ind_ITHN,1))
-  RCONST(700) = (HET(ind_MCRHNB,1))
-  RCONST(701) = (HET(ind_MCRHN,1))
+  RCONST(677) = (GLYXuptk1stOrd(SR_MW(ind_GLYX),State_Het))
+  RCONST(678) = (MGLYuptk1stOrd(SR_MW(ind_MGLY),State_Het))
+  RCONST(679) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXA),.FALSE.,State_Het))
+  RCONST(680) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXB),.FALSE.,State_Het))
+  RCONST(681) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXD),.FALSE.,State_Het))
+  RCONST(682) = (VOCuptk1stOrd(SR_MW(ind_LVOC),1.0_dp,State_Het))
+  RCONST(683) = (VOCuptk1stOrd(SR_MW(ind_MVKN),5.0E-3_dp,State_Het))
+  RCONST(684) = (VOCuptk1stOrd(SR_MW(ind_R4N2),5.0E-3_dp,State_Het))
+  RCONST(685) = (VOCuptk1stOrd(SR_MW(ind_MONITS),1.0E-2_dp,State_Het))
+  RCONST(686) = (VOCuptk1stOrd(SR_MW(ind_MONITU),1.0E-2_dp,State_Het))
+  RCONST(687) = (VOCuptk1stOrd(SR_MW(ind_HONIT),1.0E-2_dp,State_Het))
+  RCONST(688) = (MGLYuptk1stOrd(SR_MW(ind_PYAC),State_Het))
+  RCONST(689) = (IEPOXuptk1stOrd(SR_MW(ind_HMML),.TRUE.,State_Het))
+  RCONST(690) = (VOCuptk1stOrd(SR_MW(ind_IHN1),5.0E-3_dp,State_Het))
+  RCONST(691) = (VOCuptk1stOrd(SR_MW(ind_IHN2),5.0E-2_dp,State_Het))
+  RCONST(692) = (VOCuptk1stOrd(SR_MW(ind_IHN3),5.0E-3_dp,State_Het))
+  RCONST(693) = (VOCuptk1stOrd(SR_MW(ind_IHN4),5.0E-3_dp,State_Het))
+  RCONST(694) = (IEPOXuptk1stOrd(SR_MW(ind_ICHE),.FALSE.,State_Het))
+  RCONST(695) = (VOCuptk1stOrd(SR_MW(ind_INPD),5.0E-3_dp,State_Het))
+  RCONST(696) = (VOCuptk1stOrd(SR_MW(ind_INPB),5.0E-3_dp,State_Het))
+  RCONST(697) = (VOCuptk1stOrd(SR_MW(ind_IDN),5.0E-3_dp,State_Het))
+  RCONST(698) = (VOCuptk1stOrd(SR_MW(ind_ITCN),5.0E-3_dp,State_Het))
+  RCONST(699) = (VOCuptk1stOrd(SR_MW(ind_ITHN),5.0E-3_dp,State_Het))
+  RCONST(700) = (VOCuptk1stOrd(SR_MW(ind_MCRHNB),5.0E-3_dp,State_Het))
+  RCONST(701) = (VOCuptk1stOrd(SR_MW(ind_MCRHN),5.0E-3_dp,State_Het))
   RCONST(702) = (PHOTOL(2))
   RCONST(703) = (PHOTOL(3))
   RCONST(704) = (PHOTOL(1))
