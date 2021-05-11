@@ -141,14 +141,8 @@ MODULE gckpp_Global
   REAL(dp) :: HENRY_K0(NSPEC)
   REAL(dp) :: HENRY_CR(NSPEC)
 
+  !### NOTE: The HET array is deprecated
   ! Array for heterogeneous rates
-  !
-  ! NOTES:
-  ! (a) AERI            = Iodine (I-) on aerosol
-  ! (b) BrSALA (BrSALC) = Fine (coarse) sea salt bromine (Br-)
-  ! (c) SALACL (SALCCL) = Fine (coarse) sea salt chlorine (Cl-)
-  ! (d) ISALA  (ISALC ) = Fine (coarse) sea salt iodine (I-)
-  !
   ! HET(ind_BrNO3,  1) : BrNO3  +  H2O          # hydrolysis rxn
   ! HET(ind_BrNO3,  2) : BrNO3  +  HCl
   ! HET(ind_ClNO2,  1) : ClNO2  +  SALACL
@@ -164,13 +158,8 @@ MODULE gckpp_Global
   ! HET(ind_ClNO3,  5) : ClNO3  +  BrSALC
   ! HET(ind_ClNO3,  6) : ClNO3  +  SALACL
   ! HET(ind_ClNO3,  7) : CLNO3  +  SALCCL
-  ! HET(ind_GLYX,   1) : GLYX   uptake          # 1st-order loss rxn
   ! HET(ind_HBr,    1) : Br     -> BrSALA
   ! HET(ind_HBr,    2) : Br     -> BrSALC
-  ! HET(ind_HI,     1) : HI     -> AERI         # uptake by SO4
-  ! HET(ind_HI,     2) : HI     -> ISALA        # uptake by SALA
-  ! HET(ind_HI,     3) : HI     -> ISALC        # uptake by SALC
-  ! HET(ind_HMML,   1) : HMML   uptake          # 1st-order loss rxn
   ! HET(ind_HO2,    1) : HO2    uptake          # 1st-order loss rxn
   ! HET(ind_HOBr,   1) : HOBr   +  HBr
   ! HET(ind_HOBr,   2) : HOBr   +  HCl
@@ -186,52 +175,8 @@ MODULE gckpp_Global
   ! HET(ind_HOCl,   4) : HOCl   +  SALCCL
   ! HET(ind_HOCl,   5) : HOCl   +  HSO3--(aq)
   ! HET(ind_HOCl,   6) : HOCl   +  SO3--(aq)
-  ! HET(ind_HOI,    1) : HOI    -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_HOI,    2) : HOI    -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_HOI,    3) : HOI    +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_HOI,    4) : HOI    +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_HOI,    5) : HOI    +  SALACL       # breakdown by SALACL
-  ! HET(ind_HOI,    6) : HOI    +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_HONIT,  1) : HONIT  uptake          # 1st order loss rxn
-  ! HET(ind_I2O2,   1) : I2O2   -> AERI         # uptake by SO4
-  ! HET(ind_I2O2,   2) : I2O2   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O2,   3) : I2O2   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O3,   1) : I2O3   -> AERI         # uptake by SO4
-  ! HET(ind_I2O3,   2) : I2O3   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O3,   3) : I2O3   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O4,   1) : I2O4   -> AERI         # uptake by SO4
-  ! HET(ind_I2O4,   2) : I2O4   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O4,   3) : I2O4   -> ISALC        # uptake by SALC
-  ! HET(ind_ICHE,   1) : ICHE   uptake          # 1st order loss rxn
-  ! HET(ind_IDN,    1) : IDN    uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXA, 1) : IEPOXA uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXB, 1) : IEPOXB uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXD, 1) : IEPOXD uptake          # 1st order loss rxn
-  ! HET(ind_IHN1,   1) : IHN1   uptake          # 1st order loss rxn
-  ! HET(ind_IHN2,   1) : IHN2   uptake          # 1st order loss rxn
-  ! HET(ind_IHN3,   1) : IHN3   uptake          # 1st order loss rxn
-  ! HET(ind_IHN4,   1) : IHN4   uptake          # 1st order loss rxn
-  ! HET(ind_INPB,   1) : INPB   uptake          # 1st order loss rxn
-  ! HET(ind_INPD,   1) : INPD   uptake          # 1st order loss rxn
-  ! HET(ind_IONITA, 1) : IONITA uptake          # 1st order loss rxn
-  ! HET(ind_IONO,   1) : IONO   -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_IONO,   2) : IONO   -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_IONO,   3) : IONO   +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_IONO,   4) : IONO   +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_IONO,   5) : IONO   +  SALACL       # breakdown by SALACL
-  ! HET(ind_IONO,   6) : IONO   +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_IONO2,  1) : IONO2  -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_IONO2,  2) : IONO2  -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_IONO2,  3) : IONO2  +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_IONO2,  4) : IONO2  +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_IONO2,  5) : IONO2  +  SALACL       # breakdown by SALACL
-  ! HET(ind_IONO2,  6) : IONO2  +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_ITCN,   1) : ITCN   uptake          # 1st order loss rxn
-  ! HET(ind_ITHN,   1) : ITHN   uptake          # 1st order loss rxn
-  ! HET(ind_LVOC,   1) : LVOC   uptake          # 1st order loss rxn
   ! HET(ind_MCRHN,  1) : MCRHN  uptake          # 1st order loss rxn
   ! HET(ind_MCRHNB, 1) : MCRHNB uptake          # 1st order loss rxn
-  ! HET(ind_MGLY,   1) : MGLY   uptake          # 1st order loss rxn
   ! HET(ind_MONITA, 1) : MONITA uptake          # 1st order loss rxn
   ! HET(ind_MONITS, 1) : MONITS uptake          # 1st order loss rxn
   ! HET(ind_MONITU, 1) : MONITU uptake          # 1st order loss rxn
@@ -249,8 +194,6 @@ MODULE gckpp_Global
   ! HET(ind_O3,     3) : O3    + BrSALC
   ! HET(ind_OH,     1) : OH    + SALACL
   ! HET(ind_OH,     2) : OH    + SALCCL
-  ! HET(ind_PYAC,   1) : PYAC  uptake           # 1st order loss rxn
-  ! HET(ind_R4N2,   1) : R4N2  uptake           # 1st order loss rxn
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 

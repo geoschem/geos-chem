@@ -803,33 +803,42 @@ CONTAINS
     k = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * SR_TEMP) )
   END FUNCTION Ars_L1k
 
+!BOP
+!
+! !IROUTINE: kiir1ltd
+!
+!\\
+!\\
+! !INTERFACE:
+!
   FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
     !
-    ! Determines removal rates for both species in an uptake reaction.
+    ! Determine removal rates for both species in an uptake reaction.
     !
-    REAL(dp), INTENT(IN) :: concGas, concEduct, kIsource
-    REAL(dp)             :: kIGas,   kIEduct,   lifeA, lifeB, kII
+    REAL(dp), INTENT(IN) :: concGas, concEduct, kISource
+    REAL(dp)             :: kIGas,   kIEduct,   lifeA,   lifeB, kII
     !
-    ! Copy kI as calculated assuming no limitation
     kIGas   = 0.0_dp
     kIEduct = 0.0_dp
+    lifeA   = 0.0_dp
+    lifeB   = 0.0_dp
     kII     = 0.0_dp
     !
-    IF ( concEduct > 0.0_dp .and. concEduct < 100.0_dp ) THEN
-       kIGas   = kISource
-       kIEduct = kIGas    * concGas / concEduct
-       kII     = kIGas              / concEduct
-    ENDIF
+    ! Avoid division from blowing up
+    IF ( concEduct < 100.0_dp ) RETURN
     !
+    ! Copy kI as calculated assuming no limitation
+    kIGas   = kISource
+    kIEduct = kIGas * concGas / concEduct
+    kII     = kIGas           / concEduct
+
     ! Enforce a minimum lifetime?
     IF ( kIGas > 0.0_dp ) THEN
-       !
+
        ! Calculate lifetime of each reactant against removal
-       lifeA = 0.0_dp
-       lifeB = 0.0_dp
-       IF ( kIGas   > 0.0_dp ) lifeA = 1.0_dp / kiGas
-       IF ( kIEduct > 0.0_dp ) lifeB = 1.0_dp / kiEduct
-       !
+       IF ( kIGas   > 0.0_dp ) lifeA = 1.0_dp / kIGas
+       IF ( kIEduct > 0.0_dp ) lifeB = 1.0_dp / kIEduct
+
        ! Check if either lifetime is "too short"
        IF ( ( lifeA < lifeB ) .and. ( lifeA < HETMINLIFE ) ) THEN
           kIGas = 0.0_dp
@@ -969,7 +978,7 @@ CONTAINS
     !
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k     
+    REAL(dp)                   :: k
     !
     k = 0.0_dp
     IF ( H%ssFineIsAcid ) THEN
@@ -985,7 +994,7 @@ CONTAINS
     !
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k     
+    REAL(dp)                   :: k
     !
     k = 0.0_dp
     IF ( H%ssCoarseIsAcid ) THEN
@@ -1001,7 +1010,7 @@ CONTAINS
     !
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k     
+    REAL(dp)                   :: k
     !
     k = 0.0_dp
     IF ( H%ssFineIsAcid ) THEN
@@ -1017,7 +1026,7 @@ CONTAINS
     !
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k     
+    REAL(dp)                   :: k
     !
     k = 0.0_dp
     IF ( H%ssCoarseIsAcid ) THEN
@@ -1931,18 +1940,18 @@ SUBROUTINE Update_RCONST ( )
   RCONST(662) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO),0.02_dp,State_Het))
   RCONST(663) = (IuptkByAlkSALA1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
   RCONST(664) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
-  RCONST(665) = (0.0_dp)
-  RCONST(666) = (0.0_dp)
-  RCONST(667) = (0.0_dp)
-  RCONST(668) = (0.0_dp)
-  RCONST(669) = (0.0_dp)
-  RCONST(670) = (0.0_dp)
-  RCONST(671) = (0.0_dp)
-  RCONST(672) = (0.0_dp)
-  RCONST(673) = (0.0_dp)
-  RCONST(674) = (0.0_dp)
-  RCONST(675) = (0.0_dp)
-  RCONST(676) = (0.0_dp)
+  RCONST(665) = (IbrkdnByAcidBrSALA(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(666) = (IbrkdnByAcidBrSALC(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(667) = (IbrkdnByAcidSALACl(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(668) = (IbrkdnByAcidSALCCl(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(669) = (IbrkdnByAcidBrSALA(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(670) = (IbrkdnByAcidBrSALC(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(671) = (IbrkdnByAcidSALACl(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(672) = (IbrkdnByAcidSALCCl(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(673) = (IbrkdnByAcidBrSALA(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(674) = (IbrkdnByAcidBrSALC(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(675) = (IbrkdnByAcidSALACl(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(676) = (IbrkdnByAcidSALCCl(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
   RCONST(677) = (GLYXuptk1stOrd(SR_MW(ind_GLYX),State_Het))
   RCONST(678) = (MGLYuptk1stOrd(SR_MW(ind_MGLY),State_Het))
   RCONST(679) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXA),.FALSE.,State_Het))
