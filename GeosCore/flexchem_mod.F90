@@ -1472,55 +1472,59 @@ CONTAINS
     !========================================================================
 
     ! Constants (so that we can use these within KPP)
-    State_Het%PI           = PI
-    State_Het%RSTARG       = RSTARG
-    State_Het%RGASLATM     = RGASLATM
+    State_Het%PI             = PI
+    State_Het%RSTARG         = RSTARG
+    State_Het%RGASLATM       = RGASLATM
 
     ! Meteorology-related quantities
-    State_Het%CldFr        = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
-    State_Het%ClearFr      = 1.0_dp - State_Het%CldFr
-    State_Het%QICE         = State_Met%QI(I,J,L)
-    State_Het%QLIQ         = State_Met%QL(I,J,L)
-    State_Het%vAir         = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+    State_Het%CldFr          = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
+    State_Het%ClearFr        = 1.0_dp - State_Het%CldFr
+    State_Het%QICE           = State_Met%QI(I,J,L)
+    State_Het%QLIQ           = State_Met%QL(I,J,L)
+    State_Het%vAir           = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
 
     ! Aerosol fields
-    State_Het%nAeroType    = State_Chm%nAeroType
-    State_Het%AClArea      = State_Chm%AClArea(I,J,L)
-    State_Het%AClRadi      = State_Chm%AClRadi(I,J,L)
-    State_Het%AClVol       = State_Het%AClArea * State_Het%AClRadi / 3.0_dp
-    State_Het%AWATER(:)    = State_Chm%IsorropAeroH2O(I,J,L,:)
-    State_Het%xArea(1:NA)  = State_Chm%AeroArea(I,J,L,1:NA)
-    State_Het%xRadi(1:NA)  = State_Chm%AeroRadi(I,J,L,1:NA)
-    State_Het%xVol(1:NA)   = State_Het%xArea(1:NA)                           &
-                           * State_Het%xRadi(1:NA) / 3.0_dp
-    State_Het%xH2O(1:NA)   = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
-    State_Het%OMOC_POA     = State_Chm%OMOC_POA(I,J)
-    State_Het%OMOC_OPOA    = State_Chm%OMOC_OPOA(I,J)
+    State_Het%nAeroType      = State_Chm%nAeroType
+    State_Het%AClArea        = State_Chm%AClArea(I,J,L)
+    State_Het%AClRadi        = State_Chm%AClRadi(I,J,L)
+    State_Het%AClVol         = State_Het%AClArea * State_Het%AClRadi / 3.0_dp
+    State_Het%AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)
+    State_Het%xArea(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)
+    State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
+    State_Het%xVol(1:NA)     = State_Het%xArea(1:NA)                         &
+                             * State_Het%xRadi(1:NA) / 3.0_dp
+    State_Het%xH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
+    State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
+    State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
 
     ! Concentrations
-    State_Het%HSO3conc_Cld = State_Chm%HSO3_AQ(I,J,L)
-    State_Het%mHSO4        = State_Chm%IsorropBisulfate(I,J,L)
-    State_Het%mNO3         = State_Chm%IsorropNitrate(I,J,L,1)
-    State_Het%mSO4         = State_Chm%IsorropSulfate(I,J,L)
-    State_Het%SPC_SALA     = State_Chm%Species(I,J,L,id_SALA)
-    State_Het%SO3conc_Cld  = State_Chm%SO3_AQ(I,J,L)
+    State_Het%HSO3conc_Cld   = State_Chm%HSO3_AQ(I,J,L)
+    State_Het%mHSO4          = State_Chm%IsorropBisulfate(I,J,L)
+    State_Het%mNO3           = State_Chm%IsorropNitrate(I,J,L,1)
+    State_Het%mSO4           = State_Chm%IsorropSulfate(I,J,L)
+    State_Het%SPC_SALA       = State_Chm%Species(I,J,L,id_SALA)
+    State_Het%SO3conc_Cld    = State_Chm%SO3_AQ(I,J,L)
 
     ! pH and alkalinity fields
-    State_Het%H_PLUS       = State_Chm%IsorropHplus(I,J,L,1)
-    State_Het%pHCloud      = State_Chm%pHCloud(I,J,L)
-    State_Het%pHSSA(:)     = State_Chm%IsorropAeropH(I,J,L,:)
-    State_Het%hConc_Sul    = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
-    State_Het%hConc_LCl    = 10.0**( -1.0_dp * State_Het%pHCloud  )
-    State_Het%hConc_ICl    = 10.0**( -4.5_dp                      )
-    State_Het%hConc_SSA    = State_Het%hConc_Sul
-    State_Het%hConc_SSC    = 10.0**( -5.0_dp                      )
-    State_Het%SSAlk(1:2)   = State_Chm%SSAlk(I,J,L,1:2)
+    State_Het%H_PLUS         = State_Chm%IsorropHplus(I,J,L,1)
+    State_Het%pHCloud        = State_Chm%pHCloud(I,J,L)
+    State_Het%pHSSA(:)       = State_Chm%IsorropAeropH(I,J,L,:)
+    State_Het%hConc_Sul      = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
+    State_Het%hConc_LCl      = 10.0**( -1.0_dp * State_Het%pHCloud  )
+    State_Het%hConc_ICl      = 10.0**( -4.5_dp                      )
+    State_Het%hConc_SSA      = State_Het%hConc_Sul
+    State_Het%hConc_SSC      = 10.0**( -5.0_dp                      )
+    State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
+    State_Het%ssFineIsAlk    = ( State_Het%ssAlk(1) > 0.05_dp       )
+    State_Het%ssFineisAcid   = ( .not.  State_Het%ssFineIsAlk       )
+    State_Het%ssCoarseIsAlk  = ( State_Het%ssAlk(2) > 0.05_dp       )
+    State_Het%ssCoarseIsAcid = ( .not.  State_Het%ssCoarseIsAlk     )
 
     ! Other fields
-    State_Het%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
-    State_Het%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
-    State_Het%GAMMA_HO2    = Input_Opt%GAMMA_HO2
-    State_Het%is_UCX       = Input_Opt%LUCX
+    State_Het%fupdateHOBr    = State_Chm%fupdateHOBr(I,J,L)
+    State_Het%fupdateHOCl    = State_Chm%fupdateHOCl(I,J,L)
+    State_Het%gamma_HO2      = Input_Opt%gamma_HO2
+    State_Het%is_UCX         = Input_Opt%LUCX
 
     ! Cloud fields
     CALL Cld_Params( I, J, L, State_Het, State_Met )

@@ -803,44 +803,90 @@ CONTAINS
     k = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * SR_TEMP) )
   END FUNCTION Ars_L1k
 
+  FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
+    !
+    ! Determines removal rates for both species in an uptake reaction.
+    !
+    REAL(dp), INTENT(IN) :: concGas, concEduct, kIsource
+    REAL(dp)             :: kIGas,   kIEduct,   lifeA, lifeB, kII
+    !
+    ! Copy kI as calculated assuming no limitation
+    kIGas   = 0.0_dp
+    kIEduct = 0.0_dp
+    kII     = 0.0_dp
+    !
+    IF ( concEduct > 0.0_dp .and. concEduct < 100.0_dp ) THEN
+       kIGas   = kISource
+       kIEduct = kIGas    * concGas / concEduct
+       kII     = kIGas              / concEduct
+    ENDIF
+    !
+    ! Enforce a minimum lifetime?
+    IF ( kIGas > 0.0_dp ) THEN
+       !
+       ! Calculate lifetime of each reactant against removal
+       lifeA = 0.0_dp
+       lifeB = 0.0_dp
+       IF ( kIGas   > 0.0_dp ) lifeA = 1.0_dp / kiGas
+       IF ( kIEduct > 0.0_dp ) lifeB = 1.0_dp / kiEduct
+       !
+       ! Check if either lifetime is "too short"
+       IF ( ( lifeA < lifeB ) .and. ( lifeA < HETMINLIFE ) ) THEN
+          kIGas = 0.0_dp
+          kII   = 0.0_dp
+          IF ( concEduct > 0.0_dp ) THEN
+             kIGas = HETMINRATE
+             kII   = kIGas  / concEduct
+          ENDIF
+       ELSE IF ( lifeB < HETMINLIFE ) THEN
+          kIEduct = 0.0_dp
+          kII     = 0.0_dp
+          IF ( concGas > 0.0_dp ) THEN
+             kIEduct = HETMINRATE
+             kII     = kIEduct / concGas
+          ENDIF
+       ENDIF
+    ENDIF
+  END FUNCTION kIIR1Ltd
+
   !=========================================================================
   ! Rate-law functions for VOC species
   !=========================================================================
 
-  FUNCTION HO2uptk1stOrd( srMw, gamma, H ) RESULT( k )
+  FUNCTION HO2uptk1stOrd( srMw, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for 1st order uptake of HO2.
     !
-    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
     TYPE(HetState), INTENT(IN) :: H              ! HetChem State
-    REAL(dp)                   :: k              ! Reaction rate [1/s]
+    REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     k = 0.0_dp
     !
     ! Uptake by mineral dust (aerosol types 1-7)
-    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), H%gamma_HO2, srMw )
     !
     ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
-    k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), H%gamma_HO2, srMw )
     !
     ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-    k = k + Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(11), H%xRadi(11), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(12), H%xRadi(12), H%gamma_HO2, srMw )
     !
     ! Skip uptake on strat sulfate (#13) and irregular ice cloud (#14)
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
-  ! Rate-law functions for iodine species 
-  ! (HI, I2O2, I2O3, I2O4, IONO2, IONO3)
+  ! Rate-law functions for iodine species
+  ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
   !=========================================================================
 
   FUNCTION IuptkBySulf1stOrd( srMw, gamma, H ) RESULT( k )
@@ -860,7 +906,6 @@ CONTAINS
     IF ( H%is_UCX ) THEN
        k = k + Ars_L1k( H%xArea(13), H%xRadi(13), gamma, srMw )
     ENDIF
-
   END FUNCTION IuptkBySulf1stOrd
 
   FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
@@ -875,6 +920,21 @@ CONTAINS
     k = Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
   END FUNCTION IuptkbySALA1stOrd
 
+  FUNCTION IuptkByAlkSALA1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by alkaline accumulation-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAlk ) THEN
+       k = IuptkBySALA1stOrd( srMw, gamma, H )
+    ENDIF
+  END FUNCTION IuptkbyAlkSALA1stOrd
+
   FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for uptake of iodine species
@@ -886,6 +946,85 @@ CONTAINS
     !
     k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
   END FUNCTION IuptkBySALC1stOrd
+
+  FUNCTION IuptkByAlkSALC1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by alkaline coarse-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAlk ) THEN
+       k = IuptkBySALC1stOrd( srMw, gamma, H )
+    ENDIF
+  END FUNCTION IuptkByAlkSALC1stOrd
+
+  FUNCTION IbrkdnByAcidBrSALA( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k     
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAcid ) THEN
+       k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_BrSALA), k )
+    ENDIF
+  END FUNCTION IbrkdnbyAcidBrSALA
+
+  FUNCTION IbrkdnByAcidBrSALC( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k     
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAcid ) THEN
+       k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_BrSALC), k )
+    ENDIF
+  END FUNCTION IbrkdnbyAcidBrSALC
+
+  FUNCTION IbrkdnByAcidSALACl( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k     
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAcid ) THEN
+       k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_SALACl), k )
+    ENDIF
+  END FUNCTION IbrkdnbyAcidSALACl
+
+  FUNCTION IbrkdnByAcidSALCCl( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k     
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAcid ) THEN
+       k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_SALCCl), k )
+    ENDIF
+  END FUNCTION IbrkdnbyAcidSALCCl
 
   !=========================================================================
   ! Rate-law functions for VOC species
@@ -1728,7 +1867,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(598) = (GCARR_ac(1.56d-11,117.0d0))
   RCONST(599) = (GCARR_ac(1.40d-12,700.0d0))
   RCONST(600) = (GCARR_ac(2.60d-12,350.0d0))
-  RCONST(601) = (HO2uptk1stOrd(SR_MW(ind_HO2),0.2_dp,State_Het))
+  RCONST(601) = (HO2uptk1stOrd(SR_MW(ind_HO2),State_Het))
   RCONST(602) = (HET(ind_NO2,1))
   RCONST(603) = (HET(ind_NO3,1))
   RCONST(604) = (HET(ind_NO3,2))
@@ -1777,8 +1916,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
   RCONST(648) = (IuptkBySALA1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
   RCONST(649) = (IuptkBySALC1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
-  RCONST(650) = (HET(ind_HOI,1))
-  RCONST(651) = (HET(ind_HOI,2))
+  RCONST(650) = (IuptkByAlkSALA1stOrd(SR_MW(ind_HOI),0.01_dp,State_Het))
+  RCONST(651) = (IuptkByAlkSALC1stOrd(SR_MW(ind_HOI),0.01_dp,State_Het))
   RCONST(652) = (IuptkBySulf1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
   RCONST(653) = (IuptkBySALA1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
   RCONST(654) = (IuptkBySALC1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
@@ -1788,22 +1927,22 @@ SUBROUTINE Update_RCONST ( )
   RCONST(658) = (IuptkBySulf1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
   RCONST(659) = (IuptkBySALA1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
   RCONST(660) = (IuptkBySALC1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
-  RCONST(661) = (HET(ind_IONO,1))
-  RCONST(662) = (HET(ind_IONO,2))
-  RCONST(663) = (HET(ind_IONO2,1))
-  RCONST(664) = (HET(ind_IONO2,2))
-  RCONST(665) = (HET(ind_IONO,3))
-  RCONST(666) = (HET(ind_IONO,4))
-  RCONST(667) = (HET(ind_IONO,5))
-  RCONST(668) = (HET(ind_IONO,6))
-  RCONST(669) = (HET(ind_IONO2,3))
-  RCONST(670) = (HET(ind_IONO2,4))
-  RCONST(671) = (HET(ind_IONO2,5))
-  RCONST(672) = (HET(ind_IONO2,6))
-  RCONST(673) = (HET(ind_HOI,3))
-  RCONST(674) = (HET(ind_HOI,4))
-  RCONST(675) = (HET(ind_HOI,5))
-  RCONST(676) = (HET(ind_HOI,6))
+  RCONST(661) = (IuptkByAlkSALA1stOrd(SR_MW(ind_IONO),0.02_dp,State_Het))
+  RCONST(662) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO),0.02_dp,State_Het))
+  RCONST(663) = (IuptkByAlkSALA1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
+  RCONST(664) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
+  RCONST(665) = (0.0_dp)
+  RCONST(666) = (0.0_dp)
+  RCONST(667) = (0.0_dp)
+  RCONST(668) = (0.0_dp)
+  RCONST(669) = (0.0_dp)
+  RCONST(670) = (0.0_dp)
+  RCONST(671) = (0.0_dp)
+  RCONST(672) = (0.0_dp)
+  RCONST(673) = (0.0_dp)
+  RCONST(674) = (0.0_dp)
+  RCONST(675) = (0.0_dp)
+  RCONST(676) = (0.0_dp)
   RCONST(677) = (GLYXuptk1stOrd(SR_MW(ind_GLYX),State_Het))
   RCONST(678) = (MGLYuptk1stOrd(SR_MW(ind_MGLY),State_Het))
   RCONST(679) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXA),.FALSE.,State_Het))
