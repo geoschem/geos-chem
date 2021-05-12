@@ -1325,9 +1325,9 @@ NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);       
 //
 // Heterogeneous reactions
 //
-HO2 = H2O :                    HO2uptk1stOrd( SR_MW(ind_HO2), State_Het );                                  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-NO2 = 0.500HNO3 + 0.500HNO2 :                HET(ind_NO2,1);
-NO3 = HNO3 :                                 HET(ind_NO3,1);
+HO2 = H2O :                    HO2uptk1stOrd( State_Het );                                                  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+NO2 = 0.500HNO3 + 0.500HNO2 :  NO2uptk1stOrdAndCloud( State_Het );
+NO3 = HNO3 :                   NO3uptk1stOrdAndCloud( State_Het );
 NO3 = NIT :                    NO3hypsisClonSALA( State_Het );                                              {2018/03/16; XW}
 NO3 = NITs :                   NO3hypsisClonSALC( State_Het );                                              {2018/03/16; XW}
 //

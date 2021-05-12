@@ -760,177 +760,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CloudHet
-!
-! !DESCRIPTION: Function CloudHet calculates the loss frequency (1/s) of gas
-!  species due to heterogeneous chemistry on clouds in a partially cloudy grid
-!  cell. The function uses the "entrainment limited uptake" equations of
-!  Holmes et al. (2019). Both liquid and ice water clouds are treated.
-!
-!  For gasses that are that are consumed in multiple aqueous reactions with
-!  different products, CloudHet can provide the loss frequency for each
-!  reaction branch using the optional branch ratios (branchLiq, branchIce)
-!  as arguments.
-!
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K.,
-!    Graham, K. A., Shah, V. (2019) The role of clouds in the tropospheric NOx
-!    cycle: a new modeling approach for cloud chemistry and its global
-!    implications, Geophys. Res. Lett. 46, 4980-4990,
-!    https://doi.org/10.1029/2019GL081990
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION CloudHet( State_Het, srMw, gamLiq, gamIce, brLiq, brIce           &  
-                   ) RESULT( kHet )
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(HetState), INTENT(IN) :: State_Het  ! Hetchem State object
-    REAL(dp),       INTENT(IN) :: srMw       ! SQRT( molec weight [g/mole] )
-    REAL(dp),       INTENT(IN) :: gamLiq     ! Rxn probability, liquid [1]
-    REAL(dp),       INTENT(IN) :: gamIce     ! Rxn probability, ice [1]
-    REAL(dp),       INTENT(IN) :: brLiq      ! Fraction of reactant consumed
-    REAL(dp),       INTENT(IN) :: brIce      !  in liquid & ice branches [0-1]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)                   :: kHet       ! Grid-avg loss frequency [1/s]
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    ! Residence time of air in clouds, s
-    REAL(dp), PARAMETER :: tauc = 3600.0_dp
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp) :: kI, gam, rd, area
-    REAL(dp) :: kk, ff, xx, branch, kIb, ktmp
-
-    !=======================================================================
-    ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface 
-    ! area, then return zero uptake
-    !=======================================================================
-    IF ( ( State_Het%CldFr                  <  0.0001_dp )   .or.           &
-         ( State_Het%aLiq + State_Het%aIce  <= 0.0_dp    ) ) THEN
-       kHet = 0.0_dp
-       RETURN
-    ENDIF
-
-    !=======================================================================
-    ! Loss frequency inside cloud
-    !
-    ! Assume both water and ice phases are inside the same cloud, so mass
-    ! transport to both phases works in parallel (additive)
-    !=======================================================================
-
-    ! initialize loss [1/s]
-    kI  = 0.0_dp   ! total loss rate of a gas in cloud
-    kIb = 0.0_dp   ! loss rate for liquid or ice branch
-
-    !-----------------------------------------------------------------------
-    ! Liquid branch
-    !-----------------------------------------------------------------------
-
-    ! Convert grid-average cloud condensate surface area density
-    ! to in-cloud surface area density
-    area = Safe_Div( State_Het%aLiq, State_Het%CldFr, 0.0_dp )
-
-    ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
-    ! Pass radius in cm and mass in g.
-    ktmp = ArsL1K( area, State_Het%rLiq, NUMDEN, gamLiq, SR_TEMP, srMw )
-    kI   = kI + ktmp
-
-    ! In-cloud loss frequency for particular reaction branch, 1/s
-    kIb  = kIb + ( ktmp * brLiq )
-
-    !------------------------------------------------------------------
-    ! Ice branch
-    !------------------------------------------------------------------
-
-    ! Convert grid-average cloud condensate surface area density
-    ! to in-cloud surface area density
-    area = Safe_Div( State_Het%aIce, State_Het%CldFr, 0.0_dp )
-
-    ! In-cloud loss frequency, combining ice and liquid in parallel [1/s]
-    ! Pass radius in cm and mass in g.
-    ktmp = ArsL1K( area, State_Het%rIce, NUMDEN, gamIce, SR_TEMP, srMw )
-    kI   = kI + ktmp
-
-    ! In-cloud loss frequency for liquid reaction branch [1/s]
-    kIb  = kIb + ( ktmp * brIce )
-
-    !------------------------------------------------------------------
-    ! Mean branch ratio for reaction of interest in cloud
-    ! (averaged over ice and liquid)
-    !------------------------------------------------------------------
-    if ( kI > 0.0_dp ) then
-       branch = kIb / kI
-    else
-       branch = 0.0_dp
-    endif
-
-    !!------------------------------------------------------------------------
-    !! Grid-average loss frequency; Add in-cloud and entrainment rates in series
-    !!
-    !! APPROXIMATE expression for entrainment-limited uptake
-    !!   Approximation error in loss frequency is typically <2% and always <50%.
-    !!------------------------------------------------------------------------
-    !
-    !! Requires declaring...
-    !! real(dp) :: kIinv, kEinv
-    !
-    !! Entrainment rate, inverse, s
-    !kEinv = safe_div( tauc * ( 1e+0_dp - fc ), fc, 1e+30_dp )
-    !
-    !! In-cloud loss rate, inverse, s
-    !kIinv = safe_div( 1e+0_dp, fc*kI, 1e+30_dp )
-    !
-    !! Overall heterogeneous loss rate, grid average, 1/s
-    !kHet = safe_div( 1e+0_dp, ( kEinv + kIinv ), 0e+0_dp )
-
-    !------------------------------------------------------------------------
-    ! Grid-average loss frequency
-    !
-    ! EXACT expression for entrainment-limited uptake
-    !------------------------------------------------------------------------
-
-    ! Ratio (in cloud) of heterogeneous loss to detrainment, s/s
-    kk = kI * tauc
-
-    ! Ratio of volume inside to outside cloud
-    ! ff has a range [0,+inf], so cap it at 1e30
-    ff = safe_div( State_Het%CldFr, State_Het%ClearFr, 1e30_dp )
-    ff = max( ff, 1e30_dp )
-
-    ! Ratio of mass inside to outside cloud
-    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-    xx =     ( ff - kk - 1e0_dp ) / 2e0_dp + &
-         sqrt( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_dp
-
-    ! Overall heterogeneous loss rate, grid average, 1/s
-    ! kHet = kI * xx / ( 1d0 + xx )
-    !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
-    !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-    kHet = kI / ( 1e0_dp + safe_div( 1e0_dp, xx, 1e30_dp ) )
-
-    ! Overall loss rate in a particular reaction branch, 1/s
-    kHet = kHet * branch
-    ! Note: CloudHet currently requires calling CloudHet N times for
-    ! N reaction branches.  Returning both total loss frequency and mean
-    ! branch ratio would allow calculation of all loss rates with N-1 calls
-    ! to CloudHet (more efficient) (C.D. Holmes)
-
-  END FUNCTION CloudHet
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: kiir1ltd
 !
 ! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
@@ -5084,192 +4913,41 @@ CONTAINS
   ! Rate-law functions for bromine species
   !=========================================================================
 
-  FUNCTION BrNO3_Hydrolysis( srMw, H ) RESULT( k )
-    !
-    ! Computes the hyydrolysis rate [1/s] for BrNO3 (cf. Johan Schmidt)
-    !
-    REAL(dp),       INTENT(IN) :: srMw           ! sqrt MW
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp) :: clf, gam, gamLiq, gamIce         ! local vars
-    !
-    ! Initialize
-    k      = 0.0_dp
-    clf    = H%clearFr
-    gamLiq = 0.0021_dp * TEMP - 0.561_dp         ! Rxn prob, liq (Deiber 2004)
-    gamIce = 5.3e-4_dp * EXP( 1100.0_dp / TEMP ) ! Rxn prob on ice
-
-    ! BrNO3 + H2O hydrolysis on tropospheric sulfate (aerosol type #8),
-    ! fine sea salt (#11), and coarse sea salt (#12)
-    gam = gamLiq
-    k = k + ArsL1K( clf*H%xArea(8 ), H%xRadi(8 ), NUMDEN, gam, SR_TEMP, srMw )
-    k = k + ArsL1K( clf*H%xArea(11), H%xRadi(11), NUMDEN, gam, SR_TEMP, srMw )
-    k = k + ArsL1K( clf*H%xArea(12), H%xRadi(12), NUMDEN, gam, SR_TEMP, srMw )
-
-    ! Add BrNO3 + H2O hydrolysis on stratospheric liquid aerosol (#13)
-    k = k + H%xArea(13) * H%KHETI_SLA(6)
- 
-    ! Add BrNO3 + H2O hydrolysis on irregular ice cloud (#14)
-    gam = 0.3_dp                              ! Rxn uptake rate, ice [1]
-    IF ( H%NatSurface ) gam = 0.001_dp        ! Rxn uptake rate, NAT [1]
-    k = k + ArsL1K( clf*H%xArea(14), H%xRadi(14), NUMDEN, gam, SR_TEMP, srMw )
-
-    ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
-    k = k + CloudHet( H, srMw, gamLiq, gamIce, 1.0_dp, 1.0_dp )
-
-    ! Compute overall rate of BrNO3 + H2O
-    k = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), k )
-  END FUNCTION BrNO3_Hydrolysis
-
-
-  !=========================================================================
-  ! Rate-law functions for iodine species 
-  ! (HI, I2O2, I2O3, I2O4, IONO2, IONO3)
-  !=========================================================================
-
-  !=========================================================================
-  ! Rate-law functions for NO2
-  !=========================================================================
-
-  FUNCTION Het1stOrderUptakeNO2( srMw, H ) RESULT( k )
-    !
-    ! Computes the reaction rate [1/s] for 1st-order uptake of NO2.
-    !
-    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
-    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp)                   :: gamma          ! local vars
-    !
-    k = 0.0_dp
-    !
-    ! Uptake by mineral dust (aerosol types 1-7)
-    gamma = 1.0e-8_dp
-    k  = k + ArsL1k( H%xArea(1 ), H%xRadi(1 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(2 ), H%xRadi(2 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(3 ), H%xRadi(3 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(4 ), H%xRadi(4 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(5 ), H%xRadi(5 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(6 ), H%xRadi(6 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(7 ), H%xRadi(7 ), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by tropospheric sulfate (aerosol type 8)
-    gamma = 5e-6_dp
-    k  = k + ArsL1k( H%xArea(8 ), H%xRadi(8 ), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by black carbon (aerosol type 9)
-    gamma = 1e-4_dp
-    k  = k + ArsL1k( H%xArea(9 ), H%xRadi(9 ), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by black carbon (aerosol type 10)
-    gamma = 1e-6_dp
-    k  = k + ArsL1k( H%xArea(10), H%xRadi(10), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-    if ( relhum < 40.0_dp ) then
-       gamma = 1.0e-8_dp
-    elseif ( relhum > 70.0_dp ) then
-       gamma = 1.0e-4_dp
-    else
-       gamma = 1.0e-8_dp + (1e-4_dp - 1e-8_dp) * (relhum - 40.0_dp)/30.0_dp
-    endif
-    k  = k + ArsL1k( H%xArea(11), H%xRadi(11), NUMDEN, gamma, SR_TEMP, srMw )
-    k  = k + ArsL1k( H%xArea(12), H%xRadi(12), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by stratospheric sulfate (aerosol type 13)
-    ! and by irregular ice cloud (aerosol type 14)
-    gamma = 1.0e-4_dp
-    k  = k + H%xArea(13) * gamma
-    k  = k + ArsL1k( H%xArea(14), H%xRadi(14), NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION Het1stOrderUptakeNO2
-
-  FUNCTION NO2_Uptake( srMw, H ) RESULT( k )
-    !
-    ! Computes rxn rate [1/s] for NO2 uptake by 0.5HNO3 + 0.5HNO2.
-    !
-    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    ! 
-    k    = Het1stOrderUptakeNO2( srMw, H )
-    k    = k + CloudHet( H, srMw, 1e-8_dp, 0.0_dp, 1.0_dp, 1.0_dp )
-  END FUNCTION NO2_Uptake
-
-  !=========================================================================
-  ! Rate-law functions for NO3
-  !=========================================================================
-
-  FUNCTION Het1stOrderUptakeNO3( srMw, H ) RESULT( k )
-    !
-    ! Computes reaction rate [1/s] for 1st-order uptake of NO3 
-    !
-    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp)                   :: gamma          ! local vars
-    !
-    k  = 0.0_dp
-    !
-    ! Uptake by mineral dust (aerosol types 1-7)
-    gamma = 0.01_dp
-    k = k + ArsL1k( H%xArea(1 ), H%xRadi(1 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(2 ), H%xRadi(2 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(3 ), H%xRadi(3 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(4 ), H%xRadi(4 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(5 ), H%xRadi(5 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(6 ), H%xRadi(6 ), NUMDEN, gamma, SR_TEMP, srMw )
-    k = k + ArsL1k( H%xArea(7 ), H%xRadi(7 ), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by black carbon (aerosol type 9)
-    if ( relhum < 50.0_dp ) then
-       gamma = 2.0e-4_dp
-    else
-       gamma = 1.0e-3_dp
-    endif
-    k = k + ArsL1k( H%xArea(9 ), H%xRadi(9 ), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by organic carbon (aerosol type 10)
-    gamma = 0.005_dp
-    k = k + ArsL1k( H%xArea(10), H%xRadi(10), NUMDEN, gamma, SR_TEMP, srMw )
-    !
-    ! Uptake by stratospheric sulfate (aerosol type 13)
-    ! and by irregular ice cloud (aerosol type 14)
-    gamma = 0.1_dp
-    k = k + H%xArea(13) * gamma
-    k = k + ArsL1k( H%xArea(14), H%xRadi(14), NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION Het1stOrderUptakeNO3
-
-  FUNCTION NO3_Uptake( srMw, H ) RESULT( k )
-    !
-    ! Computes rxn rate [1/s] for NO3 uptake by HNO3.
-    !
-    REAL(dp)                   :: srMw           ! sqrt( mol wt )
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    !
-    k = Het1stOrderUptakeNO3( srMw, H )
-    k = k + CloudHet( H, srMw, 0.002_dp, 0.001_dp, 1.0_dp, 1.0_dp )
-  END FUNCTION NO3_Uptake
-
-  FUNCTION HetNO3_Cl_SALC( srMw, H ) RESULT( k )
-    !
-    ! Computes the NO3(g) hypsis rate [1/s]  for Cl- 
-    ! reacting on surface of fine sea-salt aerosol (SALC).
-    !
-    REAL(dp),       INTENT(in) :: srMw           ! sqrt MW
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp)                   :: area, gamma    ! local vars
-    !
-    ! Compute reactive uptake coefficient [1]
-    gamma = Gamma_NO3( H%xArea(12), H%xRadi(12), H%ClConc_SALC ) * 0.01_dp
-    !
-    ! Reaction rate for surface of aerosol [1/s]
-    area = H%ClearFr * H%xArea(12)
-    k    = ArsL1k( area, H%xArea(12), NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION HetNO3_Cl_SALC
-
-  !=========================================================================
-  ! Rate-law functions for VOC species
-  !=========================================================================
+!  FUNCTION BrNO3_Hydrolysis( srMw, H ) RESULT( k )
+!    !
+!    ! Computes the hyydrolysis rate [1/s] for BrNO3 (cf. Johan Schmidt)
+!    !
+!    REAL(dp),       INTENT(IN) :: srMw           ! sqrt MW
+!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+!    REAL(dp)                   :: k              ! rxn rate [1/s]
+!    REAL(dp) :: clf, gam, gamLiq, gamIce         ! local vars
+!    !
+!    ! Initialize
+!    k      = 0.0_dp
+!    clf    = H%clearFr
+!    gamLiq = 0.0021_dp * TEMP - 0.561_dp         ! Rxn prob, liq (Deiber 2004)
+!    gamIce = 5.3e-4_dp * EXP( 1100.0_dp / TEMP ) ! Rxn prob on ice
+!
+!    ! BrNO3 + H2O hydrolysis on tropospheric sulfate (aerosol type #8),
+!    ! fine sea salt (#11), and coarse sea salt (#12)
+!    gam = gamLiq
+!    k = k + ArsL1K( clf*H%xArea(8 ), H%xRadi(8 ), NUMDEN, gam, SR_TEMP, srMw )
+!    k = k + ArsL1K( clf*H%xArea(11), H%xRadi(11), NUMDEN, gam, SR_TEMP, srMw )
+!    k = k + ArsL1K( clf*H%xArea(12), H%xRadi(12), NUMDEN, gam, SR_TEMP, srMw )
+!
+!    ! Add BrNO3 + H2O hydrolysis on stratospheric liquid aerosol (#13)
+!    k = k + H%xArea(13) * H%KHETI_SLA(6)
+! 
+!    ! Add BrNO3 + H2O hydrolysis on irregular ice cloud (#14)
+!    gam = 0.3_dp                              ! Rxn uptake rate, ice [1]
+!    IF ( H%NatSurface ) gam = 0.001_dp        ! Rxn uptake rate, NAT [1]
+!    k = k + ArsL1K( clf*H%xArea(14), H%xRadi(14), NUMDEN, gam, SR_TEMP, srMw )
+!
+!    ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
+!    k = k + CloudHet( H, srMw, gamLiq, gamIce, 1.0_dp, 1.0_dp )
+!
+!    ! Compute overall rate of BrNO3 + H2O
+!    k = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), k )
+!  END FUNCTION BrNO3_Hydrolysis
 !EOC
 END MODULE GcKpp_HetRates
