@@ -802,14 +802,6 @@ CONTAINS
     ! Compute ArsL1k according to the formula listed above
     k = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * SR_TEMP) )
   END FUNCTION Ars_L1k
-
-!BOP
-!
-! !IROUTINE: kiir1ltd
-!
-!\\
-!\\
-! !INTERFACE:
 !
   FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
     !
@@ -858,8 +850,40 @@ CONTAINS
     ENDIF
   END FUNCTION kIIR1Ltd
 
+  FUNCTION coth( x ) RESULT( f_x )
+    !
+    ! Hyperbolic cotangent = [1 + exp(-2x)] / [1 - exp(-2x)]
+    !
+    REAL(dp), INTENT(IN) :: x
+    REAL(dp)             :: y, f_x
+    !
+    y   = EXP( -2.0_dp * x )
+    f_x = ( 1.0_dp + y ) / ( 1.0_dp - y )
+  END FUNCTION coth
+  
+  FUNCTION reactodiff_corr( radius, l ) RESULT( corr )
+    !
+    ! For x = radius / l, correction =  COTH( x ) - ( 1/x )
+    ! Correction approaches 1 as x becomes large, corr(x>1000)~1
+    ! Correction approaches x/3 as x goes towards 0
+    !
+    REAL(dp), INTENT(IN)  :: l, radius           ! [cm] and [cm]
+    REAL(dp)              :: x, corr
+    !
+    x = radius / l
+    IF ( x > 1000.0_dp ) THEN
+       corr = 1.0_dp
+       RETURN
+    ENDIF
+    IF ( x < 0.1_dp ) THEN
+       corr = x / 3.0_dp;
+       RETURN
+    ENDIF
+    corr = coth(x) - ( 1.0_dp / x )
+  END FUNCTION REACTODIFF_CORR
+
   !=========================================================================
-  ! Rate-law functions for VOC species
+  ! Rate-law functions for HO2
   !=========================================================================
 
   FUNCTION HO2uptk1stOrd( srMw, H ) RESULT( k )
@@ -1034,6 +1058,83 @@ CONTAINS
        k = kIIR1Ltd( conc, C(ind_SALCCl), k )
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
+
+  !=========================================================================
+  ! Rate-law functions for nitrogen species
+  !=========================================================================
+
+  FUNCTION Gam_NO3( aArea, aRadi, aWater, C_X, H ) RESULT( gamma )
+    ! 
+    ! Calculates reactive uptake coef. for NO3 on salts and water
+    !
+    REAL(dp),       INTENT(IN) :: aArea, aRadi, aWater, C_X
+    TYPE(Hetstate), INTENT(IN) :: H
+    !
+    REAL(dp)            :: gamma    
+    REAL(dp)            :: ab, M_X, k_tot,  H_X, cavg
+    REAL(dp)            :: gb, l_r, WaterC, Vol, corr
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 1.3e-2_dp
+    !
+    Vol     = aArea * aRadi * 1.0e-3_dp / 3.0_dp       ! L/cm3 air
+    WaterC  = aWater / 18.0e+12_dp / Vol               ! mol/L aerosol
+    M_X     = MW(ind_NO3) * 1.0e-3_dp                  ! NO3 mol wt kg/mol
+    !
+    ! Thermal velocity [cm/s]
+    cavg    = SQRT( 8.0_dp * H%RStarG * TEMP / ( H%Pi * M_X ) ) * 1.0e2_dp
+    !
+    k_tot   = ( 2.76e+6_dp * C_X ) + ( 23.0_dp * WaterC )
+    !
+    H_X     = 0.6_dp * CON_ATM_BAR                     ! M/bar
+    l_r     = SQRT( 1.0e-5_dp / k_tot )                ! diff const = 1e-5
+    !                                                  !  for NO3
+    gb      = 4.0_dp * H_X * CON_R * TEMP * l_r * k_tot / cavg
+    corr    = reactodiff_corr( aRadi, l_r )
+    gb      = gb * corr 
+    !
+    gamma   = 1.0_dp / ( INV_AB + 1.0_dp/gb )
+  END FUNCTION Gam_NO3
+
+  FUNCTION NO3hypsisClonSALA( H ) RESULT( k )
+    !
+    ! Computes the NO3(g) hypsis rate [1/s]  for Cl- 
+    ! reacting on surface of fine sea-salt aerosol (SALA).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp) :: area, conc, gamma, radi, water   ! local vars
+    !
+    ! Compute reactive uptake coefficient [1]
+    area  = H%aClArea
+    radi  = H%aClRadi
+    water = H%aWater(1)
+    conc  = H%ClConc_SALA
+    gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
+    !
+    ! Reaction rate for surface of aerosol [1/s]
+    area  = H%ClearFr * area
+    k     = Ars_L1k( area, radi, gamma, SR_MW(ind_NO3) )
+  END FUNCTION NO3hypsisClonSALA
+ 
+  FUNCTION NO3hypsisClonSALC( H ) RESULT( k )
+    !
+    ! Computes the NO3(g) hypsis rate [1/s]  for Cl- 
+    ! reacting on surface of coarse sea-salt aerosol (SALC).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp) :: area, conc, gamma, radi, water   ! local vars
+    !
+    ! Compute reactive uptake coefficient [1]
+    area  = H%xArea(12)
+    radi  = H%xRadi(12)
+    water = H%aWater(2)
+    conc  = H%ClConc_SALC
+    gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
+    !
+    ! Reaction rate for surface of aerosol [1/s]
+    area  = H%ClearFr * area
+    k     = Ars_L1k( area, radi, gamma, SR_MW(ind_NO3) )
+  END FUNCTION NO3hypsisClonSALC
 
   !=========================================================================
   ! Rate-law functions for VOC species
@@ -1879,8 +1980,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(601) = (HO2uptk1stOrd(SR_MW(ind_HO2),State_Het))
   RCONST(602) = (HET(ind_NO2,1))
   RCONST(603) = (HET(ind_NO3,1))
-  RCONST(604) = (HET(ind_NO3,2))
-  RCONST(605) = (HET(ind_NO3,3))
+  RCONST(604) = (NO3hypsisClonSALA(State_Het))
+  RCONST(605) = (NO3hypsisClonSALC(State_Het))
   RCONST(606) = (HET(ind_N2O5,1))
   RCONST(607) = (HET(ind_N2O5,2))
   RCONST(608) = (HET(ind_N2O5,3))

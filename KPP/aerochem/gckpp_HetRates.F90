@@ -145,21 +145,18 @@ CONTAINS
     ! Zero the HET array
     HET = 0.0_dp
 
-!### KPP DEBUG
-goto 9999
-
-    ! Aerosol-phase organic nitrate formed from monoterpene precursors
-    ! (species IONITA and MONITA) have constant 1st order uptake rates.
-    HET(ind_IONITA, 1) = 2.78E-4_dp
-    HET(ind_MONITA, 1) = 2.78E-4_dp
-
-    !========================================================================
-    ! NOy uptake in clouds
-    !========================================================================
-
-    HET(ind_NO2, 1) = NO2_Uptake( SR_MW(ind_NO2), H )
-    HET(ind_NO3, 1) = NO3_Uptake( SR_MW(ind_NO3), H )
-
+!    ! Aerosol-phase organic nitrate formed from monoterpene precursors
+!    ! (species IONITA and MONITA) have constant 1st order uptake rates.
+!    HET(ind_IONITA, 1) = 2.78E-4_dp
+!    HET(ind_MONITA, 1) = 2.78E-4_dp
+!
+!    !========================================================================
+!    ! NOy uptake in clouds
+!    !========================================================================
+!
+!    HET(ind_NO2, 1) = NO2_Uptake( SR_MW(ind_NO2), H )
+!    HET(ind_NO3, 1) = NO3_Uptake( SR_MW(ind_NO3), H )
+!
 !    ! Reactive uptake coefficient for N2O5 on liquid water cloud
 !    ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
 !    ! For temperature dependence, JPL recommends the same as
@@ -184,12 +181,6 @@ goto 9999
 !    !========================================================================
 !    ! Br/Cl heterogeneous chemistry
 !    !========================================================================
-!
-!    !------------------------------------------------------------------------
-!    ! Cl- enhanced NO3 hydrolysis (XW 2018-03-16)
-!    !------------------------------------------------------------------------
-!    HET(ind_NO3, 2) = HetNO3_Cl_SALA( SR_MW(ind_NO3), H )
-!    HET(ind_NO3, 3) = HetNO3_Cl_SALC( SR_MW(ind_NO3), H )
 !
 !    !------------------------------------------------------------------------
 !    ! BrNO3 hydrolysis (update: XW 2019-06-08)
@@ -1823,7 +1814,6 @@ goto 9999
 !      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, SR_TEMP, XSqM )
 
     END FUNCTION HETO3_SS
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3673,86 +3663,6 @@ goto 9999
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: COTH
-!
-! !DESCRIPTION: COTH (Hyperbolic cotangent)
-!               coth(x) = cosh(x)/sinh(x) = (1 + exp(-2x))/(1 - exp(-2x))
-!\\
-!\\
-! !INTERFACE:
-!
-      REAL(dp) FUNCTION COTH( X)
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp),         INTENT(IN)  :: X           ! The argument
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-      REAL(dp)                 :: exp_temp
-
-      exp_temp = EXP(-2.0e0_dp*X)
-      COTH = (1.0e0_dp + exp_temp)/(1.0e0_dp - exp_temp)
-
-      END FUNCTION COTH
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: REACTODIFF_CORR
-!
-! !DESCRIPTION: REACTODIFF\_CORR
-!     Correction =  COTH( x ) - ( 1/x )
-!              x = radius / l
-!     Correction approaches 1 as x becomes large, corr(x>1000)~1
-!     Correction approaches x/3 as x goes towards 0
-!\\
-!\\
-! !INTERFACE:
-!
-      REAL(dp) FUNCTION REACTODIFF_CORR( radius, l)
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp),         INTENT(IN)  :: radius, l           ! [cm] and [cm]
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-      REAL(dp)                 :: x
-
-      x = radius / l
-
-      IF (x<0.0e0_dp) THEN
-         PRINT *, 'ERROR x<0, particle radius or C_Y is neg!'
-      ELSEIF (x>1.0e3_dp) THEN
-         REACTODIFF_CORR = 1.0e0_dp
-      ELSEIF (x<1.0e-1_dp) THEN
-         REACTODIFF_CORR = x/3.0e0_dp
-      ELSE
-         REACTODIFF_CORR = COTH(x) - (1.0e0_dp/x)
-      ENDIF
-
-
-      RETURN
-
-      END FUNCTION REACTODIFF_CORR
-
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: HetClNO3_HCl
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for ClNO3(g) + HCl(l,s)
@@ -5339,26 +5249,6 @@ goto 9999
     k = Het1stOrderUptakeNO3( srMw, H )
     k = k + CloudHet( H, srMw, 0.002_dp, 0.001_dp, 1.0_dp, 1.0_dp )
   END FUNCTION NO3_Uptake
-
-
-  FUNCTION HetNO3_Cl_SALA( srMw, H ) RESULT( k )
-    !
-    ! Computes the NO3(g) hypsis rate [1/s]  for Cl- 
-    ! reacting on surface of fine sea-salt aerosol (SALA).
-    !
-    REAL(dp),       INTENT(in) :: srMw           ! sqrt( mol wt )
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp)                   :: area, gamma    ! local vars
-    !
-    ! Compute reactive uptake coefficient [1]
-    gamma = Gamma_NO3( H%aClArea, H%aClRadi, H%ClConc_SALA ) * 0.01_dp
-    !
-    ! Reaction rate for surface of aerosol [1/s]
-    area = H%ClearFr * H%AclArea
-    k    = ArsL1k( area, H%AclRadi, NUMDEN, gamma, SR_TEMP, srMw )
-  END FUNCTION HetNO3_Cl_SALA
-
 
   FUNCTION HetNO3_Cl_SALC( srMw, H ) RESULT( k )
     !
