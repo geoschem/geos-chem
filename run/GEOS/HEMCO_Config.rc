@@ -78,7 +78,6 @@ Warnings:                    1
     --> APEI                   :       false
     --> NEI2011_HOURLY         :       false
     --> NEI2011_MONMEAN        :       false
-    --> MIX                    :       false
     --> DICE_Africa            :       true
 # ----- GLOBAL INVENTORIES ------------------
     --> CEDS                   :       false
@@ -240,10 +239,6 @@ Warnings:                    1
 
 #==============================================================================
 # NEI emissions turned off; put entry here if turning on
-#==============================================================================
-
-#==============================================================================
-# MIX emissions turned off; put entry here if turning on
 #==============================================================================
 
 #==============================================================================
@@ -1624,18 +1619,18 @@ Warnings:                    1
 # NOTE for GEOS:
 # ==> Many more in GEOS-Chem than in GEOS. May be # overlap (e.g. 1)
 #==============================================================================
-(((MIX.or.HTAP.or.XIAO_C3H8
+(((HTAP.or.XIAO_C3H8
 6  LIQFUEL_THISYR ~/data/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
 7  LIQFUEL_1985   ~/data/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
-)))MIX.or.HTAP.or.XIAO_C3H8
+)))HTAP.or.XIAO_C3H8
 
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
+(((APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
 25 EDGAR_TODNOX $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless 1
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
-)))APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
+)))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
 
 #==============================================================================
 # --- Day-of-week scale factors ---
@@ -1848,10 +1843,6 @@ Warnings:                    1
 (((APEI
 1002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc                  MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
-
-(((MIX
-1006 ASIA_MASK   $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc         MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
 
 (((NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
 1007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                      MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60

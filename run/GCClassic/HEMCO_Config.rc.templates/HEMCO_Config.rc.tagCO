@@ -56,7 +56,6 @@ Mask fractions:              false
     --> APEI                   :       false    # 1989-2014
     --> NEI2011_HOURLY         :       false    # 2006-2013
     --> NEI2011_MONMEAN        :       false    # 2006-2013
-    --> MIX                    :       false    # 2008-2010
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> CEDS                   :       true     # 1970-2017
@@ -181,10 +180,10 @@ Mask fractions:              false
 #------------------------------------------------
 (((NEI2011_MONMEAN
 # SURFACE INVENTORY
-0 NEI11_SURFACE_CO       $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          CO 2006-2013/1-12/1/0 RF xy  kg/m2/s  CO    26/211/252/1007       1 50
-0 NEI11_SURFACE_CO_us    -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1 50
-0 NEI11_SURFACE_CO_eur   -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1 50
-0 NEI11_SURFACE_CO_oth   -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1 50
+0 NEI11_SURFACE_CO       $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          CO 2006-2013/1-12/1/0 RF xy  kg/m2/s  CO    26/211/252/1007       1   50
+0 NEI11_SURFACE_CO_us    -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
+0 NEI11_SURFACE_CO_eur   -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
+0 NEI11_SURFACE_CO_oth   -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
 
 # ELECTRIC GENERATING UNITS (EGUs)
 0 NEI11_EGU_CO           $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_egu.nc      CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
@@ -216,31 +215,6 @@ Mask fractions:              false
 0 NEI11_PTNONIPM_CO_eur  -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
 0 NEI11_PTNONIPM_CO_oth  -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
 )))NEI2011_MONMEAN
-
-#==============================================================================
-# --- MIX v1.1 (Asia) ---
-#==============================================================================
-(((MIX
-0 MIX_CO_IND       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_INDUSTRY    2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_IND_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_IND_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_IND_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_POW       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_POWER       2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_POW_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_POW_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_POW_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_RES       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_RESIDENTIAL 2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_RES_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_RES_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_RES_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-
-0 MIX_CO_TRA       $ROOT/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc CO_TRANSPORT   2008-2010/1-12/1/0 RF xy kg/m2/s CO     6/28/26/1006       1 45
-0 MIX_CO_TRA_eur   -                                                 -              -                  -  -  -       COeur  6/28/26/1006/1101  1 45
-0 MIX_CO_TRA_asia  -                                                 -              -                  -  -  -       COasia 6/28/26/1006/1102  1 45
-0 MIX_CO_TRA_oth   -                                                 -              -                  -  -  -       COoth  6/28/26/1006/1103  1 45
-)))MIX
 
 #==============================================================================
 # --- DICE-Africa emission inventory (Marais and Wiedinmyer, ES&T, 2016) ---
@@ -406,56 +380,56 @@ Mask fractions:              false
 #  -- CEDS includes trash emissions (Cat=12) from Wiedinmyer et al. (2014)
 #==============================================================================
 (((CEDS
-0 CEDS_CO_AGR       $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_agr  1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_AGR_us    -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_AGR_eur   -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_AGR_asia  -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_AGR_oth   -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_ENE       $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ene  1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_ENE_us    -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_ENE_eur   -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_ENE_asia  -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_ENE_oth   -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_IND       $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ind  1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_IND_us    -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_IND_eur   -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_IND_asia  -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_IND_oth   -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_NRTR      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_nrtr 1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_NRTR_us   -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_NRTR_eur  -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_NRTR_asia -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_NRTR_oth  -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_ROAD      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_road 1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_ROAD_us   -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_ROAD_eur  -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_ROAD_asia -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_ROAD_oth  -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_RCOR      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcor 1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_RCOR_us   -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_RCOR_eur  -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_RCOR_asia -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_RCOR_oth  -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_RCOC      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoc 1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_RCOC_us   -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_RCOC_eur  -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_RCOC_asia -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_RCOC_oth  -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_RCOO      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoo 1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_RCOO_us   -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_RCOO_eur  -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_RCOO_asia -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_RCOO_oth  -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_SLV       $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_slv  1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_SLV_us    -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_SLV_eur   -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_SLV_asia  -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_SLV_oth   -                                                           -       -                  - -  -       COoth  26/1103 1 2
-0 CEDS_CO_WST       $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_wst  1970-2017/1-12/1/0 C xy kg/m2/s CO     26      1 5
-0 CEDS_CO_WST_us    -                                                           -       -                  - -  -       COus   26/1100 1 2
-0 CEDS_CO_WST_eur   -                                                           -       -                  - -  -       COeur  26/1101 1 2
-0 CEDS_CO_WST_asia  -                                                           -       -                  - -  -       COasia 26/1102 1 2
-0 CEDS_CO_WST_oth   -                                                           -       -                  - -  -       COoth  26/1103 1 2
+0 CEDS_CO_AGR          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_agr  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_AGR_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_AGR_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_AGR_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_AGR_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_ENE          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ene  1970-2017/1-12/1/0 C xy kg/m2/s CO     26/37/35     1 5
+0 CEDS_CO_ENE_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_ENE_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_ENE_asia     -                                                           -       -                  - -  -       COasia 26/1102/37/35 1 5
+0 CEDS_CO_ENE_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_IND          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ind  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_IND_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_IND_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_IND_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_IND_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_NRTR         $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_nrtr 1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_NRTR_us      -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_NRTR_eur     -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_NRTR_asia    -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_NRTR_oth     -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_ROAD         $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_road 1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_ROAD_us      -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_ROAD_eur     -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_ROAD_asia    -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_ROAD_oth     -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_RCOR         $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcor 1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_RCOR_us      -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_RCOR_eur     -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_RCOR_asia    -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_RCOR_oth     -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_RCOC         $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoc 1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_RCOC_us      -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_RCOC_eur     -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_RCOC_asia    -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_RCOC_oth     -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_RCOO         $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoo 1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_RCOO_us      -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_RCOO_eur     -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_RCOO_asia    -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_RCOO_oth     -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_SLV          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_slv  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_SLV_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_SLV_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_SLV_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_SLV_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
+0 CEDS_CO_WST          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_wst  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
+0 CEDS_CO_WST_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
+0 CEDS_CO_WST_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
+0 CEDS_CO_WST_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
+0 CEDS_CO_WST_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
 )))CEDS
 (((CEDS_byFuelType
 (((.not.CEDS
@@ -475,40 +449,40 @@ Mask fractions:              false
 #==============================================================================
 
 0 CMIP6_CO_AGR       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_agr            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_AGR_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_AGR_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_AGR_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_AGR_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_AGR_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_AGR_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_AGR_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_AGR_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_ENE       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_ene            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_ENE_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_ENE_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_ENE_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_ENE_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_ENE_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_ENE_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_ENE_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_ENE_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_IND       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_ind            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_IND_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_IND_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_IND_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_IND_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_IND_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_IND_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_IND_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_IND_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_TRA       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_tra            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_TRA_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_TRA_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_TRA_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_TRA_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_TRA_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_TRA_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_TRA_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_TRA_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_RCO       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_rco            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_RCO_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_RCO_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_RCO_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_RCO_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_RCO_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_RCO_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_RCO_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_RCO_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_SLV       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_slv            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_SLV_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_SLV_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_SLV_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_SLV_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_SLV_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_SLV_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_SLV_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_SLV_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 0 CMIP6_CO_WST       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_wst            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_WST_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 2
-0 CMIP6_CO_WST_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 2
-0 CMIP6_CO_WST_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 2
-0 CMIP6_CO_WST_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 2
+0 CMIP6_CO_WST_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_WST_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_WST_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_WST_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
                                                                               
 )))CMIP6_SFC_LAND_ANTHRO
 
@@ -523,10 +497,10 @@ Mask fractions:              false
 #==============================================================================
 
 0 CMIP6_AIR_CO      $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    CO_air           1750-2100/1-12/1/0 C xyz kg/m2/s  CO      26       20 1
-0 CMIP6_AIR_CO_us   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COus    26/1100   1 2
-0 CMIP6_AIR_CO_eur  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COeur   26/1101   1 2
-0 CMIP6_AIR_CO_asia $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COasia  26/1102   1 2
-0 CMIP6_AIR_CO_oth  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COoth   26/1103   1 2
+0 CMIP6_AIR_CO_us   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COus    26/1100   1 1
+0 CMIP6_AIR_CO_eur  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COeur   26/1101   1 1
+0 CMIP6_AIR_CO_asia $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COasia  26/1102   1 1
+0 CMIP6_AIR_CO_oth  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COoth   26/1103   1 1
 
 )))CMIP6_AIRCRAFT
 
@@ -703,7 +677,7 @@ Mask fractions:              false
 #
 #==============================================================================
 
-0 CMIP6_CO_SHP          $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                        CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s   CO     26            10 5
+0 CMIP6_CO_SHP          $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4              CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s   CO     26            10 5
 0 CMIP6_CO_SHP_us       -                                                               -      -                  - -  -         COus   26/1100       10 5
 0 CMIP6_CO_SHP_eur      -                                                               -      -                  - -  -         COeur  26/1101       10 5
 0 CMIP6_CO_SHP_asia     -                                                               -      -                  - -  -         COasia 26/1102       10 5
@@ -814,12 +788,12 @@ Mask fractions:              false
 #==============================================================================
 (((BB4MIPS
 0 CMIP6_BB_CO      $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4 CO_bbn     1750-2100/1-12/1/0 C xyL=1:PBL kg/m2/s CO      75      5 3
-0 CMIP6_CObbAm     -                                        -          -                  - -         -       CObbam  75/1104 5 3
-0 CMIP6_CObbAf     -                                        -          -                  - -         -       CObbaf  75/1105 5 3
-0 CMIP6_CObbAs     -                                        -          -                  - -         -       CObbas  75/1106 5 3
-0 CMIP6_CObbOc     -                                        -          -                  - -         -       CObboc  75/1107 5 3
-0 CMIP6_CObbEu     -                                        -          -                  - -         -       CObbeu  75/1108 5 3
-0 CMIP6_CObbOth    -                                        -          -                  - -         -       CObboth 75/1109 5 3
+0 CMIP6_CObbAm     -                                                  -          -                  - -         -       CObbam  75/1104 5 3
+0 CMIP6_CObbAf     -                                                  -          -                  - -         -       CObbaf  75/1105 5 3
+0 CMIP6_CObbAs     -                                                  -          -                  - -         -       CObbas  75/1106 5 3
+0 CMIP6_CObbOc     -                                                  -          -                  - -         -       CObboc  75/1107 5 3
+0 CMIP6_CObbEu     -                                                  -          -                  - -         -       CObbeu  75/1108 5 3
+0 CMIP6_CObbOth    -                                                  -          -                  - -         -       CObboth 75/1109 5 3
 )))BB4MIPS
 
 ###############################################################################
@@ -1136,7 +1110,7 @@ Mask fractions:              false
 #==============================================================================
 # --- Annual scale factors ---
 #==============================================================================
-(((MIX.or.HTAP
+(((HTAP
 1  TOTFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 1985-2010/1/1/0 C xy 1  1
 5  TOTFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2002/1/1/0      C xy 1 -1
 27 TOTFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2008-2010/1/1/0 C xy 1 -1
@@ -1147,16 +1121,27 @@ Mask fractions:              false
 28 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
 19 SOLFUEL_2008      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008/1/1/0      C xy 1 -1
 29 SOLFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008-2010/1/1/0 C xy 1 -1
-)))MIX.or.HTAP
+)))HTAP
 
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
+(((APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy 1 1
-)))APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
+)))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
 
 #==============================================================================
+# Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
+#==============================================================================
+33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 1009
+34 PKU_pow_SO2              0.92/0.91/0.90/0.89/0.90/0.93/0.97/0.98/0.99/1.02/1.07/1.04/1.03/1.06/1.06/1.07/1.10/1.10/1.06/1.05/1.03/1.01/0.99/0.93 - - - xy unitless 1 1009
+35 PKU_pow_PM_BC_POC_VOC_CO 0.95/0.93/0.92/0.91/0.90/0.93/0.97/0.97/0.99/1.03/1.04/1.03/1.02/1.03/1.05/1.07/1.07/1.07/1.06/1.04/1.03/1.02/1.00/0.97 - - - xy unitless 1 1009
+
+## These scale factors undo (Oper=-1) the global diurnal scale factors over China (Mask=1009)
+36 EDGAR_TODNOX_UNDO $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless -1 1009
+37 GEIA_TOD_FOSSIL_UNDO 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless -1 1009
+
+==============================================================================
 # --- Seasonal scale factors ---
 #==============================================================================
 (((DICE_Africa
@@ -1282,10 +1267,6 @@ Mask fractions:              false
 1002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc                  MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
 
-(((MIX
-1006 ASIA_MASK   $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc         MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
-
 (((NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
 1007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                      MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
@@ -1293,6 +1274,10 @@ Mask fractions:              false
 (((DICE_Africa
 1008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc       LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
 )))DICE_Africa
+
+(((CEDS
+1009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc                MASK     2000/1/1/0 C xy 1 1  70/10/150/60
+)))CEDS
 
 #==============================================================================
 # Tagged CO regions

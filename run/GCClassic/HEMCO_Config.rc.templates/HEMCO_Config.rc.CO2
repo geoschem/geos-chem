@@ -49,8 +49,6 @@ Warnings:                    1
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-# ----- REGIONAL INVENTORIES ----------------------------------
-    --> MIX                    :       false    # 2008-2010
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> FOSSIL_ODIAC           :       true     # 2000-2018
     --> FOSSIL_CDIAC           :       false    # 1980-2014
@@ -94,20 +92,6 @@ END SECTION EXTENSION SWITCHES
 # ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
-
-#==============================================================================
-# --- MIX v1.1 (Asia) ---
-#==============================================================================
-(((MIX
-0 MIX_CO2_IND   $ROOT/MIX/v2015-03/MIX_Asia_CO2.generic.025x025.nc CO2_INDUSTRY    2008-2010/1-12/1/0 C xy kg/m2/s CO2   1006 1 45
-0 MIX_CO2FF_IND -                                                  -               -                  - -  -       CO2ff 1006 1 45
-0 MIX_CO2_POW   $ROOT/MIX/v2015-03/MIX_Asia_CO2.generic.025x025.nc CO2_POWER       2008-2010/1-12/1/0 C xy kg/m2/s CO2   1006 1 45
-0 MIX_CO2FF_POW -                                                  -               -                  - -  -       CO2ff 1006 1 45
-0 MIX_CO2_RES   $ROOT/MIX/v2015-03/MIX_Asia_CO2.generic.025x025.nc CO2_RESIDENTIAL 2008-2010/1-12/1/0 C xy kg/m2/s CO2   1006 1 45
-0 MIX_CO2FF_RES -                                                  -               -                  - -  -       CO2ff 1006 1 45
-0 MIX_CO2_TRA   $ROOT/MIX/v2015-03/MIX_Asia_CO2.generic.025x025.nc CO2_TRANSPORT   2008-2010/1-12/1/0 C xy kg/m2/s CO2   1006 1 45
-0 MIX_CO2FF_TRA -                                                  -               -                  - -  -       CO2ff 1006 1 45
-)))MIX
 
 #==============================================================================
 # --- FOSSIL FUEL EMISSIONS ---
@@ -624,17 +608,6 @@ END SECTION EXTENSION SWITCHES
 ###############################################################################
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper Lon1/Lat1/Lon2/Lat2
-
-(((EMISSIONS
-
-#==============================================================================
-# Country/region masks
-#==============================================================================
-(((MIX
-1006 ASIA_MASK   $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc         MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
-
-)))EMISSIONS
 
 ### END SECTION MASKS ###
 
