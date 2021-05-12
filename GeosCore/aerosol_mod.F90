@@ -388,6 +388,10 @@ CONTAINS
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
+       ! Set SIA growth to half of its original value to treat as
+       ! partially crystalline
+       SIA_GROWTH = SIA_GROWTH / 2e+0_fp
+
        ! Growth factor for OCPI + SOA
        Rad_dry    = REAA(1,k_ORG)
        Rad_wet    = REAA(1,k_ORG) + 35e+0_fp * &
