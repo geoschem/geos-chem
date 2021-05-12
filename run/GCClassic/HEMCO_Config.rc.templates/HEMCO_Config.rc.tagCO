@@ -378,8 +378,6 @@ Mask fractions:              false
 #  -- EOH files are actually VOC1 (total alchohols) and are split into MOH, EOH, ROH
 #  -- CEDS ship emissions are listed in the ship emissions section below
 #  -- CEDS includes trash emissions (Cat=12) from Wiedinmyer et al. (2014)
-#  -- *_CH entries are for applying diurnal scaling of power plant emissions
-#     only over China following Liu et al. (EST, 2019); hier increased by 1
 #==============================================================================
 (((CEDS
 0 CEDS_CO_AGR          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_agr  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
@@ -387,12 +385,10 @@ Mask fractions:              false
 0 CEDS_CO_AGR_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
 0 CEDS_CO_AGR_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
 0 CEDS_CO_AGR_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
-0 CEDS_CO_ENE          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ene  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
-0 CEDS_CO_ENE_CH       -                                                           -       -                  - -  -       CO     33/1009      1 6
+0 CEDS_CO_ENE          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ene  1970-2017/1-12/1/0 C xy kg/m2/s CO     26/37/35     1 5
 0 CEDS_CO_ENE_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
 0 CEDS_CO_ENE_eur      -                                                           -       -                  - -  -       COeur  26/1101      1 5
-0 CEDS_CO_ENE_asia     -                                                           -       -                  - -  -       COasia 26/1102      1 5
-0 CEDS_CO_ENE_asia_CH  -                                                           -       -                  - -  -       COasia 33/1102/1009 1 6
+0 CEDS_CO_ENE_asia     -                                                           -       -                  - -  -       COasia 26/1102/37/35 1 5
 0 CEDS_CO_ENE_oth      -                                                           -       -                  - -  -       COoth  26/1103      1 5
 0 CEDS_CO_IND          $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ind  1970-2017/1-12/1/0 C xy kg/m2/s CO     26           1 5
 0 CEDS_CO_IND_us       -                                                           -       -                  - -  -       COus   26/1100      1 5
@@ -1134,12 +1130,18 @@ Mask fractions:              false
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy 1 1
 )))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP
 
+#==============================================================================
 # Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
+#==============================================================================
 33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 1009
 34 PKU_pow_SO2              0.92/0.91/0.90/0.89/0.90/0.93/0.97/0.98/0.99/1.02/1.07/1.04/1.03/1.06/1.06/1.07/1.10/1.10/1.06/1.05/1.03/1.01/0.99/0.93 - - - xy unitless 1 1009
 35 PKU_pow_PM_BC_POC_VOC_CO 0.95/0.93/0.92/0.91/0.90/0.93/0.97/0.97/0.99/1.03/1.04/1.03/1.02/1.03/1.05/1.07/1.07/1.07/1.06/1.04/1.03/1.02/1.00/0.97 - - - xy unitless 1 1009
 
-#==============================================================================
+## These scale factors undo (Oper=-1) the global diurnal scale factors over China (Mask=1009)
+36 EDGAR_TODNOX_UNDO $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless -1 1009
+37 GEIA_TOD_FOSSIL_UNDO 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless -1 1009
+
+==============================================================================
 # --- Seasonal scale factors ---
 #==============================================================================
 (((DICE_Africa
