@@ -120,7 +120,7 @@ CONTAINS
     ! Scalars
     LOGICAL                 :: SAFEDIV
     INTEGER                 :: IND
-    REAL(dp)                :: kITemp, kIITemp, rate
+    REAL(dp)                :: kITemp, kIITemp, rate, gamma
 
     ! Pointers and objects
     TYPE(HetState), POINTER :: H
@@ -145,29 +145,6 @@ CONTAINS
     ! Zero the HET array
     HET = 0.0_dp
 
-!    ! Aerosol-phase organic nitrate formed from monoterpene precursors
-!    ! (species IONITA and MONITA) have constant 1st order uptake rates.
-!    HET(ind_IONITA, 1) = 2.78E-4_dp
-!    HET(ind_MONITA, 1) = 2.78E-4_dp
-!
-!    !========================================================================
-!    ! NOy uptake in clouds
-!    !========================================================================
-!
-!    HET(ind_NO2, 1) = NO2_Uptake( SR_MW(ind_NO2), H )
-!    HET(ind_NO3, 1) = NO3_Uptake( SR_MW(ind_NO3), H )
-!
-!    ! Reactive uptake coefficient for N2O5 on liquid water cloud
-!    ! Value is 0.03 at 298 K (JPL, Burkholder et al., 2015)
-!    ! For temperature dependence, JPL recommends the same as
-!    ! sulfuric acid aerosol at zero percent H2SO4, which is 0.019 at 298 K.
-!    ! Then apply constant scale factor (0.03/0.019)
-!    gammaLiq = ( 0.03_dp / 0.019_dp ) * &
-!       exp( -25.5265_dp + 9283.76_dp / Temp - 851801.0_dp / Temp**2 )
-!
-!    HET(ind_N2O5, 3) = CloudHet( State_Het, SR_MW(ind_N2O5), gammaLiq,       &
-!                                 0.02_dp,   1.0_dp,          1.0_dp         )
-!
 !    ! Now calculate reaction rates where the educt can be consumed.
 !    ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
 !    ! second reactant is "abundant" and calculate the overall rate based on
@@ -754,91 +731,6 @@ CONTAINS
     H => NULL()
 
   END SUBROUTINE SET_HET
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: kiir1ltd
-!
-! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
-!
-! !INPUT PARAMETERS:
-!
-    ! Rate coefficients
-    REAL(f8), INTENT(IN) :: concGas
-    REAL(f8), INTENT(IN) :: concEduct
-    REAL(dp), INTENT(IN) :: kISource
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: kII
-!
-! !REMARKS:
-!  Uses HetMinLife and HetMinRate constants from gckpp_Global.F90
-!EOP
-!-----------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp) :: kIGas, kIEduct, lifeA, lifeB
-
-    ! Copy kI as calculated assuming no limitation
-    kIGas   = kISource
-    kIEduct = 0.0_dp
-    kII     = 0.0_dp
-
-    IF ( concEduct < 100.0_dp ) THEN
-       kIGas   = 0.0_dp
-       kIEduct = 0.0_dp
-       kII     = 0.0_dp
-    ELSE
-       ! Safe division here is probably overkill - may remove this
-       IF ( Is_Safe_Div( concGas*kIGas, concEduct ) ) THEN
-          kIEduct = kIGas *concGas / concEduct
-          kII     = kIGas          / concEduct
-       ELSE
-          kIGas   = 0.0_dp
-          kIEduct = 0.0_dp
-          kII     = 0.0_dp
-       ENDIF
-    ENDIF
-
-    ! Enforce a minimum lifetime?
-    IF ( kIGas > 0.0_dp ) THEN
-
-       ! Calculate lifetime of each reactant against removal
-       lifeA = Safe_Div( 1.0_dp, kIGas,   0.0_dp )
-       lifeB = Safe_Div( 1.0_dp, kIEduct, 0.0_dp )
-
-       ! Check if either lifetime is "too short"
-       IF ( ( lifeA < lifeB ) .and. ( lifeA < HetMinLife ) ) THEN
-          IF ( Is_Safe_Div( concGas*kIGas, concEduct) ) THEN
-             kIGas = HetMinRate
-             kII   = kIGas  / concEduct
-          ELSE
-             kIGas = 0.0_dp
-             kII   = 0.0_dp
-          ENDIF
-       ELSE IF ( lifeB < HetMinLife ) THEN
-          IF ( Is_Safe_Div( concEduct*kIEduct, concGas ) ) THEN
-             kIEduct = HetMinRate
-             kII     = kIEduct / concGas
-          ELSE
-             kIEduct = 0.0_dp
-             kII     = 0.0_dp
-          ENDIF
-       ENDIF
-    ENDIF
-
-  END FUNCTION kIIR1Ltd
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

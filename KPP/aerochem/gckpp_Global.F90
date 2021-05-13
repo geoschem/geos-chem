@@ -106,11 +106,11 @@ MODULE gckpp_Global
   !-----------------------------------------------------------------------
 
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(dp), PARAMETER :: HetMinLife  = 1.e-3_dp
-  REAL(dp), PARAMETER :: HetMinRate  = 1.0_dp / HetMinLife
+  REAL(dp), PARAMETER :: HET_MIN_LIFE  = 1.e-3_dp
+  REAL(dp), PARAMETER :: HET_MIN_RATE  = 1.0_dp / HET_MIN_LIFE
 
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
-  REAL(dp), PARAMETER :: CRITRH      = 35.0e+0_dp
+  REAL(dp), PARAMETER :: CRITRH      = 35.0_dp
 
   ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous
   ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
@@ -119,11 +119,11 @@ MODULE gckpp_Global
   REAL(dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
 
   ! Conversion factor from atm to bar
-  REAL(dp), PARAMETER :: con_atm_bar = 1.0_dp / 1.01325_dp
+  REAL(dp), PARAMETER :: CON_ATM_BAR = 1.0_dp / 1.01325_dp
 
   ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(dp), PARAMETER :: con_R       = 0.083144598_dp
+  REAL(dp), PARAMETER :: CON_R       = 0.083144598_dp
 
   ! Reference temperature
   REAL(dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
@@ -180,10 +180,7 @@ MODULE gckpp_Global
   ! HET(ind_MONITA, 1) : MONITA uptake          # 1st order loss rxn
   ! HET(ind_MONITS, 1) : MONITS uptake          # 1st order loss rxn
   ! HET(ind_MONITU, 1) : MONITU uptake          # 1st order loss rxn
-  ! HET(ind_NO2,    1) : NO2    uptake          # 1st order loss rxn + cloud
-  ! HET(ind_NO3,    1) : NO3    uptake          # 1st order loss rxn + cloud
   ! HET(ind_NO3,    2) : NO3    uptake on N2O5  # Liquid water cloud
-  ! HET(ind_NO3,    3) : Cl-                    # Enhanced NO3 hydrolysis
   ! HET(ind_N2O5,   1) : N2O5  + H2O            # Where educt is consumed
   ! HET(ind_N2O5,   2) : N2O5  + HCl
   ! HET(ind_N2O5,   3) : N2O5  + H2O            # On liquid cloud water

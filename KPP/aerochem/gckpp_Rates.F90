@@ -805,18 +805,18 @@ CONTAINS
 
   FUNCTION CloudHet( H, srMw, gamLiq, gamIce, brLiq, brIce ) RESULT( kHet )
     !
-    ! Function CloudHet calculates the loss frequency (1/s) of gas species 
+    ! Function CloudHet calculates the loss frequency (1/s) of gas species
     ! due to heterogeneous chemistry on clouds in a partially cloudy grid
     ! cell. The function uses the "entrainment limited uptake" equations of
     ! Holmes et al. (2019). Both liquid and ice water clouds are treated.
     !
-    ! For gasses that are that are consumed in multiple aqueous reactions 
-    ! with different products, CloudHet can provide the loss frequency for 
+    ! For gasses that are that are consumed in multiple aqueous reactions
+    ! with different products, CloudHet can provide the loss frequency for
     ! each reaction branch using the branch ratios (branchLiq, branchIce).
     !
     ! Reference:
-    ! Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, 
-    !   C. K., Graham, K. A., Shah, V. (2019) The role of clouds in the 
+    ! Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks,
+    !   C. K., Graham, K. A., Shah, V. (2019) The role of clouds in the
     !   tropospheric NOx cycle: a new modeling approach for cloud chemistry
     !   and its global implications, Geophys. Res. Lett. 46, 4980-4990,
     !   https://doi.org/10.1029/2019GL081990
@@ -835,7 +835,7 @@ CONTAINS
     LOGICAL                    :: isCloud
 
     !========================================================================
-    ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface 
+    ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface
     ! area, then return zero uptake
     !========================================================================
     IF ( ( H%CldFr < 0.0001_dp ) .or. ( H%aLiq + H%aIce <= 0.0_dp ) ) THEN
@@ -849,11 +849,13 @@ CONTAINS
     ! Assume both water and ice phases are inside the same cloud, so mass
     ! transport to both phases works in parallel (additive)
     !=======================================================================
-    
-    ! initialize loss [1/s]
-    kI      = 0.0_dp   ! total loss rate of a gas in cloud
-    kIb     = 0.0_dp   ! loss rate for liquid or ice branch
-    
+
+    ! initialize
+    kI   = 0.0_dp
+    kIb  = 0.0_dp
+    ktmp = 0.0_dp
+    kHet = 0.0_dp
+
     !-----------------------------------------------------------------------
     ! Liquid branch
     !-----------------------------------------------------------------------
@@ -862,13 +864,17 @@ CONTAINS
     ! to in-cloud surface area density
     area = SafeDiv( H%aLiq, H%CldFr, 0.0_dp )
 
-    ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
-    ! Pass radius in cm and mass in g.
-    ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
-    kI   = kI + ktmp
+    ! Skip if no area
+    IF ( area > 0.0_dp ) THEN
 
-    ! In-cloud loss frequency for particular reaction branch, 1/s
-    kIb  = kIb + ( ktmp * brLiq )
+       ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
+       ! Pass radius in cm and mass in g.
+       ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
+       kI   = kI + ktmp
+
+       ! In-cloud loss frequency for particular reaction branch, 1/s
+       kIb  = kIb + ( ktmp * brLiq )
+    ENDIF
 
     !------------------------------------------------------------------
     ! Ice branch
@@ -878,20 +884,29 @@ CONTAINS
     ! to in-cloud surface area density
     area = SafeDiv( H%aIce, H%CldFr, 0.0_dp )
 
-    ! In-cloud loss frequency, combining ice and liquid in parallel [1/s]
-    ! Pass radius in cm and mass in g.
-    ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
-    kI   = kI + ktmp
+    ! Skip if no area
+    IF ( area > 0.0_dp ) THEN
 
-    ! In-cloud loss frequency for liquid reaction branch [1/s]
-    kIb  = kIb + ( ktmp * brIce )
+       ! In-cloud loss frequency, combining ice and liquid in parallel [1/s]
+       ! Pass radius in cm and mass in g.
+       ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
+       kI   = kI + ktmp
+
+       ! In-continue loud loss frequency for liquid reaction branch [1/s]
+       kIb  = kIb + ( ktmp * brIce )
+    ENDIF
 
     !------------------------------------------------------------------
     ! Mean branch ratio for reaction of interest in cloud
     ! (averaged over ice and liquid)
+    !
+    ! If the division can't be done, set kHet = 0 and return
     !------------------------------------------------------------------
-    branch = 0.0_dp
-    if ( kI > 0.0_dp ) branch = kIb / kI
+    branch = SafeDiv( kiB, kI, 0.0_dp )
+    IF ( .not. branch > 0.0_dp ) THEN
+       kHet = 0.0_dp
+       RETURN
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Grid-average loss frequency
@@ -909,13 +924,13 @@ CONTAINS
 
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overfloI2O3
-    xx =     ( ff - kk - 1e0_dp ) / 2e0_dp + &
-         sqrt( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_dp
+    xx =     ( ff - kk - 1.0_dp ) / 2.0_dp + &
+         SQRT( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2.0_dp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )
     !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
-    !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x   
+    !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
     kHet = kI / ( 1.0_dp + SafeDiv( 1.0_dp, xx, 1.0e+30_dp ) )
 
     ! Overall loss rate in a particular reaction branch, 1/s
@@ -925,6 +940,9 @@ CONTAINS
   FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
     !
     ! Determine removal rates for both species in an uptake reaction.
+    ! Assume that the first reactant is limiting. Assume that the
+    ! second reactant is "abundant" and calculate the overall rate
+    ! based on the uptake rate of the first reactant only.
     !
     REAL(dp), INTENT(IN) :: concGas, concEduct, kISource
     REAL(dp)             :: kIGas,   kIEduct,   lifeA,   lifeB, kII
@@ -947,22 +965,22 @@ CONTAINS
     IF ( kIGas > 0.0_dp ) THEN
 
        ! Calculate lifetime of each reactant against removal
-       IF ( kIGas   > 0.0_dp ) lifeA = 1.0_dp / kIGas
-       IF ( kIEduct > 0.0_dp ) lifeB = 1.0_dp / kIEduct
+       lifeA = SafeDiv( 1.0_dp, kIGas,   0.0_dp )
+       lifeB = SafeDiv( 1.0_dp, kIEduct, 0.0_dp )
 
        ! Check if either lifetime is "too short"
-       IF ( ( lifeA < lifeB ) .and. ( lifeA < HETMINLIFE ) ) THEN
+       IF ( ( lifeA < lifeB ) .and. ( lifeA < HET_MIN_LIFE ) ) THEN
           kIGas = 0.0_dp
           kII   = 0.0_dp
           IF ( concEduct > 0.0_dp ) THEN
-             kIGas = HETMINRATE
+             kIGas = HET_MIN_RATE
              kII   = kIGas  / concEduct
           ENDIF
-       ELSE IF ( lifeB < HETMINLIFE ) THEN
+       ELSE IF ( lifeB < HET_MIN_LIFE ) THEN
           kIEduct = 0.0_dp
           kII     = 0.0_dp
           IF ( concGas > 0.0_dp ) THEN
-             kIEduct = HETMINRATE
+             kIEduct = HET_MIN_RATE
              kII     = kIEduct / concGas
           ENDIF
        ENDIF
@@ -980,7 +998,7 @@ CONTAINS
     f_x = ( 1.0_dp + y ) / ( 1.0_dp - y )
   END FUNCTION coth
 
-  FUNCTION Reactodiff_Corr( radius, l ) RESULT( corr )
+  FUNCTION ReactoDiff_Corr( radius, l ) RESULT( corr )
     !
     ! For x = radius / l, correction =  COTH( x ) - ( 1/x )
     ! Correction approaches 1 as x becomes large, corr(x>1000)~1
@@ -999,12 +1017,12 @@ CONTAINS
        RETURN
     ENDIF
     corr = coth(x) - ( 1.0_dp / x )
-  END FUNCTION Reactodiff_Corr
+  END FUNCTION ReactoDiff_Corr
 
   FUNCTION SafeDiv( num, denom, alt ) RESULT( quot )
     !
-    ! Performs "safe division", that is to prevent overflow, underlow, 
-    ! NaN, or infinity errors.  An alternate value is returned if the 
+    ! Performs "safe division", that is to prevent overflow, underlow,
+    ! NaN, or infinity errors.  An alternate value is returned if the
     ! division cannot be performed.
     REAL(dp), INTENT(IN) :: num, denom, alt
     REAL(dp)             :: ediff, quot
@@ -1021,6 +1039,23 @@ CONTAINS
        quot = num / denom
     ENDIF
   END FUNCTION SafeDiv
+
+  FUNCTION Is_SafeDiv( num, denom ) RESULT( safe )
+    !
+    ! Returns TRUE if a division can be performed safely.
+    REAL(dp), INTENT(IN) :: num, denom
+    LOGICAL              :: safe
+    REAL(dp)             :: ediff
+    !
+    ! Exponent difference (base 2)
+    ! For REAL*8, max exponent = 1024 and min = -1021
+    safe  = .TRUE.
+    ediff = EXPONENT( num ) - EXPONENT( denom )
+    !
+    IF ( ediff < -1020 .or. ediff > 1023 .or. denom == 0.0_dp ) THEN
+       safe = .FALSE.
+    ENDIF
+  END FUNCTION Is_SafeDiv
 
   !=========================================================================
   ! Rate-law functions for HO2
@@ -1203,7 +1238,25 @@ CONTAINS
   ! Rate-law functions for nitrogen species
   !=========================================================================
 
-  FUNCTION NO2uptk1stOrd( H ) RESULT( k )
+  FUNCTION N2O5uptkByCloud( H ) RESULT( k )
+    !
+    ! Computes uptake of N2O5 on liquid water cloud.
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: gamma, k
+    REAL(dp),       PARAMETER  :: const = 0.03_dp / 0.019_dp
+
+    ! Rxn probability is 0.03 at 298 K (JPL, Burkholder et al., 2015).
+    ! For temperature dependence, JPL recommends the same as sulfuric acid
+    ! aerosol at zero percent H2SO4, which is 0.019 at 298 K.
+    ! Then apply constant scale factor (0.03/0.019)
+    gamma = const * EXP( -25.5265_dp + 9283.76_dp/TEMP - 851801.0_dp/TEMP**2 )
+    !
+    ! Removal rate of N2O5 in liquid water cloud
+    k = CloudHet( H, SR_MW(ind_N2O5), gamma, 0.02_dp, 1.0_dp, 1.0_dp )
+  END FUNCTION N2O5uptkByCloud
+
+  FUNCTION NO2uptk1stOrdAndCloud( H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for 1st-order uptake of NO2.
     !
@@ -1252,16 +1305,8 @@ CONTAINS
     gamma = 1.0e-4_dp
     k = k + H%xArea(13) * gamma
     k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
-  END FUNCTION NO2uptk1stOrd
 
-  FUNCTION NO2uptk1stOrdAndCloud( H ) RESULT( k )
-    !
-    ! Computes rxn rate [1/s] for NO2 uptake by 0.5HNO3 + 0.5HNO2.
-    !
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: k              ! rxn rate [1/s]
-    ! 
-    k = NO2uptk1stOrd( H )
+    ! Uptake of NO2 in cloud (liquid branch only)
     k = k + CloudHet( H, SR_MW(ind_NO2), 1.0e-8_dp, 0.0_dp, 1.0_dp, 1.0_dp )
   END FUNCTION NO2uptk1stOrdAndCloud
 
@@ -1296,9 +1341,9 @@ CONTAINS
     gamma   = 1.0_dp / ( INV_AB + 1.0_dp/gb )
   END FUNCTION Gam_NO3
 
-  FUNCTION NO3uptk1stOrd( H ) RESULT( k )
+  FUNCTION NO3uptk1stOrdAndCloud( H ) RESULT( k )
     !
-    ! Computes reaction rate [1/s] for 1st-order uptake of NO3 
+    ! Computes reaction rate [1/s] for 1st-order uptake of NO3
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
@@ -1334,16 +1379,8 @@ CONTAINS
     gamma = 0.1_dp
     k = k + H%xArea(13) * gamma
     k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
-  END FUNCTION NO3uptk1stOrd
 
-  FUNCTION NO3uptk1stOrdAndCloud( H ) RESULT( k )
-    !
-    ! Computes rxn rate [1/s] for NO3 uptake by HNO3.
-    !
-    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp)                   :: srMw, k        ! sqrt(mol wt), rxn rate [1/s]
-    !
-    k = NO3uptk1stOrd( H )
+    ! Uptake of NO3 in cloud (liquid and ice branches)
     k = k + CloudHet( H, SR_MW(ind_NO3), 0.002_dp, 0.001_dp, 1.0_dp, 1.0_dp )
   END FUNCTION NO3uptk1stOrdAndCloud
 
@@ -2237,7 +2274,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(605) = (NO3hypsisClonSALC(State_Het))
   RCONST(606) = (HET(ind_N2O5,1))
   RCONST(607) = (HET(ind_N2O5,2))
-  RCONST(608) = (HET(ind_N2O5,3))
+  RCONST(608) = (N2O5uptkByCloud(State_Het))
   RCONST(609) = (HET(ind_N2O5,4))
   RCONST(610) = (HET(ind_N2O5,5))
   RCONST(611) = (HET(ind_OH,1))
