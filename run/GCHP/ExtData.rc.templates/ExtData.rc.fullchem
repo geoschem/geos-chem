@@ -1905,6 +1905,7 @@ SOLFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/Annual
 # --- Diurnal scale factors ---
 #==============================================================================
 EDGAR_TODNOX 1 N Y F2000-01-01T%h2:00:00 none none NOXscale ./HcoDir/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
+EDGAR_TODNOX_UNDO 1 N Y F2000-01-01T%h2:00:00 none none NOXscale ./HcoDir/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
 #
 #==============================================================================
 # --- Seasonal scale factors ---
