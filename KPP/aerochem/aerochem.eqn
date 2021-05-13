@@ -1340,7 +1340,7 @@ NO3 = NITs :                   NO3hypsisClonSALC( State_Het );                  
 //    -- Seb Eastham (14 May 2018)
 //
 N2O5 + H2O = 2.000HNO3 :                     HET(ind_N2O5,1);
-N2O5 + HCl = ClNO2 + HNO3 :                  HET(ind_N2O5,2);                                               {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+N2O5 + HCl = ClNO2 + HNO3 :    N2O5uptkByStratHCl( State_Het );                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = 2.000HNO3 :             N2O5uptkByCloud( State_Het );                                                {2018/10/17; Cloud uptake, CDH}
 N2O5 + SALACL = ClNO2 + HNO3 :               HET(ind_N2O5,4);                                               {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}
 N2O5 + SALCCL = ClNO2 + HNO3 :               HET(ind_N2O5,5);                                               {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}

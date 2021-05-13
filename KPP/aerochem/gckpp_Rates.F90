@@ -940,49 +940,40 @@ CONTAINS
   FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
     !
     ! Determine removal rates for both species in an uptake reaction.
-    ! Assume that the first reactant is limiting. Assume that the
-    ! second reactant is "abundant" and calculate the overall rate
-    ! based on the uptake rate of the first reactant only.
+    ! - Assume that the 1st reactant (concGas) is limiting.
+    ! - Assume that the 2nd reactant (concEduct) is "abundant" 
+    ! - Calculate the overall rate (kII) based only on the uptake 
+    !   rate of the first reactant.
+    ! NOTE: Rewritten for computational efficiency (bmy, 5/13/21)
     !
     REAL(dp), INTENT(IN) :: concGas, concEduct, kISource
     REAL(dp)             :: kIGas,   kIEduct,   lifeA,   lifeB, kII
     !
     kIGas   = 0.0_dp
     kIEduct = 0.0_dp
-    lifeA   = 0.0_dp
-    lifeB   = 0.0_dp
     kII     = 0.0_dp
     !
-    ! Avoid division from blowing up
-    IF ( concEduct < 100.0_dp ) RETURN
+    ! Prevent div by zero
+    IF ( concEduct < 100.0_dp                            ) RETURN
+    IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
-    ! Copy kI as calculated assuming no limitation
+    ! Compute rates
     kIGas   = kISource
     kIEduct = kIGas * concGas / concEduct
     kII     = kIGas           / concEduct
-
+    !
     ! Enforce a minimum lifetime?
     IF ( kIGas > 0.0_dp ) THEN
-
+       !
        ! Calculate lifetime of each reactant against removal
        lifeA = SafeDiv( 1.0_dp, kIGas,   0.0_dp )
        lifeB = SafeDiv( 1.0_dp, kIEduct, 0.0_dp )
-
+       !
        ! Check if either lifetime is "too short"
        IF ( ( lifeA < lifeB ) .and. ( lifeA < HET_MIN_LIFE ) ) THEN
-          kIGas = 0.0_dp
-          kII   = 0.0_dp
-          IF ( concEduct > 0.0_dp ) THEN
-             kIGas = HET_MIN_RATE
-             kII   = kIGas  / concEduct
-          ENDIF
+          kII = SafeDiv( HET_MIN_RATE, concEduct, 0.0_dp )
        ELSE IF ( lifeB < HET_MIN_LIFE ) THEN
-          kIEduct = 0.0_dp
-          kII     = 0.0_dp
-          IF ( concGas > 0.0_dp ) THEN
-             kIEduct = HET_MIN_RATE
-             kII     = kIEduct / concGas
-          ENDIF
+          kII = SafeDiv( HET_MIN_RATE, concGas, 0.0_dp )
        ENDIF
     ENDIF
   END FUNCTION kIIR1Ltd
@@ -1255,6 +1246,31 @@ CONTAINS
     ! Removal rate of N2O5 in liquid water cloud
     k = CloudHet( H, SR_MW(ind_N2O5), gamma, 0.02_dp, 1.0_dp, 1.0_dp )
   END FUNCTION N2O5uptkByCloud
+
+  FUNCTION N2O5uptkByStratHCl( H ) RESULT( k )
+    !
+    ! Sets heterogenous chemistry rate for N2O5(g) + HCl(l,s)
+    ! in polar stratospheric clouds and on tropospheric sulfate aerosol.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! Rxn prob [1], Rxn rate [1/s]
+    !
+    k = 0.0_dp
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+
+       ! Uptake on stratospheric liquid aerosol (type #13)
+       k = k + ( H%XAREA(13) * H%KHETI_SLA(2) )
+       
+       ! Uptake on irregular ice cloud (type #14)
+       gamma = 0.03_dp                         ! Ice
+       IF ( H%natSurface ) gamma = 0.003_dp   ! NAT
+       k = k + Ars_L1K( H%xArea(14), H%xRadi(14), gamma, SR_MW(ind_N2O5) )
+    ENDIF
+
+    ! Assume N2O5 is limiting, compute resultant rxn rate
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), k )
+  END FUNCTION N2O5uptkByStratHCl
 
   FUNCTION NO2uptk1stOrdAndCloud( H ) RESULT( k )
     !
@@ -2273,7 +2289,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(604) = (NO3hypsisClonSALA(State_Het))
   RCONST(605) = (NO3hypsisClonSALC(State_Het))
   RCONST(606) = (HET(ind_N2O5,1))
-  RCONST(607) = (HET(ind_N2O5,2))
+  RCONST(607) = (N2O5uptkByStratHCl(State_Het))
   RCONST(608) = (N2O5uptkByCloud(State_Het))
   RCONST(609) = (HET(ind_N2O5,4))
   RCONST(610) = (HET(ind_N2O5,5))
