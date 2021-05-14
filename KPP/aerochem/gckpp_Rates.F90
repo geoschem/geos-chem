@@ -782,6 +782,10 @@ CONTAINS
   !#####     KPP 2.3.2_gc+ will convert them to percent signs.         #####
   !#########################################################################
 
+  !=========================================================================
+  ! General functions (used by rate-law functions below)
+  !=========================================================================
+
   FUNCTION Ars_L1k( area, radius, gamma, srMw ) RESULT( k )
     !
     ! Calculates the 1st-order loss rate of species on wet aerosol surface.
@@ -796,7 +800,7 @@ CONTAINS
     ENDIF
     !
     ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *                              &
+    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *          &
            SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
     !
     ! Compute ArsL1k according to the formula listed above
@@ -834,21 +838,19 @@ CONTAINS
     REAL(dp)                   :: kk, ff, xx, branch, kIb, ktmp
     LOGICAL                    :: isCloud
 
-    !========================================================================
     ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface
     ! area, then return zero uptake
-    !========================================================================
     IF ( ( H%CldFr < 0.0001_dp ) .or. ( H%aLiq + H%aIce <= 0.0_dp ) ) THEN
        kHet = 0.0_dp
        RETURN
     ENDIF
 
-    !=======================================================================
+    !-----------------------------------------------------------------------
     ! Loss frequency inside cloud
     !
     ! Assume both water and ice phases are inside the same cloud, so mass
     ! transport to both phases works in parallel (additive)
-    !=======================================================================
+    !-----------------------------------------------------------------------
 
     ! initialize
     kI   = 0.0_dp
@@ -1173,7 +1175,7 @@ CONTAINS
     k = 0.0_dp
     IF ( H%ssFineIsAcid ) THEN
        k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
-       k = kIIR1Ltd( conc, C(ind_BrSALA), k )
+       k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALA
 
@@ -1189,7 +1191,7 @@ CONTAINS
     k = 0.0_dp
     IF ( H%ssCoarseIsAcid ) THEN
        k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
-       k = kIIR1Ltd( conc, C(ind_BrSALC), k )
+       k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALC
 
@@ -1205,7 +1207,7 @@ CONTAINS
     k = 0.0_dp
     IF ( H%ssFineIsAcid ) THEN
        k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
-       k = kIIR1Ltd( conc, C(ind_SALACl), k )
+       k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALACl
 
@@ -1221,7 +1223,7 @@ CONTAINS
     k = 0.0_dp
     IF ( H%ssCoarseIsAcid ) THEN
        k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
-       k = kIIR1Ltd( conc, C(ind_SALCCl), k )
+       k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
 
@@ -1252,12 +1254,13 @@ CONTAINS
     k = k + Ars_L1K( H%ClearFr * H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
     !
     ! Uptake on tropospheric sulfate (aerosol type #8),
-    ! Reduce the rate of the HNO3 pathway in accordinace with 
+    ! Reduce the rate of the HNO3 pathway in accordinace with
     ! the ClNO2 yield on SNA + ORG aerosol
     ! Reduce ClNO2 yield by 75% (cf McDuffie et al, JGR, 2018)
-    CALL N2O5_InorgOrg( H, H%AClVol, H%xVol(10), H%xH2O(8),              &
-                        H%xH2O(10), H%AClRadi, C(ind_NIT), C(ind_SALACL), &
-                        gamma, Y_ClNO2, Rp, SA                              )
+    CALL N2O5_InorgOrg(                                     &
+         H,          H%AClVol,  H%xVol(10), H%xH2O(8),      &
+         H%xH2O(10), H%AClRadi, C(ind_NIT), C(ind_SALACL),  &
+         gamma,      Y_ClNO2,   Rp,         SA             )
     !
     ktmp = Ars_L1K( H%ClearFr * SA, Rp, gamma, srMw )
     k = k + ktmp - ( ktmp * Y_ClNO2 * 0.25_dp )
@@ -1268,9 +1271,10 @@ CONTAINS
     !
     ! Uptake on coarse sea salt (aerosol type #12)
     ! Reduce the rate of this HNO3 pathway in accordance with the yield
-    CALL N2O5_InorgOrg( H, H%xVol(12), 0.0_dp, H%xH2O(12),              &
-                        0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL), &
-                        gamma, Y_ClNO2, Rp, SA                            )
+    CALL N2O5_InorgOrg(                                     &
+         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),    &
+         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),  &
+         gamma,  Y_ClNO2,     Rp,          SA              )
     !
     ktmp = Ars_L1k( H%ClearFr * SA, Rp, gamma, srMw )
     k    = k + ktmp - ( ktmp * Y_ClNO2 )
@@ -1283,17 +1287,71 @@ CONTAINS
     IF ( H%natSurface ) gamma = 4.0e-4_dp    ! NAT
     k = k + Ars_L1K( H%ClearFr * H%xArea(14), H%xRadi(14), gamma, srMw )
 
-    ! Assume N2O5 is limiting, get updated removal rate
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_N2O5), C(ind_H2O), k )
   END FUNCTION N2O5uptkByH2O
+
+  FUNCTION N2O5uptkBySALACl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of N2O5 on Cl- in fine sea salt.
+    ! This reaction follows the N2O5 + Cl- channel.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
+    !
+    ! Initialize
+    k = 0.0_dp
+    !
+    ! Properties of inorganic (SNA) sea salt coated with organics
+    CALL N2O5_InorgOrg(                                      &
+         H,           H%AClVol,  H%xVol(10),    H%xH2O(8),   &
+         H%xH2O(10), H%aClRadi, C(ind_NIT), C(ind_SALACL), &
+         gamma,       Y_ClNO2,    Rp,            SA          )
+
+    ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol.
+    ! Reduce ClNO2 production yield on fine inorganic+organic
+    ! aerosol by 75% (cf. McDuffie et al, JGR, 2018).
+    k = Ars_L1K( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
+    k = k * Y_ClNO2 * 0.25_dp
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), k )
+  END FUNCTION N2O5uptkBySALACl
+
+  FUNCTION N2O5uptkBySALCCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of N2O5 on Cl- in coarse sea salt.
+    ! This reaction follows the N2O5 + Cl- channel.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
+    !
+    ! Initialize
+    k = 0.0_dp
+    !
+    ! Properties of inorganic (SNA) sea salt coated with organics
+    CALL N2O5_InorgOrg(                                    &
+         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),     &
+         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),  &
+         gamma,  Y_ClNO2,     Rp,          SA             )
+
+    ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
+    k = Ars_L1k( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
+    k = k * Y_ClNO2
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), k )
+  END FUNCTION N2O5uptkBySALCCl
 
   SUBROUTINE N2O5_InorgOrg( H,      volInorg, volOrg, H2Oinorg,  &
                             H2Oorg, Rcore,    NIT,    Cl,        &
                             gamma,  Y_ClNO2,  rp,     areaTotal )
     !
-    ! Computes the GAMMA reaction probability for N2O5 loss in inorganic 
-    ! (sulfate-nitrate-ammonium-sea salt) aerosols with organic coatings, 
-    ! based on the recommendation of McDuffie (2018) JGR. 
+    ! Computes the GAMMA reaction probability for N2O5 loss in inorganic
+    ! (sulfate-nitrate-ammonium-sea salt) aerosols with organic coatings,
+    ! based on the recommendation of McDuffie (2018) JGR.
     ! The inorganic core is based on Bertram and Thornton ACP (2009).
     !
     TYPE(HetState), INTENT(IN) :: H    ! HetState Object
@@ -1314,7 +1372,7 @@ CONTAINS
     REAL(dp), PARAMETER   :: k3k2b = 4.0e-2_dp   !unitless
     REAL(dp), PARAMETER   :: beta  = 1.15e+6_dp  ![s-1]
     REAL(dp), PARAMETER   :: delta = 1.3e-1_dp   ![M-1]
-    
+
     ! Organic Parameters from Antilla et al., 2006 and Riemer et al., 2009
     REAL(dp), PARAMETER   :: Haq  = 5e+3_dp ! Henry coef [mol/m3/atm], Antilla
     REAL(dp), PARAMETER   :: Daq  = 1e-9_dp ! Aq diff coef [m2/s], Riemer
@@ -1330,10 +1388,10 @@ CONTAINS
 
     ! Total volume (organic + inorganic), cm3(aerosol)/cm3(air)
     volTotal = volInorg + volOrg
-    
+
     ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
     H2Ototal = H2Oinorg + H2Oorg
-    
+
     ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitlessI2O3
     volRatioDry = SafeDiv( MAX( volInorg - H2Oinorg, 0.0_dp ),               &
                            MAX( volTotal - H2Ototal, 0.0_dp ), 0.0_dp )
@@ -1442,12 +1500,11 @@ CONTAINS
 
     ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
     Y_ClNO2 = ClNO2_BT( M_Cl, M_H2O )
-
   END SUBROUTINE N2O5_InorgOrg
 
   FUNCTION ClNO2_BT( Cl, H2O ) RESULT( phi )
     !
-    ! Computes the PHI production yield of ClNO2 from N2O5 loss 
+    ! Computes the PHI production yield of ClNO2 from N2O5 loss
     ! in sulfate-nitrate-ammonium (SNA) aerosols based on the
     ! recommendation of Bertram and Thornton (2009) ACP.
     !
@@ -1495,17 +1552,17 @@ CONTAINS
     k = 0.0_dp
     !
     IF ( H%is_UCX .and. H%stratBox ) THEN
-
+       !
        ! Uptake on stratospheric liquid aerosol (type #13)
        k = k + ( H%XAREA(13) * H%KHETI_SLA(2) )
-
+       !
        ! Uptake on irregular ice cloud (type #14)
        gamma = 0.03_dp                         ! Ice
        IF ( H%natSurface ) gamma = 0.003_dp   ! NAT
        k = k + Ars_L1K( H%xArea(14), H%xRadi(14), gamma, SR_MW(ind_N2O5) )
     ENDIF
 
-    ! Assume N2O5 is limiting, compute resultant rxn rate
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), k )
   END FUNCTION N2O5uptkByStratHCl
 
@@ -2532,8 +2589,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(606) = (N2O5uptkByH2O(State_Het))
   RCONST(607) = (N2O5uptkByStratHCl(State_Het))
   RCONST(608) = (N2O5uptkByCloud(State_Het))
-  RCONST(609) = (HET(ind_N2O5,4))
-  RCONST(610) = (HET(ind_N2O5,5))
+  RCONST(609) = (N2O5uptkBySALACl(State_Het))
+  RCONST(610) = (N2O5uptkBySALCCl(State_Het))
   RCONST(611) = (HET(ind_OH,1))
   RCONST(612) = (HET(ind_OH,2))
   RCONST(613) = (HET(ind_BrNO3,1))
