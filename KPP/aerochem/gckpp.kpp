@@ -1210,8 +1210,245 @@ PH2O2 : H2O2;
   END FUNCTION IbrkdnbyAcidSALCCl
 
   !=========================================================================
-  ! Rate-law functions for nitrogen species
+  ! Rate-law functions for N2O5
   !=========================================================================
+
+  FUNCTION N2O5uptkByH2O( H ) RESULT( k )
+    !
+    ! Set heterogenous chemistry rate for N2O5.
+    !
+    TYPE(HetState), INTENT(INOUT) :: H
+    REAL(dp)                      :: k
+    !
+    REAL(dp) :: Y_ClNO2, Rp, SA, SA_sum, area, gamma, srMw, ktmp
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_N2O5)
+    !
+    ! Uptake on mineral dust (aerosol types #1 - #7)
+    gamma = 0.02_dp
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(1 ), H=>xRadi(1 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(2 ), H=>xRadi(2 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(3 ), H=>xRadi(3 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(4 ), H=>xRadi(4 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(5 ), H=>xRadi(5 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(6 ), H=>xRadi(6 ), gamma, srMw )
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(7 ), H=>xRadi(7 ), gamma, srMw )
+    !
+    ! Uptake on tropospheric sulfate (aerosol type #8),
+    ! Reduce the rate of the HNO3 pathway in accordinace with
+    ! the ClNO2 yield on SNA + ORG aerosol
+    ! Reduce ClNO2 yield by 75% (cf McDuffie et al, JGR, 2018)
+    CALL N2O5_InorgOrg( H, H=>AClVol, H=>xVol(10), H=>xH2O(8),              &
+                        H=>xH2O(10), H=>AClRadi, C(ind_NIT), C(ind_SALACL), &
+                        gamma, Y_ClNO2, Rp, SA                              )
+    !
+    ktmp = Ars_L1K( H=>ClearFr * SA, Rp, gamma, srMw )
+    k = k + ktmp - ( ktmp * Y_ClNO2 * 0.25_dp )
+    !
+    ! Uptake on black carbon (aerosol type #9)
+    gamma = 0.005_dp
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(9 ), H=>xRadi(9 ), gamma, srMw )
+    !
+    ! Uptake on coarse sea salt (aerosol type #12)
+    ! Reduce the rate of this HNO3 pathway in accordance with the yield
+    CALL N2O5_InorgOrg( H, H=>xVol(12), 0.0_dp, H=>xH2O(12),              &
+                        0.0_dp, H=>xRadi(12), C(ind_NITs), C(ind_SALCCL), &
+                        gamma, Y_ClNO2, Rp, SA                            )
+    !
+    ktmp = Ars_L1k( H=>ClearFr * SA, Rp, gamma, srMw )
+    k    = k + ktmp - ( ktmp * Y_ClNO2 )
+    !
+    ! Uptake on stratopsheric liquid aerosol (type #13)
+    k = k + H=>xArea(13) * H=>KHETI_SLA(1)
+    !
+    ! Uptake on irregular ice cloud (type #14)
+    gamma = 0.02_dp                           ! Ice
+    IF ( H=>natSurface ) gamma = 4.0e-4_dp    ! NAT
+    k = k + Ars_L1K( H=>ClearFr * H=>xArea(14), H=>xRadi(14), gamma, srMw )
+
+    ! Assume N2O5 is limiting, get updated removal rate
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_H2O), k )
+  END FUNCTION N2O5uptkByH2O
+
+  SUBROUTINE N2O5_InorgOrg( H,      volInorg, volOrg, H2Oinorg,  &
+                            H2Oorg, Rcore,    NIT,    Cl,        &
+                            gamma,  Y_ClNO2,  rp,     areaTotal )
+    !
+    ! Computes the GAMMA reaction probability for N2O5 loss in inorganic
+    ! (sulfate-nitrate-ammonium-sea salt) aerosols with organic coatings,
+    ! based on the recommendation of McDuffie (2018) JGR.
+    ! The inorganic core is based on Bertram and Thornton ACP (2009).
+    !
+    TYPE(HetState), INTENT(IN) :: H    ! HetState Object
+    REAL(dp), INTENT(IN)  :: volInorg  ! vol of wet inorg aerosol core  [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: volOrg    ! vol of wet org aerosol coating [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: H2Oinorg  ! vol of H2O in inorg core [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: H2Oorg    ! vol of H2O in org coating [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: Rcore     ! radius of inorg core [cm]
+    REAL(dp), INTENT(IN)  :: NIT       ! aer nitrate conc [molec/cm3]
+    REAL(dp), INTENT(IN)  :: Cl        ! aer chloride conc [molecule/cm3]
+    REAL(dp), INTENT(OUT) :: gamma     ! [1]
+    REAL(dp), INTENT(OUT) :: Y_ClNO2   ! [1]
+    REAL(dp), INTENT(OUT) :: rp        ! [cm]
+    REAL(dp), INTENT(OUT) :: areaTotal ! [cm2/cm3]
+    !
+    ! Parameters from Bertram and Thornton (2009) ACP and McDuffie 2018 JGR
+    REAL(dp), PARAMETER   :: KH    = 5.1e+1_dp   !unitless
+    REAL(dp), PARAMETER   :: k3k2b = 4.0e-2_dp   !unitless
+    REAL(dp), PARAMETER   :: beta  = 1.15e+6_dp  ![s-1]
+    REAL(dp), PARAMETER   :: delta = 1.3e-1_dp   ![M-1]
+
+    ! Organic Parameters from Antilla et al., 2006 and Riemer et al., 2009
+    REAL(dp), PARAMETER   :: Haq  = 5e+3_dp ! Henry coef [mol/m3/atm], Antilla
+    REAL(dp), PARAMETER   :: Daq  = 1e-9_dp ! Aq diff coef [m2/s], Riemer
+    REAL(dp), PARAMETER   :: ONE_THIRD = 1.0_dp / 3.0_dp
+    !
+    REAL(dp) :: k2f,      A,        speed,       gamma_core, gamma_coat
+    REAL(dp) :: volTotal, H2Ototal, volRatioDry, l,          eps
+    REAL(dp) :: OCratio,  M_H2O,    M_NIT,       M_Cl,       M_N2O5
+
+    !------------------------------------------------------------------------
+    ! Concentrations, thickness, etc.
+    !------------------------------------------------------------------------
+
+    ! Total volume (organic + inorganic), cm3(aerosol)/cm3(air)
+    volTotal = volInorg + volOrg
+
+    ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
+    H2Ototal = H2Oinorg + H2Oorg
+
+    ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
+    volRatioDry = SafeDiv( MAX( volInorg - H2Oinorg, 0.0_dp ),               &
+                           MAX( volTotal - H2Ototal, 0.0_dp ), 0.0_dp )
+
+    ! Particle radius, cm
+    ! Derived from spherical geometry
+    ! [note: The radius and surface area of a wet particle are
+    ! properly calculated from the wet volume volume ratio (including water).
+    ! We use the dry volume ratio here because McDuffie et al. (2018) fitted
+    ! the N2O5 gamma parameters to field data in a model using the
+    ! dry ratio. cdholmes 7/22/2019]
+    Rp = SafeDiv( Rcore, volRatioDry**ONE_THIRD, Rcore )
+
+    ! Coating thickness, cm
+    l = Rp - Rcore
+
+    ! mean molecular speed [m s-1]
+    ! sqrt( 8RT / (pi M) )
+    M_N2O5  = MW(ind_N2O5) * 1.0e-3_dp
+    speed = SQRT( 8.0_dp * H=>RSTARG * TEMP / ( H=>PI * M_N2O5 ) )
+
+    ! Concentrations [mol/L]
+    M_H2O = H2Ototal / 18e+0_dp / volTotal * 1000.0_dp   ! H2O
+    M_NIT = NIT / volTotal / H=>AVO * 1000.0_dp             ! Nitrate
+    M_Cl  = Cl  / volTotal / H=>AVO * 1000.0_dp             ! Chloride
+
+    !------------------------------------------------------------------------
+    ! Gamma for the organic shell (cf McDuffie (2018) JGR)
+    !------------------------------------------------------------------------
+
+    !O:C ratio from Eq. 10 of Canagaratna et al., 2015 (ACP)
+    ! Take average OM/OC ratio from /GeosCore/aerosol_mod.F90
+    OCratio = ((( H=>OMOC_POA + H=>OMOC_OPOA ) / 2.0_dp ) - 1.17_dp ) / 1.29_dp
+
+    ! organic scaling factor (eps(Haq*Daq) = Horg*Dorg)
+    ! from McDuffie (2018) JGR
+    eps = 1.5e-1_dp * OCratio + 1.6e-3_dp * RELHUM
+
+    ! Gamma for coating
+    ! [Rcore, Rp, and l converted cm -> m here]
+    IF ( l <= 0.0e+0_dp ) THEN
+       gamma_coat = 0.0_dp
+    ELSE
+       gamma_coat =                                                         &
+        ( 4.0_dp * (H=>RGASLATM*1e-3_dp)*TEMP*eps*Haq*Daq*Rcore/100._dp ) / &
+        ( speed * l/100.0_dp * Rp/100.0_dp                                  )
+    ENDIF
+
+    ! Total particle surface area, cm2/cm3
+    areaTotal = 3.0_dp * volTotal / Rp
+
+    !------------------------------------------------------------------------
+    ! Gamma for the inorganic core
+    ! Implements recommendations by McDuffie (2018) JGR,
+    ! following the general approach from Bertram and Thornton ACP (2009).
+    !------------------------------------------------------------------------
+
+    ! Select dry or deliquesed aerosol based on molar concentration of H2O
+    IF ( M_H2O < 0.1_dp ) THEN
+
+       ! When H2O is nearly zero, use dry aerosol value
+       gamma_core = 0.005_dp
+
+    ELSE
+
+       ! mean molecular speed [cm/s]
+       speed = speed * 1e+2_dp
+
+       ! A factor from Bertram and Thornton (2009), s
+       ! Their paper suggested an approximated value of A = 3.2D-8
+       A = ( ( 4.0_dp * volTotal ) / ( speed * areaTotal ) ) * KH
+
+       ! k2f - reaction rate constant of N2O5 with H2O
+       ! From McDuffie (2018): k2f = 2.14D5 * H2O
+       ! This linear water dependence is not accurate at large
+       ! (>20 M) aerosol water concentrations. Therefore, k2f is
+       ! calculated following Bertram and Thornton ACP (2009).
+       ! Eq 11 from Bertram and Thronton (2009):
+       ! Modified to avoid underflow when exp(-delta*H2O) ~1
+       IF ( delta * M_H2O < 1e-2_dp ) THEN
+          k2f = beta * ( delta * M_H2O )
+       ELSE
+          k2f = beta * ( 1e+0_dp - exp( -delta * M_H2O ) )
+       ENDIF
+
+       ! Eq 12 from Bertram and Thornton (2009)
+       ! Use safe_div to avoid overflow when NIT ~ 0
+       gamma_core = A * k2f * &
+        (1.0_dp - 1.0_dp / (1.0_dp + SafeDiv(k3k2b*M_H2O, M_NIT, 1.0e+30_dp)))
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Gamma for overall uptake
+    !------------------------------------------------------------------------
+    IF ( gamma_coat <= 0.0_dp ) THEN
+       gamma = gamma_core
+    ELSE IF ( gamma_core <= 0.0_dp ) THEN
+       gamma = 0.0_dp
+    ELSE
+       gamma = 1.0_dp / ( ( 1.0_dp/gamma_core ) + ( 1.0_dp/gamma_coat ) )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! ClNO2 yield
+    !------------------------------------------------------------------------
+
+    ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
+    Y_ClNO2 = ClNO2_BT( M_Cl, M_H2O )
+
+  END SUBROUTINE N2O5_InorgOrg
+
+  FUNCTION ClNO2_BT( Cl, H2O ) RESULT( phi )
+    !
+    ! Computes the PHI production yield of ClNO2 from N2O5 loss
+    ! in sulfate-nitrate-ammonium (SNA) aerosols based on the
+    ! recommendation of Bertram and Thornton (2009) ACP.
+    !
+    REAL(dp), INTENT(IN) :: Cl, H2O  ! [mol/L]
+    REAL(dp)             :: PHI
+    REAL(dp), PARAMETER  :: k2k3  = 1.0_dp / 4.5e+2_dp  ! BT 2009
+    !
+    ! When H2O is nearly zero, assign phi accordingly and exit
+    IF ( H2O < 0.1_dp ) THEN
+       phi = 0.0_dp
+       IF ( Cl > 1e-3_dp ) phi = 1.0_dp
+       RETURN
+    ENDIF
+
+    ! Eq from Bertram and Thronton (2009); avoid overflow
+    phi = 1.0_dp / ( 1.0_dp + k2k3 * SafeDiv( H2O, Cl, 1.0e+30_dp ) )
+  END FUNCTION ClNO2_BT
 
   FUNCTION N2O5uptkByCloud( H ) RESULT( k )
     !
@@ -1255,6 +1492,10 @@ PH2O2 : H2O2;
     ! Assume N2O5 is limiting, compute resultant rxn rate
     k = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), k )
   END FUNCTION N2O5uptkByStratHCl
+
+  !=========================================================================
+  ! Rate-law functions for NO2 and NO3
+  !=========================================================================
 
   FUNCTION NO2uptk1stOrdAndCloud( H ) RESULT( k )
     !
@@ -1335,7 +1576,7 @@ PH2O2 : H2O2;
     l_r     = SQRT( 1.0e-5_dp / k_tot )                ! diff const = 1e-5
     !                                                  !  for NO3
     gb      = 4.0_dp * H_X * CON_R * TEMP * l_r * k_tot / cavg
-    corr    = reactodiff_corr( aRadi, l_r )
+    corr    = Reactodiff_Corr( aRadi, l_r )
     gb      = gb * corr
     !
     gamma   = 1.0_dp / ( INV_AB + 1.0_dp/gb )
@@ -1721,6 +1962,7 @@ PH2O2 : H2O2;
   !$OMP THREADPRIVATE( SUNCOS )
 
   TYPE, PUBLIC :: HetState
+     REAL(dp) :: AVO            ! Avogadro's constant
      LOGICAL  :: natSurface     ! Is there NAT in this box?
      LOGICAL  :: pscBox         ! Does this box have Polar Strat Clouds?
      LOGICAL  :: stratBox       ! Is this box in the stratosphere?

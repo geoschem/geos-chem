@@ -208,6 +208,7 @@ MODULE gckpp_Global
   !$OMP THREADPRIVATE( SUNCOS )
 
   TYPE, PUBLIC :: HetState
+     REAL(dp) :: AVO            ! Avogadro's constant
      LOGICAL  :: natSurface     ! Is there NAT in this box?
      LOGICAL  :: pscBox         ! Does this box have Polar Strat Clouds?
      LOGICAL  :: stratBox       ! Is this box in the stratosphere?

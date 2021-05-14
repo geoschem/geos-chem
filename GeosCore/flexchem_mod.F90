@@ -1405,7 +1405,7 @@ CONTAINS
     USE GcKpp_Parameters
     USE Gckpp_HetRates,  ONLY : Cld_Params, Halide_Conc
     USE Input_Opt_Mod,   ONLY : OptInput
-    USE PhysConstants,   ONLY : CONSVAP, PI, RGASLATM, RSTARG
+    USE PhysConstants,   ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
     USE Pressure_Mod,    ONLY : Get_Pcenter
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
@@ -1472,6 +1472,7 @@ CONTAINS
     !========================================================================
 
     ! Constants (so that we can use these within KPP)
+    State_Het%AVO            = AVO
     State_Het%PI             = PI
     State_Het%RSTARG         = RSTARG
     State_Het%RGASLATM       = RGASLATM
