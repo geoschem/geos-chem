@@ -220,15 +220,17 @@ MODULE gckpp_Global
      REAL(dp) :: aIce           ! Ice surface area
      REAL(dp) :: aLiq           ! Liquid surface area
      REAL(dp) :: aWater(2)      ! ISORROPIA aerosol water (fine & coarse)
-     REAL(dp) :: BrConc_CldA    ! Br- in cloud (fine sea salt)   [mol/kg water]
-     REAL(dp) :: BrConc_CldC    ! Br- in cloud (coarse sea salt) [mol/kg water]
-     REAL(dp) :: BrConc_CldG    ! Br- in cloud (gas-phase)       [mol/kg water]
+     REAL(dp) :: BrConc_CldA    ! Br- in cloud (A=fine sea salt)   [mol/kg water4
+     REAL(dp) :: BrConc_CldC    ! Br- in cloud (C=coarse sea salt) [mol/kg water4
+     REAL(dp) :: BrConc_CldG    ! Br- in cloud (G=gas-phase)       [mol/kg water4
+     REAL(dp) :: BrConc_Cld     ! Br- total in cloud = A + C + G
      REAL(dp) :: BrConc_SALA    ! Br- in fine sea salt aerosol   [mol/kg water]
      REAL(dp) :: BrConc_SALC    ! Br- in coarse sea salt aerosol [mol/kg water]
      REAL(dp) :: ClConc_CldA    ! Br- in cloud (fine sea salt)   [mol/kg water]
      REAL(dp) :: ClConc_CldC    ! Br- in cloud (coarse sea salt) [mol/kg water]
      REAL(dp) :: ClConc_CldG    ! Cl- in cloud (gas-phase)       [mol/kg water]
      REAL(dp) :: ClConc_SALA    ! Cl- in fine sea salt           [mol/kg water]
+     REAL(dp) :: ClConc_Cld     ! Cl- total = A + C + G
      REAL(dp) :: ClConc_SALC    ! Cl- in coarse sea salt         [mol/kg water]
      REAL(dp) :: cldFr          ! Cloud fraction [1]
      REAL(dp) :: clearFr        ! Clear sky fraction [1]

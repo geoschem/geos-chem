@@ -145,16 +145,6 @@ CONTAINS
     ! Zero the HET array
     HET = 0.0_dp
 
-!    ! Now calculate reaction rates where the educt can be consumed.
-!    ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
-!    ! second reactant is "abundant" and calculate the overall rate based on
-!    ! the uptake rate of the first reactant only.
-!
-!    HetTemp(1:2)                 = HETN2O5( 1.08E2_dp, 1E-1_dp, CldFr )
-!    kITemp                       = HetTemp(1)
-!    HET(ind_N2O5,  1)            = kIIR1Ltd(C(ind_N2O5), C(ind_H2O), kITemp)
-!    State_Chm%GammaN2O5(I,J,L,1) = HetTemp(2)
-!
 !    !========================================================================
 !    ! Br/Cl heterogeneous chemistry
 !    !========================================================================
@@ -609,26 +599,6 @@ CONTAINS
 !    State_Chm%GammaN2O5(I,J,L,3) = HetTemp(1)
 !
 !    !------------------------------------------------------------------------
-!    ! Reaction of OH with Cl-, XW 3/12/18)
-!    !
-!    ! NOTES:
-!    ! (1) gamma = 0.04 * sea-salt concentration (cf Knipping & Dabdub, 2002)
-!    ! (2) Use ArsL1k directly so as to remove function HETOH (bmy, 3/22/21)
-!    !------------------------------------------------------------------------
-!
-!    ! OH + Cl on accumulation-mode sea-salt
-!    gamma          = 0.04_dp * clConc_SALA
-!    rate           = ArsL1k(   AClArea,   AClRadi,       NUMDEN,              &
-!                               gamma,     SR_TEMP,         H%OH%srMw          )
-!    HET(ind_OH, 1) = kIIR1Ltd( C(ind_OH), C(ind_SALACL), rate               )
-!
-!    ! OH + Cl on coarse-mode sea-salt
-!    gamma          = 0.04_dp * clConc_SALC
-!    rate           = ArsL1k(   XAREA(12), XRADI(12),     NUMDEN,              &
-!                               gamma,     SR_TEMP,         H%OH%srMw          )
-!    HET(ind_OH, 2) = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), rate               )
-!
-!    !------------------------------------------------------------------------
 !    ! Reaction of ClNO2 with Cl-, XW 3/12/18)
 !    !------------------------------------------------------------------------
 !
@@ -866,148 +836,6 @@ CONTAINS
 !      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,SR_TEMP,XSqM)
 
     END FUNCTION HETHXUptake
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HetO3_SS
-!
-! !DESCRIPTION: Sets the O3 + Br- (in sea salt) rate using Johan
-!  Schmidt's updated code.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION HETO3_SS( denAir, rAer, AAer, alkAer, TK, halConc, O3Conc, H  ) &
-                     RESULT( kISum )
-!
-! !INPUT PARAMETERS:
-!
-      REAL(dp),       INTENT(IN) :: denAir   ! Density of air (#/cm3)
-      REAL(dp),       INTENT(IN) :: rAer     ! Radius of aerosol (cm)
-      REAL(dp),       INTENT(IN) :: AAer     ! Area of aerosol (cm2/cm3)
-      REAL(dp),       INTENT(IN) :: alkAer   ! Aerosol alkalinity (?)
-      REAL(dp),       INTENT(IN) :: TK       ! Temperature (K)
-      REAL(dp),       INTENT(IN) :: halConc  ! Halide concentration (mol/L)
-      REAL(dp),       INTENT(IN) :: O3Conc   ! Ozone concentration (#/cm3)
-      TYPE(HetState), POINTER    :: H        ! Hetchem species metadata
-!
-! !RETURN VALUE:
-!
-      REAL(dp)                   :: kISum    ! Rxn rate O3 + Br- in sea salt
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(dp) :: XSTKCF, XSQM
-
-!      ! Initialize
-!      kISum = 0.0_dp
-!      XSQM  = SQRT( H%O3%MW_g )
-!
-!      ! Reaction can only proceed on acidic aerosol
-!      IF ( alkAer > 0.05_dp ) THEN
-!         XStkCf = 0.0_dp
-!      ELSE
-!         XStkCf = Gamma_O3_Br( rAer, denAir, TK, halConc, O3Conc, H )
-!      ENDIF
-!
-!      ! Reaction rate for surface of aerosol
-!      kISum = Arsl1K( AAer, rAer, denAir, XStkCf, SR_TEMP, XSqM )
-
-    END FUNCTION HETO3_SS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Gamma_NO3
-!
-! !DESCRIPTION: Function GAMMA\_NO3 calculates reactive uptake coef.
-!               for NO3 on salts and water
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Gamma_NO3( aArea, aRadi, C_X ) RESULT( gamma )
-!
-! !USES:
-!
-    USE PhysConstants, ONLY : Pi, RStarG
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp),       INTENT(IN) :: aArea
-    REAL(dp),       INTENT(IN) :: aRadi
-    REAL(dp),       INTENT(IN) :: C_X      ! Cl- Concentration (mol/L)
-!
-! !RETURN VALUE:
-!
-    REAL(dp)                   :: gamma    ! Reactive uptake coefficient [1]
-!
-! !REMARKS:
-!   Used in HetNO3_CL, which is immediately below.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!
-      ! Scalars
-      REAL(dp) :: ab, M_X, k_tot, H_X, k1, k2
-      REAL(dp) :: cavg, D_l, gb, l_r
-      REAL(dp) :: WaterC, Vol
-      REAL(dp) :: H_K0_O3
-
-!      ! Henry's law [M/atm]
-!      H_K0_O3 = HENRY_K0(ind_O3) * con_atm_bar
-!      H_X     = H_K0_O3 * EXP( HENRY_CR(ind_O3) * ( 1.0_dp/TEMP - INV_T298 ) )
-!
-!      ! O3 mol wt (kg/mol)
-!      M_X = MW(ind_O3) * 1.0e-3_dp
-!
-!      WaterC = H%AWATER(X) / 18.0e+12_dp                    ! mol/cm3 air
-!      Vol    = aAer * aRadi * 1.0e-3_dp / 3.0_dp            ! L/cm3 air
-!      WaterC = WaterC / Vol                                 ! mol/L aerosol
-!
-!      ! HNO3 mol wt (kg/mol)
-!      M_X = MW(ind_NO3) * 1.0e-3_dp
-!
-!      ! Mass accommodation coefficient
-!      ab = 1.3e-2_dp
-!
-!      ! Thermal velocity [cm/s]
-!      cavg = SQRT( 8.0_dp * RStarG * TEMP / ( Pi * M_X ) ) * 1.0e2_dp
-!
-!      ! Liquid phase diffusion coefficient [cm2/s] for NO3
-!      ! (Ammann et al., Atmos. Chem. Phys., 2013)
-!      D_l  = 1.0e-5_dp
-!
-!      k1 = 2.76e+6_dp                                       ! M-1 s-1
-!      k2 = 23.0_dp                                          ! M-1 s-1
-!
-!      k_tot = k1*C_X + k2*WaterC
-!
-!      H_X = 0.6_dp                                          ! M atm-1
-!      H_X = H_X * con_atm_bar                               ! M/bar
-!      l_r = SQRT( D_l / k_tot )
-!
-!      ! Leave commented out
-!      !IF (K_Tot .EQ. 0.0) THEN
-!      !    K_tot = 1.0e-2_dp
-!      ! ENDIF
-!
-!      gb    = 4.0_dp * H_X * con_R * TEMP * l_r * k_tot / cavg
-!      gb    = gb * REACTODIFF_CORR(Radius, l_r)
-!      gamma = 1.0_dp / (1.0_dp/ab  +  1.0_dp/gb)
-
-  END FUNCTION GAMMA_NO3
 !!EOC
 !!------------------------------------------------------------------------------
 !!                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3499,7 +3327,7 @@ CONTAINS
     REAL(dp) :: BrConc_Cld, ClConc_Cld, denom, HBr, HCl
 
     !=======================================================================
-    ! Halide_Conc begins here!
+    ! Get halide conc's in cloud (gas-phase, fine & coarse sea salt)
     !=======================================================================
 
     ! Br- and Cl- grid-box concentrations
@@ -3541,9 +3369,19 @@ CONTAINS
     ENDIF
 
     ! Enforce minimum values
-    State_Het%ClConc_Cldg = MAX( State_Het%clConc_Cldg, 1.0e-20_dp )
+    State_Het%ClConc_CldG = MAX( State_Het%clConc_CldG, 1.0e-20_dp )
     State_Het%ClConc_CldA = MAX( State_Het%clConc_CldA, 1.0e-20_dp )
     State_Het%ClConc_CldC = MAX( State_Het%clConc_CldC, 1.0e-20_dp )
+
+    ! Total Br- in cloud (match order of addition of legacy code)
+    State_Het%BrConc_Cld = State_Het%BrConc_CldA                             &
+                         + State_Het%BrConc_CldG                             &
+                         + State_Het%BrConc_CldC
+
+    ! Total Cl- in cloud (match order of addition of legacy code)
+    State_Het%ClConc_Cld = State_Het%ClConc_CldA                             &
+                         + State_Het%ClConc_CldG                             &
+                         + State_Het%ClConc_CldC
 
     !=======================================================================
     ! Get halide concentrations, in aerosol

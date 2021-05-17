@@ -1741,6 +1741,154 @@ CONTAINS
   END FUNCTION NO3hypsisClonSALC
 
   !=========================================================================
+  ! Rate-law functions for O3
+  !=========================================================================
+
+  FUNCTION O3uptkByBrInCloud( H, BrConc ) RESULT( k )
+    !
+    ! Computes the Sets the O3 + Br- uptake rate in tropospheric cloud.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp),       INTENT(IN) :: BrConc         ! Br- conc in cloud
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: branch, gamma  ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! Exit if we are not in the troposphere
+    IF ( H%StratBox ) RETURN
+    !
+    ! Compute branching ratio
+    branch = BrConc / H%BrConc_Cld
+    !
+    ! Compute uptake of O3 by Br- in cloud
+    gamma  = Gamma_O3_Br( H, H%rLiq, BrConc, C(ind_O3) )
+    k      = CloudHet( H, SR_MW(ind_O3), gamma, 0.0_dp, branch, 1.0_dp )
+  END FUNCTION O3uptkByBrInCloud
+
+  FUNCTION O3uptkByCloudAndBrSALA( H ) RESULT( k )
+    !
+    ! Computes the uptake rate of O3 + Br- in tropospheric
+    ! cloud and on acidic fine sea salt.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! Compute O3 + Br- uptake by acidic coarse seasalt in trop cloud
+    k = k + O3uptkByBrInCloud( H, H%BrConc_CldA )
+    
+    ! Compute O3 + Br- uptake on acidic fine sea-salt in clear sky
+    IF ( H%ssFineIsAcid ) THEN
+       area  = H%ClearFr * H%aClArea
+       gamma = Gamma_O3_Br( H, H%aClArea, H%brConc_SALA, C(ind_O3) )
+       k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
+    ENDIF
+
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), k )
+  END FUNCTION O3uptkByCloudAndBrSALA
+
+  FUNCTION O3uptkByCloudandBrSALC( H ) RESULT( k )
+    !
+    ! Computes the uptake rate of O3 + Br- in tropospheric
+    ! cloud and on acidic coarse sea salt.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! Compute O3 + Br- uptake by fine seasalt in trop cloud
+    k = k + O3uptkByBrInCloud( H, H%BrConc_CldC )
+    !
+    ! Compute O3 + Br- uptake on acidic coarse sea salt in clear sky
+    !IF ( H%ssCoarseIsAcid ) THEN
+    !   area   = H%ClearFr * H%xArea(12)
+    !   gamma  = Gamma_O3_Br( H, H%xRadi(12), H%brConc_SALC, C(ind_O3) )
+    !   k      = k + Ars_L1K( area, H%xRadi(12), gamma, SR_MW(ind_O3) )
+    !ENDIF
+
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), k )
+  END FUNCTION O3uptkByCloudAndBrSALC
+
+  FUNCTION Gamma_O3_Br( H, Radius, C_Y, C_X_g ) RESULT( gamma )
+    !
+    ! Computes reactive uptake coefficient for Br- oxidation by O3.
+    !
+    TYPE(HetState), INTENT(IN) :: H             ! Hetchem State
+    REAL(dp),       INTENT(IN) :: radius        ! Radius in cm
+    REAL(dp),       INTENT(IN) :: C_Y           ! Br- concentration
+    REAL(dp),       INTENT(IN) :: C_X_g         ! O3 concentration
+    REAL(dp)                   :: gamma         ! rxn prob [1]
+    !
+    REAL(dp) :: ab,     gb,  gd,       gs,   cavg, H_X, H_O3, M_X
+    REAL(dp) :: KLangC, k_s, C_Y_surf, Nmax, k_b,  D_l, l_r
+    !
+    ! Henry's law
+    H_X      = ( HENRY_K0(ind_O3) * CON_ATM_BAR )                 &
+             * EXP( HENRY_CR(ind_O3) * ( 1.0_dp/TEMP - INV_T298 ) )
+    !
+    ! Thermal velocity (cm/s)
+    M_X      = MW(ind_O3) * 1.0e-3_dp
+    cavg     = SQRT( 8.0_dp * H%RSTARG * TEMP / ( H%Pi * M_X ) ) * 100.0_dp
+    !
+    Nmax     = 3.0e+14_dp  ! #/cm2
+    KLangC   = 1.0e-13_dp !cm3
+    k_s      = 1.0e-16_dp !cm2s-1, from ks*Nmax=0.03s-1
+    !
+    ! [Br-(surf)] = 3.41E14 cm-2/M * [Br-(bulk)], but not gt Nmax.
+    C_Y_surf = MIN( 3.41e+14_dp * C_Y, Nmax )
+    gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax ) &
+               / ( cavg * ( 1.0_dp + KLangC * C_X_g )    )
+    !
+    k_b      = 6.3e+8_dp *  EXP(-4.45e+3_dp / TEMP ) ! M-1 s-1
+    D_l      = 8.9e-6_dp                             ! cm2 s-1.
+    l_r      = SQRT( D_l / (k_b * C_Y ) )            ! cm
+    gb       = 4.0_dp * H_X * CON_R * TEMP * l_r * k_b * C_Y / cavg
+    gb       = gb * ReactoDiff_Corr( Radius, l_r )
+    gamma    = gb + gs
+  END FUNCTION Gamma_O3_Br
+
+  !=========================================================================
+  ! Rate-law functions for OH
+  !=========================================================================
+
+  FUNCTION OHuptkBySALACl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of OH + Cl on accumulation-mode sea-salt
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
+    gamma = 0.04_dp * H%clConc_SALA
+    k = Ars_L1k( H%AClArea, H%AClRadi, gamma, SR_MW(ind_OH) )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_OH), C(ind_SALACL), k )
+  END FUNCTION OHuptkBySALACl
+
+  FUNCTION OHuptkBySALCCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of OH + Cl on coarse-mode sea-salt
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
+    gamma = 0.04_dp * H%clConc_SALC
+    k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, SR_MW(ind_OH) )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), k )
+  END FUNCTION OHuptkBySALCCl
+
+  !=========================================================================
   ! Rate-law functions for VOC species
   !=========================================================================
 
@@ -2591,8 +2739,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(608) = (N2O5uptkByCloud(State_Het))
   RCONST(609) = (N2O5uptkBySALACl(State_Het))
   RCONST(610) = (N2O5uptkBySALCCl(State_Het))
-  RCONST(611) = (HET(ind_OH,1))
-  RCONST(612) = (HET(ind_OH,2))
+  RCONST(611) = (OHuptkBySALACl(State_Het))
+  RCONST(612) = (OHuptkBySALCCl(State_Het))
   RCONST(613) = (HET(ind_BrNO3,1))
   RCONST(614) = (HET(ind_BrNO3,2))
   RCONST(615) = (HET(ind_ClNO3,1))
@@ -2622,9 +2770,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(639) = (HET(ind_HOBr,6))
   RCONST(640) = (HET(ind_HOBr,7))
   RCONST(641) = (HET(ind_HOBr,8))
-  RCONST(642) = (HET(ind_O3,1))
-  RCONST(643) = (HET(ind_O3,2))
-  RCONST(644) = (HET(ind_O3,3))
+  RCONST(642) = (0.0_dp)
+  RCONST(643) = (0.0_dp)
+  RCONST(644) = (0.0_dp)
   RCONST(645) = (HET(ind_HBr,1))
   RCONST(646) = (HET(ind_HBr,2))
   RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
