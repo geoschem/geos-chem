@@ -1499,22 +1499,21 @@ CONTAINS
     State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
 
     ! Concentrations
-    State_Het%HSO3conc_Cld   = State_Chm%HSO3_AQ(I,J,L)
+    State_Het%HSO3_conc_Cld  = State_Chm%HSO3_AQ(I,J,L)
     State_Het%mHSO4          = State_Chm%IsorropBisulfate(I,J,L)
     State_Het%mNO3           = State_Chm%IsorropNitrate(I,J,L,1)
     State_Het%mSO4           = State_Chm%IsorropSulfate(I,J,L)
-    State_Het%SPC_SALA       = State_Chm%Species(I,J,L,id_SALA)
-    State_Het%SO3conc_Cld    = State_Chm%SO3_AQ(I,J,L)
+    State_Het%SO3_conc_Cld   = State_Chm%SO3_AQ(I,J,L)
 
     ! pH and alkalinity fields
-    State_Het%H_PLUS         = State_Chm%IsorropHplus(I,J,L,1)
+    State_Het%H_plus         = State_Chm%IsorropHplus(I,J,L,1)
     State_Het%pHCloud        = State_Chm%pHCloud(I,J,L)
     State_Het%pHSSA(:)       = State_Chm%IsorropAeropH(I,J,L,:)
-    State_Het%hConc_Sul      = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
-    State_Het%hConc_LCl      = 10.0**( -1.0_dp * State_Het%pHCloud  )
-    State_Het%hConc_ICl      = 10.0**( -4.5_dp                      )
-    State_Het%hConc_SSA      = State_Het%hConc_Sul
-    State_Het%hConc_SSC      = 10.0**( -5.0_dp                      )
+    State_Het%H_conc_Sul     = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
+    State_Het%H_conc_LCl     = 10.0**( -1.0_dp * State_Het%pHCloud  )
+    State_Het%H_conc_ICl     = 10.0**( -4.5_dp                      )
+    State_Het%H_conc_SSA     = State_Het%H_conc_Sul
+    State_Het%H_conc_SSC     = 10.0**( -5.0_dp                      )
     State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
     State_Het%ssFineIsAlk    = ( State_Het%ssAlk(1) > 0.05_dp       )
     State_Het%ssFineisAcid   = ( .not.  State_Het%ssFineIsAlk       )

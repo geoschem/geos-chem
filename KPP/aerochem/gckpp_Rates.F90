@@ -859,43 +859,45 @@ CONTAINS
     kHet = 0.0_dp
 
     !-----------------------------------------------------------------------
-    ! Liquid branch
+    ! Liquid branch (skip if the liquid branching ratio is zero)
     !-----------------------------------------------------------------------
+    IF ( brLiq > 0.0_dp ) THEN
 
-    ! Convert grid-average cloud condensate surface area density
-    ! to in-cloud surface area density
-    area = SafeDiv( H%aLiq, H%CldFr, 0.0_dp )
+       ! Convert grid-average cloud condensate surface area density
+       ! to in-cloud surface area density
+       area = SafeDiv( H%aLiq, H%CldFr, 0.0_dp )
 
-    ! Skip if no area
-    IF ( area > 0.0_dp ) THEN
+       ! Skip if no area
+       IF ( area > 0.0_dp ) THEN
 
-       ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
-       ! Pass radius in cm and mass in g.
-       ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
-       kI   = kI + ktmp
-
-       ! In-cloud loss frequency for particular reaction branch, 1/s
-       kIb  = kIb + ( ktmp * brLiq )
+          ! In-cloud loss frequency [1/s]
+          ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
+          kI   = kI + ktmp
+          
+          ! In-cloud loss frequency for liquid rxn branch [1/s]
+          kIb  = kIb + ( ktmp * brLiq )
+       ENDIF
     ENDIF
 
     !------------------------------------------------------------------
-    ! Ice branch
+    ! Ice branch (skip if the ice branching ratio is zero)
     !------------------------------------------------------------------
+    IF ( brIce > 0.0_dp ) THEN
 
-    ! Convert grid-average cloud condensate surface area density
-    ! to in-cloud surface area density
-    area = SafeDiv( H%aIce, H%CldFr, 0.0_dp )
+       ! Convert grid-average cloud condensate surface area density
+       ! to in-cloud surface area density
+       area = SafeDiv( H%aIce, H%CldFr, 0.0_dp )
 
-    ! Skip if no area
-    IF ( area > 0.0_dp ) THEN
+       ! Skip if no area
+       IF ( area > 0.0_dp ) THEN
 
-       ! In-cloud loss frequency, combining ice and liquid in parallel [1/s]
-       ! Pass radius in cm and mass in g.
-       ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
-       kI   = kI + ktmp
+          ! In-cloud loss frequency [1/s] 
+          ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
+          kI   = kI + ktmp
 
-       ! In-continue loud loss frequency for liquid reaction branch [1/s]
-       kIb  = kIb + ( ktmp * brIce )
+          ! In-continue loud loss frequency for ice rxn branch [1/s]
+          kIb  = kIb + ( ktmp * brIce )
+       ENDIF
     ENDIF
 
     !------------------------------------------------------------------
@@ -1272,8 +1274,8 @@ CONTAINS
     ! Uptake on coarse sea salt (aerosol type #12)
     ! Reduce the rate of this HNO3 pathway in accordance with the yield
     CALL N2O5_InorgOrg(                                     &
-         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),    &
-         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),  &
+         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),      &
+         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),   &
          gamma,  Y_ClNO2,     Rp,          SA              )
     !
     ktmp = Ars_L1k( H%ClearFr * SA, Rp, gamma, srMw )
@@ -1621,7 +1623,7 @@ CONTAINS
     k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
 
     ! Uptake of NO2 in cloud (liquid branch only)
-    k = k + CloudHet( H, SR_MW(ind_NO2), 1.0e-8_dp, 0.0_dp, 1.0_dp, 1.0_dp )
+    k = k + CloudHet( H, SR_MW(ind_NO2), 1.0e-8_dp, 0.0_dp, 1.0_dp, 0.0_dp )
   END FUNCTION NO2uptk1stOrdAndCloud
 
   FUNCTION Gam_NO3( aArea, aRadi, aWater, C_X, H ) RESULT( gamma )
@@ -1711,7 +1713,7 @@ CONTAINS
     area  = H%aClArea
     radi  = H%aClRadi
     water = H%aWater(1)
-    conc  = H%ClConc_SALA
+    conc  = H%Cl_conc_SALA
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
     ! Reaction rate for surface of aerosol [1/s]
@@ -1732,7 +1734,7 @@ CONTAINS
     area  = H%xArea(12)
     radi  = H%xRadi(12)
     water = H%aWater(2)
-    conc  = H%ClConc_SALC
+    conc  = H%Cl_conc_SALC
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
     ! Reaction rate for surface of aerosol [1/s]
@@ -1744,32 +1746,44 @@ CONTAINS
   ! Rate-law functions for O3
   !=========================================================================
 
-  FUNCTION O3uptkByBrInCloud( H, BrConc ) RESULT( k )
+  FUNCTION O3uptkByBrInTropCloud( H, Br_branch ) RESULT( k )
     !
-    ! Computes the Sets the O3 + Br- uptake rate in tropospheric cloud.
+    ! Computes the Sets the O3 uptake rate in tropospheric cloud
+    ! by Br- in either fine sea salt, coarse sea salt, or gas phase.
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-    REAL(dp),       INTENT(IN) :: BrConc         ! Br- conc in cloud
+    REAL(dp),       INTENT(IN) :: Br_branch      ! Branching ratio (A,C,G)
     REAL(dp)                   :: k              ! rxn rate [1/s]
-    REAL(dp)                   :: branch, gamma  ! local vars
+    REAL(dp)                   :: gamma          ! local vars
     !
     k = 0.0_dp
     !
     ! Exit if we are not in the troposphere
     IF ( H%StratBox ) RETURN
     !
-    ! Compute branching ratio
-    branch = BrConc / H%BrConc_Cld
-    !
     ! Compute uptake of O3 by Br- in cloud
-    gamma  = Gamma_O3_Br( H, H%rLiq, BrConc, C(ind_O3) )
-    k      = CloudHet( H, SR_MW(ind_O3), gamma, 0.0_dp, branch, 1.0_dp )
-  END FUNCTION O3uptkByBrInCloud
+    gamma  = Gamma_O3_Br( H, H%rLiq, H%Br_conc_Cld )
+    k      = CloudHet( H, SR_MW(ind_O3), gamma, 0.0_dp, Br_branch, 0.0_dp )
+  END FUNCTION O3uptkByBrInTropCloud
+
+  FUNCTION O3uptkByHBrInTropCloud( H ) RESULT( k )
+    !
+    ! Computes the O3 + HBr uptake rate in tropospheric cloud.
+    ! 
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! O3 + HBr uptake rate (gas-phase path), in trop cloud
+    k = O3uptkByBrInTropCloud( H, H%Br_branch_CldG )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_HBr), k )
+  END FUNCTION O3uptkByHBrInTropCloud
 
   FUNCTION O3uptkByCloudAndBrSALA( H ) RESULT( k )
     !
-    ! Computes the uptake rate of O3 + Br- in tropospheric
-    ! cloud and on acidic fine sea salt.
+    ! Computes the uptake rate of O3 + Br- (in tropospheric
+    ! cloud) and on acidic fine sea salt (in clear sky).
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
@@ -1777,13 +1791,13 @@ CONTAINS
     !
     k = 0.0_dp
     !
-    ! Compute O3 + Br- uptake by acidic coarse seasalt in trop cloud
-    k = k + O3uptkByBrInCloud( H, H%BrConc_CldA )
-    
-    ! Compute O3 + Br- uptake on acidic fine sea-salt in clear sky
+    ! O3 + Br- uptake by acidic fine sea salt, in trop cloud
+    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldA )
+    !
+    ! O3 + Br- uptake on acidic fine sea-salt, clear sky
     IF ( H%ssFineIsAcid ) THEN
        area  = H%ClearFr * H%aClArea
-       gamma = Gamma_O3_Br( H, H%aClArea, H%brConc_SALA, C(ind_O3) )
+       gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SALA )
        k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
     ENDIF
 
@@ -1802,36 +1816,36 @@ CONTAINS
     !
     k = 0.0_dp
     !
-    ! Compute O3 + Br- uptake by fine seasalt in trop cloud
-    k = k + O3uptkByBrInCloud( H, H%BrConc_CldC )
+    ! O3 + Br- uptake by acidic coarse sea salt, in trop cloud
+    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldC )
     !
-    ! Compute O3 + Br- uptake on acidic coarse sea salt in clear sky
-    !IF ( H%ssCoarseIsAcid ) THEN
-    !   area   = H%ClearFr * H%xArea(12)
-    !   gamma  = Gamma_O3_Br( H, H%xRadi(12), H%brConc_SALC, C(ind_O3) )
-    !   k      = k + Ars_L1K( area, H%xRadi(12), gamma, SR_MW(ind_O3) )
-    !ENDIF
+    ! O3 + Br- uptake on acidic coarse sea salt, clear sky
+    IF ( H%ssCoarseIsAcid ) THEN
+       area  = H%ClearFr * H%xArea(12)
+       gamma = Gamma_O3_Br( H, H%xRadi(12), H%Br_conc_SALC )
+       k     = k + Ars_L1K( area, H%xRadi(12), gamma, SR_MW(ind_O3) )
+    ENDIF
 
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), k )
   END FUNCTION O3uptkByCloudAndBrSALC
 
-  FUNCTION Gamma_O3_Br( H, Radius, C_Y, C_X_g ) RESULT( gamma )
+  FUNCTION Gamma_O3_Br( H, Radius, C_Y ) RESULT( gamma )
     !
     ! Computes reactive uptake coefficient for Br- oxidation by O3.
     !
     TYPE(HetState), INTENT(IN) :: H             ! Hetchem State
     REAL(dp),       INTENT(IN) :: radius        ! Radius in cm
     REAL(dp),       INTENT(IN) :: C_Y           ! Br- concentration
-    REAL(dp),       INTENT(IN) :: C_X_g         ! O3 concentration
     REAL(dp)                   :: gamma         ! rxn prob [1]
     !
-    REAL(dp) :: ab,     gb,  gd,       gs,   cavg, H_X, H_O3, M_X
-    REAL(dp) :: KLangC, k_s, C_Y_surf, Nmax, k_b,  D_l, l_r
+    REAL(dp), PARAMETER  :: K0_O3 = 1.1e-2_dp * CON_ATM_BAR ! Henry K0(O3)
     !
-    ! Henry's law
-    H_X      = ( HENRY_K0(ind_O3) * CON_ATM_BAR )                 &
-             * EXP( HENRY_CR(ind_O3) * ( 1.0_dp/TEMP - INV_T298 ) )
+    REAL(dp) :: ab,  gb,     gd,   gs,      cavg,  H_X
+    REAL(dp) :: M_X, KLangC, k_s, C_Y_surf, Nmax,  k_b,   D_l, l_r
+    !
+    ! Henry's law for O3 (use constants for numerical stability)
+    H_X      = K0_O3 * EXP( 2300.0_dp * ( 1.0_dp/TEMP - INV_T298 ) )
     !
     ! Thermal velocity (cm/s)
     M_X      = MW(ind_O3) * 1.0e-3_dp
@@ -1844,11 +1858,11 @@ CONTAINS
     ! [Br-(surf)] = 3.41E14 cm-2/M * [Br-(bulk)], but not gt Nmax.
     C_Y_surf = MIN( 3.41e+14_dp * C_Y, Nmax )
     gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax ) &
-               / ( cavg * ( 1.0_dp + KLangC * C_X_g )    )
+               / ( cavg * ( 1.0_dp + KLangC * C(ind_O3) ) )
     !
-    k_b      = 6.3e+8_dp *  EXP(-4.45e+3_dp / TEMP ) ! M-1 s-1
+    k_b      = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )  ! M-1 s-1
     D_l      = 8.9e-6_dp                             ! cm2 s-1.
-    l_r      = SQRT( D_l / (k_b * C_Y ) )            ! cm
+    l_r      = SQRT( D_l / ( k_b * C_Y ) )           ! cm
     gb       = 4.0_dp * H_X * CON_R * TEMP * l_r * k_b * C_Y / cavg
     gb       = gb * ReactoDiff_Corr( Radius, l_r )
     gamma    = gb + gs
@@ -1866,7 +1880,7 @@ CONTAINS
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
-    gamma = 0.04_dp * H%clConc_SALA
+    gamma = 0.04_dp * H%Cl_conc_SALA
     k = Ars_L1k( H%AClArea, H%AClRadi, gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
@@ -1881,7 +1895,7 @@ CONTAINS
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
-    gamma = 0.04_dp * H%clConc_SALC
+    gamma = 0.04_dp * H%Cl_conc_SALC
     k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
@@ -1941,6 +1955,12 @@ CONTAINS
     REAL(dp), PARAMETER :: K_NUC   = 2.0e-4_dp
     REAL(dp), PARAMETER :: K_HSO4  = 7.3e-4_dp
     REAL(dp), PARAMETER :: K_HYDRO = 0.0e+0_dp
+    !
+    ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous
+    ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
+    ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
+    ! (which is the precursor of IEPOX).
+    REAL(dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
     !
     ! Initialize
     gamma  = 0.0_dp
@@ -2770,9 +2790,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(639) = (HET(ind_HOBr,6))
   RCONST(640) = (HET(ind_HOBr,7))
   RCONST(641) = (HET(ind_HOBr,8))
-  RCONST(642) = (0.0_dp)
-  RCONST(643) = (0.0_dp)
-  RCONST(644) = (0.0_dp)
+  RCONST(642) = (O3uptkByHBrInTropCloud(State_Het))
+  RCONST(643) = (O3uptkByCloudAndBrSALA(State_Het))
+  RCONST(644) = (O3uptkByCloudAndBrSALC(State_Het))
   RCONST(645) = (HET(ind_HBr,1))
   RCONST(646) = (HET(ind_HBr,2))
   RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))

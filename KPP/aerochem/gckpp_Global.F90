@@ -112,12 +112,6 @@ MODULE gckpp_Global
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
   REAL(dp), PARAMETER :: CRITRH      = 35.0_dp
 
-  ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous
-  ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
-  ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
-  ! (which is the precursor of IEPOX).
-  REAL(dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
-
   ! Conversion factor from atm to bar
   REAL(dp), PARAMETER :: CON_ATM_BAR = 1.0_dp / 1.01325_dp
 
@@ -125,7 +119,7 @@ MODULE gckpp_Global
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
   REAL(dp), PARAMETER :: CON_R       = 0.083144598_dp
 
-  ! Reference temperature
+  ! Reference temperature used in Henry's law
   REAL(dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
 
   !--------------------------------------------------------------------------
@@ -175,22 +169,9 @@ MODULE gckpp_Global
   ! HET(ind_HOCl,   4) : HOCl   +  SALCCL
   ! HET(ind_HOCl,   5) : HOCl   +  HSO3--(aq)
   ! HET(ind_HOCl,   6) : HOCl   +  SO3--(aq)
-  ! HET(ind_MCRHN,  1) : MCRHN  uptake          # 1st order loss rxn
-  ! HET(ind_MCRHNB, 1) : MCRHNB uptake          # 1st order loss rxn
-  ! HET(ind_MONITA, 1) : MONITA uptake          # 1st order loss rxn
-  ! HET(ind_MONITS, 1) : MONITS uptake          # 1st order loss rxn
-  ! HET(ind_MONITU, 1) : MONITU uptake          # 1st order loss rxn
-  ! HET(ind_NO3,    2) : NO3    uptake on N2O5  # Liquid water cloud
-  ! HET(ind_N2O5,   1) : N2O5  + H2O            # Where educt is consumed
-  ! HET(ind_N2O5,   2) : N2O5  + HCl
-  ! HET(ind_N2O5,   3) : N2O5  + H2O            # On liquid cloud water
-  ! HET(ind_N2O5,   4) : N2O5  + SALACL
-  ! HET(ind_N2O5,   5) : N2O5  + SALCCL
   ! HET(ind_O3,     1) : O3    + HBr
   ! HET(ind_O3,     2) : O3    + BrSALA
   ! HET(ind_O3,     3) : O3    + BrSALC
-  ! HET(ind_OH,     1) : OH    + SALACL
-  ! HET(ind_OH,     2) : OH    + SALCCL
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 
@@ -208,78 +189,82 @@ MODULE gckpp_Global
   !$OMP THREADPRIVATE( SUNCOS )
 
   TYPE, PUBLIC :: HetState
-     REAL(dp) :: AVO            ! Avogadro's constant
-     LOGICAL  :: natSurface     ! Is there NAT in this box?
-     LOGICAL  :: pscBox         ! Does this box have Polar Strat Clouds?
-     LOGICAL  :: stratBox       ! Is this box in the stratosphere?
-     INTEGER  :: NAEROTYPE      ! Number of aerosol types
-     LOGICAL  :: is_UCX         ! Are we using the UCX mechanism?
-     REAL(dp) :: aClArea        ! Fine SSA+SNA aerosol area [cm2/cm3]
-     REAL(dp) :: aClRadi        ! Fine SSA+SNA aerosol radius [cm]
-     REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume [cm3/cm3]
-     REAL(dp) :: aIce           ! Ice surface area
-     REAL(dp) :: aLiq           ! Liquid surface area
+     REAL(dp) :: AVO            ! Avogadro's constant              [molec/mol  ]4
+     LOGICAL  :: natSurface     ! Is there NAT in this box?        [T/F        ]4
+     LOGICAL  :: pscBox         ! Are there polar strat clouds?    [T/F        ]4
+     LOGICAL  :: stratBox       ! Are we in the stratosphere       [T/F        ]4
+     INTEGER  :: NAEROTYPE      ! Number of aerosol types          [1          ]4
+     LOGICAL  :: is_UCX         ! Are we using the UCX mechanism?  [T/F        ]4
+     REAL(dp) :: aClArea        ! Fine SSA+SNA aerosol area        [cm2/cm3    ]4
+     REAL(dp) :: aClRadi        ! Fine SSA+SNA aerosol radius      [cm         ]4
+     REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume      [cm3/cm3    ]4
+     REAL(dp) :: aIce           ! Ice surface area                 [cm2/cm3    ]4
+     REAL(dp) :: aLiq           ! Liquid surface area              [cm2/cm3    ]4
      REAL(dp) :: aWater(2)      ! ISORROPIA aerosol water (fine & coarse)
-     REAL(dp) :: BrConc_CldA    ! Br- in cloud (A=fine sea salt)   [mol/kg water4
-     REAL(dp) :: BrConc_CldC    ! Br- in cloud (C=coarse sea salt) [mol/kg water4
-     REAL(dp) :: BrConc_CldG    ! Br- in cloud (G=gas-phase)       [mol/kg water4
-     REAL(dp) :: BrConc_Cld     ! Br- total in cloud = A + C + G
-     REAL(dp) :: BrConc_SALA    ! Br- in fine sea salt aerosol   [mol/kg water]
-     REAL(dp) :: BrConc_SALC    ! Br- in coarse sea salt aerosol [mol/kg water]
-     REAL(dp) :: ClConc_CldA    ! Br- in cloud (fine sea salt)   [mol/kg water]
-     REAL(dp) :: ClConc_CldC    ! Br- in cloud (coarse sea salt) [mol/kg water]
-     REAL(dp) :: ClConc_CldG    ! Cl- in cloud (gas-phase)       [mol/kg water]
-     REAL(dp) :: ClConc_SALA    ! Cl- in fine sea salt           [mol/kg water]
-     REAL(dp) :: ClConc_Cld     ! Cl- total = A + C + G
-     REAL(dp) :: ClConc_SALC    ! Cl- in coarse sea salt         [mol/kg water]
-     REAL(dp) :: cldFr          ! Cloud fraction [1]
-     REAL(dp) :: clearFr        ! Clear sky fraction [1]
+     REAL(dp) :: Br_branch_CldA ! Br- branch ratio in CldA path    [1          ]4
+     REAL(dp) :: Br_branch_CldC ! Br- branch ratio in CldC path    [1          ]4
+     REAL(dp) :: Br_branch_CldG ! Br- branch ratio in CldG path    [1          ]4
+     REAL(dp) :: Br_conc_CldA   ! Br- in cloud (A=fine sea salt  ) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_CldC   ! Br- in cloud (C=coarse sea salt) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_CldG   ! Br- in cloud (G=gas-phase      ) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_Cld    ! Br- total in cloud = A + C + G
+     REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]4
+     REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]4
+     REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]4
+     REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]4
+     REAL(dp) :: Cl_conc_CldA   ! Cl- in cloud (A=fine sea salt  ) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_CldC   ! Cl- in cloud (C=coarse sea salt) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_CldG   ! Cl- in cloud (G=gas-phase      ) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_Cld    ! Cl- total = A + C + G
+     REAL(dp) :: Cl_conc_SALA   ! Cl- in fine   sea salt           [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_SALC   ! Cl- in coarse sea salt           [mol/kg H2O ]4
+     REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]4
+     REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]4
      REAL(dp) :: fupdateHOBr    !
      REAL(dp) :: fupdateHOCl    !
-     REAL(dp) :: gamma_HO2      ! Uptake reaction probability for HO2 [1]
+     REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]4
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_th         ! HBr theta
      REAL(dp) :: HCl_th         ! HCl theta
-     REAL(dp) :: hConc_ICl      ! Liquid phase pH, Cl-
-     REAL(dp) :: hConc_LCl      ! Liquid phase pH, Cl-
-     REAL(dp) :: hConc_SSA      ! Liquid phase pH, fine sea salt
-     REAL(dp) :: hConc_SSC      ! Liquid phase pH, coarse sea salt
-     REAL(dp) :: hConc_Sul      ! Liquid phase pH, sulfate
-     REAL(dp) :: HetTemp(3)     !
+     REAL(dp) :: H_conc_ICl     ! Liquid phase pH, Cl-             [pH units   ]4
+     REAL(dp) :: H_conc_LCl     ! Liquid phase pH, Cl-             [pH units   ]4
+     REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt   [pH units   ]4
+     REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt [pH units   ]4
+     REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
      REAL(dp) :: HNO3_th        ! HNO3 theta
-     REAL(dp) :: HSO3conc_Cld   !
-     REAL(dp) :: H_plus         ! Proton activity [1] and H+ concentration [M]
-     REAL(dp) :: KHETI_SLA(11)  ! Uptake probabilities for PSC reactions on SLA
-     REAL(dp) :: mHSO4          ! Bisulfate concentration [M]
-     REAL(dp) :: mNO3           ! Nitrate concentration [M]
-     REAL(dp) :: mSO4           ! Sulfate concentration [M]
-     REAL(dp) :: NitConc_SALA   ! Cl- in fine sea salt           [mol/kg water]
-     REAL(dp) :: NitConc_SALC   ! Cl- in coarse sea salt         [mol/kg water]
+     REAL(dp) :: HSO3_conc_Cld  !
+     REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]4
+     REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]4
+     REAL(dp) :: mHSO4          ! Bisulfate concentration          [M          ]4
+     REAL(dp) :: mNO3           ! Nitrate concentration            [M          ]4
+     REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]4
+     REAL(dp) :: NIT_conc_SALA  ! Cl- in fine sea salt             [mol/kg H2O ]4
+     REAL(dp) :: NIT_conc_SALC  ! Cl- in coarse sea salt           [mol/kg H2O ]4
      REAL(dp) :: PI             ! PI constant
-     REAL(dp) :: pHCloud        !
+     REAL(dp) :: pHCloud        ! Cloud PH                         [pH units   ]4
      REAL(dp) :: pHSSA(2)       !
-     REAL(dp) :: OMOC_POA       ! Organic matter/organic carbon in POA
-     REAL(dp) :: OMOC_OPOA      ! Organic matter/organic carbon in POA
-     REAL(dp) :: qIce           ! Ice mixing ratio [kg/kg]
-     REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
+     REAL(dp) :: OMOC_POA       ! Org matter/orgc carbon in POA    [1          ]4
+     REAL(dp) :: OMOC_OPOA      ! Org matter/org carbon in POA     [1          ]4
+     REAL(dp) :: qIce           ! Ice mixing ratio                 [kg/kg      ]4
+     REAL(dp) :: qLIq           ! Water mixing ratio               [kg/kg      ]4
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
-     REAL(dp) :: RGASLATM       ! Gas constant [L*atm/K/mole]
-     REAL(dp) :: RSTARG         ! Gas constant [J/K/mole]
-     REAL(dp) :: SPC_SALA       ! SALA concentration
-     REAL(dp) :: SO3conc_Cld    !
-     REAL(dp) :: ssAlk(2)       ! Sea salt alkalinity (fine, coarse)
-     LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?
-     LOGICAL  :: ssFineIsAcid   ! Is fine sea-salt alkaline?
-     LOGICAL  :: ssCoarseIsAlk  ! Is coarse sea-salt alkaline?
-     LOGICAL  :: ssCoarseIsAcid ! Is coarse sea-salt acid?
-     REAL(dp) :: vAir           ! Volume of air [cm3]
-     REAL(dp) :: vIce           ! Ice volume [cm3]
-     REAL(dp) :: vLiq           ! Liquid volume [cm3]
-     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area [cm3 H2O/cm3 air]
-     REAL(dp) :: xH2O(14)       ! Aerosol water content [cm3 H2O/cm3 air]
-     REAL(dp) :: xRadi(14)      ! Aerosol effective radius (cm)
-     REAL(dp) :: xVol(14)       ! Aerosol specific volume [cm3/cm3 air]
+     REAL(dp) :: RGASLATM       ! Gas constant                     [L*atm/K/mol]4
+     REAL(dp) :: RSTARG         ! Gas constant                     [J/K/mole   ]4
+     REAL(dp) :: SO3_conc_Cld   !
+     REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (fine, coarse)
+     LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?       [T/F        ]4
+     LOGICAL  :: ssFineIsAcid   ! Is fine sea-salt alkaline?       [T/F        ]4
+     LOGICAL  :: ssCoarseIsAlk  ! Is coarse sea-salt alkaline?     [T/F        ]4
+     LOGICAL  :: ssCoarseIsAcid ! Is coarse sea-salt acid?         [T/F        ]4
+     REAL(dp) :: vAir           ! Volume of air                    [cm3        ]4
+     REAL(dp) :: vIce           ! Ice volume                       [cm3        ]4
+     REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]4
+     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area        [cm3/cm3 air]4
+     REAL(dp) :: xH2O(14)       ! Aerosol water content            [cm3/cm3 air]4
+     REAL(dp) :: xRadi(14)      ! Aerosol effective radius         [cm         ]4
+     REAL(dp) :: xVol(14)       ! Aerosol specific volume          [cm3/cm3 air]4
   END TYPE HetState
   TYPE(HetState), TARGET, PUBLIC :: State_Het
   !$OMP THREADPRIVATE( State_Het )

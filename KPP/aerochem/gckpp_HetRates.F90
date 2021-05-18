@@ -136,7 +136,6 @@ CONTAINS
 
     ! Initialize
     H         => State_Het  ! Point to State_Het in gckpp_Global.F90
-    H%HetTemp =  0.0_dp
 
     !--------------------------------------------------------------------
     ! Calculate and pass het rates to the KPP rate array
@@ -3154,7 +3153,7 @@ CONTAINS
        State_Het%rLiq = CLDR_CONT
        State_Het%rIce = CLDR_ICE
        State_Het%ALiq = 0.0_dp
-       State_Het%VLiq = 0.0_dp 
+       State_Het%VLiq = 0.0_dp
        State_Het%AIce = 0.0_dp
        State_Het%VIce = 0.0_dp
        RETURN
@@ -3245,7 +3244,7 @@ CONTAINS
 !
 ! !IROUTINE: Get_Theta_Ice
 !
-! !DESCRIPTION: Subroutine GET_THETA_ICE returns theta values for 
+! !DESCRIPTION: Subroutine GET_THETA_ICE returns theta values for
 !  HNO3, HCl, and HBr for ice uptake calculations
 !\\
 !\\
@@ -3274,7 +3273,7 @@ CONTAINS
     !=================================================================
     ! GET_THETA_ICE begins here!
     !=================================================================
-    
+
     ! HNO3
     Nmax    = 2.7e14_dp                                    ! molec/cm2
     KlinC   = 7.5e-5_dp * EXP( 4585.0_dp / TEMP )          ! 1/cm
@@ -3291,7 +3290,7 @@ CONTAINS
     ! HBr
     State_Het%HBr_th = 4.14e-10 * ( HBr**0.88_dp )
     State_Het%HBr_th = MIN( State_Het%HBr_th, 1.0_dp )
-    
+
   END SUBROUTINE Get_Theta_Ice
 !EOC
 !------------------------------------------------------------------------------
@@ -3307,24 +3306,24 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Halide_Conc( I, J, L, State_Het )
+  SUBROUTINE Halide_Conc( I, J, L, H )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I           ! Longitude (X) index
-    INTEGER,        INTENT(IN)    :: J           ! Latitude  (Y) index
-    INTEGER,        INTENT(IN)    :: L           ! Altitude  (Z) index
+    INTEGER,        INTENT(IN)    :: I    ! Longitude (X) index
+    INTEGER,        INTENT(IN)    :: J    ! Latitude  (Y) index
+    INTEGER,        INTENT(IN)    :: L    ! Altitude  (Z) index
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(HetState), INTENT(INOUT) :: State_Het   ! Hetchem State object
+    TYPE(HetState), INTENT(INOUT) :: H    ! Hetchem State object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp) :: BrConc_Cld, ClConc_Cld, denom, HBr, HCl
+    REAL(dp) :: Br_conc, Cl_conc, denom, HBr, HCl
 
     !=======================================================================
     ! Get halide conc's in cloud (gas-phase, fine & coarse sea salt)
@@ -3335,53 +3334,57 @@ CONTAINS
     HCl = C(ind_HCl) + ( C(ind_SALACL) * 0.7_dp ) + C(ind_SALCCL)
 
     ! Get overall Br- and Cl- grid box concentrations in cloud
-    CALL Get_Halide_CldConc( State_Het, HBr, HCl, BrConc_Cld, ClConc_Cld )
+    CALL Get_Halide_CldConc( H, HBr, HCl, Br_conc, Cl_conc )
 
     ! Split Br- into gas-phase (G), fine sea salt (A), coarse sea salt (C)
     ! Avoid div-by-zero (all three expressions use the same denominator)
     denom = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_dp ) + C(ind_BrSALC)
     IF ( denom > 0.0_dp ) THEN
-       State_Het%BrConc_CldG = ( brConc_Cld * C(ind_HBr   )          ) / denom
-       State_Het%BrConc_CldA = ( brConc_Cld * C(ind_BrSALA) * 0.7_dp ) / denom
-       State_het%brConc_CldC = ( brConc_Cld * C(ind_BrSALC)          ) / denom
+       H%Br_conc_CldG = ( Br_conc * C(ind_HBr   )          ) / denom
+       H%Br_conc_CldA = ( Br_conc * C(ind_BrSALA) * 0.7_dp ) / denom
+       H%Br_conc_CldC = ( Br_conc * C(ind_BrSALC)          ) / denom
     ELSE
-       State_Het%BrConc_CldG = 0.0_dp
-       State_Het%BrConc_CldA = 0.0_dp
-       State_Het%BrConc_CldC = 0.0_dp
+       H%Br_conc_CldG = 0.0_dp
+       H%Br_conc_CldA = 0.0_dp
+       H%Br_conc_CldC = 0.0_dp
     ENDIF
 
     ! Enforce minimum values
-    State_Het%BrConc_CldG = MAX( State_Het%brConc_Cldg, 1.0e-20_dp )
-    State_Het%BrConc_CldA = MAX( State_Het%brConc_CldA, 1.0e-20_dp )
-    State_Het%BrConc_CldC = MAX( State_Het%brConc_CldC, 1.0e-20_dp )
+    H%Br_conc_CldG = MAX( H%Br_conc_CldG, 1.0e-20_dp )
+    H%Br_conc_CldA = MAX( H%Br_conc_CldA, 1.0e-20_dp )
+    H%Br_conc_CldC = MAX( H%Br_conc_CldC, 1.0e-20_dp )
 
     ! Split Cl- into gas-phase (G), fine sea salt (A), coarse sea salt (C)
     ! Avoid div-by-zero (all three expressions use the same denominator)
     denom = C(ind_HCl) + ( C(ind_SALACL) * 0.7_dp ) + C(ind_SALCCL)
     IF ( denom > 0.0_dp ) THEN
-       State_Het%ClConc_CldG = ( clConc_Cld * C(ind_HCl   )          ) / denom
-       State_Het%ClConc_CldA = ( clConc_Cld * C(ind_SALACL) * 0.7_dp ) / denom
-       State_Het%ClConc_CldC = ( clConc_Cld * C(ind_SALCCL)          ) / denom
+       H%Cl_conc_CldG = ( Cl_conc * C(ind_HCl   )          ) / denom
+       H%Cl_conc_CldA = ( Cl_conc * C(ind_SALACL) * 0.7_dp ) / denom
+       H%Cl_conc_CldC = ( Cl_conc * C(ind_SALCCL)          ) / denom
     ELSE
-       State_Het%ClConc_CldG = 0.0_dp
-       State_Het%ClConc_CldA = 0.0_dp
-       State_Het%ClConc_CldC = 0.0_dp
+       H%Cl_conc_CldG = 0.0_dp
+       H%Cl_conc_CldA = 0.0_dp
+       H%Cl_Conc_CldC = 0.0_dp
     ENDIF
 
     ! Enforce minimum values
-    State_Het%ClConc_CldG = MAX( State_Het%clConc_CldG, 1.0e-20_dp )
-    State_Het%ClConc_CldA = MAX( State_Het%clConc_CldA, 1.0e-20_dp )
-    State_Het%ClConc_CldC = MAX( State_Het%clConc_CldC, 1.0e-20_dp )
+    H%Cl_Conc_CldG = MAX( H%Cl_conc_CldG, 1.0e-20_dp )
+    H%Cl_Conc_CldA = MAX( H%Cl_conc_CldA, 1.0e-20_dp )
+    H%Cl_Conc_CldC = MAX( H%Cl_conc_CldC, 1.0e-20_dp )
 
-    ! Total Br- in cloud (match order of addition of legacy code)
-    State_Het%BrConc_Cld = State_Het%BrConc_CldA                             &
-                         + State_Het%BrConc_CldG                             &
-                         + State_Het%BrConc_CldC
+    ! Total Br- and Cl- in cloud
+    H%Br_conc_Cld    = H%Br_conc_CldA + H%Br_conc_CldC + H%Br_conc_CldG
+    H%Cl_conc_Cld    = H%Cl_conc_CldA + H%Cl_conc_CldC + H%Cl_conc_CldG
 
-    ! Total Cl- in cloud (match order of addition of legacy code)
-    State_Het%ClConc_Cld = State_Het%ClConc_CldA                             &
-                         + State_Het%ClConc_CldG                             &
-                         + State_Het%ClConc_CldC
+    ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
+    H%Br_branch_CldA = H%Br_conc_CldA / H%Br_conc_Cld
+    H%Br_branch_CldC = H%Br_conc_CldC / H%Br_conc_Cld
+    H%Br_branch_CldG = H%Br_conc_CldG / H%Br_conc_Cld
+
+    ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
+    H%Cl_branch_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
+    H%Cl_branch_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
+    H%Cl_branch_CldG = H%Cl_conc_CldC / H%Cl_conc_Cld
 
     !=======================================================================
     ! Get halide concentrations, in aerosol
@@ -3389,39 +3392,39 @@ CONTAINS
 
     ! Br- concentration in fine sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_BrSALA),                      &
-                             surf_area = State_Het%AClAREA,                  & 
-                             r_w       = State_Het%AClRADI,                  & 
-                             conc_x    = State_Het%BrConc_SALA              )
+                             surf_area = H%AClAREA,                          &
+                             r_w       = H%AClRADI,                          &
+                             conc_x    = H%Br_conc_SALA                     )
 
     ! Br- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_BrSALC),                      &
-                             surf_area = State_Het%XAREA(12),                & 
-                             r_w       = State_Het%XRADI(12),                &
-                             conc_x    = State_Het%BrConc_SALC               )
+                             surf_area = H%XAREA(12),                        &
+                             r_w       = H%XRADI(12),                        &
+                             conc_x    = H%Br_conc_SALC                     )
 
     ! Cl- concentration in fine sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_SALACL),                      &
-                             surf_area = State_Het%AClAREA,                  &
-                             r_w       = State_Het%AClRADI,                  &
-                             conc_x    = State_Het%ClConc_SALA              )
+                             surf_area = H%AClAREA,                          &
+                             r_w       = H%AClRADI,                          &
+                             conc_x    = H%Cl_conc_SALA                     )
 
     ! Cl- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_SALCCL),                      &
-                             surf_area = State_Het%xArea(12),                &
-                             r_w       = State_Het%xRadi(12),                &
-                             conc_x    = State_Het%ClConc_SALC              )
+                             surf_area = H%xArea(12),                        &
+                             r_w       = H%xRadi(12),                        &
+                             conc_x    = H%Cl_conc_SALC                     )
 
     ! NO3- concentration in fine sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_NIT),                         &
-                             surf_area = State_Het%AClAREA,                  &
-                             r_w       = State_Het%AClRADI,                  &
-                             conc_x    = State_Het%nitConc_SALA             )
+                             surf_area = H%AClAREA,                          &
+                             r_w       = H%AClRADI,                          &
+                             conc_x    = H%NIT_conc_SALA                    )
 
     ! NO3- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_NITs),                        &
-                             surf_area = State_Het%xArea(12),                &
-                             r_w       = State_Het%xRadi(12),                &
-                             conc_x    = State_Het%nitConc_SALC             )
+                             surf_area = H%xArea(12),                        &
+                             r_w       = H%xRadi(12),                        &
+                             conc_x    = H%NIT_conc_SALC                    )
 
   END SUBROUTINE Halide_Conc
 !EOC
@@ -3438,13 +3441,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Halide_CldConc( State_Het, HBr, HCl, br_conc, cl_conc )
+  SUBROUTINE Get_Halide_CldConc( H, HBr, HCl, br_conc, cl_conc )
 !
 ! !USES:
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(HetState), INTENT(IN)  :: State_Het  ! Hetchem State object
+    TYPE(HetState), INTENT(IN)  :: H          ! Hetchem State object
     REAL(dp),       INTENT(IN)  :: HBr        ! HBr- concentration [#/cm3]
     REAL(dp),       INTENT(IN)  :: HCl        ! HCl- concentration [#/cm3]
 !
@@ -3474,8 +3477,8 @@ CONTAINS
     !---------------------------------------------------------------
 
     ! V_tot = VLiq + (VIce / T2L) ! (cm3(liq)/cm3(air)
-    V_tot = State_Het%VLiq 
-    V_tot = SAFE_DIV( V_tot, State_Het%CldFr, 0.0_dp )
+    V_tot = H%VLiq
+    V_tot = SAFE_DIV( V_tot, H%CldFr, 0.0_dp )
 
     ! Exit if not in cloud
     IF ( V_tot < 1.0e-20_dp ) THEN
@@ -3491,13 +3494,12 @@ CONTAINS
     cl_conc = F_L * HCl / (V_tot * AVO * 1.0e-3_dp)
 
     ! Bromide (mol/L)
-    CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  & 
+    CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  &
                             TEMP,      V_tot,       L2G,   pH               )
     F_L = L2G / ( 1.0_dp + L2G )
     br_conc = F_L * HBr / ( V_tot * AVO * 1.0e-3_dp )
 
   END SUBROUTINE Get_Halide_CldConc
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3536,7 +3538,7 @@ CONTAINS
 
     ! Cloud volume
     V_tot = surf_area * r_w * 0.3333333e0_dp * 1e-3_dp ! L(liq)/cm3(air)
- 
+
     ! Skip if we are not in cloud
     IF ( V_tot <= 1.0e-20_dp ) THEN
        conc_x = 1.0e-20_dp
@@ -3548,8 +3550,8 @@ CONTAINS
     ! V_tot*(1-CF), n_x = n_x*(1-CF), so (1-CF) is canceled.
     ! xnw, 02/05/18
     conc_x = ( n_x / AVO ) / V_tot    ! mol/L
-    conc_x = MAX( conc_x, 1.0e-20_dp ) 
- 
+    conc_x = MAX( conc_x, 1.0e-20_dp )
+
   END SUBROUTINE Get_Halide_SsaConc
 !EOC
 !------------------------------------------------------------------------------
@@ -3623,7 +3625,7 @@ CONTAINS
     ! Use Henry's Law to get the ratio:
     ! [ mixing ratio in liquid phase / mixing ratio in gas phase ]
     L2G_8 = HEFF_8 * H2OLIQ
-    
+
     ! Cast outputs to flex-precision
     L2G = L2G_8
 
@@ -3934,7 +3936,7 @@ CONTAINS
 !
 !    ! Add BrNO3 + H2O hydrolysis on stratospheric liquid aerosol (#13)
 !    k = k + H%xArea(13) * H%KHETI_SLA(6)
-! 
+!
 !    ! Add BrNO3 + H2O hydrolysis on irregular ice cloud (#14)
 !    gam = 0.3_dp                              ! Rxn uptake rate, ice [1]
 !    IF ( H%NatSurface ) gam = 0.001_dp        ! Rxn uptake rate, NAT [1]
