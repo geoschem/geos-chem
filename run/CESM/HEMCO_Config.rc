@@ -122,7 +122,7 @@ Warnings:                    1
     --> OLSON_LANDMAP          :       false    # 1985
     --> YUAN_MODIS_LAI         :       false    # 2005-2016
     --> RRTMG                  :       false    # 2002
-    --> SfcVMR                 :       false    # 1750-2014
+    --> SfcVMR                 :       true     # 1750-2014
     --> OCEAN_O3_DRYDEP        :       true     # 1985
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
@@ -3610,29 +3610,29 @@ Warnings:                    1
 #
 # Use core CMIP6 observationally constrained data from Meinshausen et al. (2017) GMD
 #==============================================================================
-* SfcVMR_CH3Cl  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3CL  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2CL2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CHCl3  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCL3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH3Br  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3BR  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3CL  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH2CL2 $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CHCL3  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3BR  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 
 #==============================================================================
 # --- WMO-2018 files (GMI) ---
 #==============================================================================
-* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CCL4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CCL4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3BR       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CCL3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CL       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3BR   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CH3CCL3  $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3CL   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
 #* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_H1211    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_H1301    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_H2402    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc C2BR2F4     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC141B    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC142B    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC141B $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC142B $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
 * SfcVMR_N2O      $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
 
