@@ -873,7 +873,7 @@ CONTAINS
           ! In-cloud loss frequency [1/s]
           ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
           kI   = kI + ktmp
-          
+
           ! In-cloud loss frequency for liquid rxn branch [1/s]
           kIb  = kIb + ( ktmp * brLiq )
        ENDIF
@@ -891,7 +891,7 @@ CONTAINS
        ! Skip if no area
        IF ( area > 0.0_dp ) THEN
 
-          ! In-cloud loss frequency [1/s] 
+          ! In-cloud loss frequency [1/s]
           ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
           kI   = kI + ktmp
 
@@ -1053,6 +1053,36 @@ CONTAINS
   END FUNCTION Is_SafeDiv
 
   !=========================================================================
+  ! Rate-law functions for HBr
+  !=========================================================================
+
+  FUNCTION HBrUptkBySALA( H ) RESULT( k )
+    !
+    ! Computes uptake rate of HBr on fine sea salt (in clear-sky).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    area  = H%ClearFr * H%aClArea
+    gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
+    k     = Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_HBr) )
+  END FUNCTION HBrUptkBySALA
+
+  FUNCTION HBrUptkBySALC( H ) RESULT( k )
+    !
+    ! Computes uptake rate of HBr on coarse sea salt (in clear-sky).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    area  = H%ClearFr * H%xArea(SSC)
+    gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
+    k     = Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_HBr) )
+  END FUNCTION HBrUptkBySALC
+
+  !=========================================================================
   ! Rate-law functions for HO2
   !=========================================================================
 
@@ -1066,25 +1096,19 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_HO2)
     !
-    ! Uptake by mineral dust (aerosol types 1-7)
-    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), H%gamma_HO2, srMw )
-    !
-    ! Uptake by tropospheric sulfate, BC, and OC (aerosol types 8-10)
-    k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), H%gamma_HO2, srMw )
-    !
-    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-    k = k + Ars_L1k( H%xArea(11), H%xRadi(11), H%gamma_HO2, srMw )
-    k = k + Ars_L1k( H%xArea(12), H%xRadi(12), H%gamma_HO2, srMw )
-    !
-    ! Skip uptake on strat sulfate (#13) and irregular ice cloud (#14)
+    ! Uptake by various aerosol types
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), H%gamma_HO2, srMw )
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
@@ -1101,32 +1125,32 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    ! Uptake rate of iodine by tropospheric sulfate (N=8)
-    k = Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+    ! Uptake rate of iodine by tropospheric sulfate
+    k = Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
 
     ! For UCX-based mechanisms also allow reaction on stratospheric
-    ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
+    ! sulfate liq aerosol if tropospheric sulfate is requested
     IF ( H%is_UCX ) THEN
-       k = k + Ars_L1k( H%xArea(13), H%xRadi(13), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     ENDIF
   END FUNCTION IuptkBySulf1stOrd
 
   FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for uptake of iodine species
-    ! by accumulation-mode sea-salt aerosol.
+    ! by accumulation-mode (aka fine) sea-salt aerosol.
     !
     REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    k = Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
+    k = Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
   END FUNCTION IuptkbySALA1stOrd
 
   FUNCTION IuptkByAlkSALA1stOrd( srMw, gamma, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for uptake of iodine species
-    ! by alkaline accumulation-mode sea-salt aerosol.
+    ! by alkaline accumulation-mode (aka fine) sea-salt aerosol.
     !
     REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
@@ -1147,7 +1171,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
   END FUNCTION IuptkBySALC1stOrd
 
   FUNCTION IuptkByAlkSALC1stOrd( srMw, gamma, H ) RESULT( k )
@@ -1245,49 +1269,49 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_N2O5)
     !
-    ! Uptake on mineral dust (aerosol types #1 - #7)
+    ! Uptake on mineral dust
     gamma = 0.02_dp
-    k = k + Ars_L1K( H%ClearFr * H%xArea(1 ), H%xRadi(1 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(2 ), H%xRadi(2 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(3 ), H%xRadi(3 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(4 ), H%xRadi(4 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(5 ), H%xRadi(5 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(6 ), H%xRadi(6 ), gamma, srMw )
-    k = k + Ars_L1K( H%ClearFr * H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
     !
-    ! Uptake on tropospheric sulfate (aerosol type #8),
+    ! Uptake on tropospheric sulfate
     ! Reduce the rate of the HNO3 pathway in accordinace with
     ! the ClNO2 yield on SNA + ORG aerosol
     ! Reduce ClNO2 yield by 75% (cf McDuffie et al, JGR, 2018)
     CALL N2O5_InorgOrg(                                     &
-         H,          H%AClVol,  H%xVol(10), H%xH2O(8),      &
-         H%xH2O(10), H%AClRadi, C(ind_NIT), C(ind_SALACL),  &
+         H,          H%AClVol,  H%xVol(ORC), H%xH2O(SUL),   &
+         H%xH2O(ORC), H%AClRadi, C(ind_NIT), C(ind_SALACL), &
          gamma,      Y_ClNO2,   Rp,         SA             )
     !
     ktmp = Ars_L1K( H%ClearFr * SA, Rp, gamma, srMw )
     k = k + ktmp - ( ktmp * Y_ClNO2 * 0.25_dp )
     !
-    ! Uptake on black carbon (aerosol type #9)
+    ! Uptake on black carbon
     gamma = 0.005_dp
-    k = k + Ars_L1K( H%ClearFr * H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
     !
     ! Uptake on coarse sea salt (aerosol type #12)
     ! Reduce the rate of this HNO3 pathway in accordance with the yield
     CALL N2O5_InorgOrg(                                     &
-         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),      &
-         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),   &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),    &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),  &
          gamma,  Y_ClNO2,     Rp,          SA              )
     !
     ktmp = Ars_L1k( H%ClearFr * SA, Rp, gamma, srMw )
     k    = k + ktmp - ( ktmp * Y_ClNO2 )
     !
-    ! Uptake on stratopsheric liquid aerosol (type #13)
-    k = k + H%xArea(13) * H%KHETI_SLA(1)
+    ! Uptake on stratopsheric liquid aerosol
+    k = k + H%xArea(SLA) * H%KHETI_SLA(id_N2O5_H2O)
     !
-    ! Uptake on irregular ice cloud (type #14)
+    ! Uptake on irregular ice cloud
     gamma = 0.02_dp                           ! Ice
     IF ( H%natSurface ) gamma = 4.0e-4_dp    ! NAT
-    k = k + Ars_L1K( H%ClearFr * H%xArea(14), H%xRadi(14), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Assume N2O5 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_N2O5), C(ind_H2O), k )
@@ -1306,10 +1330,10 @@ CONTAINS
     k = 0.0_dp
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
-    CALL N2O5_InorgOrg(                                      &
-         H,           H%AClVol,  H%xVol(10),    H%xH2O(8),   &
-         H%xH2O(10), H%aClRadi, C(ind_NIT), C(ind_SALACL), &
-         gamma,       Y_ClNO2,    Rp,            SA          )
+    CALL N2O5_InorgOrg(                                       &
+         H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),    &
+         H%xH2O(ORC), H%aClRadi, C(ind_NIT),  C(ind_SALACL),  &
+         gamma,       Y_ClNO2,   Rp,          SA             )
 
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol.
     ! Reduce ClNO2 production yield on fine inorganic+organic
@@ -1335,8 +1359,8 @@ CONTAINS
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
     CALL N2O5_InorgOrg(                                    &
-         H,      H%xVol(12),  0.0_dp,      H%xH2O(12),     &
-         0.0_dp, H%xRadi(12), C(ind_NITs), C(ind_SALCCL),  &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),   &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL), &
          gamma,  Y_ClNO2,     Rp,          SA             )
 
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
@@ -1555,13 +1579,13 @@ CONTAINS
     !
     IF ( H%is_UCX .and. H%stratBox ) THEN
        !
-       ! Uptake on stratospheric liquid aerosol (type #13)
-       k = k + ( H%XAREA(13) * H%KHETI_SLA(2) )
+       ! Uptake on stratospheric liquid aerosol
+       k = k + ( H%xArea(SLA) * H%KHETI_SLA(id_N2O5_HCl) )
        !
-       ! Uptake on irregular ice cloud (type #14)
+       ! Uptake on irregular ice cloud
        gamma = 0.03_dp                         ! Ice
        IF ( H%natSurface ) gamma = 0.003_dp   ! NAT
-       k = k + Ars_L1K( H%xArea(14), H%xRadi(14), gamma, SR_MW(ind_N2O5) )
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, SR_MW(ind_N2O5) )
     ENDIF
 
     ! Assume N2O5 is limiting, so update the removal rate accordingly
@@ -1585,25 +1609,25 @@ CONTAINS
     !
     ! Uptake by mineral dust (aerosol types 1-7)
     gamma = 1.0e-8_dp
-    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
     !
     ! Uptake by tropospheric sulfate (aerosol type 8)
     gamma = 5e-6_dp
-    k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
     !
     ! Uptake by black carbon (aerosol type 9)
     gamma = 1e-4_dp
-    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
     !
-    ! Uptake by black carbon (aerosol type 10)
+    ! Uptake by organic carbon (aerosol type 10)
     gamma = 1e-6_dp
-    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
     !
     ! Uptake by fine & coarse sea salt (aerosol types 11-12)
     IF ( relhum < 40.0_dp ) THEN
@@ -1613,14 +1637,14 @@ CONTAINS
     ELSE
        gamma = 1.0e-8_dp + (1e-4_dp - 1e-8_dp) * (relhum - 40.0_dp)/30.0_dp
     ENDIF
-    k = k + Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
     !
     ! Uptake by stratospheric sulfate (aerosol type 13)
     ! and by irregular ice cloud (aerosol type 14)
     gamma = 1.0e-4_dp
-    k = k + H%xArea(13) * gamma
-    k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
+    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO2 in cloud (liquid branch only)
     k = k + CloudHet( H, SR_MW(ind_NO2), 1.0e-8_dp, 0.0_dp, 1.0_dp, 0.0_dp )
@@ -1668,33 +1692,33 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_NO3)
     !
-    ! Uptake by mineral dust (aerosol types 1-7)
+    ! Uptake by mineral dust bins 1-7
     gamma = 0.01_dp
-    k = k + Ars_L1k( H%xArea(1 ), H%xRadi(1 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(2 ), H%xRadi(2 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(3 ), H%xRadi(3 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(4 ), H%xRadi(4 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(5 ), H%xRadi(5 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(6 ), H%xRadi(6 ), gamma, srMw )
-    k = k + Ars_L1k( H%xArea(7 ), H%xRadi(7 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
     !
-    ! Uptake by black carbon (aerosol type 9)
+    ! Uptake by black carbon
     IF ( relhum < 50.0_dp ) THEN
        gamma = 2.0e-4_dp
     ELSE
        gamma = 1.0e-3_dp
     ENDIF
-    k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
     !
-    ! Uptake by organic carbon (aerosol type 10)
+    ! Uptake by organic carbon
     gamma = 0.005_dp
-    k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
     !
-    ! Uptake by stratospheric sulfate (aerosol type 13)
-    ! and by irregular ice cloud (aerosol type 14)
+    ! Uptake by stratospheric sulfate liquid aerosol
+    ! and by irregular ice cloud
     gamma = 0.1_dp
-    k = k + H%xArea(13) * gamma
-    k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
+    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO3 in cloud (liquid and ice branches)
     k = k + CloudHet( H, SR_MW(ind_NO3), 0.002_dp, 0.001_dp, 1.0_dp, 1.0_dp )
@@ -1712,7 +1736,7 @@ CONTAINS
     ! Compute reactive uptake coefficient [1]
     area  = H%aClArea
     radi  = H%aClRadi
-    water = H%aWater(1)
+    water = H%aWater(id_FINE)
     conc  = H%Cl_conc_SALA
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
@@ -1731,9 +1755,9 @@ CONTAINS
     REAL(dp) :: area, conc, gamma, radi, water   ! local vars
     !
     ! Compute reactive uptake coefficient [1]
-    area  = H%xArea(12)
-    radi  = H%xRadi(12)
-    water = H%aWater(2)
+    area  = H%xArea(SSC)
+    radi  = H%xRadi(SSC)
+    water = H%aWater(id_COARSE)
     conc  = H%Cl_conc_SALC
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
@@ -1769,7 +1793,7 @@ CONTAINS
   FUNCTION O3uptkByHBrInTropCloud( H ) RESULT( k )
     !
     ! Computes the O3 + HBr uptake rate in tropospheric cloud.
-    ! 
+    !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
@@ -1821,9 +1845,9 @@ CONTAINS
     !
     ! O3 + Br- uptake on acidic coarse sea salt, clear sky
     IF ( H%ssCoarseIsAcid ) THEN
-       area  = H%ClearFr * H%xArea(12)
-       gamma = Gamma_O3_Br( H, H%xRadi(12), H%Br_conc_SALC )
-       k     = k + Ars_L1K( area, H%xRadi(12), gamma, SR_MW(ind_O3) )
+       area  = H%ClearFr * H%xArea(SSC)
+       gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SALC )
+       k     = k + Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_O3) )
     ENDIF
 
     ! Assume OH is limiting, so update the removal rate accordingly
@@ -1881,7 +1905,7 @@ CONTAINS
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
     gamma = 0.04_dp * H%Cl_conc_SALA
-    k = Ars_L1k( H%AClArea, H%AClRadi, gamma, SR_MW(ind_OH) )
+    k = Ars_L1k( H%aClArea, H%aClRadi, gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_OH), C(ind_SALACL), k )
@@ -1896,7 +1920,7 @@ CONTAINS
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
     gamma = 0.04_dp * H%Cl_conc_SALC
-    k = Ars_L1k( H%xArea(12), H%xRadi(12), gamma, SR_MW(ind_OH) )
+    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), k )
@@ -1920,13 +1944,14 @@ CONTAINS
     k     = 0.0_dp
     gamma = 0.0_dp
     !
+    ! Uptake by tropospheric sulfate
     IF ( RELHUM >= CRITRH ) THEN
        IF ( SUNCOS > 0.0_dp ) THEN
           gamma = 4.4e-3_dp   ! cf Liggio et al 2005
        ELSE
           gamma = 8.0e-6_dp   ! F. McNeill, to E. Marais (2015)
        ENDIF
-       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
     ENDIF
   END FUNCTION GLYXuptk1stOrd
 
@@ -1967,7 +1992,7 @@ CONTAINS
     valTmp = 0.0_dp
     !
     ! Calculate aerosol volume (use formula in aerosol_mod.F):
-    aerVol = ( H%xArea(8) *  H%xRadi(8) ) / 3.0_dp
+    aerVol = ( H%xArea(SUL) *  H%xRadi(SUL) ) / 3.0_dp
     !
     ! Calculate mean molecular speed [cm/s]:
     xmms = SQRT( ( 2.117e+8_dp * TEMP ) / ( srMw * srMw ) )
@@ -1981,15 +2006,15 @@ CONTAINS
           + ( K_HYDRO                                     )
     !
     ! Calculate the first uptake parameterization term:
-    val1 = ( H%xRadi(8) * xmms ) / ( 4.0_dp * DIFF_N2O5_STD )
+    val1 = ( H%xRadi(SUL) * xmms ) / ( 4.0_dp * DIFF_N2O5_STD )
     !
     ! Calculate the second uptake parameterization term:
     val2 = ( 1.0_dp / MACOEFF )
     !
     ! Calculate the third uptake parameterization term:
-    IF ( H%xArea(8) > 0.0_dp .and. XMMS > 0.0_dp ) THEN
+    IF ( H%xArea(SUL) > 0.0_dp .and. XMMS > 0.0_dp ) THEN
        valTmp = ( 4.0_dp * aerVol * H%RGASLATM * TEMP * HSTAR_EPOX * kPart )&
-              / ( H%xArea(8) * xmms                                        )
+              / ( H%xArea(SUL) * xmms                                      )
     ENDIF
     !
     val3 = 0.0_dp
@@ -2026,8 +2051,8 @@ CONTAINS
           gamma = gamma / 30.0_dp
        ENDIF
        !
-       ! Uptake by tropospheric sulfate (aerosol type 8)
-       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+       ! Uptake by tropospheric sulfate
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
     ENDIF
   END FUNCTION IEPOXuptk1stOrd
 
@@ -2050,8 +2075,8 @@ CONTAINS
        ! MGLY (3.7d3) (eam, 02/2015):
        gamma = 3.6e-7_dp
        !
-       ! Uptake by tropospheric sulfate (aerosol type 8)
-       k = k + Ars_L1k( H%xArea(8), H%xRadi(8), gamma, srMw )
+       ! Uptake by tropospheric sulfate
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
     ENDIF
   END FUNCTION MGLYuptk1stOrd
 
@@ -2068,22 +2093,13 @@ CONTAINS
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.0
     IF ( RELHUM >= CRITRH ) THEN
-       !
-       ! Uptake by tropospheric sulfate (aerosol type 8)
-       k = k + Ars_L1k( H%xArea(8 ), H%xRadi(8 ), gamma, srMw )
-       !
-       ! Uptake by black carbon and organic carbon (aerosol types 9-10)
-       k = k + Ars_L1k( H%xArea(9 ), H%xRadi(9 ), gamma, srMw )
-       k = k + Ars_L1k( H%xArea(10), H%xRadi(10), gamma, srMw )
-       !
-       ! Uptake by fine & coarse sea salt (aerosol types 11-12)
-       k = k + Ars_L1k( H%xArea(11), H%xRadi(11), gamma, srMw )
-       k = k + Ars_L1k( H%xArea(12), H%xRadi(12), gamma, srMw )
-       !
-       ! Uptake by stratospheric sulfate (aerosol type 13)
-       ! and by irregular ice cloud (aerosol type 14)
-       k = k + H%xArea(13) * gamma
-       k = k + Ars_L1k( H%xArea(14), H%xRadi(14), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+       k = k + H%xArea(SLA) * gamma
+       k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ENDIF
   END FUNCTION VOCuptk1stOrd
 
@@ -2793,8 +2809,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(642) = (O3uptkByHBrInTropCloud(State_Het))
   RCONST(643) = (O3uptkByCloudAndBrSALA(State_Het))
   RCONST(644) = (O3uptkByCloudAndBrSALC(State_Het))
-  RCONST(645) = (HET(ind_HBr,1))
-  RCONST(646) = (HET(ind_HBr,2))
+  RCONST(645) = (HBrUptkBySALA(State_Het))
+  RCONST(646) = (HBrUptkBySALC(State_Het))
   RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
   RCONST(648) = (IuptkBySALA1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
   RCONST(649) = (IuptkBySALC1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))

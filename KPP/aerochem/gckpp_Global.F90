@@ -105,6 +105,39 @@ MODULE gckpp_Global
   ! Add more inlined global parameters for heterogeneous chemistry here
   !-----------------------------------------------------------------------
 
+  ! Indices for aerosol type (1 .. NAEROTYPE=14)
+  INTEGER,  PARAMETER :: DU1 = 1   ! (1 ) Mineral dust (reff = 0.151 um)
+  INTEGER,  PARAMETER :: DU2 = 2   ! (2 ) Mineral dust (reff = 0.253 um)
+  INTEGER,  PARAMETER :: DU3 = 3   ! (3 ) Mineral dust (reff = 0.402 um)
+  INTEGER,  PARAMETER :: DU4 = 4   ! (4 ) Mineral dust (reff = 0.818 um)
+  INTEGER,  PARAMETER :: DU5 = 5   ! (5 ) Mineral dust (reff = 1.491 um)
+  INTEGER,  PARAMETER :: DU6 = 6   ! (6 ) Mineral dust (reff = 2.417 um)
+  INTEGER,  PARAMETER :: DU7 = 7   ! (7 ) Mineral dust (reff = 3.721 um)
+  INTEGER,  PARAMETER :: SUL = 8   ! (8 ) Tropospheric sulfate
+  INTEGER,  PARAMETER :: BKC = 9   ! (9 ) Black Carbon
+  INTEGER,  PARAMETER :: ORC = 10  ! (10) Organic Carbon
+  INTEGER,  PARAMETER :: SSA = 11  ! (11) Fine (accum-mode) sea salt
+  INTEGER,  PARAMETER :: SSC = 12  ! (12) Coarse sea salt
+  INTEGER,  PARAMETER :: SLA = 13  ! (13) Strat sulfate liquid aerosol
+  INTEGER,  PARAMETER :: IIC = 14  ! (14) Irregular ice cloud
+
+  ! Indices for Fine and coarse sea-salt indices
+  INTEGER,  PARAMETER :: id_FINE   = 1
+  INTEGER,  PARAMETER :: id_COARSE = 2
+
+  ! Indices for the KHETI_SLA array
+  INTEGER,  PARAMETER :: id_N2O5_H2O   = 1
+  INTEGER,  PARAMETER :: id_N2O5_HCl   = 2
+  INTEGER,  PARAMETER :: id_ClNO3_H2O  = 3
+  INTEGER,  PARAMETER :: id_ClNO3_HCl  = 4
+  INTEGER,  PARAMETER :: id_ClNO3_HBr  = 5
+  INTEGER,  PARAMETER :: id_BrNO3_H2O  = 6
+  INTEGER,  PARAMETER :: id_BrNO3_HCl  = 7
+  INTEGER,  PARAMETER :: id_HOCl_HCl   = 8
+  INTEGER,  PARAMETER :: id_HOCl_HBr   = 9
+  INTEGER,  PARAMETER :: id_HOBr_HCl   = 10
+  INTEGER,  PARAMETER :: id_HOBr_HBr   = 11
+
   ! Minimum heterogeneous chemistry lifetime and reaction rate
   REAL(dp), PARAMETER :: HET_MIN_LIFE  = 1.e-3_dp
   REAL(dp), PARAMETER :: HET_MIN_RATE  = 1.0_dp / HET_MIN_LIFE
@@ -152,9 +185,6 @@ MODULE gckpp_Global
   ! HET(ind_ClNO3,  5) : ClNO3  +  BrSALC
   ! HET(ind_ClNO3,  6) : ClNO3  +  SALACL
   ! HET(ind_ClNO3,  7) : CLNO3  +  SALCCL
-  ! HET(ind_HBr,    1) : Br     -> BrSALA
-  ! HET(ind_HBr,    2) : Br     -> BrSALC
-  ! HET(ind_HO2,    1) : HO2    uptake          # 1st-order loss rxn
   ! HET(ind_HOBr,   1) : HOBr   +  HBr
   ! HET(ind_HOBr,   2) : HOBr   +  HCl
   ! HET(ind_HOBr,   3) : HOBr   +  SALACL
@@ -169,9 +199,6 @@ MODULE gckpp_Global
   ! HET(ind_HOCl,   4) : HOCl   +  SALCCL
   ! HET(ind_HOCl,   5) : HOCl   +  HSO3--(aq)
   ! HET(ind_HOCl,   6) : HOCl   +  SO3--(aq)
-  ! HET(ind_O3,     1) : O3    + HBr
-  ! HET(ind_O3,     2) : O3    + BrSALA
-  ! HET(ind_O3,     3) : O3    + BrSALC
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 
