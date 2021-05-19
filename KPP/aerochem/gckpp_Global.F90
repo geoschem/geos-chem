@@ -95,74 +95,80 @@ MODULE gckpp_Global
 ! INLINED global variable declarations
 
   !-----------------------------------------------------------------------
-  ! Add parameters to isolate a box for debugging
+  ! Add global parameters here -- these will go into gckpp_Global.F90
   !-----------------------------------------------------------------------
-  INTEGER,  PARAMETER :: I_dbg = 50
-  INTEGER,  PARAMETER :: J_dbg = 2
-  INTEGER,  PARAMETER :: L_dbg = 44
 
-  !-----------------------------------------------------------------------
-  ! Add more inlined global parameters for heterogeneous chemistry here
-  !-----------------------------------------------------------------------
+  ! Debug box (change if necessary)
+  INTEGER,  PARAMETER :: I_dbg         = 50
+  INTEGER,  PARAMETER :: J_dbg         = 2
+  INTEGER,  PARAMETER :: L_dbg         = 44
 
   ! Indices for aerosol type (1 .. NAEROTYPE=14)
-  INTEGER,  PARAMETER :: DU1 = 1   ! (1 ) Mineral dust (reff = 0.151 um)
-  INTEGER,  PARAMETER :: DU2 = 2   ! (2 ) Mineral dust (reff = 0.253 um)
-  INTEGER,  PARAMETER :: DU3 = 3   ! (3 ) Mineral dust (reff = 0.402 um)
-  INTEGER,  PARAMETER :: DU4 = 4   ! (4 ) Mineral dust (reff = 0.818 um)
-  INTEGER,  PARAMETER :: DU5 = 5   ! (5 ) Mineral dust (reff = 1.491 um)
-  INTEGER,  PARAMETER :: DU6 = 6   ! (6 ) Mineral dust (reff = 2.417 um)
-  INTEGER,  PARAMETER :: DU7 = 7   ! (7 ) Mineral dust (reff = 3.721 um)
-  INTEGER,  PARAMETER :: SUL = 8   ! (8 ) Tropospheric sulfate
-  INTEGER,  PARAMETER :: BKC = 9   ! (9 ) Black Carbon
-  INTEGER,  PARAMETER :: ORC = 10  ! (10) Organic Carbon
-  INTEGER,  PARAMETER :: SSA = 11  ! (11) Fine (accum-mode) sea salt
-  INTEGER,  PARAMETER :: SSC = 12  ! (12) Coarse sea salt
-  INTEGER,  PARAMETER :: SLA = 13  ! (13) Strat sulfate liquid aerosol
-  INTEGER,  PARAMETER :: IIC = 14  ! (14) Irregular ice cloud
+  INTEGER,  PARAMETER :: DU1           = 1   ! Dust (Reff = 0.151 um)
+  INTEGER,  PARAMETER :: DU2           = 2   ! Dust (Reff = 0.253 um)
+  INTEGER,  PARAMETER :: DU3           = 3   ! Dust (Reff = 0.402 um)
+  INTEGER,  PARAMETER :: DU4           = 4   ! Dust (Reff = 0.818 um)
+  INTEGER,  PARAMETER :: DU5           = 5   ! Dust (Reff = 1.491 um)
+  INTEGER,  PARAMETER :: DU6           = 6   ! Dust (Reff = 2.417 um)
+  INTEGER,  PARAMETER :: DU7           = 7   ! Dust (Reff = 3.721 um)
+  INTEGER,  PARAMETER :: SUL           = 8   ! Tropospheric Sulfate
+  INTEGER,  PARAMETER :: BKC           = 9   ! Black Carbon
+  INTEGER,  PARAMETER :: ORC           = 10  ! Organic Carbon
+  INTEGER,  PARAMETER :: SSA           = 11  ! Accum-mode (fine) sea salt
+  INTEGER,  PARAMETER :: SSC           = 12  ! Coarse sea salt
+  INTEGER,  PARAMETER :: SLA           = 13  ! Strat sulfate liq aerosol
+  INTEGER,  PARAMETER :: IIC           = 14  ! Irregular ice cloud
 
   ! Indices for Fine and coarse sea-salt indices
-  INTEGER,  PARAMETER :: id_FINE   = 1
-  INTEGER,  PARAMETER :: id_COARSE = 2
+  INTEGER,  PARAMETER :: SS_FINE        = 1
+  INTEGER,  PARAMETER :: SS_COARSE      = 2
 
   ! Indices for the KHETI_SLA array
-  INTEGER,  PARAMETER :: id_N2O5_H2O   = 1
-  INTEGER,  PARAMETER :: id_N2O5_HCl   = 2
-  INTEGER,  PARAMETER :: id_ClNO3_H2O  = 3
-  INTEGER,  PARAMETER :: id_ClNO3_HCl  = 4
-  INTEGER,  PARAMETER :: id_ClNO3_HBr  = 5
-  INTEGER,  PARAMETER :: id_BrNO3_H2O  = 6
-  INTEGER,  PARAMETER :: id_BrNO3_HCl  = 7
-  INTEGER,  PARAMETER :: id_HOCl_HCl   = 8
-  INTEGER,  PARAMETER :: id_HOCl_HBr   = 9
-  INTEGER,  PARAMETER :: id_HOBr_HCl   = 10
-  INTEGER,  PARAMETER :: id_HOBr_HBr   = 11
+  INTEGER,  PARAMETER :: N2O5_plus_H2O  = 1
+  INTEGER,  PARAMETER :: N2O5_plus_HCl  = 2
+  INTEGER,  PARAMETER :: ClNO3_plus_H2O = 3
+  INTEGER,  PARAMETER :: ClNO3_plus_HCl = 4
+  INTEGER,  PARAMETER :: ClNO3_plus_HBr = 5
+  INTEGER,  PARAMETER :: BrNO3_plus_H2O = 6
+  INTEGER,  PARAMETER :: BrNO3_plus_HCl = 7
+  INTEGER,  PARAMETER :: HOCl_plus_HCl  = 8
+  INTEGER,  PARAMETER :: HOCl_plus_HBr  = 9
+  INTEGER,  PARAMETER :: HOBr_plus_HCl  = 10
+  INTEGER,  PARAMETER :: HOBr_plus_HBr  = 11
 
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(dp), PARAMETER :: HET_MIN_LIFE  = 1.e-3_dp
-  REAL(dp), PARAMETER :: HET_MIN_RATE  = 1.0_dp / HET_MIN_LIFE
+  REAL(dp), PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
+  REAL(dp), PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
 
-  ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
-  REAL(dp), PARAMETER :: CRITRH      = 35.0_dp
+  ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
+  REAL(dp), PARAMETER :: CRITRH         = 35.0_dp
 
   ! Conversion factor from atm to bar
-  REAL(dp), PARAMETER :: CON_ATM_BAR = 1.0_dp / 1.01325_dp
+  REAL(dp), PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
 
   ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(dp), PARAMETER :: CON_R       = 0.083144598_dp
+  REAL(dp), PARAMETER :: CON_R          = 0.083144598_dp
 
   ! Reference temperature used in Henry's law
-  REAL(dp), PARAMETER :: INV_T298    = 1.0_dp / 298.15_dp
+  REAL(dp), PARAMETER :: INV_T298       = 1.0_dp / 298.15_dp
 
   !--------------------------------------------------------------------------
-  ! Add more global variables here, so that they can be used
-  ! in inlined functions that will get written to gckpp_Rates.F90
+  ! Additional global variables -- will be added to gckpp_Global.F90
   !--------------------------------------------------------------------------
 
   ! H2O concentration
   REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
+
+  ! Pressure and relative humidity
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
+  !$OMP THREADPRIVATE( PRESS, RELHUM )
+
+  ! Cosine of solar zenith angle
+  REAL(dp) :: SUNCOS
+  !$OMP THREADPRIVATE( SUNCOS )
 
   ! Henry's law constants (do not need to be THREADPRIVATE)
   REAL(dp) :: HENRY_K0(NSPEC)
@@ -170,8 +176,6 @@ MODULE gckpp_Global
 
   !### NOTE: The HET array is deprecated
   ! Array for heterogeneous rates
-  ! HET(ind_BrNO3,  1) : BrNO3  +  H2O          # hydrolysis rxn
-  ! HET(ind_BrNO3,  2) : BrNO3  +  HCl
   ! HET(ind_ClNO2,  1) : ClNO2  +  SALACL
   ! HET(ind_ClNO2,  2) : ClNO2  +  SALCCL
   ! HET(ind_ClNO2,  3) : ClNO3  +  HCl          # in-cloud only
@@ -202,18 +206,9 @@ MODULE gckpp_Global
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 
-  ! Array for photolysis rates
+  ! Array for photolysis rates (increase size if necessary)
   REAL(dp) :: PHOTOL(1000)
   !$OMP THREADPRIVATE( PHOTOL )
-
-  ! Pressure and relative humidity
-  REAL(dp) :: PRESS
-  REAL(dp) :: RELHUM
-  !$OMP THREADPRIVATE( PRESS, RELHUM )
-
-  ! Cosine of solar zenith angle
-  REAL(dp) :: SUNCOS
-  !$OMP THREADPRIVATE( SUNCOS )
 
   TYPE, PUBLIC :: HetState
      REAL(dp) :: AVO            ! Avogadro's constant              [molec/mol  ]4
@@ -248,6 +243,7 @@ MODULE gckpp_Global
      REAL(dp) :: Cl_conc_SALC   ! Cl- in coarse sea salt           [mol/kg H2O ]4
      REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]4
      REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]4
+     REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine SS   [1          ]4
      REAL(dp) :: fupdateHOBr    !
      REAL(dp) :: fupdateHOCl    !
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]4
@@ -268,9 +264,9 @@ MODULE gckpp_Global
      REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]4
      REAL(dp) :: NIT_conc_SALA  ! Cl- in fine sea salt             [mol/kg H2O ]4
      REAL(dp) :: NIT_conc_SALC  ! Cl- in coarse sea salt           [mol/kg H2O ]4
-     REAL(dp) :: PI             ! PI constant
+     REAL(dp) :: PI             ! PI constant                      [1          ]4
      REAL(dp) :: pHCloud        ! Cloud PH                         [pH units   ]4
-     REAL(dp) :: pHSSA(2)       !
+     REAL(dp) :: pHSSA(2)       ! Sea salt pH (1=fine, 2=coarse)   [pH units   ]4
      REAL(dp) :: OMOC_POA       ! Org matter/orgc carbon in POA    [1          ]4
      REAL(dp) :: OMOC_OPOA      ! Org matter/org carbon in POA     [1          ]4
      REAL(dp) :: qIce           ! Ice mixing ratio                 [kg/kg      ]4
@@ -280,7 +276,7 @@ MODULE gckpp_Global
      REAL(dp) :: RGASLATM       ! Gas constant                     [L*atm/K/mol]4
      REAL(dp) :: RSTARG         ! Gas constant                     [J/K/mole   ]4
      REAL(dp) :: SO3_conc_Cld   !
-     REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (fine, coarse)
+     REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?       [T/F        ]4
      LOGICAL  :: ssFineIsAcid   ! Is fine sea-salt alkaline?       [T/F        ]4
      LOGICAL  :: ssCoarseIsAlk  ! Is coarse sea-salt alkaline?     [T/F        ]4

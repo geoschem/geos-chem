@@ -3912,41 +3912,6 @@ CONTAINS
   ! Rate-law functions for bromine species
   !=========================================================================
 
-!  FUNCTION BrNO3_Hydrolysis( srMw, H ) RESULT( k )
-!    !
-!    ! Computes the hyydrolysis rate [1/s] for BrNO3 (cf. Johan Schmidt)
-!    !
-!    REAL(dp),       INTENT(IN) :: srMw           ! sqrt MW
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    REAL(dp) :: clf, gam, gamLiq, gamIce         ! local vars
-!    !
-!    ! Initialize
-!    k      = 0.0_dp
-!    clf    = H%clearFr
-!    gamLiq = 0.0021_dp * TEMP - 0.561_dp         ! Rxn prob, liq (Deiber 2004)
-!    gamIce = 5.3e-4_dp * EXP( 1100.0_dp / TEMP ) ! Rxn prob on ice
-!
-!    ! BrNO3 + H2O hydrolysis on tropospheric sulfate (aerosol type #8),
-!    ! fine sea salt (#11), and coarse sea salt (#12)
-!    gam = gamLiq
-!    k = k + ArsL1K( clf*H%xArea(8 ), H%xRadi(8 ), NUMDEN, gam, SR_TEMP, srMw )
-!    k = k + ArsL1K( clf*H%xArea(11), H%xRadi(11), NUMDEN, gam, SR_TEMP, srMw )
-!    k = k + ArsL1K( clf*H%xArea(12), H%xRadi(12), NUMDEN, gam, SR_TEMP, srMw )
-!
-!    ! Add BrNO3 + H2O hydrolysis on stratospheric liquid aerosol (#13)
-!    k = k + H%xArea(13) * H%KHETI_SLA(6)
-!
-!    ! Add BrNO3 + H2O hydrolysis on irregular ice cloud (#14)
-!    gam = 0.3_dp                              ! Rxn uptake rate, ice [1]
-!    IF ( H%NatSurface ) gam = 0.001_dp        ! Rxn uptake rate, NAT [1]
-!    k = k + ArsL1K( clf*H%xArea(14), H%xRadi(14), NUMDEN, gam, SR_TEMP, srMw )
-!
-!    ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
-!    k = k + CloudHet( H, srMw, gamLiq, gamIce, 1.0_dp, 1.0_dp )
-!
-!    ! Compute overall rate of BrNO3 + H2O
-!    k = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), k )
-!  END FUNCTION BrNO3_Hydrolysis
+
 !EOC
 END MODULE GcKpp_HetRates

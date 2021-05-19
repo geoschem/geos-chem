@@ -1053,6 +1053,67 @@ CONTAINS
   END FUNCTION Is_SafeDiv
 
   !=========================================================================
+  ! Rate-law functions for BrNO3
+  !=========================================================================
+
+  FUNCTION BrNO3uptkByH2O( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for BrNO3 + H2O  (cf. Johan Schmidt)
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: gamma, gamLiq, gamIce, srMW      ! local vars
+    !
+    k      = 0.0_dp
+    gamLiq = 0.0021_dp * TEMP - 0.561_dp         ! Rxn prob, liq (Deiber 2004)
+    gamIce = 5.3e-4_dp * EXP( 1100.0_dp / TEMP ) ! Rxn prob on ice
+    srMw   = SR_MW(ind_BrNO3)
+    !
+    ! BrNO3 + H2O on sulfate and sea salt (clear sky)
+    gamma = gamLiq
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+    k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
+    !
+    ! BrNO3 + H2O uptake on irregular ice cloud (clear sky)
+    gamma = 0.3_dp                              ! rxn prob, ice [1]
+    IF ( H%NatSurface ) gamma = 0.001_dp        ! rxn prob, NAT [1]
+    k = k + Ars_L1K( H%ClearFr * H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    !
+    ! BrNO3 + H2O in tropospheric cloud
+    k = k + CloudHet( H, srMw, gamLiq, gamIce, 1.0_dp, 1.0_dp )
+    !
+    ! Assume BrNO3 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), k )
+  END FUNCTION BrNO3uptkByH2O
+
+  FUNCTION BrNO3uptkByHCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate for BrNO3(g) + HCl(l,s)
+    ! in polar stratospheric clouds and on tropospheric sulfate.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn prob[1], rxn rate [1/s]
+    REAL(dp)                   :: srMw           ! local vars
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_BrNO3)
+    !
+    ! Apply BrNO3 uptake in stratosphere
+    ! NOTE: NAT and ICE both use the same gamma = 0.3
+    IF ( H %stratBox ) THEN
+       k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), 0.9_dp, srMw )
+       k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_HCl)
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), 0.3_dp, srMw )
+    ENDIF
+
+    ! Assume BrNO3 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl), k )
+  END FUNCTION BrNO3uptkByHCl
+
+  !=========================================================================
   ! Rate-law functions for HBr
   !=========================================================================
 
@@ -1306,7 +1367,7 @@ CONTAINS
     k    = k + ktmp - ( ktmp * Y_ClNO2 )
     !
     ! Uptake on stratopsheric liquid aerosol
-    k = k + H%xArea(SLA) * H%KHETI_SLA(id_N2O5_H2O)
+    k = k + H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_H2O)
     !
     ! Uptake on irregular ice cloud
     gamma = 0.02_dp                           ! Ice
@@ -1580,7 +1641,7 @@ CONTAINS
     IF ( H%is_UCX .and. H%stratBox ) THEN
        !
        ! Uptake on stratospheric liquid aerosol
-       k = k + ( H%xArea(SLA) * H%KHETI_SLA(id_N2O5_HCl) )
+       k = k + ( H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_HCl) )
        !
        ! Uptake on irregular ice cloud
        gamma = 0.03_dp                         ! Ice
@@ -1658,8 +1719,8 @@ CONTAINS
     TYPE(Hetstate), INTENT(IN) :: H
     !
     REAL(dp)            :: gamma
-    REAL(dp)            :: ab, M_X, k_tot,  H_X, cavg
-    REAL(dp)            :: gb, l_r, WaterC, Vol, corr
+    REAL(dp)            :: M_X, k_tot, H_X,    cavg
+    REAL(dp)            :: gb,  l_r,   WaterC, Vol, corr
     REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 1.3e-2_dp
     !
     Vol     = aArea * aRadi * 1.0e-3_dp / 3.0_dp       ! L/cm3 air
@@ -1736,7 +1797,7 @@ CONTAINS
     ! Compute reactive uptake coefficient [1]
     area  = H%aClArea
     radi  = H%aClRadi
-    water = H%aWater(id_FINE)
+    water = H%aWater(SS_FINE)
     conc  = H%Cl_conc_SALA
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
@@ -1757,7 +1818,7 @@ CONTAINS
     ! Compute reactive uptake coefficient [1]
     area  = H%xArea(SSC)
     radi  = H%xRadi(SSC)
-    water = H%aWater(id_COARSE)
+    water = H%aWater(SS_COARSE)
     conc  = H%Cl_conc_SALC
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
@@ -2777,8 +2838,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(610) = (N2O5uptkBySALCCl(State_Het))
   RCONST(611) = (OHuptkBySALACl(State_Het))
   RCONST(612) = (OHuptkBySALCCl(State_Het))
-  RCONST(613) = (HET(ind_BrNO3,1))
-  RCONST(614) = (HET(ind_BrNO3,2))
+  RCONST(613) = (BrNO3uptkByH2O(State_Het))
+  RCONST(614) = (BrNO3uptkByHCl(State_Het))
   RCONST(615) = (HET(ind_ClNO3,1))
   RCONST(616) = (HET(ind_ClNO3,2))
   RCONST(617) = (HET(ind_ClNO3,3))
