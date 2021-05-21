@@ -1455,17 +1455,29 @@ CONTAINS
     !========================================================================
     ! Populate global variables in gckpp_Global.F90
     !========================================================================
-    NUMDEN         = State_Met%AIRNUMDEN(I,J,L)
-    H2O            = State_Met%AVGW(I,J,L) * NUMDEN
-    SUNCOS         = State_Met%SUNCOSmid(I,J)
-    PRESS          = Get_Pcenter( I, J, L )
-    TEMP           = State_Met%T(I,J,L)
-    TEMP_OVER_K300 = TEMP / 300.0_dp
-    K300_OVER_TEMP = 300.0_dp / TEMP
-    SR_TEMP        = SQRT( TEMP )
-    CONSEXP        = 17.2693882_f8 * (TEMP - 273.16_f8) / (TEMP - 35.86_f8)
-    VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TEMP
-    RELHUM         = ( H2O / VPRESH2O ) * 100_dp
+
+    ! Solar quantities
+    SUNCOS          = State_Met%SUNCOSmid(I,J)
+
+    ! Pressure and density quantities
+    NUMDEN          = State_Met%AIRNUMDEN(I,J,L)
+    H2O             = State_Met%AVGW(I,J,L) * NUMDEN
+    PRESS           = Get_Pcenter( I, J, L )
+
+    ! Temperature quantities
+    TEMP            = State_Met%T(I,J,L)
+    INV_TEMP        = 1.0_dp   / TEMP
+    TEMP_OVER_K300  = TEMP     / 300.0_dp
+    K300_OVER_TEMP  = 300.0_dp / TEMP
+    SR_TEMP         = SQRT( TEMP )
+    FOUR_R_T        = 4.0_dp * CON_R    * TEMP
+    FOUR_RGASLATM_T = 4.0_dp * RGASLATM * TEMP
+    EIGHT_RSTARG_T  = 8.0_dp * RSTARG   * TEMP
+
+    ! Relative humidity quantities
+    CONSEXP         = 17.2693882_f8 * (TEMP - 273.16_f8) / (TEMP - 35.86_f8)
+    VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
+    RELHUM          = ( H2O / VPRESH2O ) * 100_dp
 
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
@@ -1474,8 +1486,6 @@ CONTAINS
     ! Constants (so that we can use these within KPP)
     State_Het%AVO            = AVO
     State_Het%PI             = PI
-    State_Het%RSTARG         = RSTARG
-    State_Het%RGASLATM       = RGASLATM
 
     ! Meteorology-related quantities
     State_Het%CldFr          = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)

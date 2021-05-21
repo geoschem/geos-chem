@@ -157,6 +157,22 @@ MODULE gckpp_Global
   ! Additional global variables -- will be added to gckpp_Global.F90
   !--------------------------------------------------------------------------
 
+  ! Inverse of temperature [K]
+  REAL(dp) :: INV_TEMP
+  !$OMP THREADPRIVATE( INV_TEMP )
+
+  ! 4.0 * CON_R * TEMP
+  REAL(dp) :: FOUR_R_T
+  !$OMP THREADPRIVATE( FOUR_R_T )
+
+  ! 4.0 * RGASLATM * TEMP
+  REAL(dp) :: FOUR_RGASLATM_T
+  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
+
+  ! 8.0 * RSTARG * TEMP
+  REAL(dp) :: EIGHT_RSTARG_T
+  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
+
   ! H2O concentration
   REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
@@ -273,8 +289,6 @@ MODULE gckpp_Global
      REAL(dp) :: qLIq           ! Water mixing ratio               [kg/kg      ]4
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
-     REAL(dp) :: RGASLATM       ! Gas constant                     [L*atm/K/mol]4
-     REAL(dp) :: RSTARG         ! Gas constant                     [J/K/mole   ]4
      REAL(dp) :: SO3_conc_Cld   !
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?       [T/F        ]4

@@ -1498,7 +1498,7 @@ CONTAINS
     ! mean molecular speed [m s-1]
     ! sqrt( 8RT / (pi M) )
     M_N2O5  = MW(ind_N2O5) * 1.0e-3_dp
-    speed = SQRT( 8.0_dp * H%RSTARG * TEMP / ( H%PI * M_N2O5 ) )
+    speed = SQRT( EIGHT_RSTARG_T / ( H%PI * M_N2O5 ) )
 
     ! Concentrations [mol/L]
     M_H2O = H2Ototal / 18e+0_dp / volTotal * 1000.0_dp   ! H2O
@@ -1522,9 +1522,9 @@ CONTAINS
     IF ( l <= 0.0e+0_dp ) THEN
        gamma_coat = 0.0_dp
     ELSE
-       gamma_coat =                                                         &
-        ( 4.0_dp * (H%RGASLATM*1e-3_dp)*TEMP*eps*Haq*Daq*Rcore/100._dp ) / &
-        ( speed * l/100.0_dp * Rp/100.0_dp                                  )
+       gamma_coat =                                                           &
+        ( FOUR_RGASLATM_T * 1.0e-3_dp * eps * Haq * Daq * Rcore /100.0_dp ) / &
+        ( speed * l/100.0_dp * Rp/100.0_dp                                )
     ENDIF
 
     ! Total particle surface area, cm2/cm3
@@ -1728,14 +1728,14 @@ CONTAINS
     M_X     = MW(ind_NO3) * 1.0e-3_dp                  ! NO3 mol wt kg/mol
     !
     ! Thermal velocity [cm/s]
-    cavg    = SQRT( 8.0_dp * H%RStarG * TEMP / ( H%Pi * M_X ) ) * 1.0e2_dp
+    cavg    = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 1.0e2_dp
     !
     k_tot   = ( 2.76e+6_dp * C_X ) + ( 23.0_dp * WaterC )
     !
     H_X     = 0.6_dp * CON_ATM_BAR                     ! M/bar
     l_r     = SQRT( 1.0e-5_dp / k_tot )                ! diff const = 1e-5
     !                                                  !  for NO3
-    gb      = 4.0_dp * H_X * CON_R * TEMP * l_r * k_tot / cavg
+    gb      = FOUR_R_T * H_X * l_r * k_tot / cavg
     corr    = Reactodiff_Corr( aRadi, l_r )
     gb      = gb * corr
     !
@@ -1930,11 +1930,11 @@ CONTAINS
     REAL(dp) :: M_X, KLangC, k_s, C_Y_surf, Nmax,  k_b,   D_l, l_r
     !
     ! Henry's law for O3 (use constants for numerical stability)
-    H_X      = K0_O3 * EXP( 2300.0_dp * ( 1.0_dp/TEMP - INV_T298 ) )
+    H_X      = K0_O3 * EXP( 2300.0_dp * ( INV_TEMP - INV_T298 ) )
     !
     ! Thermal velocity (cm/s)
     M_X      = MW(ind_O3) * 1.0e-3_dp
-    cavg     = SQRT( 8.0_dp * H%RSTARG * TEMP / ( H%Pi * M_X ) ) * 100.0_dp
+    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
     Nmax     = 3.0e+14_dp  ! #/cm2
     KLangC   = 1.0e-13_dp !cm3
@@ -1948,7 +1948,7 @@ CONTAINS
     k_b      = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )  ! M-1 s-1
     D_l      = 8.9e-6_dp                             ! cm2 s-1.
     l_r      = SQRT( D_l / ( k_b * C_Y ) )           ! cm
-    gb       = 4.0_dp * H_X * CON_R * TEMP * l_r * k_b * C_Y / cavg
+    gb       = FOUR_R_T * H_X * l_r * k_b * C_Y / cavg
     gb       = gb * ReactoDiff_Corr( Radius, l_r )
     gamma    = gb + gs
   END FUNCTION Gamma_O3_Br
@@ -2074,8 +2074,8 @@ CONTAINS
     !
     ! Calculate the third uptake parameterization term:
     IF ( H%xArea(SUL) > 0.0_dp .and. XMMS > 0.0_dp ) THEN
-       valTmp = ( 4.0_dp * aerVol * H%RGASLATM * TEMP * HSTAR_EPOX * kPart )&
-              / ( H%xArea(SUL) * xmms                                      )
+       valTmp = ( FOUR_RGASLATM_T * aerVol * HSTAR_EPOX * kPart ) &
+              / ( H%xArea(SUL) * xmms                          )
     ENDIF
     !
     val3 = 0.0_dp
