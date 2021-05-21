@@ -501,11 +501,15 @@ CONTAINS
                         State_Chm, State_Diag, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Extra')
 
-    ! Set initial State_Chm%Species units to units expected in transport
+
+    ! Set initial State_Chm%Species units to internal state units, the same
+    ! units as the restart file values. Note that species concentrations
+    ! are all still zero at this point since internal state values are not
+    ! copied to State_Chm%Species until Run (post-initialization).
 # if defined( MODEL_GEOS )
     State_Chm%Spc_Units = 'kg/kg total'
 #else
-    State_Chm%Spc_Units = 'kg/kg dry'
+    State_Chm%Spc_Units = 'v/v dry'
 #endif
 
     ! Initialize chemistry mechanism
@@ -562,13 +566,6 @@ CONTAINS
 !    CALL Tend_Init ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
 !#endif
-
-#if !defined( MODEL_GEOS )
-    ! GCHP only: Convert species units to internal state units (v/v dry)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error calling Convert_Spc_Units')
-#endif
 
     ! Return success
     RC = GC_Success

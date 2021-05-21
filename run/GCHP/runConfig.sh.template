@@ -151,9 +151,15 @@ Turn_on_Base_Emissions=true
 #    Diagnostic frequency, duration, and monthly mean
 #---------------------------------------------------------------------
 AutoUpdate_Diagnostics=ON
+
+# Monthly diagnostics: '0' for off; '1' for on
 timeAvg_monthly="{AvgMonthly}"
+
+# Frequency and duration (ignored if monthly diagnostics on)
 timeAvg_freq="{AvgFreq}"
 timeAvg_dur="{AvgDur}"
+
+# Time-averaged HISTORY.rc collections to auto-update
 timeAvg_collections=(SpeciesConc    \
                      AerosolMass    \
                      Aerosols       \
@@ -176,7 +182,7 @@ timeAvg_collections=(SpeciesConc    \
                      WetLossLS      \
 )
 
-# Instantaneous diagnostics
+# Instantaneous collection settings to auto-update (monthly diag does not apply)
 inst_freq="{InstFreq}"
 inst_dur="{InstDur}"
 inst_collections=(ConcAboveSfc      \
