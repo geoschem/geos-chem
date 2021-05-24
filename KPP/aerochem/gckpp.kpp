@@ -1157,6 +1157,205 @@ PH2O2 : H2O2;
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
+  ! Rate-law functions for HOBr
+  !=========================================================================
+
+  FUNCTION Br2_Yield( Br_over_Cl ) RESULT( Y_Br2 )
+    !
+    ! Returns yield of Br2 from the Br- / Cl- ratio
+    !
+    REAL(dp), INTENT(IN) :: Br_over_Cl           ! Br- / Cl- ratio
+    REAL(dp)             :: Y_Br2                ! local vars
+
+    ! Yield of Br2
+    Y_Br2 = 0.41_dp * LOG10( Br_over_Cl ) + 2.25_dp
+    Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
+  END FUNCTION Br2_Yield
+
+  SUBROUTINE Gam_HOBr_Cld( H,         gamma,     r_gp,        k_tot,         &
+                           k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+    !
+    ! Returns uptake probability for HOBr in clouds.
+    !
+    TYPE(HetState), INTENT(IN)  :: H        ! Hetchem species metadata
+    REAL(dp),       INTENT(OUT) :: gamma
+    REAL(dp),       INTENT(OUT) :: r_gp
+    REAL(dp),       INTENT(OUT) :: k_tot
+    REAL(dp),       INTENT(OUT) :: k_HOBr_Cl
+    REAL(dp),       INTENT(OUT) :: k_HOBr_Br
+    REAL(dp),       INTENT(OUT) :: k_HOBr_HSO3
+    REAL(dp),       INTENT(OUT) :: k_HOBr_HSO3_2
+    !
+    REAL(dp) :: gd,   M_X,  cavg,  H_X,   gb_tot
+    REAL(dp) :: ybr2, l_r,  C_Hp1, C_Hp2, Br_over_Cl
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.6_dp ! Inv. mass accum coef
+    REAL(dp), PARAMETER :: D_l    = 1.4e-5_dp       ! Amman et al, ACP, 2013
+    !
+    ! Henry's law
+    H_X    = ( HENRY_K0(ind_HOBr) * CON_ATM_BAR )                  &
+           * EXP( HENRY_CR(ind_HOBr) * ( 1.0_dp/TEMP - INV_T298 ) )
+    !
+    ! Thermal velocity [cm/s]
+    M_X    = MW(ind_HOBr) * 1.0e-3_dp
+    cavg   = SQRT( EIGHT_RSTARG_T / ( H=>PI * M_X ) ) * 100.0_dp
+    !
+    ! Follow Roberts et al, (2014)
+    C_Hp1  = MIN( H=>H_conc_lCl, 1.0e-6_dp )
+    C_Hp2  = MIN( H=>H_conc_lCl, 1.0e-2_dp )
+    C_Hp1  = MAX( C_Hp1,         1.0e-9_dp )
+    C_Hp2  = MAX( C_Hp2,         1.0e-6_dp )
+    !
+    ! Rates for each HOBr + {Cl-, Br-, HSO3-, HSO3--} rxn
+    k_HOBr_Cl     = 2.3e+10_dp * H=>Cl_conc_Cld * C_Hp1  ! Liu & Margerum, EST, 2001
+    k_HOBr_Br     = 1.6e+10_dp * H=>Br_conc_Cld * C_Hp2  ! ??
+    k_HOBr_HSO3   = 2.6e+7_dp  * H=>HSO3_conc_Cld        ! Liu and Abbatt, GRL, 2020
+    k_HOBr_HSO3_2 = 5.0e+9_dp  * H=>SO3_conc_Cld         ! Troy & Margerum, Inorg. Chem., 1991
+    !
+    ! Total rate
+    k_tot  = k_HOBr_Cl + k_HOBr_Br + k_HOBr_HSO3 + k_HOBr_HSO3_2
+    !
+    ! l_r is diffusive length scale [cm];
+    ! gb is Bulk reaction coefficient [unitless]
+    l_r    = SQRT( D_l / k_tot )
+    gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
+    gb_tot = gb_tot * ReactoDiff_Corr( H=>rLiq, l_r )
+    !
+    ! Reactive uptake coefficient [unitless]
+    gamma = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+  END SUBROUTINE Gam_HOBr_Cld
+
+  SUBROUTINE Gam_HOBr_Ice( H, gamma, branch_HCl, branch_HBr )
+    !
+    ! Calculates total reactive uptake coefficient for
+    ! HOBr + HCl and HOBr + HBr in ice clouds.
+    !
+    TYPE(HetState), INTENT(IN)  :: H              ! Hetchem State
+    REAL(dp),       INTENT(OUT) :: gamma          ! Total rxn prob [1]
+    REAL(dp),       INTENT(OUT) :: branch_HCl     ! HCl branch ratio
+    REAL(dp),       INTENT(OUT) :: branch_HBr     ! HBr branch ratio
+    !
+    REAL(dp) :: gamma_HCl, gamma_HBr              ! local vars
+    !
+    ! Overall uptake prob. of  HOBr+HCl and HOBr+HBr together
+    gamma_HCl = H=>HCl_theta * 0.25_dp
+    gamma_HBr = H=>HBr_theta * 4.8e-4_dp * EXP( 1240.0_dp / TEMP )
+    gamma     = gamma_HCl + gamma_HBr
+    !
+    ! Branching ratios HCl/total and HBr/total
+    branch_HCl = 0.0_dp
+    branch_HBr = 0.0_dp
+    IF ( gamma > 0.0_dp ) THEN
+       branch_HCl = gamma_HCl / gamma
+       branch_HBr = gamma_HBr / gamma
+    ENDIF
+  END SUBROUTINE Gam_HOBr_Ice
+
+! Keep as doc here
+!      IF ( X==1 ) THEN
+!
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.1e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * (1.e0 - ybr2)
+!         ENDIF
+!
+!      ELSEIF ( X==2 ) THEN
+!
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.9e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * ybr2
+!         ENDIF
+!
+!      ELSEIF ( X==3 ) THEN
+!
+!         r_gp = (k_b3 * C_Y3) / k_tot
+!
+!      ELSEIF ( X==4 ) THEN
+!
+!         r_gp = (k_b4 * C_Y4) / k_tot
+!
+!      ENDIF
+!
+! Gamma ice branching
+!
+!     IF ( GAM_HOBr == 0) THEN
+!        r_gp=0.0_dp
+!     ELSEIF ( X==1 ) THEN
+!         r_gp = g1 / GAM_HOBr
+!     ELSEIF ( X==2 ) THEN
+!         r_gp = g2 / GAM_HOBr
+!     ELSE
+!         r_gp = 0.0_dp
+!     ENDIF
+
+  FUNCTION HOBrUptkByHBrAndTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + HBr reaction,
+    ! which only occurs in the stratosphere.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: branch,     branch_0,  brIce,       brLiq
+    REAL(dp) :: Br_over_Cl, dummy,     gammaLiq,    gammaIce
+    REAL(dp) :: k_HOBr_Cl,  k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,      srMw,      Y_Br2
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaIce = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw = SR_MW(ind_HOBr)
+    !
+    IF ( H=>is_UCX .and. H=>stratBox ) THEN
+       !
+       ! Uptake on tropospheric (origin) sulfate in stratosphere
+       gammaLiq = 0.25_dp
+       k = k + Ars_L1k( H=>xArea(SUL), H=>xRadi(SUL), gammaLiq, srMw )
+       !
+       ! Uptake on strat sulfate liquid aerosol
+       k = k + H=>xArea(SLA) * H=>KHETI_SLA(HOBr_plus_HBr)
+       !
+       ! Uptake on irreglar ice cloud
+       gammaIce = 0.3_dp
+       IF ( H=>natSurface ) gammaIce = 0.001_dp
+       k = k + Ars_L1k( H=>xArea(IIC), H=>xRadi(IIC), gammaIce, srMw )
+       !
+    ELSE
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                     &
+            H,         gammaLiq,  branch,      k_tot,         &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + HBr
+       Y_Br2      = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0   = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch     = branch_0 * Y_Br2
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
+       brLiq      = branch * H=>Br_branch_CldG
+       !
+       ! Overall probability of HOBr uptake and
+       ! branching ratio for the HOBr + HBr reaction
+       CALL Gam_HOBr_Ice( H, gammaIce, dummy, brIce )
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, gammaIce, brLiq, brIce )
+       !
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), k )
+  END FUNCTION HOBrUptkByHBrAndTropCloud
+
+  !=========================================================================
   ! Rate-law functions for iodine species
   ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
   !=========================================================================
@@ -2304,6 +2503,7 @@ PH2O2 : H2O2;
      REAL(dp) :: Br_conc_Cld    ! Br- total in cloud = A + C + G
      REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]
      REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]
+     REAL(dp) :: Br_over_Cl_Cld ! Br_conc_Cld / Cl_conc_Cld        [1          ]
      REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]
      REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]
      REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]
@@ -2320,14 +2520,14 @@ PH2O2 : H2O2;
      REAL(dp) :: fupdateHOCl    !
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]
      REAL(dp) :: H2O            ! H2O concentration
-     REAL(dp) :: HBr_th         ! HBr theta
-     REAL(dp) :: HCl_th         ! HCl theta
+     REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
+     REAL(dp) :: HCl_theta      ! HCl theta for uptake on ice
      REAL(dp) :: H_conc_ICl     ! Liquid phase pH, Cl-             [pH units   ]
      REAL(dp) :: H_conc_LCl     ! Liquid phase pH, Cl-             [pH units   ]
      REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt   [pH units   ]
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt [pH units   ]
      REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
-     REAL(dp) :: HNO3_th        ! HNO3 theta
+     REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
      REAL(dp) :: HSO3_conc_Cld  !
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]

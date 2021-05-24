@@ -3250,46 +3250,45 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Theta_Ice( HNO3, HCl, HBr, State_Het )
+  SUBROUTINE Get_Theta_Ice( HNO3, HCl, HBr, H )
 !
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp),      INTENT(IN)     :: HNO3       ! HNO3 conc [molec/cm3]
-    REAL(dp),      INTENT(IN)     :: HCl        ! HCl  conc [molec/cm3]
-    REAL(dp),      INTENT(IN)     :: HBr        ! HBr  conc [molec/cm3]
+    REAL(dp),      INTENT(IN)     :: HNO3  ! HNO3 conc [molec/cm3]
+    REAL(dp),      INTENT(IN)     :: HCl   ! HCl  conc [molec/cm3]
+    REAL(dp),      INTENT(IN)     :: HBr   ! HBr  conc [molec/cm3]
 !
 ! !RETURN VALUE:
 !
-    TYPE(HetState), INTENT(INOUT) :: State_Het  ! Hetchem State object
+    TYPE(HetState), INTENT(INOUT) :: H     ! Hetchem State object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp) :: Nmax, KLangC1, KLangC2, KlinC
+    REAL(dp) :: KLangC1, KLangC2, KlinC, denom
 
     !=================================================================
     ! GET_THETA_ICE begins here!
     !=================================================================
 
     ! HNO3
-    Nmax    = 2.7e14_dp                                    ! molec/cm2
     KlinC   = 7.5e-5_dp * EXP( 4585.0_dp / TEMP )          ! 1/cm
-    KLangC1 = KlinC / Nmax                                 ! cm3/molec
+    KLangC1 = KlinC / 2.7e+14_dp                           ! cm3/molec
 
     ! HCl
-    Nmax    = 3.0e14_dp                                    ! molec/cm2
     KlinC   = 1.3e-5_dp * EXP( 4600.0_dp / TEMP )          ! 1/cm
-    KLangC2 = KlinC / Nmax                                 ! cm3/molec
+    KLangC2 = KlinC / 3.0e+14_dp                           ! cm3/molec
 
-    State_Het%HNO3_th = KLangC1*HNO3 / (1.0_dp + KLangC1*HNO3 + KLangC2*HCl)
-    State_Het%HCl_th  = KLangC2*HCl  / (1.0_dp + KLangC1*HNO3 + KLangC2*HCl)
+    denom        = 1.0_dp + KLangC1*HNO3 + KLangC2*HCl
+    H%HNO3_theta = KLangC1*HNO3 / denom
+    H%HCl_theta  = KLangC2*HCl  / denom
 
     ! HBr
-    State_Het%HBr_th = 4.14e-10 * ( HBr**0.88_dp )
-    State_Het%HBr_th = MIN( State_Het%HBr_th, 1.0_dp )
+    H%HBr_theta = 4.14e-10_dp * ( HBr**0.88_dp )
+    H%HBr_theta = MIN( H%HBr_theta, 1.0_dp )
 
   END SUBROUTINE Get_Theta_Ice
 !EOC
@@ -3385,6 +3384,9 @@ CONTAINS
     H%Cl_branch_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
     H%Cl_branch_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
     H%Cl_branch_CldG = H%Cl_conc_CldC / H%Cl_conc_Cld
+
+    ! Ratio of Br- in gas phase in cloud / Cl- in gas-phase in cloud
+    H%Br_over_Cl_Cld = H%Br_conc_Cld / H%Cl_conc_Cld
 
     !=======================================================================
     ! Get halide concentrations, in aerosol

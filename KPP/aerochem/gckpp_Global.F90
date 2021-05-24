@@ -248,6 +248,7 @@ MODULE gckpp_Global
      REAL(dp) :: Br_conc_Cld    ! Br- total in cloud = A + C + G
      REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]4
      REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]4
+     REAL(dp) :: Br_over_Cl_Cld ! Br_conc_Cld / Cl_conc_Cld        [1          ]4
      REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]4
      REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]4
      REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]4
@@ -264,14 +265,14 @@ MODULE gckpp_Global
      REAL(dp) :: fupdateHOCl    !
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]4
      REAL(dp) :: H2O            ! H2O concentration
-     REAL(dp) :: HBr_th         ! HBr theta
-     REAL(dp) :: HCl_th         ! HCl theta
+     REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
+     REAL(dp) :: HCl_theta      ! HCl theta for uptake on ice
      REAL(dp) :: H_conc_ICl     ! Liquid phase pH, Cl-             [pH units   ]4
      REAL(dp) :: H_conc_LCl     ! Liquid phase pH, Cl-             [pH units   ]4
      REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt   [pH units   ]4
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt [pH units   ]4
      REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
-     REAL(dp) :: HNO3_th        ! HNO3 theta
+     REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
      REAL(dp) :: HSO3_conc_Cld  !
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]4
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]4
