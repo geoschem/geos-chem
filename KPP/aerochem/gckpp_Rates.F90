@@ -1188,14 +1188,13 @@ CONTAINS
     Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
   END FUNCTION Br2_Yield
 
-  SUBROUTINE Gam_HOBr_Cld( H,         gamma,     r_gp,        k_tot,         & 
+  SUBROUTINE Gam_HOBr_Cld( H,         gamma,     k_tot,                      &
                            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
     !
     ! Returns uptake probability for HOBr in clouds.
-    ! 
+    !
     TYPE(HetState), INTENT(IN)  :: H        ! Hetchem species metadata
     REAL(dp),       INTENT(OUT) :: gamma
-    REAL(dp),       INTENT(OUT) :: r_gp
     REAL(dp),       INTENT(OUT) :: k_tot
     REAL(dp),       INTENT(OUT) :: k_HOBr_Cl
     REAL(dp),       INTENT(OUT) :: k_HOBr_Br
@@ -1254,7 +1253,7 @@ CONTAINS
     REAL(dp) :: gamma_HCl, gamma_HBr              ! local vars
     !
     ! Overall uptake prob. of  HOBr+HCl and HOBr+HBr together
-    gamma_HCl = H%HCl_theta * 0.25_dp   
+    gamma_HCl = H%HCl_theta * 0.25_dp
     gamma_HBr = H%HBr_theta * 4.8e-4_dp * EXP( 1240.0_dp / TEMP )
     gamma     = gamma_HCl + gamma_HBr
     !
@@ -1268,26 +1267,7 @@ CONTAINS
   END SUBROUTINE Gam_HOBr_Ice
 
 ! Keep as doc here
-!      IF ( X==1 ) THEN
-!
-!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
-!
-!         IF (C_Y2/C_Y1>5.e-4) THEN
-!            r_gp = 0.1e0 * r_gp
-!         ELSE
-!            r_gp = r_gp * (1.e0 - ybr2)
-!         ENDIF
-!
-!      ELSEIF ( X==2 ) THEN
-!
-!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
-!
-!         IF (C_Y2/C_Y1>5.e-4) THEN
-!            r_gp = 0.9e0 * r_gp
-!         ELSE
-!            r_gp = r_gp * ybr2
-!         ENDIF
-!
+
 !      ELSEIF ( X==3 ) THEN
 !
 !         r_gp = (k_b3 * C_Y3) / k_tot
@@ -1298,22 +1278,22 @@ CONTAINS
 !
 !      ENDIF
 !
-! Gamma ice branching
+
+!      ELSEIF ( X==2 ) THEN
 !
-!     IF ( GAM_HOBr == 0) THEN
-!        r_gp=0.0_dp
-!     ELSEIF ( X==1 ) THEN
-!         r_gp = g1 / GAM_HOBr
-!     ELSEIF ( X==2 ) THEN
-!         r_gp = g2 / GAM_HOBr
-!     ELSE
-!         r_gp = 0.0_dp
-!     ENDIF
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.9e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * ybr2
+!         ENDIF
+!
 
   FUNCTION HOBrUptkByHBrAndTropCloud( H ) RESULT( k )
     !
-    ! Computes the uptake rate [1/s] for the HOBr + HBr reaction,
-    ! which only occurs in the stratosphere.
+    ! Computes the uptake rate [1/s] for the HOBr + HBr reaction
+    ! in the stratosphere and in tropospheric clouds.
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
@@ -1339,7 +1319,7 @@ CONTAINS
        ! Uptake on strat sulfate liquid aerosol
        k = k + H%xArea(SLA) * H%KHETI_SLA(HOBr_plus_HBr)
        !
-       ! Uptake on irreglar ice cloud
+       ! Uptake on irregular ice cloud
        gammaIce = 0.3_dp
        IF ( H%natSurface ) gammaIce = 0.001_dp
        k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gammaIce, srMw )
@@ -1348,20 +1328,20 @@ CONTAINS
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                     &
-            H,         gammaLiq,  branch,      k_tot,         & 
+            H,         gammaLiq,  k_tot,                      &
             k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
        !
        ! Branching ratio for liquid path of HOBr + HBr
-       Y_Br2      = Br2_Yield( H%Br_over_Cl_Cld)
-       branch_0   = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
-       branch     = branch_0 * Y_Br2
+       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * Y_Br2
        IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
-       brLiq      = branch * H%Br_branch_CldG
+       brLiq    = branch * H%Br_branch_CldG
        !
-       ! Overall probability of HOBr uptake and 
-       ! branching ratio for the HOBr + HBr reaction
+       ! Overall probability of HOBr uptake and
+       ! ice-path branching ratio for HOBr + HBr 
        CALL Gam_HOBr_Ice( H, gammaIce, dummy, brIce )
-       ! 
+       !
        ! Compute overall HOBr removal rate in cloud
        k = k + CloudHet( H, srMw, gammaLiq, gammaIce, brLiq, brIce )
        !
@@ -1370,6 +1350,78 @@ CONTAINS
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), k )
   END FUNCTION HOBrUptkByHBrAndTropCloud
+
+!      IF ( X==1 ) THEN
+!
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.1e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * (1.e0 - ybr2)
+!         ENDIF
+!
+
+  FUNCTION HOBrUptkByHClAndTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + HCl reaction
+    ! which only occurs in the stratosphere.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: branch,     branch_0,  brIce,       brLiq
+    REAL(dp) :: Br_over_Cl, dummy,     gammaLiq,    gammaIce
+    REAL(dp) :: k_HOBr_Cl,  k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,      srMw,      Y_Br2
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaIce = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! Uptake on tropospheric (origin) sulfate in stratosphere
+       gammaLiq = 0.2_dp
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaLiq, srMw )
+       !
+       ! Uptake on strat sulfate liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(HOBr_plus_HCl)
+       !
+       ! Uptake on irregular ice cloud
+       gammaIce = 0.3_dp
+       IF ( H%natSurface ) gammaIce = 0.1_dp
+       k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gammaIce, srMw )
+       !
+    ELSE
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                     &
+            H,         gammaLiq,  k_tot,                      &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + HCl
+       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * ( 1.0_dp - Y_Br2 )
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.1_dp
+       brLiq    = branch * H%Cl_branch_CldG
+       !
+       ! Overall probability of HOBr uptake and
+       ! ice-path branching ratio for HOBr + HCl
+       CALL Gam_HOBr_Ice( H, gammaIce, brIce, dummy )
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, gammaIce, brLiq, brIce )
+       !
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), k )
+  END FUNCTION HOBrUptkByHClAndTropCloud
 
   !=========================================================================
   ! Rate-law functions for iodine species
@@ -3058,8 +3110,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(631) = (HET(ind_HOCl,4))
   RCONST(632) = (HET(ind_HOCl,5))
   RCONST(633) = (HET(ind_HOCl,6))
-  RCONST(634) = (HOBruptkByHBrAndTropCloud(State_Het))
-  RCONST(635) = (HET(ind_HOBr,2))
+  RCONST(634) = (HOBrUptkByHBrAndTropCloud(State_Het))
+  RCONST(635) = (HOBrUptkByHClAndTropCloud(State_Het))
   RCONST(636) = (HET(ind_HOBr,3))
   RCONST(637) = (HET(ind_HOBr,4))
   RCONST(638) = (HET(ind_HOBr,5))
