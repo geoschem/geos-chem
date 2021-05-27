@@ -1948,6 +1948,13 @@ NEI99_DOW_MSA  1 D N F1999-%m2-01T00:00:00 none none MSA  ./HcoDir/NEI2005/v2014
 NEI99_DOW_BCPI 1 D N F1999-%m2-01T00:00:00 none none BCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
 NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
 #
+#==============================================================================
+# --- CEDS vertical partitioning ---
+#==============================================================================
+ENERGY_LEVS   1 N Y - none none g_energy   ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+INDUSTRY_LEVS 1 N Y - none none g_industry ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+#
 ###############################################################################
 ###
 ### Masks (update if HEMCO_Config.rc changes)
