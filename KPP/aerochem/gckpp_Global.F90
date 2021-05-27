@@ -37,7 +37,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(267),FIX(1) )
+!      EQUIVALENCE( C(273),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -147,6 +147,21 @@ MODULE gckpp_Global
   ! Array for heterogeneous rates
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
+
+  ! Array for aqueous rates (1/s)
+  ! - number of reactions set to 50 arbitrarily
+  REAL(kind=dp) :: K_MT(20)
+  !$OMP THREADPRIVATE( K_MT )
+
+  ! Array for cloud rates (1/s)
+  ! - number of reactions set to 50 arbitrarily
+  REAL(kind=dp) :: K_CLD(20)
+  !$OMP THREADPRIVATE( K_CLD )
+
+  ! Liquid water conversion factor
+  ! - Size = number of aerosol types (nAeroType)
+  REAL(kind=dp) :: CVFAC(14)
+  !$OMP THREADPRIVATE( CVFAC )
 
   ! Proton activity [unitless] and H+ concentration [M]
   ! (assumed equivalent - for now):

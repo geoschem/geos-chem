@@ -36,6 +36,11 @@ MODULE GCKPP_HETRATES
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: SET_HET
+  PUBLIC  :: ARSL1K
+  PUBLIC  :: kIIR1Ltd
+  PUBLIC  :: kIIR1R2L
+  PUBLIC  :: CLD_PARAMS
+  PUBLIC  :: CloudHet
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -64,7 +69,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HetN2O5
   PRIVATE :: N2O5
   PRIVATE :: HO2
-  PRIVATE :: CloudHet
 
   ! New iodine heterogeneous chemistry
   PRIVATE :: HETIUptake
@@ -112,7 +116,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETN2O5_HCl
 
   ! These are subfunctions to calculate rates on/in clouds and SSA
-  PRIVATE :: CLD_PARAMS
   PRIVATE :: GET_HALIDE_CLDConc
   Private :: Get_Halide_SSAConc
   PRIVATE :: COMPUTE_L2G_LOCAL
@@ -121,9 +124,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FCRO2HO2
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
-  PRIVATE :: ARSL1K
-  PRIVATE :: kIIR1Ltd
-  PRIVATE :: kIIR1R2L
 
   ! These are subfunctions related to ice uptake of bromine/chlorine
   PRIVATE :: GET_THETA_ICE

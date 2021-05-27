@@ -158,7 +158,7 @@ CONTAINS
     LOGICAL            :: LUCX
     LOGICAL            :: prtDebug
     INTEGER            :: TS_Chem
-    REAL(f8)           :: DT_Chem
+    REAL(f8)           :: DT_Chem, sDTFC, fDTFC
 #ifdef APM
     INTEGER            :: I,J,L
     REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
@@ -313,8 +313,11 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
+          CALL CPU_TIME(sDTFC)
           CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
+          CALL CPU_TIME(fDTFC)
+          write(*,*) 'DO_FLEXCHEM DT: ', fDTFC-sDTFC
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -431,9 +434,12 @@ CONTAINS
           !--------------------------------
           IF ( LSULF ) THEN
 
+             CALL CPU_TIME(sDTFC)
              ! Do sulfate chemistry
              CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                State_Met, .TRUE.,     RC )
+             CALL CPU_TIME(fDTFC)
+             write(*,*) 'CHEMSULFATE DT: ', fDTFC-sDTFC
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN

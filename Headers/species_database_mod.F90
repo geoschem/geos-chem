@@ -634,7 +634,8 @@ CONTAINS
        ENDIF
 
        ! Is_Gas and Is_Aero tags cannot both be FALSE at the same time
-       IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) ) THEN
+       IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) &
+            .and. (.not. ThisSpc%Is_Kpp)) THEN ! Allow for intermediate/accounting species
           errMsg = "Is_Gas and Is_Aerosol are both FALSE for species "    // &
                    TRIM( spc ) // "!"
           CALL GC_Error( errMsg, RC, thisLoc )
