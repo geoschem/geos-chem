@@ -35,6 +35,7 @@ MODULE SULFATE_MOD
 #ifdef TOMAS
   PUBLIC :: EMISSSULFATETOMAS
 #endif
+
 !
 !
 ! !REMARKS:
@@ -1347,7 +1348,7 @@ CONTAINS
              DO K = 1, IBINS
                 TC1(I,J,L,K) = TC1(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
-                TC2(I,J,L,K) = TC2(I,J,L,K) + &
+               TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
@@ -2729,7 +2730,7 @@ CONTAINS
        ! (3) O3 is in excess, then compute seasalt SO2 chemistry
        IF  ( ( ALK    > MINDAT )  .AND. &
              ( SO2_cd > MINDAT )  .AND. &
-             ( SO2_cd < O3     ) ) THEN
+             ( SO2_cd < O3     ) .AND. DO_SULFATEMOD_SEASALT ) THEN
 
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
@@ -2764,7 +2765,7 @@ CONTAINS
                 (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g)
        ENDIF
        ! Update sea salt alkalinity [v/v] in FullRun, XW 12/8/17
-       IF (FullRun) Then
+       IF (FullRun .AND. DO_SULFATEMOD_SEASALT) Then
           Spc(I,J,L,id_SALAAL) = AlkA
           Spc(I,J,L,id_SALCAL) = AlkC
        ENDIF
@@ -2897,7 +2898,7 @@ CONTAINS
        IF ( ( FC     > 1.e-4_fp   )  .AND. &
             ( SO2_ss > MINDAT )  .AND. &
             ( TK     > 258.0  )  .AND. &
-            ( LWC    > 0.e+0_fp   ) ) THEN
+            ( LWC    > 0.e+0_fp   ) .AND. DO_SULFATEMOD_CLD ) THEN
           !===========================================================
           ! NOTE...Sulfate production from aquatic reactions of SO2
           ! with H2O2 & O3 is computed here and followings are
@@ -3179,6 +3180,16 @@ CONTAINS
                            KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
                            HSO3aq,  SO3aq )
 
+       if (i .eq. 61 .and. j .eq. 15  .and. L .eq. 1 ) then
+!          write(*,*) 'CloudHet 3: ', KaqH2O2*CVFAC, K_CLD(1), FC, Spc(I,J,L,id_SO2), Spc(I,J,L,id_H2O2)
+!          write(*,*) 'CloudHet 1: ', KaqH2O2*CVFAC*Spc(I,J,L,id_SO2), KaqH2O2*CVFAC*Spc(I,J,L,id_H2O2), 1./3600. 
+!          write(*,*) 'CloudHet 2: ', K_CLD(1), KaqH2O2*CVFAC*FC
+!          write(*,*) 'HMS R1: ', KaqHCHO*CVFAC, I, J, L
+!          write(*,*) 'HMS R2: ', KaqHMS*CVFAC
+!          write(*,*) 'HMS R3: ', KaqHMS2*CVFAC
+!          write(*,*) 'KaqO2: ', KaqO2
+!          write(*,*) 'KaqH2O2: ', KaqH2O2, HPLUS
+       endif
           !----------------------------------------------------------
           ! Compute loss by H2O2.  Prevent floating-point exception
           ! by not allowing the exponential to go to infinity if

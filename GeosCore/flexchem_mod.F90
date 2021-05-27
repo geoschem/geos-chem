@@ -55,6 +55,7 @@ MODULE FlexChem_Mod
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
+  INTEGER               :: id_SALAAL, id_SALCAL ! MSL
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
   ! Diagnostic flags
@@ -74,6 +75,11 @@ MODULE FlexChem_Mod
   REAL(f4), ALLOCATABLE :: JvCountMon(:,:,:  )
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
+
+  ! Timing & Testing values
+  REAL(fp) :: test_integrationtime, start, finish, test_h2o2, test_so2
+  REAL(fp) :: tmp_h2o2, tmp_so2, test_FC, test_rate, integrationtime, test_set_cld_s
+  INTEGER  :: test_i, test_j, test_l
 
 CONTAINS
 !EOC
@@ -101,7 +107,9 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GCKPP_HetRates
+    USE GCKPP_AqRates,        ONLY : SET_SEASALT_S
+    USE GCKPP_Sulfate,        ONLY : SET_CLD_S
+    USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
     USE GCKPP_Integrator,     ONLY : INTEGRATE, NHnew
@@ -113,6 +121,7 @@ CONTAINS
     USE GcKPP_Util,           ONLY : Get_OHreactivity
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
+    USE PhysConstants,        ONLY : DO_SULFATEMOD_SEASALT, DO_SULFATEMOD_CLD
     USE PRESSURE_MOD
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
@@ -576,6 +585,9 @@ CONTAINS
        CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
+    test_integrationtime = 0.
+    test_set_cld_s = 0.
+
     !-----------------------------------------------------------------------
     ! MAIN LOOP: Compute reaction rates and call chemical solver
     !
@@ -814,6 +826,49 @@ CONTAINS
        ENDIF
 
        !====================================================================
+       ! The SET_ routines below are based on or meant to replace
+       !   reactions computed outside of KPP within sulfate_mod.
+       !
+       ! Rates are set for the following:
+       ! 1) Seasalt aerosol chemistry
+       ! 2) Cloud S chemistry
+       ! 3) (If Dust acid uptake) Dust acid uptake reactions
+       ! - MSL, 29-Mar-2021, 7-May-2021
+       !====================================================================
+
+       ! Set seasalt alkalinity
+       !----------------------------------------------------------------------
+       ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
+       ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
+       ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+       ! tdf; MSL
+       !----------------------------------------------------------------------
+
+       IF (.not. DO_SULFATEMOD_SEASALT) THEN
+          !C(ind_SALAAL) = C(ind_SALAAL) * State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp
+          !C(ind_SALCAL) = C(ind_SALCAL) * State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp
+
+          CALL SET_SEASALT_S( I, J, L, Input_Opt, State_Chm, State_Grid, &
+               State_Met, RC ) !S(IV)->S(VI), HCl, HNO3
+       ENDIF
+
+       IF (.not. DO_SULFATEMOD_CLD) THEN
+          call CPU_TIME(start)
+          CALL SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
+               State_Met,  RC )
+          call CPU_TIME(finish)
+          test_set_cld_s = test_set_cld_s+(finish-start)
+
+          !if (Ind_('HSO3m','k') .gt. 0) C(Ind_('HSO3m','k')) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
+          !if (Ind_('SO3mm','k') .gt. 0) C(Ind_('SO3mm','k')) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
+          State_Chm%fupdateHOBr(I,J,L) = 1.e0
+          State_Chm%fupdateHOCl(I,J,L) = 1.e0
+
+       ENDIF
+
+       ! SET_DUSTUP() ! Holding...
+
+       !====================================================================
        ! Get rates for heterogeneous chemistry
        !====================================================================
        IF ( DO_HETCHEM ) THEN
@@ -907,8 +962,37 @@ CONTAINS
        ENDIF
 
        ! Call the KPP integrator
+       if (i .eq. 61 .and. j .eq. 15 .and. L .eq. 1 ) then
+          write(*,*) '----KPP AQ RATES---'
+          DO N=1,16
+             write(*,'(A38,a,2e15.9)') EQN_NAMES(N), " ", RCONST(N)
+          END DO
+          write(*,*) '-------------------'
+       end if
+
+       ! <<>> MSL testing
+       tmp_h2o2 = C(ind_h2o2)
+       tmp_so2  = C(ind_so2)
+
+       call CPU_TIME(start)
+       ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
+       call CPU_TIME(finish)
+
+       integrationtime = finish-start
+
+       ! <<>> MSL testing
+       if (finish-start .gt. test_integrationtime) then
+          test_integrationtime = finish-start
+          test_i = I
+          test_j = J
+          test_l = L
+          test_h2o2 = tmp_h2o2
+          test_so2  = tmp_so2
+          test_rate = RCONST(9)
+          test_FC   = State_Met%CLDF(I,J,L)
+       endif
 
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "     Integrate 1", RC, InLoop=.TRUE., ThreadNum=Thread )
@@ -966,12 +1050,12 @@ CONTAINS
 
           ! # of forward and backwards substitutions
           IF ( State_Diag%Archive_KppSubsts ) THEN
-             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+             State_Diag%KppSubsts(I,J,L) = State_Met%CldF(I,J,L)
           ENDIF
 
           ! # of singular-matrix decompositions
           IF ( State_Diag%Archive_KppSmDecomps ) THEN
-             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+             State_Diag%KppSmDecomps(I,J,L) = integrationtime
           ENDIF
        ENDIF
 
@@ -1039,16 +1123,16 @@ CONTAINS
              ENDIF
 
              ! # of forward and backwards substitutions
-             IF ( State_Diag%Archive_KppSubsts ) THEN
-                State_Diag%KppSubsts(I,J,L) =                                &
-                State_Diag%KppSubsts(I,J,L) + ISTATUS(7)
-             ENDIF
+!             IF ( State_Diag%Archive_KppSubsts ) THEN
+!                State_Diag%KppSubsts(I,J,L) =                                &
+!                State_Diag%KppSubsts(I,J,L) + ISTATUS(7)
+!             ENDIF
 
              ! # of singular-matrix decompositions
-             IF ( State_Diag%Archive_KppSmDecomps ) THEN
-                State_Diag%KppSmDecomps(I,J,L) =                             &
-                State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
-             ENDIF
+!             IF ( State_Diag%Archive_KppSmDecomps ) THEN
+!                State_Diag%KppSmDecomps(I,J,L) =                             &
+!                State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
+!             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -1082,6 +1166,12 @@ CONTAINS
        ! Copy VAR and FIX back into C (mps, 2/24/16)
        C(1:NVAR)       = VAR(:)
        C(NVAR+1:NSPEC) = FIX(:)
+
+       IF (.not. DO_SULFATEMOD_SEASALT) THEN
+          ! Revert Alkalinity
+          !C(ind_SALAAL) = C(ind_SALAAL) / ( State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp )
+          !C(ind_SALCAL) = C(ind_SALCAL) / ( State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp )
+       ENDIF
 
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
@@ -1240,6 +1330,19 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+!//    write(*,*) ' '
+!//    write(*,*) '--------------------'
+!//    write(*,*) ' integration stats @ max integration time'
+!//    write(*,*) '-- max integrateion time: ', test_integrationtime
+!//    write(*,*) '-- I,J,L: ', test_i, test_j, test_l
+!//    write(*,*) '-- H2O2: ', test_h2o2
+!//    write(*,*) '-- SO2: ', test_so2
+!//    write(*,*) '-- rate: ', test_rate
+!//    write(*,*) '-- cloud frac: ', test_FC
+!//    write(*,*) '-- test_set_cld_s: ', test_set_cld_s
+!//    write(*,*) '--------------------'
+!//    write(*,*) ' '
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End( "  -> FlexChem loop", RC )
@@ -2157,6 +2260,8 @@ CONTAINS
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
     USE State_Diag_Mod,   ONLY : DgnState
+    USE GcKpp_AqRates,    ONLY : INIT_AQRATES
+    USE GcKpp_Sulfate,    ONLY : INIT_SULFATE
 !
 ! !INPUT PARAMETERS:
 !
@@ -2262,6 +2367,9 @@ CONTAINS
     id_ICNOO    = Ind_( 'ICNOO'        )
     id_IDNOO    = Ind_( 'IDNOO'        )
 #endif
+! MSL
+    id_SALAAL                = Ind_( 'SALAAL'       )
+    id_SALCAL                = Ind_( 'SALCAL'       )
 
     ! Set flags to denote if each species is defined
     ok_HO2      = ( id_HO2 > 0         )
@@ -2383,6 +2491,9 @@ CONTAINS
        ENDIF
 
     ENDIF
+
+    CALL INIT_AQRATES( RC ) ! MSL
+    CALL INIT_SULFATE( RC ) ! MSL
 
   END SUBROUTINE Init_FlexChem
 !EOC

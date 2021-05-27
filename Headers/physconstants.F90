@@ -82,6 +82,12 @@ MODULE PHYSCONSTANTS
 
   ! Molecular weight of carbon (kg/mol)
   REAL(fp), PARAMETER :: MWCARB = 12.01e-3_fp
+
+  LOGICAL,  PARAMETER :: DO_SULFATEMOD_SEASALT = .FALSE.
+!  LOGICAL,  PARAMETER :: DO_SULFATEMOD_SEASALT = .TRUE.
+
+!  LOGICAL,  PARAMETER :: DO_SULFATEMOD_CLD = .TRUE.
+  LOGICAL,  PARAMETER :: DO_SULFATEMOD_CLD = .FALSE.
 !
 ! !REFERENCES:
 ! (1) NIST, 2014. Website: http://physics.nist.gov/cuu/Constants/index.html

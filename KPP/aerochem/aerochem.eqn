@@ -99,7 +99,7 @@ KRT : Katie Travis;            ktravis@fas.harvard.edu
 LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
 MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
-MSL : Mike Long;               mlong@seas.harvard.edu
+MSL : Michael Long;            msl3v@virginia.edu
 PK  : Prasad Kasibhatla;       psk9@duke.edu
 QJC : Qianjie Chen;            chenqjie@uw.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu
@@ -169,6 +169,14 @@ ACTA       = IGNORE; {CH3C(O)OH; Acetic acid}
 AERI       = IGNORE; {I; Dissolved iodine}
 ALD2       = IGNORE; {CH3CHO; Acetaldehyde}
 ALK4       = IGNORE; {>= C4 alkanes}
+AKNCLD	   = IGNORE; {Cloudwater alkalinity}
+AKNDST1	   = IGNORE; {Alkalinity of mineral dust bin 1}
+AKNDST2	   = IGNORE; {Alkalinity of mineral dust bin 2}
+AKNDST3	   = IGNORE; {Alkalinity of mineral dust bin 3}
+AKNDST4	   = IGNORE; {Alkalinity of mineral dust bin 4}
+AKNDST5	   = IGNORE; {Alkalinity of mineral dust bin 5}
+AKNDST6	   = IGNORE; {Alkalinity of mineral dust bin 6}
+AKNDST7    = IGNORE; {Alkalinity of mineral dust bin 7}
 ATO2       = IGNORE; {CH3C(O)CH2O2; RO2 from acetone}
 ATOOH      = IGNORE; {CH3C(O)CH2OOH; ATO2 peroxide}
 B3O2       = IGNORE; {CH3CH(OO)CH3; Secondary RO2 from C3H8}
@@ -242,6 +250,7 @@ HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
 HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
 HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
+HMS	   = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -250,6 +259,9 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
+HpA	   = IGNORE; {dummy proton; MSL}
+HpC	   = IGNORE; {dummy proton; MSL}
+DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
 HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
@@ -257,6 +269,7 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
+HSO3m	   = IGNORE;
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -376,6 +389,8 @@ NRO2       = IGNORE; {Peroxy radical from NAP oxidation}
 O          = IGNORE; {O(3P); Ground state atomic oxygen}
 O1D        = IGNORE; {O(1D); Excited atomic oxygen}
 O3         = IGNORE; {O3; Ozone}
+O3A        = IGNORE; {O3; Ozone in accum seasalt}
+O3C        = IGNORE; {O3; Ozone in coarse seasalt}
 OClO       = IGNORE; {OClO; Chlorine dioxide}
 OCS        = IGNORE; {COS; Carbonyl sulfide}
 OH         = IGNORE; {OH; Hydroxyl radical}
@@ -408,10 +423,18 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
+SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
+SALASO2    = IGNORE; {SO2; Fine seasalt}
+SALCSO2    = IGNORE; {SO2; Coarse seasalt}
+SALASO3    = IGNORE; {SO3--; Fine seasalt}
+SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
+SO3mm      = IGNORE; 
 SO4        = IGNORE; {SO4; Sulfate}
+SO4s       = IGNORE; {SO4; Sulfate}
 SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
 SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
 SO4H3      = IGNORE; {SO4; Sulfate produced by HOCl}
@@ -431,6 +454,42 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
+//
+// Reactions extracted from sulfate_mod.F90
+//
+// NOTES:
+// ------
+// Initial version, Mar. 23, 2021 - MSL
+//
+//------------------------
+// Seasalt:
+//
+SO2  + SALAAL + O3  = SO4 - SALAAL     : K_MT(1);
+HCl  {+ SALAAL}     = HpA + SALACL     : K_MT(2);
+HNO3 {+ SALAAL}     = HpA + NIT        : K_MT(3);
+SO2  + SALCAL + O3  = SO4s - SALCAL    : K_MT(4);
+HCl  {+ SALCAL}     = HpC + SALCCL     : K_MT(5);
+HNO3 {+ SALCAL}     = HpC + NITs       : K_MT(6);
+HpA + SALAAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
+HpC + SALCAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
+//------------------------
+// Dust:
+//
+// DUST NOT YET COMPLETED ! MSL
+//------------------------
+// Cloud:
+// - S(IV) --> S(VI)
+// How to account for cloud fraction? Holmes, 2019
+SO2 + H2O2 = SO4 : K_CLD(1);
+SO2 + O3  = SO4  : K_CLD(2);
+SO2 {+O2} = SO4  : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+//------------------------
+// HMS:
+///CH2O + SO2 = HMS         : K_CLD(4);
+///HMS        = SO2 + CH2O  : K_CLD(5);
+///HMS        = 2SO4 + CH2O : k_CLD(6);
+//------------------------
+// --- End sulfate_mod.F90 reactions 
 //
 // Gas-phase reactions
 //
@@ -468,7 +527,7 @@ OH + OH {+M} = H2O2 :                        GCJPLPR_aba(6.90d-31, 1.0d+00, 2.6d
 OH + HO2 = H2O + O2 :                        GCARR_ac(4.80d-11, 250.0d0);
 OH + H2O2 = H2O + HO2 :                      1.80d-12;
 HO2 + NO = OH + NO2 :                        GCARR_ac(3.30d-12, 270.0d0);                                                      {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
-HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
+O2 + HO2 = H2O2 + O2 :                      GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
 OH + CO = HO2 + CO2 :                        GC_OHCO_a(1.50d-13);                                                              {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR_ac(2.45d-12, -1775.0d0);
 MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO_B1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}

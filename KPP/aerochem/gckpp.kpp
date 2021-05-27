@@ -2486,7 +2486,28 @@ PH2O2 : H2O2;
   REAL(dp) :: HENRY_K0(NSPEC)
   REAL(dp) :: HENRY_CR(NSPEC)
 
+  ! Array for aqueous rates (1/s)
+  ! - number of reactions set to 50 arbitrarily
+  REAL(kind=dp) :: K_MT(20)
+  !$OMP THREADPRIVATE( K_MT )
+
+  ! Array for cloud rates (1/s)
+  ! - number of reactions set to 50 arbitrarily
+  REAL(kind=dp) :: K_CLD(20)
+  !$OMP THREADPRIVATE( K_CLD )
+
+  ! Liquid water conversion factor
+  ! - Size = number of aerosol types (nAeroType)
+  REAL(kind=dp) :: CVFAC(14)
+  !$OMP THREADPRIVATE( CVFAC )
+
+  ! Proton activity [unitless] and H+ concentration [M]
+  ! (assumed equivalent - for now):
+  REAL(kind=dp) :: H_PLUS
+  !$OMP THREADPRIVATE( H_PLUS )
+
   !### NOTE: The HET array is deprecated
+  !### These are the only slots left to convert
   ! Array for heterogeneous rates
   ! HET(ind_ClNO2,  1) : ClNO2  +  SALACL
   ! HET(ind_ClNO2,  2) : ClNO2  +  SALCCL
