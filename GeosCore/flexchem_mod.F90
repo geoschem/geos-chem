@@ -101,7 +101,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GCKPP_HetRates,       ONLY : SET_HET
+    USE GCKPP_HetRates
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
     USE GCKPP_Integrator,     ONLY : INTEGRATE, NHnew
@@ -600,7 +600,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        !=====================================================================
-       ! Initialize private loop  variables for each (I,J,L)
+       ! Initialize private loop variables for each (I,J,L)
        ! Other private variables will be assigned in Set_Kpp_GridBox_Values
        !=====================================================================
        HET       = 0.0_dp                   ! Het chem array
@@ -799,9 +799,14 @@ CONTAINS
        CALL Init_KPP()
 
        ! Copy values at each gridbox into variables in gckpp_Global.F90
-       CALL Set_Kpp_GridBox_Values( Input_Opt, State_Chm, State_Grid,        &
-                                    State_Met, I,         J,                 &
-                                    L,         RC                           )
+       CALL Set_Kpp_GridBox_Values( I          = I,                          &
+                                    J          = J,                          &
+                                    L          = L,                          &
+                                    Input_Opt  = Input_Opt,                  &
+                                    State_Chm  = State_Chm,                  &
+                                    State_Grid = State_Grid,                 &
+                                    State_Met  = State_Met,                  &
+                                    RC         = RC                         )
 
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End  ( "  -> Init KPP", RC,                             &
@@ -818,10 +823,16 @@ CONTAINS
           ENDIF
 
           ! Compute heterogeneous rates
-          CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
+          ! NOTE: State_Het is in gckpp_Global.F90
+          CALL SET_HET( I         = I,                                       &
+                        J         = J,                                       &
+                        L         = L,                                       &
+                        Input_Opt = Input_Opt,                               &
+                        State_Chm = State_Chm,                               &
+                        State_Met = State_Met                               )
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "  -> Het chem rates", RC, &
+             CALL Timer_End( "  -> Het chem rates", RC,                      &
                              InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
        ENDIF
@@ -1383,43 +1394,34 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Kpp_GridBox_Values( Input_Opt, State_Chm, State_Grid,       &
-                                     State_Met, I,         J,                &
-                                     L,         RC                          )
+  SUBROUTINE Set_Kpp_GridBox_Values( I,         J,         L,                &
+                                     Input_Opt, State_Chm, State_Grid,       &
+                                     State_Met, RC                          )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE GcKpp_Global
     USE GcKpp_Parameters
+    USE Gckpp_HetRates,  ONLY : Cld_Params, Halide_Conc
     USE Input_Opt_Mod,   ONLY : OptInput
-    USE PhysConstants,   ONLY : CONSVAP
+    USE PhysConstants,   ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
     USE Pressure_Mod,    ONLY : Get_Pcenter
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
-
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt
-    TYPE(ChmState), INTENT(IN)  :: State_Chm
-    TYPE(GrdState), INTENT(IN)  :: State_Grid
-    TYPE(MetState), INTENT(IN)  :: State_Met
-    INTEGER,        INTENT(IN)  :: I, J, L
+    INTEGER,        INTENT(IN)    :: I, J, L
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+    TYPE(ChmState), INTENT(IN)    :: State_Chm
+    TYPE(GrdState), INTENT(IN)    :: State_Grid
+    TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC
-!
-! !RETURN VALUE:
-!
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+    INTEGER,        INTENT(OUT)   :: RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1435,38 +1437,8 @@ CONTAINS
     !========================================================================
 
     ! Initialization
-    RC          = GC_SUCCESS                        ! Success or failure?
-    nAeroType   = State_Chm%nAeroType               ! # of aerosol types
-    NA          = nAeroType                         ! Local copy
-
-    !========================================================================
-    ! Copy various quantities at each grid box into gckpp_Global variables
-    !========================================================================
-    AClAREA     = State_Chm%AClArea(I,J,L)          ! SSA+SNA area [cm2/cm3]
-    AClRADI     = State_Chm%AClRadi(I,J,L)          ! SSA+SNA radius [cm]
-    AClVOL      = AClArea * AClRadi / 3e+0_fp       ! SSA+SNA volume [cm3/cm3]
-    AWATER(:)   = State_Chm%IsorropAeroH2O(I,J,L,:) ! Aerosol water
-    GAMMA_HO2   = Input_Opt%GAMMA_HO2
-    H_PLUS      = State_Chm%IsorropHplus(I,J,L,1)   ! Proton activity [1]
-    MHSO4       = State_Chm%IsorropBisulfate(I,J,L) ! Bisulvate conc [M]
-    MNO3        = State_Chm%IsorropNitrate(I,J,L,1) ! Nitrate conc [M]
-    MSO4        = State_Chm%IsorropSulfate(I,J,L)   ! Sulfate conc [M]
-    NUMDEN      = State_Met%AIRNUMDEN(I,J,L)        ! Air density [molec/cm3]
-    H2O         = State_Met%AVGW(I,J,L) * NUMDEN    ! H2O conc [molec/cm3]
-    OMOC_POA    = State_Chm%OMOC_POA(I,J)           ! OM:OC ratio, POA [1]
-    OMOC_OPOA   = State_Chm%OMOC_OPOA(I,J)          ! OM:OC ratio, OPOA [1]
-    PRESS       = Get_Pcenter( I, J, L )            ! Pressure [hPa]
-    QICE        = State_Met%QI(I,J,L)               ! Ice MR [kg/kg dry air]
-    QLIQ        = State_Met%QL(I,J,L)               ! Water MR [kg/kg dry air]
-    SPC_SALA    = State_Chm%Species(I,J,L,id_SALA)  ! Seasalt conc [molec/cm3]
-    SUNCOS      = State_Met%SUNCOSmid(I,J)          ! cos(solar zenith angle)
-    TEMP        = State_Met%T(I,J,L)                ! Temperature [K]
-    VAIR        = State_Met%AIRVOL(I,J,L)*1.0e6_f8  ! Volume of air (cm3)
-    XTEMP       = SQRT( TEMP )                      ! Temp**0.5 [K]
-    XAREA(1:NA) = State_Chm%AeroArea(I,J,L,1:NA)    ! Aer area [cm2/cm3]
-    XRADI(1:NA) = State_Chm%AeroRadi(I,J,L,1:NA)    ! Aer eff radius [cm]
-    XVOL(1:NA)  = XAREA(1:NA) * XRADI(1:NA) / 3e+0_fp     ! Aer vol [cm3/cm3]
-    XH2O(1:NA)  = State_Chm%AeroH2O(I,J,L,1:NA) * 1e-6_fp ! Aer water [cm3/cm3]
+    RC =  GC_SUCCESS
+    NA =  State_Chm%nAeroType
 
     !========================================================================
     ! Copy species concentrations into gckpp_Global variables
@@ -1481,27 +1453,119 @@ CONTAINS
     ENDDO
 
     !========================================================================
+    ! Populate global variables in gckpp_Global.F90
+    !========================================================================
+
+    ! Solar quantities
+    SUNCOS          = State_Met%SUNCOSmid(I,J)
+
+    ! Pressure and density quantities
+    NUMDEN          = State_Met%AIRNUMDEN(I,J,L)
+    H2O             = State_Met%AVGW(I,J,L) * NUMDEN
+    PRESS           = Get_Pcenter( I, J, L )
+
+    ! Temperature quantities
+    TEMP            = State_Met%T(I,J,L)
+    INV_TEMP        = 1.0_dp   / TEMP
+    TEMP_OVER_K300  = TEMP     / 300.0_dp
+    K300_OVER_TEMP  = 300.0_dp / TEMP
+    SR_TEMP         = SQRT( TEMP )
+    FOUR_R_T        = 4.0_dp * CON_R    * TEMP
+    FOUR_RGASLATM_T = 4.0_dp * RGASLATM * TEMP
+    EIGHT_RSTARG_T  = 8.0_dp * RSTARG   * TEMP
+
+    ! Relative humidity quantities
+    CONSEXP         = 17.2693882_f8 * (TEMP - 273.16_f8) / (TEMP - 35.86_f8)
+    VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
+    RELHUM          = ( H2O / VPRESH2O ) * 100_dp
+
+    !========================================================================
+    ! Populate fields of the HetState object in gckpp_Global
+    !========================================================================
+
+    ! Constants (so that we can use these within KPP)
+    State_Het%AVO            = AVO
+    State_Het%PI             = PI
+
+    ! Meteorology-related quantities
+    State_Het%CldFr          = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
+    State_Het%ClearFr        = 1.0_dp - State_Het%CldFr
+    State_Het%QICE           = State_Met%QI(I,J,L)
+    State_Het%QLIQ           = State_Met%QL(I,J,L)
+    State_Het%vAir           = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+
+    ! Aerosol fields
+    State_Het%nAeroType      = State_Chm%nAeroType
+    State_Het%AClArea        = State_Chm%AClArea(I,J,L)
+    State_Het%AClRadi        = State_Chm%AClRadi(I,J,L)
+    State_Het%AClVol         = State_Het%AClArea * State_Het%AClRadi / 3.0_dp
+    State_Het%AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)
+    State_Het%xArea(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)
+    State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
+    State_Het%xVol(1:NA)     = State_Het%xArea(1:NA)                         &
+                             * State_Het%xRadi(1:NA) / 3.0_dp
+    State_Het%xH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
+    State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
+    State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
+
+    ! Concentrations
+    State_Het%HSO3_conc_Cld  = State_Chm%HSO3_AQ(I,J,L)
+    State_Het%mHSO4          = State_Chm%IsorropBisulfate(I,J,L)
+    State_Het%mNO3           = State_Chm%IsorropNitrate(I,J,L,1)
+    State_Het%mSO4           = State_Chm%IsorropSulfate(I,J,L)
+    State_Het%SO3_conc_Cld   = State_Chm%SO3_AQ(I,J,L)
+
+    ! pH and alkalinity fields
+    State_Het%H_plus         = State_Chm%IsorropHplus(I,J,L,1)
+    State_Het%pHCloud        = State_Chm%pHCloud(I,J,L)
+    State_Het%pHSSA(:)       = State_Chm%IsorropAeropH(I,J,L,:)
+    State_Het%H_conc_Sul     = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
+    State_Het%H_conc_LCl     = 10.0**( -1.0_dp * State_Het%pHCloud  )
+    State_Het%H_conc_ICl     = 10.0**( -4.5_dp                      )
+    State_Het%H_conc_SSA     = State_Het%H_conc_Sul
+    State_Het%H_conc_SSC     = 10.0**( -5.0_dp                      )
+    State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
+    State_Het%ssFineIsAlk    = ( State_Het%ssAlk(1) > 0.05_dp       )
+    State_Het%ssFineisAcid   = ( .not.  State_Het%ssFineIsAlk       )
+    State_Het%ssCoarseIsAlk  = ( State_Het%ssAlk(2) > 0.05_dp       )
+    State_Het%ssCoarseIsAcid = ( .not.  State_Het%ssCoarseIsAlk     )
+
+    ! Other fields
+    State_Het%fupdateHOBr    = State_Chm%fupdateHOBr(I,J,L)
+    State_Het%fupdateHOCl    = State_Chm%fupdateHOCl(I,J,L)
+    State_Het%gamma_HO2      = Input_Opt%gamma_HO2
+    State_Het%is_UCX         = Input_Opt%LUCX
+
+    ! Cloud fields
+    CALL Cld_Params( I, J, L, State_Het, State_Met )
+
+    ! Halide (Br- and Cl-) concentrations
+    CALL Halide_Conc( I, J, L, State_Het )
+
+    !========================================================================
     ! Copy quantities for UCX into gckpp_Global variables
     !========================================================================
     IF ( Input_Opt%LUCX ) THEN
 
-       !---------------------------
+       !---------------------------------------------------------------------
        ! If UCX is turned on ...
        !---------------------------
 
-       ! ... copy sticking coefficients for PSC reactions on SLA
+       ! ... copy uptake probabilities for PSC reactions on SLA
        ! ... to the proper gckpp_Global variable
-       KHETI_SLA  = State_Chm%KHETI_SLA(I,J,L,:)
+       State_Het%KHETI_SLA = State_Chm%KHETI_SLA(I,J,L,:)
 
        ! ... check if we are in the stratosphere
-       STRATBOX   = State_Met%InStratosphere(I,J,L)
+       State_Het%STRATBOX = State_Met%InStratosphere(I,J,L)
 
        ! ... check if there are solid PSCs at this grid box
-       PSCBOX     = ( ( Input_Opt%LPSCCHEM                ) .and.            &
-                      ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. STRATBOX  )
+       State_Het%PSCBOX  =                                                   &
+          ( ( Input_Opt%LPSCCHEM                ) .and.                      &
+            ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. State_Het%STRATBOX   )
 
        ! ... check if there is surface NAT at this grid box
-       NATSURFACE = ( PSCBOX .and. ( C(ind_NIT) > 0.0_f8 )                  )
+       State_Het%NATSURFACE =                                                &
+          ( State_Het%PSCBOX .and. ( C(ind_NIT) > 0.0_f8 )                  )
 
     ELSE
 
@@ -1510,23 +1574,15 @@ CONTAINS
        !---------------------------
 
        ! ... set H2O concentration from the meteorology
-       C(ind_H2O) = H2O
+       C(ind_H2O) = State_Het%H2O
 
        ! ... zero out UCX-related quantities
-       KHETI_SLA  = 0.0_f8
-       STRATBOX   = .FALSE.
-       PSCBOX     = .FALSE.
-       NATSURFACE = .FALSE.
+       State_Het%KHETI_SLA  = 0.0_dp
+       State_Het%STRATBOX   = .FALSE.
+       State_Het%PSCBOX     = .FALSE.
+       State_Het%NATSURFACE = .FALSE.
 
     ENDIF
-
-    !========================================================================
-    ! Calculate RH [%] and copy into gckpp_Global variables
-    ! Not clear why this calc is slightly different than State_Met%RH
-    !========================================================================
-    CONSEXP  = 17.2693882_f8 * ( TEMP - 273.16_f8 ) / ( TEMP - 35.86_f8 )
-    VPRESH2O = CONSVAP * EXP( CONSEXP ) / TEMP
-    RELHUM   = ( H2O / VPRESH2O ) * 100_f8
 
   END SUBROUTINE Set_Kpp_GridBox_Values
 !EOC
@@ -2096,6 +2152,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Parameters, ONLY : nFam, nReact
+    USE Gckpp_Global,     ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
@@ -2158,59 +2215,59 @@ CONTAINS
     ENDIF
 
     ! Initialize species flags
-    id_CH4                   = Ind_( 'CH4', 'A'     ) ! CH4 advected species
-    id_HO2                   = Ind_( 'HO2'          )
-    id_O3P                   = Ind_( 'O'            )
-    id_O1D                   = Ind_( 'O1D'          )
-    id_OH                    = Ind_( 'OH'           )
-    id_SALA                  = Ind_( 'SALA'         )
+    id_CH4      = Ind_( 'CH4', 'A'     ) ! CH4 advected species
+    id_HO2      = Ind_( 'HO2'          )
+    id_O3P      = Ind_( 'O'            )
+    id_O1D      = Ind_( 'O1D'          )
+    id_OH       = Ind_( 'OH'           )
+    id_SALA     = Ind_( 'SALA'         )
 
 #ifdef MODEL_GEOS
     ! ckeller
-    id_O3                    = Ind_( 'O3'           )
-    id_A3O2                  = Ind_( 'A3O2'         )
-    id_ATO2                  = Ind_( 'ATO2'         )
-    id_BRO2                  = Ind_( 'BRO2'         )
-    id_ETO2                  = Ind_( 'ETO2'         )
-    id_LIMO2                 = Ind_( 'LIMO2'        )
-    id_MO2                   = Ind_( 'MO2'          )
-    id_PIO2                  = Ind_( 'PIO2'         )
-    id_PO2                   = Ind_( 'PO2'          )
-    id_PRN1                  = Ind_( 'PRN1'         )
-    id_R4N1                  = Ind_( 'R4N1'         )
-    id_R4O2                  = Ind_( 'R4O2'         )
-    id_TRO2                  = Ind_( 'TRO2'         )
-    id_XRO2                  = Ind_( 'XRO2'         )
-    id_IHOO1                 = Ind_( 'IHOO1'        )
-    id_IHOO4                 = Ind_( 'IHOO4'        )
-    id_IHCOO                 = Ind_( 'IHCOO'        )
-    id_IHPOO1                = Ind_( 'IHPOO1'       )
-    id_IHPOO2                = Ind_( 'IHPOO2'       )
-    id_IHPOO3                = Ind_( 'IHPOO3'       )
-    id_IEPOXAOO              = Ind_( 'IEPOXAOO'     )
-    id_IEPOXBOO              = Ind_( 'IEPOXBOO'     )
-    id_C4HVP1                = Ind_( 'C4HVP1'       )
-    id_C4HVP2                = Ind_( 'C4HVP2'       )
-    id_HPALD1OO              = Ind_( 'HPALD1OO'     )
-    id_HPALD2OO              = Ind_( 'HPALD2OO'     )
-    id_ISOPNOO1              = Ind_( 'ISOPNOO1'     )
-    id_ISOPNOO2              = Ind_( 'ISOPNOO2'     )
-    id_INO2B                 = Ind_( 'INO2B'        )
-    id_INO2D                 = Ind_( 'INO2D'        )
-    id_IDHNBOO               = Ind_( 'IDHNBOO'      )
-    id_IDHNDOO1              = Ind_( 'IDHNDOO1'     )
-    id_IDHNDOO2              = Ind_( 'IDHNDOO2'     )
-    id_IHPNBOO               = Ind_( 'IHPNBOO'      )
-    id_IHPNDOO               = Ind_( 'IHPNDOO'      )
-    id_ICNOO                 = Ind_( 'ICNOO'        )
-    id_IDNOO                 = Ind_( 'IDNOO'        )
+    id_O3       = Ind_( 'O3'           )
+    id_A3O2     = Ind_( 'A3O2'         )
+    id_ATO2     = Ind_( 'ATO2'         )
+    id_BRO2     = Ind_( 'BRO2'         )
+    id_ETO2     = Ind_( 'ETO2'         )
+    id_LIMO2    = Ind_( 'LIMO2'        )
+    id_MO2      = Ind_( 'MO2'          )
+    id_PIO2     = Ind_( 'PIO2'         )
+    id_PO2      = Ind_( 'PO2'          )
+    id_PRN1     = Ind_( 'PRN1'         )
+    id_R4N1     = Ind_( 'R4N1'         )
+    id_R4O2     = Ind_( 'R4O2'         )
+    id_TRO2     = Ind_( 'TRO2'         )
+    id_XRO2     = Ind_( 'XRO2'         )
+    id_IHOO1    = Ind_( 'IHOO1'        )
+    id_IHOO4    = Ind_( 'IHOO4'        )
+    id_IHCOO    = Ind_( 'IHCOO'        )
+    id_IHPOO1   = Ind_( 'IHPOO1'       )
+    id_IHPOO2   = Ind_( 'IHPOO2'       )
+    id_IHPOO3   = Ind_( 'IHPOO3'       )
+    id_IEPOXAOO = Ind_( 'IEPOXAOO'     )
+    id_IEPOXBOO = Ind_( 'IEPOXBOO'     )
+    id_C4HVP1   = Ind_( 'C4HVP1'       )
+    id_C4HVP2   = Ind_( 'C4HVP2'       )
+    id_HPALD1OO = Ind_( 'HPALD1OO'     )
+    id_HPALD2OO = Ind_( 'HPALD2OO'     )
+    id_ISOPNOO1 = Ind_( 'ISOPNOO1'     )
+    id_ISOPNOO2 = Ind_( 'ISOPNOO2'     )
+    id_INO2B    = Ind_( 'INO2B'        )
+    id_INO2D    = Ind_( 'INO2D'        )
+    id_IDHNBOO  = Ind_( 'IDHNBOO'      )
+    id_IDHNDOO1 = Ind_( 'IDHNDOO1'     )
+    id_IDHNDOO2 = Ind_( 'IDHNDOO2'     )
+    id_IHPNBOO  = Ind_( 'IHPNBOO'      )
+    id_IHPNDOO  = Ind_( 'IHPNDOO'      )
+    id_ICNOO    = Ind_( 'ICNOO'        )
+    id_IDNOO    = Ind_( 'IDNOO'        )
 #endif
 
     ! Set flags to denote if each species is defined
-    ok_HO2                   = ( id_HO2 > 0         )
-    ok_O1D                   = ( id_O1D > 0         )
-    ok_O3P                   = ( id_O3P > 0         )
-    ok_OH                    = ( id_OH  > 0         )
+    ok_HO2      = ( id_HO2 > 0         )
+    ok_O1D      = ( id_O1D > 0         )
+    ok_O3P      = ( id_O3P > 0         )
+    ok_OH       = ( id_OH  > 0         )
 
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
@@ -2245,6 +2302,18 @@ CONTAINS
                                State_Diag%Archive_HO2concAfterChem      .or. &
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
+
+    !=======================================================================
+    ! Save physical parameters from the species database into KPP arrays
+    ! in gckpp_Global.F90.  These are for the hetchem routines.
+    !=======================================================================
+    DO KppId = 1, State_Chm%nKppSpc
+       N               = State_Chm%Map_KppSpc(KppId)
+       MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
+       SR_MW(KppId)    = SQRT( MW(KppId ) )
+       HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
+       HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
+    ENDDO
 
     !=======================================================================
     ! Allocate arrays

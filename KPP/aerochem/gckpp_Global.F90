@@ -94,90 +94,104 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
+  !-----------------------------------------------------------------------
+  ! Add global parameters here -- these will go into gckpp_Global.F90
+  !-----------------------------------------------------------------------
 
-  !-----------------------------------------------------------------------
-  ! Add parameters to isolate a box for debugging
-  !-----------------------------------------------------------------------
-  INTEGER,       PARAMETER :: I_dbg = 50
-  INTEGER,       PARAMETER :: J_dbg = 2
-  INTEGER,       PARAMETER :: L_dbg = 44
+  ! Debug box (change if necessary)
+  INTEGER,  PARAMETER :: I_dbg         = 50
+  INTEGER,  PARAMETER :: J_dbg         = 2
+  INTEGER,  PARAMETER :: L_dbg         = 44
 
-  !-----------------------------------------------------------------------
-  ! Add more inlined global parameters for heterogeneous chemistry here
-  !-----------------------------------------------------------------------
+  ! Indices for aerosol type (1 .. NAEROTYPE=14)
+  INTEGER,  PARAMETER :: DU1           = 1   ! Dust (Reff = 0.151 um)
+  INTEGER,  PARAMETER :: DU2           = 2   ! Dust (Reff = 0.253 um)
+  INTEGER,  PARAMETER :: DU3           = 3   ! Dust (Reff = 0.402 um)
+  INTEGER,  PARAMETER :: DU4           = 4   ! Dust (Reff = 0.818 um)
+  INTEGER,  PARAMETER :: DU5           = 5   ! Dust (Reff = 1.491 um)
+  INTEGER,  PARAMETER :: DU6           = 6   ! Dust (Reff = 2.417 um)
+  INTEGER,  PARAMETER :: DU7           = 7   ! Dust (Reff = 3.721 um)
+  INTEGER,  PARAMETER :: SUL           = 8   ! Tropospheric Sulfate
+  INTEGER,  PARAMETER :: BKC           = 9   ! Black Carbon
+  INTEGER,  PARAMETER :: ORC           = 10  ! Organic Carbon
+  INTEGER,  PARAMETER :: SSA           = 11  ! Accum-mode (fine) sea salt
+  INTEGER,  PARAMETER :: SSC           = 12  ! Coarse sea salt
+  INTEGER,  PARAMETER :: SLA           = 13  ! Strat sulfate liq aerosol
+  INTEGER,  PARAMETER :: IIC           = 14  ! Irregular ice cloud
+
+  ! Indices for Fine and coarse sea-salt indices
+  INTEGER,  PARAMETER :: SS_FINE        = 1
+  INTEGER,  PARAMETER :: SS_COARSE      = 2
+
+  ! Indices for the KHETI_SLA array
+  INTEGER,  PARAMETER :: N2O5_plus_H2O  = 1
+  INTEGER,  PARAMETER :: N2O5_plus_HCl  = 2
+  INTEGER,  PARAMETER :: ClNO3_plus_H2O = 3
+  INTEGER,  PARAMETER :: ClNO3_plus_HCl = 4
+  INTEGER,  PARAMETER :: ClNO3_plus_HBr = 5
+  INTEGER,  PARAMETER :: BrNO3_plus_H2O = 6
+  INTEGER,  PARAMETER :: BrNO3_plus_HCl = 7
+  INTEGER,  PARAMETER :: HOCl_plus_HCl  = 8
+  INTEGER,  PARAMETER :: HOCl_plus_HBr  = 9
+  INTEGER,  PARAMETER :: HOBr_plus_HCl  = 10
+  INTEGER,  PARAMETER :: HOBr_plus_HBr  = 11
 
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(kind=dp), PARAMETER :: HetMinLife  = 1.e-3_dp
-  REAL(kind=dp), PARAMETER :: HetMinRate  = 1.0_dp / HetMinLife
+  REAL(dp), PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
+  REAL(dp), PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
 
-  ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
-  REAL(kind=dp), PARAMETER :: CRITRH      = 35.0e+0_dp
-
-  ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous 
-  ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
-  ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
-  ! (which is the precursor of IEPOX).
-  REAL(kind=dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
+  ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
+  REAL(dp), PARAMETER :: CRITRH         = 35.0_dp
 
   ! Conversion factor from atm to bar
-  REAL(kind=dp), PARAMETER :: con_atm_bar = 1.0_dp / 1.01325_dp
+  REAL(dp), PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
 
   ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(kind=dp), PARAMETER :: con_R       = 0.083144598_dp
+  REAL(dp), PARAMETER :: CON_R          = 0.083144598_dp
+
+  ! Reference temperature used in Henry's law
+  REAL(dp), PARAMETER :: INV_T298       = 1.0_dp / 298.15_dp
 
   !--------------------------------------------------------------------------
-  ! Add more global variables here, so that they can be used
-  ! in inlined functions that will get written to gckpp_Rates.F90
+  ! Additional global variables -- will be added to gckpp_Global.F90
   !--------------------------------------------------------------------------
 
-  !%% OGICALS %%%%
+  ! Inverse of temperature [K]
+  REAL(dp) :: INV_TEMP
+  !$OMP THREADPRIVATE( INV_TEMP )
 
-  LOGICAL :: NATSURFACE, PSCBOX, STRATBOX
-  !$OMP THREADPRIVATE( NATSURFACE, PSCBOX, STRATBOX )
+  ! 4.0 * CON_R * TEMP
+  REAL(dp) :: FOUR_R_T
+  !$OMP THREADPRIVATE( FOUR_R_T )
 
-  !%% INTEGERS %%%%
+  ! 4.0 * RGASLATM * TEMP
+  REAL(dp) :: FOUR_RGASLATM_T
+  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
 
-  INTEGER :: NAEROTYPE
-  !$OMP THREADPRIVATE( NAEROTYPE )
-
-  !%% REALS %%%%
-
-  ! Fine SSA+SNA aerosol area [cm2 aerosol/cm3 air]
-  REAL(kind=dp) :: AClAREA
-  !$OMP THREADPRIVATE( AClAREA )
-
-  ! Fine SSA+SNA aerosol radius [cm]
-  REAL(kind=dp) :: AClRADI
-  !$OMP THREADPRIVATE( AClRADI )
-
-  ! Fine SSA+SNA aerosol volume (cm3 aerosol/cm3 air)
-  REAL(kind=dp) :: AClVOL
-  !$OMP THREADPRIVATE( AClVol )
-
-  ! Isorropia aerosol water (coarse & fine modes)
-  REAL(kind=dp) :: AWATER(2)
-  !$OMP THREADPRIVATE( AWATER )
-
-  ! Proton activity [unitless] and H+ concentration [M]
-  ! (assumed equivalent - for now):
-  REAL(kind=dp) :: GAMMA_HO2
-  !$OMP THREADPRIVATE( GAMMA_HO2 )
+  ! 8.0 * RSTARG * TEMP
+  REAL(dp) :: EIGHT_RSTARG_T
+  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
 
   ! H2O concentration
-  REAL(kind=dp) :: H2O
+  REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
 
+  ! Pressure and relative humidity
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
+  !$OMP THREADPRIVATE( PRESS, RELHUM )
+
+  ! Cosine of solar zenith angle
+  REAL(dp) :: SUNCOS
+  !$OMP THREADPRIVATE( SUNCOS )
+
+  ! Henry's law constants (do not need to be THREADPRIVATE)
+  REAL(dp) :: HENRY_K0(NSPEC)
+  REAL(dp) :: HENRY_CR(NSPEC)
+
+  !### NOTE: The HET array is deprecated
   ! Array for heterogeneous rates
-  !
-  ! NOTES:
-  ! (a) AERI            = Iodine (I-) on aerosol
-  ! (b) BrSALA (BrSALC) = Fine (coarse) sea salt bromine (Br-)
-  ! (c) SALACL (SALCCL) = Fine (coarse) sea salt chlorine (Cl-)
-  ! (d) ISALA  (ISALC ) = Fine (coarse) sea salt iodine (I-)
-  !
-  ! HET(ind_BrNO3,  1) : BrNO3  +  H2O          # hydrolysis rxn
-  ! HET(ind_BrNO3,  2) : BrNO3  +  HCl
   ! HET(ind_ClNO2,  1) : ClNO2  +  SALACL
   ! HET(ind_ClNO2,  2) : ClNO2  +  SALCCL
   ! HET(ind_ClNO2,  3) : ClNO3  +  HCl          # in-cloud only
@@ -191,14 +205,6 @@ MODULE gckpp_Global
   ! HET(ind_ClNO3,  5) : ClNO3  +  BrSALC
   ! HET(ind_ClNO3,  6) : ClNO3  +  SALACL
   ! HET(ind_ClNO3,  7) : CLNO3  +  SALCCL
-  ! HET(ind_GLYX,   1) : GLYX   uptake          # 1st-order loss rxn
-  ! HET(ind_HBr,    1) : Br     -> BrSALA
-  ! HET(ind_HBr,    2) : Br     -> BrSALC
-  ! HET(ind_HI,     1) : HI     -> AERI         # uptake by SO4
-  ! HET(ind_HI,     2) : HI     -> ISALA        # uptake by SALA
-  ! HET(ind_HI,     3) : HI     -> ISALC        # uptake by SALC
-  ! HET(ind_HMML,   1) : HMML   uptake          # 1st-order loss rxn
-  ! HET(ind_HO2,    1) : HO2    uptake          # 1st-order loss rxn
   ! HET(ind_HOBr,   1) : HOBr   +  HBr
   ! HET(ind_HOBr,   2) : HOBr   +  HCl
   ! HET(ind_HOBr,   3) : HOBr   +  SALACL
@@ -213,135 +219,93 @@ MODULE gckpp_Global
   ! HET(ind_HOCl,   4) : HOCl   +  SALCCL
   ! HET(ind_HOCl,   5) : HOCl   +  HSO3--(aq)
   ! HET(ind_HOCl,   6) : HOCl   +  SO3--(aq)
-  ! HET(ind_HOI,    1) : HOI    -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_HOI,    2) : HOI    -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_HOI,    3) : HOI    +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_HOI,    4) : HOI    +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_HOI,    5) : HOI    +  SALACL       # breakdown by SALACL
-  ! HET(ind_HOI,    6) : HOI    +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_HONIT,  1) : HONIT  uptake          # 1st order loss rxn
-  ! HET(ind_I2O2,   1) : I2O2   -> AERI         # uptake by SO4 
-  ! HET(ind_I2O2,   2) : I2O2   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O2,   3) : I2O2   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O3,   1) : I2O3   -> AERI         # uptake by SO4 
-  ! HET(ind_I2O3,   2) : I2O3   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O3,   3) : I2O3   -> ISALC        # uptake by SALC
-  ! HET(ind_I2O4,   1) : I2O4   -> AERI         # uptake by SO4 
-  ! HET(ind_I2O4,   2) : I2O4   -> ISALA        # uptake by SALA
-  ! HET(ind_I2O4,   3) : I2O4   -> ISALC        # uptake by SALC
-  ! HET(ind_ICHE,   1) : ICHE   uptake          # 1st order loss rxn
-  ! HET(ind_IDN,    1) : IDN    uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXA, 1) : IEPOXA uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXB, 1) : IEPOXB uptake          # 1st order loss rxn
-  ! HET(ind_IEPOXD, 1) : IEPOXD uptake          # 1st order loss rxn
-  ! HET(ind_IHN1,   1) : IHN1   uptake          # 1st order loss rxn
-  ! HET(ind_IHN2,   1) : IHN2   uptake          # 1st order loss rxn
-  ! HET(ind_IHN3,   1) : IHN3   uptake          # 1st order loss rxn
-  ! HET(ind_IHN4,   1) : IHN4   uptake          # 1st order loss rxn
-  ! HET(ind_INPB,   1) : INPB   uptake          # 1st order loss rxn
-  ! HET(ind_INPD,   1) : INPD   uptake          # 1st order loss rxn
-  ! HET(ind_IONITA, 1) : IONITA uptake          # 1st order loss rxn
-  ! HET(ind_IONO,   1) : IONO   -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_IONO,   2) : IONO   -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_IONO,   3) : IONO   +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_IONO,   4) : IONO   +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_IONO,   5) : IONO   +  SALACL       # breakdown by SALACL
-  ! HET(ind_IONO,   6) : IONO   +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_IONO2,  1) : IONO2  -> ISALA        # uptake by alkaline SALA
-  ! HET(ind_IONO2,  2) : IONO2  -> ISALC        # uptake by alkaline SALC
-  ! HET(ind_IONO2,  3) : IONO2  +  BrSALA       # breakdown by BrSALA
-  ! HET(ind_IONO2,  4) : IONO2  +  BrSALC       # breakdown by BrSALC
-  ! HET(ind_IONO2,  5) : IONO2  +  SALACL       # breakdown by SALACL
-  ! HET(ind_IONO2,  6) : IONO2  +  SALCCL       # breakdown by SALCCL
-  ! HET(ind_ITCN,   1) : ITCN   uptake          # 1st order loss rxn
-  ! HET(ind_ITHN,   1) : ITHN   uptake          # 1st order loss rxn
-  ! HET(ind_LVOC,   1) : LVOC   uptake          # 1st order loss rxn
-  ! HET(ind_MCRHN,  1) : MCRHN  uptake          # 1st order loss rxn
-  ! HET(ind_MCRHNB, 1) : MCRHNB uptake          # 1st order loss rxn
-  ! HET(ind_MGLY,   1) : MGLY   uptake          # 1st order loss rxn
-  ! HET(ind_MONITA, 1) : MONITA uptake          # 1st order loss rxn
-  ! HET(ind_MONITS, 1) : MONITS uptake          # 1st order loss rxn
-  ! HET(ind_MONITU, 1) : MONITU uptake          # 1st order loss rxn
-  ! HET(ind_NO2,    1) : NO2    uptake          # 1st order loss rxn + cloud
-  ! HET(ind_NO3,    1) : NO3    uptake          # 1st order loss rxn + cloud
-  ! HET(ind_NO3,    2) : NO3    uptake on N2O5  # Liquid water cloud
-  ! HET(ind_NO3,    3) : Cl-                    # Enhanced NO3 hydrolysis
-  ! HET(ind_N2O5,   1) : N2O5  + H2O            # Where educt is consumed
-  ! HET(ind_N2O5,   2) : N2O5  + HCl          
-  ! HET(ind_N2O5,   3) : N2O5  + H2O            # On liquid cloud water
-  ! HET(ind_N2O5,   4) : N2O5  + SALACL
-  ! HET(ind_N2O5,   5) : N2O5  + SALCCL
-  ! HET(ind_O3,     1) : O3    + HBr
-  ! HET(ind_O3,     2) : O3    + BrSALA
-  ! HET(ind_O3,     3) : O3    + BrSALC
-  ! HET(ind_OH,     1) : OH    + SALACL
-  ! HET(ind_OH,     2) : OH    + SALCCL 
-  ! HET(ind_PYAC,   1) : PYAC  uptake           # 1st order loss rxn
-  ! HET(ind_R4N2,   1) : R4N2  uptake           # 1st order loss rxn
   REAL(kind=dp) :: HET(NSPEC,8)
   !$OMP THREADPRIVATE( HET )
 
-  ! Proton activity [unitless] and H+ concentration [M]
-  ! (assumed equivalent - for now):
-  REAL(kind=dp) :: H_PLUS
-  !$OMP THREADPRIVATE( H_PLUS )
-
-  ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-  REAL(kind=dp) :: KHETI_SLA(11)
-  !$OMP THREADPRIVATE( KHETI_SLA )
-
-  ! Bisulfate (general acid), nitrate, sulfate concentrations [M]:
-  REAL(kind=dp) :: MHSO4, MNO3, MSO4
-  !$OMP THREADPRIVATE( MHSO4, MNO3, MSO4 )
-
-  ! Array for photolysis rates
-  REAL(kind=dp) :: PHOTOL(1000)
+  ! Array for photolysis rates (increase size if necessary)
+  REAL(dp) :: PHOTOL(1000)
   !$OMP THREADPRIVATE( PHOTOL )
 
-  ! Ice and water mixing ratios (kg ice/kg dry air)
-  REAL(kind=dp) :: QICE, QLIQ
-  !$OMP THREADPRIVATE( QICE, QLIQ )
-
-  ! Organic mattter to organic carbon ratios
-  REAL(kind=dp) :: OMOC_POA, OMOC_OPOA
-  !$OMP THREADPRIVATE( OMOC_POA, OMOC_OPOA )
-
-  ! Pressure and relative humidity
-  REAL(kind=dp) :: PRESS, RELHUM
-  !$OMP THREADPRIVATE( PRESS, RELHUM )
-
-  ! Aerosol concentrations
-  REAL(kind=dp) :: SPC_SALA
-  !$OMP THREADPRIVATE( SPC_SALA )
-
-  ! Cosine of solar zenith angle
-  REAL(kind=dp) :: SUNCOS
-  !$OMP THREADPRIVATE( SUNCOS )
-
-  ! Volume of air (cm3)
-  REAL(kind=dp) :: VAir
-  !$OMP THREADPRIVATE( Vair )
-
-  ! Aerosol specific surface area (cm3 H2O/cm3 air)
-  REAL(kind=dp) :: XAREA(14)
-  !$OMP THREADPRIVATE( XAREA )
-
-  ! Aerosol water content, cm3(H2O)/cm3(air)
-  REAL(kind=dp) :: XH2O(14)
-  !$OMP THREADPRIVATE( XH2O )
-
-  ! Aerosol effective radius (cm)
-  REAL(kind=dp) :: XRADI(14)
-  !$OMP THREADPRIVATE( XRADI )
-
-  ! Square root of temperature [K]
-  REAL(kind=dp) :: XTEMP
-  !$OMP THREADPRIVATE( XTEMP )
-
-  ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-  REAL(kind=dp) :: XVOL(14)
-  !$OMP THREADPRIVATE( XVOL )
-
+  TYPE, PUBLIC :: HetState
+     REAL(dp) :: AVO            ! Avogadro's constant              [molec/mol  ]4
+     LOGICAL  :: natSurface     ! Is there NAT in this box?        [T/F        ]4
+     LOGICAL  :: pscBox         ! Are there polar strat clouds?    [T/F        ]4
+     LOGICAL  :: stratBox       ! Are we in the stratosphere       [T/F        ]4
+     INTEGER  :: NAEROTYPE      ! Number of aerosol types          [1          ]4
+     LOGICAL  :: is_UCX         ! Are we using the UCX mechanism?  [T/F        ]4
+     REAL(dp) :: aClArea        ! Fine SSA+SNA aerosol area        [cm2/cm3    ]4
+     REAL(dp) :: aClRadi        ! Fine SSA+SNA aerosol radius      [cm         ]4
+     REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume      [cm3/cm3    ]4
+     REAL(dp) :: aIce           ! Ice surface area                 [cm2/cm3    ]4
+     REAL(dp) :: aLiq           ! Liquid surface area              [cm2/cm3    ]4
+     REAL(dp) :: aWater(2)      ! ISORROPIA aerosol water (fine & coarse)
+     REAL(dp) :: Br_branch_CldA ! Br- branch ratio in CldA path    [1          ]4
+     REAL(dp) :: Br_branch_CldC ! Br- branch ratio in CldC path    [1          ]4
+     REAL(dp) :: Br_branch_CldG ! Br- branch ratio in CldG path    [1          ]4
+     REAL(dp) :: Br_conc_CldA   ! Br- in cloud (A=fine sea salt  ) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_CldC   ! Br- in cloud (C=coarse sea salt) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_CldG   ! Br- in cloud (G=gas-phase      ) [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_Cld    ! Br- total in cloud = A + C + G
+     REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]4
+     REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]4
+     REAL(dp) :: Br_over_Cl_Cld ! Br_conc_Cld / Cl_conc_Cld        [1          ]4
+     REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]4
+     REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]4
+     REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]4
+     REAL(dp) :: Cl_conc_CldA   ! Cl- in cloud (A=fine sea salt  ) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_CldC   ! Cl- in cloud (C=coarse sea salt) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_CldG   ! Cl- in cloud (G=gas-phase      ) [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_Cld    ! Cl- total = A + C + G
+     REAL(dp) :: Cl_conc_SALA   ! Cl- in fine   sea salt           [mol/kg H2O ]4
+     REAL(dp) :: Cl_conc_SALC   ! Cl- in coarse sea salt           [mol/kg H2O ]4
+     REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]4
+     REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]4
+     REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine SS   [1          ]4
+     REAL(dp) :: fupdateHOBr    !
+     REAL(dp) :: fupdateHOCl    !
+     REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]4
+     REAL(dp) :: H2O            ! H2O concentration
+     REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
+     REAL(dp) :: HCl_theta      ! HCl theta for uptake on ice
+     REAL(dp) :: H_conc_ICl     ! Liquid phase pH, Cl-             [pH units   ]4
+     REAL(dp) :: H_conc_LCl     ! Liquid phase pH, Cl-             [pH units   ]4
+     REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt   [pH units   ]4
+     REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt [pH units   ]4
+     REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
+     REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
+     REAL(dp) :: HSO3_conc_Cld  !
+     REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]4
+     REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]4
+     REAL(dp) :: mHSO4          ! Bisulfate concentration          [M          ]4
+     REAL(dp) :: mNO3           ! Nitrate concentration            [M          ]4
+     REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]4
+     REAL(dp) :: NIT_conc_SALA  ! Cl- in fine sea salt             [mol/kg H2O ]4
+     REAL(dp) :: NIT_conc_SALC  ! Cl- in coarse sea salt           [mol/kg H2O ]4
+     REAL(dp) :: PI             ! PI constant                      [1          ]4
+     REAL(dp) :: pHCloud        ! Cloud PH                         [pH units   ]4
+     REAL(dp) :: pHSSA(2)       ! Sea salt pH (1=fine, 2=coarse)   [pH units   ]4
+     REAL(dp) :: OMOC_POA       ! Org matter/orgc carbon in POA    [1          ]4
+     REAL(dp) :: OMOC_OPOA      ! Org matter/org carbon in POA     [1          ]4
+     REAL(dp) :: qIce           ! Ice mixing ratio                 [kg/kg      ]4
+     REAL(dp) :: qLIq           ! Water mixing ratio               [kg/kg      ]4
+     REAL(dp) :: rIce           ! Ice radius
+     REAL(dp) :: rLiq           ! Liquid radius
+     REAL(dp) :: SO3_conc_Cld   !
+     REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
+     LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?       [T/F        ]4
+     LOGICAL  :: ssFineIsAcid   ! Is fine sea-salt alkaline?       [T/F        ]4
+     LOGICAL  :: ssCoarseIsAlk  ! Is coarse sea-salt alkaline?     [T/F        ]4
+     LOGICAL  :: ssCoarseIsAcid ! Is coarse sea-salt acid?         [T/F        ]4
+     REAL(dp) :: vAir           ! Volume of air                    [cm3        ]4
+     REAL(dp) :: vIce           ! Ice volume                       [cm3        ]4
+     REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]4
+     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area        [cm3/cm3 air]4
+     REAL(dp) :: xH2O(14)       ! Aerosol water content            [cm3/cm3 air]4
+     REAL(dp) :: xRadi(14)      ! Aerosol effective radius         [cm         ]4
+     REAL(dp) :: xVol(14)       ! Aerosol specific volume          [cm3/cm3 air]4
+  END TYPE HetState
+  TYPE(HetState), TARGET, PUBLIC :: State_Het
+  !$OMP THREADPRIVATE( State_Het )
 
 ! INLINED global variable declarations
 

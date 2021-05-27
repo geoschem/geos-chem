@@ -2861,6 +2861,8 @@ O3_PROP: &O3properties
   DD_Hstar: 1.0e-2
   Formula: O3
   FullName: Ozone
+  Henry_CR: 2300.0
+  Henry_K0: 1.1e-2
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true

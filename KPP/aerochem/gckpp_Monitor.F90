@@ -743,7 +743,7 @@ MODULE gckpp_Monitor
      '    NRO2 + HO2 --> LNRO2H + HO2                                                                     ', & ! index 599
      '     NRO2 + NO --> LNRO2N + NO                                                                      ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_20 = (/ &
-     '           HO2 --> O2                                                                               ', & ! index 601
+     '           HO2 --> H2O                                                                              ', & ! index 601
      '           NO2 --> 0.5 LOx + 0.5 HNO2 + 0.5 HNO3                                                    ', & ! index 602
      '           NO3 --> LOx + HNO3                                                                       ', & ! index 603
      '           NO3 --> 2 LOx + NIT                                                                      ', & ! index 604

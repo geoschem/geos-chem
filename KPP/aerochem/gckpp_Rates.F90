@@ -30,106 +30,14 @@ CONTAINS
 
 
 
-! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
-
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!  User-defined Rate Law functions
-!  Note: the default argument type for rate laws, as read from the equations file, is single precision
-!        but all the internal calculations are performed in double precision
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-!~~~>  Arrhenius
-   REAL(kind=dp) FUNCTION ARR( A0,B0,C0 )
-      REAL A0,B0,C0      
-      ARR =  DBLE(A0) * EXP(-DBLE(B0)/TEMP) * (TEMP/300.0_dp)**DBLE(C0)
-   END FUNCTION ARR        
-
-!~~~> Simplified Arrhenius, with two arguments
-!~~~> Note: The argument B0 has a changed sign when compared to ARR
-   REAL(kind=dp) FUNCTION ARR2( A0,B0 )
-      REAL A0,B0           
-      ARR2 =  DBLE(A0) * EXP( DBLE(B0)/TEMP )              
-   END FUNCTION ARR2          
-
-   REAL(kind=dp) FUNCTION EP2(A0,C0,A2,C2,A3,C3)
-      REAL A0,C0,A2,C2,A3,C3
-      REAL(kind=dp) K0,K2,K3            
-      K0 = DBLE(A0) * EXP(-DBLE(C0)/TEMP)
-      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-      K3 = DBLE(A3) * EXP(-DBLE(C3)/TEMP)
-      K3 = K3*CFACTOR*1.0E6_dp
-      EP2 = K0 + K3/(1.0_dp+K3/K2 )
-   END FUNCTION EP2
-
-   REAL(kind=dp) FUNCTION EP3(A1,C1,A2,C2) 
-      REAL A1, C1, A2, C2
-      REAL(kind=dp) K1, K2      
-      K1 = DBLE(A1) * EXP(-DBLE(C1)/TEMP)
-      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-      EP3 = K1 + K2*(1.0E6_dp*CFACTOR)
-   END FUNCTION EP3 
-
-   REAL(kind=dp) FUNCTION FALL ( A0,B0,C0,A1,B1,C1,CF)
-      REAL A0,B0,C0,A1,B1,C1,CF
-      REAL(kind=dp) K0, K1     
-      K0 = DBLE(A0) * EXP(-DBLE(B0)/TEMP)* (TEMP/300.0_dp)**DBLE(C0)
-      K1 = DBLE(A1) * EXP(-DBLE(B1)/TEMP)* (TEMP/300.0_dp)**DBLE(C1)
-      K0 = K0*CFACTOR*1.0E6_dp
-      K1 = K0/K1
-      FALL = (K0/(1.0_dp+K1))*   &
-           DBLE(CF)**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
-   END FUNCTION FALL
-
-  !---------------------------------------------------------------------------
-
-  ELEMENTAL REAL(kind=dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
-
-    INTRINSIC LOG10
-
-    REAL(kind=dp), INTENT(IN) :: temp      ! temperature [K]
-    REAL(kind=dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-    REAL, INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
-    REAL, INTENT(IN) :: n         ! exponent for low pressure limit
-    REAL, INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
-    REAL, INTENT(IN) :: m         ! exponent for high pressure limit
-    REAL, INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
-    REAL(kind=dp) :: zt_help, k0_T, kinf_T, k_ratio
-
-    zt_help = 300._dp/temp
-    k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
-    kinf_T  = kinf_300K * zt_help**(m)        ! k_inf at current T
-    k_ratio = k0_T/kinf_T
-    k_3rd   = k0_T/(1._dp+k_ratio)*fc**(1._dp/(1._dp+LOG10(k_ratio)**2))
-
-  END FUNCTION k_3rd
-
-  !---------------------------------------------------------------------------
-
-  ELEMENTAL REAL(kind=dp) FUNCTION k_arr (k_298,tdep,temp)
-    ! Arrhenius function
-
-    REAL,     INTENT(IN) :: k_298 ! k at T = 298.15K
-    REAL,     INTENT(IN) :: tdep  ! temperature dependence
-    REAL(kind=dp), INTENT(IN) :: temp  ! temperature
-
-    INTRINSIC EXP
-
-    k_arr = k_298 * EXP(tdep*(1._dp/temp-3.3540E-3_dp)) ! 1/298.15=3.3540e-3
-
-  END FUNCTION k_arr
-
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!  End of User-defined Rate Law functions
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-! End Rate Law Functions from KPP_HOME/util/UserRateLaws
-
-
 ! Begin INLINED Rate Law Functions
 
 
+  !#########################################################################
+  !#####          RATE-LAW FUNCTIONS FOR GAS-PHASE REACTIONS           #####
+  !#########################################################################
 
-  FUNCTION ARRPLUS_ade( a0, d0, e0 ) RESULT( rate )
+  FUNCTION ARRPLUS_ade( a0, d0, e0 ) RESULT( k )
     ! Modified Arrhenius law, skipping computation of EXP( -b0/T )
     ! and ( 300/T )**c0 terms, which evaluate to 1 when b0 = c0 = 0.
     ! This avoids excess CPU cycles. (bmy, 12/18/20)
@@ -147,13 +55,13 @@ CONTAINS
     !    IHOO4 + MO2   = CH2O + 0.5HC5A + 1.5HO2 +  0.5MCRHP + 0.5CO + 0.5OH
     !
     REAL(kind=dp), INTENT(IN) :: a0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) )
+    k = MAX( k, 0.0_dp )
   END FUNCTION ARRPLUS_ade
 
-  FUNCTION ARRPLUS_abde( a0, b0, d0, e0 ) RESULT( rate )
+  FUNCTION ARRPLUS_abde( a0, b0, d0, e0 ) RESULT( k )
     ! Modified Arrhenius law, skipping computation of ( T/300 )**c0,
     ! which evaluates to 1 when c0=0.  This avoids excess CPU cycles.
     ! (bmy, 12/18/20)
@@ -167,40 +75,40 @@ CONTAINS
     !    IHOO4       = MACR + OH + CH2O
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) ) * EXP( -b0 / TEMP )
+    k = MAX( k, 0.0_dp )
   END FUNCTION ARRPLUS_abde
 
-  FUNCTION TUNPLUS_abcde( a0, b0, c0, d0, e0 ) RESULT( rate )
+  FUNCTION TUNPLUS_abcde( a0, b0, c0, d0, e0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    IHOO1 = 1.5OH + ...
     !    IHOO4 = 1.5OH + ...
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( d0 + ( TEMP * e0 ) )
-    rate = rate * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
-    rate = MAX( rate, 0.0_dp )
+    k = a0 * ( d0 + ( TEMP * e0 ) )
+    k = k * EXP( b0 / TEMP ) * EXP( c0 / TEMP**3 )
+    k = MAX( k, 0.0_dp )
   END FUNCTION TUNPLUS_abcde
 
-  FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
+  FUNCTION GC_ISO1( a0, b0, c0, d0, e0, f0, g0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    ISOP + OH = LISOPOH + IHOO1
     !    ISOP + OH = LISOPOH + IHOO4
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0, f0, g0
-    REAL(kind=dp)             :: k0, k1, k2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
-    k0   = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
-    k1   = f0 * EXP( g0 / TEMP )
-    k2   = c0 * k0 / ( k0 + k1 )
-    rate = a0 * EXP( b0 / TEMP ) * ( 1.0_dp - k2 )
+    k0 = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
+    k1 = f0 * EXP( g0 / TEMP )
+    k2 = c0 * k0 / ( k0 + k1 )
+    k  = a0 * EXP( b0 / TEMP ) * ( 1.0_dp - k2 )
   END FUNCTION GC_ISO1
 
-  FUNCTION GC_ISO2( a0, b0, c0, d0, e0, f0, g0 ) RESULT( rate )
+  FUNCTION GC_ISO2( a0, b0, c0, d0, e0, f0, g0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O
     !              + 0.15HPALD3 + 0.25HPALD1 + 0.4HO2
@@ -210,15 +118,15 @@ CONTAINS
     !              + 0.3ATOOH + LISOPOH
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, d0, e0, f0, g0
-    REAL(kind=dp)             :: k0, k1, k2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
-    k0   = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
-    k1   = f0 * EXP( g0 / TEMP )
-    k2   = c0 * k0 / ( k0 + k1 )
-    rate = a0 * EXP( b0 / TEMP ) * k2
+    k0 = d0 * EXP( e0 / TEMP ) * EXP( 1.0E8_dp / TEMP**3 )
+    k1 = f0 * EXP( g0 / TEMP )
+    k2 = c0 * k0 / ( k0 + k1 )
+    k  = a0 * EXP( b0 / TEMP ) * k2
   END FUNCTION GC_ISO2
 
-  FUNCTION GC_EPO_a( a1, e1, m1 ) RESULT( rate )
+  FUNCTION GC_EPO_a( a1, e1, m1 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    RIPA   + OH = 0.67IEPOXA   + 0.33IEPOXB   + OH + 0.005LVOC
     !    RIPB   + OH = 0.68IEPOXA   + 0.321IEPOB   + OH + 0.005LVOC
@@ -234,13 +142,13 @@ CONTAINS
     !    ICN    + OH = NO2          + ICHE
     !
     REAL(kind=dp), INTENT(IN) :: a1, e1, m1
-    REAL(kind=dp)             :: k1, rate
+    REAL(kind=dp)             :: k1, k
     !
-    k1   = 1.0_dp / ( m1 * NUMDEN + 1.0_dp )
-    rate = a1 * EXP( e1 / TEMP ) *  K1
+    k1 = 1.0_dp / ( m1 * NUMDEN + 1.0_dp )
+    k  = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO_a
 
-  FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( rate )
+  FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    MACR1OO + NO2 = MPAN
     !    MACRNO2 + NO2 = MPAN + NO2
@@ -252,18 +160,18 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, cf
-    REAL(kind=dp)             :: k0, k1, kr, nc, f,  rate
+    REAL(kind=dp)             :: k0, k1, kr, nc, f,  k
     !
-    k0   = a0 * ( TEMP / 300.0_dp )**c0
-    k1   = a1 * ( TEMP / 300.0_dp )**c1
-    k0   = k0 * NUMDEN
-    kr   = k0 / k1
-    nc   = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
-    f    = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
-    rate = k0 * k1 * f / ( k0 + k1 )
+    k0 = a0 * TEMP_OVER_K300**c0
+    k1 = a1 * TEMP_OVER_K300**c1
+    k0 = k0 * NUMDEN
+    kr = k0 / k1
+    nc = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
+    f  = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
+    k  = k0 * k1 * f / ( k0 + k1 )
   END FUNCTION GC_PAN_acac
 
-  FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( rate )
+  FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    IHOO1    + NO = IHN2
     !    IHOO4    + NO = IHN4
@@ -285,21 +193,21 @@ CONTAINS
     !    MCROHOO  + NO = MCRHN
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, n,  x0, y0
-    REAL(kind=dp)             :: k0, k1, k2, k3, k4, rate
+    REAL(kind=dp)             :: k0, k1, k2, k3, k4, k
     !
-    k0   = 2.0E-22_dp * EXP( n )
-    k1   = 4.3E-1_dp * ( TEMP / 298.0_dp )**(-8)
-    k0   = k0 * NUMDEN
-    k1   = k0 / k1
-    k2   = ( k0 / ( 1.0_dp + k1 ) ) &
-         * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10(k1) )**2) )
-    k3   = k2 / ( k2 + c0 )
-    k4   = A0 * ( x0 - TEMP*y0 )
-    rate = k4 * EXP( b0 / TEMP ) * k3
-    rate = MAX( rate, 0.0_dp )
+    k0 = 2.0E-22_dp * EXP( n )
+    k1 = 4.3E-1_dp * ( TEMP / 298.0_dp )**(-8)
+    k0 = k0 * NUMDEN
+    k1 = k0 / k1
+    k2 = ( k0 / ( 1.0_dp + k1 ) ) &
+       * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10(k1) )**2) )
+    k3 = k2 / ( k2 + c0 )
+    k4 = A0 * ( x0 - TEMP*y0 )
+    k  = k4 * EXP( b0 / TEMP ) * k3
+    k  = MAX( k, 0.0_dp )
   END FUNCTION GC_NIT
 
-  FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( rate )
+  FUNCTION GC_ALK( a0, b0, c0, n, x0, y0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !   IHOO1    + NO =      NO2 + ...
     !   IHOO4    + NO =      NO2 + ...
@@ -323,53 +231,53 @@ CONTAINS
     !   MCROHOO  + NO =      NO2 + ...
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0, n,  x0, y0
-    REAL(kind=dp)             :: k0, k1, k2, k3, k4, rate
+    REAL(kind=dp)             :: k0, k1, k2, k3, k4, k
     !
-    k0   = 2.0E-22_dp * EXP( n )
-    k1   = 4.3E-1_dp * ( TEMP / 298.0_dp)**(-8)
-    k0   = k0 * NUMDEN
-    k1   = k0 / k1
-    k2   = ( K0 / ( 1.0_dp +K1 ) )                                          &
-         * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10( k1 ) )**2) )
-    k3   = c0/ ( k2 + c0 )
-    k4   = a0 * ( x0 - TEMP*y0 )
-    rate = k4 * EXP( b0 / TEMP ) * k3
-    rate = MAX( rate, 0.0_dp )
+    k0 = 2.0E-22_dp * EXP( n )
+    k1 = 4.3E-1_dp * ( TEMP / 298.0_dp)**(-8)
+    k0 = k0 * NUMDEN
+    k1 = k0 / k1
+    k2 = ( K0 / ( 1.0_dp +K1 ) )                                            &
+       * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10( k1 ) )**2) )
+    k3 = c0/ ( k2 + c0 )
+    k4 = a0 * ( x0 - TEMP*y0 )
+    k  = k4 * EXP( b0 / TEMP ) * k3
+    k  = MAX( k, 0.0_dp )
   END FUNCTION GC_ALK
 
-  FUNCTION GCARR_ab( a0, b0 ) RESULT( rate )
+  FUNCTION GCARR_ab( a0, b0 ) RESULT( k )
     ! Arrhenius function, skipping computation of EXP( c0/T ),
     ! which evaluates to 1 when c0=0.  This avoids excess CPU
     ! cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * ( 300.0_dp / TEMP )**b0
+    k = a0 * K300_OVER_TEMP**b0
   END FUNCTION GCARR_ab
 
-  FUNCTION GCARR_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GCARR_ac( a0, c0 ) RESULT( k )
     ! Arrhenius function, skipping computation of ( 300/T )**b0,
     ! which evaluates to 1 when b0=0.  This avoids excess CPU
     ! cycles (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP )
+    k = a0 * EXP( c0 / TEMP )
   END FUNCTION GCARR_ac
 
-  FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( rate )
+  FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( k )
     ! Arrhenius function, using all 3 terms.
     ! Use this when a0, b0, c0 are all nonzero.
     !
     REAL(kind=dp), INTENT(IN) :: a0, b0, c0
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP ) * ( 300.0_dp / TEMP )**b0
+    k = a0 * EXP( c0 / TEMP ) * K300_OVER_TEMP**b0
   END FUNCTION GCARR_abc
 
-  FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_HO2HO2_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    HO2 + HO2 = H2O2 + O2
     !
@@ -380,15 +288,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = ( r0     + r1         * NUMDEN                           ) &
-         * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = ( k0     + k1         * NUMDEN                           )          &
+       * ( 1.0_dp + 1.4E-21_dp * H2O    * EXP( 2200.0_dp / TEMP ) )
   END FUNCTION GC_HO2HO2_acac
 
-  FUNCTION GC_TBRANCH_1_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_1_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    MO2 + MO2 = CH2O  + MOH + O2
     !    MO2 + MO2 = 2CH2O + 2HO2
@@ -400,14 +308,14 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = r0 / ( 1.0_dp + r1 )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = k0 / ( 1.0_dp + k1 )
   END FUNCTION GC_TBRANCH_1_acac
 
-  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( rate )
+  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( k )
     ! Temperature Dependent Branching Ratio, used for reactions:
     !    C3H8 + OH = B3O2
     !    C3H8 + OH = A3O2
@@ -418,14 +326,14 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, c1
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0   =  a0 * EXP( c0 / TEMP )
-    r1   =  a1 * EXP( c1 / TEMP ) * ( 300.0_dp / TEMP )**b1
-    rate =  r0 / ( 1.0_dp + r1 )
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP ) * K300_OVER_TEMP**b1
+    k  = k0 / ( 1.0_dp + k1 )
   END FUNCTION GC_TBRANCH_2_acabc
 
-  FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( k )
     ! Carbon Dependence of RO2+HO2, used in these reactions:
     !    A3O2 + HO2 = RA3P
     !    PO2  + HO2 = PP
@@ -440,13 +348,13 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP )
-    rate = rate * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
+    k = a0 * EXP( c0 / TEMP )
+    k = k * ( 1.0_dp - EXP( -0.245_dp * a1 ) )
   END FUNCTION GC_RO2HO2_aca
 
-  FUNCTION GC_DMSOH_acac( a0, c0, a1, c1 ) RESULT( rate )
+  FUNCTION GC_DMSOH_acac( a0, c0, a1, c1 ) RESULT( k )
     ! Reaction rate for:
     !    DMS + OH = 0.750SO2 + 0.250MSA + MO2
     !
@@ -457,13 +365,14 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1
-    REAL(kind=dp)             :: r0, r1, rate
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    rate = ( r0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + r1 * 0.2095e0_dp )
+    REAL(kind=dp)             :: k0, k1, k
+    !
+    k0 = a0 * EXP( c0 / TEMP )
+    k1 = a1 * EXP( c1 / TEMP )
+    k  = ( k0 * NUMDEN * 0.2095e0_dp ) / ( 1.0_dp + k1 * 0.2095e0_dp )
   END FUNCTION GC_DMSOH_acac
 
-  FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_GLYXNO3_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for:
     !    GLYX + NO3 = HNO3 + HO2 + 2CO
     !    i.e. the HO2 + 2*CO branch
@@ -474,15 +383,15 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: O2, rate
+    REAL(kind=dp)             :: O2, k
     !
     ! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18)
-    O2   = NUMDEN * 0.2095e0_dp
-    rate = a0 * EXP( c0 / TEMP )
-    rate = rate * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
+    O2 = NUMDEN * 0.2095_dp
+    k  = a0 * EXP( c0 / TEMP )
+    k   = k * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
   END FUNCTION GC_GLYXNO3_ac
 
-  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( rate )
+  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    HNO3  + OH = H2O + NO3
     !    HONIT + OH = NO3 + HAC
@@ -495,16 +404,16 @@ CONTAINS
     ! these terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, c1, a2, c2
-    REAL(kind=dp)             :: r0, r1, r2, rate
+    REAL(kind=dp)             :: k0, k1, k2, k
     !
     ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
-    r0   = a0 * EXP( c0 / TEMP )
-    r1   = a1 * EXP( c1 / TEMP )
-    r2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
-    rate = r0 + r2 / ( 1.0_dp + r2/r1 )
+    k0   = a0 * EXP( c0 / TEMP )
+    k1   = a1 * EXP( c1 / TEMP )
+    k2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
+    k = k0 + k2 / ( 1.0_dp + k2/k1 )
   END FUNCTION GC_OHHNO3_acacac
 
-  FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( rate )
+  FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    GLYC + OH = 0.732CH2O + 0.361CO2  + 0.505CO    + 0.227OH
     !              + 0.773HO2  + 0.134GLYX + 0.134HCOOH
@@ -516,15 +425,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0
-    REAL(kind=dp)             :: glyc_frac, rate
+    REAL(kind=dp)             :: glyc_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 73.0_dp
     !
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
-    rate      = a0 * glyc_frac
+    k         = a0 * glyc_frac
   END FUNCTION GC_GLYCOH_A_a
 
-  FUNCTION GC_GLYCOH_B_a( a0 ) RESULT( rate )
+  FUNCTION GC_GLYCOH_B_a( a0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    GLYC + OH = HCOOH + OH + CO
     ! which is the "B" branch of GLYC + OH.
@@ -535,15 +444,15 @@ CONTAINS
     ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0
-    REAL(kind=dp)             :: glyc_frac, rate
+    REAL(kind=dp)             :: glyc_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 73.0_dp
     !
     glyc_frac = 1.0_dp - 11.0729_dp * EXP( exp_arg * TEMP )
     glyc_frac = MAX( glyc_frac, 0.0_dp )
-    rate      = a0 * ( 1.0_dp - glyc_frac )
+    k         = a0 * ( 1.0_dp - glyc_frac )
   END FUNCTION GC_GLYCOH_B_a
 
-  FUNCTION GC_HACOH_A_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_HACOH_A_ac( a0, c0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    HAC + OH = MGLY + HO2
     ! which is the "A" branch of HAC + OH.
@@ -554,36 +463,36 @@ CONTAINS
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp)             :: k0, hac_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
     !
-    r0       = a0 * EXP( c0 / TEMP )
+    k0       = a0 * EXP( c0 / TEMP )
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
-    rate     = r0 * hac_frac
+    k        = k0 * hac_frac
   END FUNCTION GC_HACOH_A_ac
 
-  FUNCTION GC_HACOH_B_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_HACOH_B_ac( a0, c0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
     !    HAC + OH = 0.5HCOOH + OH + 0.5ACTA + 0.5CO2 + 0.5CO + 0.5MO2
     ! which is the "B" branch of HAC + OH.
     !
     ! For this reaction, this Arrhenius law term evaluates to 1:
-    !    (300/T)**b0
+    !    (300/T)**b0}
     ! because b0 = 0.  Therefore we can skip computing this
     ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp)             :: r0, hac_frac, rate
+    REAL(kind=dp)             :: k0, hac_frac, k
     REAL(kind=dp), PARAMETER  :: exp_arg = -1.0_dp / 60.0_dp
     !
-    r0       = a0 * EXP( c0 / TEMP )
+    k0       = a0 * EXP( c0 / TEMP )
     hac_frac = 1.0_dp - 23.7_dp * EXP( exp_arg * TEMP )
     hac_frac = MAX( hac_frac, 0.0_dp )
-    rate     = r0 * ( 1.0_dp - hac_frac )
+    k        = k0 * ( 1.0_dp - hac_frac )
   END FUNCTION GC_HACOH_B_ac
 
-  FUNCTION GC_OHCO_a( a0 ) RESULT( rate )
+  FUNCTION GC_OHCO_a( a0 ) RESULT( k )
     ! Reaction rate for:
     !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
     !
@@ -596,26 +505,25 @@ CONTAINS
     !
     REAL(kind=dp)             :: r0,     klo1,   klo2,  khi1,    khi2
     REAL(kind=dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
-    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, rate
+    REAL(kind=dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
     !
-    TEMP300 = ( 300.0_dp / TEMP )
-    r0      = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
-    klo1    = 5.9E-33_dp * TEMP300
-    khi1    = 1.1E-12_dp * TEMP300**(-1.3_dp)
-    xyrat1  = klo1 * NUMDEN / khi1
-    blog1   = LOG10( xyrat1 )
-    fexp1   = 1.0_dp / ( 1.0_dp + blog1*blog1 )
-    kco1    = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
-    klo2    = 1.5E-13_dp
-    khi2    = 2.1E+09_dp * TEMP300**(-6.1_dp)
-    xyrat2  = klo2 * NUMDEN / khi2
-    blog2   = LOG10( xyrat2 )
-    fexp2   = 1.0_dp / ( 1.0_dp + blog2*blog2 )
-    kco2    = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
-    rate    = kco1 + kco2
+    r0     = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
+    klo1   = 5.9E-33_dp * K300_OVER_TEMP
+    khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
+    xyrat1 = klo1 * NUMDEN / khi1
+    blog1  = LOG10( xyrat1 )
+    fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
+    kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+    klo2   = 1.5E-13_dp
+    khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
+    xyrat2 = klo2 * NUMDEN / khi2
+    blog2  = LOG10( xyrat2 )
+    fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
+    kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
+    k      = kco1 + kco2
   END FUNCTION GC_OHCO_a
 
-  FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions:
     !    MO2  + NO = MENO3
     ! in which the "a1" parameter equals exactly 1.
@@ -626,18 +534,18 @@ CONTAINS
     ! because b0 = b1 = c1 = 0.  Therefore we can skip computing
     ! these terms.  This avoids excess CPU cycles. (bmy, 1/4/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a0, c0
-    REAL(kind=dp), PARAMETER  :: fyrno3 = 3.0e-4_dp
-    REAL(kind=dp)             :: rate
-    !
     ! Special treatment for methyl nitrate based on observations
     ! as Carter and Atkinson formulation does not apply to C1.
     ! Value based on upper limit of Flocke et al. 1998 as applied
     ! in Fisher et al. 2018
-    rate  = a0 * EXP( c0 / TEMP ) * fyrno3
+    !
+    REAL(kind=dp), INTENT(IN) :: a0, c0
+    REAL(kind=dp)             :: k
+    !
+    k  = a0 * EXP( c0 / TEMP ) * 3.0e-4_dp
   END FUNCTION GC_RO2NO_A1_ac
 
-  FUNCTION GC_RO2NO_B1_ac( a0, c0 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B1_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    MO2 + NO = CH2O + NO2 + HO2
     ! in which the "a1" parameter equals exactly 1.
@@ -650,12 +558,12 @@ CONTAINS
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0
     REAL(kind=dp), PARAMETER  :: one_minus_fyrno3 = 1.0_dp - 3.0e-4_dp
-    REAL(kind=dp)             :: rate
+    REAL(kind=dp)             :: k
     !
-    rate = a0 * EXP( c0 / TEMP ) * one_minus_fyrno3
+    k = a0 * EXP( c0 / TEMP ) * one_minus_fyrno3
   END FUNCTION GC_RO2NO_B1_ac
 
-  FUNCTION GC_RO2NO_A2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_A2_aca( a0, c0, a1 ) RESULT( k )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions,
     !    ETO2 + NO = ETNO3
     !    A3O2 + NO = NPRNO3
@@ -670,20 +578,20 @@ CONTAINS
     ! these terms.  This avoids excess CPU cycles. (bmy, 1/4/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0,  c0,   a1
-    REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
+    REAL(kind=dp)             :: k0,  k, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP )
+    k0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP( 0.97_dp * a1 ) * NUMDEN
     yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
     zzyn   = ( 1.0_dp / ( 1.0_dp + ( aaa *  aaa  ) ) )
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
-    rate   = r0 * fyrno3
+    k      = k0 * fyrno3
   END FUNCTION GC_RO2NO_A2_aca
 
-  FUNCTION GC_RO2NO_B2_aca( a0, c0, a1 ) RESULT( rate )
+  FUNCTION GC_RO2NO_B2_aca( a0, c0, a1 ) RESULT( k )
     ! Reaction rate for the "B" branch of these RO2 + NO reactions:
     !    ETO2 + NO = NO2 +     HO2 + ...
     !    A3O2 + NO = NO2 +     HO2 + ...
@@ -701,20 +609,20 @@ CONTAINS
     ! This avoids IF statements, which saves CPU cycles (bmy, 1/4/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0,  c0,   a1
-    REAL(kind=dp)             :: r0,  rate, yyyn, xxyn
+    REAL(kind=dp)             :: k0,  k, yyyn, xxyn
     REAL(kind=dp)             :: aaa, rarb, zzyn, fyrno3
     !
-    r0     = a0 * EXP( c0 / TEMP )
+    k0     = a0 * EXP( c0 / TEMP )
     xxyn   = 1.94e-22_dp * EXP(  0.97_dp * a1 ) * NUMDEN
-    yyyn   = 0.826_dp * ( ( 300.0_dp / TEMP )** 8.1_dp )
+    yyyn   = 0.826_dp * ( K300_OVER_TEMP**8.1_dp )
     aaa    = LOG10( xxyn / yyyn )
     zzyn   = ( 1.0_dp / ( 1.0_dp + ( aaa  * aaa  ) ) )
     rarb   = ( xxyn   / ( 1.0_dp + ( xxyn / yyyn ) ) ) * ( 0.411_dp**zzyn )
     fyrno3 = ( rarb   / ( 1.0_dp +   rarb          ) )
-    rate   = r0 * ( 1.0_dp - fyrno3 )
+    k      = k0 * ( 1.0_dp - fyrno3 )
   END FUNCTION GC_RO2NO_B2_aca
 
-  FUNCTION GCJPLEQ_acabab( a0, c0, a1, b1, a2, b2, fv ) RESULT( rate )
+  FUNCTION GCJPLEQ_acabab( a0, c0, a1, b1, a2, b2, fv ) RESULT( k )
     ! Calculates the equilibrium constant
     ! Find the backwards reaction by K=kforward/kbackwards
     ! Calculates the rate constant of the forward reaction
@@ -734,14 +642,14 @@ CONTAINS
     ! more computationally efficient. (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a0, c0, a1, b1, a2, b2, fv
-    REAL(kind=dp)             :: r0, r1, rate
+    REAL(kind=dp)             :: k0, k1, k
     !
-    r0    = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
-    r1    = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
-    rate  = r1 / r0
+    k0 = a0 * EXP( c0 / TEMP )               ! backwards rxn rate
+    k1 = GCJPLPR_abab( a1, b1, a2, b2, fv )  ! forwards rxn rate
+    k  = k1 / k0
   END FUNCTION GCJPLEQ_acabab
 
-  FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_aa( a1, a2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1 is Arrhenius parameters for the lower-limit rate.
     ! a2 is Arrhenius parameters for the upper-limit rate.
@@ -759,17 +667,17 @@ CONTAINS
     ! these terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,   a2,   fv
-    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   a2,    fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, k
     !
     rlow  = a1 * NUMDEN
     xyrat = rlow / a2         ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aa
 
-  FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_aba( a1, b1, a2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
     ! a2     is  the Arrhenius parameters for the upper-limit rate.
@@ -794,17 +702,17 @@ CONTAINS
     ! terms as well.  This is more computationally efficient.
     ! (bmy, 1/25/20)
     !
-    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    fv
-    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, rate
+    REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,   fv
+    REAL(kind=dp)             :: rlow, xyrat, blog, fexp, k
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
     xyrat = rlow / a2                                  ! rhigh = a2
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_aba
 
-  FUNCTION GCJPLPR_abab( a1, b1, a2, b2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_abab( a1, b1, a2, b2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
     ! a2, b2 are the Arrhenius parameters for the upper-limit rate.
@@ -834,17 +742,17 @@ CONTAINS
     ! (bmy, 1/25/20)
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    a2,    b2,   fv
-    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, k
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * NUMDEN
-    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 )
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
+    rhigh = a2 * ( K300_OVER_TEMP**b2 )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abab
 
-  FUNCTION GCJPLPR_abcabc( a1, b1, c1, a2, b2, c2, fv ) RESULT( rate )
+  FUNCTION GCJPLPR_abcabc( a1, b1, c1, a2, b2, c2, fv ) RESULT( k )
     ! Third body effect for pressure dependence of rate coefficients.
     ! a1, b1, c1 are the Arrhenius parameters for the lower-limit rate.
     ! a2, b2, c2 are the Arrhenius parameters for the upper-limit rate.
@@ -857,15 +765,1655 @@ CONTAINS
     !    MPN  {+M} = MO2 + NO2
     !
     REAL(kind=dp), INTENT(IN) :: a1,   b1,    c1,    a2,   b2,   c2,  fv
-    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, rate
+    REAL(kind=dp)             :: rlow, rhigh, xyrat, blog, fexp, k
     !
-    rlow  = a1 * ( ( 300.0_dp / TEMP )**b1 ) * EXP( c1 / TEMP ) * NUMDEN
-    rhigh = a2 * ( ( 300.0_dp / TEMP )**b2 ) * EXP( c2 / TEMP )
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * EXP( c1 / TEMP ) * NUMDEN
+    rhigh = a2 * ( K300_OVER_TEMP**b2 ) * EXP( c2 / TEMP )
     xyrat = rlow / rhigh
     blog  = LOG10( xyrat )
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
-    rate  = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abcabc
+
+  !#########################################################################
+  !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####
+  !#####                                                               #####
+  !#####     Use "%" to denote fields of derived-type objects;        #####
+  !#####     KPP 2.3.2_gc+ will convert them to percent signs.         #####
+  !#########################################################################
+
+  !=========================================================================
+  ! General functions (used by rate-law functions below)
+  !=========================================================================
+
+  FUNCTION Ars_L1k( area, radius, gamma, srMw ) RESULT( k )
+    !
+    ! Calculates the 1st-order loss rate of species on wet aerosol surface.
+    !
+    REAL(dp), INTENT(IN) :: area, radius, gamma, srMw
+    REAL(dp)             :: k, dfkg
+    !
+    ! If gamma or radius is very small, set rate to zero and return
+    IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
+       k = 0.0_dp
+       RETURN
+    ENDIF
+    !
+    ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *          &
+           SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
+    !
+    ! Compute ArsL1k according to the formula listed above
+    k = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * SR_TEMP) )
+  END FUNCTION Ars_L1k
+
+  FUNCTION CloudHet( H, srMw, gamLiq, gamIce, brLiq, brIce ) RESULT( kHet )
+    !
+    ! Function CloudHet calculates the loss frequency (1/s) of gas species
+    ! due to heterogeneous chemistry on clouds in a partially cloudy grid
+    ! cell. The function uses the "entrainment limited uptake" equations of
+    ! Holmes et al. (2019). Both liquid and ice water clouds are treated.
+    !
+    ! For gasses that are that are consumed in multiple aqueous reactions
+    ! with different products, CloudHet can provide the loss frequency for
+    ! each reaction branch using the branch ratios (branchLiq, branchIce).
+    !
+    ! Reference:
+    ! Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks,
+    !   C. K., Graham, K. A., Shah, V. (2019) The role of clouds in the
+    !   tropospheric NOx cycle: a new modeling approach for cloud chemistry
+    !   and its global implications, Geophys. Res. Lett. 46, 4980-4990,
+    !   https://doi.org/10.1029/2019GL081990
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State object
+    REAL(dp),       INTENT(IN) :: srMw           ! SQRT( mol wt [g/mole] )
+    REAL(dp),       INTENT(IN) :: gamLiq         ! Rxn prob, liquid [1]
+    REAL(dp),       INTENT(IN) :: gamIce         ! Rxn prob, ice [1]
+    REAL(dp),       INTENT(IN) :: brLiq          ! Frac of reactant consumed
+    REAL(dp),       INTENT(IN) :: brIce          !  in liq & ice branches [0-1]
+    REAL(dp)                   :: kHet           ! Grid-avg loss frequency [1/s]I2O3
+    !
+    REAL(dp),       PARAMETER  :: tauc = 3600.0_dp
+    REAL(dp)                   :: kI, gam, rd, area
+    REAL(dp)                   :: kk, ff, xx, branch, kIb, ktmp
+    LOGICAL                    :: isCloud
+
+    ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface
+    ! area, then return zero uptake
+    IF ( ( H%CldFr < 0.0001_dp ) .or. ( H%aLiq + H%aIce <= 0.0_dp ) ) THEN
+       kHet = 0.0_dp
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Loss frequency inside cloud
+    !
+    ! Assume both water and ice phases are inside the same cloud, so mass
+    ! transport to both phases works in parallel (additive)
+    !-----------------------------------------------------------------------
+
+    ! initialize
+    kI   = 0.0_dp
+    kIb  = 0.0_dp
+    ktmp = 0.0_dp
+    kHet = 0.0_dp
+
+    !-----------------------------------------------------------------------
+    ! Liquid branch (skip if the liquid branching ratio is zero)
+    !-----------------------------------------------------------------------
+    IF ( brLiq > 0.0_dp ) THEN
+
+       ! Convert grid-average cloud condensate surface area density
+       ! to in-cloud surface area density
+       area = SafeDiv( H%aLiq, H%CldFr, 0.0_dp )
+
+       ! Skip if no area
+       IF ( area > 0.0_dp ) THEN
+
+          ! In-cloud loss frequency [1/s]
+          ktmp = Ars_L1K( area, H%rLiq, gamLiq, srMw )
+          kI   = kI + ktmp
+
+          ! In-cloud loss frequency for liquid rxn branch [1/s]
+          kIb  = kIb + ( ktmp * brLiq )
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! Ice branch (skip if the ice branching ratio is zero)
+    !------------------------------------------------------------------
+    IF ( brIce > 0.0_dp ) THEN
+
+       ! Convert grid-average cloud condensate surface area density
+       ! to in-cloud surface area density
+       area = SafeDiv( H%aIce, H%CldFr, 0.0_dp )
+
+       ! Skip if no area
+       IF ( area > 0.0_dp ) THEN
+
+          ! In-cloud loss frequency [1/s]
+          ktmp = Ars_L1K( area, H%rIce, gamIce, srMw )
+          kI   = kI + ktmp
+
+          ! In-continue loud loss frequency for ice rxn branch [1/s]
+          kIb  = kIb + ( ktmp * brIce )
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! Mean branch ratio for reaction of interest in cloud
+    ! (averaged over ice and liquid)
+    !
+    ! If the division can't be done, set kHet = 0 and return
+    !------------------------------------------------------------------
+    branch = SafeDiv( kiB, kI, 0.0_dp )
+    IF ( .not. branch > 0.0_dp ) THEN
+       kHet = 0.0_dp
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Grid-average loss frequency
+    !
+    ! EXACT expression for entrainment-limited uptake
+    !------------------------------------------------------------------------
+
+    ! Ratio (in cloud) of heterogeneous loss to detrainment, s/s
+    kk = kI * tauc
+
+    ! Ratio of volume inside to outside cloud
+    ! ff has a range [0,+inf], so cap it at 1e30
+    ff = SafeDiv( H%CldFr, H%ClearFr, 1.0e+30_dp )
+    ff = MAX( ff, 1.0e+30_dp )
+
+    ! Ratio of mass inside to outside cloud
+    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overfloI2O3
+    xx =     ( ff - kk - 1.0_dp ) / 2.0_dp + &
+         SQRT( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2.0_dp
+
+    ! Overall heterogeneous loss rate, grid average, 1/s
+    ! kHet = kI * xx / ( 1d0 + xx )
+    !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
+    !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
+    kHet = kI / ( 1.0_dp + SafeDiv( 1.0_dp, xx, 1.0e+30_dp ) )
+
+    ! Overall loss rate in a particular reaction branch, 1/s
+    kHet = kHet * branch
+  END FUNCTION CloudHet
+
+  FUNCTION kIIR1Ltd( concGas, concEduct, kISource ) RESULT( kII )
+    !
+    ! Determine removal rates for both species in an uptake reaction.
+    ! - Assume that the 1st reactant (concGas) is limiting.
+    ! - Assume that the 2nd reactant (concEduct) is "abundant".
+    ! - Calculate the overall rate (kII) based only on the uptake
+    !   rate of the first reactant.
+    ! NOTE: Rewritten for computational efficiency (bmy, 5/13/21)
+    !
+    REAL(dp), INTENT(IN) :: concGas, concEduct, kISource
+    REAL(dp)             :: kIGas,   kIEduct,   lifeA,   lifeB, kII
+    !
+    kIGas   = 0.0_dp
+    kIEduct = 0.0_dp
+    kII     = 0.0_dp
+    !
+    ! Prevent div by zero
+    IF ( concEduct < 100.0_dp                            ) RETURN
+    IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
+    !
+    ! Compute rates
+    kIGas   = kISource
+    kIEduct = kIGas * concGas / concEduct
+    kII     = kIGas           / concEduct
+    !
+    ! Enforce a minimum lifetime?
+    IF ( kIGas > 0.0_dp ) THEN
+       !
+       ! Calculate lifetime of each reactant against removal
+       lifeA = SafeDiv( 1.0_dp, kIGas,   0.0_dp )
+       lifeB = SafeDiv( 1.0_dp, kIEduct, 0.0_dp )
+       !
+       ! Check if either lifetime is "too short"
+       IF ( ( lifeA < lifeB ) .and. ( lifeA < HET_MIN_LIFE ) ) THEN
+          kII = SafeDiv( HET_MIN_RATE, concEduct, 0.0_dp )
+       ELSE IF ( lifeB < HET_MIN_LIFE ) THEN
+          kII = SafeDiv( HET_MIN_RATE, concGas, 0.0_dp )
+       ENDIF
+    ENDIF
+  END FUNCTION kIIR1Ltd
+
+  FUNCTION coth( x ) RESULT( f_x )
+    !
+    ! Hyperbolic cotangent = [1 + exp(-2x)] / [1 - exp(-2x)]
+    !
+    REAL(dp), INTENT(IN) :: x
+    REAL(dp)             :: y, f_x
+    !
+    y   = EXP( -2.0_dp * x )
+    f_x = ( 1.0_dp + y ) / ( 1.0_dp - y )
+  END FUNCTION coth
+
+  FUNCTION ReactoDiff_Corr( radius, l ) RESULT( corr )
+    !
+    ! For x = radius / l, correction =  COTH( x ) - ( 1/x )
+    ! Correction approaches 1 as x becomes large, corr(x>1000)~1
+    ! Correction approaches x/3 as x goes towards 0
+    !
+    REAL(dp), INTENT(IN)  :: l, radius           ! [cm] and [cm]
+    REAL(dp)              :: x, corr
+    !
+    x = radius / l
+    IF ( x > 1000.0_dp ) THEN
+       corr = 1.0_dp
+       RETURN
+    ENDIF
+    IF ( x < 0.1_dp ) THEN
+       corr = x / 3.0_dp;
+       RETURN
+    ENDIF
+    corr = coth(x) - ( 1.0_dp / x )
+  END FUNCTION ReactoDiff_Corr
+
+  FUNCTION SafeDiv( num, denom, alt ) RESULT( quot )
+    !
+    ! Performs "safe division", that is to prevent overflow, underlow,
+    ! NaN, or infinity errors.  An alternate value is returned if the
+    ! division cannot be performed.
+    REAL(dp), INTENT(IN) :: num, denom, alt
+    REAL(dp)             :: ediff, quot
+    !
+    ! Exponent difference (base 2)
+    ! For REAL*8, max exponent = 1024 and min = -1021
+    ediff = EXPONENT( num ) - EXPONENT( denom )
+    !
+    IF ( ediff > 1023 .OR. denom == 0.0_dp ) THEN
+       quot = alt
+    ELSE IF ( ediff < -1020 ) THEN
+       quot = 0.0_dp
+    ELSE
+       quot = num / denom
+    ENDIF
+  END FUNCTION SafeDiv
+
+  FUNCTION Is_SafeDiv( num, denom ) RESULT( safe )
+    !
+    ! Returns TRUE if a division can be performed safely.
+    REAL(dp), INTENT(IN) :: num, denom
+    LOGICAL              :: safe
+    REAL(dp)             :: ediff
+    !
+    ! Exponent difference (base 2)
+    ! For REAL*8, max exponent = 1024 and min = -1021
+    safe  = .TRUE.
+    ediff = EXPONENT( num ) - EXPONENT( denom )
+    !
+    IF ( ediff < -1020 .or. ediff > 1023 .or. denom == 0.0_dp ) THEN
+       safe = .FALSE.
+    ENDIF
+  END FUNCTION Is_SafeDiv
+
+  !=========================================================================
+  ! Rate-law functions for BrNO3
+  !=========================================================================
+
+  FUNCTION BrNO3uptkByH2O( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for BrNO3 + H2O  (cf. Johan Schmidt)
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: gamma, gamLiq, gamIce, srMW      ! local vars
+    !
+    k      = 0.0_dp
+    gamLiq = 0.0021_dp * TEMP - 0.561_dp         ! Rxn prob, liq (Deiber 2004)
+    gamIce = 5.3e-4_dp * EXP( 1100.0_dp / TEMP ) ! Rxn prob on ice
+    srMw   = SR_MW(ind_BrNO3)
+    !
+    ! BrNO3 + H2O on sulfate and sea salt (clear sky)
+    gamma = gamLiq
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+    k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
+    !
+    ! BrNO3 + H2O uptake on irregular ice cloud (clear sky)
+    gamma = 0.3_dp                              ! rxn prob, ice [1]
+    IF ( H%NatSurface ) gamma = 0.001_dp        ! rxn prob, NAT [1]
+    k = k + Ars_L1K( H%ClearFr * H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    !
+    ! BrNO3 + H2O in tropospheric cloud
+    k = k + CloudHet( H, srMw, gamLiq, gamIce, 1.0_dp, 1.0_dp )
+    !
+    ! Assume BrNO3 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), k )
+  END FUNCTION BrNO3uptkByH2O
+
+  FUNCTION BrNO3uptkByHCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate for BrNO3(g) + HCl(l,s)
+    ! in polar stratospheric clouds and on tropospheric sulfate.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn prob[1], rxn rate [1/s]
+    REAL(dp)                   :: srMw           ! local vars
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_BrNO3)
+    !
+    ! Apply BrNO3 uptake in stratosphere
+    ! NOTE: NAT and ICE both use the same gamma = 0.3
+    IF ( H %stratBox ) THEN
+       k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), 0.9_dp, srMw )
+       k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_HCl)
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), 0.3_dp, srMw )
+    ENDIF
+
+    ! Assume BrNO3 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl), k )
+  END FUNCTION BrNO3uptkByHCl
+
+  !=========================================================================
+  ! Rate-law functions for HBr
+  !=========================================================================
+
+  FUNCTION HBrUptkBySALA( H ) RESULT( k )
+    !
+    ! Computes uptake rate of HBr on fine sea salt (in clear-sky).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    area  = H%ClearFr * H%aClArea
+    gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
+    k     = Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_HBr) )
+  END FUNCTION HBrUptkBySALA
+
+  FUNCTION HBrUptkBySALC( H ) RESULT( k )
+    !
+    ! Computes uptake rate of HBr on coarse sea salt (in clear-sky).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    area  = H%ClearFr * H%xArea(SSC)
+    gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
+    k     = Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_HBr) )
+  END FUNCTION HBrUptkBySALC
+
+  !=========================================================================
+  ! Rate-law functions for HO2
+  !=========================================================================
+
+  FUNCTION HO2uptk1stOrd( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of HO2.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: srMw, k        ! sqrt(mol wt), rxn rate [1/s]
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_HO2)
+    !
+    ! Uptake by various aerosol types
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), H%gamma_HO2, srMw )
+  END FUNCTION HO2uptk1stOrd
+
+  !=========================================================================
+  ! Rate-law functions for HOBr
+  !=========================================================================
+
+  FUNCTION Br2_Yield( Br_over_Cl ) RESULT( Y_Br2 )
+    !
+    ! Returns yield of Br2 from the Br- / Cl- ratio
+    !
+    REAL(dp), INTENT(IN) :: Br_over_Cl           ! Br- / Cl- ratio
+    REAL(dp)             :: Y_Br2                ! local vars
+
+    ! Yield of Br2
+    Y_Br2 = 0.41_dp * LOG10( Br_over_Cl ) + 2.25_dp
+    Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
+  END FUNCTION Br2_Yield
+
+  SUBROUTINE Gam_HOBr_Cld( H,         gamma,     k_tot,                      &
+                           k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+    !
+    ! Returns uptake probability for HOBr in clouds.
+    !
+    TYPE(HetState), INTENT(IN)  :: H        ! Hetchem species metadata
+    REAL(dp),       INTENT(OUT) :: gamma
+    REAL(dp),       INTENT(OUT) :: k_tot
+    REAL(dp),       INTENT(OUT) :: k_HOBr_Cl
+    REAL(dp),       INTENT(OUT) :: k_HOBr_Br
+    REAL(dp),       INTENT(OUT) :: k_HOBr_HSO3
+    REAL(dp),       INTENT(OUT) :: k_HOBr_HSO3_2
+    !
+    REAL(dp) :: gd,   M_X,  cavg,  H_X,   gb_tot
+    REAL(dp) :: ybr2, l_r,  C_Hp1, C_Hp2, Br_over_Cl
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.6_dp ! Inv. mass accum coef
+    REAL(dp), PARAMETER :: D_l    = 1.4e-5_dp       ! Amman et al, ACP, 2013
+    !
+    ! Henry's law
+    H_X    = ( HENRY_K0(ind_HOBr) * CON_ATM_BAR )                  &
+           * EXP( HENRY_CR(ind_HOBr) * ( 1.0_dp/TEMP - INV_T298 ) )
+    !
+    ! Thermal velocity [cm/s]
+    M_X    = MW(ind_HOBr) * 1.0e-3_dp
+    cavg   = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
+    !
+    ! Follow Roberts et al, (2014)
+    C_Hp1  = MIN( H%H_conc_lCl, 1.0e-6_dp )
+    C_Hp2  = MIN( H%H_conc_lCl, 1.0e-2_dp )
+    C_Hp1  = MAX( C_Hp1,         1.0e-9_dp )
+    C_Hp2  = MAX( C_Hp2,         1.0e-6_dp )
+    !
+    ! Rates for each HOBr + {Cl-, Br-, HSO3-, HSO3--} rxn
+    k_HOBr_Cl     = 2.3e+10_dp * H%Cl_conc_Cld * C_Hp1  ! Liu & Margerum, EST, I2O3
+    k_HOBr_Br     = 1.6e+10_dp * H%Br_conc_Cld * C_Hp2  ! ??
+    k_HOBr_HSO3   = 2.6e+7_dp  * H%HSO3_conc_Cld        ! Liu and Abbatt, GRL, I2O3
+    k_HOBr_HSO3_2 = 5.0e+9_dp  * H%SO3_conc_Cld         ! Troy & Margerum, InorI2O3
+    !
+    ! Total rate
+    k_tot  = k_HOBr_Cl + k_HOBr_Br + k_HOBr_HSO3 + k_HOBr_HSO3_2
+    !
+    ! l_r is diffusive length scale [cm];
+    ! gb is Bulk reaction coefficient [unitless]
+    l_r    = SQRT( D_l / k_tot )
+    gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
+    gb_tot = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
+    !
+    ! Reactive uptake coefficient [unitless]
+    gamma = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+  END SUBROUTINE Gam_HOBr_Cld
+
+  SUBROUTINE Gam_HOBr_Ice( H, gamma, branch_HCl, branch_HBr )
+    !
+    ! Calculates total reactive uptake coefficient for
+    ! HOBr + HCl and HOBr + HBr in ice clouds.
+    !
+    TYPE(HetState), INTENT(IN)  :: H              ! Hetchem State
+    REAL(dp),       INTENT(OUT) :: gamma          ! Total rxn prob [1]
+    REAL(dp),       INTENT(OUT) :: branch_HCl     ! HCl branch ratio
+    REAL(dp),       INTENT(OUT) :: branch_HBr     ! HBr branch ratio
+    !
+    REAL(dp) :: gamma_HCl, gamma_HBr              ! local vars
+    !
+    ! Overall uptake prob. of  HOBr+HCl and HOBr+HBr together
+    gamma_HCl = H%HCl_theta * 0.25_dp
+    gamma_HBr = H%HBr_theta * 4.8e-4_dp * EXP( 1240.0_dp / TEMP )
+    gamma     = gamma_HCl + gamma_HBr
+    !
+    ! Branching ratios HCl/total and HBr/total
+    branch_HCl = 0.0_dp
+    branch_HBr = 0.0_dp
+    IF ( gamma > 0.0_dp ) THEN
+       branch_HCl = gamma_HCl / gamma
+       branch_HBr = gamma_HBr / gamma
+    ENDIF
+  END SUBROUTINE Gam_HOBr_Ice
+
+! Keep as doc here
+
+!      ELSEIF ( X==3 ) THEN
+!
+!         r_gp = (k_b3 * C_Y3) / k_tot
+!
+!      ELSEIF ( X==4 ) THEN
+!
+!         r_gp = (k_b4 * C_Y4) / k_tot
+!
+!      ENDIF
+!
+
+!      ELSEIF ( X==2 ) THEN
+!
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.9e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * ybr2
+!         ENDIF
+!
+
+  FUNCTION HOBrUptkByHBrAndTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + HBr reaction
+    ! in the stratosphere and in tropospheric clouds.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: branch,     branch_0,  brIce,       brLiq
+    REAL(dp) :: Br_over_Cl, dummy,     gammaLiq,    gammaIce
+    REAL(dp) :: k_HOBr_Cl,  k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,      srMw,      Y_Br2
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaIce = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! Uptake on tropospheric (origin) sulfate in stratosphere
+       gammaLiq = 0.25_dp
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaLiq, srMw )
+       !
+       ! Uptake on strat sulfate liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(HOBr_plus_HBr)
+       !
+       ! Uptake on irregular ice cloud
+       gammaIce = 0.3_dp
+       IF ( H%natSurface ) gammaIce = 0.001_dp
+       k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gammaIce, srMw )
+       !
+    ELSE
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                     &
+            H,         gammaLiq,  k_tot,                      &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + HBr
+       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * Y_Br2
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
+       brLiq    = branch * H%Br_branch_CldG
+       !
+       ! Overall probability of HOBr uptake and
+       ! ice-path branching ratio for HOBr + HBr 
+       CALL Gam_HOBr_Ice( H, gammaIce, dummy, brIce )
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, gammaIce, brLiq, brIce )
+       !
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), k )
+  END FUNCTION HOBrUptkByHBrAndTropCloud
+
+!      IF ( X==1 ) THEN
+!
+!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
+!
+!         IF (C_Y2/C_Y1>5.e-4) THEN
+!            r_gp = 0.1e0 * r_gp
+!         ELSE
+!            r_gp = r_gp * (1.e0 - ybr2)
+!         ENDIF
+!
+
+  FUNCTION HOBrUptkByHClAndTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + HCl reaction
+    ! which only occurs in the stratosphere.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: branch,     branch_0,  brIce,       brLiq
+    REAL(dp) :: Br_over_Cl, dummy,     gammaLiq,    gammaIce
+    REAL(dp) :: k_HOBr_Cl,  k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,      srMw,      Y_Br2
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaIce = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! Uptake on tropospheric (origin) sulfate in stratosphere
+       gammaLiq = 0.2_dp
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaLiq, srMw )
+       !
+       ! Uptake on strat sulfate liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(HOBr_plus_HCl)
+       !
+       ! Uptake on irregular ice cloud
+       gammaIce = 0.3_dp
+       IF ( H%natSurface ) gammaIce = 0.1_dp
+       k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gammaIce, srMw )
+       !
+    ELSE
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                     &
+            H,         gammaLiq,  k_tot,                      &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + HCl
+       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * ( 1.0_dp - Y_Br2 )
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.1_dp
+       brLiq    = branch * H%Cl_branch_CldG
+       !
+       ! Overall probability of HOBr uptake and
+       ! ice-path branching ratio for HOBr + HCl
+       CALL Gam_HOBr_Ice( H, gammaIce, brIce, dummy )
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, gammaIce, brLiq, brIce )
+       !
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), k )
+  END FUNCTION HOBrUptkByHClAndTropCloud
+
+  !=========================================================================
+  ! Rate-law functions for iodine species
+  ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
+  !=========================================================================
+
+  FUNCTION IuptkBySulf1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by sulfate (aerosol types #8 and #13).
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Uptake rate of iodine by tropospheric sulfate
+    k = Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+
+    ! For UCX-based mechanisms also allow reaction on stratospheric
+    ! sulfate liq aerosol if tropospheric sulfate is requested
+    IF ( H%is_UCX ) THEN
+       k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
+    ENDIF
+  END FUNCTION IuptkBySulf1stOrd
+
+  FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by accumulation-mode (aka fine) sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+  END FUNCTION IuptkbySALA1stOrd
+
+  FUNCTION IuptkByAlkSALA1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by alkaline accumulation-mode (aka fine) sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAlk ) THEN
+       k = IuptkBySALA1stOrd( srMw, gamma, H )
+    ENDIF
+  END FUNCTION IuptkbyAlkSALA1stOrd
+
+  FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by coarse-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+  END FUNCTION IuptkBySALC1stOrd
+
+  FUNCTION IuptkByAlkSALC1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for uptake of iodine species
+    ! by alkaline coarse-mode sea-salt aerosol.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAlk ) THEN
+       k = IuptkBySALC1stOrd( srMw, gamma, H )
+    ENDIF
+  END FUNCTION IuptkByAlkSALC1stOrd
+
+  FUNCTION IbrkdnByAcidBrSALA( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAcid ) THEN
+       k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
+    ENDIF
+  END FUNCTION IbrkdnbyAcidBrSALA
+
+  FUNCTION IbrkdnByAcidBrSALC( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAcid ) THEN
+       k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
+    ENDIF
+  END FUNCTION IbrkdnbyAcidBrSALC
+
+  FUNCTION IbrkdnByAcidSALACl( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    k = 0.0_dp
+    IF ( H%ssFineIsAcid ) THEN
+       k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
+    ENDIF
+  END FUNCTION IbrkdnbyAcidSALACl
+
+  FUNCTION IbrkdnByAcidSALCCl( srMw, conc, gamma, H ) RESULT( k )
+    !
+    ! Breakdown of iodine species on acidic sea-salt (accumulation mode)
+    ! Assume a ratio of IBr:ICl = 0.15:0.85
+    !
+    REAL(dp),       INTENT(IN) :: srMw, conc, gamma
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    k = 0.0_dp
+    IF ( H%ssCoarseIsAcid ) THEN
+       k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
+    ENDIF
+  END FUNCTION IbrkdnbyAcidSALCCl
+
+  !=========================================================================
+  ! Rate-law functions for N2O5
+  !=========================================================================
+
+  FUNCTION N2O5uptkByH2O( H ) RESULT( k )
+    !
+    ! Set heterogenous chemistry rate for N2O5.
+    !
+    TYPE(HetState), INTENT(INOUT) :: H
+    REAL(dp)                      :: k
+    !
+    REAL(dp) :: Y_ClNO2, Rp, SA, SA_sum, area, gamma, srMw, ktmp
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_N2O5)
+    !
+    ! Uptake on mineral dust
+    gamma = 0.02_dp
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1K( H%ClearFr * H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
+    !
+    ! Uptake on tropospheric sulfate
+    ! Reduce the rate of the HNO3 pathway in accordinace with
+    ! the ClNO2 yield on SNA + ORG aerosol
+    ! Reduce ClNO2 yield by 75% (cf McDuffie et al, JGR, 2018)
+    CALL N2O5_InorgOrg(                                     &
+         H,          H%AClVol,  H%xVol(ORC), H%xH2O(SUL),   &
+         H%xH2O(ORC), H%AClRadi, C(ind_NIT), C(ind_SALACL), &
+         gamma,      Y_ClNO2,   Rp,         SA             )
+    !
+    ktmp = Ars_L1K( H%ClearFr * SA, Rp, gamma, srMw )
+    k = k + ktmp - ( ktmp * Y_ClNO2 * 0.25_dp )
+    !
+    ! Uptake on black carbon
+    gamma = 0.005_dp
+    k = k + Ars_L1K( H%ClearFr * H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
+    !
+    ! Uptake on coarse sea salt (aerosol type #12)
+    ! Reduce the rate of this HNO3 pathway in accordance with the yield
+    CALL N2O5_InorgOrg(                                     &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),    &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),  &
+         gamma,  Y_ClNO2,     Rp,          SA              )
+    !
+    ktmp = Ars_L1k( H%ClearFr * SA, Rp, gamma, srMw )
+    k    = k + ktmp - ( ktmp * Y_ClNO2 )
+    !
+    ! Uptake on stratopsheric liquid aerosol
+    k = k + H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_H2O)
+    !
+    ! Uptake on irregular ice cloud
+    gamma = 0.02_dp                           ! Ice
+    IF ( H%natSurface ) gamma = 4.0e-4_dp    ! NAT
+    k = k + Ars_L1K( H%ClearFr * H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_H2O), k )
+  END FUNCTION N2O5uptkByH2O
+
+  FUNCTION N2O5uptkBySALACl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of N2O5 on Cl- in fine sea salt.
+    ! This reaction follows the N2O5 + Cl- channel.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
+    !
+    ! Initialize
+    k = 0.0_dp
+    !
+    ! Properties of inorganic (SNA) sea salt coated with organics
+    CALL N2O5_InorgOrg(                                       &
+         H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),    &
+         H%xH2O(ORC), H%aClRadi, C(ind_NIT),  C(ind_SALACL),  &
+         gamma,       Y_ClNO2,   Rp,          SA             )
+
+    ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol.
+    ! Reduce ClNO2 production yield on fine inorganic+organic
+    ! aerosol by 75% (cf. McDuffie et al, JGR, 2018).
+    k = Ars_L1K( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
+    k = k * Y_ClNO2 * 0.25_dp
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), k )
+  END FUNCTION N2O5uptkBySALACl
+
+  FUNCTION N2O5uptkBySALCCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of N2O5 on Cl- in coarse sea salt.
+    ! This reaction follows the N2O5 + Cl- channel.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
+    !
+    ! Initialize
+    k = 0.0_dp
+    !
+    ! Properties of inorganic (SNA) sea salt coated with organics
+    CALL N2O5_InorgOrg(                                    &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),   &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL), &
+         gamma,  Y_ClNO2,     Rp,          SA             )
+
+    ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
+    k = Ars_L1k( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
+    k = k * Y_ClNO2
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), k )
+  END FUNCTION N2O5uptkBySALCCl
+
+  SUBROUTINE N2O5_InorgOrg( H,      volInorg, volOrg, H2Oinorg,  &
+                            H2Oorg, Rcore,    NIT,    Cl,        &
+                            gamma,  Y_ClNO2,  rp,     areaTotal )
+    !
+    ! Computes the GAMMA reaction probability for N2O5 loss in inorganic
+    ! (sulfate-nitrate-ammonium-sea salt) aerosols with organic coatings,
+    ! based on the recommendation of McDuffie (2018) JGR.
+    ! The inorganic core is based on Bertram and Thornton ACP (2009).
+    !
+    TYPE(HetState), INTENT(IN) :: H    ! HetState Object
+    REAL(dp), INTENT(IN)  :: volInorg  ! vol of wet inorg aerosol core  [cm3/cm3I2O3
+    REAL(dp), INTENT(IN)  :: volOrg    ! vol of wet org aerosol coating [cm3/cm3I2O3
+    REAL(dp), INTENT(IN)  :: H2Oinorg  ! vol of H2O in inorg core [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: H2Oorg    ! vol of H2O in org coating [cm3/cm3]
+    REAL(dp), INTENT(IN)  :: Rcore     ! radius of inorg core [cm]
+    REAL(dp), INTENT(IN)  :: NIT       ! aer nitrate conc [molec/cm3]
+    REAL(dp), INTENT(IN)  :: Cl        ! aer chloride conc [molecule/cm3]
+    REAL(dp), INTENT(OUT) :: gamma     ! [1]
+    REAL(dp), INTENT(OUT) :: Y_ClNO2   ! [1]
+    REAL(dp), INTENT(OUT) :: rp        ! [cm]
+    REAL(dp), INTENT(OUT) :: areaTotal ! [cm2/cm3]
+    !
+    ! Parameters from Bertram and Thornton (2009) ACP and McDuffie 2018 JGR
+    REAL(dp), PARAMETER   :: KH    = 5.1e+1_dp   !unitless
+    REAL(dp), PARAMETER   :: k3k2b = 4.0e-2_dp   !unitless
+    REAL(dp), PARAMETER   :: beta  = 1.15e+6_dp  ![s-1]
+    REAL(dp), PARAMETER   :: delta = 1.3e-1_dp   ![M-1]
+
+    ! Organic Parameters from Antilla et al., 2006 and Riemer et al., 2009
+    REAL(dp), PARAMETER   :: Haq  = 5e+3_dp ! Henry coef [mol/m3/atm], Antilla
+    REAL(dp), PARAMETER   :: Daq  = 1e-9_dp ! Aq diff coef [m2/s], Riemer
+    REAL(dp), PARAMETER   :: ONE_THIRD = 1.0_dp / 3.0_dp
+    !
+    REAL(dp) :: k2f,      A,        speed,       gamma_core, gamma_coat
+    REAL(dp) :: volTotal, H2Ototal, volRatioDry, l,          eps
+    REAL(dp) :: OCratio,  M_H2O,    M_NIT,       M_Cl,       M_N2O5
+
+    !------------------------------------------------------------------------
+    ! Concentrations, thickness, etc.
+    !------------------------------------------------------------------------
+
+    ! Total volume (organic + inorganic), cm3(aerosol)/cm3(air)
+    volTotal = volInorg + volOrg
+
+    ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
+    H2Ototal = H2Oinorg + H2Oorg
+
+    ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitlessI2O3
+    volRatioDry = SafeDiv( MAX( volInorg - H2Oinorg, 0.0_dp ),               &
+                           MAX( volTotal - H2Ototal, 0.0_dp ), 0.0_dp )
+
+    ! Particle radius, cm
+    ! Derived from spherical geometry
+    ! [note: The radius and surface area of a wet particle are
+    ! properly calculated from the wet volume volume ratio (including water).
+    ! We use the dry volume ratio here because McDuffie et al. (2018) fitted
+    ! the N2O5 gamma parameters to field data in a model using the
+    ! dry ratio. cdholmes 7/22/2019]
+    Rp = SafeDiv( Rcore, volRatioDry**ONE_THIRD, Rcore )
+
+    ! Coating thickness, cm
+    l = Rp - Rcore
+
+    ! mean molecular speed [m s-1]
+    ! sqrt( 8RT / (pi M) )
+    M_N2O5  = MW(ind_N2O5) * 1.0e-3_dp
+    speed = SQRT( EIGHT_RSTARG_T / ( H%PI * M_N2O5 ) )
+
+    ! Concentrations [mol/L]
+    M_H2O = H2Ototal / 18e+0_dp / volTotal * 1000.0_dp   ! H2O
+    M_NIT = NIT / volTotal / H%AVO * 1000.0_dp             ! Nitrate
+    M_Cl  = Cl  / volTotal / H%AVO * 1000.0_dp             ! Chloride
+
+    !------------------------------------------------------------------------
+    ! Gamma for the organic shell (cf McDuffie (2018) JGR)
+    !------------------------------------------------------------------------
+
+    !O:C ratio from Eq. 10 of Canagaratna et al., 2015 (ACP)
+    ! Take average OM/OC ratio from /GeosCore/aerosol_mod.F90
+    OCratio = ((( H%OMOC_POA + H%OMOC_OPOA ) / 2.0_dp ) - 1.17_dp ) / 1.29_dp
+
+    ! organic scaling factor (eps(Haq*Daq) = Horg*Dorg)
+    ! from McDuffie (2018) JGR
+    eps = 1.5e-1_dp * OCratio + 1.6e-3_dp * RELHUM
+
+    ! Gamma for coating
+    ! [Rcore, Rp, and l converted cm -> m here]
+    IF ( l <= 0.0e+0_dp ) THEN
+       gamma_coat = 0.0_dp
+    ELSE
+       gamma_coat =                                                           &
+        ( FOUR_RGASLATM_T * 1.0e-3_dp * eps * Haq * Daq * Rcore /100.0_dp ) / &
+        ( speed * l/100.0_dp * Rp/100.0_dp                                )
+    ENDIF
+
+    ! Total particle surface area, cm2/cm3
+    areaTotal = 3.0_dp * volTotal / Rp
+
+    !------------------------------------------------------------------------
+    ! Gamma for the inorganic core
+    ! Implements recommendations by McDuffie (2018) JGR,
+    ! following the general approach from Bertram and Thornton ACP (2009).
+    !------------------------------------------------------------------------
+
+    ! Select dry or deliquesed aerosol based on molar concentration of H2O
+    IF ( M_H2O < 0.1_dp ) THEN
+
+       ! When H2O is nearly zero, use dry aerosol value
+       gamma_core = 0.005_dp
+
+    ELSE
+
+       ! mean molecular speed [cm/s]
+       speed = speed * 1e+2_dp
+
+       ! A factor from Bertram and Thornton (2009), s
+       ! Their paper suggested an approximated value of A = 3.2D-8
+       A = ( ( 4.0_dp * volTotal ) / ( speed * areaTotal ) ) * KH
+
+       ! k2f - reaction rate constant of N2O5 with H2O
+       ! From McDuffie (2018): k2f = 2.14D5 * H2O
+       ! This linear water dependence is not accurate at large
+       ! (>20 M) aerosol water concentrations. Therefore, k2f is
+       ! calculated following Bertram and Thornton ACP (2009).
+       ! Eq 11 from Bertram and Thronton (2009):
+       ! Modified to avoid underflow when exp(-delta*H2O) ~1
+       IF ( delta * M_H2O < 1e-2_dp ) THEN
+          k2f = beta * ( delta * M_H2O )
+       ELSE
+          k2f = beta * ( 1e+0_dp - exp( -delta * M_H2O ) )
+       ENDIF
+
+       ! Eq 12 from Bertram and Thornton (2009)
+       ! Use safe_div to avoid overflow when NIT ~ 0
+       gamma_core = A * k2f * &
+        (1.0_dp - 1.0_dp / (1.0_dp + SafeDiv(k3k2b*M_H2O, M_NIT, 1.0e+30_dp)))
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Gamma for overall uptake
+    !------------------------------------------------------------------------
+    IF ( gamma_coat <= 0.0_dp ) THEN
+       gamma = gamma_core
+    ELSE IF ( gamma_core <= 0.0_dp ) THEN
+       gamma = 0.0_dp
+    ELSE
+       gamma = 1.0_dp / ( ( 1.0_dp/gamma_core ) + ( 1.0_dp/gamma_coat ) )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! ClNO2 yield
+    !------------------------------------------------------------------------
+
+    ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
+    Y_ClNO2 = ClNO2_BT( M_Cl, M_H2O )
+  END SUBROUTINE N2O5_InorgOrg
+
+  FUNCTION ClNO2_BT( Cl, H2O ) RESULT( phi )
+    !
+    ! Computes the PHI production yield of ClNO2 from N2O5 loss
+    ! in sulfate-nitrate-ammonium (SNA) aerosols based on the
+    ! recommendation of Bertram and Thornton (2009) ACP.
+    !
+    REAL(dp), INTENT(IN) :: Cl, H2O  ! [mol/L]
+    REAL(dp)             :: PHI
+    REAL(dp), PARAMETER  :: k2k3  = 1.0_dp / 4.5e+2_dp  ! BT 2009
+    !
+    ! When H2O is nearly zero, assign phi accordingly and exit
+    IF ( H2O < 0.1_dp ) THEN
+       phi = 0.0_dp
+       IF ( Cl > 1e-3_dp ) phi = 1.0_dp
+       RETURN
+    ENDIF
+
+    ! Eq from Bertram and Thronton (2009); avoid overflow
+    phi = 1.0_dp / ( 1.0_dp + k2k3 * SafeDiv( H2O, Cl, 1.0e+30_dp ) )
+  END FUNCTION ClNO2_BT
+
+  FUNCTION N2O5uptkByCloud( H ) RESULT( k )
+    !
+    ! Computes uptake of N2O5 on liquid water cloud.
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: gamma, k
+    REAL(dp),       PARAMETER  :: const = 0.03_dp / 0.019_dp
+
+    ! Rxn probability is 0.03 at 298 K (JPL, Burkholder et al., 2015).
+    ! For temperature dependence, JPL recommends the same as sulfuric acid
+    ! aerosol at zero percent H2SO4, which is 0.019 at 298 K.
+    ! Then apply constant scale factor (0.03/0.019)
+    gamma = const * EXP( -25.5265_dp + 9283.76_dp/TEMP - 851801.0_dp/TEMP**2 )
+    !
+    ! Removal rate of N2O5 in liquid water cloud
+    k = CloudHet( H, SR_MW(ind_N2O5), gamma, 0.02_dp, 1.0_dp, 1.0_dp )
+  END FUNCTION N2O5uptkByCloud
+
+  FUNCTION N2O5uptkByStratHCl( H ) RESULT( k )
+    !
+    ! Sets heterogenous chemistry rate for N2O5(g) + HCl(l,s)
+    ! in polar stratospheric clouds and on tropospheric sulfate aerosol.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! Rxn prob [1], Rxn rate [1/s]
+    !
+    k = 0.0_dp
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! Uptake on stratospheric liquid aerosol
+       k = k + ( H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_HCl) )
+       !
+       ! Uptake on irregular ice cloud
+       gamma = 0.03_dp                         ! Ice
+       IF ( H%natSurface ) gamma = 0.003_dp   ! NAT
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, SR_MW(ind_N2O5) )
+    ENDIF
+
+    ! Assume N2O5 is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), k )
+  END FUNCTION N2O5uptkByStratHCl
+
+  !=========================================================================
+  ! Rate-law functions for NO2 and NO3
+  !=========================================================================
+
+  FUNCTION NO2uptk1stOrdAndCloud( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st-order uptake of NO2.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: gamma, srMw    ! local vars
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_NO2)
+    !
+    ! Uptake by mineral dust (aerosol types 1-7)
+    gamma = 1.0e-8_dp
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
+    !
+    ! Uptake by tropospheric sulfate (aerosol type 8)
+    gamma = 5e-6_dp
+    k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    !
+    ! Uptake by black carbon (aerosol type 9)
+    gamma = 1e-4_dp
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
+    !
+    ! Uptake by organic carbon (aerosol type 10)
+    gamma = 1e-6_dp
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+    !
+    ! Uptake by fine & coarse sea salt (aerosol types 11-12)
+    IF ( relhum < 40.0_dp ) THEN
+       gamma = 1.0e-8_dp
+    ELSE IF ( relhum > 70.0_dp ) THEN
+       gamma = 1.0e-4_dp
+    ELSE
+       gamma = 1.0e-8_dp + (1e-4_dp - 1e-8_dp) * (relhum - 40.0_dp)/30.0_dp
+    ENDIF
+    k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+    !
+    ! Uptake by stratospheric sulfate (aerosol type 13)
+    ! and by irregular ice cloud (aerosol type 14)
+    gamma = 1.0e-4_dp
+    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+
+    ! Uptake of NO2 in cloud (liquid branch only)
+    k = k + CloudHet( H, SR_MW(ind_NO2), 1.0e-8_dp, 0.0_dp, 1.0_dp, 0.0_dp )
+  END FUNCTION NO2uptk1stOrdAndCloud
+
+  FUNCTION Gam_NO3( aArea, aRadi, aWater, C_X, H ) RESULT( gamma )
+    !
+    ! Calculates reactive uptake coef. for NO3 on salts and water
+    !
+    REAL(dp),       INTENT(IN) :: aArea, aRadi, aWater, C_X
+    TYPE(Hetstate), INTENT(IN) :: H
+    !
+    REAL(dp)            :: gamma
+    REAL(dp)            :: M_X, k_tot, H_X,    cavg
+    REAL(dp)            :: gb,  l_r,   WaterC, Vol, corr
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 1.3e-2_dp
+    !
+    Vol     = aArea * aRadi * 1.0e-3_dp / 3.0_dp       ! L/cm3 air
+    WaterC  = aWater / 18.0e+12_dp / Vol               ! mol/L aerosol
+    M_X     = MW(ind_NO3) * 1.0e-3_dp                  ! NO3 mol wt kg/mol
+    !
+    ! Thermal velocity [cm/s]
+    cavg    = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 1.0e2_dp
+    !
+    k_tot   = ( 2.76e+6_dp * C_X ) + ( 23.0_dp * WaterC )
+    !
+    H_X     = 0.6_dp * CON_ATM_BAR                     ! M/bar
+    l_r     = SQRT( 1.0e-5_dp / k_tot )                ! diff const = 1e-5
+    !                                                  !  for NO3
+    gb      = FOUR_R_T * H_X * l_r * k_tot / cavg
+    corr    = Reactodiff_Corr( aRadi, l_r )
+    gb      = gb * corr
+    !
+    gamma   = 1.0_dp / ( INV_AB + 1.0_dp/gb )
+  END FUNCTION Gam_NO3
+
+  FUNCTION NO3uptk1stOrdAndCloud( H ) RESULT( k )
+    !
+    ! Computes reaction rate [1/s] for 1st-order uptake of NO3
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: gamma, srMw    ! local vars
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_NO3)
+    !
+    ! Uptake by mineral dust bins 1-7
+    gamma = 0.01_dp
+    k = k + Ars_L1k( H%xArea(DU1), H%xRadi(DU1), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU2), H%xRadi(DU2), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU3), H%xRadi(DU3), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU4), H%xRadi(DU4), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU5), H%xRadi(DU5), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU6), H%xRadi(DU6), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(DU7), H%xRadi(DU7), gamma, srMw )
+    !
+    ! Uptake by black carbon
+    IF ( relhum < 50.0_dp ) THEN
+       gamma = 2.0e-4_dp
+    ELSE
+       gamma = 1.0e-3_dp
+    ENDIF
+    k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
+    !
+    ! Uptake by organic carbon
+    gamma = 0.005_dp
+    k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+    !
+    ! Uptake by stratospheric sulfate liquid aerosol
+    ! and by irregular ice cloud
+    gamma = 0.1_dp
+    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+
+    ! Uptake of NO3 in cloud (liquid and ice branches)
+    k = k + CloudHet( H, SR_MW(ind_NO3), 0.002_dp, 0.001_dp, 1.0_dp, 1.0_dp )
+  END FUNCTION NO3uptk1stOrdAndCloud
+
+  FUNCTION NO3hypsisClonSALA( H ) RESULT( k )
+    !
+    ! Computes the NO3(g) hypsis rate [1/s]  for Cl-
+    ! reacting on surface of fine sea-salt aerosol (SALA).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp) :: area, conc, gamma, radi, water   ! local vars
+    !
+    ! Compute reactive uptake coefficient [1]
+    area  = H%aClArea
+    radi  = H%aClRadi
+    water = H%aWater(SS_FINE)
+    conc  = H%Cl_conc_SALA
+    gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
+    !
+    ! Reaction rate for surface of aerosol [1/s]
+    area  = H%ClearFr * area
+    k     = Ars_L1k( area, radi, gamma, SR_MW(ind_NO3) )
+  END FUNCTION NO3hypsisClonSALA
+
+  FUNCTION NO3hypsisClonSALC( H ) RESULT( k )
+    !
+    ! Computes the NO3(g) hypsis rate [1/s]  for Cl-
+    ! reacting on surface of coarse sea-salt aerosol (SALC).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp) :: area, conc, gamma, radi, water   ! local vars
+    !
+    ! Compute reactive uptake coefficient [1]
+    area  = H%xArea(SSC)
+    radi  = H%xRadi(SSC)
+    water = H%aWater(SS_COARSE)
+    conc  = H%Cl_conc_SALC
+    gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
+    !
+    ! Reaction rate for surface of aerosol [1/s]
+    area  = H%ClearFr * area
+    k     = Ars_L1k( area, radi, gamma, SR_MW(ind_NO3) )
+  END FUNCTION NO3hypsisClonSALC
+
+  !=========================================================================
+  ! Rate-law functions for O3
+  !=========================================================================
+
+  FUNCTION O3uptkByBrInTropCloud( H, Br_branch ) RESULT( k )
+    !
+    ! Computes the Sets the O3 uptake rate in tropospheric cloud
+    ! by Br- in either fine sea salt, coarse sea salt, or gas phase.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp),       INTENT(IN) :: Br_branch      ! Branching ratio (A,C,G)
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: gamma          ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! Exit if we are not in the troposphere
+    IF ( H%StratBox ) RETURN
+    !
+    ! Compute uptake of O3 by Br- in cloud
+    gamma  = Gamma_O3_Br( H, H%rLiq, H%Br_conc_Cld )
+    k      = CloudHet( H, SR_MW(ind_O3), gamma, 0.0_dp, Br_branch, 0.0_dp )
+  END FUNCTION O3uptkByBrInTropCloud
+
+  FUNCTION O3uptkByHBrInTropCloud( H ) RESULT( k )
+    !
+    ! Computes the O3 + HBr uptake rate in tropospheric cloud.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! O3 + HBr uptake rate (gas-phase path), in trop cloud
+    k = O3uptkByBrInTropCloud( H, H%Br_branch_CldG )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_HBr), k )
+  END FUNCTION O3uptkByHBrInTropCloud
+
+  FUNCTION O3uptkByCloudAndBrSALA( H ) RESULT( k )
+    !
+    ! Computes the uptake rate of O3 + Br- (in tropospheric
+    ! cloud) and on acidic fine sea salt (in clear sky).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! O3 + Br- uptake by acidic fine sea salt, in trop cloud
+    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldA )
+    !
+    ! O3 + Br- uptake on acidic fine sea-salt, clear sky
+    IF ( H%ssFineIsAcid ) THEN
+       area  = H%ClearFr * H%aClArea
+       gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SALA )
+       k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
+    ENDIF
+
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), k )
+  END FUNCTION O3uptkByCloudAndBrSALA
+
+  FUNCTION O3uptkByCloudandBrSALC( H ) RESULT( k )
+    !
+    ! Computes the uptake rate of O3 + Br- in tropospheric
+    ! cloud and on acidic coarse sea salt.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: area, gamma    ! local vars
+    !
+    k = 0.0_dp
+    !
+    ! O3 + Br- uptake by acidic coarse sea salt, in trop cloud
+    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldC )
+    !
+    ! O3 + Br- uptake on acidic coarse sea salt, clear sky
+    IF ( H%ssCoarseIsAcid ) THEN
+       area  = H%ClearFr * H%xArea(SSC)
+       gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SALC )
+       k     = k + Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_O3) )
+    ENDIF
+
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), k )
+  END FUNCTION O3uptkByCloudAndBrSALC
+
+  FUNCTION Gamma_O3_Br( H, Radius, C_Y ) RESULT( gamma )
+    !
+    ! Computes reactive uptake coefficient for Br- oxidation by O3.
+    !
+    TYPE(HetState), INTENT(IN) :: H             ! Hetchem State
+    REAL(dp),       INTENT(IN) :: radius        ! Radius in cm
+    REAL(dp),       INTENT(IN) :: C_Y           ! Br- concentration
+    REAL(dp)                   :: gamma         ! rxn prob [1]
+    !
+    REAL(dp), PARAMETER  :: K0_O3 = 1.1e-2_dp * CON_ATM_BAR ! Henry K0(O3)
+    !
+    REAL(dp) :: ab,  gb,     gd,   gs,      cavg,  H_X
+    REAL(dp) :: M_X, KLangC, k_s, C_Y_surf, Nmax,  k_b,   D_l, l_r
+    !
+    ! Henry's law for O3 (use constants for numerical stability)
+    H_X      = K0_O3 * EXP( 2300.0_dp * ( INV_TEMP - INV_T298 ) )
+    !
+    ! Thermal velocity (cm/s)
+    M_X      = MW(ind_O3) * 1.0e-3_dp
+    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+    !
+    Nmax     = 3.0e+14_dp  ! #/cm2
+    KLangC   = 1.0e-13_dp !cm3
+    k_s      = 1.0e-16_dp !cm2s-1, from ks*Nmax=0.03s-1
+    !
+    ! [Br-(surf)] = 3.41E14 cm-2/M * [Br-(bulk)], but not gt Nmax.
+    C_Y_surf = MIN( 3.41e+14_dp * C_Y, Nmax )
+    gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax ) &
+               / ( cavg * ( 1.0_dp + KLangC * C(ind_O3) ) )
+    !
+    k_b      = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )  ! M-1 s-1
+    D_l      = 8.9e-6_dp                             ! cm2 s-1.
+    l_r      = SQRT( D_l / ( k_b * C_Y ) )           ! cm
+    gb       = FOUR_R_T * H_X * l_r * k_b * C_Y / cavg
+    gb       = gb * ReactoDiff_Corr( Radius, l_r )
+    gamma    = gb + gs
+  END FUNCTION Gamma_O3_Br
+
+  !=========================================================================
+  ! Rate-law functions for OH
+  !=========================================================================
+
+  FUNCTION OHuptkBySALACl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of OH + Cl on accumulation-mode sea-salt
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
+    gamma = 0.04_dp * H%Cl_conc_SALA
+    k = Ars_L1k( H%aClArea, H%aClRadi, gamma, SR_MW(ind_OH) )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_OH), C(ind_SALACL), k )
+  END FUNCTION OHuptkBySALACl
+
+  FUNCTION OHuptkBySALCCl( H ) RESULT( k )
+    !
+    ! Computes uptake rate of OH + Cl on coarse-mode sea-salt
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
+    gamma = 0.04_dp * H%Cl_conc_SALC
+    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, SR_MW(ind_OH) )
+    !
+    ! Assume OH is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_OH), C(ind_SALCCL), k )
+  END FUNCTION OHuptkBySALCCl
+
+  !=========================================================================
+  ! Rate-law functions for VOC species
+  !=========================================================================
+
+  FUNCTION GLYXuptk1stOrd( srMw, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st-order uptake of GLYX.
+    ! Only consider inorganic aqueous aerosols with RH > 35%
+    ! and use diffe rent uptake for day & night.
+    !
+    REAL(dp),       INTENT(IN) :: srMw   ! sqrt( mol wt )
+    TYPE(HetState), INTENT(IN) :: H      ! Hetchem State
+    REAL(dp)                   :: k      ! rxn rate [1/s]
+    REAL(dp)                   :: gamma  ! local vars
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    ! Uptake by tropospheric sulfate
+    IF ( RELHUM >= CRITRH ) THEN
+       IF ( SUNCOS > 0.0_dp ) THEN
+          gamma = 4.4e-3_dp   ! cf Liggio et al 2005
+       ELSE
+          gamma = 8.0e-6_dp   ! F. McNeill, to E. Marais (2015)
+       ENDIF
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    ENDIF
+  END FUNCTION GLYXuptk1stOrd
+
+  FUNCTION EpoxUptkGamma( srMw, H ) RESULT( gamma )
+    !
+    ! Gomputes the GAMMA uptake probability for EPOXUPTK hydrolysis to
+    ! form 2-methyltetrols (AITET). (eam, 2014).
+    !
+    ! Calculation is only done for inorganic aqueous phase aerosols.
+    ! This calculation uses the parameterization of Gaston et al., EST, 2014.
+    ! Redistribution of products (e.g. AITET) to yield organosulfates and
+    ! organonitrates is done in SOA_CHEMISTRY in carbon_mod.F.
+    ! This is only done for IEPOX and HMML if it's an SOA simulation
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt(mol wt)
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: gamma          ! Uptake prob [1]
+    REAL(dp) :: aervol, kpart, xmms, val1, val2, val3, valtmp ! local vars
+    !
+    ! Gas-phase diffusion constant [cm2/s]:
+    REAL(dp), PARAMETER :: DIFF_N2O5_STD = 1.0e-1_dp
+    !
+    ! Mass accommodation coefficient [unitless]:
+    REAL(dp), PARAMETER :: MACOEFF = 1.0e-1_dp
+    REAL(dp), PARAMETER :: K_HPLUS = 3.6e-2_dp
+    REAL(dp), PARAMETER :: K_NUC   = 2.0e-4_dp
+    REAL(dp), PARAMETER :: K_HSO4  = 7.3e-4_dp
+    REAL(dp), PARAMETER :: K_HYDRO = 0.0e+0_dp
+    !
+    ! Effective Henry's Law constant of IEPOX for reactive uptake to aqueous
+    ! aerosols (M/atm).  Eloise Marais (2015/07) reset this to the value from
+    ! [Nguyen et al., 2014] in order to accomodate reduction in yields of RIP
+    ! (which is the precursor of IEPOX).
+    REAL(dp), PARAMETER :: HSTAR_EPOX  = 1.7e+7_dp
+    !
+    ! Initialize
+    gamma  = 0.0_dp
+    valTmp = 0.0_dp
+    !
+    ! Calculate aerosol volume (use formula in aerosol_mod.F):
+    aerVol = ( H%xArea(SUL) *  H%xRadi(SUL) ) / 3.0_dp
+    !
+    ! Calculate mean molecular speed [cm/s]:
+    xmms = SQRT( ( 2.117e+8_dp * TEMP ) / ( srMw * srMw ) )
+    !
+    ! Calculate first-order particle-phase reaction rate:
+    ! (assume [H+] = proton activity)
+    ! KHYDRO is only important for alkylnitrates (not currently used).
+    kPart = ( K_HPLUS * H%H_PLUS                          ) &
+          + ( K_NUC   * H%H_PLUS * ( H%mNO3 + H%mSO4 )    ) &
+          + ( K_HSO4  * H%mHSO4                           ) &
+          + ( K_HYDRO                                     )
+    !
+    ! Calculate the first uptake parameterization term:
+    val1 = ( H%xRadi(SUL) * xmms ) / ( 4.0_dp * DIFF_N2O5_STD )
+    !
+    ! Calculate the second uptake parameterization term:
+    val2 = ( 1.0_dp / MACOEFF )
+    !
+    ! Calculate the third uptake parameterization term:
+    IF ( H%xArea(SUL) > 0.0_dp .and. XMMS > 0.0_dp ) THEN
+       valTmp = ( FOUR_RGASLATM_T * aerVol * HSTAR_EPOX * kPart ) &
+              / ( H%xArea(SUL) * xmms                          )
+    ENDIF
+    !
+    val3 = 0.0_dp
+    IF ( valTmp > 0.0_dp ) val3 = 1.0_dp / valtmp
+    !
+    ! Account for small reaction rates:
+    gamma = 0.0_dp
+    IF ( kPart >= 1.e-8_dp ) gamma = 1.0_dp / ( val1 + val2 + val3 )
+    IF ( gamma <  0.0_dp   ) gamma = 0.0_dp
+  END FUNCTION EpoxUptkGamma
+
+  FUNCTION IEPOXuptk1stOrd( srMw, doScale, H ) RESULT( k )
+    !
+    ! Sets the heterogenous chemistry rate for first-order
+    ! uptake of ICHE, IEPOXA, IEPOXB, and IEPOXD.
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
+    LOGICAL,        INTENT(IN) :: doScale        ! =T for HMML, else F
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: gamma          ! local vars
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       !
+       ! Get GAMMA for IEPOX hydrolysis
+       gamma = EpoxUptkGamma( srMw, H )
+       !
+       ! Scale down gamma if [H+] > 8d-5 (cf Riedel et al, 2015)
+       IF ( doScale .and. ( H%H_PLUS > 8.0e-5_dp ) ) THEN
+          gamma = gamma / 30.0_dp
+       ENDIF
+       !
+       ! Uptake by tropospheric sulfate
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    ENDIF
+  END FUNCTION IEPOXuptk1stOrd
+
+  FUNCTION MGLYuptk1stOrd( srMw, H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of MGLY and PYAC.
+    !
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    k     = 0.0_dp
+    gamma = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       !
+       ! Define gamma for MGLY: Obtained by scaling gamma GLYX by the
+       ! ratio of effective Henry's law constants for GLYX (3d7) and
+       ! MGLY (3.7d3) (eam, 02/2015):
+       gamma = 3.6e-7_dp
+       !
+       ! Uptake by tropospheric sulfate
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+    ENDIF
+  END FUNCTION MGLYuptk1stOrd
+
+  FUNCTION VOCuptk1stOrd( srMw, gamma, H ) RESULT( k )
+    !
+    ! Computes the rxn rate [1/s]for 1st-order uptake of several VOC species.
+    !
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Initialize
+    k  = 0.0_dp
+    !
+    ! Only consider inorganic aqueous aerosols with RH > 35%.0
+    IF ( RELHUM >= CRITRH ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+       k = k + H%xArea(SLA) * gamma
+       k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    ENDIF
+  END FUNCTION VOCuptk1stOrd
 
 ! End INLINED Rate Law Functions
 
@@ -1529,20 +3077,20 @@ SUBROUTINE Update_RCONST ( )
   RCONST(598) = (GCARR_ac(1.56d-11,117.0d0))
   RCONST(599) = (GCARR_ac(1.40d-12,700.0d0))
   RCONST(600) = (GCARR_ac(2.60d-12,350.0d0))
-  RCONST(601) = (HET(ind_HO2,1))
-  RCONST(602) = (HET(ind_NO2,1))
-  RCONST(603) = (HET(ind_NO3,1))
-  RCONST(604) = (HET(ind_NO3,2))
-  RCONST(605) = (HET(ind_NO3,3))
-  RCONST(606) = (HET(ind_N2O5,1))
-  RCONST(607) = (HET(ind_N2O5,2))
-  RCONST(608) = (HET(ind_N2O5,3))
-  RCONST(609) = (HET(ind_N2O5,4))
-  RCONST(610) = (HET(ind_N2O5,5))
-  RCONST(611) = (HET(ind_OH,1))
-  RCONST(612) = (HET(ind_OH,2))
-  RCONST(613) = (HET(ind_BrNO3,1))
-  RCONST(614) = (HET(ind_BrNO3,2))
+  RCONST(601) = (HO2uptk1stOrd(State_Het))
+  RCONST(602) = (NO2uptk1stOrdAndCloud(State_Het))
+  RCONST(603) = (NO3uptk1stOrdAndCloud(State_Het))
+  RCONST(604) = (NO3hypsisClonSALA(State_Het))
+  RCONST(605) = (NO3hypsisClonSALC(State_Het))
+  RCONST(606) = (N2O5uptkByH2O(State_Het))
+  RCONST(607) = (N2O5uptkByStratHCl(State_Het))
+  RCONST(608) = (N2O5uptkByCloud(State_Het))
+  RCONST(609) = (N2O5uptkBySALACl(State_Het))
+  RCONST(610) = (N2O5uptkBySALCCl(State_Het))
+  RCONST(611) = (OHuptkBySALACl(State_Het))
+  RCONST(612) = (OHuptkBySALCCl(State_Het))
+  RCONST(613) = (BrNO3uptkByH2O(State_Het))
+  RCONST(614) = (BrNO3uptkByHCl(State_Het))
   RCONST(615) = (HET(ind_ClNO3,1))
   RCONST(616) = (HET(ind_ClNO3,2))
   RCONST(617) = (HET(ind_ClNO3,3))
@@ -1562,74 +3110,74 @@ SUBROUTINE Update_RCONST ( )
   RCONST(631) = (HET(ind_HOCl,4))
   RCONST(632) = (HET(ind_HOCl,5))
   RCONST(633) = (HET(ind_HOCl,6))
-  RCONST(634) = (HET(ind_HOBr,1))
-  RCONST(635) = (HET(ind_HOBr,2))
+  RCONST(634) = (HOBrUptkByHBrAndTropCloud(State_Het))
+  RCONST(635) = (HOBrUptkByHClAndTropCloud(State_Het))
   RCONST(636) = (HET(ind_HOBr,3))
   RCONST(637) = (HET(ind_HOBr,4))
   RCONST(638) = (HET(ind_HOBr,5))
   RCONST(639) = (HET(ind_HOBr,6))
   RCONST(640) = (HET(ind_HOBr,7))
   RCONST(641) = (HET(ind_HOBr,8))
-  RCONST(642) = (HET(ind_O3,1))
-  RCONST(643) = (HET(ind_O3,2))
-  RCONST(644) = (HET(ind_O3,3))
-  RCONST(645) = (HET(ind_HBr,1))
-  RCONST(646) = (HET(ind_HBr,2))
-  RCONST(647) = (HET(ind_HI,1))
-  RCONST(648) = (HET(ind_HI,2))
-  RCONST(649) = (HET(ind_HI,3))
-  RCONST(650) = (HET(ind_HOI,1))
-  RCONST(651) = (HET(ind_HOI,2))
-  RCONST(652) = (HET(ind_I2O2,1))
-  RCONST(653) = (HET(ind_I2O2,2))
-  RCONST(654) = (HET(ind_I2O2,3))
-  RCONST(655) = (HET(ind_I2O3,1))
-  RCONST(656) = (HET(ind_I2O3,2))
-  RCONST(657) = (HET(ind_I2O3,3))
-  RCONST(658) = (HET(ind_I2O4,1))
-  RCONST(659) = (HET(ind_I2O4,2))
-  RCONST(660) = (HET(ind_I2O4,3))
-  RCONST(661) = (HET(ind_IONO,1))
-  RCONST(662) = (HET(ind_IONO,2))
-  RCONST(663) = (HET(ind_IONO2,1))
-  RCONST(664) = (HET(ind_IONO2,2))
-  RCONST(665) = (HET(ind_IONO,3))
-  RCONST(666) = (HET(ind_IONO,4))
-  RCONST(667) = (HET(ind_IONO,5))
-  RCONST(668) = (HET(ind_IONO,6))
-  RCONST(669) = (HET(ind_IONO2,3))
-  RCONST(670) = (HET(ind_IONO2,4))
-  RCONST(671) = (HET(ind_IONO2,5))
-  RCONST(672) = (HET(ind_IONO2,6))
-  RCONST(673) = (HET(ind_HOI,3))
-  RCONST(674) = (HET(ind_HOI,4))
-  RCONST(675) = (HET(ind_HOI,5))
-  RCONST(676) = (HET(ind_HOI,6))
-  RCONST(677) = (HET(ind_GLYX,1))
-  RCONST(678) = (HET(ind_MGLY,1))
-  RCONST(679) = (HET(ind_IEPOXA,1))
-  RCONST(680) = (HET(ind_IEPOXB,1))
-  RCONST(681) = (HET(ind_IEPOXD,1))
-  RCONST(682) = (HET(ind_LVOC,1))
-  RCONST(683) = (HET(ind_MVKN,1))
-  RCONST(684) = (HET(ind_R4N2,1))
-  RCONST(685) = (HET(ind_MONITS,1))
-  RCONST(686) = (HET(ind_MONITU,1))
-  RCONST(687) = (HET(ind_HONIT,1))
-  RCONST(688) = (HET(ind_PYAC,1))
-  RCONST(689) = (HET(ind_HMML,1))
-  RCONST(690) = (HET(ind_IHN1,1))
-  RCONST(691) = (HET(ind_IHN2,1))
-  RCONST(692) = (HET(ind_IHN3,1))
-  RCONST(693) = (HET(ind_IHN4,1))
-  RCONST(694) = (HET(ind_ICHE,1))
-  RCONST(695) = (HET(ind_INPD,1))
-  RCONST(696) = (HET(ind_INPB,1))
-  RCONST(697) = (HET(ind_IDN,1))
-  RCONST(698) = (HET(ind_ITCN,1))
-  RCONST(699) = (HET(ind_ITHN,1))
-  RCONST(700) = (HET(ind_MCRHNB,1))
-  RCONST(701) = (HET(ind_MCRHN,1))
+  RCONST(642) = (O3uptkByHBrInTropCloud(State_Het))
+  RCONST(643) = (O3uptkByCloudAndBrSALA(State_Het))
+  RCONST(644) = (O3uptkByCloudAndBrSALC(State_Het))
+  RCONST(645) = (HBrUptkBySALA(State_Het))
+  RCONST(646) = (HBrUptkBySALC(State_Het))
+  RCONST(647) = (IuptkBySulf1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
+  RCONST(648) = (IuptkBySALA1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
+  RCONST(649) = (IuptkBySALC1stOrd(SR_MW(ind_HI),0.10_dp,State_Het))
+  RCONST(650) = (IuptkByAlkSALA1stOrd(SR_MW(ind_HOI),0.01_dp,State_Het))
+  RCONST(651) = (IuptkByAlkSALC1stOrd(SR_MW(ind_HOI),0.01_dp,State_Het))
+  RCONST(652) = (IuptkBySulf1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(653) = (IuptkBySALA1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(654) = (IuptkBySALC1stOrd(SR_MW(ind_I2O2),0.02_dp,State_Het))
+  RCONST(655) = (IuptkBySulf1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(656) = (IuptkBySALA1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(657) = (IuptkBySALC1stOrd(SR_MW(ind_I2O3),0.02_dp,State_Het))
+  RCONST(658) = (IuptkBySulf1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
+  RCONST(659) = (IuptkBySALA1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
+  RCONST(660) = (IuptkBySALC1stOrd(SR_MW(ind_I2O4),0.02_dp,State_Het))
+  RCONST(661) = (IuptkByAlkSALA1stOrd(SR_MW(ind_IONO),0.02_dp,State_Het))
+  RCONST(662) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO),0.02_dp,State_Het))
+  RCONST(663) = (IuptkByAlkSALA1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
+  RCONST(664) = (IuptkByAlkSALC1stOrd(SR_MW(ind_IONO2),0.01_dp,State_Het))
+  RCONST(665) = (IbrkdnByAcidBrSALA(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(666) = (IbrkdnByAcidBrSALC(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(667) = (IbrkdnByAcidSALACl(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(668) = (IbrkdnByAcidSALCCl(SR_MW(ind_IONO),C(ind_IONO),0.02_dp,State_Het))
+  RCONST(669) = (IbrkdnByAcidBrSALA(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(670) = (IbrkdnByAcidBrSALC(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(671) = (IbrkdnByAcidSALACl(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(672) = (IbrkdnByAcidSALCCl(SR_MW(ind_IONO2),C(ind_IONO2),0.01_dp,State_Het))
+  RCONST(673) = (IbrkdnByAcidBrSALA(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(674) = (IbrkdnByAcidBrSALC(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(675) = (IbrkdnByAcidSALACl(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(676) = (IbrkdnByAcidSALCCl(SR_MW(ind_HOI),C(ind_HOI),0.01_dp,State_Het))
+  RCONST(677) = (GLYXuptk1stOrd(SR_MW(ind_GLYX),State_Het))
+  RCONST(678) = (MGLYuptk1stOrd(SR_MW(ind_MGLY),State_Het))
+  RCONST(679) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXA),.FALSE.,State_Het))
+  RCONST(680) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXB),.FALSE.,State_Het))
+  RCONST(681) = (IEPOXuptk1stOrd(SR_MW(ind_IEPOXD),.FALSE.,State_Het))
+  RCONST(682) = (VOCuptk1stOrd(SR_MW(ind_LVOC),1.0_dp,State_Het))
+  RCONST(683) = (VOCuptk1stOrd(SR_MW(ind_MVKN),5.0E-3_dp,State_Het))
+  RCONST(684) = (VOCuptk1stOrd(SR_MW(ind_R4N2),5.0E-3_dp,State_Het))
+  RCONST(685) = (VOCuptk1stOrd(SR_MW(ind_MONITS),1.0E-2_dp,State_Het))
+  RCONST(686) = (VOCuptk1stOrd(SR_MW(ind_MONITU),1.0E-2_dp,State_Het))
+  RCONST(687) = (VOCuptk1stOrd(SR_MW(ind_HONIT),1.0E-2_dp,State_Het))
+  RCONST(688) = (MGLYuptk1stOrd(SR_MW(ind_PYAC),State_Het))
+  RCONST(689) = (IEPOXuptk1stOrd(SR_MW(ind_HMML),.TRUE.,State_Het))
+  RCONST(690) = (VOCuptk1stOrd(SR_MW(ind_IHN1),5.0E-3_dp,State_Het))
+  RCONST(691) = (VOCuptk1stOrd(SR_MW(ind_IHN2),5.0E-2_dp,State_Het))
+  RCONST(692) = (VOCuptk1stOrd(SR_MW(ind_IHN3),5.0E-3_dp,State_Het))
+  RCONST(693) = (VOCuptk1stOrd(SR_MW(ind_IHN4),5.0E-3_dp,State_Het))
+  RCONST(694) = (IEPOXuptk1stOrd(SR_MW(ind_ICHE),.FALSE.,State_Het))
+  RCONST(695) = (VOCuptk1stOrd(SR_MW(ind_INPD),5.0E-3_dp,State_Het))
+  RCONST(696) = (VOCuptk1stOrd(SR_MW(ind_INPB),5.0E-3_dp,State_Het))
+  RCONST(697) = (VOCuptk1stOrd(SR_MW(ind_IDN),5.0E-3_dp,State_Het))
+  RCONST(698) = (VOCuptk1stOrd(SR_MW(ind_ITCN),5.0E-3_dp,State_Het))
+  RCONST(699) = (VOCuptk1stOrd(SR_MW(ind_ITHN),5.0E-3_dp,State_Het))
+  RCONST(700) = (VOCuptk1stOrd(SR_MW(ind_MCRHNB),5.0E-3_dp,State_Het))
+  RCONST(701) = (VOCuptk1stOrd(SR_MW(ind_MCRHN),5.0E-3_dp,State_Het))
   RCONST(702) = (PHOTOL(2))
   RCONST(703) = (PHOTOL(3))
   RCONST(704) = (PHOTOL(1))
