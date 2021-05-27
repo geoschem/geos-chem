@@ -61,6 +61,8 @@ fi
 #============================================================================
 cd ${mechanismDir}
 mv gckpp_HetRates.F90 HETCODE
+mv gckpp_AqRates.F90  AQUCODE
+mv gckpp_Sulfate.F90  SULCODE
 rm -f *.F90 *.f90 *.o
 
 #============================================================================
@@ -77,6 +79,8 @@ fi
 # Restore the preserved files to their original names
 #============================================================================
 mv HETCODE gckpp_HetRates.F90
+mv AQUCODE gckpp_AqRates.F90
+mv SULCODE gckpp_Sulfate.F90
 
 #============================================================================
 # Strip unwanted characters in gckpp_Rates.F90
