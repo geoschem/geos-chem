@@ -144,520 +144,518 @@ CONTAINS
     ! Zero the HET array
     HET = 0.0_dp
 
-!    !========================================================================
-!    ! Br/Cl heterogeneous chemistry
-!    !========================================================================
-!
-!    !------------------------------------------------------------------------
-!    ! BrNO3 hydrolysis (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!
-!    HET(ind_BrNO3, 1) = BrNO3_Hydrolysis( SR_MW(ind_NO3), H )
-!    ! Reaction probabilities on liquid and ice
-!    gammaLiq    = 0.0021_dp * TEMP - 0.561_dp           ! Deiber et al, 2004
-!    gammaIce    = 5.3e-4_dp * EXP( 1100.0_dp / TEMP )
-!
-!    ! BrNO3 + H2O hydrolysis in clear sky
-!    rate        = HetBrNO3( SR_MW(ind_BrNO3), gammaLiq, rate )
-!
-!    ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
-!    rate = rate + CloudHet( CldFr,  Aliq,             Aice,    rLiq,         &
-!                            rIce,   SR_MW(ind_BrNO3), gammaLiq, gammaIce,    &
-!                            1.0_dp, 1.0_dp                                  )
-!
-!    ! BrNO3 + H2O overall rate
-!    HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), rate            )
-!
-!    !-----------------------------------------------------------------------
-!    ! ClNO3 hydrolysis (update: XW 2019-06-08)
-!    !-----------------------------------------------------------------------
-!
-!    ! ClNO3 + H2O hydrolysis rate in clear sky
-!    rate = HetClNO3( ClearFr, SR_MW(ind_ClNO3), clConc_SALA, brConc_SALA    )
-!
-!    ! Add ClNO3 + H2O hydrolysis in tropospheric cloud
-!    rate = rate + HetClNO3_TCld( rLiq,        rIce,        ALiq,             &
-!                                 AIce,        VAir,        CldFr,            &
-!                                 clConc_CldA, clConc_CldC, clConc_Cldg,      &
-!                                 brConc_CldA, brConc_CldC, brConc_Cldg,      &
-!                                 hno3_th,     hcl_th,      hbr_th,      7   )
-!
-!    ! ClNO3 + H2O Overall rate
-!    HET(ind_ClNO3, 1) = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), rate            )
-!!!^^^^ Identical w/r/t ref up to here ^^^^
+    !========================================================================
+    ! Br/Cl heterogeneous chemistry
+    !========================================================================
 
-!
-!
-!    !------------------------------------------------------------------------
-!    ! HOBr + BrSalA/C (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,        hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      3,           H                      )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp +                                                        &
-!             HETHOBr_SS( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,        &
-!                         SSAlk(1),    Temp,        hConc_SSA,                &
-!                         clConc_SALA, brConc_SALA, 2,                        &
-!                         H                                                  )
-!
-!    HET(ind_HOBr,  5) = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALA), kITemp        )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      4,           H                      )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETHOBr_SS( NUMDEN,       xRadi(12),   (1-CldFr)*xArea(12),      &
-!                         SSAlk(2),    Temp,        hConc_SSC,                &
-!                         clConc_SALC, brConc_SALC, 2,                        &
-!                         H                                                  )
-!
-!    HET(ind_HOBr,  6) = kIIR1Ltd( C(ind_HOBr),  C(ind_BrSALC), kITemp       )
-!
-!    !------------------------------------------------------------------------
-!    ! HOBr + Cl-(p) (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      1,           H                      )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETHOBr_SS( NUMDEN, AClRADI,     (1-CldFr)*AClAREA,        &
-!                         SSAlk(1),    Temp,        hConc_SSA,                &
-!                         clConc_SALA, brConc_SALA, 1,                        &
-!                         H                                                  )
-!
-!    HET(ind_HOBr,  3) = kIIR1Ltd( C(ind_HOBr), C(ind_SALACL), kITemp        )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      2,           H                      )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETHOBr_SS( xRadi(12), ClearFr*xArea(12), SSAlk(2),             &
-!                         hConc_SSC, clConc_SALC,       brConc_SALC, 1       )
-!
-!    HET(ind_HOBr,  4) = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), kITemp        )
-!
-!    !------------------------------------------------------------------------
-!    ! HOBr + HSO3-(aq) (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!
-!    ! This reaction is first order, so no kII calculation is required
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      7,           H                      )
-!
-!    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
-!    HET(ind_HOBr,  7) = kITemp * fupdateHOBr
-!
-!    !------------------------------------------------------------------------
-!    ! HOBr + SO3--(aq) (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!    ! This reaction is first order, so no kII calculation is required
-!    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
-!                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hno3_th,     hcl_th,                 &
-!                           hbr_th,      8,           H                      )
-!
-!    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
-!    HET(ind_HOBr,  8) = kITemp * fupdateHOBr
-!
-!    !-----------------------------------------------------------------------
-!    ! ClNO3 + BrSALA/C (update: XW 2019-06-08)
-!    !-----------------------------------------------------------------------
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO3_TCld( rLiq,        rIce,                 &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      3,                     &
-!                            H                                               )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_SS( AClRADI,     ClearFr*AClAREA,  SSAlk(1),           &
-!                          clConc_SALA, brConc_SALA,      2,        1        )
-!
-!    HET(ind_ClNO3, 4) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), kITemp       )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      4,                     &
-!                            H                                               )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_SS( xRadi(12),   ClearFr*xArea(12), SSAlk(2),          &
-!                          clConc_SALC, brConc_SALC,       2,         2      )
-!
-!    HET(ind_ClNO3, 5) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), kITemp       )
-!
-!    !-----------------------------------------------------------------------
-!    ! ClNO3 + Cl-(p) (update: XW 2019-06-08)
-!    !-----------------------------------------------------------------------
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      1,                     &
-!                            H                                               )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_SS( AClRADI,     ClearFr*AClAREA, SSAlk(1),            &
-!                          clConc_SALA, brConc_SALA,     1,        1         )
-!
-!    HET(ind_ClNO3, 6) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), kITemp       )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      2,                     &
-!                            H                                               )
-!
-!    ! Then calculate reaction on aerosols out of cloud
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_SS( xRadi(12),   ClearFr*xArea(12), SSAlk(2),          &
-!                          clConc_SALC, brConc_SALC,       1,        2       )
-!
-!    HET(ind_ClNO3, 7) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), kITemp       )
-!
-!    !----------------------------------------------------------------------
-!    ! ClNO3 + HCl (update: XW 2019-06-08)
-!    !----------------------------------------------------------------------
-!    kITemp = HETClNO3_HCl( H%ClNO3%MW_g, 0.0_dp                             )
-!
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_TCld( rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      5,                     &
-!                            H                                               )
-!
-!    HET(ind_ClNO3, 2) = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), kITemp          )
-!
-!    !----------------------------------------------------------------------
-!    ! ClNO3 + HBr (update: XW 2019-06-08)
-!    !----------------------------------------------------------------------
-!    kITemp = HETClNO3_HBr( H%ClNO3%MW_g, 0.0_dp, Input_Opt                  )
-!
-!    kITemp = kITemp                                                          &
-!           + HETClNO3_TCld( rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            CldFr,       clConc_CldA,           &
-!                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
-!                            brConc_CldC, brConc_Cldg, hno3_th,               &
-!                            hcl_th,      hbr_th,      6,                     &
-!                            H                                               )
-!
-!    HET(ind_ClNO3, 3) = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), kITemp          )
-!
-!    !-----------------------------------------------------------------------
-!    ! HOCl + HCl and HOCl + HBr (update: XW 2019-06-08)
-!    !-----------------------------------------------------------------------
-!    kITemp = HETHOCl_HCl( H%HOCl%MW_g, 0.0_dp, Input_opt                    )
-!    kITemp = kITemp                                                          &
-!           + HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           Temp,        CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hcl_th,      3,                      &
-!                           H                                                )
-!
-!    HET(ind_HOCl,  1) = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), kITemp           )
-!
-!    kiTemp            = HETHOCl_HBr( H%HOCl%MW_g, 0E+0_dp, Input_Opt        )
-!
-!    HET(ind_HOCl,  2) = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), kiTemp           )
-!
-!    !------------------------------------------------------------------------
-!    ! HOCl + Cl-(p) (update: XW 2019-06-08)
-!    !------------------------------------------------------------------------
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           Temp,        CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hcl_th,      1,                      &
-!                           H                                                )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETHOCl_SS( NUMDEN,       AClRADI, (1-CldFr)*AClAREA,            &
-!                         SSAlk(1),    Temp,   hConc_SSA,                     &
-!                         clConc_SALA, H                                     )
-!
-!    HET(ind_HOCl,  3) = kIIR1Ltd( C(ind_HOCl), C(ind_SALACL), kITemp        )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           Temp,        CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hcl_th,      2,                      &
-!                           H                                                )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp                                                          &
-!           + HETHOCl_SS( NUMDEN,       xRadi(12), (1-CldFr)*xArea(12),        &
-!                         SSAlk(2),    Temp,      hConc_SSC,                  &
-!                         clConc_SALC, H                                     )
-!
-!    HET(ind_HOCl,  4) = kIIR1Ltd( C(ind_HOCl), C(ind_SALCCL), kITemp        )
-!
-!    !------------------------------------------------------------------------
-!    ! HOCl + HSO3-/SO3--(aq)
-!    !------------------------------------------------------------------------
-!    ! This reaction is first order, so no kII calculation is required
-!    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           Temp,        CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hcl_th,      4,                      &
-!                           H                                                )
-!
-!    ! Make sure sulfate produced is less than SO2 available
-!    HET(ind_HOCl,  5) = kITemp * fupdateHOCl
-!
-!    ! This reaction is first order, so no kII calculation is required
-!    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
-!                           ALiq,        AIce,        VAir,                   &
-!                           Temp,        CldFr,       hConc_Sul,              &
-!                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
-!                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
-!                           SO3conc_Cld, hcl_th,      5,                      &
-!                           H                                                )
-!
-!    ! Make sure sulfate produced is less than SO2 available
-!    HET(ind_HOCl,  6) = kITemp * fupdateHOCl
-!
-!    !------------------------------------------------------------------------
-!    ! O3 + Br- calculation (TS index: hhc12)
-!    !------------------------------------------------------------------------
-!    kITemp = HETO3_TCld( NUMDEN,       rLiq,        rIce,                     &
-!                         ALiq,        AIce,        VAir,                     &
-!                         Temp,        CldFr,       brConc_CldA,              &
-!                         brConc_CldC, brConc_Cldg, C(ind_O3),                &
-!                         3,           H                                     )
-!
-!    HET(ind_O3,    1) = kIIR1Ltd( C(ind_O3), C(ind_HBr), kITemp             )
-!
-!    !------------------------------------------------------------------------
-!    ! O3 + BrSALA/C calculations (TMS index: hhc13/14)
-!    !------------------------------------------------------------------------
-!    kITemp = HETO3_TCld( NUMDEN,       rLiq,        rIce,                     &
-!                         ALiq,        AIce,        VAir,                     &
-!                         Temp,        CldFr,       brConc_CldA,              &
-!                         brConc_CldC, brConc_Cldg, C(ind_O3),                &
-!                         1,           H                                     )
-!
-!    kITemp = kITemp                                                          &
-!           + HETO3_SS( NUMDEN,         AClRADI, (1-CldFr)*AClAREA,            &
-!                       SSAlk(1),      Temp,    brConc_SALA,                  &
-!                       C(ind_O3),     H                                     )
-!
-!    HET(ind_O3,    2) = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), kITemp          )
-!
-!    kITemp  = HETO3_TCld( NUMDEN,       rLiq,        rIce,                    &
-!                          ALiq,        AIce,        VAir,                    &
-!                          Temp,        CldFr,       brConc_CldA,             &
-!                          brConc_CldC, brConc_Cldg, C(ind_O3),               &
-!                          2,           H                                    )
-!
-!    kITemp = kITemp                                                          &
-!           + HETO3_SS( NUMDEN,          xRadi(12), (1-CldFr)*xArea(12),       &
-!                       SSAlk(2),       Temp,      brConc_SALC,               &
-!                       C(ind_O3),      H                                    )
-!
-!    HET(ind_O3,    3) = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), kITemp          )
-!
-!    !------------------------------------------------------------------------
-!    ! Br uptake calculation - forms BrSALA/C (TS index: hhc17/18)
-!    !------------------------------------------------------------------------
-!    ! First-order reactions, no calculation of kII required
-!    kITemp            = HETHXUptake( NUMDEN, AClRADI, (1-CldFr)*ACLAREA,      &
-!                                     Temp, 2                                )
-!    HET(ind_HBr,   1) = kITemp
-!
-!    kITemp            = HETHXUptake( NUMDEN, xRadi(12), (1-CldFr)*xArea(12),  &
-!                                     Temp, 2                                )
-!    HET(ind_HBr,   2) = kITemp
-!
-!    !------------------------------------------------------------------------
-!    ! BrNO3 + HCl in stratosphere
-!    !------------------------------------------------------------------------
-!    ! NOTE: the restriction of these reactions to the troposphere has been
-!    ! restored - TMS (2017/04/06 )
-!    HET(ind_BrNO3, 2) = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl),                  &
-!                                  HETBrNO3_HCl( 1.42E2_dp, 0.0_dp )         )
-!
-!    !------------------------------------------------------------------------
-!    ! N2O5 + HCl in stratosphere
-!    !------------------------------------------------------------------------
-!    ! NOTE: this extension of calculation in troposphere has been removed
-!    !  (TMS 17/04/10)
-!    kITemp            = HETN2O5_HCl( 1.08E2_dp, 0.0_dp, Input_Opt           )
-!    HET(ind_N2O5,  2) = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), kITemp           )
-!
-!    !------------------------------------------------------------------------
-!    ! Reaction of N2O5 with Cl-, XW 1/24/18)
-!    !------------------------------------------------------------------------
-!    HetTemp(1:3)      = HETN2O5_SS( CldFr, 1 )
-!    HET(ind_N2O5,  4) = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), HetTemp(1)    )
-!    State_Chm%GammaN2O5(I,J,L,2) = HetTemp(1)
-!
-!    HetTemp(1:3)      = HETN2O5_SS( CldFr, 2)
-!    HET(ind_N2O5,  5) = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), HetTemp(1)    )
-!    State_Chm%GammaN2O5(I,J,L,3) = HetTemp(1)
-!
-!    !------------------------------------------------------------------------
-!    ! Reaction of ClNO2 with Cl-, XW 3/12/18)
-!    !------------------------------------------------------------------------
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            1,           H                                  )
-!
-!    ! Then calculate reaction on aerosols out of cloud
-!    kITemp = kITemp                                                          &
-!           + HETClNO2( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,          &
-!                       SSAlk(1),    Temp,       pHSSA(1),                    &
-!                       clConc_SALA, brConc_SALA, 1,                          &
-!                        H                                                   )
-!
-!    HET(ind_ClNO2, 1) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL), kITemp       )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            2,           H                                  )
-!    ! not on SALC
-!    HET(ind_ClNO2, 2) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALCCL), kITemp       )
-!
-!    !------------------------------------------------------------------------
-!    ! ClNO2 + dissolved HCl in cloud
-!    !-----------------------------------------------------------------------
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            3,           H                                  )
-!
-!    HET(ind_ClNO2, 3) = kIIR1Ltd( C(ind_ClNO2), C(ind_HCl), kITemp          )
-!
-!    !------------------------------------------------------------------------
-!    ! Reaction of ClNO2 with sea-salt Br-, XW 8/8/18)
-!    !------------------------------------------------------------------------
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            4,           H                                  )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp +                                                        &
-!             HETClNO2( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,          &
-!                       SSAlk(1),    Temp,        pHSSA(1),                   &
-!                       clConc_SALA, brConc_SALA, 2,                          &
-!                       H                                                    )
-!
-!    HET(ind_ClNO2, 4) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALA), kITemp       )
-!
-!    ! First consider reaction in troposphere cloud
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            5,           H                                  )
-!
-!    ! Then calculate reaction on aerosols
-!    kITemp = kITemp +                                                        &
-!             HETClNO2( NUMDEN,       xRadi(12),   (1-CldFr)*xArea(12),        &
-!                       SSAlk(2),    Temp,        pHSSA(2),                   &
-!                       clConc_SALC, brConc_SALC, 2,                          &
-!                       H                                                    )
-!
-!    HET(ind_ClNO2, 5) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALC), kITemp       )
-!
-!    !------------------------------------------------------------------------
-!    ! ClNO2 + dissolved HBr in cloud
-!    !------------------------------------------------------------------------
-!    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
-!                            ALiq,        AIce,        VAir,                  &
-!                            Temp,        CldFr,       pHCloud,               &
-!                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
-!                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
-!                            6,           H                                  )
-!
-!    HET(ind_ClNO2, 6) = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), kITemp          )
+    !------------------------------------------------------------------------
+    ! BrNO3 hydrolysis (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+
+    HET(ind_BrNO3, 1) = BrNO3_Hydrolysis( SR_MW(ind_NO3), H )
+    ! Reaction probabilities on liquid and ice
+    gammaLiq    = 0.0021_dp * TEMP - 0.561_dp           ! Deiber et al, 2004
+    gammaIce    = 5.3e-4_dp * EXP( 1100.0_dp / TEMP )
+
+    ! BrNO3 + H2O hydrolysis in clear sky
+    rate        = HetBrNO3( SR_MW(ind_BrNO3), gammaLiq, rate )
+
+    ! Add BrNO3 + H2O hydrolysis in tropospheric cloud
+    rate = rate + CloudHet( CldFr,  Aliq,             Aice,    rLiq,         &
+                            rIce,   SR_MW(ind_BrNO3), gammaLiq, gammaIce,    &
+                            1.0_dp, 1.0_dp                                  )
+
+    ! BrNO3 + H2O overall rate
+    HET(ind_BrNO3, 1) = kIIR1Ltd( C(ind_BrNO3), C(ind_H2O), rate            )
+
+    !-----------------------------------------------------------------------
+    ! ClNO3 hydrolysis (update: XW 2019-06-08)
+    !-----------------------------------------------------------------------
+
+    ! ClNO3 + H2O hydrolysis rate in clear sky
+    rate = HetClNO3( ClearFr, SR_MW(ind_ClNO3), clConc_SALA, brConc_SALA    )
+
+    ! Add ClNO3 + H2O hydrolysis in tropospheric cloud
+    rate = rate + HetClNO3_TCld( rLiq,        rIce,        ALiq,             &
+                                 AIce,        VAir,        CldFr,            &
+                                 clConc_CldA, clConc_CldC, clConc_Cldg,      &
+                                 brConc_CldA, brConc_CldC, brConc_Cldg,      &
+                                 hno3_th,     hcl_th,      hbr_th,      7   )
+
+    ! ClNO3 + H2O Overall rate
+    HET(ind_ClNO3, 1) = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), rate            )
+
+
+    !------------------------------------------------------------------------
+    ! HOBr + BrSalA/C (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,        hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      3,           H                      )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp +                                                        &
+             HETHOBr_SS( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,        &
+                         SSAlk(1),    Temp,        hConc_SSA,                &
+                         clConc_SALA, brConc_SALA, 2,                        &
+                         H                                                  )
+
+    HET(ind_HOBr,  5) = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALA), kITemp        )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      4,           H                      )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETHOBr_SS( NUMDEN,       xRadi(12),   (1-CldFr)*xArea(12),      &
+                         SSAlk(2),    Temp,        hConc_SSC,                &
+                         clConc_SALC, brConc_SALC, 2,                        &
+                         H                                                  )
+
+    HET(ind_HOBr,  6) = kIIR1Ltd( C(ind_HOBr),  C(ind_BrSALC), kITemp       )
+
+    !------------------------------------------------------------------------
+    ! HOBr + Cl-(p) (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      1,           H                      )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETHOBr_SS( NUMDEN, AClRADI,     (1-CldFr)*AClAREA,        &
+                         SSAlk(1),    Temp,        hConc_SSA,                &
+                         clConc_SALA, brConc_SALA, 1,                        &
+                         H                                                  )
+
+    HET(ind_HOBr,  3) = kIIR1Ltd( C(ind_HOBr), C(ind_SALACL), kITemp        )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      2,           H                      )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETHOBr_SS( xRadi(12), ClearFr*xArea(12), SSAlk(2),             &
+                         hConc_SSC, clConc_SALC,       brConc_SALC, 1       )
+
+    HET(ind_HOBr,  4) = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), kITemp        )
+
+    !------------------------------------------------------------------------
+    ! HOBr + HSO3-(aq) (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+
+    ! This reaction is first order, so no kII calculation is required
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      7,           H                      )
+
+    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
+    HET(ind_HOBr,  7) = kITemp * fupdateHOBr
+
+    !------------------------------------------------------------------------
+    ! HOBr + SO3--(aq) (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+    ! This reaction is first order, so no kII calculation is required
+    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, brConc_CldA,            &
+                           brConc_CldC, brConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hno3_th,     hcl_th,                 &
+                           hbr_th,      8,           H                      )
+
+    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
+    HET(ind_HOBr,  8) = kITemp * fupdateHOBr
+
+    !-----------------------------------------------------------------------
+    ! ClNO3 + BrSALA/C (update: XW 2019-06-08)
+    !-----------------------------------------------------------------------
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO3_TCld( rLiq,        rIce,                 &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      3,                     &
+                            H                                               )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETClNO3_SS( AClRADI,     ClearFr*AClAREA,  SSAlk(1),           &
+                          clConc_SALA, brConc_SALA,      2,        1        )
+
+    HET(ind_ClNO3, 4) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), kITemp       )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      4,                     &
+                            H                                               )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETClNO3_SS( xRadi(12),   ClearFr*xArea(12), SSAlk(2),          &
+                          clConc_SALC, brConc_SALC,       2,         2      )
+
+    HET(ind_ClNO3, 5) = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), kITemp       )
+
+    !-----------------------------------------------------------------------
+    ! ClNO3 + Cl-(p) (update: XW 2019-06-08)
+    !-----------------------------------------------------------------------
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      1,                     &
+                            H                                               )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETClNO3_SS( AClRADI,     ClearFr*AClAREA, SSAlk(1),            &
+                          clConc_SALA, brConc_SALA,     1,        1         )
+
+    HET(ind_ClNO3, 6) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), kITemp       )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO3_TCld( rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      2,                     &
+                            H                                               )
+
+    ! Then calculate reaction on aerosols out of cloud
+    kITemp = kITemp                                                          &
+           + HETClNO3_SS( xRadi(12),   ClearFr*xArea(12), SSAlk(2),          &
+                          clConc_SALC, brConc_SALC,       1,        2       )
+
+    HET(ind_ClNO3, 7) = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), kITemp       )
+
+    !----------------------------------------------------------------------
+    ! ClNO3 + HCl (update: XW 2019-06-08)
+    !----------------------------------------------------------------------
+    kITemp = HETClNO3_HCl( H%ClNO3%MW_g, 0.0_dp                             )
+
+    kITemp = kITemp                                                          &
+           + HETClNO3_TCld( rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      5,                     &
+                            H                                               )
+
+    HET(ind_ClNO3, 2) = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), kITemp          )
+
+    !----------------------------------------------------------------------
+    ! ClNO3 + HBr (update: XW 2019-06-08)
+    !----------------------------------------------------------------------
+    kITemp = HETClNO3_HBr( H%ClNO3%MW_g, 0.0_dp, Input_Opt                  )
+
+    kITemp = kITemp                                                          &
+           + HETClNO3_TCld( rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            CldFr,       clConc_CldA,           &
+                            clConc_CldC, clConc_Cldg, brConc_CldA,           &
+                            brConc_CldC, brConc_Cldg, hno3_th,               &
+                            hcl_th,      hbr_th,      6,                     &
+                            H                                               )
+
+    HET(ind_ClNO3, 3) = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), kITemp          )
+
+    !-----------------------------------------------------------------------
+    ! HOCl + HCl and HOCl + HBr (update: XW 2019-06-08)
+    !-----------------------------------------------------------------------
+    kITemp = HETHOCl_HCl( H%HOCl%MW_g, 0.0_dp, Input_opt                    )
+    kITemp = kITemp                                                          &
+           + HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           Temp,        CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hcl_th,      3,                      &
+                           H                                                )
+
+    HET(ind_HOCl,  1) = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), kITemp           )
+
+    kiTemp            = HETHOCl_HBr( H%HOCl%MW_g, 0E+0_dp, Input_Opt        )
+
+    HET(ind_HOCl,  2) = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), kiTemp           )
+
+    !------------------------------------------------------------------------
+    ! HOCl + Cl-(p) (update: XW 2019-06-08)
+    !------------------------------------------------------------------------
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           Temp,        CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hcl_th,      1,                      &
+                           H                                                )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETHOCl_SS( NUMDEN,       AClRADI, (1-CldFr)*AClAREA,            &
+                         SSAlk(1),    Temp,   hConc_SSA,                     &
+                         clConc_SALA, H                                     )
+
+    HET(ind_HOCl,  3) = kIIR1Ltd( C(ind_HOCl), C(ind_SALACL), kITemp        )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           Temp,        CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hcl_th,      2,                      &
+                           H                                                )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp                                                          &
+           + HETHOCl_SS( NUMDEN,       xRadi(12), (1-CldFr)*xArea(12),        &
+                         SSAlk(2),    Temp,      hConc_SSC,                  &
+                         clConc_SALC, H                                     )
+
+    HET(ind_HOCl,  4) = kIIR1Ltd( C(ind_HOCl), C(ind_SALCCL), kITemp        )
+
+    !------------------------------------------------------------------------
+    ! HOCl + HSO3-/SO3--(aq)
+    !------------------------------------------------------------------------
+    ! This reaction is first order, so no kII calculation is required
+    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           Temp,        CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hcl_th,      4,                      &
+                           H                                                )
+
+    ! Make sure sulfate produced is less than SO2 available
+    HET(ind_HOCl,  5) = kITemp * fupdateHOCl
+
+    ! This reaction is first order, so no kII calculation is required
+    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
+                           ALiq,        AIce,        VAir,                   &
+                           Temp,        CldFr,       hConc_Sul,              &
+                           hConc_LCl,   hConc_ICl,   clConc_CldA,            &
+                           clConc_CldC, clConc_Cldg, HSO3conc_Cld,           &
+                           SO3conc_Cld, hcl_th,      5,                      &
+                           H                                                )
+
+    ! Make sure sulfate produced is less than SO2 available
+    HET(ind_HOCl,  6) = kITemp * fupdateHOCl
+
+    !------------------------------------------------------------------------
+    ! O3 + Br- calculation (TS index: hhc12)
+    !------------------------------------------------------------------------
+    kITemp = HETO3_TCld( NUMDEN,       rLiq,        rIce,                     &
+                         ALiq,        AIce,        VAir,                     &
+                         Temp,        CldFr,       brConc_CldA,              &
+                         brConc_CldC, brConc_Cldg, C(ind_O3),                &
+                         3,           H                                     )
+
+    HET(ind_O3,    1) = kIIR1Ltd( C(ind_O3), C(ind_HBr), kITemp             )
+
+    !------------------------------------------------------------------------
+    ! O3 + BrSALA/C calculations (TMS index: hhc13/14)
+    !------------------------------------------------------------------------
+    kITemp = HETO3_TCld( NUMDEN,       rLiq,        rIce,                     &
+                         ALiq,        AIce,        VAir,                     &
+                         Temp,        CldFr,       brConc_CldA,              &
+                         brConc_CldC, brConc_Cldg, C(ind_O3),                &
+                         1,           H                                     )
+
+    kITemp = kITemp                                                          &
+           + HETO3_SS( NUMDEN,         AClRADI, (1-CldFr)*AClAREA,            &
+                       SSAlk(1),      Temp,    brConc_SALA,                  &
+                       C(ind_O3),     H                                     )
+
+    HET(ind_O3,    2) = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), kITemp          )
+
+    kITemp  = HETO3_TCld( NUMDEN,       rLiq,        rIce,                    &
+                          ALiq,        AIce,        VAir,                    &
+                          Temp,        CldFr,       brConc_CldA,             &
+                          brConc_CldC, brConc_Cldg, C(ind_O3),               &
+                          2,           H                                    )
+
+    kITemp = kITemp                                                          &
+           + HETO3_SS( NUMDEN,          xRadi(12), (1-CldFr)*xArea(12),       &
+                       SSAlk(2),       Temp,      brConc_SALC,               &
+                       C(ind_O3),      H                                    )
+
+    HET(ind_O3,    3) = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), kITemp          )
+
+    !------------------------------------------------------------------------
+    ! Br uptake calculation - forms BrSALA/C (TS index: hhc17/18)
+    !------------------------------------------------------------------------
+    ! First-order reactions, no calculation of kII required
+    kITemp            = HETHXUptake( NUMDEN, AClRADI, (1-CldFr)*ACLAREA,      &
+                                     Temp, 2                                )
+    HET(ind_HBr,   1) = kITemp
+
+    kITemp            = HETHXUptake( NUMDEN, xRadi(12), (1-CldFr)*xArea(12),  &
+                                     Temp, 2                                )
+    HET(ind_HBr,   2) = kITemp
+
+    !------------------------------------------------------------------------
+    ! BrNO3 + HCl in stratosphere
+    !------------------------------------------------------------------------
+    ! NOTE: the restriction of these reactions to the troposphere has been
+    ! restored - TMS (2017/04/06 )
+    HET(ind_BrNO3, 2) = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl),                  &
+                                  HETBrNO3_HCl( 1.42E2_dp, 0.0_dp )         )
+
+    !------------------------------------------------------------------------
+    ! N2O5 + HCl in stratosphere
+    !------------------------------------------------------------------------
+    ! NOTE: this extension of calculation in troposphere has been removed
+    !  (TMS 17/04/10)
+    kITemp            = HETN2O5_HCl( 1.08E2_dp, 0.0_dp, Input_Opt           )
+    HET(ind_N2O5,  2) = kIIR1Ltd( C(ind_N2O5), C(ind_HCl), kITemp           )
+
+    !------------------------------------------------------------------------
+    ! Reaction of N2O5 with Cl-, XW 1/24/18)
+    !------------------------------------------------------------------------
+    HetTemp(1:3)      = HETN2O5_SS( CldFr, 1 )
+    HET(ind_N2O5,  4) = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), HetTemp(1)    )
+    State_Chm%GammaN2O5(I,J,L,2) = HetTemp(1)
+
+    HetTemp(1:3)      = HETN2O5_SS( CldFr, 2)
+    HET(ind_N2O5,  5) = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), HetTemp(1)    )
+    State_Chm%GammaN2O5(I,J,L,3) = HetTemp(1)
+
+    !------------------------------------------------------------------------
+    ! Reaction of ClNO2 with Cl-, XW 3/12/18)
+    !------------------------------------------------------------------------
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            1,           H                                  )
+
+    ! Then calculate reaction on aerosols out of cloud
+    kITemp = kITemp                                                          &
+           + HETClNO2( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,          &
+                       SSAlk(1),    Temp,       pHSSA(1),                    &
+                       clConc_SALA, brConc_SALA, 1,                          &
+                        H                                                   )
+
+    HET(ind_ClNO2, 1) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL), kITemp       )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            2,           H                                  )
+    ! not on SALC
+    HET(ind_ClNO2, 2) = kIIR1Ltd( C(ind_ClNO2), C(ind_SALCCL), kITemp       )
+
+    !------------------------------------------------------------------------
+    ! ClNO2 + dissolved HCl in cloud
+    !-----------------------------------------------------------------------
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            3,           H                                  )
+
+    HET(ind_ClNO2, 3) = kIIR1Ltd( C(ind_ClNO2), C(ind_HCl), kITemp          )
+
+    !------------------------------------------------------------------------
+    ! Reaction of ClNO2 with sea-salt Br-, XW 8/8/18)
+    !------------------------------------------------------------------------
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            4,           H                                  )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp +                                                        &
+             HETClNO2( NUMDEN,       AClRADI,     (1-CldFr)*AClAREA,          &
+                       SSAlk(1),    Temp,        pHSSA(1),                   &
+                       clConc_SALA, brConc_SALA, 2,                          &
+                       H                                                    )
+
+    HET(ind_ClNO2, 4) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALA), kITemp       )
+
+    ! First consider reaction in troposphere cloud
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            5,           H                                  )
+
+    ! Then calculate reaction on aerosols
+    kITemp = kITemp +                                                        &
+             HETClNO2( NUMDEN,       xRadi(12),   (1-CldFr)*xArea(12),        &
+                       SSAlk(2),    Temp,        pHSSA(2),                   &
+                       clConc_SALC, brConc_SALC, 2,                          &
+                       H                                                    )
+
+    HET(ind_ClNO2, 5) = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALC), kITemp       )
+
+    !------------------------------------------------------------------------
+    ! ClNO2 + dissolved HBr in cloud
+    !------------------------------------------------------------------------
+    kITemp = HETClNO2_TCld( NUMDEN,       rLiq,        rIce,                  &
+                            ALiq,        AIce,        VAir,                  &
+                            Temp,        CldFr,       pHCloud,               &
+                            clConc_CldA, clConc_CldC, clConc_Cldg,           &
+                            brConc_CldA, brConc_CldC, brConc_Cldg,           &
+                            6,           H                                  )
+
+    HET(ind_ClNO2, 6) = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), kITemp          )
 
     !========================================================================
     ! Cleanup & quit
