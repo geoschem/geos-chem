@@ -1,0 +1,7 @@
+###############################################################################
+
+ROOT:                        {DATA_ROOT}/HEMCO
+SCENARIO:                    {SCENARIO}
+RUNID:                       {RUNID}
+GISSRES:                     {GISSRES}
+METDIR:                      {DATA_ROOT}/GCAP2/CMIP6/$SCENARIO/$GISSRES

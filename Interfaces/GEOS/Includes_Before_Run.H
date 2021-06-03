@@ -1,8 +1,6 @@
-
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -301,32 +299,32 @@
   !=========================================================================
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_fine', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%HplusSav(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropHplus(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_coarse', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%HplusSav(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropHplus(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_sulfate', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%SulRatSav(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropSulfate(:,:,:) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_fine', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%NaRatSav(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropNitrate(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_coarse', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%NaRatSav(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropNitrate(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_bisulfate', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%BiSulSav(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%IsorropBisulfate(:,:,:) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
 !EOF

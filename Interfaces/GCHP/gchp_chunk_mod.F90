@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -43,7 +43,7 @@ MODULE GCHP_Chunk_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -79,7 +79,8 @@ CONTAINS
     USE Linoz_Mod,               ONLY : Linoz_Read
     USE PhysConstants,           ONLY : PI_180
     USE Pressure_Mod,            ONLY : Init_Pressure
-    USE State_Chm_Mod,           ONLY : ChmState
+    USE Roundoff_Mod,            ONLY : RoundOff
+    USE State_Chm_Mod,           ONLY : ChmState, Ind_
     USE State_Diag_Mod,          ONLY : DgnState
     USE State_Grid_Mod,          ONLY : GrdState, Init_State_Grid
     USE State_Met_Mod,           ONLY : MetState
@@ -90,6 +91,9 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
+#ifdef ADJOINT
+    USE Charpak_Mod,             ONLY : To_UpperCase
+#endif
 #if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Init_RRTMG_Rad_Transfer
     USE RRTMG_LW_Init,           ONLY : RRTMG_LW_Ini
@@ -140,6 +144,32 @@ CONTAINS
     INTEGER                        :: I, J, L, STATUS
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
     TYPE(ESMF_Config)              :: CF            ! Grid comp config object
+
+#ifdef ADJOINT
+    ! Adoint variables
+    ! Local Finite Difference variables
+    REAL(fp)                       :: FD_LAT, FD_LON
+    INTEGER                        :: FD_STEP
+    CHARACTER(LEN=ESMF_MAXSTR)     :: FD_SPEC
+    REAL(fp)                       :: d, dmin
+    INTEGER                        :: imin, jmin, NFD, LFD
+    INTEGER                        :: IFD, JFD
+    CHARACTER(LEN=ESMF_MAXSTR)     :: FD_TYPE
+
+    ! At present, we are unable to load cube-sphere files through ExtData
+    ! so we will define the cost function region thusly in GCHP.rc
+    INTEGER                        :: CF_IMIN, CF_IMAX
+    INTEGER                        :: CF_JMIN, CF_JMAX
+    INTEGER                        :: CF_LMIN, CF_LMAX
+
+    ! Need to get gloabl grid information for some FD spot tests
+    TYPE(ESMF_Grid)                :: grid           ! ESMF Grid object
+    INTEGER                        :: IL_PET, IU_PET ! Global lon bounds on this PET
+    INTEGER                        :: JL_PET, JU_PET ! Global lat bounds on this PET
+
+    ! Model phase: fwd, TLM, ADJOINT
+    CHARACTER(LEN=ESMF_MAXSTR)     :: ModelPhase
+#endif
 
     !=======================================================================
     ! GCHP_CHUNK_INIT begins here
@@ -220,16 +250,266 @@ CONTAINS
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
 
+#ifdef ADJOINT
+    ! Are we running the adjoint?
+    call ESMF_ConfigGetAttribute(CF, ModelPhase,            &
+                                 Label="MODEL_PHASE:" ,         &
+                                 Default="FORWARD",  RC=STATUS)
+    _VERIFY(STATUS)
+    call WRITE_PARALLEL('Checking if this is adjoint. Model phase = "' // trim(ModelPhase) // '"')
+    input_opt%IS_ADJOINT = .FALSE.
+    if (TRIM(ModelPhase) .eq. 'ADJOINT') THEN
+       call WRITE_PARALLEL('Yes! Setting IS_ADJOINT to true.')
+       input_opt%IS_ADJOINT = .TRUE.
+    endif
+
+    call ESMF_ConfigGetAttribute(CF, FD_TYPE, &
+         Label="FD_TYPE:" , Default='NONE', RC=STATUS)
+    _VERIFY(STATUS)
+
+    Input_Opt%IS_FD_GLOBAL = TRIM(To_UpperCase(FD_TYPE(1:4))) == 'GLOB'
+    Input_Opt%IS_FD_SPOT   = TRIM(To_UpperCase(FD_TYPE(1:4))) == 'SPOT'
+    IF (MAPL_Am_I_Root()) THEN
+       WRITE(*,1091) TRIM(FD_TYPE), Input_Opt%IS_FD_GLOBAL, Input_Opt%IS_FD_SPOT
+    ENDIF
+1091   FORMAT('FD_TYPE = ', a6, ', FD_GLOB = ', L1, ', FD_SPOT = ', L1)
+
+
+
+    call ESMF_ConfigGetAttribute(CF, FD_STEP, &
+         Label="FD_STEP:" , Default=-1, RC=STATUS)
+    _VERIFY(STATUS)
+
+    IF (Input_Opt%IS_FD_GLOBAL .or. Input_Opt%IS_FD_SPOT)  THEN
+       _ASSERT(FD_STEP /= -1, 'FD_GLOB or FD_SPOT require FD_STEP')
+    ENDIF
+
+
+    if (.not. FD_STEP == -1 .and. input_opt%IS_ADJOINT) THEN
+       Input_Opt%FD_STEP = FD_STEP
+
+       call ESMF_ConfigGetAttribute(CF, FD_SPEC, &
+            Label="FD_SPEC:", default="", RC=STATUS)
+       _VERIFY(STATUS)
+       IF (TRIM(FD_SPEC ) == "") THEN
+          NFD = -1
+       ELSE
+          NFD = Ind_(FD_SPEC)
+       ENDIF
+
+       call ESMF_ConfigGetAttribute(CF, IFD, &
+            Label="IFD:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       call ESMF_ConfigGetAttribute(CF, JFD, &
+            Label="JFD:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       ! Get the ESMF grid attached to this gridded component
+       CALL ESMF_GridCompGet( GC, grid=Grid, __RC__ )
+
+       ! Get the upper and lower bounds of on each PET using MAPL
+       CALL MAPL_GridGetInterior( Grid, IL_PET, IU_PET, JL_PET, JU_PET )
+
+       ! See if we specified IFD and JFD in GCHP.rc
+       IF ( IFD > 0 .and. JFD > 0 ) THEN
+
+          if (IL_PET .le. IFD .and. IFD .le. IU_PET .and. &
+               JL_PET .le. JFD .and. JFD .le. JU_PET) THEN
+             Input_Opt%IS_FD_SPOT_THIS_PET = .true.
+             Input_opt%IFD = IFD - IL_PET + 1
+             Input_Opt%JFD = JFD - JL_PET + 1
+
+             ! set these for debug printing
+             DMIN = 0.0
+             IMIN = Input_Opt%IFD
+             JMIN = Input_Opt%JFD
+          ENDIF
+
+       ELSE
+
+          call ESMF_ConfigGetAttribute(CF, FD_LAT, &
+               Label="FD_LAT:", default=-999.0d0, RC=STATUS)
+          _VERIFY(STATUS)
+
+          call ESMF_ConfigGetAttribute(CF, FD_LON, &
+               Label="FD_LON:", default=-999.0d0, RC=STATUS)
+          _VERIFY(STATUS)
+
+          _ASSERT( FD_LAT .ne. -999.0d0 .and. FD_LON .ne. -999.0d0, 'FD_SPOT requires either IFD and JFD or FD_LAT and FD_LON be set in GCHP.rc')
+
+
+          dmin = 99999.9
+          imin = -1
+          jmin = -1
+          ! try to find lat lon grid cell closest to 44.65, -63.58 (Halifax, NS)
+          DO I = 1, state_grid%nx
+             DO J = 1, state_grid%ny
+                d = sqrt((state_grid%XMID(I,J) - FD_LON)**2 + &
+                     (state_grid%YMID(I,J) - FD_LAT)**2)
+                if (d < dmin) then
+                   dmin = d
+                   imin = i
+                   jmin = j
+                endif
+             enddo
+          enddo
+          ! this is terrible. We need a better way to figure out if we're really in
+          ! a grid cell, bbut I don't know how to do that. For now we're just hardcoding
+          ! to the value for C24 and hoping for no points near cubed-sphere face
+          ! boundaries
+          if (dmin < 3.2) then
+             ! getting the global grid offset is possible, see Chem_GridCompMod.F90:Extract_
+             Input_Opt%IS_FD_SPOT_THIS_PET = .true.
+             Input_Opt%IFD = IMIN
+             Input_Opt%JFD = JMIN
+
+          end if
+       ENDIF
+
+       Input_Opt%NFD = NFD
+
+       call ESMF_ConfigGetAttribute(CF, LFD, &
+            Label="LFD:", RC=STATUS)
+       _VERIFY(STATUS)
+
+       Input_Opt%LFD = LFD
+
+       ! Read in cost function region
+
+       call ESMF_ConfigGetAttribute(CF, CF_IMIN, &
+            Label="CF_IMIN:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       CF_IMIN = CF_IMIN - IL_PET + 1
+
+       call ESMF_ConfigGetAttribute(CF, CF_IMAX, &
+            Label="CF_IMAX:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       CF_IMAX = CF_IMAX - IL_PET + 1
+
+       call ESMF_ConfigGetAttribute(CF, CF_JMIN, &
+            Label="CF_JMIN:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       CF_JMIN = CF_JMIN - JL_PET + 1
+
+       call ESMF_ConfigGetAttribute(CF, CF_JMAX, &
+            Label="CF_JMAX:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       CF_JMAX = CF_JMAX - JL_PET + 1
+
+       call ESMF_ConfigGetAttribute(CF, CF_LMIN, &
+            Label="CF_LMIN:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       call ESMF_ConfigGetAttribute(CF, CF_LMAX, &
+            Label="CF_LMAX:", default=-1, RC=STATUS)
+       _VERIFY(STATUS)
+
+       IF (CF_IMIN < 1 .OR. CF_IMIN > State_Grid%NX .OR. &
+            CF_IMAX < 1 .OR. CF_IMAX > State_Grid%NX .OR. &
+            CF_JMIN < 1 .OR. CF_JMIN > State_Grid%NY .OR. &
+            CF_JMAX < 1 .OR. CF_JMAX > State_Grid%NY) THEN
+       WRITE(*,1028) Input_Opt%thisCPU,   &
+            Input_Opt%CF_IMIN, Input_Opt%CF_IMAX, &
+            Input_Opt%CF_JMIN, Input_Opt%CF_JMAX, &
+            Input_Opt%CF_LMIN, Input_Opt%CF_LMAX
+1028   FORMAT('Pre-CF on Pet ', i3, ' I = (', i3, ', ', i3, ') &
+             J = ( ', i3, ', ', i3, ') &
+             L = (', i3, ', ', i3, ')')
+
+          CF_IMIN = -1
+          CF_IMAX = -1
+          CF_JMIN = -1
+          CF_JMAX = -1
+          CF_LMIN = -1
+          CF_LMAX = -1
+       ENDIF
+
+       _ASSERT(CF_IMIN * CF_IMAX > 0, 'Please define both max and min for CF_I')
+       _ASSERT(CF_JMIN * CF_JMAX > 0, 'Please define both max and min for CF_J')
+       _ASSERT(CF_LMIN * CF_LMAX > 0, 'Please define both max and min for CF_L')
+
+       _ASSERT(CF_LMIN * CF_IMIN > 0, 'If CF_I: is defined, please define CF_L')
+       _ASSERT(CF_JMIN * CF_IMIN > 0, 'If CF_I: is defined, please define CF_J')
+       
+       ! At this point, they should all be set or all be negative (probably -1)
+       IF (CF_IMIN > 0) THEN
+          Input_Opt%CF_IMIN = CF_IMIN
+          Input_Opt%CF_IMAX = CF_IMAX
+          Input_Opt%CF_JMIN = CF_JMIN
+          Input_Opt%CF_JMAX = CF_JMAX
+          Input_Opt%CF_LMIN = CF_LMIN
+          Input_Opt%CF_LMAX = CF_LMAX
+       ELSEIF (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+          Input_Opt%CF_IMIN = Input_Opt%IFD
+          Input_Opt%CF_IMAX = Input_Opt%IFD
+          Input_Opt%CF_JMIN = Input_Opt%JFD
+          Input_Opt%CF_JMAX = Input_Opt%JFD
+          Input_Opt%CF_LMIN = Input_Opt%LFD
+          Input_Opt%CF_LMAX = Input_Opt%LFD
+       WRITE(*,1027) Input_Opt%thisCPU,   &
+            Input_Opt%CF_IMIN, Input_Opt%CF_IMAX, &
+            Input_Opt%CF_JMIN, Input_Opt%CF_JMAX, &
+            Input_Opt%CF_LMIN, Input_Opt%CF_LMAX
+1027   FORMAT('CF on Pet ', i3, ' I = (', i3, ', ', i3, ') &
+             J = ( ', i3, ', ', i3, ') &
+             L = (', i3, ', ', i3, ')')
+
+       ELSE
+          Input_Opt%CF_IMIN = -1
+          Input_Opt%CF_IMAX = -1
+          Input_Opt%CF_JMIN = -1
+          Input_Opt%CF_JMAX = -1
+          Input_Opt%CF_LMIN = -1
+          Input_Opt%CF_LMAX = -1
+       ENDIF
+
+       IF ( Input_Opt%IS_FD_SPOT_THIS_PET ) THEN
+          write (*,1011) Input_Opt%thisCPU, dmin, imin, jmin, &
+               state_grid%YMID(IMIN,JMIN), state_grid%XMID(IMIN,JMIN)
+
+#ifdef DEBUG
+          ! Get the ESMF grid attached to this gridded component
+          CALL ESMF_GridCompGet( GC, grid=Grid, __RC__ )
+
+          ! Get the upper and lower bounds of on each PET using MAPL
+          CALL MAPL_GridGetInterior( Grid, IL_PET, IU_PET, JL_PET, JU_PET )
+          WRITE(*,1013) IL_PET, IU_PET
+          WRITE(*,1014) JL_PET, JU_PET
+#endif
+          
+         ENDIF
+
+1011   FORMAT('Found FD_SPOT on PET ', i5, ' ', f7.2, &
+            ' degrees from cell ', i3, ', ', i3, ' (', f7.2, ', ', f7.2, ')')
+1012   FORMAT('Did not find FD_SPOT on PET ', i5, ' ', f7.2,&
+            ' degrees from cell ', i3, ', ', i3, ' (', f7.2, ', ', f7.2, ')')
+1013   FORMAT('   XminOffset = ', i3, '     XmaxOffset = ', i3)
+1014   FORMAT('   YminOffset = ', i3, '     YmaxOffset = ', i3)
+1015   FORMAT('   GlobalXMid(', i3, ', ', i3, ') = (', f7.2, ', ' f7.2, ')')
+1016   FORMAT('       SPC(', a10, ', FD_SPOT) = ', e22.10)
+1019   FORMAT('   SPC_ADJ(', a10, ', FD_SPOT) = ', e22.10)
+    ENDIF
+#endif
+
     ! Initialize other GEOS-Chem modules
     CALL GC_Init_Extra( HistoryConfig%DiagList, Input_Opt,    &
                         State_Chm, State_Diag, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Extra')
 
-    ! Set initial State_Chm%Species units to units expected in transport
+
+    ! Set initial State_Chm%Species units to internal state units, the same
+    ! units as the restart file values. Note that species concentrations
+    ! are all still zero at this point since internal state values are not
+    ! copied to State_Chm%Species until Run (post-initialization).
 # if defined( MODEL_GEOS )
     State_Chm%Spc_Units = 'kg/kg total'
 #else
-    State_Chm%Spc_Units = 'kg/kg dry'
+    State_Chm%Spc_Units = 'v/v dry'
 #endif
 
     ! Initialize chemistry mechanism
@@ -287,13 +567,6 @@ CONTAINS
 !    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
 !#endif
 
-#if !defined( MODEL_GEOS )
-    ! GCHP only: Convert species units to internal state units (v/v dry)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error calling Convert_Spc_Units')
-#endif
-
     ! Return success
     RC = GC_Success
 
@@ -301,7 +574,7 @@ CONTAINS
 !EOC
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -320,6 +593,9 @@ CONTAINS
                              Phase,      IsChemTime, IsRadTime,              &
 #if defined( MODEL_GEOS )
                              FrstRewind, &
+#endif
+#if defined( ADJOINT )
+                             IsStarttime, &
 #endif
                              RC )
 !
@@ -343,10 +619,12 @@ CONTAINS
     ! HEMCO components (eventually moved to a separate GridComp?)
     USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
     USE HCO_Interface_Common, ONLY : SetHcoTime
-    USE HCO_Utilities_GC_Mod
+    USE HCO_Interface_GC_Mod, ONLY : Compute_Sflx_For_Vdiff
 
     ! Specialized subroutines
-    USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : AirQnt
+    USE Calc_Met_Mod,       ONLY : Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : Set_Clock_Tracer
     USE Calc_Met_Mod,       ONLY : GCHP_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
@@ -363,10 +641,14 @@ CONTAINS
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
     USE State_Chm_Mod,      ONLY : IND_
     USE Time_Mod,           ONLY : Accept_External_Date_Time
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units, Print_Global_Species_Kg
 
     ! Diagnostics
+    USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
+#ifdef ADJOINT
+    USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
+#endif
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( RRTMG )
@@ -378,6 +660,8 @@ CONTAINS
     USE Calc_Met_Mod,           ONLY : GET_COSINE_SZA
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
+    USE Species_Mod,   ONLY : Species
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -398,6 +682,10 @@ CONTAINS
 #if defined( MODEL_GEOS )
     LOGICAL,        INTENT(IN)    :: FrstRewind  ! Is it the first rewind?
 #endif
+#if defined ( ADJOINT )
+    LOGICAL,        INTENT(IN)    :: IsStarttime ! Have we reached the start time
+                                                 ! in an adjoint run
+#endif 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -462,6 +750,17 @@ CONTAINS
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
     LOGICAL, SAVE                  :: scaleMR = .FALSE.
+
+    ! Debug variables
+    INTEGER, parameter             :: I_DBG = 6, J_DBG = 5, L_DBG=1
+#ifdef ADJOINT
+    ! Adjoint Finitie Difference Variables
+    INTEGER                        :: IFD, JFD, LFD, NFD
+    INTEGER                        :: I, J, L
+    REAL*8                         :: CFN
+    CHARACTER(len=ESMF_MAXSTR)     :: FD_SPEC, TRACNAME
+    TYPE(Species),       POINTER   :: ThisSpc
+#endif
 
     !=======================================================================
     ! GCHP_CHUNK_RUN begins here
@@ -582,6 +881,9 @@ CONTAINS
     ! Pre-Run assignments
     !-------------------------------------------------------------------------
 
+    ! Zero out certain State_Diag arrays
+    CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+
     ! Eventually initialize/reset wetdep
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
        CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
@@ -651,6 +953,11 @@ CONTAINS
                                   State_Met      = State_Met,  &
                                   RC             = RC         )
 
+    ! Update clock tracer if relevant
+    IF (  IND_('CLOCK','A') > 0 ) THEN
+       CALL Set_Clock_Tracer( State_Chm, State_Grid )
+    ENDIF
+
     ! Call PBL quantities. Those are always needed
     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
@@ -702,6 +1009,111 @@ CONTAINS
     !    calculated elsewhere, in the HEMCO PARANOx extension
     CALL GET_COSINE_SZA( Input_Opt, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GET_COSINE_SZA')
+#endif
+#ifdef ADJOINT
+    if (.not. first) &
+         CALL Print_Global_Species_Kg( I_DBG, J_DBG, L_DBG,           &
+                                       'CO2', Input_Opt, State_Chm,   &
+                                       State_Grid, State_Met, trim(Iam) // &
+                                       ' before first unit conversion', RC)
+    CALL GCHP_PRINT_MET( I_DBG, J_DBG, L_DBG, Input_Opt,&
+         State_Grid, State_Met, trim(Iam) // ' before first unit conversion.', RC)
+    
+    IF (first .and. Input_Opt%IS_FD_SPOT_THIS_PET .and.  Input_Opt%IS_FD_SPOT) THEN
+       FD_SPEC = transfer(state_chm%SpcData(Input_Opt%NFD)%Info%Name, FD_SPEC)
+       IFD = Input_Opt%IFD
+       JFD = Input_Opt%JFD
+       LFD = Input_Opt%LFD
+       NFD = Input_Opt%NFD
+       WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       IF (Input_Opt%IS_ADJOINT) THEN
+          WRITE(*,*) ' Computing final cost function'
+          CFN = 0d0
+          state_chm%SpeciesAdj(:,:,:,NFD) = 0d0
+          DO L = 1,State_Grid%NZ
+          DO J = 1,State_Grid%NY
+          DO I = 1,State_Grid%NX
+             if (State_chm%CostFuncMask(I,J,L) > 0d0) THEN
+                WRITE (*, 1047) I, J, L, state_chm%species(I, J, L, NFD)
+                state_chm%SpeciesAdj(I,J,L, NFD) = 1.0d0
+                CFN = CFN + state_chm%species(I,J,L,NFD)
+             endif
+          ENDDO
+          ENDDO
+          ENDDO
+          WRITE(*,'(a7, e22.10)') ' CFN = ', CFN
+1047      FORMAT('  SPC(', i2, ', ', i2, ', ', i2, ') = ', e22.10)
+       ELSE
+          IF (Input_Opt%FD_STEP .eq. 0) THEN
+             WRITE(*, *) '    Not perturbing'
+          ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
+             WRITE(*, *) '    Perturbing +0.1'
+             state_chm%species(IFD, JFD, LFD, NFD) = state_chm%species(IFD, JFD, LFD, NFD) * 1.1d0
+          ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
+             WRITE(*, *) '    Perturbing -0.1'
+             state_chm%species(IFD, JFD, LFD, NFD) = state_chm%species(IFD, JFD, LFD, NFD) * 0.9d0
+          ELSE
+             WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
+          ENDIF
+          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       ENDIF
+    ENDIF
+
+    IF (first .and. Input_Opt%IS_FD_GLOBAL) THEN
+       FD_SPEC = transfer(state_chm%SpcData(Input_Opt%NFD)%Info%Name, FD_SPEC)
+       NFD = Input_Opt%NFD
+       LFD = Input_Opt%LFD
+       IF (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+          IFD = Input_Opt%IFD
+          JFD = Input_Opt%JFD
+          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+          IF (Input_Opt%Is_Adjoint) &
+               WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
+       ENDIF
+       IF (.not. Input_Opt%IS_ADJOINT) THEN
+          IF (Input_Opt%FD_STEP .eq. 0) THEN
+             WRITE(*, *) '    Not perturbing'
+          ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
+             WRITE(*, *) '    Perturbing +0.1'
+             state_chm%species(:, :, :, NFD) = state_chm%species(:, :, :, NFD) * 1.1d0
+          ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
+             WRITE(*, *) '    Perturbing -0.1'
+             state_chm%species(:, :, :, NFD) = state_chm%species(:, :, :, NFD) * 0.9d0
+          ELSE
+             WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
+          ENDIF
+          IF (Input_Opt%IS_FD_SPOT_THIS_PET) &
+               WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       ELSE
+          state_chm%SpeciesAdj(:,:,:,:) = 0d0
+          IF (NFD > 0) THEN
+             IF (LFD > 0) THEN
+                IF (Input_opt%amIRoot) THEN
+                   WRITE(*,*) ' Setting Level ', LFD, ' forcing to 1'
+                ENDIF
+                state_chm%SpeciesAdj(:,:,LFD,NFD) = 1d0
+             ELSE
+                IF (Input_opt%amIRoot) THEN
+                   WRITE(*,*) ' Setting all forcing to 1'
+                ENDIF
+                state_chm%SpeciesAdj(:,:,:,NFD) = 1d0
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDIF
+
+1017 FORMAT('       SPC(', a10, ', FD_SPOT) = ', e22.10)
+1018   FORMAT('   SPC_ADJ(', a10, ', FD_SPOT) = ', e22.10)
+    IF (Input_Opt%IS_FD_SPOT_THIS_PET ) THEN
+       FD_SPEC = transfer(state_chm%SpcData(Input_Opt%NFD)%Info%Name, FD_SPEC)
+       NFD = Input_Opt%NFD
+       IFD = Input_Opt%IFD
+       JFD = Input_Opt%JFD
+       LFD = Input_Opt%LFD
+       WRITE(*,1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       IF (Input_Opt%Is_Adjoint) &
+            WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
+    ENDIF
 #endif
 
     !=======================================================================
@@ -879,7 +1291,7 @@ CONTAINS
     ! Set tropospheric CH4 concentrations and fill species array with
     ! current values.
 #if defined( MODEL_GEOS )
-    IF ( .NOT. Input_Opt%LCH4EMIS .AND. ( DoTurb .OR. DoTend ) ) THEN
+    IF ( DoTurb .OR. DoTend ) THEN
 #else
     IF ( Phase /= 2 .AND. Input_Opt%ITS_A_FULLCHEM_SIM  &
          .AND. IND_('CH4','A') > 0 ) THEN
@@ -896,10 +1308,12 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do chemistry now'
        CALL MAPL_TimerOn( STATE, 'GC_CHEM' )
 
-       ! Calculate TOMS O3 overhead. For now, always use it from the
-       ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
-                                 .TRUE., State_Met%TO3, RC )
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ! Calculate TOMS O3 overhead. For now, always use it from the
+          ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
+          CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, State_Chm, DAY, &
+                                    .TRUE., State_Met%TO3, RC )
+       ENDIF
 
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
@@ -1106,6 +1520,39 @@ CONTAINS
     State_Met%SPHU_PREV = State_Met%SPHU
 #endif
 
+#ifdef ADJOINT
+       if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_opt%IFD > 0) THEN
+       DO N = 1, State_Chm%nSpecies
+          ThisSpc => State_Chm%SpcData(N)%Info
+          write(*,*) 'SpcAdj(', TRIM(thisSpc%Name), ') = ',  &
+               State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,N)
+       ENDDO
+       ENDIF
+    !=======================================================================
+    ! If this is an adjoint run, we need to check for the final (first)
+    ! timestep and multiply the scaling factor adjoint by the initial concs
+    !=======================================================================
+    IF (Input_Opt%IS_ADJOINT .and. IsStarttime) THEN
+       if (Input_opt%amIRoot) WRITE(*,*) '   Adjoint multiplying SF_ADJ by ICS'
+       DO N = 1, State_Chm%nSpecies
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! Find the non-adjoint variable or this
+          TRACNAME = ThisSpc%Name
+
+          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N)
+          if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_Opt%IFD > 0) THEN
+             write(*,*) 'After conversion ',  &
+                  State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,N)
+          ENDIF
+       ENDDO
+
+       CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,        &
+                                   State_Grid, State_Met, RC                )
+    ENDIF
+#endif
+
+
     !=======================================================================
     ! Clean up
     !=======================================================================
@@ -1120,5 +1567,98 @@ CONTAINS
     RC = GC_SUCCESS
 
   END SUBROUTINE GCHP_Chunk_Run
+!EOC
+
+!BOP
+  SUBROUTINE GCHP_PRINT_MET(I, J, L,         &
+       Input_Opt, State_Grid, State_Met, LOC, RC )
+
+    !
+    ! !USES:
+    !
+    USE State_Met_Mod,        ONLY : MetState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+
+    !
+    ! !INPUT PARAMETERS: 
+    !
+    INTEGER,          INTENT(IN)    :: I         ! Grid cell lat index
+    INTEGER,          INTENT(IN)    :: J         ! Grid cell lon index
+    INTEGER,          INTENT(IN)    :: L         ! Grid cell lev index
+    CHARACTER(LEN=*), INTENT(IN)    :: LOC       ! Call location string
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt ! Input Options object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid! Grid State object
+    TYPE(MetState),   INTENT(IN)    :: State_Met ! Meteorology State object
+    !
+    ! !INPUT/OUTPUT PARAMETERS: 
+    !
+
+    !
+    ! !OUTPUT PARAMETERS:
+    !
+    INTEGER,          INTENT(OUT)   :: RC        ! Success or failure?! 
+    ! !REMARKS:
+    !
+    ! !REVISION HISTORY: 
+    !EOP
+    !------------------------------------------------------------------------------
+    !BOC
+    !
+    ! !LOCAL VARIABLES:
+    !     
+    CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
+
+
+    !=========================================================================
+    ! GCHP_PRINT_MET begins here!
+    !=========================================================================
+
+    ErrorMsg  = ''
+    ThisLoc   = ' -> at GCHP_Print_Met (in module ' // &
+         'Interfaces/GCHP/gchp_chunk_mod.F)'
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Echo info
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) TRIM( LOC )
+       WRITE( 6, 113 ) State_Grid%YMid(I,J), State_Grid%XMid(I,J)
+    ENDIF
+100 FORMAT( /, '%%%%% GCHP_PRINT_MET at ', a )
+113 FORMAT( 'Lat: ', f5.1, '   Lon: ', f5.1 )
+
+    ! Write formatted output
+    IF ( Input_Opt%amIRoot ) THEN
+       ! 2-D Fields
+       WRITE( 6, 114 ) 'PBLH',     State_Met%PBLH(I,J),     I, J
+       WRITE( 6, 114 ) 'PSC2_WET', State_Met%PSC2_WET(I,J), I, J
+       WRITE( 6, 114 ) 'PSC2_DRY', State_Met%PSC2_DRY(I,J), I, J
+       WRITE( 6, 114 ) 'PS1_WET',  State_Met%PS1_WET(I,J), I, J
+       WRITE( 6, 114 ) 'PS1_DRY',  State_Met%PS1_DRY(I,J), I, J
+       WRITE( 6, 114 ) 'PS2_WET',  State_Met%PS2_WET(I,J), I, J
+       WRITE( 6, 114 ) 'PS2_DRY',  State_Met%PS2_DRY(I,J), I, J
+       WRITE( 6, 114 ) 'TS',       State_Met%TS(I,J),       I, J
+       WRITE( 6, 114 ) 'U10M',     State_Met%U10M(I,J),     I, J
+       ! 3-D Fields
+       WRITE( 6, 115 ) 'CLDF',     State_Met%CLDF(I,J,L),      I, J, L
+       WRITE( 6, 115 ) 'OMEGA',    State_Met%OMEGA(I,J,L),     I, J, L
+       WRITE( 6, 115 ) 'PEDGE',    State_Met%PEDGE(I,J,L),     I, J, L
+       WRITE( 6, 115 ) 'T',        State_Met%T(I,J,L),         I, J, L
+       WRITE( 6, 115 ) 'U',        State_Met%U(I,J,L),         I, J, L
+       WRITE( 6, 115 ) 'V',        State_Met%V(I,J,L),         I, J, L
+       WRITE( 6, 115 ) 'AD',       State_Met%AD(I,J,L),        I, J, L
+       WRITE( 6, 115 ) 'PREVSPHU', State_Met%SPHU_PREV(I,J,L), I, J, L
+       WRITE( 6, 115 ) 'SPHU',     State_Met%SPHU(I,J,L),      I, J, L
+       ! terminator
+       WRITE( 6, 120 )
+    ENDIF
+114 FORMAT( 'Grid cell  for ', a8, ' = ', es24.16, ', I,J  = ',2I4 )
+115 FORMAT( 'Grid cell  for ', a8, ' = ', es24.16, ', I,J,L= ',3I4 )
+120 FORMAT( / )
+
+
+  END SUBROUTINE GCHP_PRINT_MET
 !EOC
 END MODULE GCHP_Chunk_Mod

@@ -1,0 +1,7 @@
+This directory is for GEOS-Chem (GCHP) with high performance option. For instructions
+on usage, please see the README at https://github.com/geoschem/gchpctm, also located
+in the top-level directory of your GCHPctm download.
+
+For more information, see the GEOS-Chem High Performance wiki page at
+http://wiki.seas.harvard.edu/geos-chem/index.php/GEOS-Chem_HP
+or contact the GEOS-Chem Support Team (geos-chem-support@g.harvard.edu).

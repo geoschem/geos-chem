@@ -201,6 +201,9 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( MODEL_CESM )
+    USE CAM_LOGFILE,        ONLY : iulog
+#endif
 
     IMPLICIT NONE
 !
@@ -304,10 +307,15 @@ CONTAINS
 
     STAMP = TIMESTAMP_STRING()
     IF ( Input_Opt%amIRoot ) THEN
+#if defined( MODEL_CESM )
+       WRITE( iulog, 10 ) STAMP
+#else
        WRITE( 6, 10 ) STAMP
+#endif
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
 
+#if !defined( MODEL_CESM )
     !======================-================================================
     ! On first call, establish pointers to data fields read by HEMCO. These
     ! are the stratospheric Bry fields as well as the production/loss rates.
@@ -346,6 +354,7 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#endif
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
@@ -372,6 +381,7 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = Spc(:,:,:,id_O3)
 
+#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
        ! which we have explicit prod/loss rates from UCX/GMI
@@ -428,7 +438,7 @@ CONTAINS
 #endif
 
                    ! Molecular weight for the species [g]
-                   MW_g = State_Chm%SpcData(NN)%Info%emMW_g
+                   MW_g = State_Chm%SpcData(NN)%Info%MW_g
 
                    !--------------------------------------------------------
                    ! Loss freq [s-1]
@@ -538,6 +548,7 @@ CONTAINS
           ENDDO       ! I
        ENDDO          ! J
        !$OMP END PARALLEL DO
+#endif
 
        !--------------------------------------------------------------------
        ! Ozone
@@ -547,12 +558,18 @@ CONTAINS
 
           ! Put ozone in [v/v] for Linoz or Synoz
           Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
-                             / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
+                             / State_Chm%SpcData(id_O3)%Info%MW_g ) / AD
 
           ! Do Linoz or Synoz
           IF ( LLINOZ ) THEN
+#if defined( MODEL_CESM )
+              IF ( Input_Opt%amIRoot ) THEN
+                  Write(6,*) " Bypassing LINOZ for now"
+              ENDIF
+#else
              CALL Do_Linoz( Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC=errCode )
+#endif
           ELSE
              CALL Do_Synoz( Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC=errCode )
@@ -560,7 +577,7 @@ CONTAINS
 
           ! Put ozone back to [kg]
           Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
-                             / State_Chm%SpcData(id_O3)%Info%emMW_g )
+                             / State_Chm%SpcData(id_O3)%Info%MW_g )
 
        ENDIF
 
@@ -571,6 +588,7 @@ CONTAINS
                                     ( Spc(:,:,:,id_O3) - BEFORE )
        ENDIF
 
+#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Reactions with OH
        ! Currently:
@@ -695,7 +713,7 @@ CONTAINS
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / ( AIRMW                  &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
@@ -703,7 +721,7 @@ CONTAINS
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           /  ( AIRMW                 &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
                 ENDIF
 
                 ! Special adjustment for G-C Br2,
@@ -729,6 +747,7 @@ CONTAINS
 
        ENDDO ! NN
        !$OMP END PARALLEL DO
+#endif
 
        ! Free pointers
        Spc => NULL()

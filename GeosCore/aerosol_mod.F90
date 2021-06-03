@@ -174,16 +174,18 @@ CONTAINS
     USE CMN_FJX_MOD,      ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod, ONLY : HcoState
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Met_Mod,    ONLY : MetState
-    USE UCX_MOD,          ONLY : KG_STRAT_AER
-    USE UnitConv_Mod,     ONLY : Convert_Spc_Units
-    USE TIME_MOD,         ONLY : GET_MONTH
+#if !defined( MODEL_CESM )
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+#endif
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod,     ONLY : ChmState
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Grid_Mod,    ONLY : GrdState
+    USE State_Met_Mod,     ONLY : MetState
+    USE UCX_MOD,           ONLY : KG_STRAT_AER
+    USE UnitConv_Mod,      ONLY : Convert_Spc_Units
+    USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
     USE TOMAS_MOD,        ONLY : IBINS
 #endif
@@ -245,9 +247,6 @@ CONTAINS
     REAL(fp), POINTER   :: AIRVOL(:,:,:)
     REAL(fp), POINTER   :: PMID(:,:,:)
     REAL(fp), POINTER   :: T(:,:,:)
-
-    ! Arrays
-    REAL(fp), ALLOCATABLE :: OMOC(:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -337,17 +336,20 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
-    ALLOCATE( OMOC(State_Grid%NX, State_Grid%NY), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F: OMOC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    CALL HCO_EvalFld( HcoState, Trim(FieldName), OMOC, RC, FOUND=FND )
+#if !defined( MODEL_CESM )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
+#else
+    FND = .True.
+    RC  = GC_SUCCESS
+#endif
 
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
        ! Set OM/OC using spatially and seasonally varying data from
        ! Philip et al. (2014)
-       OCFPOA(:,:)  = OMOC(:,:) ! OM/OC for POA
-       OCFOPOA(:,:) = OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+       OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA
+       OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
 
     ELSE
 
@@ -385,6 +387,10 @@ CONTAINS
        Rho_dry    = State_Chm%SpcData(id_SO4)%Info%Density
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
+
+       ! Set SIA growth to half of its original value to treat as
+       ! partially crystalline
+       SIA_GROWTH = SIA_GROWTH / 2e+0_fp
 
        ! Growth factor for OCPI + SOA
        Rad_dry    = REAA(1,k_ORG)
@@ -967,7 +973,7 @@ CONTAINS
 
        ! PM2.5 sea salt
        IF ( State_Diag%Archive_PM25ss  ) THEN
-          State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * ORG_GROWTH  ) &
+          State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * SSA_GROWTH  ) &
                                    * ( 1013.25_fp  / PMID(I,J,L) ) &
                                    * ( T(I,J,L)    / 298.0_fp    ) &
                                    * 1.0e+9_fp
@@ -998,9 +1004,6 @@ CONTAINS
                      'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
     ENDIF
-
-    ! Deallocate local array
-    IF ( ALLOCATED( OMOC ) ) DEALLOCATE ( OMOC, STAT=RC )
 
     ! Free pointers
     Spc    => NULL()

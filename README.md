@@ -1,75 +1,39 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546) [![Build
-Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](https://travis-ci.org/JiaweiZhuang/geos-chem) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
+[![Release](https://img.shields.io/github/v/release/geoschem/geos-chem?label=Latest%20Release)](http://wiki.geos-chem.org/GEOS-Chem_versions)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
 
-# README for the GEOS-Chem source code repository
+## Description
 
-This repository (https://github.com/geoschem/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition.
+This repository contains the __GEOS-Chem science codebase__.  Included in this repository are:
 
-## GEOS-Chem Development
+  * The source code for GEOS-Chem science routines;
+  * Scripts to create GEOS-Chem run directories;
+  * Template configuration files that specify run-time options;
+  * Scripts to run GEOS-Chem tests;
+  * Driver routines (e.g. `main.F90`) that enable GEOS-Chem to be run in several different implementations (as GEOS-Chem "Classic", as GCHP, etc.)
 
-### Branches
-This repository contains several branches.  Each branch contains code updates belonging to a particular line of development.
+### Version 12.9.3 and prior
 
- * The __master__ branch always contains the __current stable version__.  You should never add new code directly into this branch.  Instead, open a new branch off of master and add your code there.
+GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.  For this reason, the latest release is frozen at 12.9.3. 
 
-   * NOTE: In GEOS-Chem 13.0.0 and later, the __master__ branch will renamed to __main__.
+### Version 13.0.0 and later
 
- * The __dev/X.Y.Z__ branches always contains in-development code for upcoming version X.Y.Z.  Code in dev/X.Y.Z is very much "work in progress" and should not be relied upon until it has been fully debugged, validated, and merged back into the master branch.
+GEOS-Chem 13.0.0 and later versions use this "Science Codebase" repository as a  submodule within the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) repositories.
 
- * The __GEOS__ branch contains updates that are specific to the interface between GEOS-Chem and the NASA GEOS-DAS Earth System Model.  Most GEOS-Chem users can simply ignore this branch.
+Releases for GEOS-Chem 13.0.0 and later versions will be issued at the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) Github repositories.
 
- * From time to time, you will see other branches pertaining to new lines of development being created.  These branches usually will start with __feature/__ or __bugfix/__.  Once the code in these branches has been sufficiently validated, these branches will be merged back into the master branch.  You should not use code in these branches.
+## User Manuals
 
-### Versions
+Each implementation of GEOS-Chem has its own manual page.  For more information, please see:
 
-GEOS-Chem versions are now denoted by 3 digits (X.Y.Z):
+* __GEOS-Chem "Classic":__ [http://wiki.geos-chem.org/Getting_Started_with_GEOS-Chem](http://wiki.geos-chem.org/Getting_Started_with_GEOS-Chem)
 
- * The __X__ digit is the __major version number__.  A change in X denotes that the current version contains a significant update that breaks backwards-compatibility with the prior series of GEOS-Chem versions.  Major structural updates typically will require an update to X.  In the past we have changed the X digit when replacing SMVGEAR with FlexChem (version 10 to version 11) and replacing legacy emissions with HEMCO (version 9 to version 10).
+* __GCHP:__ [https://gchp.readthedocs.io](https://gchp.readthedocs.io)
 
-* The __Y__ digit is the __feature version number__.  A change in Y denotes that a 1-month benchmark has been performed to validate a new feature or set of features.  Some (but not all) Y versions will have 1-year benchmarks performed as well.  In general, the Y digit changes whenever a new feature  breaks backwards compatibility with one or more run directories from the prior version.
+* __WRF-GC:__ [http://wrf.geos-chem.org](http:/wrf.geos-chem.org)
 
-* The __Z__ digit is the __bug fix (or patch) version number__.   A change in Z denotes that a bug fix was made that does not break backwards compatibility with run directories from the prior verison.  Z will also be updated when bug fixes or minor updates are made to one or more of the GEOS-Chem "Specialty" simulations.  Updating specialty simulations should not affect the output of the GEOS-Chem 1-month or 1-year benchmark simulations.
+## About GEOS-Chem
 
-For more information, please see this wiki page: http://wiki.geos-chem.org/GEOS-Chem_version_numbering_system
+GEOS-Chem is a global 3-D model of atmospheric chemistry driven by meteorological input from the Goddard Earth Observing System (GEOS) of the [NASA Global Modeling and Assimilation Office](http://gmao.gsfc.nasa.gov/). It is applied by [research groups around the world](http://acmg.seas.harvard.edu/geos/geos_people.html) to a wide range of atmospheric composition problems. Scientific direction of the model is provided by the international [GEOS-Chem Steering Committee](http://acmg.seas.harvard.edu/geos/geos_steering_cmte.html) and by [User Working Groups](http://acmg.seas.harvard.edu/geos/geos_working_groups.html). The model is managed by the [GEOS-Chem Support Team](http://acmg.seas.harvard.edu/geos/geos_chem_support.html), based at Harvard University and Washington University with support from the US NASA Earth Science Division, the Canadian National and Engineering Research Council, and the Nanjing University of Information Sciences and Technology.
 
-All benchmarked GEOS-Chem versions are tagged in the Git history. Use _git tag_ in your terminal to see a list of available tags. Tags will also be highlighted in the _gitk_ browser window.
-
-### Citing GEOS-Chem versions with DOI's
-
-You can now cite GEOS-Chem in publications with a Digital Object Identifier (DOI). Each GEOS-Chem release will be assigned its own individual DOI.  DOI's for each GEOS-Chem version will be posted on the [GEOS-Chem website](http://geos-chem.org) and [GEOS-Chem wiki](http://wiki.geos-chem.org).
-
-We have also generated a concept DOI, which will always point to the current stable version of GEOS-Chem (i.e. corresponding to the __master__ branch): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546)
-
-# Documentation
-
-### Web site
-The __GEOS-Chem web site__ is a good place to get started.  It will point you to many important GEOS-Chem resources.
-
-  * http://www.geos-chem.org
-
-### Online user's manual
-You can find the __The GEOS-Chem User's Guide__ online here:
-
-  * http://manual.geos-chem.org
-
-### Wiki
-The most up-to-date information about GEOS-Chem is posted on the __GEOS-Chem wiki__.  Here you will find information about technical issues, bug fixes, and other pertinent topics.
-
-  * http://wiki.geos-chem.org
-
-## GEOS-Chem run directories
-To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on the [Creating GEOS-Chem run directories wiki page](http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories).
-
-## Support
-We encourage GEOS-Chem users to use the Github issue tracker attached to this repository to report  bugs or technical issues with the GEOS-Chem code.
-
-You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@g.harvard.edu.
-
-## License
-
-GEOS-Chem (and related software) is distributed under the MIT license. Please see the license documents LICENSE.txt and AUTHORS.txt in the root folder.
-
-
-14 Nov 2018
-GEOS-Chem Support Team
-geos-chem-support@g.harvard.edu
+GEOS-Chem is a grass-roots open-access model owned by its [users](http://acmg.seas.harvard.edu/geos/geos_people.html), and ownership implies some responsibilities as listed in our [welcome page for new users](http://acmg.seas.harvard.edu/geos/geos_welcome.html). If you are interested in using GEOS-Chem, please contact the [GEOS-Chem Support Team](http://wiki.seas.harvard.edu/geos-chem/index.php/GEOS-Chem_Support_Team) who will send you instructions for joining the user community and accessing the code.

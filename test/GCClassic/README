@@ -1,0 +1,60 @@
+README for test/GCClassic (GEOS-Chem integration test directory)
+10 Nov 2020
+GEOS-Chem Support Team
+geos-chem-support@g.harvard.edu
+===============================================================================
+
+Overview:
+---------
+
+This directory contains scripts to submit automated GCClassic integration
+tests, which will test the following process:
+
+1. GCClassic run directory creation
+2. GCClassic code configuration and compilation
+3. GCClassic execution
+
+Integration tests are mostly intended to be run by GEOS-Chem developers,
+rather than end users.
+
+
+Files:
+------
+
+# For LSF scheduler
+intTest_lsf.sh             : Driver script to run GCClassic integration test
+intTestCompile_lsf.sh      : Script to compile GCClassic
+intTestExecute_lsf.sh      : Script to run GCClassic 
+
+# For SLURM scheduler
+intTest_slurm.sh           : Driver script to run GCClassic integration test
+intTestCompile_slurm.sh    : Script to compile GCClassic
+intTestExecute_slurm.sh    : Script to run GCClassic 
+
+# For both LSF and SLURM schedulers
+commonFunctionsForTests.sh : Bash script with reusable functions 
+intTestCreate.sh           : Script to create GCClassic run directories
+
+
+Running integration tests:
+--------------------------
+Execute the following commands at the Unix prompt:
+
+    With the SLURM scheduler:
+    -------------------------
+    cd test/GCClassic
+    ./intTest_slurm.sh /path/to/int/test/dir GCCLASSIC-ENV-FILE
+
+    With the LSF scheduler:
+    -----------------------
+    cd test/GCClassic
+    ./intTest_lsf.sh /path/to/int/test/dir GCCLASSIC-ENV-FILE
+
+
+where GCCLASSIC-ENV-FILE is the shell script that loads relevant software
+modules and sets OpenMP parameters (like OMP_NUM_THREADS, OMP_STACKSIZE,
+etc.)
+
+NOTE: For debugging you can add an optional third parameter debug=1,
+which will run integration tests for 2 run directories.  This is useful
+for development & debugging.

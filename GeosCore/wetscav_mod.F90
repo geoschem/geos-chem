@@ -1483,7 +1483,7 @@ CONTAINS
 
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
        UNITCHANGE_KGKG = .TRUE.
-       CALL ConvertBox_KgKgDry_to_Kg( I, J, L, State_Met, State_Chm, RC )
+       CALL ConvertBox_KgKgDry_to_Kg( I, J, L, State_Met, State_Chm, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1494,7 +1494,7 @@ CONTAINS
 
     ELSE IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1676,7 +1676,7 @@ CONTAINS
     ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
     !-----------------------------------------------------------------
     IF ( UNITCHANGE_KGKG ) THEN
-       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, RC )
+       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1686,7 +1686,7 @@ CONTAINS
        ENDIF
 
     ELSE IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -5151,7 +5151,7 @@ CONTAINS
           WRITE( 6, 100 ) N_WD, &
                           TRIM( SpcInfo%Name ), &
                           N, &
-                          SpcInfo%EmMW_g, &
+                          SpcInfo%MW_g, &
                           K0, CR, pKA
 100       FORMAT( i3,3x,a14,3x,i3,3x,f6.1,3(1x,a9) )
 
@@ -5358,7 +5358,7 @@ CONTAINS
        IF ( ( id_H2O2 > 0 ) .AND. &
             ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
           State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2) &
-               * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
+               * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%MW_g )
        ENDIF
 
        ! Set SO2s to the initial SO2 from the species array, so that we will
@@ -5369,7 +5369,7 @@ CONTAINS
        IF ( ( id_SO2 > 0 ) .AND. &
             ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
           State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2) &
-               * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
+               * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%MW_g )
        ENDIF
 
        ! Reset first-time flag

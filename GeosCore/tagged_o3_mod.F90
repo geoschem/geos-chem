@@ -24,7 +24,7 @@ MODULE TAGGED_O3_MOD
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 species,
 !%%% then uncomment this #ifdef statement. (bmy, 4/11/14)
-!#define USE_ALL_TAGO3_SPECIES 1
+#define USE_ALL_TAGO3_SPECIES 1
 !%%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
@@ -41,23 +41,23 @@ MODULE TAGGED_O3_MOD
 !  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE ADVECTED SPECIES:
 !  ----------------------------------------------------------------------------
 !  (1 ) O3      : Total O3
-!  (2 ) O3Strt  : Stratospheric O3
+!  (2 ) O3Strat : Stratospheric O3
 !                                                                             .
 !  THE EXTENDED TAGGED O3 SIMULATION HAS THESE ADVECTED SPECIES:
 !  ----------------------------------------------------------------------------
 !  (1 ) O3      : Total O3
-!  (2 ) O3Strt  : O3 from the Stratosphere      (tropopause - atm top   )
-!  (3 ) O3Ut    : O3 produced in Upper Trop     (350 hPa    - tropopause)
-!  (4 ) O3Mt    : O3 produced in Middle Trop    (PBL top    - 350 hPa   )
-!  (5 ) O3Row   : O3 produced in Rest of World  (surface    - PBL top   )
-!  (6 ) O3PcBl  : O3 produced in Pacific BL     (surface    - PBL top   )
-!  (7 ) O3NaBl  : O3 produced in N. American BL (surface    - PBL top   )
-!  (8 ) O3AtBl  : O3 produced in Atlantic BL    (surface    - PBL top   )
-!  (9 ) O3EuBl  : O3 produced in European BL    (surface    - PBL top   )
-!  (10) O3AfBl  : O3 produced in N. African BL  (surface    - PBL top   )
-!  (11) O3AsBl  : O3 produced in Asian          (surface    - PBL top   )
-!  (12) O3Init  : O3 initial conditions         (all levels             )
-!  (13) O3USA   : O3 produced over the USA      (all levels             )
+!  (2 ) O3Strat : O3 from the Stratosphere      (tropopause - atm top   )
+!  (3 ) O3ut    : O3 produced in Upper Trop     (350 hPa    - tropopause)
+!  (4 ) O3mt    : O3 produced in Middle Trop    (PBL top    - 350 hPa   )
+!  (5 ) O3row   : O3 produced in Rest of World  (surface    - PBL top   )
+!  (6 ) O3pcbl  : O3 produced in Pacific BL     (surface    - PBL top   )
+!  (7 ) O3nabl  : O3 produced in N. American BL (surface    - PBL top   )
+!  (8 ) O3atbl  : O3 produced in Atlantic BL    (surface    - PBL top   )
+!  (9 ) O3eubl  : O3 produced in European BL    (surface    - PBL top   )
+!  (10) O3afbl  : O3 produced in N. African BL  (surface    - PBL top   )
+!  (11) O3asbl  : O3 produced in Asian          (surface    - PBL top   )
+!  (12) O3init  : O3 initial conditions         (all levels             )
+!  (13) O3usa   : O3 produced over the USA      (all levels             )
 !                                                                             .
 !  NOTES:
 !  ----------------------------------------------------------------------------
@@ -337,8 +337,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -454,7 +454,7 @@ CONTAINS
     CALL GC_CheckVar( 'tagged_o3_mod.F: P24H', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     P24H = 0.0_fp
-    CALL HCO_EvalFld( HcoState, 'O3_PROD', P24H, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'O3_PROD', P24H, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get pointer to O3_PROD!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -469,7 +469,7 @@ CONTAINS
     CALL GC_CheckVar( 'tagged_o3_mod.F: L24H', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     L24H = 0.0_fp
-    CALL HCO_EvalFld( HcoState, 'O3_LOSS', L24H, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'O3_LOSS', L24H, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get pointer to O3_LOSS!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

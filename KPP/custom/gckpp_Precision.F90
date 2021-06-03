@@ -1,1 +1,0 @@
-../fullchem/gckpp_Precision.F90

@@ -20,7 +20,11 @@ MODULE CMN_SIZE_MOD
 ! !DEFINED PARAMETERS:
 !
   ! Model top pressure (mb)
+#if defined( MODEL_CESM )
+  REAL*8             :: PTOP
+#else
   REAL*8,  PARAMETER :: PTOP = 0.01d0
+#endif
 
   ! Maximum number of surface types: 73 olson
   INTEGER, PARAMETER :: NSURFTYPE = 73
@@ -52,16 +56,16 @@ MODULE CMN_SIZE_MOD
   INTEGER,  PARAMETER :: NRH = 5
 
   ! Number of dust size bins for transport (tdf, bmy, 3/31/04)
-#ifdef TOMAS
-# if defined( TOMAS40 )
+#if defined(TOMAS)
+#if defined(TOMAS40)
   INTEGER, PARAMETER :: NDSTBIN = 40
-# elif defined( TOMAS15 )
+#elif defined(TOMAS15)
   INTEGER, PARAMETER :: NDSTBIN = 15
-# elif defined( TOMAS12 )
+#elif defined(TOMAS12)
   INTEGER, PARAMETER :: NDSTBIN = 12
-# else
+#else
   INTEGER, PARAMETER :: NDSTBIN = 30
-# endif
+#endif
 #else
   INTEGER, PARAMETER :: NDSTBIN = 4
 #endif

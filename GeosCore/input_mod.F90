@@ -25,7 +25,9 @@ MODULE INPUT_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#if !defined ( MODEL_CESM )
   PUBLIC  :: Read_Input_File
+#endif
   PUBLIC  :: Do_Error_Checks
   PUBLIC  :: Validate_Directories
 !
@@ -45,6 +47,7 @@ MODULE INPUT_MOD
 
 CONTAINS
 !EOC
+#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -144,7 +147,7 @@ CONTAINS
        ! (1) SIMULATION MENU should be listed first.
        ! (2) TIMESTEP MENU should be listed second.
        ! (3) ADVECTED SPECIES MENU should be listed third.
-       ! (4) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
+       ! (4) AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
        !      and DEPOSITION menus (in any order) should follow.
        ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
        !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
@@ -192,14 +195,6 @@ CONTAINS
           CALL READ_AEROSOL_MENU( Input_Opt, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error in "Read_Aerosol_Menu"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-          CALL READ_EMISSIONS_MENU( Input_Opt, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error in "Read_Emissions_Menu"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -397,6 +392,7 @@ CONTAINS
 
   END SUBROUTINE READ_INPUT_FILE
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -688,10 +684,14 @@ CONTAINS
        Input_Opt%MetField = 'GEOSFP'
     CASE( 'MERRA-2', 'MERRA2' )
        Input_Opt%MetField = 'MERRA2'
+    CASE( 'MODELE2.1' )
+       Input_Opt%MetField = 'MODELE2.1'
+    CASE( 'MODELE2.2' )
+       Input_Opt%MetField = 'MODELE2.2'
     CASE DEFAULT
        ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  // &
-                ' met field. Supported met fields are GEOS-FP '   // &
-                ' and MERRA-2. Please check your "input.geos" file.'
+                ' met field. Supported met fields are GEOS-FP, '   // &
+                ' MERRA-2 and ModelE2.1. Please check your "input.geos" file.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     END SELECT
@@ -1001,9 +1001,13 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Compute X grid dimension
-    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / &
-                             State_Grid%DX )
+    ! Center on Int'l Date Line?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Center 180', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) State_Grid%Center180
 
     !-----------------------------------------------------------------
     ! Latitude range
@@ -1042,10 +1046,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Compute Y grid dimension
-    State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / &
-                             State_Grid%DY ) + 1
 
     ! Use half-sized polar boxes?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Half Polar', RC )
@@ -1113,6 +1113,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Compute grid horizontal dimensions
+    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / State_Grid%DX )
+    IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid ) THEN
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY ) + 1
+    ELSE
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY )
+    ENDIF
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -1136,6 +1144,8 @@ CONTAINS
                         State_Grid%NZ
        WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', &
                         State_Grid%HalfPolar
+       WRITE( 6, 130 ) 'Center on Intl Date Line?   : ', &
+                        State_Grid%Center180
        WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', &
                         State_Grid%NestedGrid
        WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', &
@@ -1845,165 +1855,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_emissions_menu
-!
-! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE READ_EMISSIONS_MENU( Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE TIME_MOD,      ONLY : GET_YEAR
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  The Ind_() function now defines all species ID's.  It returns -1 if
-!  a species cannot be found.  Therefore now test for Ind_() > 0  for a
-!  valid species.
-!
-! !REVISION HISTORY:
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    ! Arrays
-    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-    !=======================================================================
-    ! READ_EMISSIONS_MENU begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = 'Error reading the "input.geos" file!'
-    ThisLoc = ' -> at Read_Emissions_Menu (in module GeosCore/input_mod.F90)'
-
-    ! Error check
-    IF ( CT1 /= 2 ) THEN
-       ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
-                'must be read in first!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! NOTE: Prior to FlexGrid, the Input_Opt%LEMIS switch was used to
-    ! turn emissions on or off.  But since FlexGrid, we also use HEMCO
-    ! to read met fields and chemistry inputs as well as emissions.
-    ! Setting Input_Opt%LEMIS = .FALSE. will turn off HEMCO completely,
-    ! which will cause met fields and chemistry inputs not to be read.
-    !
-    ! The quick fix is to just hardwire Input_Opt%LEMIS = .TRUE. and
-    ! then use the MAIN SWITCHES in HEMCO_Config.rc to toggle the
-    ! emissions, met fields, and chemistry inputs on or off.
-    ! We have also removed the corresponding line from input.geos.
-    !
-    !    -- Bob Yantosca (29 Jul 2020)
-    !
-    Input_Opt%LEMIS = .TRUE.
-    !-----------------------------------------------------------------------
-
-    ! HEMCO Input file
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HcoConfigFile', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%HcoConfigFile
-
-    ! Separator line (start of UCX options)
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Use variable methane emissions?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCH4EMIS', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LCH4EMIS
-
-    ! Initialize strat H2O to GEOS-Chem baseline?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETH2O', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2O
-
-    ! Separator line
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !=================================================================
-    ! Error check logical flags
-    !=================================================================
-
-    ! Turn off full-chem only switches
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSETH2O = .FALSE.
-    ENDIF
-
-    ! Return success
-    RC = GC_SUCCESS
-
-    !=================================================================
-    ! Print to screen
-    !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
-       WRITE( 6, '(  a)' ) '--------------'
-       WRITE( 6, 100 ) 'Turn on emissions?          : ', &
-                       Input_Opt%LEMIS
-       WRITE( 6, 130 ) 'HEMCO Configuration file    : ', &
-                        TRIM( Input_Opt%HcoConfigFile )
-       WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ', &
-                        Input_Opt%LCH4EMIS
-       WRITE( 6, 100 ) 'Set initial strat H2O?      : ', &
-                        Input_Opt%LSETH2O
-    ENDIF
-
-    ! FORMAT statements
-100 FORMAT( A, L5 )
-110 FORMAT( A, I5 )
-130 FORMAT( A, A  )
-
-  END SUBROUTINE READ_EMISSIONS_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_co_sim_menu
 !
 ! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU
@@ -2403,6 +2254,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LACTIVEH2O
 
+    ! Use static strat H2O boundary condition?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTATICH2OBC', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%LStaticH2OBC
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2465,10 +2324,9 @@ CONTAINS
 #endif
 
     ! Cannot have active H2O without stratospheric chemistry
-    IF ( (.not.Input_Opt%LUCX) .and. Input_Opt%LACTIVEH2O ) THEN
-       ErrMsg = 'Cannot have active H2O without full strat chem!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( .not.Input_Opt%LUCX ) THEN
+       Input_Opt%LACTIVEH2O   = .FALSE.
+       Input_Opt%LStaticH2OBC = .FALSE.
     ENDIF
 
     ! FAST-JX is only used for fullchem and offline aerosol
@@ -2528,6 +2386,8 @@ CONTAINS
                             Input_Opt%LUCX
        WRITE( 6, 100     ) 'Online strat. H2O?          : ', &
                             Input_Opt%LACTIVEH2O
+       WRITE( 6, 100     ) 'Use robust strat H2O BC?    : ', &
+                            Input_Opt%LStaticH2OBC
        WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', &
                             Input_Opt%USE_ONLINE_O3
        WRITE( 6, 100     ) 'Ozone from met for FAST-JX? : ', &
@@ -3529,12 +3389,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( .not. Input_Opt%LEMIS ) THEN
-       WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
-       WRITE( 6, '(a)' ) ' following diagnostics will also be turned'
-       WRITE( 6, '(a)' ) ' off:  ND06, ND53'
-    ENDIF
-
     ! Binary punch file name
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'BPCH_FILE', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3572,8 +3426,7 @@ CONTAINS
     ENDIF
 #ifdef TOMAS
     READ( SUBSTRS(1), * ) ND06
-    IF ( .not. Input_Opt%LDUST .or. &
-         .not. Input_Opt%LEMIS ) ND06 = 0
+    IF ( .not. Input_Opt%LDUST ) ND06 = 0
     CALL SET_TINDEX( Input_Opt, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN)
 #endif
 
@@ -3608,8 +3461,7 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1), * ) ND53
-    IF ( .not. Input_Opt%ITS_A_POPS_SIM .or. &
-         .not. Input_Opt%LEMIS) ND53 = 0
+    IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
     CALL SET_TINDEX( Input_Opt, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
     !--------------------------
@@ -3652,31 +3504,6 @@ CONTAINS
     CALL SET_TINDEX( Input_Opt, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
 #endif
 
-    !--------------------------
-    ! ND72: Radiation output
-    !--------------------------
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND72', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#ifdef RRTMG
-    !output fields are nspecies*nradfields but user can only specify
-    !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
-    !divided by number of allowed species (PD72R)
-    READ( SUBSTRS(1), * ) ND72
-    CALL SET_TINDEX( Input_Opt, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
-
-    !If LRAD is on then ND72 must be on (so the diagnostic is
-    !available to write into). Check for this
-    IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
-       ErrMsg = 'If LRAD is true then ' // &
-                'ND72 diagnostic must be switched on'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
     !=================================================================
     ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
     !
@@ -3691,10 +3518,6 @@ CONTAINS
     Input_Opt%ND59  = ND59
     Input_Opt%ND60  = ND60
     Input_Opt%ND61  = ND61
-#endif
-
-#ifdef RRTMG
-    Input_Opt%ND72  = ND72
 #endif
 
     ! Loop over # of diagnostics
@@ -4925,8 +4748,7 @@ CONTAINS
 ! !IROUTINE: read_ch4_menu
 !
 ! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of
-!  the GEOS-Chem input file; this defines emissions options for CH4 tagged
-!  simulations.
+!  the GEOS-Chem input file; this defines options for CH4 simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -5024,8 +4846,7 @@ CONTAINS
 ! !IROUTINE: read_pops_menu
 !
 ! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of
-!  the GEOS-Chem input file; this defines emissions options for POPs
-!  simulations.
+!  the GEOS-Chem input file; this defines options for POPs simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -5564,7 +5385,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL            :: LCONV, LCHEM,       LDRYD
-    LOGICAL            :: LEMIS, LTRAN,       LTURB
+    LOGICAL            :: LTRAN, LTURB
     INTEGER            :: I,     J,           K
     INTEGER            :: L,     TS_SMALLEST, TS_DIAG
     INTEGER            :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN
@@ -5586,7 +5407,6 @@ CONTAINS
     LCONV = Input_Opt%LCONV
     LCHEM = Input_Opt%LCHEM
     LDRYD = Input_Opt%LDRYD
-    LEMIS = Input_Opt%LEMIS
     LTRAN = Input_Opt%LTRAN
     LTURB = Input_Opt%LTURB
 
@@ -5595,6 +5415,17 @@ CONTAINS
     TS_CONV = Input_Opt%TS_CONV
     TS_DYN  = Input_Opt%TS_DYN
     TS_RAD  = Input_Opt%TS_RAD
+
+    ! If we're doing the reverse integration
+    ! multiply all the timesteps by -1 here
+    if (TS_DYN < 0) THEN
+       TS_CHEM = TS_CHEM * -1
+       TS_EMIS = TS_EMIS * -1
+       TS_CONV = TS_CONV * -1
+       TS_DYN  = TS_DYN  * -1
+       TS_RAD  = TS_RAD  * -1
+    endif
+         
 
     ! NUNIT is time step in minutes for unit conversion
     TS_UNIT = -1
@@ -5640,7 +5471,7 @@ CONTAINS
     ! transport is enabled.
     !IF ( .not. LTRAN                  ) I = 999999
     IF ( .not. LCONV .and..not. LTURB ) J = 999999
-    IF ( .not. LDRYD .and..not. LEMIS ) K = 999999
+    IF ( .not. LDRYD                  ) K = 999999
     IF ( .not. LCHEM                  ) L = 999999
 
     ! Get the smallest of all of the above
@@ -5672,7 +5503,7 @@ CONTAINS
     ! (ccc, 5/13/09)
     IF ( .not. LTRAN                  ) I = -999999
     IF ( .not. LCONV .and..not. LTURB ) J = -999999
-    IF ( .not. LDRYD .and..not. LEMIS ) K = -999999
+    IF ( .not. LDRYD                  ) K = -999999
     IF ( .not. LCHEM                  ) L = -999999
 
     TS_DIAG = MAX( I, J, K, L )

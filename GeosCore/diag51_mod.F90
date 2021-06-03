@@ -328,8 +328,8 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
     USE CMN_FJX_MOD,        ONLY : ISOPOD
-    USE CMN_O3_MOD               ! SAVEOH, SAVEOA
     USE CMN_SIZE_MOD,       ONLY : NRH, NDUST
+    USE CMN_O3_MOD,         ONLY : SAVEOA
     USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
     USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
@@ -359,15 +359,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL, SAVE     :: FIRST = .TRUE.
-    LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
-    LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
-    INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
-    INTEGER, SAVE     :: id_PAN,      id_MPAN,   id_PPN,  id_O3
-    INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
-    INTEGER, SAVE     :: id_SOAIE,    id_INDIOL, id_LVOCOA
-    INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
-    INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
+    LOGICAL,  SAVE    :: FIRST = .TRUE.
+    LOGICAL,  SAVE    :: IS_FULLCHEM, IS_SEASALT
+    LOGICAL,  SAVE    :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
+    INTEGER,  SAVE    :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
+    INTEGER,  SAVE    :: id_PAN,      id_MPAN,   id_PPN,  id_O3
+    INTEGER,  SAVE    :: id_R4N2,     id_SALA,   id_SALC, id_NO2
+    INTEGER,  SAVE    :: id_SOAIE,    id_INDIOL, id_LVOCOA
+    INTEGER,  SAVE    :: id_SO4,      id_NH4,    id_NIT
+    INTEGER,  SAVE    :: id_BCPI,     id_BCPO,   id_OH
+    REAL(fp), SAVE    :: CONV_OH
 
     ! Scalars
     LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
@@ -422,6 +423,11 @@ CONTAINS
        id_BCPI    = Ind_('BCPI'   )
        id_BCPO    = Ind_('BCPO'   )
        id_OH      = Ind_('OH'     )
+
+       ! Used to convert kg/kg dry to molec/cm3
+       IF ( id_OH > 0 ) THEN
+          CONV_OH = ( AVO / State_Chm%SpcData(id_OH)%Info%Mw_g ) / 1.0e+6_fp
+       ENDIF
 
        ! Set logical flags on first call
        IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -535,20 +541,19 @@ CONTAINS
                 ! Archive afternoon points
                 Q(X,Y,K,W) = Q(X,Y,K,W) + &
                      ( Spc(I,J,L,N) * (AIRMW &
-                     / State_Chm%SpcData(N)%Info%emMW_g ) * GOOD(I) )
+                     / State_Chm%SpcData(N)%Info%MW_g ) * GOOD(I) )
 
-                ! NOTE: We can restore this once we figure out what the
-                ! proper unit conversion is (bmy, 11/20/17)
-                !            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-                !
-                !               !--------------------------------------
-                !               ! OH [molec/cm3]
-                !               ! NOTE: Only archive at chem timestep
-                !               !--------------------------------------
-                !
-                !               ! Accumulate data
-                !               Q(X,Y,K,W) = Q(X,Y,K,W) + &
-                !                   ( SAVEOH(I,J,L,id_OH) * GOOD(X) )
+             ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+
+                !--------------------------------------
+                ! OH [molec/cm3]
+                !--------------------------------------
+
+                ! Accumulate data
+                Q(X,Y,K,W) = Q(X,Y,K,W) +                                    &
+                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) ) *          &
+                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH )
+
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
@@ -561,46 +566,46 @@ CONTAINS
 
                 ! NO
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_NO)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_NO)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_NO)    )
 
                 ! NO2
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_NO2)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_NO2)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_NO2)   )
                 ! PAN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_PAN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_PAN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_PAN)   )
 
                 ! HNO3
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_HNO3)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_HNO3)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_HNO3)  )
 
                 ! MPAN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_MPAN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_MPAN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_MPAN)   )
 
                 ! PPN
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_PPN)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_PPN)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_PPN)   )
 
                 ! R4N2
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_R4N2)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_R4N2)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_R4N2)  )
 
                 ! N2O5
                 TMP = TMP + ( 2e+0_fp * ( AIRMW &
-                          / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_N2O5)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_N2O5)  )
 
                 ! HNO4
                 TMP = TMP + ( ( AIRMW &
-                          / State_Chm%SpcData(id_HNO4)%Info%emMW_g ) &
+                          / State_Chm%SpcData(id_HNO4)%Info%MW_g ) &
                           * GOOD(I) * Spc(I,J,L,id_HNO4)  )
 
                 ! Save afternoon points
@@ -628,7 +633,7 @@ CONTAINS
                 Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(I,J,L) * GOOD(I) )
 
              ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
-                
+
                 !--------------------------------------
                 ! CLOUD TOP HEIGHTS [mb]
                 !--------------------------------------
@@ -654,7 +659,7 @@ CONTAINS
                            ( Spc(I,J,L,id_SALA)   + &
                              Spc(I,J,L,id_SALC) ) * &
                              ( AIRMW &
-                             / State_Chm%SpcData(id_SALA)%Info%emMW_g ) &
+                             / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                                * GOOD(I)
 
              ELSE IF ( N == 509 ) THEN
@@ -1521,7 +1526,7 @@ CONTAINS
           UNIT     = 'unitless'
           GMNL     = ND51_NL
           GMTRC    = 6
-            
+
        ELSE IF ( N == 518 ) THEN
 
           !---------------------

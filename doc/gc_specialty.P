@@ -1,8 +1,0 @@
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOS
-! !SECTION: Specialty simulation modules
-! !DESCRIPTION: These modules contain routines used by the GEOS-Chem "specialty" simulations.
-!EOS
-!------------------------------------------------------------------------------

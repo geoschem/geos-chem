@@ -50,7 +50,12 @@ fo.write('\n')
 fo.write('! Get_OHreactivity - returns the OH reactivity\n')
 fo.write('! The OH reactivity is defined as the inverse of its lifetime.\n')
 fo.write('! This routine was auto-generated using script OHreact_parser.py.\n')
-fo.write('! Generated on '+str(datetime.date.today())+'\n')
+##############################################################################
+### Update by Bob Yantosca (22 Feb 2021)
+### Commented out the date of generation, which will cause Git to interpret
+### the file as a new file that needs to be updated.
+###   fo.write('! Generated on '+str(datetime.date.today())+'\n')
+##############################################################################
 fo.write('! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
 fo.write('\n')
 fo.write('SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )\n')

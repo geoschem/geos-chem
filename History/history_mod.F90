@@ -638,7 +638,7 @@ CONTAINS
        Description    =  ''
        ErrMsg         =  ''
        Contact        =  &
-         'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
+         'GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)'
        Reference      =  'www.geos-chem.org; wiki.geos-chem.org'
        ThisLoc        =  &
          ' -> at History_ReadCollectionData (in module History/history_mod.F90)'

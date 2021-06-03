@@ -136,20 +136,24 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
-     ! EMISSIONS MENU fields
+     ! EMISSIONS fields
      !----------------------------------------
-     LOGICAL                     :: LEMIS
-     CHARACTER(LEN=255)          :: HcoConfigFile
+     LOGICAL                     :: DoEmissions
      INTEGER                     :: TS_EMIS
      LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
+     LOGICAL                     :: LStaticH2OBC
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
      LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
+
+     ! For HEMCO "intermediate" grid (hplin, 6/2/20)
+     LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
+     INTEGER                     :: IMGRID_XSCALE
+     INTEGER                     :: IMGRID_YSCALE
 
      !----------------------------------------
      ! CO MENU fields
@@ -264,7 +268,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND59   ! TOMAS
      INTEGER                     :: ND60   ! TOMAS
      INTEGER                     :: ND61   ! TOMAS
-     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -407,6 +410,27 @@ MODULE Input_Opt_Mod
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
+#endif
+
+#if defined( MODEL_CESM )
+     LOGICAL                     :: onlineAlbedo       = .TRUE. ! Use albedo from land model
+     LOGICAL                     :: onlineLandTypes    = .TRUE. ! Use land types from land model
+     LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
+     LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
+#endif
+
+#ifdef ADJOINT
+     !----------------------------------------
+     ! GCHP adjoint fields
+     !---------------------------------------
+     LOGICAL                     :: IS_ADJOINT
+     LOGICAL                     :: IS_FD_SPOT, IS_FD_GLOBAL
+     INTEGER                     :: FD_STEP
+     LOGICAL                     :: IS_FD_SPOT_THIS_PET
+     INTEGER                     :: IFD, JFD, NFD, LFD, NFD_ADJ
+     INTEGER                     :: CF_IMIN, CF_IMAX
+     INTEGER                     :: CF_JMIN, CF_JMAX
+     INTEGER                     :: CF_LMIN, CF_LMAX
 #endif
 
      !----------------------------------------
@@ -630,16 +654,18 @@ CONTAINS
     !----------------------------------------
     ! EMISSIONS MENU fields
     !----------------------------------------
-    Input_Opt%LEMIS                  = .FALSE.
-    Input_Opt%HcoConfigFile          = ''
+    Input_Opt%DoEmissions            = .TRUE. ! On by default
     Input_Opt%TS_EMIS                = 0
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%LStaticH2OBC           = .FALSE.
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
+    Input_Opt%LIMGRID                = .FALSE.
+    Input_Opt%IMGRID_XSCALE          = 1
+    Input_Opt%IMGRID_YSCALE          = 1
 
     !----------------------------------------
     ! CO MENU fields
@@ -729,9 +755,9 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
-    Input_Opt%TPCORE_IORD            = .FALSE.
-    Input_Opt%TPCORE_JORD            = .FALSE.
-    Input_Opt%TPCORE_KORD            = .FALSE.
+    Input_Opt%TPCORE_IORD            = 0
+    Input_Opt%TPCORE_JORD            = 0
+    Input_Opt%TPCORE_KORD            = 0
     Input_Opt%TS_DYN                 = 0
 
     !----------------------------------------
@@ -789,7 +815,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
-    Input_Opt%ND72                   = 0
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -921,6 +946,21 @@ CONTAINS
 #else
     Input_Opt%AlwaysSetH2O           = .FALSE.
     Input_Opt%TurnOffHetRates        = .FALSE.
+#endif
+
+#ifdef ADJOINT
+    !----------------------------------------
+    ! Fields for adoint
+    !---------------------------------------
+    Input_Opt%IS_ADJOINT             = .FALSE.
+    Input_Opt%IS_FD_SPOT             = .FALSE.
+    Input_Opt%IS_FD_GLOBAL           = .FALSE.
+    Input_Opt%IS_FD_SPOT_THIS_PET    = .FALSE.
+    Input_Opt%FD_STEP                = -999
+    Input_Opt%IFD                    = -999
+    Input_Opt%JFD                    = -999
+    Input_Opt%NFD                    = -999
+    Input_Opt%LFD                    = -999
 #endif
 
     !----------------------------------------

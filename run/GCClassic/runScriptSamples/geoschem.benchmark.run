@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 48
 #SBATCH -N 1
 #SBATCH -t 0-12:00
 #SBATCH -p huce_cascade
@@ -20,7 +20,7 @@
 # !REMARKS:
 #  Designed to be used with the geosfp_4x5_standard run directory created
 #  by the GEOS-Chem Unit Tester. To use this script, you must first compile
-#  the GEOS-Chem code with CMake to create the geos executable.
+#  the GEOS-Chem code with CMake to create the gcclassic executable.
 #
 #  NOTES:
 #  (1) This script is customized for the Harvard "Cannon" cluster.  If you
@@ -30,9 +30,6 @@
 #  (2) SBATCH --exclusive will request an entire node, to prevent backfilling
 #      jobs from affecting timing results.  If you don't need the timing info,
 #      then you can delete this.
-#
-#  (3) Remember to update the version variable below with the current 
-#      GEOS-Chem version number (X.Y.Z).
 #
 # !CALLING SEQUENCE:
 #  To submit run to the SLURM queue system:
@@ -55,22 +52,15 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # Initialize
 #-------------------------------------------------
 
-# Define GEOS-Chem version number (X.Y.Z)
-version=13.0.0
-
-# Define version ID (prefix "GC_" to the version
-# so that file names won't begin with a number)
-id=GC_$version
-
 # Define GEOS-Chem log file
-log=$id.log
+log=GC.log
 
 #-------------------------------------------------
 # Start the simulation
 #-------------------------------------------------
 
 # Run GEOS-Chem and pipe output to log
-srun -c $OMP_NUM_THREADS time -p ./geos >> $log
+srun -c $OMP_NUM_THREADS time -p ./gcclassic >> $log
 
 # Echo end time
 echo '===> Run ended at' `date` >> $log
@@ -88,7 +78,6 @@ grep "model name" /proc/cpuinfo
 grep "cpu MHz"    /proc/cpuinfo
 
 # Clear variable
-unset id
 unset log
 unset nodename
 

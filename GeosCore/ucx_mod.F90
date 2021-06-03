@@ -22,25 +22,33 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-  !#if !defined(ESMF_)
+#if defined( MODEL_CESM )
+    USE CAM_PIO_UTILS, ONLY : CAM_PIO_OPENFILE
+    USE IOFILEMOD,     ONLY : GETFIL
+    USE PIO,           ONLY : PIO_CLOSEFILE, PIO_INQ_DIMID, PIO_INQ_DIMLEN
+    USE PIO,           ONLY : PIO_INQ_VARID, PIO_GET_VAR, PIO_NOERR
+    USE PIO,           ONLY : PIO_NOWRITE, FILE_DESC_T
+#endif
+
+#if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
   USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
   USE m_netcdf_io_read                    ! netCDF data reads
   USE m_netcdf_io_close                   ! netCDF close
-  !#endif
+#endif
 
   IMPLICIT NONE
-  !#if !defined(ESMF_)
+
+#if !defined( EXTERNAL_GRID )
 # include "netcdf.inc"
-  !#endif
+#endif
 
   PRIVATE
 
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
   PUBLIC :: T_STS          ! Max temperature of STS formation (K)
   PUBLIC :: NDENS_AER      ! See below
 !
@@ -135,12 +143,11 @@ MODULE UCX_MOD
   !=================================================================
 
   ! Scalars
-  CHARACTER(LEN=255)   :: NOON_FILE_ROOT
   REAL(fp)             :: SLA_VA
   REAL(fp)             :: SLA_RR
   REAL(fp)             :: SLA_VR
-  REAL(fp), PARAMETER  :: NATMW   = 117.0
-  REAL(fp), PARAMETER  :: ICEMW   = 18.0
+  REAL(fp), PARAMETER  :: NATMW   = 117.0_fp
+  REAL(fp), PARAMETER  :: ICEMW   = 18.0_fp
   REAL(fp), PARAMETER  :: DENSNAT = 1626.e+0_fp
   REAL(fp), PARAMETER  :: DENSICE = 990.0e+0_fp
   REAL(fp), PARAMETER  :: ISR_ClNO3=1.e+0_fp/sqrt(97.46e+0_fp)
@@ -406,13 +413,13 @@ CONTAINS
        ! may not be present or correctly defined
        OLD_N   = 0.0_fp
        OLD_NO  = Spc(I,J,L,id_NO) * &
-                 (AIRMW / State_Chm%SpcData(id_NO )%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO )%Info%MW_g) * XAIR
        OLD_NO2 = Spc(I,J,L,id_NO2) * &
-                 (AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO2)%Info%MW_g) * XAIR
        OLD_NO3 = Spc(I,J,L,id_NO3) * &
-                 (AIRMW / State_Chm%SpcData(id_NO3)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_NO3)%Info%MW_g) * XAIR
        OLD_N2O = kgN2O * &
-                 (AIRMW / State_Chm%SpcData(id_N2O)%Info%emMW_g) * XAIR
+                 (AIRMW / State_Chm%SpcData(id_N2O)%Info%MW_g) * XAIR
 
        ! Total concentrations
        localNOx = OLD_N + OLD_NO + OLD_NO2 + OLD_NO3
@@ -420,7 +427,7 @@ CONTAINS
 
        ! Get ozone from model
        LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / &
-                  State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
+                  State_Chm%SpcData(id_O3)%Info%MW_g ) * XAIR
 
        ! These reactions are relevant during both day and night-time
        ! chemistry
@@ -527,14 +534,14 @@ CONTAINS
 
           ! Calculate NOx in kg NO at the beginning
           kgNOx = localNOx / (AIRMW / &
-                  State_Chm%SpcData(id_NO )%Info%emMW_g*XAIR)
+                  State_Chm%SpcData(id_NO )%Info%MW_g*XAIR)
 
           ! Calculate total change in NOx and N2O
           ! Explicit Euler method (fast)
           DNOX = NOXRATE * DTCHEM / ( ( AIRMW / &
-                 State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
+                 State_Chm%SpcData(id_NO)%Info%MW_g) * XAIR )
           DN2O = N2ORATE * DTCHEM / ( AIRMW / &
-                 State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
+                 State_Chm%SpcData(id_N2O)%Info%MW_g * XAIR )
 
           ! Safety check - ensure NOx and N2O are positive
           IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
@@ -558,11 +565,11 @@ CONTAINS
        ! using negative molar mass for N (SDE 2018-03-19)
        NEW_N   = 0.0e+0_fp
        NEW_NO  = localNOx*(fracN+fracNO) / (AIRMW/ &
-                 State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO )%Info%MW_g * XAIR)
        NEW_NO2 = localNOx*fracNO2/(AIRMW/ &
-                 State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO2)%Info%MW_g * XAIR)
        NEW_NO3 = localNOx*fracNO3/(AIRMW/ &
-                 State_Chm%SpcData(id_NO3)%Info%emMW_g * XAIR)
+                 State_Chm%SpcData(id_NO3)%Info%MW_g * XAIR)
        NEW_N2O = kgN2O
 
        Spc(I,J,L,id_N)   = 0.d0
@@ -661,6 +668,12 @@ CONTAINS
     REAL(fp), DIMENSION(:,:,:), POINTER   :: NOXDATA2D => NULL()
     REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
     INTEGER                               :: LSTART
+
+#if defined( MODEL_CESM )
+    INTEGER            :: iret
+    INTEGER            :: vid
+    TYPE(FILE_DESC_T)  :: ncid
+#endif
 
     ! Local variables for quantities from Input_Opt
     LOGICAL                               :: prtDebug
@@ -867,8 +880,8 @@ CONTAINS
     LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
 
     ! Copy fields from species database
-    NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
-    HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
+    NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%MW_g  ! g/mol
+    HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%MW_g ! g/mol
 
     ! Initialize pointers
     Spc       => State_Chm%Species     ! Chemical species [kg]
@@ -1437,7 +1450,7 @@ CONTAINS
     prtDebug = Input_Opt%LPRT .and. Input_Opt%amIRoot
 
     ! Copy fields from species database
-    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
 
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
@@ -1707,9 +1720,9 @@ CONTAINS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Copy fields from species database
-    NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%emMW_g   ! g/mol
-    HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%emMW_g  ! g/mol
-    H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%emMW_g   ! g/mol
+    NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%MW_g   ! g/mol
+    HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%MW_g  ! g/mol
+    H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%MW_g   ! g/mol
 
     ! Initialize GEOS-Chem species array [kg]
     Spc => State_Chm%Species
@@ -1756,7 +1769,7 @@ CONTAINS
     !$OMP PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L    ) &
     !$OMP PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC ) &
     !$OMP PRIVATE( VOL_TOT,      BOX_LAT                           ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP SCHEDULE( DYNAMIC, 1                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -2013,19 +2026,19 @@ CONTAINS
 
        ! Calculate mixing ratios of other relevant species
        H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / &
-                  State_Chm%SpcData(id_SO4)%Info%emMW_g
+                  State_Chm%SpcData(id_SO4)%Info%MW_g
        BrNO3SUM = Spc(I,J,L,id_BrNO3) * INVAIR / &
-                  State_Chm%SpcData(id_BrNO3)%Info%emMW_g
+                  State_Chm%SpcData(id_BrNO3)%Info%MW_g
        ClNO3SUM = Spc(I,J,L,id_ClNO3) * INVAIR / &
-                  State_Chm%SpcData(id_ClNO3)%Info%emMW_g
+                  State_Chm%SpcData(id_ClNO3)%Info%MW_g
        HOClSUM  = Spc(I,J,L,id_HOCl) * INVAIR / &
-                  State_Chm%SpcData(id_HOCl)%Info%emMW_g
+                  State_Chm%SpcData(id_HOCl)%Info%MW_g
        HClSUM   = Spc(I,J,L,id_HCl) * INVAIR / &
-                  State_Chm%SpcData(id_HCl)%Info%emMW_g
+                  State_Chm%SpcData(id_HCl)%Info%MW_g
        HOBrSUM  = Spc(I,J,L,id_HOBr) * INVAIR / &
-                  State_Chm%SpcData(id_HOBr)%Info%emMW_g
+                  State_Chm%SpcData(id_HOBr)%Info%MW_g
        HBrSUM   = Spc(I,J,L,id_HBr) * INVAIR / &
-                  State_Chm%SpcData(id_HBr)%Info%emMW_g
+                  State_Chm%SpcData(id_HBr)%Info%MW_g
 
        ! H2SO4 gas fraction calculated earlier throughout grid
        ! Consider gaseoues H2SO4 to be unavailable for SLA
@@ -3663,8 +3676,12 @@ CONTAINS
        IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
           ! Level with minimum temperature,
           ! use MASK to screen for >10 hPa
-          LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
-                           MASK=(State_Met%PMID(I,J,:) >= 10) )
+          If (Input_Opt%LStaticH2OBC) Then
+             LEVCPT = MINLOC(ABS(State_Met%PMID(I,J,:) - 70), DIM=1)
+          Else
+             LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
+                              MASK=(State_Met%PMID(I,J,:) >= 10) )
+          End If
        ELSE
           LEVCPT = -1
        ENDIF
@@ -3805,8 +3822,8 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from species database
-    SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%emMW_g ! g/mol
-    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+    SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%MW_g ! g/mol
+    SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
     RELWT    = SO2_MW_G / SO4_MW_G
 
     ! Initialize GEOS-Chem species array [kg]
@@ -3876,6 +3893,12 @@ CONTAINS
     USE FILE_MOD,           ONLY : IoError
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
+#if defined( MODEL_CESM )
+    USE UNITS,              ONLY : freeUnit
+#if defined( SPMD )
+    USE MPISHORTHAND
+#endif
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3896,12 +3919,17 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
+#if defined( MODEL_CESM ) && defined( SPMD )
+    INTEGER            :: nSize ! Number of elements in NOXCOEFF
+#endif
 
     ! Strings
     CHARACTER(LEN=255) :: NOX_FILE
     CHARACTER(LEN=255) :: TARG_TRAC
     CHARACTER(LEN=255) :: DBGMSG
     CHARACTER(LEN=255) :: FileMsg
+    CHARACTER(LEN=255) :: GridSpec
+    CHARACTER(LEN=255) :: NOON_FILE_ROOT
 
     !=================================================================
     ! NOXCOEFF_INIT begins here!
@@ -3909,6 +3937,27 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+
+    ! --------------------------------------------------------------
+    ! Input data sources
+    ! --------------------------------------------------------------
+
+    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
+    ! This is ok for the NOx coeffs which can be regridded on the fly
+    ! from 2x25 onto any other grid. This won't work for the 2D
+    ! boundary conditions, but those have been checked in the logical
+    ! check above (USE2DDATA).
+    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+       GRIDSPEC = 'Grid4x5/InitCFC_'
+    ELSE
+       GRIDSPEC = 'Grid2x25/InitCFC_'
+    ENDIF
+    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
+#ifdef MODEL_GEOS
+         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
+#else
+         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+#endif
 
     !=================================================================
     ! In dry-run mode, print file paths to dryrun log and exit.
@@ -3995,6 +4044,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
     NOXCOEFF = 0.0e+0_fp
 
+#if defined( MODEL_CESM )
+    nSize = JJNOXCOEFF * UCX_NLEVS * 6 * 12
+    IF ( Input_Opt%amIRoot ) THEN
+#endif
     ! Fill array
     DO IMON  = 1,12
     DO ITRAC = 1,6
@@ -4065,9 +4118,18 @@ CONTAINS
        ENDDO
 
        CLOSE(IU_FILE)
+#if defined( MODEL_CESM )
+       CALL freeUnit( IU_FILE )
+#endif
 
     ENDDO !ITRAC
     ENDDO !IMON
+#if defined( MODEL_CESM )
+    ENDIF
+#if defined( SPMD )
+    CALL MPIBCAST( NOXCOEFF, nSize, MPIR8, 0, MPICOM )
+#endif
+#endif
 
   END SUBROUTINE NOXCOEFF_INIT
 !EOC
@@ -4237,71 +4299,21 @@ CONTAINS
        WRITE( 6,'(a)') REPEAT( '=', 79 )
     ENDIF
 
-    ! --------------------------------------------------------------
-    ! Input data sources
-    ! --------------------------------------------------------------
-
-    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
-    ! This is ok for the NOx coeffs which can be regridded on the fly
-    ! from 2x25 onto any other grid. This won't work for the 2D
-    ! boundary conditions, but those have been checked in the logical
-    ! check above (USE2DDATA).
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       GRIDSPEC = 'Grid4x5/InitCFC_'
-    ELSE
-       GRIDSPEC = 'Grid2x25/InitCFC_'
-    ENDIF
-    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
-#ifdef MODEL_GEOS
-         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
-#else
-         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-#endif
-
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and return.
     !=================================================================
     IF ( Input_Opt%DryRun ) THEN
 
-       ! Test if the file exists and define an output string
-       FileName = Noon_File_Root
-       INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
-       IF ( FileExists ) THEN
-          FileMsg = 'UCX (SFCMR_READ): Opening'
-       ELSE
-          FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-       ENDIF
-
-       ! Write to stdout for the dry-run simulation
-       IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
-300       FORMAT( a, ' ', a )
-       ENDIF
-
+       ! Get dry-run output from NOXCOEFF_INIT as well
+       CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
+       
        ! Exit without doing any computation (dry-run only)
        RETURN
     ENDIF
 
     !=================================================================
-    ! For regular simulations, read data from files
+    ! For regular simulations, allocate arrays
     !=================================================================
-
-    ! Write the status of Noon_File_Root to stdout
-    INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
-    IF ( FileExists ) THEN
-       FileMsg = 'UCX (SFCMR_READ): Opening'
-    ELSE
-       FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-    ENDIF
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
-    ENDIF
-
-    IF ( prtDebug ) THEN
-       WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ', &
-            TRIM(NOON_FILE_ROOT)
-       CALL DEBUG_MSG( TRIM(DBGMSG) )
-    ENDIF
 
     ! Allocate arrays of input pressure levels and lat edges
     ALLOCATE( UCX_PLEVS( UCX_NLEVS ), STAT=AS )

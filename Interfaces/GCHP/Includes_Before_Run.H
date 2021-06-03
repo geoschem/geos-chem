@@ -1,7 +1,6 @@
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -33,7 +32,6 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRCLND              = FRLAND                     ! 1
   State_Met%FRLAND              = FRLAND                     ! 1
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
@@ -123,6 +121,7 @@
   End Do
   End Do
 
+
   ! Read MODIS leaf area index (LAI) from imports of post-processed MODIS files.
   ! The third dimension is land type and not level, possible to do with MAPL
   ! only because the # of land types is the same as # of level edges.
@@ -158,3 +157,35 @@
   !=========================================================================
   State_Met%FLASH_DENS         = FLASH_DENS                  ! #/km2/s
   State_Met%CONV_DEPTH         = CONV_DEPTH                  ! m
+
+#ifdef ADJOINT
+  IF (ASSOCIATED(CostFuncMask)) THEN
+      if (MAPL_Am_I_Root()) &
+          WRITE(*,*) ' Loading adjoint cost function mask'
+      ! cost function mask
+      State_Chm%CostFuncMask = CostFuncMask
+  ELSEIF (Input_Opt%CF_IMIN > 0 .and. Input_Opt%CF_JMIN > 0) THEN
+      IF (FIRST) THEN
+         if (MAPL_Am_I_Root()) &
+             WRITE(*,*) ' Cost function range supplied.'
+       WRITE(*,1027) Input_Opt%thisCPU,   &
+            Input_Opt%CF_IMIN, Input_Opt%CF_IMAX, &
+            Input_Opt%CF_JMIN, Input_Opt%CF_JMAX, &
+            Input_Opt%CF_LMIN, Input_Opt%CF_LMAX
+1027   FORMAT('CF on Pet ', i3, ' I = (', i3, ', ', i3, ') &
+             J = ( ', i3, ', ', i3, ') &
+             L = (', i3, ', ', i3, ')')
+
+
+         State_Chm%CostFuncMask = 0d0
+         DO L=Input_Opt%CF_LMIN,Input_Opt%CF_LMAX
+         DO J=Input_Opt%CF_JMIN,Input_opt%CF_JMAX
+            DO I=Input_opt%CF_IMIN, Input_Opt%CF_IMAX
+               State_Chm%CostFuncMask(I,J,L) = 1d0
+            ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+  ENDIF
+
+#endif

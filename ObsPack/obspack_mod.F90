@@ -50,7 +50,6 @@ MODULE ObsPack_Mod
 ! !REVISION HISTORY:
 !  04 Jun 2015 - A. Jacobson - Adapted from v10.1 planeflight_mod.f, following
 !                              similar work done in v9.2 by Andrew Schuh.
-!  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -88,7 +87,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Error_Mod,      ONLY : Debug_Msg
     USE File_Mod,       ONLY : File_Exists
-    USE Input_Opt_Mod,  ONLY : OptInput 
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
     USE Time_Mod,       ONLY : Expand_Date
 !
@@ -130,7 +129,7 @@ CONTAINS
     RC       =  GC_SUCCESS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
-    ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90' 
+    ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90'
 
     ! Assume that there are ObsPack data for today
     State_Diag%Do_ObsPack = .TRUE.
@@ -176,7 +175,7 @@ CONTAINS
     CALL Expand_Date( State_Diag%ObsPack_OutFile, yyyymmdd, hhmmss )
 
     ! If we can't find a ObsPack file for today's date, return
-    IF ( .NOT. FILE_EXISTS( TRIM( State_Diag%ObsPack_InFile ) ) ) THEN 
+    IF ( .NOT. FILE_EXISTS( TRIM( State_Diag%ObsPack_InFile ) ) ) THEN
        State_Diag%Do_ObsPack = .FALSE.
        State_Diag%ObsPack_nObs = 0
        RETURN
@@ -238,7 +237,7 @@ CONTAINS
     USE CharPak_Mod,            ONLY : CStrip
     USE ErrCode_Mod
     USE File_Mod,               ONLY : File_Exists
-    USE Input_Opt_Mod,          ONLY : OptInput 
+    USE Input_Opt_Mod,          ONLY : OptInput
     USE State_Diag_Mod,         ONLY : DgnState
     USE m_netcdf_io_open,       ONLY : Ncop_Rd
     USE m_netcdf_io_get_dimlen, ONLY : Ncget_Dimlen
@@ -257,15 +256,23 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REMARKS:
 !  We read in all data available in the input file,
 !  but it is possible that there are observations that
-!  fall outside the IVALb-IVALe time period
+!  fall outside the IVALb-IVALe time period.
 !
-! !REVISION HISTORY: 
+!  NOTE: Starting in ObsPack v6, "time_components" indicates the start-time
+!  of the sampling interval, not the center time.  For the center time, we
+!  need to read the "time" variable.  The "time" variable represents the
+!  center of the averaging window in all OBSPACK data versions.  Therefore,
+!  we need to skip reading the "time_components" netCDF variable, and
+!  we don't need to allocate the "central_time" work array.  Changes to the
+!  code will be commented out with "%%% FIX FOR OBSPACK V6 DATA" tags.
+!     -- Andy Jacobson and Bob Yantosca (26 Feb 2021)
+!
+! !REVISION HISTORY:
 !  05 Jun 2015 - A. Jacobson - first version
-!  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS_Chem code
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -274,27 +281,32 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL              :: It_Exists
-    INTEGER              :: fId, N, nObs, nSpecies
+    LOGICAL              :: It_Exists,  Window_Start_Time
+    INTEGER              :: fId,        vId
+    INTEGER              :: N,          nObs
+    INTEGER              :: nSpecies
 
     ! Arrays
-    INTEGER, ALLOCATABLE :: central_time(:,:)
-    INTEGER              :: st1d(1), ct1d(1)
-    INTEGER              :: st2d(2), ct2d(2)
+    INTEGER, ALLOCATABLE :: tmp_int(:)
+    INTEGER              :: st1d(1),    ct1d(1)
+    INTEGER              :: st2d(2),    ct2d(2)
 
     ! Strings
     CHARACTER(LEN=30 )   :: varName
     CHARACTER(LEN=512)   :: ErrMsg
     CHARACTER(LEN=255)   :: ThisLoc
+    CHARACTER(LEN=255)   :: comment
 
     !=======================================================================
     ! OBSPACK_READ_INPUT begins here
     !=======================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at ObsPack_Read_Input (in module ObsPack/obspack_mod.F90)'
+    RC                = GC_SUCCESS
+    Window_Start_Time = .TRUE.
+    ErrMsg            = ''
+    ThisLoc           = &
+     ' -> at ObsPack_Read_Input (in module ObsPack/obspack_mod.F90)'
 
     !=======================================================================
     ! If obs array is already allocated, assume that we need to
@@ -332,11 +344,11 @@ CONTAINS
     !=======================================================================
     ! Allocate the relevant fields of State_Diag
     !=======================================================================
-    ALLOCATE( State_Diag%ObsPack_ID( nObs ), STAT=RC ) 
+    ALLOCATE( State_Diag%ObsPack_ID( nObs ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Id', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Id = ''
-   
+
     ALLOCATE( State_Diag%ObsPack_nSamples( nObs ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_nSamples', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -345,8 +357,8 @@ CONTAINS
     ALLOCATE( State_Diag%ObsPack_Strategy( nObs ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Strategy', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
-    ALLOCATE( State_Diag%ObsPack_Latitude( nObs ), STAT=RC ) 
+
+    ALLOCATE( State_Diag%ObsPack_Latitude( nObs ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Latitude', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Latitude = 0.0_f4
@@ -412,8 +424,8 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Species = 0.0_f4
 
-    ! central_time is a local work array
-    ALLOCATE( central_time( 6, nObs ), STAT=RC )
+    ! Work array (for time)
+    ALLOCATE( tmp_int( nObs ), STAT=RC )
     CALL GC_CheckVar( 'obspack_mod.F:central_time', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -429,7 +441,7 @@ CONTAINS
 
     varName = 'latitude'
     CALL NcRd( State_Diag%ObsPack_Latitude,  fId, TRIM(varName), st1d, ct1d )
-    
+
     varName = 'longitude'
     CALL NcRd( State_Diag%ObsPack_Longitude, fId, TRIM(varName), st1d, ct1d )
 
@@ -464,14 +476,35 @@ CONTAINS
     ENDDO
 
     !----------------------------
-    ! Read time components
-    ! (Y, M, D, hr, min, sec)
+    ! Read time
+    ! (seconds since 1970)
     !----------------------------
-    st2d = (/ 1, 1    /)
-    ct2d = (/ 6, nObs /)
+    st1d = (/ 1    /)
+    ct1d = (/ nObs /)
 
-    varName = 'time_components'
-    CALL NcRd( Central_Time, fId, TRIM(varName), st2d, ct2d )
+    varName = 'time'
+    CALL NcRd( tmp_int, fId, TRIM(varName), st1d, ct1d )
+
+    ! Look for time:comment string, as this will determine if "time" is
+    ! the start time or midpoint time of the averaging window.
+    ! If the comment is not found, we time = start fo the averaging window.
+    RC = Nf_Inq_Varid ( fId, varName, vId )
+    RC = Nf_Get_Att_Text( fId, vId, "comment", comment )
+    IF ( RC == NF_NOERR ) THEN
+       N = INDEX( comment, 'midpoint of the averaging interval' )
+       IF ( N > 0 ) Window_Start_Time = .FALSE.
+    ENDIF
+
+    ! Assign the values from "time" to the proper tracking array
+    ! which will be used to define the bounds of the sample window
+    IF ( Window_Start_Time ) THEN
+       State_Diag%ObsPack_Ival_Start  = tmp_int
+       IF ( Input_Opt%amIRoot ) WRITE( 6, 50 ) 'start'
+    ELSE
+       State_Diag%ObsPack_Ival_Center = tmp_int
+       IF ( Input_Opt%amIRoot ) WRITE( 6, 50 ) 'midpoint'
+    ENDIF
+ 50 FORMAT( '     - OBSPACK: "time" indicates ', a, ' of sample window' )
 
     ! Close input netCDF file
     CALL NcCl( fId )
@@ -505,16 +538,10 @@ CONTAINS
           ! Mark that the data will be skipped
           State_Diag%ObsPack_strategy(N) = 0
        ENDIF
-       
-       ! Compute the center time of the observation as seconds since 1970
-       State_Diag%ObsPack_Ival_Center(N) =                                   &
-           Seconds_Since_1970( central_time(1,N),                            &
-                               central_time(2,N),                            &
-                               central_time(3,N),                            &
-                               central_time(4,N),                            &
-                               central_time(5,N),                            & 
-                               central_time(6,N)  )
 
+       !====================================================================
+       ! Construct the sampling intervals from the center time
+       !====================================================================
 
        ! Pick the start and end time of the averaging interval
        ! depending on the averaging strategy listed in the file
@@ -522,54 +549,88 @@ CONTAINS
 
           !------------------
           ! DO-NOT-SAMPLE
+          ! set start > end
           !------------------
-          CASE( 0 ) 
-             State_Diag%ObsPack_Ival_Start(N) =                              &
-                State_Diag%ObsPack_Ival_Center(N) + 1
+          CASE( 0 )
+
+             IF ( Window_Start_Time ) THEN
+                State_Diag%ObsPack_Ival_Center(N) =                          &
+                     State_Diag%ObsPack_Ival_Start(N)  - 1.0_f8
+             ELSE
+                State_Diag%ObsPack_Ival_Start(N) =                           &
+                     State_Diag%ObsPack_Ival_Center(N) + 1.0_f8
+             ENDIF
 
              State_Diag%ObsPack_Ival_End(N) =                                &
-                State_Diag%ObsPack_Ival_Center(N) - 1
+                  State_Diag%ObsPack_Ival_Center(N)    - 1.0_f8
+
 
           !------------------
           ! 4-hour window
           !------------------
           CASE( 1 )
-             State_Diag%ObsPack_Ival_Start(N) =                              &
-                State_Diag%ObsPack_Ival_Center(N) - 7200.0_f8
+
+             IF ( Window_Start_Time ) THEN
+                State_Diag%ObsPack_Ival_Center(N) =                          &
+                     State_Diag%ObsPack_Ival_Start(N)  + 7200.0_f8
+             ELSE
+                State_Diag%ObsPack_Ival_Start(N) =                           &
+                     State_Diag%ObsPack_Ival_Center(N) - 7200.0_f8
+             ENDIF
 
              State_Diag%ObsPack_Ival_End(N) =                                &
-                State_Diag%ObsPack_Ival_center(N) + 7200.0_f8
+                  State_Diag%ObsPack_Ival_Center(N)    + 7200.0_f8
 
           !------------------
           ! 1-hour window
           !------------------
-          CASE( 2 ) 
-             State_Diag%ObsPack_Ival_Start(N) =                              &
-                State_Diag%ObsPack_Ival_Center(N) - 1800.0_f8
+          CASE( 2 )
 
-             State_Diag%ObsPack_Ival_end(N) =                                &
-                State_Diag%ObsPack_Ival_center(N) + 1800.0_f8
+             IF ( Window_Start_Time ) THEN
+                State_Diag%ObsPack_Ival_Center(N) =                          &
+                     State_Diag%ObsPack_Ival_Start(N)  + 1800.0_f8
+             ELSE
+                State_Diag%ObsPack_Ival_Start(N) =                           &
+                     State_Diag%ObsPack_Ival_Center(N) - 1800.0_f8
+             ENDIF
+
+             State_Diag%ObsPack_Ival_End(N) =                                &
+                  State_Diag%ObsPack_Ival_center(N)    + 1800.0_f8
+
 
           !------------------
           ! 90-minute window
           !------------------
           CASE( 3 )
-             State_Diag%ObsPack_Ival_Start(N) =                              &
-                State_Diag%ObsPack_Ival_Center(N) - 2700.0_f8
+
+             IF ( Window_Start_Time ) THEN
+                State_Diag%ObsPack_Ival_Center(N) =                           &
+                     State_Diag%ObsPack_Ival_Start(N)  + 2700.0_f8
+             ELSE
+
+                State_Diag%ObsPack_Ival_Start(N) =                           &
+                     State_Diag%ObsPack_Ival_Center(N) - 2700.0_f8
+             ENDIF
 
              State_Diag%ObsPack_Ival_End(N) =                                &
-                State_Diag%ObsPack_Ival_Center(N) + 2700.0_f8
+                  State_Diag%ObsPack_Ival_Center(N)    + 2700.0_f8
+
 
           !---------------------
           ! Instaneous Sampling
           !---------------------
           CASE( 4 )
-             State_Diag%ObsPack_Ival_Start(N) =                              &
-                State_Diag%ObsPack_Ival_Center(N)
-                                                              
-             State_Diag%ObsPack_Ival_End(N) =                                &
-                State_Diag%ObsPack_Ival_Center(N) 
 
+             IF ( Window_Start_Time ) THEN
+                State_Diag%ObsPack_Ival_Center(N) =                          &
+                     State_Diag%ObsPack_Ival_Start(N)
+             ELSE
+                State_Diag%ObsPack_Ival_Start(N) =                           &
+                     State_Diag%ObsPack_Ival_Center(N)
+             ENDIF
+
+             State_Diag%ObsPack_Ival_End(N) =                                &
+                  State_Diag%ObsPack_Ival_Center(N)
 
           !------------------
           ! Exit w/ error
@@ -582,13 +643,14 @@ CONTAINS
              RETURN
 
        END SELECT
-
     ENDDO
 
-    ! Deallocate the central time array
-    IF ( ALLOCATED( central_time ) ) THEN
-       DEALLOCATE( central_time, STAT=RC )
-       CALL GC_CheckVar( 'Central_Time', 2, RC )
+    !========================================================================
+    ! Cleanup and quit
+    !========================================================================
+    IF ( ALLOCATED( tmp_int ) ) THEN
+       DEALLOCATE( tmp_int, STAT=RC )
+       CALL GC_CheckVar( 'tmp_int', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -610,7 +672,7 @@ CONTAINS
  SUBROUTINE ObsPack_Cleanup( Input_Opt, State_Diag, RC )
 !
 ! !USES:
-!     
+!
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
    USE State_Diag_Mod, ONLY : DgnState
@@ -626,8 +688,8 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(OUT)  :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Jun 2015 - A. Jacobson - first version
 !  05 Dec 2018 - R. Yantosca - Implemented into GEOS-Chem standard code
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -781,12 +843,12 @@ CONTAINS
     USE Time_Mod,       ONLY : Get_NYMDe
     USE Time_Mod,       ONLY : System_Timestamp
     USE Time_Mod,       ONLY : Ymd_Extract
-    
+
     ! NetCDF modules
     USE m_netcdf_io_define
     USE m_netcdf_io_create
     USE m_netcdf_io_write
-    USE m_netcdf_io_close     
+    USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !
@@ -799,8 +861,8 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Jun 2015 - A. Jacobson - First version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -818,7 +880,7 @@ CONTAINS
     INTEGER               :: vid,        nSamples
     INTEGER               :: N,          S
     INTEGER               :: dId_obs,    dId_spec
-    INTEGER               :: dId_obslen, dId_speclen  
+    INTEGER               :: dId_obslen, dId_speclen
 
     ! Arrays
     INTEGER               :: st1d(1),    ct1d(1),    dims_1d(1)
@@ -877,7 +939,7 @@ CONTAINS
     CALL GC_CheckVar( 'obspack_mod.F90:aveTime', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     aveTime = State_Diag%ObsPack_Ival_End - State_Diag%ObsPack_Ival_Start
- 
+
     !=======================================================================
     ! Compute averages
     !=======================================================================
@@ -900,7 +962,7 @@ CONTAINS
           State_Diag%ObsPack_Q(N)   = State_Diag%ObsPack_Q(N)   / nSamples
           State_Diag%ObsPack_T(N)   = State_Diag%ObsPack_T(N)   / nSamples
           State_Diag%ObsPack_P(N)   = State_Diag%ObsPack_P(N)   / nSamples
-          
+
           ! Species concentrations
           DO S = 1, State_Diag%ObsPack_nSpecies
              State_Diag%ObsPack_Species(N,S) =                               &
@@ -917,7 +979,7 @@ CONTAINS
     ! Print info
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 100 ) TRIM( State_Diag%ObsPack_OutFile )
-100    FORMAT( '     - OBSPACK: Writing file ', a ) 
+100    FORMAT( '     - OBSPACK: Writing file ', a )
     ENDIF
 
     ! Create netCDF file and save the file ID in State_Diag
@@ -1090,19 +1152,19 @@ CONTAINS
        CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)       )
        CALL NcDef_Var_Attributes( fId, vId, 'units',     'mol mol-1'        )
        CALL NcDef_Var_Attributes( fId, vId, '_FillValue', -1e34             )
-       
+
     ENDDO
 
     ! End the definition section
     CALL NcEnd_def( fId )
- 
+
     !=======================================================================
     ! Write variables to disk
     ! NOTE: Dimension order is row-major (i.e. the reverse of Fortran)
     !=======================================================================
 
     !---------------------------------------
-    ! Write 2-D variables 
+    ! Write 2-D variables
     !---------------------------------------
     st2d    = (/ 1,            1    /)
     ct2d    = (/ CHAR_LEN_OBS, nObs /)
@@ -1111,7 +1173,7 @@ CONTAINS
     CALL NcWr( State_Diag%ObsPack_Id,       fId, TRIM(varName), st2d, ct2d  )
 
     !---------------------------------------
-    ! Write 1-D variables 
+    ! Write 1-D variables
     !---------------------------------------
     st1d = (/ 1    /)
     ct1d = (/ nObs /)
@@ -1139,7 +1201,7 @@ CONTAINS
 
     varName = 'v'
     CALL NcWr( State_Diag%ObsPack_V,        fId, TRIM(varName), st1d, ct1d  )
-    
+
     varName = 'blh'
     CALL NcWr( State_Diag%ObsPack_BLH,      fId, TRIM(varName), st1d, ct1d  )
 
@@ -1223,7 +1285,7 @@ CONTAINS
     USE Time_Mod,       ONLY : Ymd_Extract
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: yyyymmdd    ! Current date
     INTEGER,        INTENT(IN)    :: hhmmss      ! Current time
@@ -1231,19 +1293,19 @@ CONTAINS
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  08 Jun 2015 - A. Jacobson, A. Schuh - imported from Andrew Schuh's
 !                                        ct_mod.F, itself modified from
 !                                        planeflight_mod.F
@@ -1301,10 +1363,10 @@ CONTAINS
     ! Extract date and time into components
     CALL Ymd_Extract( yyyymmdd, Yr, Mo, Da )
     CALL Ymd_Extract( hhmmss,   Hr, Mn, Sc )
- 
+
     ! Compute elapsed seconds since 1970
     TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
-       
+
     TsStart = TsEnd - Input_Opt%TS_DYN
 
     ! Logfile header
@@ -1320,7 +1382,7 @@ CONTAINS
 
     ! Loop over observations
     DO N = 1, State_Diag%ObsPack_nObs
-       
+
        !initializing flag for whether sampling should occur at this timestep
        doSample = .false.
 
@@ -1338,15 +1400,15 @@ CONTAINS
                   (State_Diag%ObsPack_Ival_Center(N) - TsEnd) < (Input_Opt%TS_DYN/2.) ) doSample =.true.
           CASE DEFAULT
              ErrMsg = "Sample Strategy not implemented in ObsPack_Sample Subroutine"
-             CALL GC_Error( ErrMsg, RC, ThisLoc )     
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
        END SELECT
-                
-                
+
+
 
        ! If sampling strategy time-step conditions are met, sample at these times
-       IF ( doSample ) THEN 
-          
+       IF ( doSample ) THEN
+
           ! Print the observations that are sampled here
           IF ( prtLog ) THEN
              WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
@@ -1377,7 +1439,7 @@ CONTAINS
 
              ! Get the proper index for State_Chm%Species
              S = State_Diag%ObsPack_Species_Ind(R)
-             
+
              ! Add the species concentration
              !%%% TODO: Maybe do an in-line unit conversion to avoid
              !%%% converting units for all species if we are only saving
@@ -1390,22 +1452,22 @@ CONTAINS
           ! Archive met fields
           !-----------------------
           State_Diag%ObsPack_U(N)   = State_Diag%ObsPack_U(N)                &
-                                    + State_Met%U(I,J,L) 
+                                    + State_Met%U(I,J,L)
 
           State_Diag%ObsPack_V(N)   = State_Diag%ObsPack_V(N)                &
-                                    + State_Met%V(I,J,L) 
+                                    + State_Met%V(I,J,L)
 
           State_Diag%ObsPack_BLH(N) = State_Diag%ObsPack_BLH(N)              &
-                                    + State_Met%PBLH(I,J) 
+                                    + State_Met%PBLH(I,J)
 
           State_Diag%ObsPack_Q(N)   = State_Diag%ObsPack_Q(N)                &
-                                    + State_Met%SPHU(I,J,L) 
+                                    + State_Met%SPHU(I,J,L)
 
           State_Diag%ObsPack_P(N)   = State_Diag%ObsPack_P(N)                &
-                                    + State_Met%PMID(I,J,L) 
+                                    + State_Met%PMID(I,J,L)
 
           State_Diag%ObsPack_T(N)   = State_Diag%ObsPack_T(N)                &
-                                    + State_Met%T(I,J,L) 
+                                    + State_Met%T(I,J,L)
 
        ENDIF
     ENDDO
@@ -1453,18 +1515,18 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE State_Diag_Mod, ONLY : DgnState 
-    USE State_Grid_Mod, ONLY : GrdState 
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)  :: iObs         ! ObsPack Observation number
     TYPE(DgnState), INTENT(IN)  :: State_Diag   ! Diagnostics State object
     TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State object
     TYPE(MetState), INTENT(IN)  :: State_Met    ! Meteorology State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT) :: I, J, L      ! Lon, lat, level indices
     INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
@@ -1484,7 +1546,7 @@ CONTAINS
     INTEGER             :: idx, I0, J0
     REAL(f8)            :: Z
 
-    ! 
+    !
     CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
     !========================================================================
@@ -1499,7 +1561,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Exit with error if the observations have invalid lon/lat/alt values
     !-----------------------------------------------------------------------
-    IF ( State_Diag%ObsPack_Longitude(iObs) <    -180.0_f8   .or.            & 
+    IF ( State_Diag%ObsPack_Longitude(iObs) <    -180.0_f8   .or.            &
          State_Diag%ObsPack_Longitude(iObs) >     180.0_f8   .or.            &
          State_Diag%ObsPack_Latitude(iObs)  <     -90.0_f8   .or.            &
          State_Diag%ObsPack_Latitude(iObs)  >      90.0_f8   .or.            &
@@ -1514,7 +1576,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Added correct definitions for I and J based on nested regions 
+    ! Added correct definitions for I and J based on nested regions
     ! (lds, 8/25/11)
     I0 = State_Grid%XMinOffset
     J0 = State_Grid%YMinOffset
@@ -1542,7 +1604,7 @@ CONTAINS
     Z = 0.0_f8
     DO L = 1, State_Grid%NZ
        Z = Z + State_Met%BXHEIGHT(I,J,L)
-       IF ( Z >= State_Diag%ObsPack_Altitude(iObs) ) RETURN 
+       IF ( Z >= State_Diag%ObsPack_Altitude(iObs) ) RETURN
     ENDDO
 
     !========================================================================
@@ -1561,7 +1623,7 @@ CONTAINS
 100 FORMAT( "Altitude ",f11.4, "m exceeds TOA of ",f11.4,"m at ",f11.4,"N,",f11.4,"E" )
 
     CALL GC_Error( ErrMsg, RC, ThisLoc )
-    
+
   END SUBROUTINE ObsPack_Get_Indices
 !EOC
 !------------------------------------------------------------------------------
@@ -1584,12 +1646,12 @@ CONTAINS
 !
     USE Julday_Mod, ONLY : Julday
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: Year, Month, Day       ! Current date
     INTEGER, INTENT(IN) :: Hour, Minute, Second   ! Current time
 !
-! !RETURN VALUE: 
+! !RETURN VALUE:
 !
     REAL(f8)            :: Elapsed_Sec            ! Elapsed seconds since
                                                   ! 1970/01/01 00:00 UTC
@@ -1613,9 +1675,9 @@ CONTAINS
     !=======================================================================
 
     ! Compute the fractional day
-    FracDay = DBLE( Day ) + ( DBLE( Hour   ) /    24.0_f8 )  +               & 
+    FracDay = DBLE( Day ) + ( DBLE( Hour   ) /    24.0_f8 )  +               &
                             ( DBLE( Minute ) /  1440.0_f8 )  +               &
-                            ( DBLE( Second ) / 86400.0_f8 ) 
+                            ( DBLE( Second ) / 86400.0_f8 )
 
     ! Compute the Astronomical Julian Date (in decimal days)
     ! and then convert the result to seconds.
@@ -1652,16 +1714,16 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
@@ -1679,7 +1741,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: WildCard 
+    LOGICAL                :: WildCard
     INTEGER                :: N,       nSpc,     R
 
     ! Strings
@@ -1691,15 +1753,15 @@ CONTAINS
     !=======================================================================
     ! ObsPack_SpeciesMap_Innit begins here!
     !=======================================================================
- 
+
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  =''
     ThisLoc =                                                                &
      ' -> at ObsPack_SpeciesMap_Init (in module Obspack/obspack_mod.F90)'
- 
+
     !=======================================================================
-    ! Allocate appropriate fields of State_Diag 
+    ! Allocate appropriate fields of State_Diag
     !=======================================================================
 
     ! Number of species that will be saved to ObsPack output
@@ -1709,7 +1771,7 @@ CONTAINS
        WildCard                    = .TRUE.
     ELSE
        State_Diag%ObsPack_nSpecies = Input_Opt%ObsPack_nSpc
-       WildCard                    = .FALSE. 
+       WildCard                    = .FALSE.
     ENDIF
 
     ! Save in a shadow variable
@@ -1723,25 +1785,25 @@ CONTAINS
     ENDIF
 
     ! ObsPack species index
-    ALLOCATE( State_Diag%ObsPack_Species_Ind( nSpc ), STAT=RC ) 
+    ALLOCATE( State_Diag%ObsPack_Species_Ind( nSpc ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Ind', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Species_Ind = 0
 
     ! ObsPack species name
-    ALLOCATE( State_Diag%ObsPack_Species_Name( nSpc ), STAT=RC ) 
+    ALLOCATE( State_Diag%ObsPack_Species_Name( nSpc ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Name', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Species_Name = ''
 
     ! ObsPack species long-name
-    ALLOCATE( State_Diag%ObsPack_Species_LName( nSpc ), STAT=RC ) 
+    ALLOCATE( State_Diag%ObsPack_Species_LName( nSpc ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Species_LName', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Species_LName = ''
 
     !=======================================================================
-    ! Map species: for each ObsPack requested species, find the 
+    ! Map species: for each ObsPack requested species, find the
     ! corresponding entry in the GEOS-Chem Species Database.
     !=======================================================================
     IF ( WildCard ) THEN
@@ -1767,7 +1829,7 @@ CONTAINS
           ! Free pointer
           ThisSpc => NULL()
        ENDDO
-       
+
     ELSE
 
        !--------------------------------------------------------------
@@ -1775,11 +1837,11 @@ CONTAINS
        !--------------------------------------------------------------
        DO R = 1, State_Diag%ObsPack_nSpecies
 
-          ! Get the species index 
+          ! Get the species index
           N = Ind_( Input_Opt%ObsPack_SpcName(R) )
 
           ! If the species isn't found, exit with error
-          IF ( N < 0 ) THEN 
+          IF ( N < 0 ) THEN
              ErrMsg = 'Could not find species database info for the '     // &
                       'ObsPack requested species: '                       // &
                       TRIM( Input_Opt%ObsPack_SpcName(R) )
@@ -1809,7 +1871,7 @@ CONTAINS
        ! Header
        WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
        WRITE( 6, '(a,/)' ) 'OBSPACK: Species that will be saved as output'
-       WRITE( 6, 100     ) 
+       WRITE( 6, 100     )
        WRITE( 6, 110     )
 
        ! Species info
@@ -1821,7 +1883,7 @@ CONTAINS
 
        ! FORMAT statements
  100   FORMAT( ' Index  Name', 29x, 'Long name' )
- 110   FORMAT( '------  ----', 29x, '---------' )   
+ 110   FORMAT( '------  ----', 29x, '---------' )
  120   FORMAT( i6, 2x, a31, 2x, a40 )
 
        ! Footer
@@ -1852,15 +1914,15 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
@@ -1874,15 +1936,15 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    
+
     !=======================================================================
     ! ObsPack_SpeciesMap_Cleanup begins here!
     !=======================================================================
-    
+
     ! Assume success
     RC = GC_SUCCESS
-    
-    ! Deallocate arrays 
+
+    ! Deallocate arrays
     IF ( ASSOCIATED( State_Diag%ObsPack_Species_Ind ) ) THEN
        DEALLOCATE( State_Diag%ObsPack_Species_Ind, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Ind', 2, RC )
@@ -1903,9 +1965,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%ObsPack_Species_Name => NULL()
     ENDIF
-   
+
   END SUBROUTINE ObsPack_SpeciesMap_Cleanup
 !EOC
 END MODULE ObsPack_Mod
-
-

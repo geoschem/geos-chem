@@ -568,7 +568,7 @@ CONTAINS
   END SUBROUTINE READ_HG2_PARTITIONING
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1031,7 +1031,7 @@ CONTAINS
     ENDIF
 
     ! Molecular weight of Hg (applicable to all tagged tracers)
-    MHg = State_Chm%SpcData(1)%Info%emMW_g * 1e-3_fpp
+    MHg = State_Chm%SpcData(1)%Info%MW_g * 1e-3_fpp
 
     ! Get current month
     THISMONTH = GET_MONTH()
@@ -2522,7 +2522,7 @@ CONTAINS
     FRAC_O     = State_Met%FROCEAN(I,J)
 
     ! Molecular weight of Hg (valid for all tagged tracers)
-    MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%emMW_g * 1e-3_fpp
+    MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%MW_g * 1e-3_fpp
 
     ! Test if MLD increased
     IF ( MLDnew > MLDold ) THEN

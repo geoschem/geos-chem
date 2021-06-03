@@ -105,11 +105,6 @@ MODULE GCHP_HistoryExports_Mod
 
   END TYPE HistoryExportObj
 !
-! !PUBLIC PARAMETERS
-!
-  ! Prefix of the species names in the internal state and HISTORY.rc
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
-!
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for history
@@ -164,7 +159,7 @@ CONTAINS
        RETURN
     ENDIF
     ! Optional debugging
-    !CALL Print_DiagList( am_I_Root, HistoryConfig%DiagList, RC )
+    ! CALL Print_DiagList( am_I_Root, HistoryConfig%DiagList, RC )
 
     CALL Init_TaggedDiagList( am_I_Root, HistoryConfig%DiagList,  &
                               HistoryConfig%TaggedDiagList, RC   )
@@ -251,15 +246,12 @@ CONTAINS
     current => HistoryConfig%DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
 
-       ! Skip State_Chm%Species entries since in internal state.
-       IF ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) THEN
-          current => current%next
-          CYCLE
-       ENDIF
-
-       ! Skip emissions diagnostics since handled by HEMCO
-       IF ( INDEX( current%name,  'EMIS' ) == 1 .or. &
-            INDEX( current%name,  'INV'  ) == 1 ) THEN
+       ! Skip diagnostics handled by HEMCO, non-standard for GEOS,
+       ! or species in the GCHP/GEOS internal state.
+       ! See diaglist_mod.F90 for criteria for assigning diagnostic state.
+       IF ( INDEX( current%state,  'HEMCO'    ) == 1 .OR. &
+            INDEX( current%state,  'GEOS'     ) == 1 .OR. &
+            INDEX( current%state,  'INTERNAL' ) == 1 ) THEN
           current => current%next
           CYCLE
        ENDIF
@@ -272,7 +264,6 @@ CONTAINS
 #endif
 
        ! Check history exports list to see if already added (unless wildcard)
-       ! TODO: consider making the call a function that returns a logical
        IF ( .NOT. current%isWildcard ) THEN
           CALL Check_HistoryExportsList( am_I_Root, current%name,           &
                                          HistoryConfig%HistoryExportsList,  &
@@ -305,19 +296,19 @@ CONTAINS
        ELSEIF ( TRIM(current%state) == 'DIAG' ) THEN
           isDIAG = .TRUE.
           CALL Get_Metadata_State_Diag( am_I_Root, current%metadataID,     &
-                                        Found, Rc, desc=desc, units=units, &
+                                        Found, RC, desc=desc, units=units, &
                                         rank=rank, srcType=type, vloc=vloc )
-       ELSEIF ( TRIM(current%state) == 'GEOS5' ) THEN
-          ! Skip it
-          current => current%next
-          CYCLE
        ELSE
+          RC = GC_FAILURE
           ErrMsg = "Unknown state of item " // TRIM(current%name) // &
                    " in DiagList: " // TRIM(current%state)
           EXIT
        ENDIF
-       IF ( Found .eqv. .FALSE. ) THEN
-          ErrMsg = "Metadata not found for " // TRIM(current%name)
+
+       IF ( .NOT. Found ) THEN
+          RC = GC_FAILURE
+          ErrMsg = "Metadata not found for " // TRIM(current%name) // &
+                   " in state " // TRIM(current%state)
           EXIT
        ENDIF
 
@@ -363,6 +354,7 @@ CONTAINS
                                 isDiag=isDiag,                 &
                                 RC=RC )
        IF ( RC == GC_FAILURE ) THEN
+          RC = GC_FAILURE
           ErrMsg = "History export init fail for " // TRIM(current%name)
           EXIT
        ENDIF
@@ -371,6 +363,7 @@ CONTAINS
        CALL Append_HistoryExportsList( am_I_Root,     NewHistExp, &
                                        HistoryConfig, RC       )
        IF ( RC == GC_FAILURE ) THEN
+          RC = GC_FAILURE
           ErrMsg = "History export append fail for " // TRIM(current%name)
           EXIT
        ENDIF
@@ -753,9 +746,9 @@ CONTAINS
              EXIT
           ENDIF
        ELSE
+          RC = GC_FAILURE
           ErrMsg = "Problem adding export for " // TRIM(current%name) // &
                    ". Rank is only implemented for 2 or 3!"
-          RC = GC_FAILURE
           EXIT
        ENDIF
 
@@ -827,7 +820,10 @@ CONTAINS
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
     DO WHILE ( ASSOCIATED( current ) )
-
+       
+       ! if (MAPL_Am_I_Root()) THEN
+       !    print *, '  Copying ' // TRIM(current%name)
+       ! endif
        IF ( current%rank == 2 ) THEN
           IF ( ASSOCIATED( current%GCStateData2d ) ) THEN
              current%ExportData2d = current%GCStateData2d
@@ -879,6 +875,7 @@ CONTAINS
 
     ! Copy emissions data to MAPL exports via HEMCO
     CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
+    ! IF ( MAPL_Am_I_Root() ) WRITE(*,*) "Back from HCOI_GC_WriteDiagn, RC = ", RC
     IF ( RC == GC_FAILURE ) THEN
        ErrMsg = "Error copying emissions data to MAPL via HEMCO"
        CALL GC_ERROR( ErrMsg, RC, Iam )

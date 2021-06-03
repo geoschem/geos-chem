@@ -195,19 +195,6 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
   ENDIF
 #endif
 
-#ifdef RRTMG
-  !=================================================================
-  ! ND72: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
-  !       GTOASW, GSRFSW, GTOALW, GSRFLW, ATOASW, ASRFSW, ATOALW,
-  !       ASRFLW) for both clear and all sky (prefix CLR and ALL)
-  !       --> uses AD72 array (allocatable)
-  !=================================================================
-  IF ( ND72 > 0 ) THEN
-     ALLOCATE( AD72( State_Grid%NX, State_Grid%NY, PD72 ), STAT=AS )
-     IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
-  ENDIF
-#endif
-
 END SUBROUTINE NDXX_SETUP
 !EOC
 #endif

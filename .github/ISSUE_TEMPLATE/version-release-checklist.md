@@ -14,7 +14,7 @@ assignees: ''
 The following benchmark simulations are needed to validate this version (edit as needed). For items marked at complete, benchmark simulations have finished, benchmark plots have been created and posted on the FTP site, and benchmark information has been posted on the GEOS-Chem wiki.
 
 - GEOS-Chem classic benchmarks:
-  - [ ] Full unit test
+  - [ ] Integration tests
   - [ ] 1-month full-chemistry benchmark
   - [ ] 1-year full-chemistry benchmark
     - [ ] Archive PCO and PCH4 fields for tagged CO simulations in `ExtData/HEMCO/TAGGED_CO/`

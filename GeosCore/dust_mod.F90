@@ -134,9 +134,10 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 #ifdef APM
-    INTEGER       :: I,J,N,IDDST
-    REAL(fp)      :: A_M2, E_DST, DTSRCE
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    INTEGER            :: I,J,N, IDDST(HcoState%nDust)
+    REAL(fp)           :: A_M2, E_DST, DTSRCE
+    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    CHARACTER(LEN=4)   :: S
 #endif
 
     !=================================================================
@@ -187,7 +188,11 @@ CONTAINS
     ! Emission timestep
     DTSRCE = HcoState%TS_EMIS
 
-    IDDST   = HCO_GetHcoID( 'DST1',   HcoState )-1
+    ! Save the HEMCO dust ID's in a vector
+    DO N = 1, HcoState%nDust
+       WRITE( S, '("DST", i1)' ) N
+       IDDST(N) = HCO_GetHcoID( S, HcoState )
+    ENDDO
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -198,9 +203,13 @@ CONTAINS
        ! Grid box surface area [m2]
        A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
 
-       DO N=1,HcoState%nDust
+       DO N = 1, HcoState%nDust
+
+          ! Skip if the array for HEMCO dust species N isn't allocated
+          IF ( .not. HcoState%Spc(IDDST(N))%Emis%Alloc ) CYCLE
+
           ! Get emissions [kg/m2/s] and convert to [kg/box]
-          E_DST = HcoState%Spc(IDDST+N)%Emis%Val(I,J,1) * A_M2 * DTSRCE
+          E_DST = HcoState%Spc(IDDST(N))%Emis%Val(I,J,1) * A_M2 * DTSRCE
 
           Spc(I,J,1,APMIDS%id_DSTBIN1)    = Spc(I,J,1,APMIDS%id_DSTBIN1)    &
                                             +E_DST*1.5083735055071434d-006
@@ -453,12 +462,12 @@ CONTAINS
 
              ! Convert flux from [kg/s] to [molec/cm2/s]
              FLUXD = FLUXD + DIF / DT_SETTL * AVO / &
-                     ( 1.e-3_fp * ThisSpc%emMW_g ) / AREA_CM2
+                     ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
 
 
              FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) / &
                      DT_SETTL * AVO / &
-                     ( 1.e-3_fp * ThisSpc%emMW_g ) / AREA_CM2
+                     ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
           ENDDO
 
 #ifdef BPCH_DIAG
@@ -884,7 +893,7 @@ CONTAINS
 
              ! Convert dust flux from [kg/s] to [molec/cm2/s]
              FLUX = ( TOT1 - TOT2 ) / DT_SETTL
-             FLUX = FLUX * AVO * ( AIRMW / ThisSpc%emMw_g    ) / &
+             FLUX = FLUX * AVO * ( AIRMW / ThisSpc%Mw_g    ) / &
                     ( AIRMW * 1.e-3_fp ) / AREA_CM2
 
              ! Drydep flux in chemistry only
@@ -1517,7 +1526,7 @@ CONTAINS
   END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1651,10 +1660,10 @@ CONTAINS
     TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
     ! Get MWs from species database
-    MW_DST1 = State_Chm%SpcData(id_DST1)%Info%emMW_g
-    MW_DST2 = State_Chm%SpcData(id_DST2)%Info%emMW_g
-    MW_DST3 = State_Chm%SpcData(id_DST3)%Info%emMW_g
-    MW_DST4 = State_Chm%SpcData(id_DST4)%Info%emMW_g
+    MW_DST1 = State_Chm%SpcData(id_DST1)%Info%MW_g
+    MW_DST2 = State_Chm%SpcData(id_DST2)%Info%MW_g
+    MW_DST3 = State_Chm%SpcData(id_DST3)%Info%MW_g
+    MW_DST4 = State_Chm%SpcData(id_DST4)%Info%MW_g
 
     ! Zero variables
     DO IBIN = 1, NDSTBIN

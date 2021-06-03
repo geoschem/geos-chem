@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -69,20 +68,19 @@ MODULE m_netcdf_io_readattr
 ! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
+! !REMARKS:
+!  This file is based on code from NASA/GSFC, SIVO, Code 610.3
+!
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  30 Apr 2012 - R. Yantosca - Modified for compatibility with netCDF-3
-!  30 Apr 2012 - R. Yantosca - Added comments
-!  26 Sep 2013 - R. Yantosca - Add routines for reading vector attributes
-!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -113,9 +111,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,8 +147,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_C
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -183,9 +178,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,8 +214,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_I4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -253,9 +245,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,8 +281,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -323,9 +312,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -361,8 +348,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R8
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -393,9 +379,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,8 +415,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_I4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -463,9 +446,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,8 +482,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -533,9 +513,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -571,8 +549,7 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R8_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -602,9 +579,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -630,8 +605,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_C
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -661,9 +635,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -689,8 +661,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_I4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -720,9 +691,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -748,8 +717,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_R4
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -779,9 +747,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -807,8 +773,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_R8
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -838,9 +803,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -866,8 +829,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_I4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -897,9 +859,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -925,8 +885,7 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_R4_arr
 !EOC
 !------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -956,9 +915,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
-!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
-!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
-!                              which is compatible w/ netCDF3
+!  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

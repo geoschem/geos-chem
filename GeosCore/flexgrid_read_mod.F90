@@ -1,4 +1,4 @@
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if defined( MODEL_CLASSIC )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -109,27 +109,27 @@ CONTAINS
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLANDIC = Q
 
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FROCEAN = Q
 
     ! Read PHIS
     v_name = "PHIS"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
     ! Echo info
@@ -263,75 +263,75 @@ CONTAINS
 
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%EFLUX = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read EVAP
     !v_name = "EVAP"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%EVAP = Q
     !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%FRSNO = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read GRN
     !v_name = "GRN"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%GRN = Q
     !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%LWI = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT
     !v_name = "LWGNT"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%RADLWG = Q
     !--------------------------------------------------------------------------
 
@@ -339,169 +339,169 @@ CONTAINS
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%LWTUP = Q
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECLSC = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read PRECSNO
     !v_name = "PRECSNO"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%PRECSNO = Q
     !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60
     v_name = "SEAICE60"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
-    State_Met% V10M = Q
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%Z0 = Q
 
     ! Echo info
@@ -519,7 +519,9 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2'  ) THEN
        ! Convert pressure quantities from [Pa] -> [hPa]
        State_Met%SLP     = State_Met%SLP     * 1e-2_fp
        State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
@@ -715,32 +717,32 @@ CONTAINS
 
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%CLDF = Q
 
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TAUCLW = Q
 
     ! Echo info
@@ -835,27 +837,27 @@ CONTAINS
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%V = Q
 
     ! Echo info
@@ -958,22 +960,22 @@ CONTAINS
 
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%REEVAPLS = Q
 
     ! Echo info
@@ -1075,27 +1077,27 @@ CONTAINS
 
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%PFLCU = Qe
 
     ! Read PLLSAN
     v_name = "PFLLSAN"
-    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
     State_Met%PFLLSAN = Qe
 
     !======================================================================
@@ -1105,12 +1107,12 @@ CONTAINS
 
        ! Read FLASH_DENS
        v_name = "FLASH_DENS"
-       CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name) )
        State_Met%FLASH_DENS = Q2
 
        ! Read CONV_DEPTH
        v_name = "CONV_DEPTH"
-       CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name) )
        State_Met%CONV_DEPTH = Q2
 
     ELSE
@@ -1236,7 +1238,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS"
-    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
     State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
@@ -1248,19 +1250,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "SPHU"
-    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%SPHU1 = Q3
 
     ! Read T
     v_name = "TMPU"
-    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%TMPU1 = Q3
 
     ! Echo info
@@ -1284,7 +1286,9 @@ CONTAINS
 
     ENDWHERE
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
        ! Convert PS1_WET from [Pa] to [hPa]
        State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
     ENDIF
@@ -1401,7 +1405,7 @@ CONTAINS
     ELSE
        v_name = "PS"
     ENDIF
-    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
@@ -1417,7 +1421,7 @@ CONTAINS
     !ELSE
     !   v_name = "PV"
     !ENDIF
-    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    !CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
@@ -1428,7 +1432,7 @@ CONTAINS
     ELSE
        v_name = "SPHU"
     ENDIF
-    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%SPHU2 = Q3
 
     ! Read T
@@ -1437,7 +1441,7 @@ CONTAINS
     ELSE
        v_name = "TMPU"
     ENDIF
-    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%TMPU2 = Q3
 
     ! Echo info
@@ -1461,7 +1465,9 @@ CONTAINS
 
     ENDWHERE
 
-    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
        ! Convert PS2_WET from [Pa] to [hPa]
        State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
     ENDIF
