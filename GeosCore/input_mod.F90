@@ -150,8 +150,8 @@ CONTAINS
        ! (4) AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
        !      and DEPOSITION menus (in any order) should follow.
        ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
-       !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
-       !      menus (in any order) should follow next.
+       !      PLANEFLIGHT, ND51, and ND51b menus (in any order)
+       !      should follow next.
        ! (6) The following menus have no other restriction and
        !      can be placed anywhere (but by convention we will
        !      place them after the diagnostic menu): NESTED GRID
@@ -4153,7 +4153,7 @@ CONTAINS
                         TRIM( Input_Opt%ND51_FILE )
        WRITE( 6, 100 ) 'Output as HDF?              : ', &
                         Input_Opt%LND51_HDF
-       WRITE( 6, 120 ) 'ND41 timeseries tracers     : ',  &
+       WRITE( 6, 120 ) 'ND51 timeseries tracers     : ',  &
                         ( Input_Opt%ND51_TRACERS(N), N=1, &
                           Input_Opt%N_ND51 )
        WRITE( 6, 140 ) 'ND51 hour to write to disk  : ', &
@@ -4343,7 +4343,7 @@ CONTAINS
                         TRIM( Input_Opt%ND51b_FILE )
        WRITE( 6, 100 ) 'Output as HDF?               : ', &
                         Input_Opt%LND51b_HDF
-       WRITE( 6, 120 ) 'ND41 timeseries tracers      : ',  &
+       WRITE( 6, 120 ) 'ND51b timeseries tracers      : ',  &
                         ( Input_Opt%ND51b_TRACERS(N), N=1, &
                           Input_Opt%N_ND51b )
        WRITE( 6, 140 ) 'ND51b hour to write to disk  : ', &
