@@ -863,6 +863,9 @@ DSTAL3:
 DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
+DUMMY:
+  Fullname: KPP dummy species for sea salt alkalinity
+  Is_Omitted: true
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -1540,6 +1543,9 @@ HONIT:
   Is_WetDep: true
   MW_g: 215.0
   WD_RetFactor: 2.0e-2
+HpA:
+  Fullname: KPP dummy species for dummy proton exchange (SALACL)
+  Is_Omitted: true
 HPALD1:
   DD_F0: 0.0
   DD_Hstar: 4.0e+4
@@ -1590,6 +1596,9 @@ HPALD4:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 116.13
+HpC:
+  Fullname: KPP dummy species for dummy proton exchange (SALACL)
+  Is_Omitted: true
 HPETHNL:
   DD_F0: 1.0
   DD_Hstar: 4.1e+4

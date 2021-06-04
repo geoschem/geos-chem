@@ -657,7 +657,7 @@ CONTAINS
        SO4nss  =  1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) ) / &
             ( LWC * AVO ) ! mcl/cm3 -> mol/L
 
-       IF ( IS_FULLCHEM ) THEN
+       IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           ! Get HMS cloud concentration and convert from [v/v] to
           ! [moles/liter] (jmm, 06/13/2018)
           ! Use a cloud scavenging ratio of 0.7 
@@ -1006,11 +1006,19 @@ CONTAINS
           SIZE_RES = 1
        ENDIF
 
+       !### BMY NOTE: L2S, L3S, L4S, L5S, L6S are undefined
+       !### so set them to zero for now.  MSL can fix (bmy, 6/4/21)
+       L2S = 0.0_fp
+       L3S = 0.0_fp
+       L4S = 0.0_fp
+       L5S = 0.0_fp
+       L6S = 0.0_fp
+
        ! Decide whether or not to perform sulfate production rate
        ! enhancement due to cloud drop heterogenity in pH over the oceans
        ! (bec, 12/23/11)
-       IF ( SIZE_RES == 1 .AND. State_Met%IsWater(I,J) .AND. &
-            TK > 268.15 ) THEN
+       IF ( SIZE_RES == 1  .AND. State_Met%IsWater(I,J)   .AND.  &
+            TK > 268.15_fp .and. FC > 0.0_fp             ) THEN
 
           ! Get total in-cloud sulfate production based on bulk cloud pH
           ! calculations for use in HET_DROP_CHEM

@@ -2427,12 +2427,14 @@ CONTAINS
     ! Save physical parameters from the species database into KPP arrays
     ! in gckpp_Global.F90.  These are for the hetchem routines.
     !=======================================================================
-    DO KppId = 1, State_Chm%nKppSpc
-       N               = State_Chm%Map_KppSpc(KppId)
-       MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
-       SR_MW(KppId)    = SQRT( MW(KppId ) )
-       HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
-       HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
+    DO KppId = 1, State_Chm%nKppSpc + State_Chm%nOmitted
+       N                  = State_Chm%Map_KppSpc(KppId)
+       IF ( N > 0 ) THEN
+          MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
+          SR_MW(KppId)    = SQRT( MW(KppId ) )
+          HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
+          HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
+       ENDIF
     ENDDO
 
     !=======================================================================
