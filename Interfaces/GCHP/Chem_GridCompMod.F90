@@ -692,9 +692,9 @@ CONTAINS
              ENDIF
           END DO
        
-#if defined( MODEL_GEOS )
           ! Add non-advected species to internal state 
           IF ( .NOT. Found ) THEN 
+#if defined( MODEL_GEOS )
              FullName = TRIM(SpcName)
 
              ! Error trap for POx and LOx. Their species names in the internal
@@ -727,34 +727,31 @@ CONTAINS
              if(MAPL_am_I_Root()) write(*,*)  &
                        'GCC added to internal: '//TRIM(SPFX)//TRIM(SpcName)
 #else
-          IF (Found .neqv. .true.) Then
-          call MAPL_AddInternalSpec(GC, &
-               SHORT_NAME         = TRIM(SPFX) // SpcName,  &
-               LONG_NAME          = SpcName,  &
-               UNITS              = 'mol mol-1', &
-               PRECISION          = ESMF_KIND_R8, &
-               DIMS               = MAPL_DimsHorzVert,    &
-               VLOCATION          = MAPL_VLocationCenter,    &
-               RESTART            = restartAttr,    &
-               RC                 = STATUS  )
+             call MAPL_AddInternalSpec(GC, &
+                  SHORT_NAME         = TRIM(SPFX) // SpcName,  &
+                  LONG_NAME          = SpcName,  &
+                  UNITS              = 'mol mol-1', &
+                  PRECISION          = ESMF_KIND_R8, &
+                  DIMS               = MAPL_DimsHorzVert,    &
+                  VLOCATION          = MAPL_VLocationCenter,    &
+                  RESTART            = restartAttr,    &
+                  RC                 = STATUS  )
 #ifdef ADJOINT
-          if (MAPL_am_I_Root()) &
-               WRITE(*,*) '  Adding internal spec for '''//TRIM(SPFX) // TRIM(SpcName) // '_ADJ'''
-          call MAPL_AddInternalSpec(GC, &
-               SHORT_NAME         = TRIM(SPFX) // TRIM(SpcName) // '_ADJ',  &
-               LONG_NAME          = SpcName // ' adjoint variable',  &
-               UNITS              = 'mol mol-1', &
-               PRECISION          = ESMF_KIND_R8, &
-               DIMS               = MAPL_DimsHorzVert,    &
-               VLOCATION          = MAPL_VLocationCenter,    &
-               RESTART            = restartAttrAdjoint,    &
-               RC                 = STATUS  )
-
-
-#endif
-          Endif
+             if (MAPL_am_I_Root()) &
+                WRITE(*,*) '  Adding internal spec for '''//TRIM(SPFX) // TRIM(SpcName) // '_ADJ'''
+             call MAPL_AddInternalSpec(GC, &
+                  SHORT_NAME         = TRIM(SPFX) // TRIM(SpcName) // '_ADJ',  &
+                  LONG_NAME          = SpcName // ' adjoint variable',  &
+                  UNITS              = 'mol mol-1', &
+                  PRECISION          = ESMF_KIND_R8, &
+                  DIMS               = MAPL_DimsHorzVert,    &
+                  VLOCATION          = MAPL_VLocationCenter,    &
+                  RESTART            = restartAttrAdjoint,    &
+                  RC                 = STATUS  )
 
 #endif
+#endif
+          ENDIF
        ENDDO
     ENDIF
 
@@ -5358,7 +5355,7 @@ CONTAINS
                                                   !  for total ozone
     REAL                         :: MW, const
     INTEGER                      :: I, J, IM, JM, LM, LB, L, STATUS
-    INTEGER                      :: TotID, TropID
+    INTEGER                      :: ID, TotID, TropID
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
     CHARACTER(LEN=15)            :: ISPEC
 
@@ -5424,7 +5421,8 @@ CONTAINS
 
        ! Species info 
        ISPEC = State_Chm%SpcData(I)%Info%Name
-       MW    = State_Chm%SpcData(I)%Info%EmMW_g 
+       ID    = IND_(TRIM(ISPEC))
+       MW    = State_Chm%SpcData(ID)%Info%MW_g
 
        ! Get species from internal state
        CALL MAPL_GetPointer ( INTSTATE, IntSpc, 'SPC_'//TRIM(ISPEC), __RC__ )
