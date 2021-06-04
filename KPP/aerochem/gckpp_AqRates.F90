@@ -180,14 +180,14 @@ MODULE GCKPP_AQRATES
            STATE_HET%XRADI(11), NUMDEN, 0.074_dp, SR_TEMP, SR_MW(ind_HCl))
 
       IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) &
-         K_MT(2) = k_ex!/State_Chm%Species(I,J,L,id_SALAAL)
+         K_MT(2) = kIIR1Ltd(C(ind_HCl), C(ind_SALAAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
 
       ! HNO3
       k_ex = ARSL1K( State_Chm%WetAeroArea(I,J,L,11), &
            STATE_HET%XRADI(11), NUMDEN, 0.5_dp, SR_TEMP, SR_MW(ind_HNO3))
 
       IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) &
-         K_MT(3) = k_ex!/State_Chm%Species(I,J,L,id_SALAAL)
+         K_MT(3) = kIIR1Ltd(C(ind_HNO3), C(ind_SALAAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
 
       ! End fine seasalt
 
@@ -204,14 +204,16 @@ MODULE GCKPP_AQRATES
            STATE_HET%XRADI(12), NUMDEN, 0.074_dp, SR_TEMP, SR_MW(ind_HCl))
 
       IF (State_Chm%Species(I,J,L,id_SALCAL) .gt. 1.e-1_fp) &
-         K_MT(5) = k_ex!/State_Chm%Species(I,J,L,id_SALCAL)
+!         K_MT(5) = k_ex!/State_Chm%Species(I,J,L,id_SALCAL)
+         K_MT(5) = kIIR1Ltd(C(ind_HCl), C(ind_SALCAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
       
       ! HNO3
       k_ex = ARSL1K( State_Chm%WetAeroArea(I,J,L,12), &
            STATE_HET%XRADI(12), NUMDEN, 0.5_dp, SR_TEMP, SR_MW(ind_HNO3))
 
       IF (State_Chm%Species(I,J,L,id_SALCAL) .gt. 1.e-1_fp) &
-         K_MT(6) = k_ex!/State_Chm%Species(I,J,L,id_SALCAL)
+!         K_MT(6) = k_ex!/State_Chm%Species(I,J,L,id_SALCAL)
+         K_MT(6) = kIIR1Ltd(C(ind_HNO3), C(ind_SALCAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
 
       ! End coarse seasalt
       

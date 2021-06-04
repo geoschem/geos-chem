@@ -1034,9 +1034,9 @@ CONTAINS
           !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
           !! <<>> AND HET_DROP_CHEM EXPECTS V/V
 
-!          CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, &
-!               aSO4, NH3, Spc(id_SO2)*CVFAC, Spc(id_H2O2)*CVFAC, &
-!               GNO3,  SR, Input_Opt, State_Met, State_Chm )
+          CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, &
+               aSO4, NH3, Spc(id_SO2)*CVFAC, Spc(id_H2O2)*CVFAC, &
+               GNO3,  SR, Input_Opt, State_Met, State_Chm )
 
           KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)*CVFAC*DTCHEM) ) !1/s
 

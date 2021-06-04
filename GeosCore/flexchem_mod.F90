@@ -845,19 +845,16 @@ CONTAINS
        !----------------------------------------------------------------------
 
        IF (.not. DO_SULFATEMOD_SEASALT) THEN
-          !C(ind_SALAAL) = C(ind_SALAAL) * State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp
-          !C(ind_SALCAL) = C(ind_SALCAL) * State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp
+          C(ind_SALAAL) = C(ind_SALAAL) * State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp
+          C(ind_SALCAL) = C(ind_SALCAL) * State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp
 
           CALL SET_SEASALT_S( I, J, L, Input_Opt, State_Chm, State_Grid, &
                State_Met, RC ) !S(IV)->S(VI), HCl, HNO3
        ENDIF
 
        IF (.not. DO_SULFATEMOD_CLD) THEN
-          call CPU_TIME(start)
           CALL SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
                State_Met,  RC )
-          call CPU_TIME(finish)
-          test_set_cld_s = test_set_cld_s+(finish-start)
 
           !if (Ind_('HSO3m','k') .gt. 0) C(Ind_('HSO3m','k')) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
           !if (Ind_('SO3mm','k') .gt. 0) C(Ind_('SO3mm','k')) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
@@ -967,6 +964,11 @@ CONTAINS
           DO N=1,16
              write(*,'(A38,a,2e15.9)') EQN_NAMES(N), " ", RCONST(N)
           END DO
+          write(*,'(a,e15.9)') 'SO2: ', VAR(IND_SO2)
+          write(*,'(a,e15.9)') 'SO4: ', VAR(IND_SO4)
+          write(*,'(a,e15.9)') 'SO4s: ', VAR(IND_SO4s)
+          write(*,'(a,e15.9)') 'SALAAL: ', VAR(IND_SALAAL)
+          write(*,'(a,e15.9)') 'SALCAL: ', VAR(IND_SALCAL)
           write(*,*) '-------------------'
        end if
 
@@ -981,6 +983,16 @@ CONTAINS
        call CPU_TIME(finish)
 
        integrationtime = finish-start
+
+       if (i .eq. 61 .and. j .eq. 15 .and. L .eq. 1 ) then
+          write(*,*) '----KPP CONCS AFTER---'
+          write(*,'(a,e15.9)') 'SO2: ', VAR(IND_SO2)
+          write(*,'(a,e15.9)') 'SO4: ', VAR(IND_SO4)
+          write(*,'(a,e15.9)') 'SO4s: ', VAR(IND_SO4s)
+          write(*,'(a,e15.9)') 'SALAAL: ', VAR(IND_SALAAL)
+          write(*,'(a,e15.9)') 'SALCAL: ', VAR(IND_SALCAL)
+          write(*,*) '-------------------'
+       end if
 
        ! <<>> MSL testing
        if (finish-start .gt. test_integrationtime) then
@@ -1169,8 +1181,8 @@ CONTAINS
 
        IF (.not. DO_SULFATEMOD_SEASALT) THEN
           ! Revert Alkalinity
-          !C(ind_SALAAL) = C(ind_SALAAL) / ( State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp )
-          !C(ind_SALCAL) = C(ind_SALCAL) / ( State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp )
+          C(ind_SALAAL) = C(ind_SALAAL) / ( State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp )
+          C(ind_SALCAL) = C(ind_SALCAL) / ( State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp )
        ENDIF
 
        ! Save for next integration time step
