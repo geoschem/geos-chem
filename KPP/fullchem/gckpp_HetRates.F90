@@ -1423,7 +1423,7 @@ MODULE GCKPP_HETRATES
       do K=1, 2
 
          ! initialize reactions partitioning factor
-         branch = 1.0e0_fp
+         branch = 1.0_dp
 
          ! Liquid water cloud
          if (K==1) then
@@ -1461,10 +1461,10 @@ MODULE GCKPP_HETRATES
          endif
 
          ! Skip calculation if there is no surface area
-         if (area <= 0) cycle
+         if (area <= 0.0_dp) cycle
 
          ! Convert grid-average cloud condensate surface area density to in-cloud surface area density
-         area = safe_div(area, fc, 0.e+0_fp)
+         area = safe_div(area, fc, 0.e+0_dp)
 
          ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
          ! Pass radius in cm and mass in g.
@@ -1509,19 +1509,20 @@ MODULE GCKPP_HETRATES
 
       ! Ratio of volume inside to outside cloud
       ! ff has a range [0,+inf], so cap it at 1e30
-      ff = safe_div( fc, (1e0_fp - fc), 1e30_fp )
-      ff = max( ff, 1e30_fp )
+      ff = safe_div( fc, (1.0_dp - fc), 1.0e30_dp )
+      ff = max( ff, 1.0e30_dp )
 
       ! Ratio of mass inside to outside cloud
       ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-      xx =     ( ff - kk - 1e0_fp ) / 2e0_fp + &
-           sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
+      xx =     ( ff        - kk        - 1.0_dp       ) / 2.0_dp + &
+           sqrt( 1.0_fp    + ff*ff     + kk*kk                   + &
+                 2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
 
       ! Overall heterogeneous loss rate, grid average, 1/s
       ! kHet = kI * xx / ( 1d0 + xx )
       !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
       !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
+      kHet = kI / ( 1.0_dp + safe_div( 1.0_dp, xx, 1e30_dp ) )
 
       ! Overall loss rate in a particular reaction branch, 1/s
       kHet = kHet * branch
