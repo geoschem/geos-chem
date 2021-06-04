@@ -1006,6 +1006,14 @@ CONTAINS
           SIZE_RES = 1
        ENDIF
 
+       !### BMY NOTE: L2S, L3S, L4S, L5S, L6S are undefined
+       !### so set them to zero for now.  MSL can fix (bmy, 6/4/21)
+       L2S = 0.0_fp
+       L3S = 0.0_fp
+       L4S = 0.0_fp
+       L5S = 0.0_fp
+       L6S = 0.0_fp
+
        ! Decide whether or not to perform sulfate production rate
        ! enhancement due to cloud drop heterogenity in pH over the oceans
        ! (bec, 12/23/11)
