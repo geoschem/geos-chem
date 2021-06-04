@@ -657,7 +657,7 @@ CONTAINS
        SO4nss  =  1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) ) / &
             ( LWC * AVO ) ! mcl/cm3 -> mol/L
 
-       IF ( IS_FULLCHEM ) THEN
+       IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           ! Get HMS cloud concentration and convert from [v/v] to
           ! [moles/liter] (jmm, 06/13/2018)
           ! Use a cloud scavenging ratio of 0.7 
@@ -1009,8 +1009,8 @@ CONTAINS
        ! Decide whether or not to perform sulfate production rate
        ! enhancement due to cloud drop heterogenity in pH over the oceans
        ! (bec, 12/23/11)
-       IF ( SIZE_RES == 1 .AND. State_Met%IsWater(I,J) .AND. &
-            TK > 268.15 ) THEN
+       IF ( SIZE_RES == 1  .AND. State_Met%IsWater(I,J)   .AND.  &
+            TK > 268.15_fp .and. FC > 0.0_fp             ) THEN
 
           ! Get total in-cloud sulfate production based on bulk cloud pH
           ! calculations for use in HET_DROP_CHEM
@@ -1034,9 +1034,9 @@ CONTAINS
           !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
           !! <<>> AND HET_DROP_CHEM EXPECTS V/V
 
-!          CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, &
-!               aSO4, NH3, Spc(id_SO2)*CVFAC, Spc(id_H2O2)*CVFAC, &
-!               GNO3,  SR, Input_Opt, State_Met, State_Chm )
+          CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, &
+               aSO4, NH3, Spc(id_SO2)*CVFAC, Spc(id_H2O2)*CVFAC, &
+               GNO3,  SR, Input_Opt, State_Met, State_Chm )
 
           KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)*CVFAC*DTCHEM) ) !1/s
 

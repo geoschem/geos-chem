@@ -78,6 +78,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nKppFix              ! # KPP fixed species
      INTEGER                    :: nKppSpc              ! # KPP chem species
      INTEGER                    :: nLoss                ! # of loss species
+     INTEGER                    :: nOmitted             ! # of omitted species
      INTEGER                    :: nPhotol              ! # photolysis species
      INTEGER                    :: nProd                ! # of prod species
      INTEGER                    :: nRadNucl             ! # of radionuclides
@@ -351,6 +352,7 @@ CONTAINS
     State_Chm%nLoss             =  0
     State_Chm%nPhotol           =  0
     State_Chm%nProd             =  0
+    State_Chm%nOmitted          =  0
     State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
 
@@ -592,8 +594,8 @@ CONTAINS
     ! because this has the potential to halt the run inadvertently.
     !========================================================================
 
-    ! The total number of species is the size of SpcData
-    State_Chm%nSpecies = SIZE( State_Chm%SpcData )
+    ! Total number of "real" species (excluding "dummy" placeholder species)
+    State_Chm%nSpecies =  SpcCount%nRealSpc
 
     ! Exit if any species name is blank
     DO N = 1, State_Chm%nSpecies
@@ -620,6 +622,7 @@ CONTAINS
     State_Chm%nKppVar  = SpcCount%nKppVar
     State_Chm%nKppFix  = SpcCount%nKppFix
     State_Chm%nKppSpc  = SpcCount%nKppSpc
+    State_Chm%nOmitted = SpcCount%nOmitted
     State_Chm%nPhotol  = SpcCount%nPhotol
     State_Chm%nRadNucl = SpcCount%nRadNucl
     State_Chm%nWetDep  = SpcCount%nWetDep
@@ -1951,26 +1954,34 @@ CONTAINS
        State_Chm%Map_HygGrth = 0
     ENDIF
 
-    IF ( State_Chm%nKppVar > 0 ) THEN
-       ALLOCATE( State_Chm%Map_KppVar( State_Chm%nKppVar ), STAT=RC )
+    !---------------------------------------------------------------------------
+    ! NOTE: Need to also leave room for the omitted "dummy" KPP species in
+    ! the mapping arrays so that the rest of the KPP indices will line up!
+    !  -- Bob Yantosca (04 Jun 2021)
+    N = State_Chm%nKppVar + State_Chm%nOmitted
+    IF ( N > 0 ) THEN
+       ALLOCATE( State_Chm%Map_KppVar( N ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppVar', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppVar = 0
     ENDIF
 
-    IF ( State_Chm%nKppFix > 0 ) THEN
-       ALLOCATE( State_Chm%Map_KppFix( State_Chm%nKppFix ), STAT=RC )
+    N = State_Chm%nKppFix + State_Chm%nOmitted
+    IF ( N > 0 ) THEN
+       ALLOCATE( State_Chm%Map_KppFix( N ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppFix', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppFix = 0
     ENDIF
 
-    IF ( NSPEC > 0 ) THEN
-       ALLOCATE( State_Chm%Map_KppSpc( NSPEC ), STAT=RC )
+    N = State_Chm%nKppSpc + State_Chm%nOmitted
+    IF ( N > 0 ) THEN
+       ALLOCATE( State_Chm%Map_KppSpc( N ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppSpc = 0
     ENDIF
+    !---------------------------------------------------------------------------
 
     IF ( State_Chm%nLoss > 0 ) THEN
        ALLOCATE( State_Chm%Name_Loss( State_Chm%nLoss ), STAT=RC )
