@@ -428,16 +428,16 @@ CONTAINS
     K0 = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
     Ki = 1.6e-12_fp
 
-    IF ( LDSTUP .and. FullRun ) THEN
-       
-       !==============================================================
-       ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
-       !==============================================================
-       ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
-       ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
-       CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH, &
-                             Input_Opt, State_Met, State_Chm )
-    END IF
+    !IF ( Input_Opt%LDSTUP ) THEN
+    !   
+    !   !==============================================================
+    !   ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
+    !   !==============================================================
+    !   ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
+    !   ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+    !   CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH, &
+    !                         Input_Opt, State_Met, State_Chm )
+    !END IF
 
     ! Get cloud fraction from met fields
     FC      = State_Met%CLDF(I,J,L)
