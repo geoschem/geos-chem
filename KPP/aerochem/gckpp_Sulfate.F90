@@ -1,10 +1,3 @@
-!
-! N O T E S: (MSL)
-! - unravel hetdropchem()
-!
-! HMS!!
-! - Fix get_hplus()
-!
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -435,92 +428,16 @@ CONTAINS
     K0 = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
     Ki = 1.6e-12_fp
 
-!>>       ! Isolate H2SO4 for reaction with dust    tdf 3/6/2K9
-!>>       IF ( Input_Opt%LDSTUP ) THEN
-!>>          ! Compute gas phase SO4 production again, as in offline case
-!>>          ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-!>>          M    = State_Met%AIRDEN(I,J,L) * F
-!>>          KK   = K0 * M / Ki
-!>>          F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
-!>>          RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 * &
-!>>                   GET_OH( I, J, L, Input_Opt, State_Chm, State_Met)
-!>>          RKT  =  RK1 * DTCHEM  ! [unitless] (bmy, 6/1/00)
-!>>          SO20 = SO2_cd
-!>>          H2SO4_cd = SO20 * ( 1.e+0_fp - EXP( -RKT ) )
-!>>
-!>>          !tdf Reset these constants to zero to avoid any problems below
-!>>          M   = 0.e+0_fp
-!>>          KK  = 0.e+0_fp
-!>>          F1  = 0.e+0_fp
-!>>          RK1 = 0.e+0_fp
-!>>       ENDIF
-!>>
-!>>       IF ( Input_Opt%LDSTUP .and. FullRun ) THEN
-!>>
-!>>          !==============================================================
-!>>          ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
-!>>          !
-!>>          ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
-!>>          !==============================================================
-!>>
-!>>          ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
-!>>          ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
-!>>          CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH, &
-!>>                             Input_Opt, State_Met, State_Chm )
-!>>
-!>>          ! Total alkalinity [kg]
-!>>          ALK = 0.0e+0_fp
-!>>
-!>>          DO IBIN = 1, NDSTBIN
-!>>             ALK = ALK + ALK_d (IBIN)
-!>>          END DO
-!>>
-!>>          ! If (1) there is alkalinity, (2) there is SO2 present, and
-!>>          ! (3) O3 is in excess, then compute dust SO2 chemistry
-!>>          IF  ( ( ALK    > MINDAT )  .AND. &
-!>>                ( SO2_cd > MINDAT )  .AND. &
-!>>                ( SO2_cd < O3     ) ) THEN
-!>>
-!>>             ! Compute oxidation of SO2 -> SO4 and condensation of
-!>>             ! HNO3 -> nitrate within the dust aerosol
-!>>
-!>>             !tdf Call DUST_CHEM using updated SO2_AfterSS after sea salt chemistry
-!>>             CALL DUST_CHEM( I,         J,         L,         ALK_d,         &
-!>>                             SO2_AfterSS,    H2SO4_cd,  KTS,       KTN,           &
-!>>                             KTH,       SO2_gas,   H2SO4_gas, PSO4_d,        &
-!>>                             PH2SO4_d,  PNIT_d,    ALKA_d,    Input_Opt,     &
-!>>                             State_Met, State_Chm, RC                       )
-!>>
-!>>             ! tdf "SO2_AfterSS" is SO2 mixing ratio remaining after interaction
-!>>             ! with dust
-!>>             SO2_AfterSS = SO2_gas
-!>>
-!>>             ! tdf "H2SO4_cd" is H2SO4 remaining after interaction with dust
-!>>             H2SO4_cd = H2SO4_gas
-!>>
-!>>          ELSE
-!>>
-!>>             ! Otherwise set equal to zero
-!>>             SO2_AfterSS  = SO2_AfterSS
-!>>             DO IBIN = 1, NDSTBIN
-!>>                PSO4_d    (IBIN)   = 0.e+0_fp
-!>>                PH2SO4_d  (IBIN)   = 0.e+0_fp
-!>>                PNIT_d    (IBIN)   = 0.e+0_fp
-!>>             END DO
-!>>
-!>>          ENDIF
-!>>
-!>>       ELSE
-!>>
-!>>          ! Otherwise set equal to zero
-!>>          SO2_AfterSS  = SO2_AfterSS
-!>>          DO IBIN = 1, NDSTBIN
-!>>             PSO4_d    (IBIN)   = 0.e+0_fp
-!>>             PH2SO4_d  (IBIN)   = 0.e+0_fp
-!>>             PNIT_d    (IBIN)   = 0.e+0_fp
-!>>          END DO
-!>>
-!>>       ENDIF    !tdf end of if (Input_Opt%LDSTUP) condition
+    IF ( LDSTUP .and. FullRun ) THEN
+       
+       !==============================================================
+       ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
+       !==============================================================
+       ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
+       ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+       CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH, &
+                             Input_Opt, State_Met, State_Chm )
+    END IF
 
     ! Get cloud fraction from met fields
     FC      = State_Met%CLDF(I,J,L)
@@ -842,21 +759,12 @@ CONTAINS
 
        K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2*CVFAC )
        K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3), FC, KaqO3*CVFAC )
-
-!       K_CLD(4) = KaqHCHO*CVFAC * FC
-!       K_CLD(5) = KaqHMS*CVFAC * FC
-!       K_CLD(6) = KaqHMS2*CVFAC * FC
-
-       if (i .eq. 61 .and. j .eq. 15  .and. L .eq. 1 ) then
-!          write(*,*) 'CloudHet 3: ', KaqH2O2*CVFAC, K_CLD(1), FC, Spc(id_SO2), Spc(id_H2O2)
-!          write(*,*) 'CloudHet 1: ', KaqH2O2*CVFAC*Spc(id_SO2), KaqH2O2*CVFAC*Spc(id_H2O2), 1./3600. 
-!          write(*,*) 'CloudHet 2: ', K_CLD(1), KaqH2O2*CVFAC*FC
-!          write(*,*) 'HMS R1: ', KaqHCHO*CVFAC, I, J, L
-!          write(*,*) 'HMS R2: ', KaqHMS*CVFAC
-!          write(*,*) 'HMS R3: ', KaqHMS2*CVFAC
-!          write(*,*) 'KaqO2: ', KaqO2
-!          write(*,*) 'KaqH2O2: ', KaqH2O2, HPLUS
-       endif
+       !K_CLD(3) computed below
+       K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+       K_CLD(5) = CloudHet1R( FC, KaqHMS) ! KaqHMS is pseudo-1st order
+       K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
+            KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
+       ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
 
 #ifdef TOMAS
        !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%

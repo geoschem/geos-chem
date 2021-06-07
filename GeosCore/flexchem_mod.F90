@@ -856,8 +856,8 @@ CONTAINS
           CALL SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
                State_Met,  RC )
 
-          !if (Ind_('HSO3m','k') .gt. 0) C(Ind_('HSO3m','k')) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
-          !if (Ind_('SO3mm','k') .gt. 0) C(Ind_('SO3mm','k')) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
+          if (Ind_('HSO3m','k') .gt. 0) C(Ind_('HSO3m','k')) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
+          if (Ind_('SO3mm','k') .gt. 0) C(Ind_('SO3mm','k')) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
           State_Chm%fupdateHOBr(I,J,L) = 1.e0
           State_Chm%fupdateHOCl(I,J,L) = 1.e0
 

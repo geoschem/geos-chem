@@ -275,6 +275,7 @@ CONTAINS
 !    !------------------------------------------------------------------------
 !
 !    ! This reaction is first order, so no kII calculation is required
+!    ! <<>> Now, use KII because the eqn uses S(IV) as a reactant
 !    kITemp = HETHOBr_TCld( rLiq,        rIce,                   &
 !                           ALiq,        AIce,        VAir,                   &
 !                           CldFr,       hConc_Sul,                           &
@@ -285,7 +286,8 @@ CONTAINS
 !                           hbr_th,      7,           H                      )
 !
 !    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
-!    HET(ind_HOBr,  7) = kITemp * fupdateHOBr
+!!    HET(ind_HOBr,  7) = kITemp * fupdateHOBr
+!    HET(ind_HOBr,  7) = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), kITemp        )
 !
 !    !------------------------------------------------------------------------
 !    ! HOBr + SO3--(aq) (update: XW 2019-06-08)
@@ -301,7 +303,8 @@ CONTAINS
 !                           hbr_th,      8,           H                      )
 !
 !    ! Make sure sulfate produced is less than SO2 available (qjc, 06/20/16)
-!    HET(ind_HOBr,  8) = kITemp * fupdateHOBr
+!!    HET(ind_HOBr,  8) = kITemp * fupdateHOBr
+!    HET(ind_HOBr,  8) = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), kITemp        )
 !
 !    !-----------------------------------------------------------------------
 !    ! ClNO3 + BrSALA/C (update: XW 2019-06-08)
@@ -474,7 +477,8 @@ CONTAINS
 !                           H                                                )
 !
 !    ! Make sure sulfate produced is less than SO2 available
-!    HET(ind_HOCl,  5) = kITemp * fupdateHOCl
+!!    HET(ind_HOCl,  5) = kITemp * fupdateHOCl
+!    HET(ind_HOCl,  5) = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), kITemp        )
 !
 !    ! This reaction is first order, so no kII calculation is required
 !    kITemp = HETHOCl_TCld( NUMDEN,       rLiq,        rIce,                   &
@@ -486,7 +490,8 @@ CONTAINS
 !                           H                                                )
 !
 !    ! Make sure sulfate produced is less than SO2 available
-!    HET(ind_HOCl,  6) = kITemp * fupdateHOCl
+!!    HET(ind_HOCl,  6) = kITemp * fupdateHOCl
+!    HET(ind_HOCl,  6) = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), kITemp        )
 !
 !    !------------------------------------------------------------------------
 !    ! O3 + Br- calculation (TS index: hhc12)

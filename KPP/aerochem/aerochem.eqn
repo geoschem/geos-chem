@@ -169,14 +169,14 @@ ACTA       = IGNORE; {CH3C(O)OH; Acetic acid}
 AERI       = IGNORE; {I; Dissolved iodine}
 ALD2       = IGNORE; {CH3CHO; Acetaldehyde}
 ALK4       = IGNORE; {>= C4 alkanes}
-AKNCLD	   = IGNORE; {Cloudwater alkalinity}
-AKNDST1	   = IGNORE; {Alkalinity of mineral dust bin 1}
-AKNDST2	   = IGNORE; {Alkalinity of mineral dust bin 2}
-AKNDST3	   = IGNORE; {Alkalinity of mineral dust bin 3}
-AKNDST4	   = IGNORE; {Alkalinity of mineral dust bin 4}
-AKNDST5	   = IGNORE; {Alkalinity of mineral dust bin 5}
-AKNDST6	   = IGNORE; {Alkalinity of mineral dust bin 6}
-AKNDST7    = IGNORE; {Alkalinity of mineral dust bin 7}
+ALKCLD	   = IGNORE; {Cloudwater alkalinity}
+ALKDST1	   = IGNORE; {Alkalinity of mineral dust bin 1}
+ALKDST2	   = IGNORE; {Alkalinity of mineral dust bin 2}
+ALKDST3	   = IGNORE; {Alkalinity of mineral dust bin 3}
+ALKDST4	   = IGNORE; {Alkalinity of mineral dust bin 4}
+ALKDST5	   = IGNORE; {Alkalinity of mineral dust bin 5}
+ALKDST6	   = IGNORE; {Alkalinity of mineral dust bin 6}
+ALKDST7    = IGNORE; {Alkalinity of mineral dust bin 7}
 ATO2       = IGNORE; {CH3C(O)CH2O2; RO2 from acetone}
 ATOOH      = IGNORE; {CH3C(O)CH2OOH; ATO2 peroxide}
 B3O2       = IGNORE; {CH3CH(OO)CH3; Secondary RO2 from C3H8}
@@ -478,8 +478,6 @@ HNO3 + SALCAL     =  NITs       : K_MT(6);
 //HpC + SALCAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
 //------------------------
 // Dust:
-//
-// DUST NOT YET COMPLETED ! MSL
 //------------------------
 // Cloud:
 // - S(IV) --> S(VI)
@@ -489,9 +487,9 @@ SO2 + O3  = SO4  : K_CLD(2);
 SO2 {+O2} = SO4  : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
 //------------------------
 // HMS:
-///CH2O + SO2 = HMS         : K_CLD(4);
-///HMS        = SO2 + CH2O  : K_CLD(5);
-///HMS        = 2SO4 + CH2O : k_CLD(6);
+CH2O + SO2 = HMS         : K_CLD(4);
+HMS        = SO2 + CH2O  : K_CLD(5);
+HMS + OH   = 2SO4 + CH2O : k_CLD(6);
 //------------------------
 // --- End sulfate_mod.F90 reactions 
 //
@@ -1428,16 +1426,20 @@ HOCl + HCl = Cl2 + H2O :                     HET(ind_HOCl,1);                   
 HOCl + HBr = BrCl + H2O :                    HET(ind_HOCl,2);                                               {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :                  HET(ind_HOCl,3);                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :                  HET(ind_HOCl,4);                                               {2018/01/22; XW}
-HOCl = SO4H3 + HCl :                         HET(ind_HOCl,5);                                               {2018/11/08; XW}
-HOCl = SO4H4 + HCl :                         HET(ind_HOCl,6);                                               {2018/11/08; XW}
+HOCl + HSO3m = SO4 + HCl :                         HET(ind_HOCl,5);                                               {2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO3mm = SO4 + HCl :                         HET(ind_HOCl,6);                                               {2018/11/08; XW; June 6, 2021, MSL}
+//HOCl = SO4H3 + HCl :                         HET(ind_HOCl,5);                                               {2018/11/08; XW}
+//HOCl = SO4H4 + HCl :                         HET(ind_HOCl,6);                                               {2018/11/08; XW}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBrAndTropCloud( State_Het );                                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHClAndTropCloud( State_Het );                                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :                 HET(ind_HOBr,3);                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :                 HET(ind_HOBr,4);                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :                        HET(ind_HOBr,5);                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :                        HET(ind_HOBr,6);                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr = SO4H1 + HBr :                         HET(ind_HOBr,7);                                               {2017/11/15; Chen2017; QJC}
-HOBr = SO4H2 + HBr :                         HET(ind_HOBr,8);                                               {2017/11/15; Chen2017; QJC}
+HOBr + HSO3m = SO4 + HBr :                         HET(ind_HOBr,7);                                               {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO3mm = SO4 + HBr :                         HET(ind_HOBr,8);                                               {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+//HOBr = SO4H1 + HBr :                         HET(ind_HOBr,7);                                               {2017/11/15; Chen2017; QJC}
+//HOBr = SO4H2 + HBr :                         HET(ind_HOBr,8);                                               {2017/11/15; Chen2017; QJC}
 O3 + HBr = HOBr :              O3uptkByHBrInTropCloud( State_Het );                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByCloudAndBrSALA( State_Het );                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByCloudAndBrSALC( State_Het );                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
