@@ -845,8 +845,8 @@ CONTAINS
        !----------------------------------------------------------------------
 
        IF (.not. DO_SULFATEMOD_SEASALT) THEN
-          C(ind_SALAAL) = C(ind_SALAAL) * State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp
-          C(ind_SALCAL) = C(ind_SALCAL) * State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp
+          C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
+          C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
 
           CALL SET_SEASALT_S( I, J, L, Input_Opt, State_Chm, State_Grid, &
                State_Met, RC ) !S(IV)->S(VI), HCl, HNO3
@@ -856,8 +856,9 @@ CONTAINS
           CALL SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
                State_Met,  RC )
 
-          if (Ind_('HSO3m','k') .gt. 0) C(Ind_('HSO3m','k')) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
-          if (Ind_('SO3mm','k') .gt. 0) C(Ind_('SO3mm','k')) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
+          C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
+          C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
+
           State_Chm%fupdateHOBr(I,J,L) = 1.e0
           State_Chm%fupdateHOCl(I,J,L) = 1.e0
 
@@ -1619,6 +1620,7 @@ CONTAINS
     State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
     State_Het%xVol(1:NA)     = State_Het%xArea(1:NA)                         &
                              * State_Het%xRadi(1:NA) / 3.0_dp
+    State_Het%wetArea(1:NA)  = State_Chm%WetAeroArea(I,J,L,1:NA)
     State_Het%xH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
     State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
     State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
@@ -2436,6 +2438,17 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
+
+    !=======================================================================
+    ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
+    ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
+    ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+    ! tdf; MSL
+    !=======================================================================
+    Buf_Cap_SALAAL = 0.0_dp
+    Buf_Cap_SALCAL = 0.0_dp
+    IF ( ind_SALAAL > 0 ) Buf_Fac_SALAAL = MW(ind_SALAAL) * 7.0e-5_dp
+    IF ( ind_SALCAL > 0 ) Buf_Fac_SALCAL = MW(ind_SALCAL) * 7.0e-5_dp
 
     !=======================================================================
     ! Allocate arrays
