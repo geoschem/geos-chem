@@ -169,14 +169,6 @@ ACTA       = IGNORE; {CH3C(O)OH; Acetic acid}
 AERI       = IGNORE; {I; Dissolved iodine}
 ALD2       = IGNORE; {CH3CHO; Acetaldehyde}
 ALK4       = IGNORE; {>= C4 alkanes}
-ALKCLD	   = IGNORE; {Cloudwater alkalinity}
-ALKDST1	   = IGNORE; {Alkalinity of mineral dust bin 1}
-ALKDST2	   = IGNORE; {Alkalinity of mineral dust bin 2}
-ALKDST3	   = IGNORE; {Alkalinity of mineral dust bin 3}
-ALKDST4	   = IGNORE; {Alkalinity of mineral dust bin 4}
-ALKDST5	   = IGNORE; {Alkalinity of mineral dust bin 5}
-ALKDST6	   = IGNORE; {Alkalinity of mineral dust bin 6}
-ALKDST7    = IGNORE; {Alkalinity of mineral dust bin 7}
 ATO2       = IGNORE; {CH3C(O)CH2O2; RO2 from acetone}
 ATOOH      = IGNORE; {CH3C(O)CH2OOH; ATO2 peroxide}
 B3O2       = IGNORE; {CH3CH(OO)CH3; Secondary RO2 from C3H8}

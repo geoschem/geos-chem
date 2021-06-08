@@ -863,9 +863,6 @@ DSTAL3:
 DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
-DUMMY:
-  Fullname: KPP dummy species for sea salt alkalinity
-  Is_Omitted: true
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -1445,6 +1442,13 @@ HMML:
   Is_WetDep: true
   MW_g: 102.10
   WD_RetFactor: 2.0e-2
+HMS:
+  Formula: CH3O4S
+  FullName: hydroxymethyl-methyl-a-lactone
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  MW_g: 111.10
 HNO2:
   Background_VV: 4.0e-15
   Formula: HNO2
@@ -1543,9 +1547,6 @@ HONIT:
   Is_WetDep: true
   MW_g: 215.0
   WD_RetFactor: 2.0e-2
-HpA:
-  Fullname: KPP dummy species for dummy proton exchange (SALACL)
-  Is_Omitted: true
 HPALD1:
   DD_F0: 0.0
   DD_Hstar: 4.0e+4
@@ -1596,9 +1597,6 @@ HPALD4:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 116.13
-HpC:
-  Fullname: KPP dummy species for dummy proton exchange (SALACL)
-  Is_Omitted: true
 HPETHNL:
   DD_F0: 1.0
   DD_Hstar: 4.1e+4
@@ -1613,6 +1611,11 @@ HPETHNL:
   Is_WetDep: true
   MW_g: 76.06
   WD_RetFactor: 2.0e-2
+HSO3m:
+  Formula: HSO3-
+  FullName: Hydrogen sulfite
+  Is_Gas: true
+  MW_g: 81.07
 I:
   Formula: I
   FullName: Atomic iodine
@@ -2870,8 +2873,8 @@ O3_PROP: &O3properties
   DD_Hstar: 1.0e-2
   Formula: O3
   FullName: Ozone
-  Henry_CR: 2300.0
-  Henry_K0: 1.1e-2
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2881,6 +2884,8 @@ O3:
   << : *O3properties
   Background_VV: 2.0e-8
   FullName: Ozone
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_DryAlt: true
 O3afbl:
   << : *O3properties
@@ -3696,6 +3701,8 @@ SO2:
   DD_Hstar: 1.0e+5
   Formula: SO2
   FullName: Sulfur dioxide
+  Henry_CR: 2900.0
+  Henry_K0: 1.317
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3705,6 +3712,11 @@ SO2:
   WD_Is_SO2: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+SO3mm:
+  Formula: SO3--
+  FullName: Sulfite
+  Is_Gas: true
+  MW_g: 80.07
 SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
