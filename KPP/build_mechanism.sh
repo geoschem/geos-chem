@@ -16,7 +16,7 @@
 #
 # !AUTHOR:
 #  Melissa Sulprizio (mpayer@seas.harvard.edu) -- Initial version
-#  Bob Yantosca (yantosca@seas.harvard.edu) -- Updates for KPP 2.3.0_gc
+#  Bob Yantosca (yantosca@seas.harvard.edu) -- Updates for KPP 2.3.0_gc+
 #
 # !REMARKS:
 #  (1) Requires KPP version 2.3.0_gc or later.
@@ -57,35 +57,58 @@ else
 fi
 
 #============================================================================
-# Remove prior files, except gckpp_HetRates.F90
+# Remove prior files that have been built with KPP
+# while leaving those files containing the chemistry mechanism specification
 #============================================================================
 cd ${mechanismDir}
-mv gckpp_HetRates.F90 HETCODE
-mv gckpp_AqRates.F90  AQUCODE
-mv gckpp_Sulfate.F90  SULCODE
-rm -f *.F90 *.f90 *.o
+
+# Remove these files, which will be will be regnerated by KPP
+filesToRemove=(                \
+    gckpp_Function.F90         \
+    gckpp_Global.F90           \
+    gckpp_Initialize.F90       \
+    gckpp_Integrator.F90       \
+    gckpp_Jacobian.F90         \
+    gckpp_JacobianSP.F90       \
+    gckpp_LinearAlgebra.F90    \
+    gckpp_Model.F90            \
+    gckpp_Monitor.F90          \
+    gckpp_Parameters.F90       \
+    gckpp_Precision.F90        \
+    gckpp_Rates.F90            \
+    gckpp_Util.F90             \
+)
+
+for f in ${filesToRemove[@]}; do
+    rm -f $f
+done
+
+# Also remove any object files
+rm -f *.o
 
 #============================================================================
-# Build the mechanism and change extension from *.f90 to *.F90
-# Halt if the gckpp_Rates file was not built
+# Build the mechanism!
 #============================================================================
-kpp gckpp.kpp
+if [[ -f gckpp.kpp ]]; then
+    kpp gckpp.kpp
+else
+    echo "Could not find the gckpp.kpp file... Aborting!"
+    exit 1
+fi
+
+# If the gckpp_Rates.F90 file is not found, there was an error
 if [[ ! -e gckpp_Rates.F90 ]]; then
   echo "KPP failed to build gckpp_Rates.F90! Aborting."
   exit 1
 fi
 
 #============================================================================
-# Restore the preserved files to their original names
-#============================================================================
-mv HETCODE gckpp_HetRates.F90
-mv AQUCODE gckpp_AqRates.F90
-mv SULCODE gckpp_Sulfate.F90
-
-#============================================================================
 # Strip unwanted characters in gckpp_Rates.F90
 # These seem to be created by KPP due to issues in breaking long lines
 # We might be able to get rid of this later on with thenew mechanism
+#
+# NOTE: This should be unnecessary if we apply the fix described at:
+# https://github.com/geoschem/KPP/issues/1
 #============================================================================
 line1="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'I2O3"
 line2="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'"
@@ -94,6 +117,8 @@ sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 #============================================================================
 # Run python parser OHreactParser.py. This will create fortran code
 # for subroutine Get_OHreactivity and insert it into gckpp_Util.F90
+#
+# TODO: Port this to C and include within KPP
 #============================================================================
 python ../OHreact_parser.py
 
