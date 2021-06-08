@@ -2268,8 +2268,10 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
-    USE Gckpp_Parameters, ONLY : nFam, nReact
-    USE Gckpp_Global,     ONLY : Henry_K0, Henry_CR, MW, SR_MW
+    USE Gckpp_Precision
+    USE Gckpp_Parameters, ONLY : nFam, nReact, ind_SALAAL, ind_SALCAL
+    USE Gckpp_Global,     ONLY : Henry_K0,       Henry_CR,       MW
+    USE Gckpp_Global,     ONLY : Buf_Cap_SALAAL, Buf_Cap_SALCAL, SR_MW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
@@ -2447,8 +2449,8 @@ CONTAINS
     !=======================================================================
     Buf_Cap_SALAAL = 0.0_dp
     Buf_Cap_SALCAL = 0.0_dp
-    IF ( ind_SALAAL > 0 ) Buf_Fac_SALAAL = MW(ind_SALAAL) * 7.0e-5_dp
-    IF ( ind_SALCAL > 0 ) Buf_Fac_SALCAL = MW(ind_SALCAL) * 7.0e-5_dp
+    IF ( ind_SALAAL > 0 ) Buf_Cap_SALAAL = MW(ind_SALAAL) * 7.0e-5_dp
+    IF ( ind_SALCAL > 0 ) Buf_Cap_SALCAL = MW(ind_SALCAL) * 7.0e-5_dp
 
     !=======================================================================
     ! Allocate arrays

@@ -2504,7 +2504,7 @@ PH2O2 : H2O2;
   ! Buffering capacity for SALAAL and SALACL
   ! (These do not need to be THREADPRIVATE)
   REAL(dp) :: Buf_Cap_SALAAL
-  REAL(dp) :: Buf_Cap_SALACL
+  REAL(dp) :: Buf_Cap_SALCAL
 
   ! Proton activity [unitless] and H+ concentration [M]
   ! (assumed equivalent - for now):

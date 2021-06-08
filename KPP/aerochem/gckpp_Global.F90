@@ -197,13 +197,18 @@ MODULE gckpp_Global
 
   ! Array for cloud rates (1/s)
   ! - number of reactions set to 50 arbitrarily
-  REAL(kind=dp) :: K_CLD(20)
+  REAL(dp) :: K_CLD(20)
   !$OMP THREADPRIVATE( K_CLD )
 
   ! Liquid water conversion factor
   ! - Size = number of aerosol types (nAeroType)
-  REAL(kind=dp) :: CVFAC(14)
+  REAL(dp) :: CVFAC(14)
   !$OMP THREADPRIVATE( CVFAC )
+
+  ! Buffering capacity for SALAAL and SALACL
+  ! (These do not need to be THREADPRIVATE)
+  REAL(dp) :: Buf_Cap_SALAAL
+  REAL(dp) :: Buf_Cap_SALCAL
 
   ! Proton activity [unitless] and H+ concentration [M]
   ! (assumed equivalent - for now):
@@ -320,6 +325,7 @@ MODULE gckpp_Global
      REAL(dp) :: vAir           ! Volume of air                    [cm3        ]4
      REAL(dp) :: vIce           ! Ice volume                       [cm3        ]4
      REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]4
+     REAL(dp) :: wetArea(14)    ! Aerosol specific wet sfc area    [cm3/cm3 air]4
      REAL(dp) :: xArea(14)      ! Aerosol specific sfc area        [cm3/cm3 air]4
      REAL(dp) :: xH2O(14)       ! Aerosol water content            [cm3/cm3 air]4
      REAL(dp) :: xRadi(14)      ! Aerosol effective radius         [cm         ]4
