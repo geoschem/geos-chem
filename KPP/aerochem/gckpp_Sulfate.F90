@@ -29,25 +29,18 @@ MODULE GCKPP_SULFATE
   PUBLIC :: INIT_SULFATE
 
   ! Species ID flags
-  INTEGER                :: id_AS,     id_AHS,    id_AW1
-  INTEGER                :: id_DAL1,   id_DAL2,   id_DAL3
-  INTEGER                :: id_DAL4,   id_DMS,    id_DST1
+  INTEGER                :: id_DMS,    id_DST1
   INTEGER                :: id_DST2,   id_DST3,   id_DST4
-  INTEGER                :: id_H2O2,   id_HNO3,   id_LET
+  INTEGER                :: id_H2O2,   id_HNO3
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
-  INTEGER                :: id_NH4aq,  id_NIT,    id_NITd1
-  INTEGER                :: id_NITd2,  id_NITd3,  id_NITd4
-  INTEGER                :: id_NITs,   id_NK1,    id_NK5
-  INTEGER                :: id_NK8,    id_NK10,   id_NK20
+  INTEGER                :: id_NIT
+  INTEGER                :: id_NITs
   INTEGER                :: id_NO3,    id_O3,     id_OH
-  INTEGER                :: id_SALA,   id_SALC,   id_SF1
-  INTEGER                :: id_SO2,    id_SO4,    id_SO4aq
-  INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3
-  INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
+  INTEGER                :: id_SALA,   id_SALC
+  INTEGER                :: id_SO2,    id_SO4
+  INTEGER                :: id_SO4s,   id_pFe
   INTEGER                :: id_SALACL, id_HCL,    id_SALCCL
   INTEGER                :: id_SALAAL, id_SALCAL
-  INTEGER                :: id_HOBr,   id_SO4H1,  id_SO4H2
-  INTEGER                :: id_HOCl,   id_SO4H3,  id_SO4H4
   INTEGER                :: id_HCOOH,  id_ACTA            !jmm 1/31/19
   INTEGER                :: id_CH2O,   id_HMS             ! msl
 
@@ -85,8 +78,6 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -119,10 +110,6 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
 
-    ! Pointers
-    ! Coming in from FlexChem_Mod, Spc is in mcl/cm3 (MND)
-    REAL(fp), POINTER        :: Spc(:,:,:,:)
-
     !=================================================================
     ! SET_CLD_S begins here!
     !=================================================================
@@ -132,15 +119,8 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at SET_CLD_S (in module GeosCore/sulfate_mod.F90)'
 
-    ! Initialize pointers
-!    Spc                  => State_Chm%Species  ! Chemistry species [mcl/cm3]
-
     ! Should we print debug output?
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    !=================================================================
-    ! Call individual chemistry routines for sulfate/aerosol tracers
-    !=================================================================
 
     !-----------------------
     ! SO2 chemistry
@@ -150,58 +130,17 @@ CONTAINS
     
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Chem_SO2"!'
+       ErrMsg = 'Error encountered in "SET_SO2"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
     ! Debug info
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a CHEM_SO2' )
+       CALL DEBUG_MSG( '### SET_CLD_S: a SET_SO2' )
     ENDIF
     
-    !-----------------------
-    ! SO4 chemistry
-    !-----------------------
-!    CALL CHEM_SO4( Input_Opt,  State_Chm, State_Diag, State_Grid, &
-!         State_Met, RC )
-    
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Chem_SO4"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a CHEM_SO4' )
-    ENDIF
-    
-    ! MSA
-!    CALL CHEM_MSA( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a CHEM_MSA' )
-    ENDIF
-    
-    ! Sulfur Nitrate.
-    ! CHEM_NIT includes a source term from sea salt aerosols, so keep
-    ! here.
-!    CALL CHEM_NIT( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a CHEM_NIT' )
-    ENDIF
-    
-    ! Calculate the HCl uptake by alkalinity, xnw
-!    CALL CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a CHEM_CL' )
-    ENDIF
-    
-    ! Free pointer
-    Spc => NULL()
-
   END SUBROUTINE SET_CLD_S
-!EOC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -210,8 +149,9 @@ CONTAINS
 !
 ! !IROUTINE: chem_so2
 !
-! !DESCRIPTION: Subroutine CHEM\_SO2 is the SO2 chemistry subroutine.
-!  (rjp, bmy, 11/26/02, 8/26/10)
+! !DESCRIPTION: Subroutine SET\_SO2 is the SO2 chemistry subroutine.
+!  (rjp, bmy, 11/26/02, 8/26/10) Adapted from CHEM_SO2() in SULFATE_MOD
+!  (MSL - Spring 2021)
 !\\
 !\\
 ! !INTERFACE:
@@ -222,7 +162,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_Mod,         ONLY : NDSTBIN
-!    USE DUST_MOD,             ONLY : GET_DUST_ALK      ! tdf 04/08/08
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
     USE ERROR_MOD,            ONLY : SAFE_DIV
@@ -231,8 +170,7 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
-    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 #ifdef APM
     USE APM_DRIV_MOD,         ONLY : PSO4GAS
     USE APM_DRIV_MOD,         ONLY : XO3
@@ -311,7 +249,6 @@ CONTAINS
     REAL(fp)              :: LSTOT,  ALKdst, ALKss,  ALKds, NH3, CL, TNA
     REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
     REAL(fp)              :: TFA,  TAA,   TDCA    ! (jmm, 12/03/2018)
-    REAL(fp)              :: PSO4d_tot, PNITd_tot
     REAL(fp)              :: SO2_gas,   PH2SO4d_tot
     REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
@@ -335,27 +272,9 @@ CONTAINS
 
     REAL(fp)              :: KaqHCHO, KaqHMS, KaqHMS2, HMSc ! JMM, MSL
 
-    ! Arrays
-    ! tdf 04/07/08
-    REAL(fp)              :: ALK_d   (NDSTBIN)
-    REAL(fp)              :: ALKA_d  (NDSTBIN)
-    REAL(fp)              :: PSO4_d  (NDSTBIN)
-    REAL(fp)              :: PNIT_d  (NDSTBIN)
-    REAL(fp)              :: PH2SO4_d(NDSTBIN)
-    REAL(fp)              :: KTN(NDSTBIN)
-    REAL(fp)              :: KTS(NDSTBIN)
-    REAL(fp)              :: KTH(NDSTBIN)
-    !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
-    ! dust size bins, based on a size- and area-weighted formulism
-    ! (GET_DUST_ALK)
-    REAL(fp)              :: O3m(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-
     ! Pointers
     REAL(fp), POINTER     :: Spc(:)
     REAL(fp), POINTER     :: SSAlk(:)
-
-    ! For HEMCO update
-    LOGICAL, SAVE         :: FIRST = .TRUE.
 
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
@@ -363,11 +282,6 @@ CONTAINS
     ! For Luo et al wetdep scheme
     LOGICAL               :: Is_QQ3D
 #endif
-
-    ! Cloud parameters
-    REAL(fp)               :: rLiq, ALiq, VLiq, CLDFr
-    REAL(fp)               :: rIce, AIce, VIce
-
 
     !=================================================================
     ! SET_SO2 begins here!
@@ -423,21 +337,6 @@ CONTAINS
     
     ! TK : Temperature [K]
     TK = State_Met%T(I,J,L)
-
-    ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
-    K0 = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
-    Ki = 1.6e-12_fp
-
-    IF ( LDSTUP .and. FullRun ) THEN
-       
-       !==============================================================
-       ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
-       !==============================================================
-       ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
-       ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
-       CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH, &
-                             Input_Opt, State_Met, State_Chm )
-    END IF
 
     ! Get cloud fraction from met fields
     FC      = State_Met%CLDF(I,J,L)
@@ -565,11 +464,6 @@ CONTAINS
        ! Get sulfate concentration and convert from [v/v] to
        ! [moles/liter]
        ! Use a cloud scavenging ratio of 0.7
-
-!       SO4nss  =  Spc(id_SO4) * State_Met%AIRDEN(I,J,L) * &
-!            0.7e+0_fp / ( AIRMW * LWC ) +                 &
-!            Spc(id_SO4s) * State_Met%AIRDEN(I,J,L)  &
-!            / ( AIRMW * LWC )
 
        SO4nss  =  1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) ) / &
             ( LWC * AVO ) ! mcl/cm3 -> mol/L
@@ -3059,13 +2953,6 @@ CONTAINS
     ThisLoc  = ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F90)'
 
     ! Define flags for species ID's
-    id_AS    = Ind_('AS'       )
-    id_AHS   = Ind_('AHS'      )
-    id_AW1   = Ind_('AW1'      )
-    id_DAL1  = Ind_('DSTAL1'   )
-    id_DAL2  = Ind_('DSTAL2'   )
-    id_DAL3  = Ind_('DSTAL3'   )
-    id_DAL4  = Ind_('DSTAL4'   )
     id_DMS   = Ind_('DMS'      )
     id_DST1  = Ind_('DST1'     )
     id_DST2  = Ind_('DST2'     )
@@ -3073,45 +2960,22 @@ CONTAINS
     id_DST4  = Ind_('DST4'     )
     id_H2O2  = Ind_('H2O2'     )
     id_HNO3  = Ind_('HNO3'     )
-    id_HOBr  = Ind_('HOBr'     )
-    id_HOCl  = Ind_('HOCl'     )
-    id_LET   = Ind_('LET'      )
     id_MSA   = Ind_('MSA'      )
     id_NH3   = Ind_('NH3'      )
     id_NH4   = Ind_('NH4'      )
-    id_NH4aq = Ind_('NH4aq'    )
     id_NIT   = Ind_('NIT'      )
-    id_NITd1 = Ind_('NITD1'    )
-    id_NITd2 = Ind_('NITD2'    )
-    id_NITd3 = Ind_('NITD3'    )
-    id_NITd4 = Ind_('NITD4'    )
     id_NITs  = Ind_('NITs'     )
-    id_NK1   = Ind_('NK1'      )
-    id_NK5   = Ind_('NK5'      )
-    id_NK8   = Ind_('NK8'      )
-    id_NK10  = Ind_('NK10'     )
-    id_NK20  = Ind_('NK20'     )
-    id_NO3   = Ind_('NO3'      )
     id_O3    = Ind_('O3'       )
     id_OH    = Ind_('OH'       )
     id_pFe   = Ind_('pFe'      )
     id_SALA  = Ind_('SALA'     )
     id_SALC  = Ind_('SALC'     )
-    id_SF1   = Ind_('SF1'      )
     id_SO2   = Ind_('SO2'      )
     id_SO4   = Ind_('SO4'      )
-    id_SO4aq = Ind_('SO4aq'    )
-    id_SO4d1 = Ind_('SO4D1'    )
-    id_SO4d2 = Ind_('SO4D2'    )
-    id_SO4d3 = Ind_('SO4D3'    )
-    id_SO4d4 = Ind_('SO4D4'    )
     id_SO4s  = Ind_('SO4s'     )
     id_SALACL= Ind_('SALACL'   )
     id_HCL   = Ind_('HCL'     )
-    !id_NH4s  = Ind_('NH4s'     )
     id_SALCCL= Ind_('SALCCL'   )
-    id_SALAAL= Ind_('SALAAL'   )
-    id_SALCAL= Ind_('SALCAL'   )
     id_HCOOH = Ind_('HCOOH'    ) ! (jmm, 12/3/18)
     id_ACTA  = Ind_('ACTA'     ) ! (jmm, 12/3/18)
     id_CH2O  = Ind_('CH2O'     ) ! msl
