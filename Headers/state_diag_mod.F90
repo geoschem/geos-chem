@@ -936,18 +936,49 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: Bry(:,:,:)
      LOGICAL                     :: Archive_Bry
 
+     REAL(f4),           POINTER :: NOy(:,:,:)
+     LOGICAL                     :: Archive_NOy
+
+     REAL(f4),           POINTER :: Cly(:,:,:)
+     LOGICAL                     :: Archive_Cly
+
+     REAL(f4),           POINTER :: OrganicCl(:,:,:)
+     LOGICAL                     :: Archive_OrganicCl
+
+     REAL(f4),           POINTER :: O3_MASS(:,:,:)
+     LOGICAL                     :: Archive_O3_MASS
+
+     REAL(f4),           POINTER :: GCCTO3(:,:)
+     LOGICAL                     :: Archive_GCCTO3
+
+     REAL(f4),           POINTER :: GCCTTO3(:,:)
+     LOGICAL                     :: Archive_GCCTTO3
+
+     REAL(f4),           POINTER :: O3MASS(:,:,:)
+     LOGICAL                     :: Archive_O3MASS
+
+     REAL(f4),           POINTER :: CHEMTOP(:,:)
+     LOGICAL                     :: Archive_CHEMTOP
+
+     REAL(f4),           POINTER :: CHEMTROPP(:,:)
+     LOGICAL                     :: Archive_CHEMTROPP
+
+     REAL(f4),           POINTER :: CONVCLDTOP(:,:)
+     LOGICAL                     :: Archive_CONVCLDTOP
+
+     REAL(f4),           POINTER :: EXTRALNLEVS(:,:)
+     LOGICAL                     :: Archive_EXTRALNLEVS
+
+     REAL(f4),           POINTER :: EXTRALNITER(:,:)
+     LOGICAL                     :: Archive_EXTRALNITER
+
+     REAL(f4),           POINTER :: LIGHTNINGPOTENTIAL(:,:)
+     LOGICAL                     :: Archive_LGHTPOTENTIAL
+
      !%%%%% Chemistry diagnostics %%%%%
 
      REAL(f4),           POINTER :: KppError(:,:,:)
      LOGICAL                     :: Archive_KppError
-
-     REAL(f4),           POINTER :: JvalIndiv(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_JvalIndiv
-     LOGICAL                     :: Archive_JvalIndiv
-
-     REAL(f4),           POINTER :: RxnRconst(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_RxnRconst
-     LOGICAL                     :: Archive_RxnRconst
 
      REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3concAfterChem
@@ -981,6 +1012,14 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM25soa(:,:,:)    ! PM25 SOA
      LOGICAL                     :: Archive_PM25soa
 
+     !%%%%% Species diagnostics %%%%%
+     REAL(f4),           POINTER :: TropCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TropCol
+     LOGICAL                     :: Archive_TropCol
+
+     REAL(f4),           POINTER :: TotCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TotCol
+     LOGICAL                     :: Archive_TotCol
 #endif
 
 #ifdef MODEL_WRF
@@ -1861,11 +1900,41 @@ CONTAINS
     State_Diag%Bry                                 => NULL()
     State_Diag%Archive_Bry                         = .FALSE.
 
-    State_Diag%JvalIndiv                           => NULL()
-    State_Diag%Archive_JvalIndiv                   = .FALSE.
+    State_Diag%NOy                                 => NULL()
+    State_Diag%Archive_NOy                         = .FALSE.
 
-    State_Diag%RxnRconst                           => NULL()
-    State_Diag%Archive_RxnRconst                   = .FALSE.
+    State_Diag%Cly                                 => NULL()
+    State_Diag%Archive_Cly                         = .FALSE.
+
+    State_Diag%OrganicCl                           => NULL()
+    State_Diag%Archive_OrganicCl                   = .FALSE.
+
+    State_Diag%O3_MASS                             => NULL()
+    State_Diag%Archive_O3_MASS                     = .FALSE.
+
+    State_Diag%GCCTO3                              => NULL()
+    State_Diag%Archive_GCCTO3                      = .FALSE.
+
+    State_Diag%GCCTTO3                             => NULL()
+    State_Diag%Archive_GCCTTO3                     = .FALSE.
+
+    State_Diag%CHEMTOP                             => NULL()
+    State_Diag%Archive_CHEMTOP                     = .FALSE.
+
+    State_Diag%CHEMTROPP                           => NULL()
+    State_Diag%Archive_CHEMTROPP                   = .FALSE.
+
+    State_Diag%CONVCLDTOP                          => NULL()
+    State_Diag%Archive_CONVCLDTOP                  = .FALSE.
+
+    State_Diag%EXTRALNLEVS                         => NULL()
+    State_Diag%Archive_EXTRALNLEVS                 = .FALSE.
+
+    State_Diag%EXTRALNITER                         => NULL()
+    State_Diag%Archive_EXTRALNITER                 = .FALSE.
+
+    State_Diag%LIGHTNINGPOTENTIAL                  => NULL()
+    State_Diag%Archive_LGHTPOTENTIAL               = .FALSE.
 
     State_Diag%O3concAfterChem                     => NULL()
     State_Diag%Archive_O3concAfterChem             = .FALSE.
@@ -1896,6 +1965,14 @@ CONTAINS
 
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
+
+    State_Diag%TropCol                             => NULL()
+    State_Diag%Map_TropCol                         => NULL()
+    State_Diag%Archive_TropCol                     = .FALSE.
+
+    State_Diag%TotCol                              => NULL()
+    State_Diag%Map_TotCol                          => NULL()
+    State_Diag%Archive_TotCol                      = .FALSE.
 #endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -2802,6 +2879,204 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%Bry,                                    &
          archiveData    = State_Diag%Archive_Bry,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! NOy
+    !-----------------------------------------------------------------------
+    diagID  = 'NOy'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%NOy,                                    &
+         archiveData    = State_Diag%Archive_NOy,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Cly
+    !-----------------------------------------------------------------------
+    diagID  = 'Cly'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%Cly,                                    &
+         archiveData    = State_Diag%Archive_Cly,                            &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! OrganicCl
+    !-----------------------------------------------------------------------
+    diagID  = 'OrganicCl'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%OrganicCl,                              &
+         archiveData    = State_Diag%Archive_OrganicCl,                      &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! O3_MASS 
+    !-----------------------------------------------------------------------
+    diagID  = 'O3_MASS'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%O3_MASS,                                &
+         archiveData    = State_Diag%Archive_O3_MASS,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! GCCTO3 
+    !-----------------------------------------------------------------------
+    diagID  = 'GCCTO3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%GCCTO3,                                &
+         archiveData    = State_Diag%Archive_GCCTO3,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! GCCTTO3 
+    !-----------------------------------------------------------------------
+    diagID  = 'GCCTTO3'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%GCCTTO3,                                &
+         archiveData    = State_Diag%Archive_GCCTTO3,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CHEMTOP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CHEMTOP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CHEMTOP,                                &
+         archiveData    = State_Diag%Archive_CHEMTOP,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CHEMTROPP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CHEMTROPP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CHEMTROPP,                              &
+         archiveData    = State_Diag%Archive_CHEMTROPP,                      &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! CONVCLDTOP 
+    !-----------------------------------------------------------------------
+    diagID  = 'CONVCLDTOP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%CONVCLDTOP,                             &
+         archiveData    = State_Diag%Archive_CONVCLDTOP,                     &
          diagId         = diagId,                                            &
          RC             = RC                                                )
 
@@ -4690,10 +4965,6 @@ CONTAINS
        ! simulations) or the CH4 specialty simulation chemistry routine
        !--------------------------------------------------------------------
        diagID  = 'OHconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-#ifdef MODEL_GEOS
-       Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
-#endif
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4704,7 +4975,6 @@ CONTAINS
             Ptr2Data       = State_Diag%OHconcAfterChem,                     &
             archiveData    = State_Diag%Archive_OHconcAfterChem,             &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4715,7 +4985,6 @@ CONTAINS
 
 #ifdef MODEL_GEOS
        diagID  = 'O3concAfterChem'
-       Found = .TRUE. ! Always add - needed for NOx diagnostics
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4726,7 +4995,6 @@ CONTAINS
             Ptr2Data       = State_Diag%O3concAfterChem,                     &
             archiveData    = State_Diag%Archive_O3concAfterChem,             &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4736,7 +5004,6 @@ CONTAINS
        ENDIF
 
        diagID  = 'RO2concAfterChem'
-       Found = .TRUE. ! Always add - needed for NOx diagnostics
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4747,7 +5014,6 @@ CONTAINS
             Ptr2Data       = State_Diag%RO2concAfterChem,                    &
             archiveData    = State_Diag%Archive_RO2concAfterChem,            &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4771,7 +5037,6 @@ CONTAINS
             Ptr2Data       = State_Diag%AirMassColumnFull,                   &
             archiveData    = State_Diag%Archive_AirMassColumnFull,           &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4791,7 +5056,6 @@ CONTAINS
             Ptr2Data       = State_Diag%AirMassColumnTrop,                   &
             archiveData    = State_Diag%Archive_AirMassColumnTrop,           &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4814,7 +5078,6 @@ CONTAINS
             Ptr2Data       = State_Diag%CH4emission,                         &
             archiveData    = State_Diag%Archive_CH4emission,                 &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4837,7 +5100,6 @@ CONTAINS
             Ptr2Data       = State_Diag%CH4massColumnFull,                   &
             archiveData    = State_Diag%Archive_CH4massColumnFull,           &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4857,7 +5119,6 @@ CONTAINS
             Ptr2Data       = State_Diag%CH4massColumnTrop,                   &
             archiveData    = State_Diag%Archive_CH4massColumnTrop,           &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4880,7 +5141,6 @@ CONTAINS
             Ptr2Data       = State_Diag%OHwgtByAirMassColumnFull,            &
             archiveData    = State_Diag%Archive_OHwgtByAirMassColumnFull,    &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4900,7 +5160,6 @@ CONTAINS
             Ptr2Data       = State_Diag%OHwgtByAirMassColumnTrop,            &
             archiveData    = State_Diag%Archive_OHwgtByAirMassColumnTrop,    &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4923,7 +5182,6 @@ CONTAINS
             Ptr2Data       = State_Diag%LossOHbyCH4columnTrop,               &
             archiveData    = State_Diag%Archive_LossOHbyCH4columnTrop,       &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4946,7 +5204,6 @@ CONTAINS
             Ptr2Data       = State_Diag%LossOHbyMCFcolumnTrop,               &
             archiveData    = State_Diag%Archive_LossOHbyMCFcolumnTrop,       &
             diagId         = diagId,                                         &
-            forceDefine    = found,                                          &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -6055,6 +6312,46 @@ CONTAINS
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'TotCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TotCol,                              &
+            archiveData    = State_Diag%Archive_TotCol,                      &
+            mapData        = State_Diag%Map_TotCol,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'TropCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TropCol,                             &
+            archiveData    = State_Diag%Archive_TropCol,                     &
+            mapData        = State_Diag%Map_TropCol,                         &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -9563,6 +9860,66 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'NOy',                                         &
+                   Ptr2Data = State_Diag%NOy,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'Cly',                                         &
+                   Ptr2Data = State_Diag%Cly,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OrganicCl',                                   &
+                   Ptr2Data = State_Diag%OrganicCl,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'O3_MASS',                                   &
+                   Ptr2Data = State_Diag%O3_MASS,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'GCCTO3',                                   &
+                   Ptr2Data = State_Diag%GCCTO3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'GCCTTO3',                                   &
+                   Ptr2Data = State_Diag%GCCTTO3,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CHEMTOP',                                   &
+                   Ptr2Data = State_Diag%CHEMTOP,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CHEMTROPP',                                 &
+                   Ptr2Data = State_Diag%CHEMTROPP,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CONVCLDTOP',                                &
+                   Ptr2Data = State_Diag%CONVCLDTOP,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EXTRALNLEVS',                               &
+                   Ptr2Data = State_Diag%EXTRALNLEVS,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'EXTRALNITER',                               &
+                   Ptr2Data = State_Diag%EXTRALNITER,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LightningPotential',                        &
+                   Ptr2Data = State_Diag%LIGHTNINGPOTENTIAL,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'O3concAfterChem',                             &
                    Ptr2Data = State_Diag%O3concAfterChem,                    &
                    RC       = RC                                            )
@@ -9610,6 +9967,18 @@ CONTAINS
 
     CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
                    Ptr2Data = State_Diag%CH4pseudoFlux,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TotCol',                                      &
+                   Ptr2Data = State_Diag%TotCol,                             &
+                   mapData  = State_Diag%Map_TotCol,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TropCol',                                     &
+                   Ptr2Data = State_Diag%TropCol,                            &
+                   mapData  = State_Diag%Map_TropCol,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
@@ -9968,6 +10337,69 @@ CONTAINS
             'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NOY' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates' 
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CLY' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Inorganic_chlorine_=_Cl_ClO_OClO_ClOO_HOCl_HCl_ClNO2_ClNO3_BrCl_ICl_2xCl2_2xCl2O2'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ORGANICCL' ) THEN
+       IF ( isDesc    ) Desc  = &
+            '4CCl4_H1211_3CFC11_3CFC113_2CFC114_CFC115_2CFC12_3CH3CCl3_CH3Cl_2HCFC141b_HCFC142b_HCFC22_2HCFC123_3CHCl3_2CH2Cl2_CH2ICl'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O3_MASS' ) THEN
+       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area' 
+       IF ( isUnits   ) Units = 'kg m-2'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'GCCTO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_total_column_density'
+       IF ( isUnits   ) Units = 'dobsons'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'GCCTTO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Ozone_(O3,_MW_=_48.00_g_mol-1)_tropospheric_column_density'
+       IF ( isUnits   ) Units = 'dobsons'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CHEMTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'chemistry_grid_top_level'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CHEMTROPP' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause_used_by_GEOS-Chem_chemistry'
+       IF ( isUnits   ) Units = 'Pa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONVCLDTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'Convective_cloud_top_level_as_seen_by_GEOS-Chem'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EXTRALNLEVS' ) THEN
+       IF ( isDesc    ) Desc  = 'FAST-JX_EXTRAL_layers'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EXTRALNITER' ) THEN
+       IF ( isDesc    ) Desc  = 'FAST-JX_EXTRAL_iterations'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LIGHTNINGPOTENTIAL' ) THEN
+       IF ( isDesc    ) Desc  = 'Lightning_potential'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
@@ -10511,6 +10943,18 @@ CONTAINS
             'Particulate matter with radii < 2.5 um, SOA'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TOTCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'total column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TROPCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'tropospheric column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN

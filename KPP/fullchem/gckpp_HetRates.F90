@@ -901,7 +901,8 @@ MODULE GCKPP_HETRATES
       ! NOTE: the restriction of these reactions to the troposphere has been
       ! restored - TMS (2017/04/06 )
       HET(ind_BrNO3, 2) = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl),                &
-                                    HETBrNO3_HCl( 1.42E2_fp, 0.0_fp )       )
+                                    HETBrNO3_HCl( 1.42E2_fp, 0.0_fp,         &
+                                    Input_Opt )                             )
 
       !----------------------------------------------------------------
       ! N2O5 + HCl in stratosphere
@@ -5157,12 +5158,16 @@ MODULE GCKPP_HETRATES
          ELSEIF ( Input_Opt%LUCX .and. STRATBOX ) THEN
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(5)
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off ClNO3 + HBr on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3e+0_fp ! NAT
                ELSE
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off ClNO3 + HBr on ALL PSCs as in GMI
             ENDIF
 
          ENDIF
@@ -6573,12 +6578,13 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETBrNO3_HCl( A, B ) RESULT( kISum )
+    FUNCTION HETBrNO3_HCl( A, B, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS:
 !
       ! Rate coefficients
       REAL(fp), INTENT(IN) :: A, B
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
@@ -6616,6 +6622,8 @@ MODULE GCKPP_HETRATES
                XSTKCF = 0.9_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(7)
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off BrNO3 + HCl on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3_fp ! NAT   !%%% what is the difference?
@@ -6787,12 +6795,16 @@ MODULE GCKPP_HETRATES
  	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(9)
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off HOCl + HBr on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3e+0_fp ! NAT
                ELSE
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off HOCl + HBr on ALL PSCs as in GMI
             ENDIF
          ENDIF
 

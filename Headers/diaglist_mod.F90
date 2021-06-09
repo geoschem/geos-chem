@@ -631,7 +631,8 @@ CONTAINS
 #endif
 #ifdef MODEL_GEOS
        ! GEOS might have custom diagnostics outside of the standard states
-       ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
+       ELSEIF ( nameAllCaps(1:5) == 'GEOS_' .OR. &
+                nameAllCaps(1:4) == 'GCC_' ) THEN
           state = 'GEOS'
        ! GEOS might have internal state variables that start with other prefix
        ELSEIF ( nameAllCaps(1:4) == TPFX .OR. nameAllCaps(1:4) == GPFX ) THEN
