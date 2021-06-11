@@ -456,18 +456,18 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 //------------------------
 // Seasalt:
 //
-SO2  + SALAAL + O3  = SO4 - SALAAL     : K_MT(1);
-HCl  + SALAAL     = SALACL     : K_MT(2);
-HNO3 + SALAAL     = NIT        : K_MT(3);
-//HCl  {+ SALAAL}     = HpA + SALACL     : K_MT(2);
-//HNO3 {+ SALAAL}     = HpA + NIT        : K_MT(3);
-SO2  + SALCAL + O3  = SO4s - SALCAL    : K_MT(4);
-HCl  + SALCAL     =  SALCCL     : K_MT(5);
-HNO3 + SALCAL     =  NITs       : K_MT(6);
-//HCl  {+ SALCAL}     = HpC + SALCCL     : K_MT(5);
-//HNO3 {+ SALCAL}     = HpC + NITs       : K_MT(6);
-//HpA + SALAAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
-//HpC + SALCAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
+SO2  + SALAAL + O3  = SO4 - SALAAL  : AqRate_SALAAL_SO2_O3( State_Het );
+HCl  + SALAAL       = SALACL        : K_MT(2);
+HNO3 + SALAAL       = NIT           : K_MT(3);
+//HCl  {+ SALAAL}   = HpA + SALACL  : K_MT(2);
+//HNO3 {+ SALAAL}   = HpA + NIT     : K_MT(3);
+SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
+HCl  + SALCAL       = SALCCL        : K_MT(5);
+HNO3 + SALCAL       = NITs          : K_MT(6);
+//HCl  {+ SALCAL}   = HpC + SALCCL  : K_MT(5);
+//HNO3 {+ SALCAL}   = HpC + NITs    : K_MT(6);
+//HpA + SALAAL      = DUMMY         : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
+//HpC + SALCAL      = DUMMY         : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
 //------------------------
 // Dust:
 //------------------------

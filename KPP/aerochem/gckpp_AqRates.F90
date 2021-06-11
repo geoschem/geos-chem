@@ -168,12 +168,12 @@ MODULE GCKPP_AQRATES
       !====================================================================
       K_MT = 0._dp
 
-      IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) then
-      ! SO2 + O3 ...
-         k_ex  = ARSL1K( State_Chm%WetAeroArea(I,J,L,11), &
-              STATE_HET%XRADI(11), NUMDEN, 0.11_dp, SR_TEMP, SR_MW(ind_SO2))
-         K_MT(1) = kIIR1Ltd(C(ind_SO2), C(ind_O3), k_ex)/State_Chm%Species(I,J,L,id_SALAAL)!**2
-      endif
+!      IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) then
+!      ! SO2 + O3 ...
+!         k_ex  = ARSL1K( State_Chm%WetAeroArea(I,J,L,11), &
+!              STATE_HET%XRADI(11), NUMDEN, 0.11_dp, SR_TEMP, SR_MW(ind_SO2))
+!         K_MT(1) = kIIR1Ltd(C(ind_SO2), C(ind_O3), k_ex)/State_Chm%Species(I,J,L,id_SALAAL)!**2
+!      endif
 
       ! HCl
       k_ex = ARSL1K( State_Chm%WetAeroArea(I,J,L,11), &

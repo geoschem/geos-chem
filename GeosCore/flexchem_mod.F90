@@ -845,6 +845,10 @@ CONTAINS
        !----------------------------------------------------------------------
 
        IF (.not. DO_SULFATEMOD_SEASALT) THEN
+
+          ! NOTE: We have saved the original concentrations in
+          ! State_Het%SALAAL_save and State_Het%SALCAL_save, as these
+          ! are needed in the AqRate_* functions (bmy, 6/9/21)
           C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
           C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
 
@@ -1568,6 +1572,13 @@ CONTAINS
        ENDIF
     ENDDO
 
+    ! Save the concentrations of SALAAL and SALCAL before they get
+    ! converted to equivalents (by multiplying by MW * 7e-5).
+    ! These original concentrations will be needed in the AqRate_*
+    ! rate-law functions (bmy, 6/9/21)
+    IF ( ind_SALAAL > 0 ) State_Het%SALAAL_save = C(ind_SALAAL)
+    IF ( ind_SALCAL > 0 ) State_Het%SALCAL_save = C(ind_SALCAL)
+
     !========================================================================
     ! Populate global variables in gckpp_Global.F90
     !========================================================================
@@ -2269,9 +2280,8 @@ CONTAINS
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
-    USE Gckpp_Parameters, ONLY : nFam, nReact, ind_SALAAL, ind_SALCAL
-    USE Gckpp_Global,     ONLY : Henry_K0,       Henry_CR,       MW
-    USE Gckpp_Global,     ONLY : Buf_Cap_SALAAL, Buf_Cap_SALCAL, SR_MW
+    USE Gckpp_Parameters, ONLY : nFam,     nReact,   ind_SALAAL, ind_SALCAL
+    USE Gckpp_Global,     ONLY : Henry_K0, Henry_CR, MW,         SR_MW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
@@ -2440,17 +2450,6 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
-
-    !=======================================================================
-    ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
-    ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
-    ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
-    ! tdf; MSL
-    !=======================================================================
-    Buf_Cap_SALAAL = 0.0_dp
-    Buf_Cap_SALCAL = 0.0_dp
-    IF ( ind_SALAAL > 0 ) Buf_Cap_SALAAL = MW(ind_SALAAL) * 7.0e-5_dp
-    IF ( ind_SALCAL > 0 ) Buf_Cap_SALCAL = MW(ind_SALCAL) * 7.0e-5_dp
 
     !=======================================================================
     ! Allocate arrays
