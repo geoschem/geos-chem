@@ -19,11 +19,59 @@ MODULE aerochem_RateLawFuncs
   USE gckpp_Parameters
   USE gckpp_Precision
   PUBLIC
+!
+! !DEFINED PARAMETERS:
+!
+  ! Indices for aerosol type (1 .. NAEROTYPE=14)
+  INTEGER,  PRIVATE, PARAMETER :: DU1            = 1  ! Dust (Reff = 0.151 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU2            = 2  ! Dust (Reff = 0.253 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU3            = 3  ! Dust (Reff = 0.402 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU4            = 4  ! Dust (Reff = 0.818 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU5            = 5  ! Dust (Reff = 1.491 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU6            = 6  ! Dust (Reff = 2.417 um)
+  INTEGER,  PRIVATE, PARAMETER :: DU7            = 7  ! Dust (Reff = 3.721 um)
+  INTEGER,  PRIVATE, PARAMETER :: SUL            = 8  ! Tropospheric Sulfate
+  INTEGER,  PRIVATE, PARAMETER :: BKC            = 9  ! Black Carbon
+  INTEGER,  PRIVATE, PARAMETER :: ORC            = 10 ! Organic Carbon
+  INTEGER,  PRIVATE, PARAMETER :: SSA            = 11 ! Accum-mode sea salt
+  INTEGER,  PRIVATE, PARAMETER :: SSC            = 12 ! Coarse-mode sea salt
+  INTEGER,  PRIVATE, PARAMETER :: SLA            = 13 ! Strat sulfate liq aer
+  INTEGER,  PRIVATE, PARAMETER :: IIC            = 14 ! Irregular ice cloud
+
+  ! Indices for Fine and coarse sea-salt indices
+  INTEGER,  PRIVATE, PARAMETER :: SS_FINE        = 1
+  INTEGER,  PRIVATE, PARAMETER :: SS_COARSE      = 2
+
+  ! Indices for the KHETI_SLA array
+  INTEGER,  PRIVATE, PARAMETER :: N2O5_plus_H2O  = 1
+  INTEGER,  PRIVATE, PARAMETER :: N2O5_plus_HCl  = 2
+  INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_H2O = 3
+  INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_HCl = 4
+  INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_HBr = 5
+  INTEGER,  PRIVATE, PARAMETER :: BrNO3_plus_H2O = 6
+  INTEGER,  PRIVATE, PARAMETER :: BrNO3_plus_HCl = 7
+  INTEGER,  PRIVATE, PARAMETER :: HOCl_plus_HCl  = 8
+  INTEGER,  PRIVATE, PARAMETER :: HOCl_plus_HBr  = 9
+  INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HCl  = 10
+  INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HBr  = 11
+
+  ! Minimum heterogeneous chemistry lifetime and reaction rate
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
+
+  ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
+  REAL(dp), PRIVATE, PARAMETER :: CRITRH         = 35.0_dp
+
+  ! Conversion factor from atm to bar
+  REAL(dp), PRIVATE, PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
+
+  ! Reference temperature used in Henry's law
+  REAL(dp), PRIVATE, PARAMETER :: INV_T298      = 1.0_dp / 298.15_dp
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-  
+
   !#########################################################################
   !#####          RATE-LAW FUNCTIONS FOR GAS-PHASE REACTIONS           #####
   !#########################################################################
@@ -773,7 +821,7 @@ CONTAINS
   FUNCTION AqRate_SALAAL_SO2_O3( H ) RESULT( k )
     !
     ! Computes the rate constant [1/s] for the equation
-    ! SO2  + SALAAL + O3  = SO4 - SALAAL 
+    ! SO2  + SALAAL + O3  = SO4 - SALAAL
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
@@ -784,11 +832,31 @@ CONTAINS
     ! conversion to equivalents.  This is in H%SALAAL_save.
     IF ( H%SALAAL_save > 0.1_dp ) THEN
        k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.11_dp, SR_MW(ind_SO2) )
-    
+
        ! Assume SO2 is limiting, so recompute reaction rate accordingly
        k = kIIR1Ltd( C(ind_SO2), C(ind_O3), k ) / H%SALAAL_save
     ENDIF
   END FUNCTION AqRate_SALAAL_SO2_O3
+
+  FUNCTION AqRate_SALAAL_HCl( H ) RESULT( k )
+    !
+    ! Computes the rate constant [1/s] for the equation
+    ! HCl  + SALAAL = SALACL
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    !
+    ! NOTE: We need to use the concentration of SALAAL prior to its
+    ! conversion to equivalents.  This is in H%SALAAL_save.
+    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
+
+    ! Assume HCl is limiting, so recompute reaction rate accordingly
+    IF ( H%SALAAL_save > 0.1_dp ) THEN
+       k = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k )
+    ENDIF
+  END FUNCTION AqRate_SALAAL_HCl
 
   !#########################################################################
   !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####

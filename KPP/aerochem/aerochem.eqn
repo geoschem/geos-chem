@@ -457,7 +457,7 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 // Seasalt:
 //
 SO2  + SALAAL + O3  = SO4 - SALAAL  : AqRate_SALAAL_SO2_O3( State_Het );
-HCl  + SALAAL       = SALACL        : K_MT(2);
+HCl  + SALAAL       = SALACL        : K_MT(2); {AqRate_SALAAL_HCl( State_Het );}
 HNO3 + SALAAL       = NIT           : K_MT(3);
 //HCl  {+ SALAAL}   = HpA + SALACL  : K_MT(2);
 //HNO3 {+ SALAAL}   = HpA + NIT     : K_MT(3);

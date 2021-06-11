@@ -17,9 +17,8 @@ LCH4 : CH4;
 PH2O2 : H2O2;
 
 #INLINE F90_RATES
-#ENDINLINE
-
-#INLINE F90_RATES
+  ! All rates are included in aerochem_RateLawFuncs.F90, which
+  ! gets referenced directly from subroutine Update_Rconst.
 #ENDINLINE
 
 #INLINE F90_RCONST
@@ -32,64 +31,13 @@ PH2O2 : H2O2;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-  !-----------------------------------------------------------------------
-  ! Add global parameters here -- these will go into gckpp_Global.F90
-  !-----------------------------------------------------------------------
-
-  ! Debug box (change if necessary)
-  INTEGER,  PARAMETER :: I_dbg         = 50
-  INTEGER,  PARAMETER :: J_dbg         = 2
-  INTEGER,  PARAMETER :: L_dbg         = 44
-
-  ! Indices for aerosol type (1 .. NAEROTYPE=14)
-  INTEGER,  PARAMETER :: DU1           = 1   ! Dust (Reff = 0.151 um)
-  INTEGER,  PARAMETER :: DU2           = 2   ! Dust (Reff = 0.253 um)
-  INTEGER,  PARAMETER :: DU3           = 3   ! Dust (Reff = 0.402 um)
-  INTEGER,  PARAMETER :: DU4           = 4   ! Dust (Reff = 0.818 um)
-  INTEGER,  PARAMETER :: DU5           = 5   ! Dust (Reff = 1.491 um)
-  INTEGER,  PARAMETER :: DU6           = 6   ! Dust (Reff = 2.417 um)
-  INTEGER,  PARAMETER :: DU7           = 7   ! Dust (Reff = 3.721 um)
-  INTEGER,  PARAMETER :: SUL           = 8   ! Tropospheric Sulfate
-  INTEGER,  PARAMETER :: BKC           = 9   ! Black Carbon
-  INTEGER,  PARAMETER :: ORC           = 10  ! Organic Carbon
-  INTEGER,  PARAMETER :: SSA           = 11  ! Accum-mode (fine) sea salt
-  INTEGER,  PARAMETER :: SSC           = 12  ! Coarse sea salt
-  INTEGER,  PARAMETER :: SLA           = 13  ! Strat sulfate liq aerosol
-  INTEGER,  PARAMETER :: IIC           = 14  ! Irregular ice cloud
-
-  ! Indices for Fine and coarse sea-salt indices
-  INTEGER,  PARAMETER :: SS_FINE        = 1
-  INTEGER,  PARAMETER :: SS_COARSE      = 2
-
-  ! Indices for the KHETI_SLA array
-  INTEGER,  PARAMETER :: N2O5_plus_H2O  = 1
-  INTEGER,  PARAMETER :: N2O5_plus_HCl  = 2
-  INTEGER,  PARAMETER :: ClNO3_plus_H2O = 3
-  INTEGER,  PARAMETER :: ClNO3_plus_HCl = 4
-  INTEGER,  PARAMETER :: ClNO3_plus_HBr = 5
-  INTEGER,  PARAMETER :: BrNO3_plus_H2O = 6
-  INTEGER,  PARAMETER :: BrNO3_plus_HCl = 7
-  INTEGER,  PARAMETER :: HOCl_plus_HCl  = 8
-  INTEGER,  PARAMETER :: HOCl_plus_HBr  = 9
-  INTEGER,  PARAMETER :: HOBr_plus_HCl  = 10
-  INTEGER,  PARAMETER :: HOBr_plus_HBr  = 11
-
-  ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(dp), PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
-  REAL(dp), PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
-
-  ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
-  REAL(dp), PARAMETER :: CRITRH         = 35.0_dp
-
-  ! Conversion factor from atm to bar
-  REAL(dp), PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
+  !--------------------------------------------------------------------------
+  ! Additional global parameters -- will be added to gckpp_Global.F90
+  !--------------------------------------------------------------------------
 
   ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(dp), PARAMETER :: CON_R          = 0.083144598_dp
-
-  ! Reference temperature used in Henry's law
-  REAL(dp), PARAMETER :: INV_T298       = 1.0_dp / 298.15_dp
+  REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
 
   !--------------------------------------------------------------------------
   ! Additional global variables -- will be added to gckpp_Global.F90
