@@ -994,15 +994,15 @@ Warnings:                    1
 )))HTAP_SHIP
 
 (((CEDS_SHIP
-0 CEDS_SOAP_SHP   $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_shp            1970-2017/1-12/1/0 C xyL* kg/m2/s SOAP  26/280/317 10 5
-0 CEDS_SO2_SHP    $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc SO2_shp           1970-2017/1-12/1/0 C xyL* kg/m2/s SO2   -          10 5
-0 CEDS_SO4_SHP    -                                                           -                 -                  - -    -       SO4   63/317     10 5
-0 CEDS_pFe_SHP    -                                                           -                 -                  - -    -       pFe   66/317     10 5
-0 CEDS_NH3_SHP    $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc NH3_shp           1970-2017/1-12/1/0 C xyL* kg/m2/s NH3   -          10 5
-0 CEDS_BCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc  BC_shp            1970-2017/1-12/1/0 C xyL* kg/m2/s BCPI  70/317     10 5
-0 CEDS_BCPO_SHP   -                                                           -                 -                  - -    -       BCPO  71/317     10 5
-0 CEDS_OCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc  OC_shp            1970-2017/1-12/1/0 C xyL* kg/m2/s OCPI  72/317     10 5
-0 CEDS_OCPO_SHP   -                                                           -                 -                  - -    -       OCPO  73/317     10 5
+0 CEDS_SOAP_SHP   $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_shp            1970-2017/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 5
+0 CEDS_SO2_SHP    $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc SO2_shp           1970-2017/1-12/1/0 C xy kg/m2/s SO2   -      10 5
+0 CEDS_SO4_SHP    -                                                           -                 -                  - -  -       SO4   63     10 5
+0 CEDS_pFe_SHP    -                                                           -                 -                  - -  -       pFe   66     10 5
+0 CEDS_NH3_SHP    $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc NH3_shp           1970-2017/1-12/1/0 C xy kg/m2/s NH3   -      10 5
+0 CEDS_BCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc  BC_shp            1970-2017/1-12/1/0 C xy kg/m2/s BCPI  70     10 5
+0 CEDS_BCPO_SHP   -                                                           -                 -                  - -  -       BCPO  71     10 5
+0 CEDS_OCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc  OC_shp            1970-2017/1-12/1/0 C xy kg/m2/s OCPI  72     10 5
+0 CEDS_OCPO_SHP   -                                                           -                 -                  - -  -       OCPO  73     10 5
 )))CEDS_SHIP
 (((CEDS_SHIP_byFuelType
 (((.not.CEDS_SHIP

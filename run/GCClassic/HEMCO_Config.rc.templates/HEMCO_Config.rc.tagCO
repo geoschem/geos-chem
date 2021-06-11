@@ -652,11 +652,11 @@ Mask fractions:              false
 )))HTAP_SHIP
 
 (((CEDS_SHIP
-0 CEDS_CO_SHP           $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc      CO_shp 1970-2017/1-12/1/0 C xyL* kg/m2/s   CO     26/317      10 5
-0 CEDS_CO_SHP_us        -                                                               -      -                  - -    -         COus   26/1100/317 10 5
-0 CEDS_CO_SHP_eur       -                                                               -      -                  - -    -         COeur  26/1101/317 10 5
-0 CEDS_CO_SHP_asia      -                                                               -      -                  - -    -         COasia 26/1102/317 10 5
-0 CEDS_CO_SHP_oth       -                                                               -      -                  - -    -         COoth  26/1103/317 10 5
+0 CEDS_CO_SHP           $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc      CO_shp 1970-2017/1-12/1/0 C xy kg/m2/s   CO     26      10 5
+0 CEDS_CO_SHP_us        -                                                               -      -                  - -  -         COus   26/1100 10 5
+0 CEDS_CO_SHP_eur       -                                                               -      -                  - -  -         COeur  26/1101 10 5
+0 CEDS_CO_SHP_asia      -                                                               -      -                  - -  -         COasia 26/1102 10 5
+0 CEDS_CO_SHP_oth       -                                                               -      -                  - -  -         COoth  26/1103 10 5
 )))CEDS_SHIP
 
 #==============================================================================
