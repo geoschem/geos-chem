@@ -5278,13 +5278,12 @@ CONTAINS
   SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
                            I,         J,          L,                         &
                            FRAC,      RC                                    )
+  SUBROUTINE PHOTRATE_ADJ( Input_Opt, I, J, L, FRAC, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -5293,9 +5292,6 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
     REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
                                                 !  called from DO_FLEXCHEM
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
