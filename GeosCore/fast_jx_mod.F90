@@ -377,7 +377,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      Input_Opt, State_Diag, State_Grid, State_Met )
+                      Input_Opt, State_Diag, State_Grid )
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
        !===========================================================
@@ -402,7 +402,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      Input_Opt, State_Diag, State_Grid, State_Met )
+                      Input_Opt, State_Diag, State_Grid )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
        !===========================================================
@@ -3439,7 +3439,7 @@ CONTAINS
                        ODCLOUD_COL_IN, ILON,      ILAT,        &
                        YLAT,           DAY_OF_YR, MONTH,       &
                        DAY,            Input_Opt, State_Diag,  &
-                       State_Grid,     State_Met )
+                       State_Grid )
 !
 ! !USES:
 !
