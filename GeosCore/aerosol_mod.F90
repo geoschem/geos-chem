@@ -388,9 +388,8 @@ CONTAINS
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
-       ! Set SIA growth to half of its original value to treat as
-       ! partially crystalline
-       SIA_GROWTH = SIA_GROWTH / 2e+0_fp
+       ! Force SIA growth to 1.1 to treat as partially crystalline
+       SIA_GROWTH = 1.1_fp
 
        ! Growth factor for OCPI + SOA
        Rad_dry    = REAA(1,k_ORG)
@@ -412,8 +411,8 @@ CONTAINS
        SSA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
-       ! Print debug info
-       IF ( prtDebug ) THEN
+       ! Print values to log file
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
