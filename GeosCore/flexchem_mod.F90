@@ -193,13 +193,6 @@ CONTAINS
     REAL(dp)               :: RSTATE (20)
     REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
                                      State_Grid%NZ, State_Chm%nAdvect       )
-#ifdef MODEL_GEOS
-    ! Special arrays only for running GEOS-Chem in the GEOS ESM
-    REAL(f4)               :: GLOB_RCONST(State_Grid%NX, State_Grid%NY,      &
-                                          State_Grid%NZ, NREACT             )
-    REAL(f4)               :: GLOB_JVAL(State_Grid%NX,   State_Grid%NY,      &
-                                        State_Grid%NZ,   JVN_               )
-#endif
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -279,11 +272,6 @@ CONTAINS
           State_Diag%JNoonFrac = 0.0_f4
        ENDWHERE
     ENDIF
-
-#ifdef MODEL_GEOS
-    GLOB_RCONST = 0.0_f4
-    GLOB_JVAL   = 0.0_f4
-#endif
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
@@ -673,11 +661,6 @@ CONTAINS
                 PHOTOL(N) = ZPJ(L,N,I,J)
 
              ENDIF
-
-#ifdef MODEL_GEOS
-             ! Archive in local array
-             GLOB_JVAL(I,J,L,N) = PHOTOL(N)
-#endif
 
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -1075,11 +1058,6 @@ CONTAINS
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-#ifdef MODEL_GEOS
-       ! Save rate constants in global array (not used)
-       GLOB_RCONST(I,J,L,:) = RCONST(:)
-#endif
-
        !====================================================================
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species
@@ -1350,20 +1328,6 @@ CONTAINS
           !$OMP END PARALLEL DO
        ENDIF
     ENDIF
-
-#ifdef MODEL_GEOS
-    ! Archive all needed reaction rates in state_diag
-    IF ( Input_Opt%NN_RxnRconst > 0 ) THEN
-       DO N = 1, Input_Opt%NN_RxnRconst
-          State_Diag%RxnRconst(:,:,:,N) = GLOB_RCONST(:,:,:,Input_Opt%RxnRconst_IDs(N))
-       ENDDO
-    ENDIF
-    IF ( Input_Opt%NN_Jvals > 0 ) THEN
-       DO N = 1, Input_Opt%NN_Jvals
-          State_Diag%JvalIndiv(:,:,:,N) = GLOB_JVAL(:,:,:,Input_Opt%Jval_IDs(N))
-       ENDDO
-    ENDIF
-#endif
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
