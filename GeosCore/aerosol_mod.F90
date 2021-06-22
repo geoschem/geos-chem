@@ -420,6 +420,9 @@ CONTAINS
 100       FORMAT(F5.2,A)
        ENDIF
 
+       ! Reset first-time flag
+       FIRST = .FALSE.
+
     ENDIF
 
     !$OMP PARALLEL DO               &
