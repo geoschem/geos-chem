@@ -42,7 +42,7 @@ MODULE FlexChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_SALA
+  INTEGER               :: id_PCO, id_LCH4
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -1561,7 +1561,7 @@ CONTAINS
     NA =  State_Chm%nAeroType
 
     !========================================================================
-    ! Copy species concentrations into gckpp_Global variables
+    ! Copy species concentrations into gckpp_Global variables [molec/cm3]
     !========================================================================
     DO N = 1, NSPEC
        SpcID = State_Chm%Map_KppSpc(N)
@@ -2351,7 +2351,6 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
-    id_SALA     = Ind_( 'SALA'         )
 
 #ifdef MODEL_GEOS
     ! ckeller

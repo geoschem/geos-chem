@@ -156,6 +156,8 @@ PH2O2 : H2O2;
      REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]
      REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]
      REAL(dp) :: Br_over_Cl_Cld ! Br_conc_Cld / Cl_conc_Cld        [1          ]
+     REAL(dp) :: Br_over_Cl_SALA! Br_conc_SALA / Cl_conc_SALA      [1          ]
+     REAL(dp) :: Br_over_Cl_SALC! Br_conc_SALC / Cl_conc_SALC      [1          ]
      REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]
      REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]
      REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]

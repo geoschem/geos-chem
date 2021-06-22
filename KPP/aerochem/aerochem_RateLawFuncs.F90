@@ -18,6 +18,8 @@ MODULE aerochem_RateLawFuncs
   USE gckpp_Global
   USE gckpp_Parameters
   USE gckpp_Precision
+
+  IMPLICIT NONE
   PUBLIC
 !
 ! !DEFINED PARAMETERS:
@@ -238,7 +240,7 @@ CONTAINS
     k1 = 4.3E-1_dp * ( TEMP / 298.0_dp )**(-8)
     k0 = k0 * NUMDEN
     k1 = k0 / k1
-    k2 = ( k0 / ( 1.0_dp + k1 ) ) &
+    k2 = ( k0 / ( 1.0_dp + k1 ) )                                            &
        * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10(k1) )**2) )
     k3 = k2 / ( k2 + c0 )
     k4 = A0 * ( x0 - TEMP*y0 )
@@ -276,7 +278,7 @@ CONTAINS
     k1 = 4.3E-1_dp * ( TEMP / 298.0_dp)**(-8)
     k0 = k0 * NUMDEN
     k1 = k0 / k1
-    k2 = ( K0 / ( 1.0_dp +K1 ) )                                            &
+    k2 = ( K0 / ( 1.0_dp +K1 ) )                                             &
        * 4.1E-1_dp**( 1.0_dp / ( 1.0_dp + ( LOG10( k1 ) )**2) )
     k3 = c0/ ( k2 + c0 )
     k4 = a0 * ( x0 - TEMP*y0 )
@@ -832,7 +834,7 @@ CONTAINS
     ! conversion to equivalents.  This is in H%SALAAL_save.
     IF ( H%SALAAL_save > 0.1_dp ) THEN
        k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.11_dp, SR_MW(ind_SO2) )
-
+       !
        ! Assume SO2 is limiting, so recompute reaction rate accordingly
        k = kIIR1Ltd( C(ind_SO2), C(ind_O3), k ) / H%SALAAL_save
     ENDIF
@@ -848,14 +850,23 @@ CONTAINS
     !
     k = 0.0_dp
     !
-    ! NOTE: We need to use the concentration of SALAAL prior to its
-    ! conversion to equivalents.  This is in H%SALAAL_save.
-    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
-
-    ! Assume HCl is limiting, so recompute reaction rate accordingly
     IF ( H%SALAAL_save > 0.1_dp ) THEN
+       !
+       ! NOTE: We need to use the concentration of SALAAL prior to its
+       ! continue conversion to equivalents.  This is in H%SALAAL_save.
+       k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
+       !
+       ! Assume HCl is limiting, so recompute reaction rate accordingly
        k = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k )
     ENDIF
+
+! HCl
+!k_ex = ARSL1K( State_Chm%WetAeroArea(I,J,L,11),                             &
+!           STATE_HET%XRADI(11), NUMDEN, 0.074_dp, SR_TEMP, SR_MW(ind_HCl))
+!
+!      IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) &
+!         K_MT(2) = kIIR1Ltd(C(ind_HCl), C(ind_SALAAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
+
   END FUNCTION AqRate_SALAAL_HCl
 
   !#########################################################################
@@ -880,7 +891,7 @@ CONTAINS
     ENDIF
     !
     ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *          &
+    dfkg = ( 9.45E+17_dp / NUMDEN ) * SR_TEMP *                              &
            SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
     !
     ! Compute ArsL1k according to the formula listed above
@@ -1008,7 +1019,7 @@ CONTAINS
 
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-    xx =     ( ff - kk - 1.0_dp ) / 2.0_dp + &
+    xx =     ( ff - kk - 1.0_dp ) / 2.0_dp +                                 &
          SQRT( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2.0_dp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
@@ -1258,7 +1269,7 @@ CONTAINS
 
   FUNCTION Br2_Yield( Br_over_Cl ) RESULT( Y_Br2 )
     !
-    ! Returns yield of Br2 from the Br- / Cl- ratio
+    ! Returns yield [1] of Br2 from the Br- / Cl- ratio.
     !
     REAL(dp), INTENT(IN) :: Br_over_Cl           ! Br- / Cl- ratio
     REAL(dp)             :: Y_Br2                ! local vars
@@ -1267,6 +1278,52 @@ CONTAINS
     Y_Br2 = 0.41_dp * LOG10( Br_over_Cl ) + 2.25_dp
     Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
   END FUNCTION Br2_Yield
+
+  SUBROUTINE Gam_HOBr_Aer( H, radius, C_Hp, C_Clm, C_Brm, gamma )
+    !
+    ! Returns uptake probability [1] for HOBr on aerosols.
+    !
+    TYPE(HetState), INTENT(IN)  :: H             ! Hetchem State
+    REAL(dp),       INTENT(IN)  :: radius        ! Aerosol radius
+    REAL(dp),       INTENT(IN)  :: C_Hp          ! H+ concentration
+    REAL(dp),       INTENT(IN)  :: C_Clm         ! Cl- concentration
+    REAL(dp),       INTENT(IN)  :: C_Brm         ! Br- concentration
+    REAL(dp),       INTENT(OUT) :: gamma         ! Uptake probability [1/s]
+    !
+    REAL(dp) :: M_X,   cavg,      H_X
+    REAL(dp) :: l_r,   C_Hp1,     C_Hp2
+    REAL(dp) :: k_tot, k_HOBr_Cl, k_HOBr_Br, gb_tot
+
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.6_dp ! Inv. mass accum coef
+    REAL(dp), PARAMETER :: D_l    = 1.4e-5_dp       ! Amman et al, ACP, 2013
+    !
+    ! Henry's law
+    H_X       = ( HENRY_K0(ind_HOBr) * CON_ATM_BAR )                         &
+              * EXP( HENRY_CR(ind_HOBr) * ( 1.0_dp/TEMP - INV_T298 ) )
+    !
+    ! Thermal velocity [cm/s]
+    M_X       = MW(ind_HOBr) * 1.0e-3_dp
+    cavg      = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
+    !
+    ! Follow Roberts et al, (2014)
+    C_Hp1     = MAX( MIN( C_Hp, 1.0e-6_dp ), 1.0e-9_dp )
+    C_Hp2     = MAX( MIN( C_Hp, 1.0e-2_dp ), 1.0e-6_dp )
+    !
+    ! Rates for each HOBr + {Cl-, Br-} rxn
+    k_HOBr_Cl = 2.3e+10_dp * C_Clm     * C_Hp1  ! Liu & Margerum, EST, 2001
+    k_HOBr_Br = 1.6e+10_dp * C_Brm     * C_Hp2  ! ??
+    k_tot     = k_HOBr_Cl  + k_HOBr_Br
+    !
+    ! l_r is diffusive length scale [cm];
+    ! gb is Bulk reaction coefficient [unitless]
+    l_r       = SQRT( D_l / k_tot )
+    gb_tot    = FOUR_R_T * H_X * l_r * k_tot / cavg
+    gb_tot    = gb_tot * ReactoDiff_Corr( radius, l_r )
+    !
+    ! Reactive uptake coefficient [unitless]
+    gamma     = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+  END SUBROUTINE Gam_HOBr_Aer
 
   SUBROUTINE Gam_HOBr_Cld( H,         gamma,     k_tot,                      &
                            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
@@ -1288,7 +1345,7 @@ CONTAINS
     REAL(dp), PARAMETER :: D_l    = 1.4e-5_dp       ! Amman et al, ACP, 2013
     !
     ! Henry's law
-    H_X    = ( HENRY_K0(ind_HOBr) * CON_ATM_BAR )                  &
+    H_X    = ( HENRY_K0(ind_HOBr) * CON_ATM_BAR )                            &
            * EXP( HENRY_CR(ind_HOBr) * ( 1.0_dp/TEMP - INV_T298 ) )
     !
     ! Thermal velocity [cm/s]
@@ -1298,8 +1355,8 @@ CONTAINS
     ! Follow Roberts et al, (2014)
     C_Hp1  = MIN( H%H_conc_lCl, 1.0e-6_dp )
     C_Hp2  = MIN( H%H_conc_lCl, 1.0e-2_dp )
-    C_Hp1  = MAX( C_Hp1,         1.0e-9_dp )
-    C_Hp2  = MAX( C_Hp2,         1.0e-6_dp )
+    C_Hp1  = MAX( C_Hp1,        1.0e-9_dp )
+    C_Hp2  = MAX( C_Hp2,        1.0e-6_dp )
     !
     ! Rates for each HOBr + {Cl-, Br-, HSO3-, HSO3--} rxn
     k_HOBr_Cl     = 2.3e+10_dp * H%Cl_conc_Cld * C_Hp1  ! Liu & Margerum, EST, 2001
@@ -1383,9 +1440,9 @@ CONTAINS
     ELSE
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
-       CALL Gam_HOBr_CLD(                                     &
-            H,         gammaLiq,  k_tot,                      &
-            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       CALL Gam_HOBr_CLD(                                                    &
+            H,         gammaLiq,  k_tot,                                     &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2                )
        !
        ! Branching ratio for liquid path of HOBr + HBr
        Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
@@ -1444,9 +1501,9 @@ CONTAINS
     ELSE
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
-       CALL Gam_HOBr_CLD(                                     &
-            H,         gammaLiq,  k_tot,                      &
-            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       CALL Gam_HOBr_CLD(                                                    &
+            H,         gammaLiq,  k_tot,                                     &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2                )
        !
        ! Branching ratio for liquid path of HOBr + HCl
        Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
@@ -1468,29 +1525,66 @@ CONTAINS
     k = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), k )
   END FUNCTION HOBrUptkByHClAndTropCloud
 
-! Keep as doc here
+  FUNCTION HOBrUptkByBrSALAandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + BrSALA reaction.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: area,          branch,    branch_0,  brIce
+    REAL(dp) :: brLiq,         dummy,     gammaAer,  gammaLiq
+    REAL(dp) :: gammaIce,      k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3
+    REAL(dp) :: k_HOBr_HSO3_2, k_tot,     srMw,      Y_Br2
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaAer = 0.0_dp
+    gammaIce = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw     = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                                    &
+            H,         gammaLiq,  k_tot,                                     &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + BrSALA in cloud
+       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * Y_Br2
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
+       brLiq  = branch * H%Br_branch_CldA
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
+       !
+    ENDIF
+    !
+    ! Now consider HOBr uptake by acidic BrSALA in clear-sky
+    IF ( H%ssFineIsAcid ) THEN
+       !
+       ! Uptake probability [1]
+       CALL Gam_HOBr_Aer( H,              H%aClRadi,      H%H_conc_SSA,      &
+                          H%Cl_conc_SALA, H%Br_Conc_SALA, gammaAer          )
+       !
+       ! Branching ratio (depends on Br- / Cl- ratio)
+       branch = 0.9_dp
+       IF ( H%Br_over_Cl_SALA <= 5.0e-4_dp ) THEN
+          branch = Br2_Yield( H%Br_over_Cl_SALA )
+       ENDIF
+       !
+       ! Uptake rate [1/s]
+       area = H%ClearFr * H%aClArea
+       k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
+    ENDIF
 
-!      ELSEIF ( X==3 ) THEN
-!
-!         r_gp = (k_b3 * C_Y3) / k_tot
-!
-!      ELSEIF ( X==4 ) THEN
-!
-!         r_gp = (k_b4 * C_Y4) / k_tot
-!
-!      ENDIF
-!
-
-!      ELSEIF ( X==2 ) THEN
-!
-!         r_gp = (k_b1 * C_Y1 * C_Hp1 + k_b2 * C_Y2 * C_Hp2) / k_tot
-!
-!         IF (C_Y2/C_Y1>5.e-4) THEN
-!            r_gp = 0.9e0 * r_gp
-!         ELSE
-!            r_gp = r_gp * ybr2
-!         ENDIF
-!
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALA), k )
+  END FUNCTION HOBrUptkByBrSALAandTropCloud
 
   !=========================================================================
   ! Rate-law functions for iodine species
@@ -1664,10 +1758,10 @@ CONTAINS
     ! Reduce the rate of the HNO3 pathway in accordinace with
     ! the ClNO2 yield on SNA + ORG aerosol
     ! Reduce ClNO2 yield by 75% (cf McDuffie et al, JGR, 2018)
-    CALL N2O5_InorgOrg(                                     &
-         H,          H%AClVol,  H%xVol(ORC), H%xH2O(SUL),   &
-         H%xH2O(ORC), H%AClRadi, C(ind_NIT), C(ind_SALACL), &
-         gamma,      Y_ClNO2,   Rp,         SA             )
+    CALL N2O5_InorgOrg(                                                      &
+         H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),                   &
+         H%xH2O(ORC), H%AClRadi, C(ind_NIT), C(ind_SALACL),                  &
+         gamma,       Y_ClNO2,   Rp,         SA                             )
     !
     ktmp = Ars_L1K( H%ClearFr * SA, Rp, gamma, srMw )
     k = k + ktmp - ( ktmp * Y_ClNO2 * 0.25_dp )
@@ -1678,10 +1772,10 @@ CONTAINS
     !
     ! Uptake on coarse sea salt (aerosol type #12)
     ! Reduce the rate of this HNO3 pathway in accordance with the yield
-    CALL N2O5_InorgOrg(                                     &
-         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),    &
-         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),  &
-         gamma,  Y_ClNO2,     Rp,          SA              )
+    CALL N2O5_InorgOrg(                                                     &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),                    &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),                  &
+         gamma,  Y_ClNO2,      Rp,          SA                             )
     !
     ktmp = Ars_L1k( H%ClearFr * SA, Rp, gamma, srMw )
     k    = k + ktmp - ( ktmp * Y_ClNO2 )
@@ -1711,15 +1805,15 @@ CONTAINS
     k = 0.0_dp
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
-    CALL N2O5_InorgOrg(                                       &
-         H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),    &
-         H%xH2O(ORC), H%aClRadi, C(ind_NIT),  C(ind_SALACL),  &
-         gamma,       Y_ClNO2,   Rp,          SA             )
+    CALL N2O5_InorgOrg(                                                      &
+         H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),                   &
+         H%xH2O(ORC), H%aClRadi, C(ind_NIT),  C(ind_SALACL),                 &
+         gamma,       Y_ClNO2,   Rp,          SA                            )
 
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol.
     ! Reduce ClNO2 production yield on fine inorganic+organic
     ! aerosol by 75% (cf. McDuffie et al, JGR, 2018).
-    k = Ars_L1K( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
+    k = Ars_L1K( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5)                 )
     k = k * Y_ClNO2 * 0.25_dp
 
     ! Assume N2O5 is limiting, so update the removal rate accordingly
@@ -1739,10 +1833,10 @@ CONTAINS
     k = 0.0_dp
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
-    CALL N2O5_InorgOrg(                                    &
-         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),   &
-         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL), &
-         gamma,  Y_ClNO2,     Rp,          SA             )
+    CALL N2O5_InorgOrg(                                                      &
+         H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),                     &
+         0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),                   &
+         gamma,  Y_ClNO2,      Rp,          SA                              )
 
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
     k = Ars_L1k( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
@@ -1752,9 +1846,9 @@ CONTAINS
     k = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), k )
   END FUNCTION N2O5uptkBySALCCl
 
-  SUBROUTINE N2O5_InorgOrg( H,      volInorg, volOrg, H2Oinorg,  &
-                            H2Oorg, Rcore,    NIT,    Cl,        &
-                            gamma,  Y_ClNO2,  rp,     areaTotal )
+  SUBROUTINE N2O5_InorgOrg( H,      volInorg, volOrg, H2Oinorg,              &
+                            H2Oorg, Rcore,    NIT,    Cl,                    &
+                            gamma,  Y_ClNO2,  rp,     areaTotal             )
     !
     ! Computes the GAMMA reaction probability for N2O5 loss in inorganic
     ! (sulfate-nitrate-ammonium-sea salt) aerosols with organic coatings,
@@ -1801,7 +1895,7 @@ CONTAINS
 
     ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
     volRatioDry = SafeDiv( MAX( volInorg - H2Oinorg, 0.0_dp ),               &
-                           MAX( volTotal - H2Ototal, 0.0_dp ), 0.0_dp )
+                           MAX( volTotal - H2Ototal, 0.0_dp ), 0.0_dp       )
 
     ! Particle radius, cm
     ! Derived from spherical geometry
@@ -1842,8 +1936,8 @@ CONTAINS
     IF ( l <= 0.0e+0_dp ) THEN
        gamma_coat = 0.0_dp
     ELSE
-       gamma_coat =                                                           &
-        ( FOUR_RGASLATM_T * 1.0e-3_dp * eps * Haq * Daq * Rcore /100.0_dp ) / &
+       gamma_coat =                                                          &
+        ( FOUR_RGASLATM_T * 1.0e-3_dp * eps * Haq * Daq * Rcore /100.0_dp )/ &
         ( speed * l/100.0_dp * Rp/100.0_dp                                )
     ENDIF
 
@@ -1898,7 +1992,7 @@ CONTAINS
     ELSE IF ( gamma_core <= 0.0_dp ) THEN
        gamma = 0.0_dp
     ELSE
-       gamma = 1.0_dp / ( ( 1.0_dp/gamma_core ) + ( 1.0_dp/gamma_coat ) )
+       gamma = 1.0_dp / ( ( 1.0_dp/gamma_core ) + ( 1.0_dp/gamma_coat )      )
     ENDIF
 
     !------------------------------------------------------------------------
@@ -1927,7 +2021,7 @@ CONTAINS
     ENDIF
 
     ! Eq from Bertram and Thronton (2009); avoid overflow
-    phi = 1.0_dp / ( 1.0_dp + k2k3 * SafeDiv( H2O, Cl, 1.0e+30_dp ) )
+    phi = 1.0_dp / ( 1.0_dp + k2k3 * SafeDiv( H2O, Cl, 1.0e+30_dp )          )
   END FUNCTION ClNO2_BT
 
   FUNCTION N2O5uptkByCloud( H ) RESULT( k )
@@ -1942,10 +2036,10 @@ CONTAINS
     ! For temperature dependence, JPL recommends the same as sulfuric acid
     ! aerosol at zero percent H2SO4, which is 0.019 at 298 K.
     ! Then apply constant scale factor (0.03/0.019)
-    gamma = const * EXP( -25.5265_dp + 9283.76_dp/TEMP - 851801.0_dp/TEMP**2 )
+    gamma = const * EXP( -25.5265_dp + 9283.76_dp/TEMP - 851801.0_dp/TEMP**2)
     !
     ! Removal rate of N2O5 in liquid water cloud
-    k = CloudHet( H, SR_MW(ind_N2O5), gamma, 0.02_dp, 1.0_dp, 1.0_dp )
+    k = CloudHet( H, SR_MW(ind_N2O5), gamma, 0.02_dp, 1.0_dp, 1.0_dp        )
   END FUNCTION N2O5uptkByCloud
 
   FUNCTION N2O5uptkByStratHCl( H ) RESULT( k )
@@ -1961,12 +2055,12 @@ CONTAINS
     IF ( H%is_UCX .and. H%stratBox ) THEN
        !
        ! Uptake on stratospheric liquid aerosol
-       k = k + ( H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_HCl) )
+       k = k + ( H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_HCl)                  )
        !
        ! Uptake on irregular ice cloud
        gamma = 0.03_dp                         ! Ice
        IF ( H%natSurface ) gamma = 0.003_dp   ! NAT
-       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, SR_MW(ind_N2O5) )
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, SR_MW(ind_N2O5)  )
     ENDIF
 
     ! Assume N2O5 is limiting, so update the removal rate accordingly
@@ -2262,8 +2356,8 @@ CONTAINS
     !
     ! [Br-(surf)] = 3.41E14 cm-2/M * [Br-(bulk)], but not gt Nmax.
     C_Y_surf = MIN( 3.41e+14_dp * C_Y, Nmax )
-    gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax ) &
-               / ( cavg * ( 1.0_dp + KLangC * C(ind_O3) ) )
+    gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax )                   &
+               / ( cavg * ( 1.0_dp + KLangC * C(ind_O3)  ) )
     !
     k_b      = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )  ! M-1 s-1
     D_l      = 8.9e-6_dp                             ! cm2 s-1.
@@ -2381,10 +2475,10 @@ CONTAINS
     ! Calculate first-order particle-phase reaction rate:
     ! (assume [H+] = proton activity)
     ! KHYDRO is only important for alkylnitrates (not currently used).
-    kPart = ( K_HPLUS * H%H_PLUS                          ) &
-          + ( K_NUC   * H%H_PLUS * ( H%mNO3 + H%mSO4 )    ) &
-          + ( K_HSO4  * H%mHSO4                           ) &
-          + ( K_HYDRO                                     )
+    kPart = ( K_HPLUS * H%H_PLUS                                           ) &
+          + ( K_NUC   * H%H_PLUS * ( H%mNO3 + H%mSO4 )                     ) &
+          + ( K_HSO4  * H%mHSO4                                            ) &
+          + ( K_HYDRO                                                      )
     !
     ! Calculate the first uptake parameterization term:
     val1 = ( H%xRadi(SUL) * xmms ) / ( 4.0_dp * DIFF_N2O5_STD )
