@@ -112,14 +112,6 @@ PH2O2 : H2O2;
   ! HET(ind_ClNO3,  5) : ClNO3  +  BrSALC
   ! HET(ind_ClNO3,  6) : ClNO3  +  SALACL
   ! HET(ind_ClNO3,  7) : CLNO3  +  SALCCL
-  ! HET(ind_HOBr,   1) : HOBr   +  HBr
-  ! HET(ind_HOBr,   2) : HOBr   +  HCl
-  ! HET(ind_HOBr,   3) : HOBr   +  SALACL
-  ! HET(ind_HOBr,   4) : HOBr   +  SALCCL
-  ! HET(ind_HOBr,   5) : HOBr   +  BrSALA
-  ! HET(ind_HOBr,   6) : HOBr   +  BrSALC
-  ! HET(ind_HOBr,   7) : HOBr   +  HSO3-(aq)
-  ! HET(ind_HOBr,   8) : HOBr   +  HSO3--(aq)
   ! HET(ind_HOCl,   1) : HOCl   +  HCl
   ! HET(ind_HOCl,   2) : HOCl   +  HBr
   ! HET(ind_HOCl,   3) : HOCl   +  SALACL
@@ -170,8 +162,6 @@ PH2O2 : H2O2;
      REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]
      REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]
      REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine SS   [1          ]
-     REAL(dp) :: fupdateHOBr    !
-     REAL(dp) :: fupdateHOCl    !
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
@@ -185,9 +175,9 @@ PH2O2 : H2O2;
      REAL(dp) :: HSO3_conc_Cld  !
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]
-     REAL(dp) :: mHSO4          ! Bisulfate concentration          [M          ]
-     REAL(dp) :: mNO3           ! Nitrate concentration            [M          ]
-     REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]
+     REAL(dp) :: HSO4_molal     ! Bisulfate concentration          [M          ]
+     REAL(dp) :: NO3_molal      ! Nitrate concentration            [M          ]
+     REAL(dp) :: SO4_molal      ! Sulfate concentration            [M          ]
      REAL(dp) :: NIT_conc_SSA   ! Cl- in fine sea salt             [mol/kg H2O ]
      REAL(dp) :: NIT_conc_SSC   ! Cl- in coarse sea salt           [mol/kg H2O ]
      REAL(dp) :: PI             ! PI constant                      [1          ]
@@ -204,9 +194,9 @@ PH2O2 : H2O2;
      REAL(dp) :: SO3_conc_Cld   !
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?       [T/F        ]
-     LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt alkaline?       [T/F        ]
+     LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?         [T/F        ]
      LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?     [T/F        ]
-     LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acid?         [T/F        ]
+     LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acidic?       [T/F        ]
      REAL(dp) :: vAir           ! Volume of air                    [cm3        ]
      REAL(dp) :: vIce           ! Ice volume                       [cm3        ]
      REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]

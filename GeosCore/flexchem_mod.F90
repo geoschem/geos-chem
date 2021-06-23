@@ -1568,7 +1568,7 @@ CONTAINS
        IF ( SpcId > 0 ) THEN
           C(N) = State_Chm%Species(I,J,L,SpcID)
        ELSE
-          C(N) = 0.0_f8
+          C(N) = 0.0_dp
        ENDIF
     ENDDO
 
@@ -1602,7 +1602,7 @@ CONTAINS
     EIGHT_RSTARG_T  = 8.0_dp * RSTARG   * TEMP
 
     ! Relative humidity quantities
-    CONSEXP         = 17.2693882_f8 * (TEMP - 273.16_f8) / (TEMP - 35.86_f8)
+    CONSEXP         = 17.2693882_dp * (TEMP - 273.16_dp) / (TEMP - 35.86_dp)
     VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
     RELHUM          = ( H2O / VPRESH2O ) * 100_dp
 
@@ -1623,9 +1623,9 @@ CONTAINS
 
     ! Aerosol fields
     State_Het%nAeroType      = State_Chm%nAeroType
-    State_Het%AClArea        = State_Chm%AClArea(I,J,L)
-    State_Het%AClRadi        = State_Chm%AClRadi(I,J,L)
-    State_Het%AClVol         = State_Het%AClArea * State_Het%AClRadi / 3.0_dp
+    State_Het%aClArea        = State_Chm%aClArea(I,J,L)
+    State_Het%aClRadi        = State_Chm%aClRadi(I,J,L)
+    State_Het%aClVol         = State_Het%aClArea * State_Het%aClRadi / 3.0_dp
     State_Het%AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)
     State_Het%xArea(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)
     State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
@@ -1638,9 +1638,9 @@ CONTAINS
 
     ! Concentrations
     State_Het%HSO3_conc_Cld  = State_Chm%HSO3_AQ(I,J,L)
-    State_Het%mHSO4          = State_Chm%IsorropBisulfate(I,J,L)
-    State_Het%mNO3           = State_Chm%IsorropNitrate(I,J,L,1)
-    State_Het%mSO4           = State_Chm%IsorropSulfate(I,J,L)
+    State_Het%HSO4_molal     = State_Chm%IsorropBisulfate(I,J,L)
+    State_Het%NO3_molal      = State_Chm%IsorropNitrate(I,J,L,1)
+    State_Het%SO4_molal      = State_Chm%IsorropSulfate(I,J,L)
     State_Het%SO3_conc_Cld   = State_Chm%SO3_AQ(I,J,L)
 
     ! pH and alkalinity fields
@@ -1659,8 +1659,6 @@ CONTAINS
     State_Het%SSC_is_Acid    = ( .not.  State_Het%SSC_is_Alk        )
 
     ! Other fields
-    State_Het%fupdateHOBr    = State_Chm%fupdateHOBr(I,J,L)
-    State_Het%fupdateHOCl    = State_Chm%fupdateHOCl(I,J,L)
     State_Het%gamma_HO2      = Input_Opt%gamma_HO2
     State_Het%is_UCX         = Input_Opt%LUCX
 
