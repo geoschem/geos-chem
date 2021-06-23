@@ -2427,8 +2427,8 @@ CONTAINS
     ! (assume [H+] = proton activity)
     ! KHYDRO is only important for alkylnitrates (not currently used).
     kPart = ( K_HPLUS * H%H_PLUS                                           ) &
-          + ( K_NUC   * H%H_PLUS * ( H%mNO3 + H%mSO4 )                     ) &
-          + ( K_HSO4  * H%mHSO4                                            ) &
+          + ( K_NUC   * H%H_PLUS * ( H%NO3_molal + H%SO4_molal )           ) &
+          + ( K_HSO4  * H%HSO4_molal                                       ) &
           + ( K_HYDRO                                                      )
     !
     ! Calculate the first uptake parameterization term:

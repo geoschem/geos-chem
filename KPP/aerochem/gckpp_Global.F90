@@ -175,14 +175,6 @@ MODULE gckpp_Global
   ! HET(ind_ClNO3,  5) : ClNO3  +  BrSALC
   ! HET(ind_ClNO3,  6) : ClNO3  +  SALACL
   ! HET(ind_ClNO3,  7) : CLNO3  +  SALCCL
-  ! HET(ind_HOBr,   1) : HOBr   +  HBr
-  ! HET(ind_HOBr,   2) : HOBr   +  HCl
-  ! HET(ind_HOBr,   3) : HOBr   +  SALACL
-  ! HET(ind_HOBr,   4) : HOBr   +  SALCCL
-  ! HET(ind_HOBr,   5) : HOBr   +  BrSALA
-  ! HET(ind_HOBr,   6) : HOBr   +  BrSALC
-  ! HET(ind_HOBr,   7) : HOBr   +  HSO3-(aq)
-  ! HET(ind_HOBr,   8) : HOBr   +  HSO3--(aq)
   ! HET(ind_HOCl,   1) : HOCl   +  HCl
   ! HET(ind_HOCl,   2) : HOCl   +  HBr
   ! HET(ind_HOCl,   3) : HOCl   +  SALACL
@@ -248,9 +240,9 @@ MODULE gckpp_Global
      REAL(dp) :: HSO3_conc_Cld  !
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]I2O4
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]I2O4
-     REAL(dp) :: mHSO4          ! Bisulfate concentration          [M          ]I2O4
-     REAL(dp) :: mNO3           ! Nitrate concentration            [M          ]I2O4
-     REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]I2O4
+     REAL(dp) :: HSO4_molal     ! Bisulfate concentration          [M          ]I2O4
+     REAL(dp) :: NO3_molal      ! Nitrate concentration            [M          ]I2O4
+     REAL(dp) :: SO4_molal      ! Sulfate concentration            [M          ]I2O4
      REAL(dp) :: NIT_conc_SSA   ! Cl- in fine sea salt             [mol/kg H2O ]I2O4
      REAL(dp) :: NIT_conc_SSC   ! Cl- in coarse sea salt           [mol/kg H2O ]I2O4
      REAL(dp) :: PI             ! PI constant                      [1          ]I2O4
@@ -267,9 +259,9 @@ MODULE gckpp_Global
      REAL(dp) :: SO3_conc_Cld   !
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?       [T/F        ]I2O4
-     LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt alkaline?       [T/F        ]I2O4
+     LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?         [T/F        ]I2O4
      LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?     [T/F        ]I2O4
-     LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acid?         [T/F        ]I2O4
+     LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acidic?       [T/F        ]I2O4
      REAL(dp) :: vAir           ! Volume of air                    [cm3        ]I2O4
      REAL(dp) :: vIce           ! Ice volume                       [cm3        ]I2O4
      REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]I2O4
