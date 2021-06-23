@@ -1535,7 +1535,7 @@ CONTAINS
     REAL(dp) :: area,      branch,    branch_0,    brIce
     REAL(dp) :: brLiq,     dummy,     gammaAer,    gammaLiq
     REAL(dp) :: k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
-    REAL(dp) :: k_tot,     srMw,      Y_Br2
+    REAL(dp) :: k_tot,     srMw
     !
     k        = 0.0_dp
     brIce    = 0.0_dp
@@ -1552,9 +1552,8 @@ CONTAINS
             k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
        !
        ! Branching ratio for liquid path of HOBr + BrSALA in cloud
-       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
        branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
-       branch   = branch_0 * Y_Br2
+       branch   = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
        brLiq  = branch * H%Br_branch_CldA
        !
@@ -1568,7 +1567,7 @@ CONTAINS
        !
        ! Uptake probability [1]
        CALL Gam_HOBr_Aer( H,             H%aClRadi,     H%H_conc_SSA,        &
-                          H%Cl_conc_SSA, H%Br_Conc_SSA, gammaAer            )
+                          H%Cl_conc_SSA, H%Br_conc_SSA, gammaAer            )
        !
        ! Branching ratio (depends on Br- / Cl- ratio)
        branch = 0.9_dp
@@ -1595,7 +1594,7 @@ CONTAINS
     REAL(dp) :: area,      branch,    branch_0,    brIce
     REAL(dp) :: brLiq,     dummy,     gammaAer,    gammaLiq
     REAL(dp) :: k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
-    REAL(dp) :: k_tot,     srMw,      Y_Br2
+    REAL(dp) :: k_tot,     srMw
     !
     k        = 0.0_dp
     brIce    = 0.0_dp
@@ -1612,9 +1611,8 @@ CONTAINS
             k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
        !
        ! Branching ratio for liquid path of HOBr + BrSALC in cloud
-       Y_Br2    = Br2_Yield( H%Br_over_Cl_Cld )
        branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
-       branch   = branch_0 * Y_Br2
+       branch   = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.9_dp
        brLiq  = branch * H%Br_branch_CldC
        !
@@ -1628,7 +1626,7 @@ CONTAINS
        !
        ! Uptake probability [1]
        CALL Gam_HOBr_Aer( H,             H%xRadi(SSC),  H%H_conc_SSC,       &
-                          H%Cl_conc_SSC, H%Br_Conc_SSC, gammaAer           )
+                          H%Cl_conc_SSC, H%Br_conc_SSC, gammaAer           )
        !
        ! Branching ratio (depends on Br- / Cl- ratio)
        branch = 0.9_dp
@@ -1644,6 +1642,124 @@ CONTAINS
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALC), k )
   END FUNCTION HOBrUptkByBrSALCandTropCloud
+
+  FUNCTION HOBrUptkBySALACLandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + SALACL reaction.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: area,      branch,    branch_0,    brIce
+    REAL(dp) :: brLiq,     dummy,     gammaAer,    gammaLiq
+    REAL(dp) :: k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,     srMw
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaAer = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw     = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                                    &
+            H,         gammaLiq,  k_tot,                                     &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + SALACL in cloud
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * ( 1.0_dp - Br2_Yield( H%Br_over_Cl_Cld )  )
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.1_dp
+       brLiq  = branch * H%Cl_branch_CldA
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
+       !
+    ENDIF
+    !
+    ! Now consider HOBr uptake by acidic SALACL in clear-sky
+    IF ( H%SSA_is_Acid ) THEN
+       !
+       ! Uptake probability [1]
+       CALL Gam_HOBr_Aer( H,             H%aClRadi,     H%H_conc_SSA,        &
+                          H%Cl_conc_SSA, H%Br_conc_SSA, gammaAer            )
+       !
+       ! Branching ratio (depends on Br- / Cl- ratio)
+       branch = 0.1_dp
+       IF ( H%Br_over_Cl_SSA <= 5.0e-4_dp ) THEN
+          branch = 1.0_dp - Br2_Yield( H%Br_over_Cl_SSA )
+       ENDIF
+       !
+       ! Uptake rate [1/s]
+       area = H%ClearFr * H%aClArea
+       k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SALACL), k )
+  END FUNCTION HOBrUptkBySALACLandTropCloud
+
+  FUNCTION HOBrUptkBySALCCLandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOBr + SALCCL reaction.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: area,      branch,    branch_0,    brIce
+    REAL(dp) :: brLiq,     dummy,     gammaAer,    gammaLiq
+    REAL(dp) :: k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
+    REAL(dp) :: k_tot,     srMw
+    !
+    k        = 0.0_dp
+    brIce    = 0.0_dp
+    brLiq    = 0.0_dp
+    gammaAer = 0.0_dp
+    gammaLiq = 0.0_dp
+    srMw     = SR_MW(ind_HOBr)
+    !
+    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+       !
+       ! HOBr + HBr rxn probability in tropospheric liquid cloud
+       CALL Gam_HOBr_CLD(                                                    &
+            H,         gammaLiq,  k_tot,                                     &
+            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2 )
+       !
+       ! Branching ratio for liquid path of HOBr + SALACL in cloud
+       branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
+       branch   = branch_0 * ( 1.0_dp -  Br2_Yield( H%Br_over_Cl_Cld ) )
+       IF ( H%Br_over_Cl_Cld > 5.0e-4_dp ) branch = branch_0 * 0.1_dp
+       brLiq  = branch * H%Cl_branch_CldC
+       !
+       ! Compute overall HOBr removal rate in cloud
+       k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
+       !
+    ENDIF
+    !
+    ! Now consider HOBr uptake by acidic SALCCL in clear-sky
+    IF ( H%SSC_is_Acid ) THEN
+       !
+       ! Uptake probability [1]
+       CALL Gam_HOBr_Aer( H,             H%xRadi(SSC),  H%H_conc_SSC,        &
+                          H%Cl_conc_SSC, H%Br_conc_SSC, gammaAer            )
+       !
+       ! Branching ratio (depends on Br- / Cl- ratio)
+       branch = 0.1_dp
+       IF ( H%Br_over_Cl_SSC <= 5.0e-4_dp ) THEN
+          branch = 1.0_dp - Br2_Yield( H%Br_over_Cl_SSC )
+       ENDIF
+       !
+       ! Uptake rate [1/s]
+       area = H%ClearFr * H%xArea(SSC)
+       k    = k + Ars_L1K( area, H%xRadi(SSC), gammaAer, srMw ) * branch
+    ENDIF
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), k )
+  END FUNCTION HOBrUptkBySALCCLandTropCloud
 
   !=========================================================================
   ! Rate-law functions for iodine species
