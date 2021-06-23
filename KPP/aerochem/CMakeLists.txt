@@ -27,6 +27,7 @@ add_library(KPP_aerochem STATIC EXCLUDE_FROM_ALL
       gckpp_Rates.F90
       gckpp_Sulfate.F90
       gckpp_Util.F90
+      rateLawUtilFuncs.F90
 )
 target_link_libraries(KPP_aerochem
       PUBLIC GeosUtil
