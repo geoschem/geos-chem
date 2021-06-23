@@ -1653,10 +1653,10 @@ CONTAINS
     State_Het%H_conc_SSA     = State_Het%H_conc_Sul
     State_Het%H_conc_SSC     = 10.0**( -5.0_dp                      )
     State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
-    State_Het%ssFineIsAlk    = ( State_Het%ssAlk(1) > 0.05_dp       )
-    State_Het%ssFineisAcid   = ( .not.  State_Het%ssFineIsAlk       )
-    State_Het%ssCoarseIsAlk  = ( State_Het%ssAlk(2) > 0.05_dp       )
-    State_Het%ssCoarseIsAcid = ( .not.  State_Het%ssCoarseIsAlk     )
+    State_Het%SSA_is_Alk     = ( State_Het%ssAlk(1) > 0.05_dp       )
+    State_Het%SSA_is_Acid    = ( .not.  State_Het%SSA_is_Alk        )
+    State_Het%SSC_is_Alk     = ( State_Het%ssAlk(2) > 0.05_dp       )
+    State_Het%SSC_is_Acid    = ( .not.  State_Het%SSC_is_Alk        )
 
     ! Other fields
     State_Het%fupdateHOBr    = State_Chm%fupdateHOBr(I,J,L)

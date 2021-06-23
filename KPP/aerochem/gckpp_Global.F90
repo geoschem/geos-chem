@@ -216,11 +216,11 @@ MODULE gckpp_Global
      REAL(dp) :: Br_conc_CldC   ! Br- in cloud (C=coarse sea salt) [mol/kg H2O ]I2O4
      REAL(dp) :: Br_conc_CldG   ! Br- in cloud (G=gas-phase      ) [mol/kg H2O ]I2O4
      REAL(dp) :: Br_conc_Cld    ! Br- total in cloud = A + C + G
-     REAL(dp) :: Br_conc_SALA   ! Br- in fine sea salt aerosol     [mol/kg H2O ]I2O4
-     REAL(dp) :: Br_conc_SALC   ! Br- in coarse sea salt aerosol   [mol/kg H2O ]I2O4
+     REAL(dp) :: Br_conc_SSA    ! Br- in fine sea salt aerosol     [mol/kg H2O ]I2O4
+     REAL(dp) :: Br_conc_SSC    ! Br- in coarse sea salt aerosol   [mol/kg H2O ]I2O4
      REAL(dp) :: Br_over_Cl_Cld ! Br_conc_Cld / Cl_conc_Cld        [1          ]I2O4
-     REAL(dp) :: Br_over_Cl_SALA! Br_conc_SALA / Cl_conc_SALA      [1          ]I2O4
-     REAL(dp) :: Br_over_Cl_SALC! Br_conc_SALC / Cl_conc_SALC      [1          ]I2O4
+     REAL(dp) :: Br_over_Cl_SSA ! Br_conc_SSA / Cl_conc_SSC        [1          ]I2O4
+     REAL(dp) :: Br_over_Cl_SSC ! Br_conc_SSC / Cl_conc_SSC        [1          ]I2O4
      REAL(dp) :: Cl_branch_CldA ! Cl- branch ratio in CldA path    [1          ]I2O4
      REAL(dp) :: Cl_branch_CldC ! Cl- branch ratio in CldC path    [1          ]I2O4
      REAL(dp) :: Cl_branch_CldG ! Cl- Branch ratio in CldG path    [1          ]I2O4
@@ -228,8 +228,8 @@ MODULE gckpp_Global
      REAL(dp) :: Cl_conc_CldC   ! Cl- in cloud (C=coarse sea salt) [mol/kg H2O ]I2O4
      REAL(dp) :: Cl_conc_CldG   ! Cl- in cloud (G=gas-phase      ) [mol/kg H2O ]I2O4
      REAL(dp) :: Cl_conc_Cld    ! Cl- total = A + C + G
-     REAL(dp) :: Cl_conc_SALA   ! Cl- in fine   sea salt           [mol/kg H2O ]I2O4
-     REAL(dp) :: Cl_conc_SALC   ! Cl- in coarse sea salt           [mol/kg H2O ]I2O4
+     REAL(dp) :: Cl_conc_SSA    ! Cl- in fine   sea salt           [mol/kg H2O ]I2O4
+     REAL(dp) :: Cl_conc_SSC    ! Cl- in coarse sea salt           [mol/kg H2O ]I2O4
      REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]I2O4
      REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]I2O4
      REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine SS   [1          ]I2O4
@@ -251,8 +251,8 @@ MODULE gckpp_Global
      REAL(dp) :: mHSO4          ! Bisulfate concentration          [M          ]I2O4
      REAL(dp) :: mNO3           ! Nitrate concentration            [M          ]I2O4
      REAL(dp) :: mSO4           ! Sulfate concentration            [M          ]I2O4
-     REAL(dp) :: NIT_conc_SALA  ! Cl- in fine sea salt             [mol/kg H2O ]I2O4
-     REAL(dp) :: NIT_conc_SALC  ! Cl- in coarse sea salt           [mol/kg H2O ]I2O4
+     REAL(dp) :: NIT_conc_SSA   ! Cl- in fine sea salt             [mol/kg H2O ]I2O4
+     REAL(dp) :: NIT_conc_SSC   ! Cl- in coarse sea salt           [mol/kg H2O ]I2O4
      REAL(dp) :: PI             ! PI constant                      [1          ]I2O4
      REAL(dp) :: pHCloud        ! Cloud PH                         [pH units   ]I2O4
      REAL(dp) :: pHSSA(2)       ! Sea salt pH (1=fine, 2=coarse)   [pH units   ]I2O4
@@ -266,10 +266,10 @@ MODULE gckpp_Global
      REAL(dp) :: SALCAL_save    ! Conc of SALCAL before conversion [molec/cm3  ]I2O4
      REAL(dp) :: SO3_conc_Cld   !
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
-     LOGICAL  :: ssFineIsAlk    ! Is fine sea-salt alkaline?       [T/F        ]I2O4
-     LOGICAL  :: ssFineIsAcid   ! Is fine sea-salt alkaline?       [T/F        ]I2O4
-     LOGICAL  :: ssCoarseIsAlk  ! Is coarse sea-salt alkaline?     [T/F        ]I2O4
-     LOGICAL  :: ssCoarseIsAcid ! Is coarse sea-salt acid?         [T/F        ]I2O4
+     LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?       [T/F        ]I2O4
+     LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt alkaline?       [T/F        ]I2O4
+     LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?     [T/F        ]I2O4
+     LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acid?         [T/F        ]I2O4
      REAL(dp) :: vAir           ! Volume of air                    [cm3        ]I2O4
      REAL(dp) :: vIce           ! Ice volume                       [cm3        ]I2O4
      REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]I2O4

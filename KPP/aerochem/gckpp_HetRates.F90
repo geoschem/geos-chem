@@ -2996,42 +2996,44 @@ CONTAINS
     CALL Get_Halide_SSAConc( n_x       = C(ind_BrSALA),                      &
                              surf_area = H%aClArea,                          &
                              r_w       = H%aClRadi,                          &
-                             conc_x    = H%Br_conc_SALA                     )
+                             conc_x    = H%Br_conc_SSA                      )
 
     ! Br- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_BrSALC),                      &
                              surf_area = H%xArea(12),                        &
                              r_w       = H%xRadi(12),                        &
-                             conc_x    = H%Br_conc_SALC                     )
+                             conc_x    = H%Br_conc_SSC                      )
 
     ! Cl- concentration in fine sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_SALACL),                      &
                              surf_area = H%aClArea,                          &
                              r_w       = H%aClRadi,                          &
-                             conc_x    = H%Cl_conc_SALA                     )
+                             conc_x    = H%Cl_conc_SSA                      )
 
     ! Cl- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_SALCCL),                      &
                              surf_area = H%xArea(12),                        &
                              r_w       = H%xRadi(12),                        &
-                             conc_x    = H%Cl_conc_SALC                     )
+                             conc_x    = H%Cl_conc_SSC                      )
 
     ! NO3- concentration in fine sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_NIT),                         &
                              surf_area = H%aClArea,                          &
                              r_w       = H%aClRadi,                          &
-                             conc_x    = H%NIT_conc_SALA                    )
+                             conc_x    = H%NIT_conc_SSA                     )
 
     ! NO3- concentration in coarse sea salt aerosol
     CALL Get_Halide_SSAConc( n_x       = C(ind_NITs),                        &
                              surf_area = H%xArea(12),                        &
                              r_w       = H%xRadi(12),                        &
-                             conc_x    = H%NIT_conc_SALC                    )
+                             conc_x    = H%NIT_conc_SSC                     )
 
+    !=======================================================================
     ! Ratios of Br- to Cl-
-    H%Br_over_Cl_Cld  = H%Br_conc_Cld  / H%Cl_conc_Cld  ! in gas, in-cloud
-    H%Br_over_Cl_SALA = H%Br_conc_SALA / H%Cl_conc_SALA ! in fine sea salt
-    H%Br_over_Cl_SALC = H%Br_conc_SALC / H%Cl_conc_SALC ! in coarse sea salt
+    !=======================================================================
+    H%Br_over_Cl_Cld = H%Br_conc_Cld / H%Cl_conc_Cld  ! in gas, in-cloud
+    H%Br_over_Cl_SSA = H%Br_conc_SSA / H%Cl_conc_SSA  ! in fine sea salt
+    H%Br_over_Cl_SSC = H%Br_conc_SSC / H%Cl_conc_SSC  ! in coarse sea salt
 
   END SUBROUTINE Halide_Conc
 !EOC

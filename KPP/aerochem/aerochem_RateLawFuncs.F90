@@ -1472,10 +1472,10 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    REAL(dp) :: branch,     branch_0,  brIce,       brLiq
-    REAL(dp) :: Br_over_Cl, dummy,     gammaLiq,    gammaIce
-    REAL(dp) :: k_HOBr_Cl,  k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2
-    REAL(dp) :: k_tot,      srMw,      Y_Br2
+    REAL(dp) :: branch,    branch_0,    brIce,         brLiq
+    REAL(dp) :: dummy,     gammaLiq,    gammaIce,      k_HOBr_Cl
+    REAL(dp) :: k_HOBr_Br, k_HOBr_HSO3, k_HOBr_HSO3_2, k_tot
+    REAL(dp) :: srMw,      Y_Br2
     !
     k        = 0.0_dp
     brIce    = 0.0_dp
@@ -1564,16 +1564,16 @@ CONTAINS
     ENDIF
     !
     ! Now consider HOBr uptake by acidic BrSALA in clear-sky
-    IF ( H%ssFineIsAcid ) THEN
+    IF ( H%SSA_is_Acid ) THEN
        !
        ! Uptake probability [1]
-       CALL Gam_HOBr_Aer( H,              H%aClRadi,      H%H_conc_SSA,      &
-                          H%Cl_conc_SALA, H%Br_Conc_SALA, gammaAer          )
+       CALL Gam_HOBr_Aer( H,             H%aClRadi,     H%H_conc_SSA,        &
+                          H%Cl_conc_SSA, H%Br_Conc_SSA, gammaAer            )
        !
        ! Branching ratio (depends on Br- / Cl- ratio)
        branch = 0.9_dp
-       IF ( H%Br_over_Cl_SALA <= 5.0e-4_dp ) THEN
-          branch = Br2_Yield( H%Br_over_Cl_SALA )
+       IF ( H%Br_over_Cl_SSA <= 5.0e-4_dp ) THEN
+          branch = Br2_Yield( H%Br_over_Cl_SSA )
        ENDIF
        !
        ! Uptake rate [1/s]
@@ -1624,16 +1624,16 @@ CONTAINS
     ENDIF
     !
     ! Now consider HOBr uptake by acidic BrSALC in clear-sky
-    IF ( H%ssCoarseIsAcid ) THEN
+    IF ( H%SSC_is_Acid ) THEN
        !
        ! Uptake probability [1]
-       CALL Gam_HOBr_Aer( H,              H%xRadi(SSC),   H%H_conc_SSC,      &
-                          H%Cl_conc_SALC, H%Br_Conc_SALC, gammaAer          )
+       CALL Gam_HOBr_Aer( H,             H%xRadi(SSC),  H%H_conc_SSC,       &
+                          H%Cl_conc_SSC, H%Br_Conc_SSC, gammaAer           )
        !
        ! Branching ratio (depends on Br- / Cl- ratio)
        branch = 0.9_dp
-       IF ( H%Br_over_Cl_SALC <= 5.0e-4_dp ) THEN
-          branch = Br2_Yield( H%Br_over_Cl_SALC )
+       IF ( H%Br_over_Cl_SSC <= 5.0e-4_dp ) THEN
+          branch = Br2_Yield( H%Br_over_Cl_SSC )
        ENDIF
        !
        ! Uptake rate [1/s]
@@ -1691,7 +1691,7 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     k = 0.0_dp
-    IF ( H%ssFineIsAlk ) THEN
+    IF ( H%SSA_is_Alk ) THEN
        k = IuptkBySALA1stOrd( srMw, gamma, H )
     ENDIF
   END FUNCTION IuptkbyAlkSALA1stOrd
@@ -1718,7 +1718,7 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     k = 0.0_dp
-    IF ( H%ssCoarseIsAlk ) THEN
+    IF ( H%SSC_is_Alk ) THEN
        k = IuptkBySALC1stOrd( srMw, gamma, H )
     ENDIF
   END FUNCTION IuptkByAlkSALC1stOrd
@@ -1733,7 +1733,7 @@ CONTAINS
     REAL(dp)                   :: k
     !
     k = 0.0_dp
-    IF ( H%ssFineIsAcid ) THEN
+    IF ( H%SSA_is_Acid ) THEN
        k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
        k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
     ENDIF
@@ -1749,7 +1749,7 @@ CONTAINS
     REAL(dp)                   :: k
     !
     k = 0.0_dp
-    IF ( H%ssCoarseIsAcid ) THEN
+    IF ( H%SSC_is_Acid ) THEN
        k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
        k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
     ENDIF
@@ -1765,7 +1765,7 @@ CONTAINS
     REAL(dp)                   :: k
     !
     k = 0.0_dp
-    IF ( H%ssFineIsAcid ) THEN
+    IF ( H%SSA_is_Acid ) THEN
        k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
        k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
     ENDIF
@@ -1781,7 +1781,7 @@ CONTAINS
     REAL(dp)                   :: k
     !
     k = 0.0_dp
-    IF ( H%ssCoarseIsAcid ) THEN
+    IF ( H%SSC_is_Acid ) THEN
        k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
        k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
@@ -2271,7 +2271,7 @@ CONTAINS
     area  = H%aClArea
     radi  = H%aClRadi
     water = H%aWater(SS_FINE)
-    conc  = H%Cl_conc_SALA
+    conc  = H%Cl_conc_SSA
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
     ! Reaction rate for surface of aerosol [1/s]
@@ -2292,7 +2292,7 @@ CONTAINS
     area  = H%xArea(SSC)
     radi  = H%xRadi(SSC)
     water = H%aWater(SS_COARSE)
-    conc  = H%Cl_conc_SALC
+    conc  = H%Cl_conc_SSC
     gamma = Gam_NO3( area, radi, water, conc, H ) * 0.01_dp
     !
     ! Reaction rate for surface of aerosol [1/s]
@@ -2353,9 +2353,9 @@ CONTAINS
     k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldA )
     !
     ! O3 + Br- uptake on acidic fine sea-salt, clear sky
-    IF ( H%ssFineIsAcid ) THEN
+    IF ( H%SSA_is_Acid ) THEN
        area  = H%ClearFr * H%aClArea
-       gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SALA )
+       gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SSA )
        k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
     ENDIF
 
@@ -2378,9 +2378,9 @@ CONTAINS
     k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldC )
     !
     ! O3 + Br- uptake on acidic coarse sea salt, clear sky
-    IF ( H%ssCoarseIsAcid ) THEN
+    IF ( H%SSC_is_Acid ) THEN
        area  = H%ClearFr * H%xArea(SSC)
-       gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SALC )
+       gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SSC )
        k     = k + Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_O3) )
     ENDIF
 
@@ -2438,7 +2438,7 @@ CONTAINS
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
-    gamma = 0.04_dp * H%Cl_conc_SALA
+    gamma = 0.04_dp * H%Cl_conc_SSA
     k = Ars_L1k( H%aClArea, H%aClRadi, gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
@@ -2453,7 +2453,7 @@ CONTAINS
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
-    gamma = 0.04_dp * H%Cl_conc_SALC
+    gamma = 0.04_dp * H%Cl_conc_SSC
     k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, SR_MW(ind_OH) )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
