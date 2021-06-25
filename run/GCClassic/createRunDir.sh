@@ -1111,8 +1111,8 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 
     elif [[ "x${sim_name}" == "xmetals" ]]; then
 
-	# For POPs, the extra option is in the restart file name
-	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}_${startdate}_0000z.nc4
+	# For metals, use the extra option is in the restart file name
+	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     else
 
