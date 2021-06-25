@@ -121,7 +121,7 @@ Warnings:                    1
 0 NEI11_SURFACE_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Cd_F1 1007/801     2 1
 0 NEI11_SURFACE_Cd_F2 -                                                                        -  -                        - -  -       Cd_F2 1007/802     2 1
 0 NEI11_SURFACE_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Fe_F1 1007/801     2 1
-0 NEI11_SURFACE_Fe_F2 -                                                                   -    -  -                        - -  -       Fe_F2 1007/802     2 1
+0 NEI11_SURFACE_Fe_F2 -                                                                        -  -                        - -  -       Fe_F2 1007/802     2 1
 0 NEI11_SURFACE_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc K  2011-2013/1-12/1-31/0-23 R xy kg/m2/s  K_F1 1007/801     2 1
 0 NEI11_SURFACE_K_F2  -                                                                        -  -                        - -  -        K_F2 1007/802     2 1
 0 NEI11_SURFACE_K_C3  -                                                                        -  -                        - -  -        K_C3 1007/785/803 2 1
@@ -136,10 +136,10 @@ Warnings:                    1
 0 NEI11_SURFACE_Ni_F2 -                                                                        -  -                        - -  -       Ni_F2 1007/802     2 1
 0 NEI11_SURFACE_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Pb_F1 1007/801     2 1
 0 NEI11_SURFACE_Pb_F2 -                                                                        -  -                        - -  -       Pb_F2 1007/802     2 1
-0 NEI11_SURFACE_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SI_F1 1007/801     2 1
-0 NEI11_SURFACE_Si_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SI_F2 1007/802     2 1
-0 NEI11_SURFACE_TI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TI_F1 1007/801     2 1
-0 NEI11_SURFACE_TI_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TI_F2 1007/802     2 1
+0 NEI11_SURFACE_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Si_F1 1007/801     2 1
+0 NEI11_SURFACE_Si_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Si_F2 1007/802     2 1
+0 NEI11_SURFACE_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ti_F1 1007/801     2 1
+0 NEI11_SURFACE_Ti_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ti_F2 1007/802     2 1
 #
 ## %%%% NOTE: it seems that we have misisng days for several of these data files.
 ## %%%% Therefore we are disabling these emissions by default until further notice.
@@ -349,18 +349,6 @@ Warnings:                    1
 * PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2021/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
 * SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
 * TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
-
-#==============================================================================
-# --- Fields for lightning emissions (Extension 103) ---
-#
-# Native-resolution lightning flash rates constrained to LIS/OTD climatology
-# and convective depth are now prescribed as offline meteorology.
-#                                                    --Lee Murray (16 Jan 2019)
-#==============================================================================
-(((LightNOx
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.5x0.625_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.5x0.625_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-)))LightNOx
 
 )))METEOROLOGY
 

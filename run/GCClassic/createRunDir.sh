@@ -1109,6 +1109,11 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 	# For POPs, the extra option is in the restart file name
 	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
 
+    elif [[ "x${sim_name}" == "xmetals" ]]; then
+
+	# For POPs, the extra option is in the restart file name
+	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}_${startdate}_0000z.nc4
+
     else
 
 	# For other specialty simulations, use previoiusly saved restarts
