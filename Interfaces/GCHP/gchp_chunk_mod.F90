@@ -910,8 +910,9 @@ CONTAINS
     CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )
 
     ! Set the pressure at level edges [hPa] from the ESMF environment
-    CALL Accept_External_Pedge( State_Met = State_Met,  &
-                                RC        = RC         )
+    CALL Accept_External_Pedge( State_Met  = State_Met,   &
+                                State_Grid = State_Grid,  &
+                                RC         = RC          )
 
     ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 1 )

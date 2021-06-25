@@ -348,7 +348,7 @@ CONTAINS
     IF ( FIRSTCHEM ) THEN
 #if defined( MODEL_CESM )
        ! Do not use HEMCO state in CESM
-       TS_EMIS = 60.0e+0_fp * real( Input_Opt%TS_EMIS, fp )
+       TS_EMIS = REAL( Input_Opt%TS_EMIS, fp )
 #else
 
        IF ( .NOT. ASSOCIATED(HcoState) ) THEN
