@@ -79,6 +79,7 @@ printf "   7. Tagged CH4\n"
 printf "   8. Tagged CO\n"
 printf "   9. Tagged O3\n"
 printf "  10. TransportTracers\n"
+printf "  11. Trace metals\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -104,6 +105,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=tagO3
     elif [[ ${sim_num} = "10" ]]; then
 	sim_name=TransportTracers
+    elif [[ ${sim_num} = "11" ]]; then
+	sim_name=metals
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -322,7 +325,7 @@ if [[ ${met_name} = "ModelE2.1" ]]; then
     printf "  6. SSP2-4.5 (2040-2049; 2090-2099)\n"
     printf "  7. SSP4-6.0 (2040-2049; 2090-2099)\n"
     printf "  8. SSP3-7.0 (2040-2049; 2090-2099)\n"
-    printf "  9. SSP5-8.5 (2040-2049; 2090-2099)\n"	
+    printf "  9. SSP5-8.5 (2040-2049; 2090-2099)\n"
 
     valid_scen=0
     while [ "${valid_scen}" -eq 0 ]; do
@@ -526,7 +529,7 @@ if [[ ${met_name} = "ModelE2.1" ]] || [[ ${met_name} = "ModelE2.2" ]] ; then
     case "$grid_res" in
 	"2x25" ) center_180="F" ;; # Native GISS fine resolution
         * ) center_180="T" ;; # Flex-grid re-gridded resolutions
-    esac  
+    esac
 fi
 
 #-----------------------------------------------------------------
@@ -535,14 +538,14 @@ fi
 dead_tf="-999.0e0" # Default DEAD-dust scaling factor for online emissions
 if [[ ${met_name} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
-        case "$grid_res" in 
+        case "$grid_res" in
             "4x5" ) dead_tf="0.00474046"; giss_res="F40"  ;;
             "2x25" ) dead_tf="0.00243979"; giss_res="F40"  ;;
             "05x0625" ) dead_tf="0.00276896"; giss_res="F40"  ;;
             "025x03125" ) dead_tf="0.00254319"; giss_res="F40"  ;;
   	esac
     else
-        case "$grid_res" in 
+        case "$grid_res" in
             "4x5" ) dead_tf="0.03564873"; giss_res="F40"  ;;
             "2x25" ) dead_tf="0.01050036"; giss_res="F40"  ;;
             "05x0625" ) dead_tf="0.01340854"; giss_res="F40"  ;;
@@ -559,7 +562,7 @@ printf "${thinline}Choose number of levels:${thinline}"
 if [[ ${met_name} = "GEOSFP" ]] || [[ ${met_name} = "MERRA2" ]]; then
     printf "  1. 72 (native)\n"
     printf "  2. 47 (reduced)\n"
-    
+
     valid_lev=0
     while [ "${valid_lev}" -eq 0 ]; do
         read lev_num
@@ -819,7 +822,7 @@ if [[ ${met_name} = "ModelE2.1" ]]; then
     sed_ie      's|{AERO_BCPO}|* AERO_BCPO      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_BCPO       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{AERO_OCPI}|* AERO_OCPI      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_OCPI       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{AERO_OCPO}|* AERO_OCPO      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_OCPO       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_DST1}|* AERO_DST1      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_DST1       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc	
+    sed_ie      's|{AERO_DST1}|* AERO_DST1      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_DST1       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{GLOBAL_OA}|* GLOBAL_OA      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.AerosolMass.2010-2019.$MM.{VERTRES}L.nc4 TotalOA                2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie        's|{PCO_CH4}|* PCO_CH4        $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    ProdCOfromCH4          2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{PCO_NMVOC}|* PCO_NMVOC      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    ProdCOfromNMVOC        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
@@ -832,7 +835,7 @@ if [[ ${met_name} = "ModelE2.1" ]]; then
     sed_ie       's|{CH4_LOSS}|* CH4_LOSS       $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CH4.geos5.2x25.nc                      loss                   2005/1-12/1/0 C xyz s-1      * - 1 1|' HEMCO_Config.rc
     sed_ie     's|{CO2_COPROD}|* CO2_COPROD     $ROOT/GCAP2/CO2/v2019-02/CHEM/CO2_prod_rates.2x25.{VERTRES}L.nc                     LCO               2004-2009/1-12/1/0 C xyz kgC/m3/s * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{Br_TOMCAT}|* Br_TOMCAT      $ROOT/GCAP2/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.{VERTRES}L.nc4                LBRO2N                 1985/1-12/1/0 C xyz pptv     * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{BrO_TOMCAT}|* BrO_TOMCAT     $ROOT/GCAP2/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.{VERTRES}L.nc4                LBRO2H                 1985/1-12/1/0 C xyz pptv     * - 1 1|' HEMCO_Config.rc	
+    sed_ie     's|{BrO_TOMCAT}|* BrO_TOMCAT     $ROOT/GCAP2/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.{VERTRES}L.nc4                LBRO2H                 1985/1-12/1/0 C xyz pptv     * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{GLOBAL_OC}|1002 GLOBAL_OC   $ROOT/GCAP2/POPs/v2015-08/OCPO.4x5.{VERTRES}L.nc4                                   OCPO              2005-2009/1-12/1/0 C xyz kg       * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{GLOBAL_BC}|1002 GLOBAL_BC   $ROOT/GCAP2/POPs/v2015-08/BCPO.4x5.{VERTRES}L.nc4                                   BCPO              2005-2009/1-12/1/0 C xyz kg       * - 1 1|' HEMCO_Config.rc
     sed_ie  's|{TES_CLIM_CCL4}|* TES_CLIM_CCL4  $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CCl4                   2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
@@ -842,7 +845,7 @@ if [[ ${met_name} = "ModelE2.1" ]]; then
     sed_ie   's|{TES_CLIM_CH4}|* TES_CLIM_CH4   $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CH4                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
     sed_ie   's|{TES_CLIM_N2O}|* TES_CLIM_N2O   $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                N2O                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
     sed_ie    's|{GMI_LOSS_CO}|* GMI_LOSS_CO    $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CO.geos5.2x25.nc                       loss                   2005/1-12/1/0 C xyz s-1     CO - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GMI_PROD_CO}|* GMI_PROD_CO    $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CO.geos5.2x25.nc                       prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1|' HEMCO_Config.rc    
+    sed_ie    's|{GMI_PROD_CO}|* GMI_PROD_CO    $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CO.geos5.2x25.nc                       prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1|' HEMCO_Config.rc
     sed_ie     's|{OCEAN_MASK}|1000 OCEAN_MASK  $METDIR/TOPO                                                                        focean                    */1/1/0 C xy 1 1  -180/-90/180/90|' HEMCO_Config.rc
     sed_ie        's|{Bry_DIR}|GCAP2/Bry/v2015-01/{VERTRES}L|'                                                                                                                                    HEMCO_Config.rc
     sed_ie        's|{GMI_DIR}|GCAP2/GMI/v2015-02/{VERTRES}L|'                                                                                                                                    HEMCO_Config.rc
@@ -880,7 +883,7 @@ else
     sed_ie      's|{AERO_BCPO}|* AERO_BCPO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_BCPO  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{AERO_OCPI}|* AERO_OCPI      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_OCPI  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{AERO_OCPO}|* AERO_OCPO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_OCPO  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_DST1}|* AERO_DST1      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_DST1  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc	
+    sed_ie      's|{AERO_DST1}|* AERO_DST1      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_DST1  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{GLOBAL_OA}|* GLOBAL_OA      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.AerosolMass.$YYYY$MM$DD_0000z.nc4      TotalOA           2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie        's|{PCO_CH4}|* PCO_CH4        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         ProdCOfromCH4     2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie      's|{PCO_NMVOC}|* PCO_NMVOC      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         ProdCOfromNMVOC   2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
@@ -903,7 +906,7 @@ else
     sed_ie   's|{TES_CLIM_CH4}|* TES_CLIM_CH4   $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CH4                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
     sed_ie   's|{TES_CLIM_N2O}|* TES_CLIM_N2O   $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  N2O                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
     sed_ie    's|{GMI_LOSS_CO}|* GMI_LOSS_CO    $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc                                        loss                   2005/1-12/1/0 C xyz s-1     CO - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GMI_PROD_CO}|* GMI_PROD_CO    $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc                                        prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1|' HEMCO_Config.rc	
+    sed_ie    's|{GMI_PROD_CO}|* GMI_PROD_CO    $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc                                        prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1|' HEMCO_Config.rc
     sed_ie     's|{OCEAN_MASK}|1000 OCEAN_MASK  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC                                         FROCEAN           2000/1/1/0 C xy 1 1       -180/-90/180/90|' HEMCO_Config.rc
     sed_ie        's|{Bry_DIR}|STRAT/v2015-01/Bry|'                                                                                                                                               HEMCO_Config.rc
     sed_ie        's|{GMI_DIR}|GMI/v2015-02|'                                                                                                                                                     HEMCO_Config.rc
@@ -923,12 +926,15 @@ if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate="20190101"
     enddate="20190201"
+elif [[ "x${sim_name}" == "xmetals" ]]; then
+    startdate="20110101"
+    enddate="20110201"
 else
     startdate="20190701"
     enddate="20190801"
 fi
 if [[ ${met_name} = "ModelE2.1" ]] || [[ ${met_name} = "ModelE2.2" ]]; then
-    case "$scenario" in 
+    case "$scenario" in
 	"HIST" ) startdate="20050701"; enddate="20050801" ;;
 	* ) startdate="20900701"; enddate="20900801" ;;
     esac
@@ -1092,12 +1098,12 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 	else
 	    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
-	
+
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
 	# For TransportTracers, use restart from latest benchmark
 	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
-	
+
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
 
 	# For POPs, the extra option is in the restart file name
@@ -1122,9 +1128,9 @@ elif [[ ${met_name} = "ModelE2.1" ]]; then
     else
 	rst_root="${GC_DATA_ROOT}/GCAP2_RESTARTS"
     fi
-        
+
     if [[ "x${sim_name}" == "xfullchem" ]]; then
-	
+
         # For TOMAS simulations, use restarts provided by the TOMAS team
         # For other fullchem simulations, use restart the latest 1-yr benchmark
         if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
@@ -1132,23 +1138,23 @@ elif [[ ${met_name} = "ModelE2.1" ]]; then
         elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
     	    sample_rst=${rst_root}/v2020-02/${grid_lev}L/initial_GCAP2_rst.4x5_TOMAS40.nc4
         else
-    	    sample_rst=${rst_root}/GC_13.0.0/${grid_lev}L/GCAP2.Restart.fullchem.20190701_0000z.nc4	
+    	    sample_rst=${rst_root}/GC_13.0.0/${grid_lev}L/GCAP2.Restart.fullchem.20190701_0000z.nc4
         fi
-	
+
     elif [[ ${sim_name} = "TransportTracers" ]]; then
-	
+
         # For TransportTracers, use restart from latest 1-year benchmark
         sample_rst=${rst_root}/GC_13.0.0/${grid_lev}L/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
-	
+
     else
-	
+
         # For other specialty simulations, use previously saved restarts
         sample_rst=${rst_root}/v2018-11/${grid_lev}L/initial_GCAP2_rst.${grid_res}_${sim_name}.nc4
 
     fi
 
 fi
-    
+
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
     ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null

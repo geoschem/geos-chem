@@ -44,19 +44,18 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     {MET_AVAIL}
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> CA_Metal               :       true
-    --> NEI2011_Metal          :       true    
-# ----- NON-EMISSIONS DATA ------------------------------------
+    --> NEI2011_Metal          :       true
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2005-2016
 #------------------------------------------------------------------------------
-100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -64,7 +63,7 @@ Warnings:                    1
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
@@ -72,163 +71,160 @@ Warnings:                    1
 # --- CANADA Trace Metal Inventory ---
 #==============================================================================
 (((CA_Metal
-0 CA_FE_F1       $ROOT/TRACE_METALS/v2021-06/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc   Fe    2011-2013/1-12/1-31/* R xy  kg/m2/s  FE_F1     1002/781/801     1 1
-0 CA_AL_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Al    2011-2013/1-12/1-31/* R xy  kg/m2/s  AL_F1     1002/782/801     1 1
-0 CA_TI_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ti    2011-2013/1-12/1-31/* R xy  kg/m2/s  TI_F1     1002/783/801     1 1
-0 CA_MG_F1 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_F1     1002/784/801     1 1
-0 CA_K_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_F1      1002/785/801     1 1
-0 CA_SI_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Si    2011-2013/1-12/1-31/* R xy  kg/m2/s  SI_F1     1002/786/801     1 1
-0 CA_CA_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_F1     1002/787/801     1 1
-0 CA_Mn_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mn    2011-2013/1-12/1-31/* R xy  kg/m2/s  Mn_F1    1002/788/801     1 1
-0 CA_AS_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc   As   2011-2013/1-12/1-31/* R xy  kg/m2/s  AS_F1    1002/801     1 1
-0 CA_CD_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Cd   2011-2013/1-12/1-31/* R xy  kg/m2/s  CD_F1    1002/801     1 1
-0 CA_PB_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Pb   2011-2013/1-12/1-31/* R xy  kg/m2/s  PB_F1    1002/801     1 1
-0 CA_Ni_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Ni   2011-2013/1-12/1-31/* R xy  kg/m2/s  Ni_F1    1002/801     1 1
-
-0 CA_FE_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Fe    2011-2013/1-12/1-31/* R xy  kg/m2/s  FE_F2     1002/781/802     1 1
-0 CA_AL_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Al    2011-2013/1-12/1-31/* R xy  kg/m2/s  AL_F2     1002/782/802     1 1
-0 CA_TI_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ti    2011-2013/1-12/1-31/* R xy  kg/m2/s  TI_F2     1002/783/802     1 1
-0 CA_MG_F2 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_F2     1002/784/802     1 1
-0 CA_K_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_F2      1002/785/802     1 1
-0 CA_SI_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Si    2011-2013/1-12/1-31/* R xy  kg/m2/s  SI_F2     1002/786/802     1 1
-0 CA_CA_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_F2     1002/787/802     1 1
-0 CA_Mn_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mn    2011-2013/1-12/1-31/* R xy  kg/m2/s  Mn_F2    1002/788/802     1 1
-0 CA_AS_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc   As   2011-2013/1-12/1-31/* R xy  kg/m2/s  AS_F2    1002/802     1 1
-0 CA_CD_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Cd   2011-2013/1-12/1-31/* R xy  kg/m2/s  CD_F2    1002/802     1 1
-0 CA_PB_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Pb   2011-2013/1-12/1-31/* R xy  kg/m2/s  PB_F2    1002/802     1 1
-0 CA_Ni_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_HeavyMetals_PbAsx5/CA_HeavyMetal_0.1x0.1_2013.nc    Ni   2011-2013/1-12/1-31/* R xy  kg/m2/s  Ni_F2    1002/802     1 1
-
-0 CA_MG_C3 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_C3     1002/784/800/803     1 1
-0 CA_K_C3	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_C3      1002/785/800/803     1 1
-0 CA_CA_C3	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_C3     1002/787/800/803     1 1
-
-0 CA_MG_C4 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_C4     1002/784/800/804     1 1
-0 CA_K_C4	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_C4      1002/785/800/804     1 1
-0 CA_CA_C4	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/CA_CrustalEmis_Havled/CA_Crust_0.1x0.1_2011$MM$DD.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_C4     1002/787/800/804     1 1
+0 CAN_Al_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Al 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Al_F1 1002/782/801     1 1
+0 CAN_Al_F2  -                                                                          -  -                        - -  -       Al_F2 1002/782/802     1 1
+0 CAN_As_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2013/CA_HeavyMetal_0.1x0.1_2013.nc      As 2011-2013/1-12/1-31/0-23 R xy kg/m2/s As_F1 1002/801         1 1
+0 CAN_As_F2  -                                                                          -  -                        - -  -       As_F2 1002/802         1 1
+0 CAN_Ca_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Ca 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ca_F1 1002/787/801     1 1
+0 CAN_Ca_F2  -                                                                          -  -                        - -  -       Ca_F2 1002/787/802     1 1
+0 CAN_Ca_C3  -                                                                          -  -                        - -  -       Ca_C3 1002/787/800/803 1 1
+0 CAN_Ca_C4  -                                                                          -  -                        - -  -       Ca_C4 1002/787/800/804 1 1
+0 CAN_Cd_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2013/CA_HeavyMetal_0.1x0.1_2013.nc      Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Cd_F1 1002/801         1 1
+0 CAN_Cd_F2  -                                                                          -  -                        - -  -       Cd_F2 1002/802         1 1
+0 CAN_Fe_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Fe_F1 1002/781/801     1 1
+0 CAN_Fe_F2  -                                                                          -  -                        - -  -       Fe_F2 1002/781/802     1 1
+0 CAN_K_F1   $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc K  2011-2013/1-12/1-31/0-23 R xy kg/m2/s  K_F1 1002/785/801     1 1
+0 CAN_K_F2   -                                                                          -  -                        - -  -        K_F2 1002/785/802     1 1
+0 CAN_K_C3   -                                                                          -  -                        - -  -        K_C3 1002/785/800/803 1 1
+0 CAN_K_C4   -                                                                          -  -                        - -  -        K_C4 1002/785/800/804 1 1
+0 CAN_Mg_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Mg 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mg_F1 1002/784/801     1 1
+0 CAN_Mg_F2  -                                                                          -  -                        - -  -       Mg_F2 1002/784/802     1 1
+0 CAN_Mg_C3  -                                                                          -  -                        - -  -       Mg_C3 1002/784/800/803 1 1
+0 CAN_Mg_C4  -                                                                          -  -                        - -  -       Mg_C4 1002/784/800/804 1 1
+0 CAN_Mn_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Mn 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mn_F1 1002/788/801     1 1
+0 CAN_Mn_F2  -                                                                          -  -                        - -  -       Mn_F2 1002/788/802     1 1
+0 CAN_Ni_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2013/CA_HeavyMetal_0.1x0.1_2013.nc      Ni 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ni_F1 1002/801         1 1
+0 CAN_Ni_F2  -                                                                          -  -                        - -  -       Ni_F2 1002/802         1 1
+0 CAN_Pb_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2013/CA_HeavyMetal_0.1x0.1_2013.nc      Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Pb_F1 1002/801         1 1
+0 CAN_Pb_F2  -                                                                          -  -                        - -  -       Pb_F2 1002/802         1 1
+0 CAN_Si_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Si_F1 1002/786/801     1 1
+0 CAN_Si_F2  -                                                                          -  -                        - -  -       Si_F2 1002/786/802     1 1
+0 CAN_Ti_F1  $ROOT/TRACE_METALS/v2021-06/Canada/2011/$MM/CA_Crust_0.1x0.1_2011$MM$DD.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ti_F1 1002/783/801     1 1
+0 CAN_Ti_F2  -                                                                          -  -                        - -  -       Ti_F2 1002/783/802     1 1
 )))CA_Metal
 
 #==============================================================================
 # --- NEI 2011 Trace Metal Inventory ---
 #==============================================================================
-(((NEI2011_Metal 
-# SURFACE INVENTORY
-0 NEI11_SURFACE_FE_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Fe    2011-2013/1-12/1-31/* R xy  kg/m2/s  FE_F1     1007/801     2 1
-0 NEI11_SURFACE_AL_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Al    2011-2013/1-12/1-31/* R xy  kg/m2/s  AL_F1     1007/801     2 1
-0 NEI11_SURFACE_TI_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ti    2011-2013/1-12/1-31/* R xy  kg/m2/s  TI_F1     1007/801     2 1
-0 NEI11_SURFACE_MG_F1 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_F1     1007/801     2 1
-0 NEI11_SURFACE_K_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_F1      1007/801     2 1
-0 NEI11_SURFACE_SI_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Si    2011-2013/1-12/1-31/* R xy  kg/m2/s  SI_F1     1007/801     2 1
-0 NEI11_SURFACE_CA_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_F1     1007/801     2 1
-0 NEI11_SURFACE_Mn_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mn    2011-2013/1-12/1-31/* R xy  kg/m2/s  Mn_F1    1007/801     2 1
-0 NEI11_SURFACE_AS_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   As    2011-2013/1-12/1-31/* R xy  kg/m2/s  AS_F1    1007/801     2 1
-0 NEI11_SURFACE_CD_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Cd    2011-2013/1-12/1-31/* R xy  kg/m2/s  CD_F1    1007/801     2 1
-0 NEI11_SURFACE_PB_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Pb    2011-2013/1-12/1-31/* R xy  kg/m2/s  PB_F1    1007/801     2 1
-0 NEI11_SURFACE_Ni_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ni    2011-2013/1-12/1-31/* R xy  kg/m2/s  Ni_F1    1007/801     2 1
-
-0 NEI11_SURFACE_FE_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Fe    2011-2013/1-12/1-31/* R xy  kg/m2/s  FE_F2     1007/802     2 1
-0 NEI11_SURFACE_AL_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Al    2011-2013/1-12/1-31/* R xy  kg/m2/s  AL_F2     1007/802     2 1
-0 NEI11_SURFACE_TI_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ti    2011-2013/1-12/1-31/* R xy  kg/m2/s  TI_F2     1007/802     2 1
-0 NEI11_SURFACE_MG_F2 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_F2     1007/802     2 1
-0 NEI11_SURFACE_K_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_F2      1007/802     2 1
-0 NEI11_SURFACE_SI_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Si    2011-2013/1-12/1-31/* R xy  kg/m2/s  SI_F2     1007/802     2 1
-0 NEI11_SURFACE_CA_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_F2     1007/802     2 1
-0 NEI11_SURFACE_Mn_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mn    2011-2013/1-12/1-31/* R xy  kg/m2/s  Mn_F2    1007/802     2 1
-0 NEI11_SURFACE_AS_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   As    2011-2013/1-12/1-31/* R xy  kg/m2/s  AS_F2    1007/802     2 1
-0 NEI11_SURFACE_CD_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Cd    2011-2013/1-12/1-31/* R xy  kg/m2/s  CD_F2    1007/802     2 1
-0 NEI11_SURFACE_PB_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Pb    2011-2013/1-12/1-31/* R xy  kg/m2/s  PB_F2    1007/802     2 1
-0 NEI11_SURFACE_Ni_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ni    2011-2013/1-12/1-31/* R xy  kg/m2/s  Ni_F2    1007/802     2 1
-
-0 NEI11_SURFACE_MG_C3 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_C3     1007/784/803     2 1
-0 NEI11_SURFACE_K_C3	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_C3      1007/785/803     2 1
-0 NEI11_SURFACE_CA_C3	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_C3     1007/787/803     2 1
-
-0 NEI11_SURFACE_MG_C4 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Mg    2011-2013/1-12/1-31/* R xy  kg/m2/s  MG_C4     1007/784/804     2 1
-0 NEI11_SURFACE_K_C4	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   K     2011-2013/1-12/1-31/* R xy  kg/m2/s  K_C4      1007/785/804     2 1
-0 NEI11_SURFACE_CA_C4	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_0.1x0.1_2011$MM$DD_all.nc   Ca    2011-2013/1-12/1-31/* R xy  kg/m2/s  CA_C4     1007/787/804     2 1
-
-# ELECTRIC GENERATING UNITS (ptegu)
-
-0 NEI11_INLN_PTEGU_FE_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Fe    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  FE_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_AL_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Al    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  AL_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_TI_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ti    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  TI_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_MG_F1 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Mg    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  MG_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_K_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   PK     2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  PK_F1      1007/801     3 1
-0 NEI11_INLN_PTEGU_SI_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Si    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  SI_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_CA_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ca    2011-2013/1-12/1-31/0-23 R xy kg/m2/s  CA_F1     1007/801     3 1
-0 NEI11_INLN_PTEGU_Mn_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Mn    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  Mn_F1    1007/801     3 1
-0 NEI11_INLN_PTEGU_AS_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   As    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  AS_F1    1007/801     3 1
-0 NEI11_INLN_PTEGU_CD_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Cd    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  CD_F1    1007/801     3 1
-0 NEI11_INLN_PTEGU_PB_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Pb    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  PB_F1    1007/801     3 1
-0 NEI11_INLN_PTEGU_Ni_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ni    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  Ni_F1    1007/801     3 1
-
-0 NEI11_INLN_PTEGU_FE_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Fe    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  FE_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_AL_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Al    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  AL_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_TI_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ti    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  TI_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_MG_F2 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Mg    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  MG_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_K_F2	         /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   PK     2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  PK_F2      1007/802     3 1
-0 NEI11_INLN_PTEGU_SI_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Si    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  SI_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_CA_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ca    2011-2013/1-12/1-31/0-23 R xy kg/m2/s  CA_F2     1007/802     3 1
-0 NEI11_INLN_PTEGU_Mn_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Mn    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  Mn_F2    1007/802     3 1
-0 NEI11_INLN_PTEGU_AS_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   As    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  AS_F2    1007/802     3 1
-0 NEI11_INLN_PTEGU_CD_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Cd    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  CD_F2    1007/802     3 1
-0 NEI11_INLN_PTEGU_PB_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Pb    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  PB_F2    1007/802     3 1
-0 NEI11_INLN_PTEGU_Ni_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc   Ni    2011-2013/1-12/1-31/0-23 R xy  kg/m2/s  Ni_F2    1007/802     3 1
-
-# NON-EGU PM (non industrial pm; ptnonipm)
-
-0 NEI11_INLN_PTNONIPM_FE_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Fe   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  FE_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_AL_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Al   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AL_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_TI_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ti   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  TI_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_MG_F1 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Mg   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  MG_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_K_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   PK    2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PK_F1      1007/801     4 1
-0 NEI11_INLN_PTNONIPM_SI_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Si   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  SI_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_CA_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ca   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CA_F1     1007/801     4 1
-0 NEI11_INLN_PTNONIPM_Mn_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Mn   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Mn_F1    1007/801     4 1
-0 NEI11_INLN_PTNONIPM_AS_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   As   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AS_F1    1007/801     4 1
-0 NEI11_INLN_PTNONIPM_CD_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Cd   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CD_F1    1007/801     4 1
-0 NEI11_INLN_PTNONIPM_PB_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Pb   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PB_F1    1007/801     4 1
-0 NEI11_INLN_PTNONIPM_Ni_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ni   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Ni_F1    1007/801     4 1
-
-0 NEI11_INLN_PTNONIPM_FE_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Fe   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  FE_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_AL_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Al   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AL_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_TI_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ti   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  TI_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_MG_F2 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Mg   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  MG_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_K_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   PK    2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PK_F2      1007/802     4 1
-0 NEI11_INLN_PTNONIPM_SI_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Si   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  SI_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_CA_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ca   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CA_F2     1007/802     4 1
-0 NEI11_INLN_PTNONIPM_Mn_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Mn   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Mn_F2    1007/802     4 1
-0 NEI11_INLN_PTNONIPM_AS_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   As   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AS_F2    1007/802     4 1
-0 NEI11_INLN_PTNONIPM_CD_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Cd   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CD_F2    1007/802     4 1
-0 NEI11_INLN_PTNONIPM_PB_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Pb   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PB_F2    1007/802     4 1
-0 NEI11_INLN_PTNONIPM_Ni_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc   Ni   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Ni_F2    1007/802     4 1
-
-# OIL & GAS
-
-0 NEI11_INLN_PTOILGAS_FE_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc  Fe   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  FE_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_AL_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Al   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AL_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_TI_F1       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ti   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  TI_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_MG_F1 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Mg   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  MG_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_K_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   PK    2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PK_F1      1007/801     5 1
-0 NEI11_INLN_PTOILGAS_SI_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Si   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  SI_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_CA_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ca   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CA_F1     1007/801     5 1
-0 NEI11_INLN_PTOILGAS_Mn_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Mn   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Mn_F1    1007/801     5 1
-0 NEI11_INLN_PTOILGAS_AS_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   As   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AS_F1    1007/801     5 1
-0 NEI11_INLN_PTOILGAS_CD_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Cd   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CD_F1    1007/801     5 1
-0 NEI11_INLN_PTOILGAS_PB_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Pb   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PB_F1    1007/801     5 1
-0 NEI11_INLN_PTOILGAS_Ni_F1	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ni   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Ni_F1    1007/801     5 1
-
-0 NEI11_INLN_PTOILGAS_FE_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc  Fe   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  FE_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_AL_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Al   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AL_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_TI_F2       /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ti   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  TI_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_MG_F2 	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Mg   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  MG_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_K_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   PK    2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PK_F2      1007/802     5 1
-0 NEI11_INLN_PTOILGAS_SI_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Si   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  SI_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_CA_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ca   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CA_F2     1007/802     5 1
-0 NEI11_INLN_PTOILGAS_Mn_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Mn   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Mn_F2    1007/802     5 1
-0 NEI11_INLN_PTOILGAS_AS_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   As   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  AS_F2    1007/802     5 1
-0 NEI11_INLN_PTOILGAS_CD_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Cd   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  CD_F2    1007/802     5 1
-0 NEI11_INLN_PTOILGAS_PB_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Pb   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  PB_F2    1007/802     5 1
-0 NEI11_INLN_PTOILGAS_Ni_F2	 /data6/jxu/GCmetal/Submission2GCST/USCAEmissions/NATA/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc   Ni   2011-2013/1-12/1-31/0-23 E xy  kg/m2/s  Ni_F2    1007/802     5 1
+(((NEI2011_Metal
+#
+# Surface inventory
+#
+0 NEI11_SURFACE_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Al 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Al_F1 1007/801     2 1
+0 NEI11_SURFACE_AL_F2 -                                                                        -  -                        - -  -       Al_F2 1007/802     2 1
+0 NEI11_SURFACE_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc As 2011-2013/1-12/1-31/0-23 R xy kg/m2/s As_F1 1007/801     2 1
+0 NEI11_SURFACE_As_F2 -                                                                        -  -                        - -  -       As_F2 1007/802     2 1
+0 NEI11_SURFACE_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ca 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ca_F1 1007/801     2 1
+0 NEI11_SURFACE_Ca_F2 -                                                                        -  -                        - -  -       Ca_F2 1007/802     2 1
+0 NEI11_SURFACE_Ca_C3 -                                                                        -  -                        - -  -       Ca_C3 1007/787/803 2 1
+0 NEI11_SURFACE_Ca_C4 -                                                                        -  -                        - -  -       Ca_C4 1007/787/804 2 1
+0 NEI11_SURFACE_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Cd_F1 1007/801     2 1
+0 NEI11_SURFACE_Cd_F2 -                                                                        -  -                        - -  -       Cd_F2 1007/802     2 1
+0 NEI11_SURFACE_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Fe_F1 1007/801     2 1
+0 NEI11_SURFACE_Fe_F2 -                                                                   -    -  -                        - -  -       Fe_F2 1007/802     2 1
+0 NEI11_SURFACE_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc K  2011-2013/1-12/1-31/0-23 R xy kg/m2/s  K_F1 1007/801     2 1
+0 NEI11_SURFACE_K_F2  -                                                                        -  -                        - -  -        K_F2 1007/802     2 1
+0 NEI11_SURFACE_K_C3  -                                                                        -  -                        - -  -        K_C3 1007/785/803 2 1
+0 NEI11_SURFACE_K_C4  -                                                                        -  -                        - -  -        K_C4 1007/785/804 2 1
+0 NEI11_SURFACE_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Mg 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mg_F1 1007/801     2 1
+0 NEI11_SURFACE_Mg_F2 -                                                                        -  -                        - -  -       Mg_F2 1007/802     2 1
+0 NEI11_SURFACE_Mg_C3 -                                                                        -  -                        - -  -       Mg_C3 1007/784/803 2 1
+0 NEI11_SURFACE_Mg_C4 -                                                                        -  -                        - -  -       Mg_C4 1007/784/804 2 1
+0 NEI11_SURFACE_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Mn 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mn_F1 1007/801     2 1
+0 NEI11_SURFACE_Mn_F2 -                                                                        -  -                        - -  -       Mn_F2 1007/802     2 1
+0 NEI11_SURFACE_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ni 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ni_F1 1007/801     2 1
+0 NEI11_SURFACE_Ni_F2 -                                                                        -  -                        - -  -       Ni_F2 1007/802     2 1
+0 NEI11_SURFACE_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Pb_F1 1007/801     2 1
+0 NEI11_SURFACE_Pb_F2 -                                                                        -  -                        - -  -       Pb_F2 1007/802     2 1
+0 NEI11_SURFACE_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SI_F1 1007/801     2 1
+0 NEI11_SURFACE_Si_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SI_F2 1007/802     2 1
+0 NEI11_SURFACE_TI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TI_F1 1007/801     2 1
+0 NEI11_SURFACE_TI_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TI_F2 1007/802     2 1
+#
+## %%%% NOTE: it seems that we have misisng days for several of these data files.
+## %%%% Therefore we are disabling these emissions by default until further notice.
+## %%%%    -- Bob Yantosca (25 Jun 2021)
+##
+## Electric Generating Units (ptegu)
+##
+#0 NEI11_INLN_PTEGU_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Al 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Al_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Al_F2 -                                                                                -  -                        - -  -       Al_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc As 2011-2013/1-12/1-31/0-23 R xy kg/m2/s As_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_As_F2 -                                                                                -  -                        - -  -       As_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ca 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ca_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Ca_F2 -                                                                                -  -                        - -  -       Ca_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Cd_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Cd_F2 -                                                                                -  -                        - -  -       Cd_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Fe_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Fe_F2 -                                                                                -  -                        - -  -       Fe_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc PK 2011-2013/1-12/1-31/0-23 R xy kg/m2/s  K_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_K_F2  -                                                                                -  -                        - -  -        K_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mg 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mg_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Mg_F2 -                                                                                -  -                        - -  -       Mg_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mn 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Mn_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Mn_F2 -                                                                                -  -                        - -  -       Mn_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ni 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ni_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Ni_F2 -                                                                                -  -                        - -  -       Ni_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Pb_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Pb_F2 -                                                                                -  -                        - -  -       Pb_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Si F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Si_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Si_F2 -                                                                                -  -                        - -  -       Si_F2 1007/802 3 1
+#0 NEI11_INLN_PTEGU_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s Ti_F1 1007/801 3 1
+#0 NEI11_INLN_PTEGU_Ti_F2 -                                                                                -  -                        - -  -       Ti_F2 1007/802 3 1
+##
+## Non-EGU PM (non industrial pm; ptnonipm)
+##
+#0 NEI11_INLN_PTNONIPM_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Al_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Al_F2 -                                                                                   -  -                        - -  -       Al_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s As_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_As_F2 -                                                                                   -  -                        - -  -       As_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ca_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Ca_F2 -                                                                                   -  -                        - -  -       Ca_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Cd_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Cd_F2 -                                                                                   -  -                        - -  -       Cd_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Fe_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Fe_F2 -                                                                                   -  -                        - -  -       Fe_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  K_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_K_F2  -                                                                                   -  -                        - -  -        K_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Mg_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Mg_F2 -                                                                                   -  -                        - -  -       Mg_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Mn_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Mn_F2 -                                                                                   -  -                        - -  -       Mn_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ni_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Ni_F2 -                                                                                   -  -                        - -  -       Ni_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Pb_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_Pb_F2 -                                                                                   -  -                        - -  -       Pb_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_SI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Si_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_SI_F2 -                                                                                   -  -                        - -  -       Si_F2 1007/802 4 1
+#0 NEI11_INLN_PTNONIPM_TI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ti_F1 1007/801 4 1
+#0 NEI11_INLN_PTNONIPM_TI_F2 -                                                                                   -  -                        - -  -       Ti_F2 1007/802 4 1
+##
+## Oil & Gas
+##
+#0 NEI11_INLN_PTOILGAS_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Al_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Al_F2 -                                                                                    -  -                        - -  -       Al_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s As_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_As_F2 -                                                                                    -  -                        - -  -       As_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ca_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Ca_F2 -                                                                                    -  -                        - -  -       Ca_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Cd_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Cd_F2 -                                                                                    -  -                        - -  -       Cd_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Fe_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Fe_F2 -                                                                                    -  -                        - -  -       Fe_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  K_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_K_F2  -                                                                                    -  -                        - -  -        K_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Mg_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Mg_F2 -                                                                                    -  -                        - -  -       Mg_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Mn_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Mn_F2 -                                                                                    -  -                        - -  -       Mn_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ni_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Ni_F2 -                                                                                    -  -                        - -  -       Ni_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Pb_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Pb_F2 -                                                                                    -  -                        - -  -       Pb_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Si_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Si_F2 -                                                                                    -  -                        - -  -       Si_F2 1007/802 5 1
+#0 NEI11_INLN_PTOILGAS_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s Ti_F1 1007/801 5 1
+#0 NEI11_INLN_PTOILGAS_Ti_F2 -                                                                                    -  -                        - -  -       Ti_F2 1007/802 5 1
 
 )))NEI2011_Metal
 
@@ -264,6 +260,107 @@ Warnings:                    1
 
 #==============================================================================
 # --- Meteorology fields for FlexGrid ---
+#==============================================================================
+# --- CN fields ---
+* FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
+* FRLAND    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAND   */1/1/0               C xy  1  * -  1 1
+* FRLANDIC  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLANDIC */1/1/0               C xy  1  * -  1 1
+* FROCEAN   $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FROCEAN  */1/1/0               C xy  1  * -  1 1
+* PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
+
+# --- A1 fields ---
+* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+
+# --- A3cld fields ---
+* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3dyn fields ---
+* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3mstC fields ---
+* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3mstE fields ---
+* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- I3 fields ---
+* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2021/1-12/1-31/*           EFY xy  1  * -  1 1
+* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
+* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
+
+* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2021/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
+* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+
+#==============================================================================
+# --- Fields for lightning emissions (Extension 103) ---
+#
+# Native-resolution lightning flash rates constrained to LIS/OTD climatology
+# and convective depth are now prescribed as offline meteorology.
+#                                                    --Lee Murray (16 Jan 2019)
+#==============================================================================
+(((LightNOx
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.5x0.625_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.5x0.625_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+)))LightNOx
 
 )))METEOROLOGY
 
@@ -462,18 +559,18 @@ Warnings:                    1
 # Based on IMPROVE and CSN observations
 #==============================================================================
 (((CA_Metal.or.NEI2011_Metal
-781 Fe_DST 0.0876   - - - xy 1 1
-782 Al_DST 0.0732   - - - xy 1 1
-783 TI_DST 0.0062   - - - xy 1 1
-784 MG_DST 0.0147   - - - xy 1 1
-785 K_DST 0.0445   - - - xy 1 1
-786 SI_DST 0.1992   - - - xy 1 1
-787 CA_DST 0.0673   - - - xy 1 1
-788 Mn_DST 0.0015   - - - xy 1 1
-789 AS_DST 0.000067   - - - xy 1 1
-790 CD_DST 0.0000067   - - - xy 1 1
-791 PB_DST 0.00065   - - - xy 1 1
-792 Ni_DST 0.000146   - - - xy 1 1
+781 Fe_DST 0.0876    - - - xy 1 1
+782 Al_DST 0.0732    - - - xy 1 1
+783 Ti_DST 0.0062    - - - xy 1 1
+784 Mg_DST 0.0147    - - - xy 1 1
+785 K_DST 0.0445     - - - xy 1 1
+786 SI_DST 0.1992    - - - xy 1 1
+787 CA_DST 0.0673    - - - xy 1 1
+788 Mn_DST 0.0015    - - - xy 1 1
+789 As_DST 0.000067  - - - xy 1 1
+790 Cd_DST 0.0000067 - - - xy 1 1
+791 Pb_DST 0.00065   - - - xy 1 1
+792 Ni_DST 0.000146  - - - xy 1 1
 )))CA_Metal.or.NEI2011_Metal
 
 #==============================================================================
@@ -484,59 +581,12 @@ Warnings:                    1
 # note that bin3 in coarse actually includes the coarse fraction in bin2
 #==============================================================================
 (((CA_Metal.or.NEI2011_Metal
-800 CoarseFine     5.67   - - - xy 1 1
-801 bin1infine     0.518  - - - xy 1 1
-802 bin2infine     0.482  - - - xy 1 1
-803 bin3incoarse   0.55   - - - xy 1 1
-804 bin4incoarse   0.45  - - - xy 1 1
+800 CoarseFine   5.67  - - - xy 1 1
+801 bin1infine   0.518 - - - xy 1 1
+802 bin2infine   0.482 - - - xy 1 1
+803 bin3incoarse 0.55  - - - xy 1 1
+804 bin4incoarse 0.45  - - - xy 1 1
 )))CA_Metal.or.NEI2011_Metal
-
-#==============================================================================
-# --- Annual scale factors ---
-#==============================================================================
-(((HTAP
-6  LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
-28 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
-)))HTAP
-
-#==============================================================================
-# --- Diurnal scale factors ---
-#==============================================================================
-(((CEDS.or.EDGARv43.or.HTAP
-26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
-)))CEDS.or.EDGARv43.or.HTAP
-
-#==============================================================================
-# --- VOC speciations ---
-#==============================================================================
-(((EDGARv43
-52 COPROD_FOSSIL    1.02  - - - xy unitless 1
-)))EDGARv43
-
-#==============================================================================
-# --- EDGAR 4.3.1 ---
-# Using data of 2010, the calculated seasonal ratio for different species in the
-# same sector are nearly identical, possibly due to consistent activity data used.
-# Therefore we use the seasonal scale factors of CO in 2010 for most sectors,
-# except for AGR, AWB and SOL.
-# For AGR, the NH3 AGR seasonal scale factors are used.
-# For AWB, the CO AGR seasonal scale factors are used.
-# For SOL, the NOx AGR seasonal scale factors are used.
-#==============================================================================
-(((EDGARv43
-1201 POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc POW 2010/1-12/1/0 C xy unitless 1
-1202 ENG $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc ENG 2010/1-12/1/0 C xy unitless 1
-1203 IND $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc IND 2010/1-12/1/0 C xy unitless 1
-1204 TRO $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc TRO 2010/1-12/1/0 C xy unitless 1
-1205 TNG $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc TNG 2010/1-12/1/0 C xy unitless 1
-1206 RCO $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc RCO 2010/1-12/1/0 C xy unitless 1
-1207 PPA $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc PPA 2010/1-12/1/0 C xy unitless 1
-1208 AGR $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc AGR 2010/1-12/1/0 C xy unitless 1
-1209 AWB $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc AWB 2010/1-12/1/0 C xy unitless 1
-1210 SOL $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc SOL 2010/1-12/1/0 C xy unitless 1
-1211 SWD $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc SWD 2010/1-12/1/0 C xy unitless 1
-1212 FFF $ROOT/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc FFF 2010/1-12/1/0 C xy unitless 1
-)))EDGARv43
 
 )))EMISSIONS
 
@@ -549,9 +599,6 @@ Warnings:                    1
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper Lon1/Lat1/Lon2/Lat2
 (((EMISSIONS
 
-#==============================================================================
-# Country/region masks
-#==============================================================================
 (((CA_Metal
 1002 CANADA_MASK $ROOT/MASKS/v2014-07/Canada_mask.geos.1x1.nc          MASK     2000/1/1/0 C xy unitless 1 -141/40/-52/85
 )))CA_Metal

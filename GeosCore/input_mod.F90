@@ -708,37 +708,33 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL'          .and. &
-         TRIM(Sim) /= 'CH4'              .and. &
-         TRIM(Sim) /= 'CO2'              .and. &
-         TRIM(Sim) /= 'FULLCHEM'         .and. &
-         TRIM(Sim) /= 'HG'               .and. &
-         TRIM(Sim) /= 'POPS'             .and. &
-         TRIM(Sim) /= 'TRANSPORTTRACERS' .and. &
-         TRIM(Sim) /= 'TAGCO'            .and. &
-         TRIM(Sim) /= 'TAGCH4'           .and. &
-         TRIM(Sim) /= 'TAGHG'            .and. &
-         TRIM(Sim) /= 'TAGO3'            ) THEN
-       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      // &
-                ' valid simulation. Supported simulations are:'     // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'           // &
+    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
+         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
+         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
+         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
+         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
+         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
+       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
+                ' valid simulation. Supported simulations are:'           // &
+                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
                 ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              .or. &
-                                     TRIM(Sim) == 'TAGCH4'           )
-    Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
-    Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'FULLCHEM'         )
-    Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'               .or. &
-                                     TRIM(Sim) == 'TAGHG'            )
-    Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
-    Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
-    Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
-    Input_Opt%ITS_A_TAGCO_SIM    = ( TRIM(Sim) == 'TAGCO'            )
-    Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOL'          )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
+                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
+    Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
+    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
+                                       TRIM(Sim) == 'TAGHG'                 )
+    Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
+    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
 
     !-----------------------------------------------------------------
     ! Species database file
@@ -5425,7 +5421,7 @@ CONTAINS
        TS_DYN  = TS_DYN  * -1
        TS_RAD  = TS_RAD  * -1
     endif
-         
+
 
     ! NUNIT is time step in minutes for unit conversion
     TS_UNIT = -1

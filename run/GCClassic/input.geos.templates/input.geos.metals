@@ -104,7 +104,7 @@ Reference CO2 level     : 380.0
 Diag alt above sfc [m]  : 10
 ------------------------+------------------------------------------------------
 %%% CHEMISTRY MENU %%%  :
-Turn on Chemistry?      : T
+Turn on Chemistry?      : F
 Use linear. strat. chem?: F
  => Use Linoz for O3?   : F
 Use UCX strat. chem?    : F
@@ -210,4 +210,3 @@ Turn on P/L (ND65) diag?: T
 ------------------------+------------------------------------------------------
 END OF FILE             :
 ------------------------+------------------------------------------------------
-

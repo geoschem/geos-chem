@@ -105,8 +105,8 @@ MODULE HCO_Interface_GC_Mod
 #if defined( MODEL_CLASSIC )
 
   !------------------------------------------------
-  ! %%% Internal HEMCO intermediate resolution %%% 
-  ! %%%        meteorological fields           %%% 
+  ! %%% Internal HEMCO intermediate resolution %%%
+  ! %%%        meteorological fields           %%%
   !------------------------------------------------
 
   ! These will ONLY be allocated and used if HEMCO-intermediate grid
@@ -314,9 +314,9 @@ CONTAINS
 
     ! Are we using HEMCO intermediate grid implementation?
     ! Note: The mere presence of State_Grid_HCO does not mean
-    ! that the intermediate grid is necessarily different. 
+    ! that the intermediate grid is necessarily different.
     ! The code path is decided if the intermediate is actually a different grid.
-    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN 
+    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN
       ! Force .or. .true. to waste CPU cycles in regridding and debug Map_A2A above
       Input_Opt%LIMGRID = .true.
 
@@ -1432,9 +1432,9 @@ CONTAINS
 ! that act as targets for the ExtState object.
 !\\
 ! If State_Grid_HCO is not given or Input_Opt%LIMGRID is set to false (from Init),
-! this explicitly assumes that the HEMCO emissions grid is the same as the GEOS-Chem 
-! simulation grid. 
-! 
+! this explicitly assumes that the HEMCO emissions grid is the same as the GEOS-Chem
+! simulation grid.
+!
 ! Otherwise, the met data has to be regridded explicitly at every time step!
 ! This is performed by creating a set of in-memory array temporaries within this module,
 ! that can be pointed to by ExtState. Note that a SET of temporaries MUST be always
@@ -2784,7 +2784,7 @@ CONTAINS
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )  
+                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )
 #if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
@@ -3356,7 +3356,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at GridEdge_Set (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'  
+               'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
     ! Allocate all arrays.
@@ -3440,7 +3440,7 @@ CONTAINS
       TK(:,:,1:State_Grid%NZ)       = REGR_3DO(:,:,1:State_Grid%NZ)
     ENDIF
 #endif
-    
+
 
     !-----------------------------------------------------------------------
     ! Calculate vertical grid properties
@@ -3650,15 +3650,17 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM   .or. &
-         Input_OPt%ITS_A_CH4_SIM        .or. &
-         Input_Opt%ITS_A_MERCURY_SIM    .or. &
-         Input_Opt%ITS_A_POPS_SIM       .or. &
-         Input_Opt%ITS_A_RnPbBe_SIM     .or. &
-         Input_Opt%ITS_A_TAGO3_SIM      .or. &
-         Input_Opt%ITS_A_TAGCO_SIM      .or. &
-         Input_Opt%ITS_A_CO2_SIM              ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
+         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
+         Input_Opt%ITS_A_CO2_SIM          .or.                               &
+         Input_OPt%ITS_A_CH4_SIM          .or.                               &
+         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
+         Input_Opt%ITS_A_POPS_SIM         .or.                               &
+         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
+         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
+         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
+         Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
+
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -4265,7 +4267,7 @@ CONTAINS
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'
-       Print*, '  EMISSIONS : ', Input_Opt%DoEmissions 
+       Print*, '  EMISSIONS : ', Input_Opt%DoEmissions
        Print*, '  LightNOx  : ', Input_Opt%DoLightNOx
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
     ENDIF
@@ -4355,7 +4357,7 @@ CONTAINS
 !
    USE Calc_Met_Mod
    USE ErrCode_Mod
-   USE FlexGrid_Read_Mod 
+   USE FlexGrid_Read_Mod
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
    USE Input_Opt_Mod,        ONLY : OptInput
    USE Pressure_Mod,         ONLY : Set_Floating_Pressures
@@ -4605,7 +4607,7 @@ CONTAINS
 
       D = GET_I3_TIME()
       CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
-      
+
       ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
@@ -4648,7 +4650,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_State_GC_Mod,     ONLY : ExtState
-    USE HCO_State_GC_Mod,     ONLY : HcoState   
+    USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Mercury_Mod,          ONLY : HG_Emis
     USE PhysConstants
