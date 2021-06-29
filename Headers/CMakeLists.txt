@@ -31,6 +31,8 @@ target_link_libraries(Headers
 	### Kludge for KPP development (can remove this later)
 	### bmy, msl, 3/16/21
 	$<$<STREQUAL:${MECH},aerochem>:KPPFirstPass_aerochem>
+	$<$<STREQUAL:${MECH},Hg>:KPPFirstPass_Hg>
+	$<$<STREQUAL:${MECH},Hg>:KPPFirstPass_aerochem>
 	#------------------------------------------------------
 )
 

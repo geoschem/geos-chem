@@ -130,6 +130,8 @@ target_link_libraries(GeosCore
   #------------------------------------------------------------------
   # Kludge for KPP development, can remove it later (bmy, 3/16/21)
   $<$<STREQUAL:${MECH},aerochem>:KPP_aerochem>
+  $<$<STREQUAL:${MECH},Hg>:KPP_Hg>
+  $<$<STREQUAL:${MECH},Hg>:KPP_aerochem>
   #------------------------------------------------------------------
 
   $<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
