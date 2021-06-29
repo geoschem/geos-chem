@@ -257,19 +257,19 @@ HTAP_CO25d_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTA
 #HTAP_CO25d_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
 
 #==============================================================================
-# --- CEDS (CEDS) ---
+# --- CEDS (CEDSv2) ---
 #==============================================================================
-CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_NRTR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_nrtr  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ROAD   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_road  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcor  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOC   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
+CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_NRTR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_nrtr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_ROAD   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_road  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_RCOR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcor  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_RCOC   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_RCOO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 
 ###############################################################################
 ###
