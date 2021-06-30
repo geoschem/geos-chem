@@ -903,6 +903,138 @@ CONTAINS
   END FUNCTION BrNO3uptkByHCl
 
   !=========================================================================
+  ! Rate-law functions for ClNO3
+  !=========================================================================
+
+  SUBROUTINE Gam_ClNO3_Aer( H, C_Br, gamma, branchBr )
+    !
+    ! Calculates reactive uptake coefficients [1] for ClNO3 + Br-.
+    !
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp), INTENT(IN)       :: C_Br     ! Concentration (mol/L)
+    REAL(dp), INTENT(OUT)      :: gamma    ! Rxn prob [1]
+    REAL(dp), INTENT(OUT)      :: branchBr ! ClNO3 + HBr- branch ratio [1]
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.108_dp   ! 1 / mass accum coeff
+    REAL(dp), PARAMETER :: K_0    = 1.2e+5_dp ** 2.0_dp ! H2k0
+    REAL(dp), PARAMETER :: D_l    = 5.0e-6_dp           ! Deiber et al 2004
+    !
+    REAL(dp) :: M_X, cavg, k_2, k_tot, gb0, gb2, gb_tot !gbr
+    !
+    ! thermal velocity (cm/s)
+    M_X      = MW(ind_ClNO3) * 1.0e-3_dp
+    cavg     = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
+    !
+    ! H*sqrt(kb)=10^6 (M/s)^½ s-1 for ClNO3 + HBr
+    gb2      = FOUR_R_T * 1.0e+6_dp * SQRT( C_Br * D_l ) / cavg
+    !
+    ! H2k2br cm2 s-1.
+    k_2      = 1.0e+12_dp * C_Br
+    !
+    ! Calculate gb1 for ClNO3 + Cl-
+    ! Following [Deiber et al., 2004], gamma is not significantly different
+    ! from ClNO3 + H2O (gamma = 0.0244) independent of Cl- concentration,
+    ! but Cl2 rather than HOCl formed. gb2 can be calculated reversely from
+    ! gb1 = gb0 hydrolysis
+    gb0      = FOUR_R_T * 1.2e+5_dp * SQRT( D_l ) / cavg
+    k_tot    = K_0 + k_2                                    !H2(k0+k2Br)
+    gb_tot   = FOUR_R_T * SQRT( k_tot * D_l ) / cavg
+    !
+    ! Reaction probability for ClNO3 + Br- [1]
+    gamma    = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
+    !
+    ! Branching ratio for ClNO3 + HBr-
+    ! BOTE: ClNO3 + Cl- branch ratio = 1.0 - branchBr
+    branchBr = k_2 / k_tot
+  END SUBROUTINE Gam_ClNO3_Aer
+
+  SUBROUTINE Gam_ClNO3_Ice( H, gamma, brHCl, brHBr, brH2O )
+    !
+    ! Computes the reactive uptake probability and branching ratio
+    ! for ClNO3 + H2O, ClNO3 + HCl, and ClNO3 + HBr in ice clouds
+    !
+    TYPE(HetState), INTENT(IN)  :: H             ! Hetchem State
+    REAL(dp),       INTENT(OUT) :: gamma         ! Uptake prob [1]
+    REAL(dp),       INTENT(OUT) :: brHCl         ! ClNO3 + HCl branch ratio
+    REAL(dp),       INTENT(OUT) :: brHBr         ! ClNO3 + HBr branch ratio
+    REAL(dp),       INTENT(OUT) :: brH2O         ! ClNO3 + H2O branch ratio
+    !
+    REAL(dp), PARAMETER :: twenty = 1.0_dp / 0.5_dp
+    !
+    REAL(dp)            :: cavg, g1, g2, g3, H2Os, kks, M_X
+    !
+    ! ClNO3 + HCl uptake probability [1]
+    g1    = 0.24_dp * H%HCl_theta
+    !
+    ! ClNO3 + HBr uptake probability [1]
+    g2    = 0.56_dp * H%HBr_theta
+    !
+    ! ClNO3 + H2O uptake probability [1]
+    M_X   = MW(ind_ClNO3) * 1.0e-3_dp
+    cavg  = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
+    H2Os  = 1e+15_dp - ( 3.0_dp * 2.7e+14_dp * H%HNO3_theta )
+    kks   = 4.0_dp * 5.2e-17_dp * EXP( 2032.0_dp / TEMP )
+    g3    = 1.0_dp / ( twenty + cavg / ( kks * H2Os ) )   ! 1.0/0.5 = 20
+    !
+    ! Total reaction probability
+    gamma = g1 + g2 + g3
+    !
+    ! Branching ratios for each path (HCl, HBr, H2O)
+    brHCl = g1 / gamma
+    brHBr = g2 / gamma
+    brH2O = g3 / gamma
+  END SUBROUTINE Gam_ClNO3_Ice
+
+  FUNCTION ClNO3uptkByH2OandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: branchBr, brLiq, brIce,    dum1
+    REAL(dp) :: dum2,     gamma, gammaIce, srMw
+    !
+    branchBr = 0.0_dp
+    brLiq    = 0.0_dp
+    gamma    = 0.0_dp
+    gammaIce = 0.0_dp
+    k        = 0.0_dp
+    srMw     = SR_MW(ind_ClNO3)
+    !
+    ! Rxn rate of ClNO3 + H2O on fine sea salt in clear sky
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
+    brLiq = ( 1.0_dp - branchBr ) * ( 1.0_dp - H%frac_SALACL )
+    k = k + Ars_L1K( H%ClearFr * H%aClArea, H%aClRadi, gamma, srMw ) * brLiq
+    !
+    ! Rate of ClNO3 + H2O on stratospheric liquid aerosol
+    k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_H2O)
+    !
+    ! Rate of ClNO3 + H2O on irregular ice cloud
+    gamma = 0.3_dp                               ! Rxn prob, ice [1]
+    IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
+    k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    !
+!###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
+!    IF ( .not. H%stratBox ) THEN
+!       !
+!       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
+!       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+!       brLiq = 1.0_dp - branchBr
+!       !
+!       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
+!       CALL Gam_ClNO3_Ice( H, gamma, dum1, dum2, brIce )
+!       !
+!       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
+!       k = k + CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
+!    ENDIF
+!    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
+  END FUNCTION ClNO3uptkByH2OandTropCloud
+
+  !=========================================================================
   ! Rate-law functions for HBr
   !=========================================================================
 
@@ -1254,7 +1386,7 @@ CONTAINS
        !
        ! Branching ratio for liquid path of HOBr + BrSALA in cloud
        branch_0 = ( k_HOBr_Cl + k_HOBr_Br ) / k_tot
-       branch   = branch_0 * 0.9_dp 
+       branch   = branch_0 * 0.9_dp
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        ENDIF
@@ -1509,7 +1641,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    REAL(dp) :: brLiq,     gammaLiq,     k_HOBr_Cl  
+    REAL(dp) :: brLiq,     gammaLiq,     k_HOBr_Cl
     REAL(dp) :: k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm
     REAL(dp) :: k_tot,     srMw
     !

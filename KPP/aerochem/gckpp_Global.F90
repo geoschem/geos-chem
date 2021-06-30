@@ -225,8 +225,6 @@ MODULE gckpp_Global
      REAL(dp) :: cldFr          ! Cloud fraction                   [1          ]I2O4
      REAL(dp) :: clearFr        ! Clear sky fraction               [1          ]I2O4
      REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine SS   [1          ]I2O4
-     REAL(dp) :: fupdateHOBr    !
-     REAL(dp) :: fupdateHOCl    !
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2       [1          ]I2O4
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice

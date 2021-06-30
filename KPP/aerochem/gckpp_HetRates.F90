@@ -3035,6 +3035,11 @@ CONTAINS
     H%Br_over_Cl_SSA = H%Br_conc_SSA / H%Cl_conc_SSA  ! in fine sea salt
     H%Br_over_Cl_SSC = H%Br_conc_SSC / H%Cl_conc_SSC  ! in coarse sea salt
 
+    !=======================================================================
+    ! Fraction of SALACL in total fine sea salt
+    !=======================================================================
+    H%frac_SALACL = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
+
   END SUBROUTINE Halide_Conc
 !EOC
 !------------------------------------------------------------------------------
