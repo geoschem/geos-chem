@@ -1031,9 +1031,9 @@ Warnings:                    1
 0 CEDS_NO_RCO     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_rco            1750-2019/1-12/1/0 C xy kg/m2/s NO    25        1 5
 0 CEDS_NO_SLV     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_slv            1750-2019/1-12/1/0 C xy kg/m2/s NO    25        1 5
 0 CEDS_NO_WST     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_wst            1750-2019/1-12/1/0 C xy kg/m2/s NO    25        1 5
+
 0 CEDS_CO_AGR     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_agr            1750-2019/1-12/1/0 C xy kg/m2/s CO    26        1 5
 0 CEDS_SOAP_AGR   -                                                                    -                 -                  - -  -       SOAP  26/280    1 5
-
 0 CEDS_CO_ENE     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ene            1750-2019/1-12/1/0 C xy kg/m2/s CO    26        1 5
 0 CEDS_SOAP_ENE   -                                                                    -                 -                  - -  -       SOAP  26/280    1 5
 0 CEDS_CO_IND     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ind            1750-2019/1-12/1/0 C xy kg/m2/s CO    26        1 5

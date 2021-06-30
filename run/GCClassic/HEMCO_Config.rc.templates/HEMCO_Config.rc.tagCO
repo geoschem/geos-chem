@@ -385,31 +385,16 @@ Mask fractions:              false
 0 CEDS_CO_IND_eur      -                                                           -       -                  - -    -       COeur  26/1101/316       1 5
 0 CEDS_CO_IND_asia     -                                                           -       -                  - -    -       COasia 26/1102/316       1 5
 0 CEDS_CO_IND_oth      -                                                           -       -                  - -    -       COoth  26/1103/316       1 5
-0 CEDS_CO_NRTR         $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_nrtr 1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
-0 CEDS_CO_NRTR_us      -                                                           -       -                  - -    -       COus   26/1100           1 5
-0 CEDS_CO_NRTR_eur     -                                                           -       -                  - -    -       COeur  26/1101           1 5
-0 CEDS_CO_NRTR_asia    -                                                           -       -                  - -    -       COasia 26/1102           1 5
-0 CEDS_CO_NRTR_oth     -                                                           -       -                  - -    -       COoth  26/1103           1 5
-0 CEDS_CO_ROAD         $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_road 1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
-0 CEDS_CO_ROAD_us      -                                                           -       -                  - -    -       COus   26/1100           1 5
-0 CEDS_CO_ROAD_eur     -                                                           -       -                  - -    -       COeur  26/1101           1 5
-0 CEDS_CO_ROAD_asia    -                                                           -       -                  - -    -       COasia 26/1102           1 5
-0 CEDS_CO_ROAD_oth     -                                                           -       -                  - -    -       COoth  26/1103           1 5
-0 CEDS_CO_RCOR         $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rcor 1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
-0 CEDS_CO_RCOR_us      -                                                           -       -                  - -    -       COus   26/1100           1 5
-0 CEDS_CO_RCOR_eur     -                                                           -       -                  - -    -       COeur  26/1101           1 5
-0 CEDS_CO_RCOR_asia    -                                                           -       -                  - -    -       COasia 26/1102           1 5
-0 CEDS_CO_RCOR_oth     -                                                           -       -                  - -    -       COoth  26/1103           1 5
-0 CEDS_CO_RCOC         $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rcoc 1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
-0 CEDS_CO_RCOC_us      -                                                           -       -                  - -    -       COus   26/1100           1 5
-0 CEDS_CO_RCOC_eur     -                                                           -       -                  - -    -       COeur  26/1101           1 5
-0 CEDS_CO_RCOC_asia    -                                                           -       -                  - -    -       COasia 26/1102           1 5
-0 CEDS_CO_RCOC_oth     -                                                           -       -                  - -    -       COoth  26/1103           1 5
-0 CEDS_CO_RCOO         $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rcoo 1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
-0 CEDS_CO_RCOO_us      -                                                           -       -                  - -    -       COus   26/1100           1 5
-0 CEDS_CO_RCOO_eur     -                                                           -       -                  - -    -       COeur  26/1101           1 5
-0 CEDS_CO_RCOO_asia    -                                                           -       -                  - -    -       COasia 26/1102           1 5
-0 CEDS_CO_RCOO_oth     -                                                           -       -                  - -    -       COoth  26/1103           1 5
+0 CEDS_CO_TRA          $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
+0 CEDS_CO_TRA_us       -                                                           -       -                  - -    -       COus   26/1100           1 5
+0 CEDS_CO_TRA_eur      -                                                           -       -                  - -    -       COeur  26/1101           1 5
+0 CEDS_CO_TRA_asia     -                                                           -       -                  - -    -       COasia 26/1102           1 5
+0 CEDS_CO_TRA_oth      -                                                           -       -                  - -    -       COoth  26/1103           1 5
+0 CEDS_CO_RCO          $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
+0 CEDS_CO_RCO_us       -                                                           -       -                  - -    -       COus   26/1100           1 5
+0 CEDS_CO_RCO_eur      -                                                           -       -                  - -    -       COeur  26/1101           1 5
+0 CEDS_CO_RCO_asia     -                                                           -       -                  - -    -       COasia 26/1102           1 5
+0 CEDS_CO_RCO_oth      -                                                           -       -                  - -    -       COoth  26/1103           1 5
 0 CEDS_CO_SLV          $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO     26                1 5
 0 CEDS_CO_SLV_us       -                                                           -       -                  - -    -       COus   26/1100           1 5
 0 CEDS_CO_SLV_eur      -                                                           -       -                  - -    -       COeur  26/1101           1 5
@@ -1277,9 +1262,9 @@ Mask fractions:              false
 1008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc       LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
 )))DICE_Africa
 
-(((CEDS
+(((CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
 1009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc                MASK     2000/1/1/0 C xy 1 1  70/10/150/60
-)))CEDS
+)))CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
 # Tagged CO regions
