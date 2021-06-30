@@ -52,7 +52,7 @@ Warnings:                    1
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> EDGARv42_SF6           :       true     # 1970-2008
     --> OCEAN_CH3I             :       true
-    --> CEDS                   :       true     # 1970-2017
+    --> CEDSv2                 :       true     # 1750-2019
     --> EDGARv43               :       false    # 1970-2010
     --> HTAP                   :       false    # 2008-2010
     --> UNIFORM_CO             :       true
@@ -91,30 +91,24 @@ Warnings:                    1
 #
 # Choose CEDS, EDGAR, or HTAP
 #==============================================================================
-(((CEDS
-0 CEDS_CO25d_AGR     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_agr  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_AGR     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_ENE     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ene  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_ENE     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_IND     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_ind  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_IND     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_NRTR    $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_nrtr 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_NRTR    -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_ROAD    $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_road 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_ROAD    -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_RCOR    $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcor 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_RCOR    -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_RCOC    $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoc 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_RCOC    -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_RCOO    $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_rcoo 1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_RCOO    -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_SLV     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_slv  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_SLV     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_WST     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_wst  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_WST     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-0 CEDS_CO25d_SHP     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_shp  1970-2017/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
-0 CEDS_CO50d_SHP     -                                                           -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
-)))CEDS
+(((CEDSv2
+0 CEDS_CO25d_AGR     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_AGR     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_ENE     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_ENE     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_IND     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_IND     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_TRA     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_TRA     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_RCO     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_RCO     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_SLV     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_SLV     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_WST     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_WST     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+0 CEDS_CO25d_SHP     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_shp  1750-2019/1-12/1/0 C xy kg/m2/s COAnthroEmis25dayTracer    26     1 5
+0 CEDS_CO50d_SHP     -                                                          -       -                  - -  -       COAnthroEmis50dayTracer    26     1 5
+)))CEDSv2
 
 (((EDGARv43
 0  EDGAR_CO25d_POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc  emi_co  1970-2010/1/1/0 C xy kg/m2/s COAnthroEmis25dayTracer 1201/26/52 1/2 2
@@ -398,9 +392,7 @@ Warnings:                    1
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((CEDS.or.EDGARv43.or.HTAP
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
-)))CEDS.or.EDGARv43.or.HTAP
 
 #==============================================================================
 # --- VOC speciations ---
