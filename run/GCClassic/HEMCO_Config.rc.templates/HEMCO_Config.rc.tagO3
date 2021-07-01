@@ -52,7 +52,7 @@ Warnings:                    1
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> O3_PROD_LOSS           :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
-    --> YUAN_MODIS_LAI         :       true     # 2005-2016
+    --> YUAN_MODIS_LAI         :       true     # 2000-2020
     --> OCEAN_O3_DRYDEP        :       true     # 1985
 
 ### END SECTION EXTENSION SWITCHES ###
