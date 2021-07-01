@@ -104,13 +104,13 @@ DST4_PROP: &DST4properties
 AlF1:
   << : *DST1properties
   Formula: Al
-  Fullname: Al on dust Reff = 0.7 microns
+  Fullname: Aluminium on dust Reff = 0.7 microns
   MW_g: 26.98
   WD_CoarseAer: true
 AlF2:
   << : *DST2properties
   Formula: Al
-  Fullname: Al on dust, Reff = 1.4 microns
+  Fullname: Aluminium on dust, Reff = 1.4 microns
   MW_g: 26.98
 ALD2:
   DD_F0: 1.0
@@ -134,13 +134,13 @@ ALK4:
 AsF1:
   << : *DST1properties
   Formula: As
-  Fullname: As on dust Reff = 0.7 microns
+  Fullname: Arsenic on dust Reff = 0.7 microns
   MW_g: 74.92
   WD_CoarseAer: true
 AsF2:
   << : *DST2properties
   Formula: As
-  Fullname: As on dust, Reff = 1.4 microns
+  Fullname: Arsenic on dust, Reff = 1.4 microns
   MW_g: 74.92
 ASOA_PROP: &ASOAproperties
   DD_DvzAerSnow: 0.03
@@ -417,23 +417,23 @@ C4HVP2:
 CaF1:
   << : *DST1properties
   Formula: Ca
-  Fullname: Ca on dust Reff = 0.7 microns
+  Fullname: Calcium on dust Reff = 0.7 microns
   MW_g: 40.08
   WD_CoarseAer: true
 CaF2:
   << : *DST2properties
   Formula: Ca
-  Fullname: Ca on dust, Reff = 1.4 microns
+  Fullname: Calcium on dust, Reff = 1.4 microns
   MW_g: 40.08
 CaC3:
   << : *DST3properties
   Formula: Ca
-  Fullname: Ca on dust, Reff = 2.4 microns
+  Fullname: Calcium on dust, Reff = 2.4 microns
   MW_g: 40.08
 CaC4:
   << : *DST4properties
   Formula: Ca
-  Fullname: Ca on dust, Reff = 4.5 microns
+  Fullname: Calcium on dust, Reff = 4.5 microns
   MW_g: 40.08
 CCl4:
   Formula: CCl4
@@ -445,13 +445,13 @@ CCl4:
 CdF1:
   << : *DST1properties
   Formula: Cd
-  Fullname: Cd on dust Reff = 0.7 microns
+  Fullname: Cadmium on dust Reff = 0.7 microns
   MW_g: 112.41
   WD_CoarseAer: true
 CdF2:
   << : *DST2properties
   Formula: Cd
-  Fullname: Cd on dust, Reff = 1.4 microns
+  Fullname: Cadmium on dust, Reff = 1.4 microns
   MW_g: 112.41
 CFC11:
   Formula: CCl3F
@@ -982,13 +982,13 @@ ETP:
 FeF1:
   << : *DST1properties
   Formula: Fe
-  Fullname: Fe on dust. Reff = 0.7 microns
+  Fullname: Iron on dust. Reff = 0.7 microns
   MW_g: 55.84
   WD_CoarseAer: true
 FeF2:
   << : *DST2properties
   Formula: Fe
-  Fullname: Fe on dust, Reff = 1.4 microns
+  Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
 GlobEmis90dayTracer:
   FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
@@ -2224,23 +2224,23 @@ ITHN:
 KF1:
   << : *DST1properties
   Formula: K
-  Fullname: K on dust. Reff = 0.7 microns
+  Fullname: Potassium on dust. Reff = 0.7 microns
   MW_g: 39.10
   WD_CoarseAer: true
 KF2:
   << : *DST2properties
   Formula: K
-  Fullname: K on dust, Reff = 1.4 microns
+  Fullname: Potassium on dust, Reff = 1.4 microns
   MW_g: 39.10
 KC3:
   << : *DST3properties
   Formula: K
-  Fullname: K on dust, Reff = 2.4 microns
+  Fullname: Potassium on dust, Reff = 2.4 microns
   MW_g: 39.10
 KC4:
   << : *DST4properties
   Formula: K
-  Fullname: K on dust, Reff = 4.5 microns
+  Fullname: Potassium on dust, Reff = 4.5 microns
   MW_g: 39.10
 KO2:
   Formula: C4H5O3
@@ -2499,23 +2499,23 @@ MENO3:
 MgF1:
   << : *DST1properties
   Formula: Mg
-  Fullname: Mg on dust. Reff = 0.7 microns
+  Fullname: Magnesium on dust. Reff = 0.7 microns
   MW_g: 24.31
   WD_CoarseAer: true
 MgF2:
   << : *DST2properties
   Formula: Mg
-  Fullname: Mg on dust, Reff = 1.4 microns
+  Fullname: Magnesium on dust, Reff = 1.4 microns
   MW_g: 24.31
 MgC3:
   << : *DST3properties
   Formula: Mg
-  Fullname: Mg on dust, Reff = 2.4 microns
+  Fullname: Magnesium on dust, Reff = 2.4 microns
   MW_g: 24.31
 MgC4:
   << : *DST4properties
   Formula: Mg
-  Fullname: Mg on dust, Reff = 4.5 microns
+  Fullname: Magnesium on dust, Reff = 4.5 microns
   MW_g: 24.31
 MGLY:
   DD_F0: 1.0
@@ -2534,13 +2534,13 @@ MGLY:
 MnF1:
   << : *DST1properties
   Formula: Mn
-  Fullname: Mn on dust. Reff = 0.7 microns
+  Fullname: Manganese on dust. Reff = 0.7 microns
   MW_g: 54.94
   WD_CoarseAer: true
 MnF2:
   << : *DST2properties
   Formula: Mn
-  Fullname: Mn on dust, Reff = 1.4 microns
+  Fullname: Manganese on dust, Reff = 1.4 microns
   MW_g: 54.94
 MO2:
   Background_VV: 4.0e-15
@@ -2887,13 +2887,13 @@ NHEmis90dayTracer:
 NiF1:
   << : *DST1properties
   Formula: Ni
-  Fullname: Ni on dust. Reff = 0.7 microns
+  Fullname: Nickel on dust. Reff = 0.7 microns
   MW_g: 58.69
   WD_CoarseAer: true
 NiF2:
   << : *DST2properties
   Formula: Ni
-  Fullname: Ni on dust, Reff = 1.4 microns
+  Fullname: Nickel on dust, Reff = 1.4 microns
   MW_g: 58.69
 NIT:
   DD_DvzAerSnow: 0.03
@@ -3219,13 +3219,13 @@ Pb210Strat:
 PbF1:
   << : *DST1properties
   Formula: Pb
-  Fullname: Pb on dust. Reff = 0.7 microns
+  Fullname: Lead on dust. Reff = 0.7 microns
   MW_g: 210.0
   WD_CoarseAer: true
 PbF2:
   << : *DST2properties
   Formula: Pb
-  Fullname: Pb on dust, Reff = 1.4 microns
+  Fullname: Lead on dust, Reff = 1.4 microns
   MW_g: 210.0
 PCO:
   FullName: Dummy species to track production rate of CO
@@ -3828,12 +3828,12 @@ SHEmis90dayTracer:
   MW_g: 1.0
 SiF1:
   << : *DST1properties
-  Fullname: Si on dust, Reff = 0.7 microns
+  Fullname: Silicon on dust, Reff = 0.7 microns
   MW_g: 28.09
   WD_CoarseAer: true
 SiF2:
   << : *DST2properties
-  Fullname: Si on dust, Reff = 1.4 microns
+  Fullname: Silicon on dust, Reff = 1.4 microns
   MW_g: 28.09
 SO2:
   DD_DvzAerSnow: 0.03
@@ -3958,13 +3958,13 @@ SOAS:
 TiF1:
   << : *DST1properties
   Formula: Ti
-  Fullname: Ti on dust, Reff = 0.7 microns
+  Fullname: Titanium on dust, Reff = 0.7 microns
   MW_g: 47.87
   WD_CoarseAer: true
 TiF2:
   << : *DST2properties
   Formula: Ti
-  Fullname: Ti on dust, Reff = 1.4 microns
+  Fullname: Titanium on dust, Reff = 1.4 microns
   MW_g: 47.87
 TOLU:
   Formula: C7H8
