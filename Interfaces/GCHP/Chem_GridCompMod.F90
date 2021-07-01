@@ -5993,6 +5993,8 @@ CONTAINS
     LOGICAL                    :: DoUpdate
     INTEGER                    :: TopLev
     CHARACTER(LEN=ESMF_MAXSTR) :: GmiTmpl 
+    REAL(fp), POINTER          :: EmptyPtr2D(:,:) => NULL()
+    REAL(fp), POINTER          :: Tmp3D(:,:,:) => NULL()
 
     ! Read GMI file
     CHARACTER(LEN=ESMF_MAXSTR) :: GmiFldName
@@ -6075,7 +6077,6 @@ CONTAINS
        WRITE(*,*) 'External data is in ppbv: ',IsInPPBV
        WRITE(*,*) 'External data is on GEOS levels: ',OnGeosLev
        WRITE(*,*) 'Only overwrite above tropopause: ',AboveTroppOnly
-       WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
        WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
     ENDIF
 
@@ -6244,9 +6245,30 @@ CONTAINS
              IF ( am_I_Root ) WRITE(*,*) 'No GMI file found: ',TRIM(Gmiifile)
           ENDIF
        ENDIF
-
     ENDDO
 
+    ! Additional 3D restart variables related to chemistry/emissions
+    CALL Init3D_ ( am_I_Root, IM, JM, LM, OnGeosLev, Internal, VarBundle, 'Chem_H2O2AfterChem', 'H2O2AfterChem', State_Chm%H2O2AfterChem, __RC__ )
+    CALL Init3D_ ( am_I_Root, IM, JM, LM, OnGeosLev, Internal, VarBundle, 'Chem_SO2AfterChem', 'SO2AfterChem', State_Chm%SO2AfterChem, __RC__ )
+    CALL Init3D_ ( am_I_Root, IM, JM, LM, OnGeosLev, Internal, VarBundle, 'Chem_KPPHvalue', 'KPPHvalue', State_Chm%KPPHvalue, __RC__ )
+    ALLOCATE(Tmp3D(IM,JM,LM))
+    Tmp3D = 0.0
+    CALL Init3D_ ( am_I_Root, IM, JM, LM, OnGeosLev, Internal, VarBundle, 'Chem_StatePSC', 'StatePSC', Tmp3D, __RC__ )
+    State_Chm%State_PSC = Tmp3D
+    DEALLOCATE(Tmp3d)
+
+    ! Look for additional 2D restart variables related to chemistry / emissions. Add to State_Chm and internal state
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'Chem_DryDepNitrogen', 'DryDepNitrogen', State_Chm%DryDepNitrogen, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'Chem_WetDepNitrogen', 'WetDepNitrogen', State_Chm%WetDepNitrogen, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'PARDF_DAVG', 'PARDF_DAVG', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'PARDR_DAVG', 'PARDR_DAVG', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'T_DAVG', 'T_DAVG', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'T_PREVDAY', 'T_PREVDAY', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'LAI_PREVDAY', 'LAI_PREVDAY', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'DEP_RESERVOIR', 'DEP_RESERVOIR', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'DRYPERIOD', 'DRYPERIOD', EmptyPtr2D, __RC__ )
+    CALL Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, 'PFACTOR', 'PFACTOR', EmptyPtr2D, __RC__ )
+ 
     ! Deallocate helper array
     IF ( ALLOCATED(Scal) ) DEALLOCATE(Scal) 
     IF ( ALLOCATED(Temp) ) DEALLOCATE(Temp) 
@@ -6265,6 +6287,107 @@ CONTAINS
     RETURN_(ESMF_SUCCESS)
 
   END SUBROUTINE InitFromFile_ 
+!
+  SUBROUTINE Init3D_ ( am_I_Root, IM, JM, LM, OnGeosLev, Internal, VarBundle, VarName, IntName, State3D, RC ) 
+    LOGICAL,                 INTENT(IN)            :: am_I_Root 
+    INTEGER,                 INTENT(IN)            :: IM, JM, LM 
+    LOGICAL,                 INTENT(IN)            :: OnGeosLev 
+    TYPE(ESMF_STATE),        INTENT(INOUT)         :: Internal ! Internal state
+    TYPE(MAPL_SimpleBundle), INTENT(INOUT)         :: VarBundle
+    CHARACTER(LEN=*),        INTENT(IN)            :: VarName
+    CHARACTER(LEN=*),        INTENT(IN)            :: IntName
+    REAL(fp),                POINTER               :: State3D(:,:,:)
+    INTEGER,                 INTENT(OUT)           :: RC       ! Success or failure?
+! LOCAL VARIABLES:
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Iam
+    INTEGER                       :: VarID
+    INTEGER                       :: LM2 
+    INTEGER                       :: STATUS
+    REAL, POINTER                 :: Ptr3D(:,:,:) => NULL()
+
+    ! Begin here
+    Iam = 'Init3D_'
+
+    ! Get variable on internal array
+    VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
+    IF ( VarID > 0 ) THEN
+       LM2 = SIZE(VarBundle%r3(VarID)%q,3)
+       ASSERT_( LM==LM2 )
+       IF ( am_I_Root ) WRITE(*,*) 'Field initialized from external field: ',TRIM(VarName),TRIM(IntName)
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'Field not found in external file - no updates: ',TRIM(VarName)
+    ENDIF
+
+    ! Pass field to internal state
+    CALL MAPL_GetPointer( Internal, Ptr3D, TRIM(IntName) , notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D) ) THEN
+       IF ( OnGeosLev ) THEN
+          Ptr3D(:,:,:) = VarBundle%r3(VarID)%q(:,:,:)
+       ELSE
+          Ptr3D(:,:,:) = VarBundle%r3(VarID)%q(:,:,LM:1:-1)
+       ENDIF
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'Field not found in internal state - no update: ',TRIM(IntName)
+    ENDIF
+    
+    ! Pass field to state object (if provided)
+    IF ( ASSOCIATED(State3D) ) THEN
+       IF ( OnGeosLev ) THEN
+          State3D(:,:,:) = VarBundle%r3(VarID)%q(:,:,LM:1:-1)
+       ELSE
+          State3D(:,:,:) = VarBundle%r3(VarID)%q(:,:,:)
+       ENDIF
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'No state obj field provided - no update: ',TRIM(VarName)
+    ENDIF
+
+    RETURN_(ESMF_SUCCESS)
+  END SUBROUTINE Init3D_
+!
+  SUBROUTINE Init2D_ ( am_I_Root, IM, JM, Internal, VarBundle, VarName, IntName, State2D, RC ) 
+    LOGICAL,                 INTENT(IN)            :: am_I_Root 
+    INTEGER,                 INTENT(IN)            :: IM, JM
+    TYPE(ESMF_STATE),        INTENT(INOUT)         :: Internal ! Internal state
+    TYPE(MAPL_SimpleBundle), INTENT(INOUT)         :: VarBundle
+    CHARACTER(LEN=*),        INTENT(IN)            :: VarName
+    CHARACTER(LEN=*),        INTENT(IN)            :: IntName
+    REAL(fp),                POINTER               :: State2D(:,:)
+    INTEGER,                 INTENT(OUT)           :: RC       ! Success or failure?
+! LOCAL VARIABLES:
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Iam
+    INTEGER                       :: VarID
+    INTEGER                       :: STATUS
+    REAL, POINTER                 :: Ptr2D(:,:) => NULL()
+
+    ! Begin here
+    Iam = 'Init2D_'
+
+    ! Get variable on internal array
+    VarID = MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 2, RC=STATUS, QUIET=.TRUE. )
+    IF ( VarID > 0 ) THEN
+       IF ( am_I_Root ) WRITE(*,*) 'Field initialized from external field: ',TRIM(VarName),' ',TRIM(IntName)
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'Field not found in external file - no updates: ',TRIM(VarName)
+    ENDIF
+
+    ! Pass field to internal state
+    CALL MAPL_GetPointer( Internal, Ptr2D, TRIM(IntName) , notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D) ) THEN
+       Ptr2D(:,:) = VarBundle%r2(VarID)%q(:,:)
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'Field not found in internal state - no update: ',TRIM(IntName)
+    ENDIF
+    
+    ! Pass field to state object (if provided)
+    IF ( ASSOCIATED(State2D) ) THEN
+       State2D(:,:) = VarBundle%r2(VarID)%q(:,:)
+    ELSE
+       IF ( am_I_Root ) WRITE(*,*) 'No state obj field provided - no update: ',TRIM(VarName)
+    ENDIF
+
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE Init2D_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
