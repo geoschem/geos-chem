@@ -1036,7 +1036,7 @@ CONTAINS
 
   FUNCTION ClNO3uptkByHClandTropCloud( H ) RESULT( k )
     !
-    ! Computes the hydrolysis reaction rate [1/s] of ClNO3(g) + HCl(l,s).
+    ! Computes the rate [1/s] of ClNO3(g) + HCl(l,s).
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
@@ -1073,6 +1073,59 @@ CONTAINS
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), k )
   END FUNCTION ClNO3uptkByHClandTropCloud
+
+  FUNCTION ClNO3uptkByHBrandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] of ClNO3(g) + HBr-.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: gamma, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
+    !
+    !IF ( H%is_UCX .and. H%stratBox ) THEN
+    !   !
+    !   ! Rate of ClNO3 + HCl on stratospheric liquid aerosol
+    !   k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HBr)
+    !   !
+    !   ! Rate of ClNO3 + HCl on irregular ice cloud
+    !   gamma = 0.3_dp             ! Rxn prob, ice and NAT [1]
+    !   k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    !ENDIF
+    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), k )
+  END FUNCTION ClNO3uptkByHBrandTropCloud
+
+  FUNCTION ClNO3uptkByBrSALAandTropCloud( H ) RESULT( k )
+    !
+    ! Computes rxn rate [1/s] of ClNO3 + BrSALA.
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    REAL(dp) :: brBr, gamma, srMw
+    !
+    brBr  = 0.0_dp
+    gamma = 0.0_dp
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_ClNO3)
+    !
+    ! Then calculate reaction on aerosols
+    !kITemp = kITemp + HETClNO3_SS(                              &
+    !     H%AClRADI, H%ClearFr*H%AClAREA,  H%SSAlk(1),           &
+    !     H%cl_Conc_SALA, H%br_Conc_SALA,   X=2,    M=1        )
+    !
+    ! Rxn rate of ClNO3 + BrSALA
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
+    k = k + Ars_L1K( H%ClearFr * H%aClArea, H%aClRadi, gamma, srMw ) !* brBr
+    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k  )
+  END FUNCTION ClNO3uptkByBrSALAandTropCloud
 
   !=========================================================================
   ! Hetchem rate-law functions for HBr
