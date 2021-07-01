@@ -1679,7 +1679,7 @@ CONTAINS
 
        ! ... copy uptake probabilities for PSC reactions on SLA
        ! ... to the proper gckpp_Global variable
-       State_Het%KHETI_SLA = State_Chm%KHETI_SLA(I,J,L,:)
+       State_Het%KHETI_SLA(1:11) = State_Chm%KHETI_SLA(I,J,L,1:11)
 
        ! ... check if we are in the stratosphere
        State_Het%STRATBOX = State_Met%InStratosphere(I,J,L)

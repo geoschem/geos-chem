@@ -1763,6 +1763,43 @@ CONTAINS
   END FUNCTION HOBrUptkBySO3mmAndTropCloud
 
   !=========================================================================
+  ! Hetchem rate-law functions for HOCl
+  !=========================================================================
+
+  FUNCTION HOClUptkByHBr( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOCl + HBr reaction.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: gamma, srMw
+    !
+    gamma = 0.0_dp
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_HOCl)
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! HOCl + HBr on tropospheric sulfate in stratosphere
+       gamma = 0.8_dp
+       k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       !
+       !#### THERE SEEMS TO BE AN ISSUE WITH KHETI_SLA, THAT
+       !#### CAUSES NON-ZERO DIFFS.  LOOK AT THIS LATER (bmy, 7/1/21)
+       ! HOCl + HBr on stratopsheric liquid aerosol
+       !k = k + H%xArea(SLA) * H%KHETI_SLA(HOCl_plus_HBr)
+       !
+       ! HOCl + HBr on irregular ice cloud (ice and NAT surface)
+       gamma = 0.3_dp
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    ENDIF
+    !
+    ! Assume HOCl is limiting, so recompute reaction rate accordingly
+    k =  kIIR1Ltd( C(ind_HOCl), C(ind_HBr), k )
+  END FUNCTION HOClUptkByHBr
+  
+  !=========================================================================
   ! Hetchem rate-law functions for iodine species
   ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
   !=========================================================================
