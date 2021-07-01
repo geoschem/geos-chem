@@ -197,6 +197,9 @@ create_rundir "9\n1\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_2x25_TransportTracers_merra2"
 create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_2x25_metals_merra2"
+create_rundir "11\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 2x25 - GEOSFP - 72L
 #=============================================================================
@@ -249,6 +252,9 @@ create_rundir "9\n2\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_2x25_TransportTracers_geosfp"
 create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
+dir="gc_2x25_metals_geosfp"
+create_rundir "11\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 4x5 - MERRA2 - 72L
@@ -308,6 +314,9 @@ create_rundir "9\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_4x5_TransportTracers_merra2"
 create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_4x5_metals_merra2"
+create_rundir "11\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 4x5 - GEOSFP - 72L
 #=============================================================================
@@ -365,6 +374,9 @@ create_rundir "9\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_TransportTracers_geosfp"
 create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
+dir="gc_4x5_metals_geosfp"
+create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 4x5 and 47L (both MERRA2 and GEOSFP)
