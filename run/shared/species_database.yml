@@ -101,13 +101,13 @@ DST4_PROP: &DST4properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-Al_F1:
+AlF1:
   << : *DST1properties
   Formula: Al
   Fullname: Al on dust Reff = 0.7 microns
   MW_g: 26.98
   WD_CoarseAer: true
-Al_F2:
+AlF2:
   << : *DST2properties
   Formula: Al
   Fullname: Al on dust, Reff = 1.4 microns
@@ -131,13 +131,13 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
-As_F1:
+AsF1:
   << : *DST1properties
   Formula: As
   Fullname: As on dust Reff = 0.7 microns
   MW_g: 74.92
   WD_CoarseAer: true
-As_F2:
+AsF2:
   << : *DST2properties
   Formula: As
   Fullname: As on dust, Reff = 1.4 microns
@@ -414,23 +414,23 @@ C4HVP2:
   FullName: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
   MW_g: 103.11
-Ca_F1:
+CaF1:
   << : *DST1properties
   Formula: Ca
   Fullname: Ca on dust Reff = 0.7 microns
   MW_g: 40.08
   WD_CoarseAer: true
-Ca_F2:
+CaF2:
   << : *DST2properties
   Formula: Ca
   Fullname: Ca on dust, Reff = 1.4 microns
   MW_g: 40.08
-Ca_C3:
+CaC3:
   << : *DST3properties
   Formula: Ca
   Fullname: Ca on dust, Reff = 2.4 microns
   MW_g: 40.08
-Ca_C4:
+CaC4:
   << : *DST4properties
   Formula: Ca
   Fullname: Ca on dust, Reff = 4.5 microns
@@ -442,13 +442,13 @@ CCl4:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 153.82
-Cd_F1:
+CdF1:
   << : *DST1properties
   Formula: Cd
   Fullname: Cd on dust Reff = 0.7 microns
   MW_g: 112.41
   WD_CoarseAer: true
-Cd_F2:
+CdF2:
   << : *DST2properties
   Formula: Cd
   Fullname: Cd on dust, Reff = 1.4 microns
@@ -979,13 +979,13 @@ ETP:
   Is_WetDep: true
   MW_g: 62.08
   WD_RetFactor: 2.0e-2
-Fe_F1:
+FeF1:
   << : *DST1properties
   Formula: Fe
   Fullname: Fe on dust. Reff = 0.7 microns
   MW_g: 55.84
   WD_CoarseAer: true
-Fe_F2:
+FeF2:
   << : *DST2properties
   Formula: Fe
   Fullname: Fe on dust, Reff = 1.4 microns
@@ -2221,23 +2221,23 @@ ITHN:
   Is_WetDep: true
   MW_g: 197.17
   WD_RetFactor: 2.0e-2
-K_F1:
+KF1:
   << : *DST1properties
   Formula: K
   Fullname: K on dust. Reff = 0.7 microns
   MW_g: 39.10
   WD_CoarseAer: true
-K_F2:
+KF2:
   << : *DST2properties
   Formula: K
   Fullname: K on dust, Reff = 1.4 microns
   MW_g: 39.10
-K_C3:
+KC3:
   << : *DST3properties
   Formula: K
   Fullname: K on dust, Reff = 2.4 microns
   MW_g: 39.10
-K_C4:
+KC4:
   << : *DST4properties
   Formula: K
   Fullname: K on dust, Reff = 4.5 microns
@@ -2496,23 +2496,23 @@ MENO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 77.05
-Mg_F1:
+MgF1:
   << : *DST1properties
   Formula: Mg
   Fullname: Mg on dust. Reff = 0.7 microns
   MW_g: 24.31
   WD_CoarseAer: true
-Mg_F2:
+MgF2:
   << : *DST2properties
   Formula: Mg
   Fullname: Mg on dust, Reff = 1.4 microns
   MW_g: 24.31
-Mg_C3:
+MgC3:
   << : *DST3properties
   Formula: Mg
   Fullname: Mg on dust, Reff = 2.4 microns
   MW_g: 24.31
-Mg_C4:
+MgC4:
   << : *DST4properties
   Formula: Mg
   Fullname: Mg on dust, Reff = 4.5 microns
@@ -2531,13 +2531,13 @@ MGLY:
   Is_WetDep: true
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
-Mn_F1:
+MnF1:
   << : *DST1properties
   Formula: Mn
   Fullname: Mn on dust. Reff = 0.7 microns
   MW_g: 54.94
   WD_CoarseAer: true
-Mn_F2:
+MnF2:
   << : *DST2properties
   Formula: Mn
   Fullname: Mn on dust, Reff = 1.4 microns
@@ -2884,13 +2884,13 @@ NHEmis90dayTracer:
   Is_Advected: true
   Is_Gas: true
   MW_g: 1.0
-Ni_F1:
+NiF1:
   << : *DST1properties
   Formula: Ni
   Fullname: Ni on dust. Reff = 0.7 microns
   MW_g: 58.69
   WD_CoarseAer: true
-Ni_F2:
+NiF2:
   << : *DST2properties
   Formula: Ni
   Fullname: Ni on dust, Reff = 1.4 microns
@@ -3216,13 +3216,13 @@ Pb210:
 Pb210Strat:
   << : *Pbproperties
   FullName: Lead-210 isotope in stratosphere
-Pb_F1:
+PbF1:
   << : *DST1properties
   Formula: Pb
   Fullname: Pb on dust. Reff = 0.7 microns
   MW_g: 210.0
   WD_CoarseAer: true
-Pb_F2:
+PbF2:
   << : *DST2properties
   Formula: Pb
   Fullname: Pb on dust, Reff = 1.4 microns
@@ -3826,12 +3826,12 @@ SHEmis90dayTracer:
   Is_Advected: true
   Is_Gas: true
   MW_g: 1.0
-Si_F1:
+SiF1:
   << : *DST1properties
   Fullname: Si on dust, Reff = 0.7 microns
   MW_g: 28.09
   WD_CoarseAer: true
-Si_F2:
+SiF2:
   << : *DST2properties
   Fullname: Si on dust, Reff = 1.4 microns
   MW_g: 28.09
@@ -3955,13 +3955,13 @@ SOAS:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
-Ti_F1:
+TiF1:
   << : *DST1properties
   Formula: Ti
   Fullname: Ti on dust, Reff = 0.7 microns
   MW_g: 47.87
   WD_CoarseAer: true
-Ti_F2:
+TiF2:
   << : *DST2properties
   Formula: Ti
   Fullname: Ti on dust, Reff = 1.4 microns

@@ -25,36 +25,36 @@ Tran/conv timestep [sec]: 600
 Chem/emis timestep [sec]: 1200
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
-Species name            : Al_F1
-Species name            : Al_F2
-Species name            : As_F1
-Species name            : As_F2
-Species name            : Ca_F1
-Species name            : Ca_F2
-Species name            : Ca_C3
-Species name            : Ca_C4
-Species name            : Cd_F1
-Species name            : Cd_F2
-Species name            : Fe_F1
-Species name            : Fe_F2
-Species name            : K_F1
-Species name            : K_F2
-Species name            : K_C3
-Species name            : K_C4
-Species name            : Mg_F1
-Species name            : Mg_F2
-Species name            : Mg_C3
-Species name            : Mg_C4
-Species name            : Mn_F1
-Species name            : Mn_F2
-Species name            : Ni_F1
-Species name            : Ni_F2
-Species name            : Pb_F1
-Species name            : Pb_F2
-Species name            : Si_F1
-Species name            : Si_F2
-Species name            : Ti_F1
-Species name            : Ti_F2
+Species name            : AlF1
+Species name            : AlF2
+Species name            : AsF1
+Species name            : AsF2
+Species name            : CaF1
+Species name            : CaF2
+Species name            : CaC3
+Species name            : CaC4
+Species name            : CdF1
+Species name            : CdF2
+Species name            : FeF1
+Species name            : FeF2
+Species name            : KF1
+Species name            : KF2
+Species name            : KC3
+Species name            : KC4
+Species name            : MgF1
+Species name            : MgF2
+Species name            : MgC3
+Species name            : MgC4
+Species name            : MnF1
+Species name            : MnF2
+Species name            : NiF1
+Species name            : NiF2
+Species name            : PbF1
+Species name            : PbF2
+Species name            : SiF1
+Species name            : SiF2
+Species name            : TiF1
+Species name            : TiF2
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T
