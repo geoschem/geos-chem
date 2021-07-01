@@ -842,7 +842,7 @@ CONTAINS
   !#########################################################################
 
   !=========================================================================
-  ! Rate-law functions for BrNO3
+  ! Hetchem rate-law functions for BrNO3
   !=========================================================================
 
   FUNCTION BrNO3uptkByH2O( H ) RESULT( k )
@@ -903,7 +903,7 @@ CONTAINS
   END FUNCTION BrNO3uptkByHCl
 
   !=========================================================================
-  ! Rate-law functions for ClNO3
+  ! Hetchem rate-law functions for ClNO3
   !=========================================================================
 
   SUBROUTINE Gam_ClNO3_Aer( H, C_Br, gamma, branchBr )
@@ -1016,26 +1016,66 @@ CONTAINS
     IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
     k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     !
-!###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
-!       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
-!       brLiq = 1.0_dp - branchBr
-!       !
-!       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
-!       CALL Gam_ClNO3_Ice( H, gamma, dum1, dum2, brIce )
-!       !
-!       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
-!       k = k + CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
-!    ENDIF
-!    !
+    !###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
+    !IF ( .not. H%stratBox ) THEN
+    !   !
+    !   ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
+    !   CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+    !   brLiq = 1.0_dp - branchBr
+    !   !
+    !   ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
+    !   CALL Gam_ClNO3_Ice( H, gamma, dum1, dum2, brIce )
+    !   !
+    !   ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
+    !   k = k + CloudHet( H, srMw, gamma, gammaIce, 0.0_dp, 0.0_dp )
+    !ENDIF
+    !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
   END FUNCTION ClNO3uptkByH2OandTropCloud
 
+  FUNCTION ClNO3uptkByHClandTropCloud( H ) RESULT( k )
+    !
+    ! Computes the hydrolysis reaction rate [1/s] of ClNO3(g) + HCl(l,s).
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: brIce, dum1,     dum2
+    REAL(dp) :: gamma, gammaIce, srMw
+    !
+    brIce    = 0.0_dp
+    gamma    = 0.0_dp
+    gammaIce = 0.0_dp
+    k        = 0.0_dp
+    srMw     = SR_MW(ind_ClNO3)
+    !
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! Rxn rate of ClNO3 + HCl on tropospheric sulfate in stratosphere
+       gamma = 0.1e-4_dp
+       k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       !
+       ! Rate of ClNO3 + HCl on stratospheric liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HCl)
+       !
+       ! Rate of ClNO3 + HCl on irregular ice cloud
+       gamma = 0.3_dp                               ! Rxn prob, ice [1]
+       IF ( H%NatSurface ) gamma = 0.2_dp           ! Rxn prob, NAT [1]
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    ELSE
+    !###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
+    !   ! ClNO3 + HCl uptake in tropospheric ice cloud
+    !   CALL Gam_ClNO3_Ice( H, gammaIce, brIce, dum1, dum2 )
+    !   k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, brIce )
+    ENDIF
+    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), k )
+  END FUNCTION ClNO3uptkByHClandTropCloud
+
   !=========================================================================
-  ! Rate-law functions for HBr
+  ! Hetchem rate-law functions for HBr
   !=========================================================================
 
   FUNCTION HBrUptkBySALA( H ) RESULT( k )
@@ -1065,7 +1105,7 @@ CONTAINS
   END FUNCTION HBrUptkBySALC
 
   !=========================================================================
-  ! Rate-law functions for HO2
+  ! Hetchem rate-law functions for HO2
   !=========================================================================
 
   FUNCTION HO2uptk1stOrd( H ) RESULT( k )
@@ -1094,7 +1134,7 @@ CONTAINS
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================
-  ! Rate-law functions for HOBr
+  ! Hetchem rate-law functions for HOBr
   !=========================================================================
 
   FUNCTION Br2_Yield( Br_over_Cl ) RESULT( Y_Br2 )
@@ -1670,7 +1710,7 @@ CONTAINS
   END FUNCTION HOBrUptkBySO3mmAndTropCloud
 
   !=========================================================================
-  ! Rate-law functions for iodine species
+  ! Hetchem rate-law functions for iodine species
   ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
   !=========================================================================
 
@@ -1812,7 +1852,7 @@ CONTAINS
   END FUNCTION IbrkdnbyAcidSALCCl
 
   !=========================================================================
-  ! Rate-law functions for N2O5
+  ! Hetchem rate-law functions for N2O5
   !=========================================================================
 
   FUNCTION N2O5uptkByH2O( H ) RESULT( k )
@@ -2325,7 +2365,7 @@ CONTAINS
   END FUNCTION NO3hypsisClonSALC
 
   !=========================================================================
-  ! Rate-law functions for O3
+  ! Hetchem rate-law functions for O3
   !=========================================================================
 
   FUNCTION O3uptkByBrInTropCloud( H, Br_branch ) RESULT( k )
@@ -2451,7 +2491,7 @@ CONTAINS
   END FUNCTION Gamma_O3_Br
 
   !=========================================================================
-  ! Rate-law functions for OH
+  ! Hetchem rate-law functions for OH
   !=========================================================================
 
   FUNCTION OHuptkBySALACl( H ) RESULT( k )
@@ -2485,7 +2525,7 @@ CONTAINS
   END FUNCTION OHuptkBySALCCl
 
   !=========================================================================
-  ! Rate-law functions for VOC species
+  ! Hetchem rate-law functions for VOC species
   !=========================================================================
 
   FUNCTION GLYXuptk1stOrd( srMw, H ) RESULT( k )
