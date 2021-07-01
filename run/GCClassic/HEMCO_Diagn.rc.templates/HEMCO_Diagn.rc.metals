@@ -16,71 +16,71 @@
 #EOP
 #------------------------------------------------------------------------------
 #BOC
-# Name     Spec   ExtNr Cat Hier Dim OutUnit  LongName
+# Name    Spec ExtNr Cat Hier Dim OutUnit  LongName
 #
 # Aluminum
 #
-EmisAl_F1  Al_F1  0     -1  -1   2   kg/m2/s  Aluminum emissions from dust (Reff = 0.7 um)
-EmisAl_F2  Al_F2  0     -1  -1   2   kg/m2/s  Aluminum emissions from dust (Reff = 1.4 um)
+EmisAlF1  AlF1  0    -1  -1   2   kg/m2/s  Aluminum emissions from dust (Reff = 0.7 um)
+EmisAlF2  AlF2  0    -1  -1   2   kg/m2/s  Aluminum emissions from dust (Reff = 1.4 um)
 #
 # Arsenic
 #
-EmisAs_F1  As_F1  0     -1  -1   2   kg/m2/s  Arsenic emissions from dust (Reff = 0.7 um)
-EmisAs_F2  As_F1  0     -1  -1   2   kg/m2/s  Arsenic emissions from dust (Reff = 1.4 um)
+EmisAsF1  AsF1  0    -1  -1   2   kg/m2/s  Arsenic emissions from dust (Reff = 0.7 um)
+EmisAsF2  AsF1  0    -1  -1   2   kg/m2/s  Arsenic emissions from dust (Reff = 1.4 um)
 #
 # Calcium
 #
-EmisCa_F1  Ca_F1  0     -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 0.7 um)
-EmisCa_F2  Ca_F2  0     -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 1.4 um)
-EmisCa_C3  Ca_C3  0     -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 2.4 um)
-EmisCa_C4  Ca_C4  0     -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 4.5 um)
+EmisCaF1  CaF1  0    -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 0.7 um)
+EmisCaF2  CaF2  0    -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 1.4 um)
+EmisCaC3  CaC3  0    -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 2.4 um)
+EmisCaC4  CaC4  0    -1  -1   2   kg/m2/s  Calcium emissions from dust (Reff = 4.5 um)
 #
 # Cadmium
 #
-EmisCd_F1  Cd_F1  0     -1  -1   2   kg/m2/s  Cadmium emissions from dust (Reff = 0.7 um)
-EmisCd_F2  Cd_F2  0     -1  -1   2   kg/m2/s  Cadmium emissions from dust (Reff = 1.4 um)
+EmisCdF1  CdF1  0    -1  -1   2   kg/m2/s  Cadmium emissions from dust (Reff = 0.7 um)
+EmisCdF2  CdF2  0    -1  -1   2   kg/m2/s  Cadmium emissions from dust (Reff = 1.4 um)
 #
 # Iron
 #
-EmisFe_F1  Fe_F1  0     -1  -1   2   kg/m2/s  Iron emissions from dust (Reff = 0.7 um)
-EmisFe_F2  Fe_F2  0     -1  -1   2   kg/m2/s  Iron emissions from dust (Reff = 1.4 um)
+EmisFeF1  FeF1  0    -1  -1   2   kg/m2/s  Iron emissions from dust (Reff = 0.7 um)
+EmisFeF2  FeF2  0    -1  -1   2   kg/m2/s  Iron emissions from dust (Reff = 1.4 um)
 #
 # Potassium
 #
-EmisK_F1   K_F1   0     -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 0.7 um)
-EmisK_F2   K_F2   0     -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 1.4 um)
-EmisK_C3   K_C3   0     -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 2.4 um)
-EmisK_C4   K_C4   0     -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 4.5 um)
+EmisKF1   KF1   0    -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 0.7 um)
+EmisKF2   KF2   0    -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 1.4 um)
+EmisKC3   KC3   0    -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 2.4 um)
+EmisKC4   KC4   0    -1  -1   2   kg/m2/s  Potassium emissions from dust (Reff = 4.5 um)
 #
 # Magnesium
 #
-EmisMg_F1  Mg_F1  0     -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 0.7 um)
-EmisMg_F2  Mg_F2  0     -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 1.4 um)
-EmisMg_C3  Mg_C3  0     -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 2.4 um)
-EmisMg_C4  Mg_C4  0     -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 4.5 um)
+EmisMgF1  MgF1  0    -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 0.7 um)
+EmisMgF2  MgF2  0    -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 1.4 um)
+EmisMgC3  MgC3  0    -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 2.4 um)
+EmisMgC4  MgC4  0    -1  -1   2   kg/m2/s  Magnesium emissions from dust (Reff = 4.5 um)
 #
 # Manganese
 #
-EmisMn_F1  Mn_F1  0     -1  -1   2   kg/m2/s  Manganese emissions from dust (Reff = 0.7 um)
-EmisMn_F2  Mn_F2  0     -1  -1   2   kg/m2/s  Manganese emissions from dust (Reff = 1.4 um)
+EmisMnF1  MnF1  0    -1  -1   2   kg/m2/s  Manganese emissions from dust (Reff = 0.7 um)
+EmisMnF2  MnF2  0    -1  -1   2   kg/m2/s  Manganese emissions from dust (Reff = 1.4 um)
 #
 # Nickel
 #
-EmisNi_F1  Ni_F1  0     -1  -1   2   kg/m2/s  Nickel emissions from dust (Reff = 0.7 um)
-EmisNi_F2  Ni_F2  0     -1  -1   2   kg/m2/s  Nickel emissions from dust (Reff = 1.4 um)
+EmisNiF1  NiF1  0    -1  -1   2   kg/m2/s  Nickel emissions from dust (Reff = 0.7 um)
+EmisNiF2  NiF2  0    -1  -1   2   kg/m2/s  Nickel emissions from dust (Reff = 1.4 um)
 #
 # Lead
 #
-EmisPb_F1  Pb_F1  0     -1  -1   2   kg/m2/s  Lead emissions from dust (Reff = 0.7 um)
-EmisPb_F2  Pb_F2  0     -1  -1   2   kg/m2/s  Lead emissions from dust (Reff = 1.4 um)
+EmisPbF1  PbF1  0    -1  -1   2   kg/m2/s  Lead emissions from dust (Reff = 0.7 um)
+EmisPbF2  PbF2  0    -1  -1   2   kg/m2/s  Lead emissions from dust (Reff = 1.4 um)
 #
 # Silicon
 #
-EmisSi_F1  Si_F1  0     -1  -1   2   kg/m2/s  Silicon emissions from dust (Reff = 0.7 um)
-EmisSi_F2  Si_F2  0     -1  -1   2   kg/m2/s  Silicon emissions from dust (Reff = 1.4 um)
+EmisSiF1  SiF1  0    -1  -1   2   kg/m2/s  Silicon emissions from dust (Reff = 0.7 um)
+EmisSiF2  SiF2  0    -1  -1   2   kg/m2/s  Silicon emissions from dust (Reff = 1.4 um)
 #
 # Titanium
 #
-EmisTi_F1  Si_F1  0     -1  -1   2   kg/m2/s  Titanium emissions from dust (Reff = 0.7 um)
-EmisTi_F2  Si_F2  0     -1  -1   2   kg/m2/s  Titanium emissions from dust (Reff = 1.4 um)
+EmisTiF1  SiF1  0    -1  -1   2   kg/m2/s  Titanium emissions from dust (Reff = 0.7 um)
+EmisTiF2  SiF2  0    -1  -1   2   kg/m2/s  Titanium emissions from dust (Reff = 1.4 um)
 #EOC
