@@ -1357,7 +1357,7 @@ CONTAINS
 
     ! Diagnostics for applied ozone increment
     call MAPL_AddExportSpec(GC,                        &
-       SHORT_NAME         = 'ANA_O3_INC',            &
+       SHORT_NAME         = 'GCC_ANA_O3_INC',          &
        LONG_NAME          = 'Applied_ozone_increment', &
        UNITS              = 'kg/kg',                   &
        DIMS               = MAPL_DimsHorzVert,         &
@@ -6488,7 +6488,7 @@ CONTAINS
     ENDIF
 
     ! Diagnostics
-    CALL MAPL_GetPointer ( Export, O3INC, 'ANA_O3_INC', NotFoundOk=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( Export, O3INC, 'GCC_ANA_O3_INC', NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(O3INC) ) O3INC = 0.0
    
     ! Get target ozone field 
