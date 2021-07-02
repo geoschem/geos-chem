@@ -1295,11 +1295,11 @@ Warnings:                    1
 #       **To use, enable CEDS_byFuelType and CEDS_SHIP_byFuelType**
 #==============================================================================
 (((CEDS_GBDMAPS
->>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS.rc
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS.rc
 )))CEDS_GBDMAPS
 (((CEDS_GBDMAPS_byFuelType
 (((.not.CEDS_GBDMAPS.and..not.CEDSv2
->>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_byFuelType.rc
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_byFuelType.rc
 ))).not.CEDS_GBDMAPS.and..not.CEDSv2
 )))CEDS_GBDMAPS_byFuelType
 
@@ -2106,7 +2106,7 @@ Warnings:                    1
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
->>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_SHIP.rc
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_SHIP.rc
 )))CEDS_GBDMAPS_SHIP
 
 (((CEDS_SHIP_byFuelType
