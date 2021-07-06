@@ -1064,10 +1064,10 @@ CONTAINS
        IF ( H%NatSurface ) gamma = 0.2_dp           ! Rxn prob, NAT [1]
        k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ELSE
-    !###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
-    !   ! ClNO3 + HCl uptake in tropospheric ice cloud
-    !   CALL Gam_ClNO3_Ice( H, gammaIce, brIce, dum1, dum2 )
-    !   k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, brIce )
+       !
+       ! ClNO3 + HCl uptake rate in tropospheric ice cloud
+       CALL Gam_ClNO3_Ice( H, gammaIce, brIce, dum1, dum2 )
+       k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, brIce )
     ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
@@ -1081,20 +1081,37 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: gamma, srMw
+    REAL(dp) :: brBr, brLiq, brIce,    dum1 
+    REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
-    k    = 0.0_dp
-    srMw = SR_MW(ind_ClNO3)
+    brBr     = 0.0_dp
+    brLiq    = 0.0_dp
+    brIce    = 0.0_dp
+    gamma    = 0.0_dp
+    gammaIce = 0.0_dp
+    k        = 0.0_dp
+    srMw     = SR_MW(ind_ClNO3)
     !
-    !IF ( H%is_UCX .and. H%stratBox ) THEN
-    !   !
-    !   ! Rate of ClNO3 + HCl on stratospheric liquid aerosol
-    !   k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HBr)
-    !   !
-    !   ! Rate of ClNO3 + HCl on irregular ice cloud
-    !   gamma = 0.3_dp             ! Rxn prob, ice and NAT [1]
-    !   k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
-    !ENDIF
+    IF ( H%is_UCX .and. H%stratBox ) THEN
+       !
+       ! ClNO3 + HBr uptake rate on stratospheric liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HBr)
+       !
+       ! ClNO3 + HBr uptake rate  on irregular ice cloud
+       gamma = 0.3_dp             ! Rxn prob, ice and NAT [1]
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    ELSE
+       !
+       ! ClNO3 + HBr uptake rate in tropospheric liquid cloud
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
+       brLiq = brBr * H%Br_branch_CldG
+       !
+       ! ClNO3 + HBr uptake rate in tropospheric ice cloud
+       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, brIce, dum2 )
+       !
+       ! Compute overall ClNO3 + HBr uptake rate in cloud
+       k = CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
+    ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), k )
