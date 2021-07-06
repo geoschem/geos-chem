@@ -29,10 +29,14 @@ MODULE ISORROPIAII_MOD
   PUBLIC  :: CLEANUP_ISORROPIAII
   PUBLIC  :: DO_ISORROPIAII
   PUBLIC  :: GET_GNO3
+#if defined( MODEL_CESM )
+  PUBLIC  :: INIT_ISORROPIAII
+#else
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: INIT_ISORROPIAII
+#endif
   PRIVATE :: SAFELOG10
   PRIVATE :: SET_HNO3
 !
@@ -354,8 +358,10 @@ CONTAINS
           RETURN
        ENDIF
 
+#if !defined( MODEL_CESM )
        ! Initialize arrays
        CALL INIT_ISORROPIAII( State_Grid )
+#endif
 
        ! Check to see if we need to get HNO3 from HEMCO
        IF ( id_HNO3 <= 0 ) THEN

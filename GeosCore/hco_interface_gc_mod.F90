@@ -894,7 +894,6 @@ CONTAINS
     minute    = GET_MINUTE()
     second    = GET_SECOND()
 
-#if !defined( MODEL_CESM )
     CALL SetHcoTime( HcoState, ExtState, year,   month,     day, dayOfYr, &
                      hour,     minute,   second, EmisTime,  HMRC         )
 
@@ -906,7 +905,6 @@ CONTAINS
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
-#endif
 
     !=======================================================================
     ! See if it's time for emissions. Don't just use the EmisTime flag in
@@ -1391,7 +1389,6 @@ CONTAINS
     minute    = GET_MINUTE()
     second    = GET_SECOND()
 
-#if !defined( MODEL_CESM )
     CALL SetHcoTime( HcoState, ExtState, year,   month,   day, dayOfYr, &
                      hour,     minute,   second, .FALSE., HMRC         )
 
@@ -1403,7 +1400,6 @@ CONTAINS
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
-#endif
 
     !-----------------------------------------------------------------------
     ! Write diagnostics

@@ -135,8 +135,12 @@ def extract_pathnames_from_log(dryrun_log):
     # Close file and return
     # The "sorted" command will return unique values
     f.close()
-    return {"comments": comments, "found": found,
-            "missing": missing, "local_prefix": local_prefix}
+    return {
+        "comments": comments,
+        "found": found,
+        "missing": missing,
+        "local_prefix": local_prefix
+    }
 
 
 def get_run_info():
@@ -330,7 +334,7 @@ def write_unique_paths(paths, unique_log):
         raise FileNotFoundError("Could not write {}".format(unique_log))
 
 
-def create_download_script(paths, from_aws=False):
+def create_download_script(paths, args):
     """
     Creates a data download script to obtain missing files
     from the ComputeCanada data archive (default), or the
@@ -341,21 +345,25 @@ def create_download_script(paths, from_aws=False):
         paths : dict
             Output of function extract_pathnames_from_log.
 
-        from_aws : bool
-            If True, download from AWS s3://gcgrid.
-            If False, download from ComputeCanada (default).
+        args : dict
+            Arguments 
     """
 
+    # Get the path to the data on the remote server
+    remote_root = args["remote_root"]
+    
     # Define variables to create data download commands
-    # for either ComputeCanada or AWS
-    if from_aws:
+    # for either ComputeCanada or AWS  
+    if "AWS" in args["remote"]:
         cmd_prefix = "aws s3 cp --request-payer=requester "
-        remote_root = "s3://gcgrid"
         quote = ""
-    else:
-        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' +  \
+    if "CC" in args["remote"]:
+        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' + \
                      paths["local_prefix"] + " "
-        remote_root = "http://geoschemdata.computecanada.ca/ExtData"
+        quote = '"'
+    if "UR" in args["remote"]:
+        cmd_prefix = 'wget -r -np -nH -R "*.html" -N --cut-dirs=2 -P ' + \
+                     paths["local_prefix"] + " "
         quote = '"'
 
     # Create the data download script
@@ -383,16 +391,16 @@ def create_download_script(paths, from_aws=False):
                 extdata = remote_rst[:index2]
                 remote_rst = remote_root + remote_rst[index2:]
                 cmd = cmd_prefix + quote + remote_rst + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + prefix
                 print(cmd, file=f)
                 print(file=f)
 
                 # If the file does not exist in the run directory,
                 # then copy it from the restart folder.
-                # This only has to be done from Compute Canada,
-                # since AWS will download directly to the rundir
-                if not from_aws:
+                # This only has to be done from CC or UR,
+                # since AWS will download directly to the rundir.
+                if "AWS" not in args["remote"]:
                     if not os.path.exists(local_rst):
                         index3 = remote_rst.find("GEOSCHEM_RESTARTS")
                         rst = os.path.join(extdata, remote_rst[index3:])
@@ -412,7 +420,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("IPMN", "PMN")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -433,7 +441,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("NPMN", "PMN")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -455,7 +463,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPA", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -477,7 +485,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPB", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -499,7 +507,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPD", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -518,7 +526,7 @@ def create_download_script(paths, from_aws=False):
                 local_dir = os.path.dirname(path)
                 remote_path = remote_root + path[index:]
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if "AWS" in args["remote"]:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
                 print(file=f)
@@ -564,13 +572,11 @@ def download_the_data(args):
         return
 
     # Print a message
-    if args["from_aws"]:
-        print("Downloading data from AWS")
-    else:
-        print("Downloading data from ComputeCanada")
+    if len(args["remote"]) > 0:
+        print("Downloading data from " + args["remote"])
 
     # Create script to download missing files from AWS S3
-    create_download_script(paths, args["from_aws"])
+    create_download_script(paths, args)
 
     # Run the data download script and return the status
     # Remove the file afterwards
@@ -579,10 +585,7 @@ def download_the_data(args):
 
     # Raise an exception if the data was not successfully downloaded
     if status != 0:
-        if args["from_aws"]:
-            err_msg = "Error downloading data from AWS!"
-        else:
-            err_msg = "Error downloading data from ComputeCanada!"
+        err_msg = "Error downloading data from " + args["remote"]
         raise Exception(err_msg)
 
 
@@ -599,19 +602,26 @@ def parse_args():
     --------
         args : dict
             args["dryrun_log"]: Log file with dry-run output.
-            args["from_aws"]: Download from AWS S3? (True/False)
+            args["remote"]: Name of the remote server.
+            args["remote_root"]: Path to ther remote data
             args["skip-download"]: Skip downloading and only write
                out the log with unique file names.
     """
     dryrun_log = ""
-    from_aws = False
+    remote = ""
+    remote_root = ""
     skip_download = False
 
     for i in range(1, len(sys.argv)):
         if "AWS" in sys.argv[i].upper():
-            from_aws = True
+            remote = "AWS"
+            remote_root = "s3://gcgrid"
         elif "CC" in sys.argv[i].upper():
-            from_aws = False
+            remote = "CC"
+            remote_root = "http://geoschemdata.computecanada.ca/ExtData"
+        elif "UR" in sys.argv[i].upper():
+            remote = "UR"
+            remote_root = "http://atmos.earth.rochester.edu/input/gc/ExtData/"
         elif "SKIP" in sys.argv[i].upper():
             skip_download = True
         else:
@@ -620,9 +630,12 @@ def parse_args():
     if len(dryrun_log) == 0:
         raise ValueError("Need to specify the log file with dryrun output!")
 
-    return {"dryrun_log": dryrun_log,
-            "from_aws": from_aws,
-            "skip_download" : skip_download}
+    return {
+        "dryrun_log": dryrun_log,
+        "remote" : remote,
+        "remote_root": remote_root,
+        "skip_download" : skip_download
+    }
 
 
 def main():
@@ -634,6 +647,7 @@ def main():
     -----------------
         ./download_data.py log -aws            # from AWS
         ./download_data.py log -cc             # from ComputeCanada
+        ./download_data.py log -ur             # from U. Rochester
         ./download_data.py log -skip-download  # Print unique log & exit
     """
     download_the_data(parse_args())
