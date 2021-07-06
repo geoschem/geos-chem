@@ -606,6 +606,9 @@ CONTAINS
     ! Point to head of linked list
     Current => Registry
 
+    if (.not. ASSOCIATED( Current ) .and. am_I_Root) &
+         WRITE(*,*) ' Registry head not associated.'
+
     ! As long as this entry of the linked list isn't NULL
     DO WHILE( ASSOCIATED( Current ) )
 

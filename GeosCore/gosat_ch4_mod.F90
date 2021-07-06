@@ -14,12 +14,10 @@ MODULE GOSAT_CH4_MOD
 !
 ! !USES:
 !
-#if !defined( MODEL_CESM )
   USE m_netcdf_io_open       ! netCDF open
   USE m_netcdf_io_get_dimlen ! netCDF dimension queries
   USE m_netcdf_io_read       ! netCDF data reads
   USE m_netcdf_io_close      ! netCDF close
-#endif
   USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
@@ -79,7 +77,6 @@ MODULE GOSAT_CH4_MOD
 
 CONTAINS
 !EOC
-#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -340,7 +337,6 @@ CONTAINS
     
   END SUBROUTINE READ_GOS_CH4_OBS
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -506,12 +502,7 @@ CONTAINS
 
        ! Read the GOS CH4 file for this day
        YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
-#if defined( MODEL_CESM )
-       print*, "DIE IN GOSAT_CH4_MOD.F! DEAL WITH READ_GOS_CH4_OBS"
-       CALL EXIT(1)
-#else
        CALL READ_GOS_CH4_OBS( YYYYMMDD, NGOS )
-#endif
 
        IF ( FIRST ) FIRST = .FALSE.
 

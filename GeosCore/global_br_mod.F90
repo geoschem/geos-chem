@@ -81,8 +81,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
     USE State_Met_Mod,      ONLY : MetState
@@ -148,7 +147,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate Br_GC from GEOS-Chem to set Br_MERGE (trop+strat)
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'Br_GC', Br_MERGE, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'Br_GC', Br_MERGE, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find Br_GC in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -161,7 +160,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate BrO_GC from GEOS-Chem to set BrO_MERGE (trop+strat)
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'BrO_GC', Br_MERGE, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'BrO_GC', BrO_MERGE, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find BrO_GC in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -176,7 +175,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate Br from pTOMCAT biogenic bromocarbons [pptv]
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'Br_TOMCAT', Br_TROP, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'Br_TOMCAT', Br_TROP, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find Br_TOMCAT in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -186,7 +185,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate BrO from pTOMCAT biogenic bromocarbons [pptv]
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'BrO_TOMCAT', Br_TROP, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'BrO_TOMCAT', Br_TROP, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find BrO_TOMCAT in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -196,7 +195,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate Br from GMI for stratosphere [pptv]
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'Br_GMI', Br_STRAT, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'Br_GMI', Br_STRAT, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find Br_GMI in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -206,7 +205,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Evaluate BrO from GMI for stratosphere [pptv]
        !-----------------------------------------------------------------
-       CALL HCO_EvalFld(HcoState, 'BrO_GMI', BrO_STRAT, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'BrO_GMI', BrO_STRAT, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find BrO_GMI in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -252,7 +251,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Evaluate J_BrO
     !-----------------------------------------------------------------
-    CALL HCO_EvalFld(HcoState, 'JBrO', J_BrO, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'JBrO', J_BrO, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find JBrO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

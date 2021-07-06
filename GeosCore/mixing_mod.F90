@@ -205,9 +205,9 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE Species_Mod,          ONLY : Species
@@ -218,6 +218,11 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+
+    use timers_mod
+#ifdef MODEL_CLASSIC
+    use hco_utilities_gc_mod, only: TMP_MDL ! danger
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -258,8 +263,9 @@ CONTAINS
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
     REAL(fp)                :: PNOXLOSS
-    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
-    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+    REAL(f4), POINTER       :: Ptr2D        (:,:) => NULL()
+    REAL(f4), POINTER       :: PNOXLOSS_O3  (:,:)
+    REAL(f4), POINTER       :: PNOXLOSS_HNO3(:,:)
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
@@ -281,6 +287,10 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ErrorMsg, ThisLoc
+
+#ifdef ADJOINT
+    LOGICAL                 :: IS_ADJ
+#endif
 
     !=================================================================
     ! DO_TEND begins here!
@@ -306,6 +316,9 @@ CONTAINS
     ! Initialize pointer
     SpcInfo           => NULL()
     DepFreq           => State_Chm%DryDepFreq
+
+    PNOxLoss_O3       => NULL()
+    PNOxLoss_HNO3     => NULL()
 
     !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
@@ -338,12 +351,33 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+#endif
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             'kg/m2', RC, OrigUnit=OrigUnit )
+
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+#endif
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -358,6 +392,11 @@ CONTAINS
     ELSE
        TS = GET_TS_DYN()
     ENDIF
+#ifdef ADJOINT
+    if (Input_Opt%Is_Adjoint) then
+       TS = TS * -1
+    endif
+#endif
 
     ! First-time setup
     IF ( FIRST ) THEN
@@ -382,22 +421,37 @@ CONTAINS
        id_BrNO3= Ind_('BrNO3')
        id_CH4_SAB = Ind_('CH4_SAB')
 
-       ! On first call, get pointers to the PARANOX loss fluxes. These are
-       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-       ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-       ! respective diagnostics. The pointers will remain unassociated if
-       ! the diagnostics do not exist.
-       ! This is only needed if non-local PBL scheme is not being used.
-       ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
-       !  (ckeller, 4/10/2015)
-       IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_O3_DEPOSITION_FLUX', &
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_HNO3_DEPOSITION_FLUX',&
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
-       ENDIF
        FIRST = .FALSE.
+    ENDIF
+
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist.
+    ! This is only needed if non-local PBL scheme is not being used.
+    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
+    !  (ckeller, 4/10/2015)
+    !
+    ! If using HEMCO Intermediate grid feature, then the call needs to be
+    ! refreshed at every time step for regridding. (hplin, 6/21/20)
+    IF ( .NOT. Input_Opt%LNLPBL ) THEN
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_O3_DEPOSITION_FLUX', &
+                            .FALSE.,   RC, Ptr2D = Ptr2D          )
+      IF( ASSOCIATED( Ptr2D )) THEN
+        ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        PNOxLoss_O3(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_HNO3_DEPOSITION_FLUX',&
+                            .FALSE.,   RC, Ptr2D = Ptr2D        )
+      IF( ASSOCIATED( Ptr2D )) THEN
+        ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+        PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -411,14 +465,19 @@ CONTAINS
     !=======================================================================
     ! Do for every advected species and grid box
     !=======================================================================
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED                                                 ) &
-    !$OMP PRIVATE( I,        J,            L,          L1,       L2       ) &
-    !$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId ) &
-    !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2  ) &
-    !$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP ) &
-    !$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA       ) &
-    !$OMP PRIVATE( S,        ErrorMsg                                     )
+    ! Note: For GEOS-Chem Classic HEMCO "Intermediate Grid" feature,
+    ! where HEMCO is running on a distinct grid from the model, the
+    ! on-demand regridding is most optimized when contiguous accesses
+    ! to GetHcoValEmis and GetHcoValDep are performed for the given species.
+    ! Therefore, it is most optimal to call in the following fashion (IJKN)
+    !    Emis(1,1,1,1) -> Emis(1,1,2,1) -> ... -> Dep(1,1,1,1) -> Dep(1,1,2,1)
+    ! By switching emis/dep or the species # LAST, as either of these changing
+    ! WILL trigger a new regrid and thrashing of the old buffer.
+    !
+    ! Therefore, the loop below has been adjusted to run serially for each
+    ! species, and parallelizing the inner I, J loop instead (hplin, 6/27/20)
+    ! Also, moved some non-I,J specific variables outside of the loop for optimization
+
     DO NA = 1, nAdvect
 
        ! Initialize PRIVATE error-handling variables
@@ -429,6 +488,9 @@ CONTAINS
 
        ! Get info about this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Molecular weight in kg
+       MWkg = SpcInfo%MW_g * 1.e-3_fp
 
        !--------------------------------------------------------------------
        ! Check if we need to do dry deposition for this species
@@ -449,7 +511,7 @@ CONTAINS
           ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
-             CALL GetHcoValDep ( N, 1, 1, 1, DryDepSpec, TMP )
+             CALL InquireHco ( N, Dep=DryDepSpec )
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
@@ -459,13 +521,58 @@ CONTAINS
                DryDepSpec = .TRUE.
        ENDIF
 
+       ! Set emissions top level:
+       ! This is the top of atmosphere unless concentration build-up
+       ! in stratosphere wants to be avoided.
+       ChemGridOnly = .FALSE.
+
+       ! Set emissions to zero above chemistry grid for the following VOCs
+       IF ( N == id_MACR .OR. N == id_RCHO .OR. &
+            N == id_ACET .OR. N == id_ALD2 .OR. &
+            N == id_ALK4 .OR. N == id_C2H6 .OR. &
+            N == id_C3H8 .OR. N == id_CH2O .OR. &
+            N == id_PRPE                         ) THEN
+          ChemGridOnly = .TRUE.
+       ENDIF
+
+       ! Bry concentrations become prescribed in lin. strat. chemistry.
+       ! Therefore avoid any emissions of these compounds above the
+       ! chemistry grid (lin. strat. chem. applies above chemistry grid
+       ! only).
+       IF ( LSCHEM ) THEN
+          IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
+               N == id_Br   .OR. N == id_HOBr  .OR. &
+               N == id_HBr  .OR. N == id_BrNO3       ) THEN
+             ChemGridOnly = .TRUE.
+          ENDIF
+       ENDIF
+
+       ! For non-UCX runs, never emit above the chemistry grid.
+       ! (ckeller, 6/18/15)
+       ! Exclude all specialty simulations (ewl, 3/17/16)
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+            .NOT. Input_Opt%LUCX ) THEN
+          ChemGridOnly = .TRUE.
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
-          CALL GetHcoValEmis ( N, 1, 1, 1, EmisSpec, TMP )
+          CALL InquireHco ( N, Emis=EmisSpec )
        ELSE
           EmisSpec = .FALSE.
+       ENDIF
+
+       ! If there is emissions for this species, it must be loaded into memory first.
+       ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
+       ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+       IF ( EmisSpec ) THEN
+          CALL LoadHcoValEmis ( Input_Opt, State_Grid, N )
+       ENDIF
+
+       IF ( DryDepSpec ) THEN
+          CALL LoadHcoValDep ( Input_Opt, State_Grid, N )
        ENDIF
 
        !--------------------------------------------------------------------
@@ -473,6 +580,14 @@ CONTAINS
        ! dry deposition and/or emissions
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
+
+!$OMP PARALLEL DO                                                           &
+!$OMP DEFAULT( SHARED                                                     ) &
+!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
+!$OMP PRIVATE( PBL_TOP,  FND,          TMP                                ) &
+!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
+!$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM                  ) &
+!$OMP PRIVATE( S,        ErrorMsg                                         )
 
        ! Loop over all grid boxes
        DO J = 1, State_Grid%NY
@@ -484,9 +599,6 @@ CONTAINS
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-
-          ! Molecular weight in kg
-          MWkg = SpcInfo%MW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used:
           ! If specified so, apply emissions only above the PBL_TOP.
@@ -503,40 +615,6 @@ CONTAINS
              DRYD_TOP = PBL_TOP
           ELSE
              DRYD_TOP = 1
-          ENDIF
-
-          ! Set emissions top level:
-          ! This is the top of atmosphere unless concentration build-up
-          ! in stratosphere wants to be avoided.
-          ChemGridOnly = .FALSE.
-
-          ! Set emissions to zero above chemistry grid for the following VOCs
-          IF ( N == id_MACR .OR. N == id_RCHO .OR. &
-               N == id_ACET .OR. N == id_ALD2 .OR. &
-               N == id_ALK4 .OR. N == id_C2H6 .OR. &
-               N == id_C3H8 .OR. N == id_CH2O .OR. &
-               N == id_PRPE                         ) THEN
-             ChemGridOnly = .TRUE.
-          ENDIF
-
-          ! Bry concentrations become prescribed in lin. strat. chemistry.
-          ! Therefore avoid any emissions of these compounds above the
-          ! chemistry grid (lin. strat. chem. applies above chemistry grid
-          ! only).
-          IF ( LSCHEM ) THEN
-             IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
-                  N == id_Br   .OR. N == id_HOBr  .OR. &
-                  N == id_HBr  .OR. N == id_BrNO3       ) THEN
-                ChemGridOnly = .TRUE.
-             ENDIF
-          ENDIF
-
-          ! For non-UCX runs, never emit above the chemistry grid.
-          ! (ckeller, 6/18/15)
-          ! Exclude all specialty simulations (ewl, 3/17/16)
-          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
-               .NOT. Input_Opt%LUCX ) THEN
-             ChemGridOnly = .TRUE.
           ENDIF
 
           ! Restrict to chemistry grid
@@ -575,7 +653,7 @@ CONTAINS
                 ! dry deposition frequencies for air-sea exchange and
                 ! from ship NOx plume parameterization (PARANOx). The
                 ! units are [s-1].
-                CALL GetHcoValDep ( N, I, J, 1, FND, TMP )
+                CALL GetHcoValDep ( Input_Opt, State_Grid, N, I, J, 1, FND, TMP )
 
                 ! Add to dry dep frequency from drydep_mod.F90
                 IF ( FND ) FRQ = FRQ + TMP
@@ -606,6 +684,12 @@ CONTAINS
                    State_Chm%Species(I,J,L,N) = FRAC *    &
                                                 State_Chm%Species(I,J,L,N)
 
+#ifdef ADJOINT
+                   if (Input_Opt%Is_Adjoint) then
+                      State_Chm%SpeciesAdj(I,J,L,N) = FRAC *  &
+                           State_Chm%SpeciesAdj(I,J,L,N)
+                   endif
+#endif
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s.
                    ! Make sure PARANOx loss is applied to tracers. (ckeller,
                    ! 3/29/16).
@@ -673,7 +757,19 @@ CONTAINS
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                CALL GetHcoValEmis ( N, I, J, L, FND, TMP )
+                ! Fix hplin: for intermediate grid, pass SkipCheck in a tight loop. Note that this assumes that adjacent
+                ! calls to GetHcoValEmis are from the same species ID, or there will be big trouble. (hplin, 10/10/20)
+
+#ifdef MODEL_CLASSIC
+                IF ( Input_Opt%LIMGRID ) THEN
+                  FND = .true.
+                  TMP = TMP_MDL(I,J,L) ! this is a kludge for the tight loop optimization
+                ELSE
+#endif
+                  CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP, SkipCheck=.true. )
+#ifdef MODEL_CLASSIC
+                ENDIF
+#endif          
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -682,6 +778,15 @@ CONTAINS
 
                    ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
                    FLUX = TMP * TS
+#ifdef ADJOINT
+                   IF ( I .eq. Input_Opt%IFD .and. J .eq. Input_Opt%JFD .and. &
+                        L .eq. Input_Opt%LFD .and. N .eq. Input_Opt%NFD) THEN
+                      WRITE(*,*) ' GetHcoVal(IFD,JFD) = ', TMP,  ' FLUX = ', FLUX
+                      IF ( Input_Opt%is_adjoint ) THEN
+                         WRITE(*,*) ' SpeciesAdj(FD) = ', State_Chm%SpeciesAdj(I,J,L,N)
+                      ENDIF
+                   ENDIF
+#endif
 
                    ! Add to species array
                    State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
@@ -705,7 +810,7 @@ CONTAINS
 
                       ! Get soil absorption from HEMCO. Units are [kg/m2/s].
                       ! CH4_SAB is species #15
-                      CALL GetHcoValEmis ( 15, I, J, L, FND, TMP )
+                      CALL GetHcoValEmis ( Input_Opt, State_Grid, 15, I, J, L, FND, TMP )
 
                       ! Remove soil absorption from total CH4 emissions
                       IF ( FND ) THEN
@@ -744,19 +849,18 @@ CONTAINS
           ENDDO !L
        ENDDO !J
        ENDDO !I
+!$OMP END PARALLEL DO
+
+       ! Exit with error condition
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Nullify pointer
        SpcInfo  => NULL()
 
     ENDDO !N
-    !$OMP END PARALLEL DO
-
-    ! Exit with error condition
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrorMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
     !--------------------------------------------------------------
@@ -820,6 +924,17 @@ CONTAINS
 
     ENDIF
 
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+
+#endif
     ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit, RC )
@@ -828,6 +943,17 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#if defined( ADJOINT )  && defined ( DEBUG )
+    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
+            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+       WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
+            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
+            Input_Opt%LFD, Input_Opt%NFD)
+    ENDIF
+
+#endif
 
     !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
@@ -868,6 +994,13 @@ CONTAINS
     ! Free pointers
     DepFreq => NULL()
 
+  IF ( ASSOCIATED( PNOxLoss_O3 ) )   DEALLOCATE( PNOxLoss_O3 )
+  IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
+
+  PNOxLoss_O3 => NULL()
+  PNOxLoss_HNO3 => NULL()
+
   END SUBROUTINE DO_TEND
+
 !EOC
 END MODULE MIXING_MOD

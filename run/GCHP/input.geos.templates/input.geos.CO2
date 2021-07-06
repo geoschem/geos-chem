@@ -1,0 +1,97 @@
+------------------------+------------------------------------------------------
+%%% SIMULATION MENU %%% :
+Start YYYYMMDD, hhmmss  : 20160101 000000
+End   YYYYMMDD, hhmmss  : 20160101 010000
+Run directory           : ./
+Root data directory     : {DATA_ROOT}
+Met field               : {MET}
+Simulation name         : {SIM}
+Species database file   : ./species_database.yml
+Turn on debug printout? : F
+Use GC classic timers?  : F
+------------------------+------------------------------------------------------
+%%% TIMESTEP MENU %%%   :
+Tran/conv timestep [sec]: 600
+Chem/emis timestep [sec]: 1200
+------------------------+------------------------------------------------------
+%%% ADVECTED SPECIES MENU %%%:
+Species name            : CO2
+Species name            : PassiveTracer
+------------------------+------------------------------------------------------
+%%% PASSIVE SPECIES MENU %%%:
+Passive species name    : PassiveTracer            1.0    -1       1.0e-7   Passive_tracer_for_mass_conservation_evaluation
+Passive species name    : CO2                      44.0   -1       1.0e-20  Carbon_dioxide
+------------------------+------------------------------------------------------
+%%% TRANSPORT MENU %%%  :
+Turn on Transport       : T
+ => Fill Negative Values: T
+ => IORD, JORD, KORD    : 3  3  7
+------------------------+------------------------------------------------------
+%%% CONVECTION MENU %%% :
+Turn on Cloud Conv?     : T
+Turn on PBL Mixing?     : T
+ => Use non-local PBL?  : T
+------------------------+------------------------------------------------------
+%%% AEROSOL MENU %%%    :
+Online SULFATE AEROSOLS : F
+ => Metal cat. SO2 ox.? : F
+Online CARBON  AEROSOLS : F
+ => Use Brown Carbon?   : F
+Online COMPLEX SOA      : F
+ => Semivolatile POA?   : F
+Online DUST    AEROSOLS : F
+ => Acidic uptake ?     : F
+Online SEASALT AEROSOLS : F
+ => SALA radius bin [um]: 0.01 0.5
+ => SALC radius bin [um]: 0.5  8.0
+ => MARINE ORG AEROSOLS : F
+Settle strat. aerosols  : F
+Online PSC AEROSOLS     : F
+Allow homogeneous NAT?  : F
+NAT supercooling req.(K): 3.0
+Ice supersaturation req.: 1.2
+Perform PSC het. chem.? : F
+Calc. strat. aero. OD?  : F
+Enhance BC Absorption?  : F
+ => hydrophilic BC      : 1.5
+ => hydrophobic BC      : 1.0
+Photolyse nitrate aer.? : F
+ => NITs Jscale (JHNO3) : 0.0
+ => NIT  Jscale (JHNO3) : 0.0
+ => % channel A (HONO)  : 66.667
+ => % channel B (NO2)   : 33.333
+------------------------+------------------------------------------------------
+%%% DEPOSITION MENU %%% :
+Turn on Dry Deposition? : F
+Turn on Wet Deposition? : F
+Turn on CO2 Effect?     : F
+CO2 level               : 600.0
+Reference CO2 level     : 380.0
+Diag alt above sfc [m]  : 10
+------------------------+------------------------------------------------------
+%%% CHEMISTRY MENU %%%  :
+Turn on Chemistry?      : F
+Use linear. strat. chem?: F
+ => Use Linoz for O3?   : F
+Use UCX strat. chem?    : F
+Active strat. H2O?      : F
+Overhead O3 for FAST-JX :---
+ => Online O3 from model: F
+ => O3 from met fields  : F
+ => TOMS/SBUV O3        : F
+Gamma HO2               : 0.2
+------------------------+------------------------------------------------------
+%%% PHOTOLYSIS MENU %%% :
+FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2020-02/
+------------------------+------------------------------------------------------
+%%% RADIATION MENU %%%  :
+AOD Wavelength (nm)     : 550
+Turn on RRTMG?          : F
+Calculate LW fluxes?    : F
+Calculate SW fluxes?    : F
+Clear-sky flux?         : F
+All-sky flux?           : F
+Radiation Timestep [sec]: 10800
+------------------------+------------------------------------------------------
+END OF FILE             :
+------------------------+------------------------------------------------------

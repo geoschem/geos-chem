@@ -24,10 +24,7 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
-###############################################################################
 
-ROOT:                        {DATA_ROOT}/HEMCO
-METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -49,7 +46,7 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true      # 1980-2021
+    --> METEOROLOGY            :       true      {MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
@@ -57,12 +54,13 @@ Warnings:                    1
     --> GC_BCs                 :       false    # 1980-2021
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
-    --> CanMex                 :       false    # Can:2013,Mex:2010
-    --> MIX                    :       false    # 2008
+    --> Sheng_Canada           :       false    # 2013
+    --> Scarpelli_Mexico       :       true     # 2015
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> GFEI                   :       true     # 2012
     --> EDGARv432              :       true     # 1970-2012
-    --> QFED2                  :       true     # 2009-2015
+    --> QFED2                  :       false    # 2009-2015
+    --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
@@ -74,6 +72,11 @@ Warnings:                    1
     --> RCP_45                 :       false    # 2005-2100
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
+# ----- CMIP6 ANTHRO EMISSIONS --------------------------------
+#   Set SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
+    --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
+    --> CMIP6_SHIP             :       false    # 1850-2100
+    --> BB4MIPS                :       false    # 1850-2100
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> GMI_CH4_LOSS           :       true     # 1985
     --> GLOBAL_OH              :       true     # 2010-2019
@@ -181,29 +184,37 @@ Warnings:                    1
 )))GEPA
 
 #==============================================================================
-# --- Mexico oil and gas (Sheng et al., Atmos. Environ., 2017) ---
+# --- Mexico anthropogenic emissions ---
+#
+# (Scarpelli et. al, Environ. Res. Lett., 2020) ---
 #==============================================================================
-(((CanMex
-### Oil ###
-0 MEX_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Oil              2010/1/1/0 C xy molec/cm2/s CH4 1001 1 20
-
-### Gas ###
-0 MEX_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Production   2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Processing   2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Transmission 2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
-0 MEX_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Distribution 2010/1/1/0 C xy molec/cm2/s CH4 1001 2 20
+(((Scarpelli_Mexico
+0 MEX_OIL               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
+0 MEX_GAS               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 30
+0 MEX_COAL              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 30
+0 MEX_LIVESTOCK_A       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 30
+0 MEX_LIVESTOCK_B       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 30
+0 MEX_LANDFILLS         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 30
+0 MEX_WASTEWATER        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 30
+0 MEX_RICE              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 30
+0 MEX_OTHER             $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 30
 
 ### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 MEX_COAST_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Oil              2010/1/1/0 C xy molec/cm2/s CH4 1010 1 1
-0 MEX_COAST_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Production   2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Processing   2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Transmission 2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
-0 MEX_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_MX_2010.nc CH4_FLX_MX_Gas_Distribution 2010/1/1/0 C xy molec/cm2/s CH4 1010 2 1
+0 MEX_OIL_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 1
+0 MEX_GAS_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 1
+0 MEX_COAL_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 1
+0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
+0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
+0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
+0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
+0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
+
+)))Scarpelli_Mexico
 
 #==============================================================================
 # --- Canada oil and gas (Sheng et al., Atmos. Environ., 2017) ---
 #==============================================================================
-
+(((Sheng_Canada
 ### Oil ###
 0 CAN_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Oil          2013/1/1/0 C xy molec/cm2/s CH4 1002 1 60
 
@@ -219,29 +230,17 @@ Warnings:                    1
 0 CAN_COAST_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Processing   2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
 0 CAN_COAST_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Transmission 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
 0 CAN_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Distribution 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-)))CanMex
-
-#==============================================================================
-# --- MIX v1.1 (Asia) ---
-#==============================================================================
-(((MIX
-0 MIX_CH4_IND $ROOT/MIX/v2015-03/MIX_Asia_CH4.generic.025x025.nc   CH4_INDUSTRY    2008/1-12/1/0 C xy kg/m2/s CH4 1006 1 40
-0 MIX_CH4_POW $ROOT/MIX/v2015-03/MIX_Asia_CH4.generic.025x025.nc   CH4_POWER       2008/1-12/1/0 C xy kg/m2/s CH4 1006 1 40
-0 MIX_CH4_RES $ROOT/MIX/v2015-03/MIX_Asia_CH4.generic.025x025.nc   CH4_RESIDENTIAL 2008/1-12/1/0 C xy kg/m2/s CH4 1006 1 40
-0 MIX_CH4_TRA $ROOT/MIX/v2015-03/MIX_Asia_CH4.generic.025x025.nc   CH4_TRANSPORT   2008/1-12/1/0 C xy kg/m2/s CH4 1006 1 40
-0 MIX_CH4_AGR $ROOT/MIX/v2015-03/MIX_Asia_CH4.generic.025x025.nc   CH4_AGRICULTURE 2008/1-12/1/0 C xy kg/m2/s CH4 1006 1 40
-)))MIX
+)))Sheng_Canada
 
 #==============================================================================
 # --- Global Fuel Exploitation Inventory (Scarpelli et al., 2020) ---
 #
-# This inventory will replace EDGAR (oil, gas, & coal), GEPA (oil, gas, & coal),
-# and CanMex (oil & gas); Set to hier=100
+# This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
 (((GFEI
-0 GFEI_CH4_OIL  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Oil_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  1 100
-0 GFEI_CH4_GAS  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Gas_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  2 100
-0 GFEI_CH4_COAL $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Coal.nc     emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  3 100
+0 GFEI_CH4_OIL  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Oil_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Gas_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Coal.nc     emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  3 5
 )))GFEI
 
 #==============================================================================
@@ -291,6 +290,29 @@ Warnings:                    1
 )))EDGARv432
 
 #==============================================================================
+# CEDS (historical) or Shared Socioeconomic Pathways (future)
+#==============================================================================
+(((CMIP6_SFC_LAND_ANTHRO
+0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_agr           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         4 1
+0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_ene           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
+0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_ind           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_tra           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_rco           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
+0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_slv           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_wst           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         5 1
+)))CMIP6_SFC_LAND_ANTHRO
+(((CMIP6_SHIP
+0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_shp           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+)))CMIP6_SHIP
+
+#==============================================================================
+# BB4MIPs historical / SSP future biomass burning inventories
+#==============================================================================
+(((BB4MIPS
+0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
+)))BB4MIPS
+
+#==============================================================================
 # --- QFED2 biomass burning ---
 #
 # Use QFED v2.4r8 for CH4. The data in QFED/v2014-09 are for v2.4r5 and have
@@ -301,13 +323,22 @@ Warnings:                    1
 )))QFED2
 
 #==============================================================================
+# --- Updated GFED4 biomass burning ---
+#
+# Emissions through 2019 obtained from Yuzhong Zhang
+#==============================================================================
+(((UPDATED_GFED4
+0 UPDATED_GFED4_CH4    $ROOT/CH4/v2020-09/GFED/GFED4_CH4_FIRE_$YYYY.nc emi_ch4 2009-2019/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 3
+)))UPDATED_GFED4
+
+#==============================================================================
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 #
 # NOTES:
 # - Use either this inventory or the wetland extension -- not both!
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4   $ROOT/CH4/v2020-04/JPL_WetCharts/JPL_WetCharts_$YYYY.Ensemble_Mean.0.5x0.5.nc emi_ch4 2009-2017/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4  $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -462,96 +493,7 @@ Warnings:                    1
 (((METEOROLOGY
 
 #==============================================================================
-# --- Meteorology fields ---
-#==============================================================================
-# --- CN fields ---
-* FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
-* FRLAND    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAND   */1/1/0               C xy  1  * -  1 1
-* FRLANDIC  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLANDIC */1/1/0               C xy  1  * -  1 1
-* FROCEAN   $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FROCEAN  */1/1/0               C xy  1  * -  1 1
-* PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
-
-# --- A1 fields ---
-* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
-
-# --- A3cld fields ---
-* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-
-# --- A3dyn fields ---
-* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-
-# --- A3mstC fields ---
-* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-
-# --- A3mstE fields ---
-* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
-
-# --- I3 fields ---
-* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2021/1-12/1-31/*           EFY xy  1  * -  1 1
-* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
-* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
-
-* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2021/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
-* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
-* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+# --- Meteorology fields for FlexGrid ---
 
 )))METEOROLOGY
 
@@ -571,7 +513,7 @@ Warnings:                    1
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_ $ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EY xyz 1 * - 1 1
+* BC_ $ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 #==============================================================================
@@ -579,13 +521,13 @@ Warnings:                    1
 #==============================================================================
 (((CHEMISTRY_INPUT
 (((GMI_CH4_LOSS
-* CH4_LOSS   $ROOT/CH4/v2014-09/4x5/gmi.ch4loss.geos5_47L.4x5.nc     CH4loss      1985/1-12/1/0 C xyz s-1   * - 1 1
+{CH4_LOSS}
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_OH 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+{GLOBAL_OH}
 )))GLOBAL_OH
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4 SpeciesConc_Cl 2010-2019/1-12/1/0 C xyz 1 * - 1 1
+{GLOBAL_Cl}
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 
@@ -788,9 +730,9 @@ Warnings:                    1
 # Fire diurnal scaling factors (% per hour) from WRAP Report to Project
 # No. 178-6, July 2005
 #==============================================================================
-(((QFED2
+(((QFED2.or.GFAS.or.BB4MIPS
 75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
-)))QFED2
+)))QFED2.or.GFAS.or.BB4MIPS
 
 )))EMISSIONS
 
@@ -807,16 +749,15 @@ Warnings:                    1
 #==============================================================================
 # Country/region masks
 #==============================================================================
-(((CanMex
+(((Scarpelli_Mexico
 1001 MEXICO_MASK     $ROOT/MASKS/v2018-09/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
 1010 MEX_MASK_MIRROR $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+)))Scarpelli_Mexico
+
+(((Sheng_Canada
 1002 CANADA_MASK     $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 1011 CAN_MASK_MIRROR $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-)))CanMex
-
-(((MIX
-1006 ASIA_MASK       $ROOT/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc MASK     2000/1/1/0 C xy 1 1 46/-12/180/82
-)))MIX
+)))Sheng_Canada
 
 (((GEPA
 1008 CONUS_MASK      $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60

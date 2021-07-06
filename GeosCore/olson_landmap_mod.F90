@@ -330,16 +330,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_LandTypeFrac( Input_Opt, State_Met, RC )
+  SUBROUTINE Init_LandTypeFrac( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
+    USE CMN_SIZE_Mod,         ONLY : NSURFTYPE
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE Hco_EmisList_Mod,  ONLY : Hco_GetPtr
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Met_Mod,     ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Met_Mod,        ONLY : MetState
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -347,6 +347,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -368,13 +369,14 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: T
+    LOGICAL            :: FND
 
     ! Strings
     CHARACTER(LEN=10)  :: Name
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(f4), POINTER  :: Ptr2D(:,:)
+    REAL(f4), POINTER :: Ptr2D(:,:)
 
     !=======================================================================
     ! Init_LandTypeFrac begins here!
@@ -386,9 +388,6 @@ CONTAINS
     ThisLoc = &
       ' -> at Init_LandTypeFrac (in module "GeosCore/olson_landmap_mod.F90'
 
-    ! Free pointer
-    Ptr2D => NULL()
-
     ! Loop over the number of Olson land types
     DO T = 1, NSURFTYPE
 
@@ -396,15 +395,15 @@ CONTAINS
        ! (variable names are LANDTYPE00, LANDTYPE01 .. LANDTYPE72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'LANDTYPE', i2.2 )
-       CALL HCO_GetPtr( HcoState, Name, Ptr2D, RC )
+       CALL HCO_GC_GetPtr( Input_Opt, State_Grid, Name, Ptr2D, RC, FOUND=FND )
 
        ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to HEMCO field: ' // TRIM( Name )
+       IF ( RC /= GC_SUCCESS .or. .not. FND ) THEN
+          ErrMsg = 'Could not read HEMCO field: ' // TRIM( Name )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
+     
        ! Copy into State_Met%LandTypeFrac
        State_Met%LandTypeFrac(:,:,T) = Ptr2D
 

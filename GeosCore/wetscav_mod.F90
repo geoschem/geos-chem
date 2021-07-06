@@ -1483,7 +1483,7 @@ CONTAINS
 
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
        UNITCHANGE_KGKG = .TRUE.
-       CALL ConvertBox_KgKgDry_to_Kg( I, J, L, State_Met, State_Chm, RC )
+       CALL ConvertBox_KgKgDry_to_Kg( I, J, L, State_Met, State_Chm, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1494,7 +1494,7 @@ CONTAINS
 
     ELSE IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1676,7 +1676,7 @@ CONTAINS
     ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
     !-----------------------------------------------------------------
     IF ( UNITCHANGE_KGKG ) THEN
-       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, RC )
+       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1686,7 +1686,7 @@ CONTAINS
        ENDIF
 
     ELSE IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

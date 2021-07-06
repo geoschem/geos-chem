@@ -27,6 +27,9 @@ MODULE Diagnostics_mod
   PUBLIC :: Set_Diagnostics_EndofTimestep
   PUBLIC :: Zero_Diagnostics_StartofTimestep
   PUBLIC :: Compute_Budget_Diagnostics
+#ifdef ADJOINT
+  PUBLIC :: Set_SpcAdj_Diagnostic
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -125,6 +128,25 @@ CONTAINS
        RETURN
     ENDIF
 
+#ifdef ADJOINT
+    !-----------------------------------------------------------------------
+    ! Set species concentration diagnostic in units specified in state_diag_mod
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_SpeciesAdj ) THEN
+       ! if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
+       !    write(*,*) 'Before diagnostic ',  &
+       !         State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
+       ! ENDIF
+       CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,         &
+                                   State_Grid, State_Met, RC                 )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting species adoint diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
+#endif
     !-----------------------------------------------------------------------
     ! Set total dry deposition flux
     !-----------------------------------------------------------------------
@@ -312,6 +334,142 @@ CONTAINS
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC
+#ifdef ADJOINT
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_SpcAdj_Diagnostic
+!
+! !DESCRIPTION: Subroutine Set_SpcAdj\_Diagnostic sets the passed species
+!  adjoint diagnostic array stored in State_Diag to the instantaneous
+!  State_Chm%SpeciesAdj values converted to the diagnostic unit stored in 
+!  the State_Diag metadata.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_SpcAdj_Diagnostic( Input_Opt, State_Chm, State_Diag,    &
+                                    State_Grid, State_Met, RC           )  
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
+    TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC      ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  15 Dec 2019 - C. Lee - Initial version
+!  17 Dec 2020 - C. Lee - Updated to account for changes to Set_SpcConcs
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL               :: Found
+    INTEGER               :: D, I, J, L, N, S
+    REAL(fp)              :: TmpVal, Conv
+
+    ! Strings
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData
+
+    ! Arrays
+    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,State_Chm%nSpecies)
+
+    !====================================================================
+    ! Set_SpcAdj_Diagnostic begins here!
+    !====================================================================
+
+    ! Assume success
+    RC      =  GC_SUCCESS
+    Found   = .FALSE.
+    ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
+
+
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          ! Forward code
+          ! TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+          !                     ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+          TmpSpcArr(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
+       ENDDO
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    !=======================================================================
+    ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
+    !=======================================================================
+    IF ( Input_Opt%Is_Adjoint ) THEN
+
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_SpeciesConc
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%SpeciesAdj(:,:,:,S) = TmpSpcArr(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Set_SpcAdj_Diagnostic
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

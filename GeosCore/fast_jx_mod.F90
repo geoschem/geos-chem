@@ -89,11 +89,6 @@ MODULE FAST_JX_MOD
   ! Needed for scaling JNIT/JNITs photolysis to JHNO3
   REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
 
-#ifdef MODEL_GEOS
-  ! Diagnostics arrays (ckeller, 5/22/18)
-  REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
-#endif
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -195,7 +190,7 @@ CONTAINS
     INTEGER       :: KTOP(State_Grid%NZ)
     INTEGER       :: INDICATOR(State_Grid%NZ+2)
     REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
-                                              !  in a block, size can be to 
+                                              !  in a block, size can be to
                                               !  FIX(State_Grid%NZ)+1
     REAL(fp)      :: CLDF1D(State_Grid%NZ)
     REAL(fp)      :: ODNEW(State_Grid%NZ)
@@ -1324,11 +1319,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef MODEL_GEOS
     INTEGER, PARAMETER  ::  LSPH_ = 200
-#else
-    INTEGER, PARAMETER  ::  LSPH_ = 100
-#endif
 
     ! RZ      Distance from centre of Earth to each point (cm)
     ! RQ      Square of radius ratios
@@ -1393,7 +1384,7 @@ CONTAINS
 
        ! fix above top-of-atmos (L=L1U+1), must set DTAU(L1U+1)=0
        AMF2(2*L1U+1,J) = 1.e+0_fp
-       
+
        ! Twilight case - Emergent Beam, calc air mass factors below layer
        if (U0 .ge. 0.0e+0_fp) goto 16
 
@@ -1435,10 +1426,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EXTRAL (Input_Opt,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
+  SUBROUTINE EXTRAL (Input_Opt,State_Diag,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
 !
 ! !USES:
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Diag_Mod, ONLY : DgnState
 !
 !
 ! !INPUT PARAMETERS:
@@ -1448,6 +1440,10 @@ CONTAINS
     integer,        intent(in) :: NX          !Mie scattering array size
     real(fp),       intent(in) :: DTAUX(L1X)  !cloud+3aerosol OD in each layer
     integer,        intent(in) :: ILON, ILAT  !lon,lat index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1570,7 +1566,7 @@ CONTAINS
     ! print error and cut off JXTRAL at lower L if too many levels
     if ( failed ) then
        IF ( Input_Opt%FJX_EXTRAL_ERR ) THEN
-          write(6,'(A,3I5)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
        ENDIF
        do L = L2,1,-1
           JXTRA(L) = 0
@@ -1581,14 +1577,18 @@ CONTAINS
     !10 continue
 
     ! Fill diagnostics arrays
-    EXTRAL_NLEVS(ILON,ILAT) = SUM(JXTRA(:))
-    EXTRAL_NITER(ILON,ILAT) = N
+    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
+       State_Diag%EXTRALNLEVS(ILON,ILAT) = SUM(JXTRA(:))
+    ENDIF
+    IF ( State_Diag%Archive_EXTRALNITER ) THEN
+       State_Diag%EXTRALNITER(ILON,ILAT) = N
+    ENDIF
 #else
     JTOTL    = L2X + 2
     do L2 = L2X,1,-1
        JTOTL  = JTOTL + JXTRA(L2)
        if (JTOTL .gt. NX/2)  then
-          write(6,'(A,3I5)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
           do L = L2,1,-1
              JXTRA(L) = 0
           enddo
@@ -1926,14 +1926,6 @@ CONTAINS
 #endif
 
     ENDIF
-
-#ifdef MODEL_GEOS
-    ! Diagnostics arrays
-    ALLOCATE(EXTRAL_NLEVS(State_Grid%NX,State_Grid%NY))
-    ALLOCATE(EXTRAL_NITER(State_Grid%NX,State_Grid%NY))
-    EXTRAL_NLEVS(:,:) = 0.0
-    EXTRAL_NITER(:,:) = 0.0
-#endif
 
   END SUBROUTINE INIT_FJX
 !EOC
@@ -2755,7 +2747,7 @@ CONTAINS
 !   UPDATE: because the RT optics output doesnt have access to the
 !   standard wavelengths we now calculate two sets of values: one
 !   for the ND21 and diag3 outputs that use the standard wavelengths
-!   and one for ND72 that interpolates the optics from RRTMG
+!   and one for RRTMG diagnostics that interpolate the optics from RRTMG
 !   wavelengths. Perhaps a switch needs adding to switch off the RT
 !   optics output (and interpolation) if this ends up costing too
 !   much and is not used, but it is ideal to have an optics output
@@ -3551,6 +3543,16 @@ CONTAINS
     ! PHOTO_JX begins here!
     !=================================================================
 
+#if defined( MODEL_GEOS )
+    ! Initialize diagnostics arrays
+    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
+       State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0 
+    ENDIF
+    IF ( State_Diag%Archive_EXTRALNITER ) THEN
+       State_Diag%EXTRALNITER(ILON,ILAT) = 0.0 
+    ENDIF
+#endif
+
     if (State_Grid%NZ+1 .gt. JXL1_) then
        call EXITC(' PHOTO_JX: not enough levels in JX')
     endif
@@ -3763,7 +3765,7 @@ CONTAINS
     ! Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
     !  additonal levels at top of clouds (now uses log spacing)
     ! --------------------------------------------------------------------
-    call EXTRAL(Input_Opt,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
+    call EXTRAL(Input_Opt,State_Diag,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
     ! --------------------------------------------------------------------
 
     ! set surface reflectance
@@ -4397,7 +4399,7 @@ CONTAINS
 
        ! at this point FTAU2(1:L2_+1) and POMEAGJ(1:8, 1:L2_+1)
        !     where FTAU2(L2_+1) = 1.0 = top-of-atmos, FTAU2(1) = surface
-       
+
        do L2 = 1,L2U+1          ! L2 = index of CTM edge- and mid-layers
           L2L = L2LEV(L2)        ! L2L = index for L2 in expanded scale(JADD)
           LZ  = ND + 2 - 2*L2L  ! LZ = index for L2 in scatt arrays
@@ -5273,24 +5275,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag,       &
-                           I,         J,         L,     &
-                           NUMDEN,    TEMP,      C_H2O, &
-                           FRAC,      RC )
+  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
+                           I,         J,          L,                         &
+                           FRAC,      RC                                    )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
-    REAL(fp),       INTENT(IN)    :: NUMDEN     ! Air # density [molec/m3]
-    REAL(fp),       INTENT(IN)    :: TEMP       ! Temperature [K]
-    REAL(fp),       INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
     REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
                                                 !  called from DO_FLEXCHEM
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5318,9 +5318,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL  :: DO_ND22
-    REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
-    REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
+    REAL(fp) :: C_O2,     C_N2, C_H2,   ITEMPK, RO1DplH2O
+    REAL(fp) :: RO1DplH2, RO1D, NUMDEN, TEMP,   C_H2O
 
     !=================================================================
     ! PHOTRATE_ADJ begins here!
@@ -5328,6 +5327,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+    TEMP    = State_Met%T(I,J,L)                                 ! K
+    NUMDEN  = State_Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
+    C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
     ! scaled value of JHNO3. NOTE: this is set in input.geos

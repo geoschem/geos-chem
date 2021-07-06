@@ -310,8 +310,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -320,19 +320,19 @@ CONTAINS
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef APM
-    USE APM_INIT_MOD,       ONLY : APMIDS
-    USE APM_INIT_MOD,       ONLY : NBCOC,CEMITBCOC1
+    USE APM_INIT_MOD,         ONLY : APMIDS
+    USE APM_INIT_MOD,         ONLY : NBCOC,CEMITBCOC1
     USE HCO_DIAGN_MOD
-    USE HCO_TYPES_MOD,      ONLY : DiagnCont
-    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+    USE HCO_TYPES_MOD,        ONLY : DiagnCont
+    USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
 #ifdef BPCH_DIAG
-    USE CMN_O3_MOD,         ONLY : SAVEOA
+    USE CMN_O3_MOD,           ONLY : SAVEOA
 #endif
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : SOACOND, IBINS              !(win, 1/25/10)
-    USE TOMAS_MOD,          ONLY : CHECKMN                     !(sfarina)
-    USE PRESSURE_MOD,       ONLY : GET_PCENTER
+    USE TOMAS_MOD,            ONLY : SOACOND, IBINS              !(win, 1/25/10)
+    USE TOMAS_MOD,            ONLY : CHECKMN                     !(sfarina)
+    USE PRESSURE_MOD,         ONLY : GET_PCENTER
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -475,7 +475,7 @@ CONTAINS
     IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
 
        ! Evaluate offline oxidant fields from HEMCO: global OH
-       CALL HCO_EvalFld(HcoState, 'GLOBAL_OH', OFFLINE_OH, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -483,7 +483,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global O3
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', OFFLINE_O3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -491,7 +491,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global NO3
-       CALL HCO_EvalFld(HcoState, 'GLOBAL_NO3', OFFLINE_NO3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -4634,7 +4634,7 @@ CONTAINS
    USE HCO_Error_Mod
    USE HCO_State_Mod,         ONLY : HCO_GetHcoID
    USE HCO_State_GC_Mod,      ONLY : HcoState
-   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
+   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis, LoadHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
@@ -4741,6 +4741,11 @@ CONTAINS
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
 
+   ! First load SESQID into emissions buffer if available
+   IF ( SESQID > 0 ) THEN
+       CALL LoadHcoValEmis ( Input_Opt, State_Grid, SESQID )
+   ENDIF
+
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
    !$OMP PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
@@ -4754,7 +4759,7 @@ CONTAINS
       ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
-         CALL GetHcoValEmis ( SESQID, I, J, 1, FOUND, EMIS )
+         CALL GetHcoValEmis ( Input_Opt, State_Grid, SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
@@ -4816,9 +4821,9 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE ERROR_MOD
-   USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-   USE HCO_Interface_Common, ONLY : GetHcoDiagn
+   USE HCO_Interface_Common, ONLY : GetHcoDiagn! TOMAS: HEMCO diags (not IMGrid ready)
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
@@ -5050,7 +5055,7 @@ CONTAINS
       ! Number of BB fires for parameterization (ramnarine 12/27/2018)
       ! Evalulate the fire number from HEMCO every timestep to apply masks
       ! and scaling configured in HEMCO config
-      CALL HCO_EvalFld( HcoState, 'FINN_DAILY_NUMBER', FIRE_NUM, RC )
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'FINN_DAILY_NUMBER', FIRE_NUM, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error evaluating FINN_DAILY_NUMBER in HEMCO data list!'
          CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS' )

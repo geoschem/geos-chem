@@ -160,9 +160,6 @@ function update_config_files() {
 	sed_ie "${SED_RUN_CONFIG_4}" ${root}/${runDir}/runConfig.sh
 	sed_ie "${SED_RUN_CONFIG_5}" ${root}/${runDir}/runConfig.sh
 	sed_ie "${SED_RUN_CONFIG_6}" ${root}/${runDir}/runConfig.sh
-
-	# Copy the run scripts
-	cp ${root}/${runDir}/runScriptSamples/*.sh ${root}/${runDir}
     fi
 }
 

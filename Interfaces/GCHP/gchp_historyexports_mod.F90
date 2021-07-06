@@ -159,7 +159,7 @@ CONTAINS
        RETURN
     ENDIF
     ! Optional debugging
-    !CALL Print_DiagList( am_I_Root, HistoryConfig%DiagList, RC )
+    ! CALL Print_DiagList( am_I_Root, HistoryConfig%DiagList, RC )
 
     CALL Init_TaggedDiagList( am_I_Root, HistoryConfig%DiagList,  &
                               HistoryConfig%TaggedDiagList, RC   )
@@ -813,7 +813,10 @@ CONTAINS
     ! Loop over the History Exports list
     current => HistoryConfig%HistoryExportsList%head
     DO WHILE ( ASSOCIATED( current ) )
-
+       
+       ! if (MAPL_Am_I_Root()) THEN
+       !    print *, '  Copying ' // TRIM(current%name)
+       ! endif
        IF ( current%rank == 2 ) THEN
           IF ( ASSOCIATED( current%GCStateData2d ) ) THEN
              current%ExportData2d = current%GCStateData2d
@@ -865,6 +868,7 @@ CONTAINS
 
     ! Copy emissions data to MAPL exports via HEMCO
     CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
+    ! IF ( MAPL_Am_I_Root() ) WRITE(*,*) "Back from HCOI_GC_WriteDiagn, RC = ", RC
     IF ( RC == GC_FAILURE ) THEN
        ErrMsg = "Error copying emissions data to MAPL via HEMCO"
        CALL GC_ERROR( ErrMsg, RC, Iam )

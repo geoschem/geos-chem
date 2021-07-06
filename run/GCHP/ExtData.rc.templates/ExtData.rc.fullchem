@@ -1,6 +1,5 @@
 
 Ext_AllowExtrap: .true.
-DEBUG_LEVEL: 0
 #
 PrimaryExports%%
 #--------|-------|------|------------|---------------|--------|-------|---------------------|
@@ -481,59 +480,6 @@ NEI11_PTNONIPM_C2H6 kgC/m2/s Y Y F2011-%m2-01T00:00:00 none none ETHA     ./HcoD
 NEI11_PTNONIPM_ALD2 kgC/m2/s Y Y F2011-%m2-01T00:00:00 none none ALD2     ./HcoDir/NEI2011/v2017-02-MM_for_GCHP/%m2/NEI11_0.1x0.1_2011%m2_monmean_ptnonipm.nc
 NEI11_PTNONIPM_BCPI kg/m2/s  Y Y F2011-%m2-01T00:00:00 none none PEC      ./HcoDir/NEI2011/v2017-02-MM_for_GCHP/%m2/NEI11_0.1x0.1_2011%m2_monmean_ptnonipm.nc
 NEI11_PTNONIPM_OCPI kg/m2/s  Y Y F2011-%m2-01T00:00:00 none none POC      ./HcoDir/NEI2011/v2017-02-MM_for_GCHP/%m2/NEI11_0.1x0.1_2011%m2_monmean_ptnonipm.nc
-#
-#==============================================================================
-# --- MIX v1.1 Asia (MIX) ---
-#==============================================================================
-MIX_NO_IND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_INDUSTRY      ./HcoDir/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc
-MIX_NO_POW   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_POWER         ./HcoDir/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc
-MIX_NO_RES   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_RESIDENTIAL   ./HcoDir/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc
-MIX_NO_TRA   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_TRANSPORT     ./HcoDir/MIX/v2015-03/MIX_Asia_NO.generic.025x025.nc
-MIX_CO_IND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_INDUSTRY      ./HcoDir/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc
-MIX_CO_POW   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_POWER         ./HcoDir/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc
-MIX_CO_RES   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_RESIDENTIAL   ./HcoDir/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc
-MIX_CO_TRA   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_TRANSPORT     ./HcoDir/MIX/v2015-03/MIX_Asia_CO.generic.025x025.nc
-MIX_SO2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_INDUSTRY     ./HcoDir/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc
-MIX_SO2_POW  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_POWER        ./HcoDir/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc
-MIX_SO2_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_RESIDENTIAL  ./HcoDir/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc
-MIX_SO2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_TRANSPORT    ./HcoDir/MIX/v2015-03/MIX_Asia_SO2.generic.025x025.nc
-MIX_ALK4_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc
-MIX_ALK4_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc
-MIX_ALK4_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc
-MIX_ALK4_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_ALK4.generic.025x025.nc
-MIX_ACET_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ACET_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc
-MIX_ACET_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ACET_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc
-MIX_ACET_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ACET_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc
-MIX_ACET_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ACET_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_ACET.generic.025x025.nc
-MIX_ALD2_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc
-MIX_ALD2_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc
-MIX_ALD2_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc
-MIX_ALD2_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_ALD2.generic.025x025.nc
-MIX_C2H6_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc
-MIX_C2H6_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc
-MIX_C2H6_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc
-MIX_C2H6_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_C2H6.generic.025x025.nc
-MIX_C3H8_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc
-MIX_C3H8_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc
-MIX_C3H8_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc
-MIX_C3H8_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_C3H8.generic.025x025.nc
-MIX_CH2O_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc
-MIX_CH2O_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc
-MIX_CH2O_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc
-MIX_CH2O_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_CH2O.generic.025x025.nc
-MIX_MEK_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_INDUSTRY     ./HcoDir/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc
-MIX_MEK_POW  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_POWER        ./HcoDir/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc
-MIX_MEK_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_RESIDENTIAL  ./HcoDir/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc
-MIX_MEK_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_TRANSPORT    ./HcoDir/MIX/v2015-03/MIX_Asia_MEK.generic.025x025.nc
-MIX_NH3_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_AGRICULTURE  ./HcoDir/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc
-MIX_NH3_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_INDUSTRY     ./HcoDir/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc
-MIX_NH3_POW  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_POWER        ./HcoDir/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc
-MIX_NH3_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_RESIDENTIAL  ./HcoDir/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc
-MIX_NH3_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_TRANSPORT    ./HcoDir/MIX/v2015-03/MIX_Asia_NH3.generic.025x025.nc
-MIX_PRPE_IND kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_INDUSTRY    ./HcoDir/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc
-MIX_PRPE_POW kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_POWER       ./HcoDir/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc
-MIX_PRPE_RES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_RESIDENTIAL ./HcoDir/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc
-MIX_PRPE_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_TRANSPORT   ./HcoDir/MIX/v2015-03/MIX_Asia_PRPE.generic.025x025.nc
 #
 ##==============================================================================
 ## --- DICE-Africa emission inventory (DICE_Africa) ---
@@ -1959,6 +1905,7 @@ SOLFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/Annual
 # --- Diurnal scale factors ---
 #==============================================================================
 EDGAR_TODNOX 1 N Y F2000-01-01T%h2:00:00 none none NOXscale ./HcoDir/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
+EDGAR_TODNOX_UNDO 1 N Y F2000-01-01T%h2:00:00 none none NOXscale ./HcoDir/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
 #
 #==============================================================================
 # --- Seasonal scale factors ---
@@ -2001,6 +1948,13 @@ NEI99_DOW_MSA  1 D N F1999-%m2-01T00:00:00 none none MSA  ./HcoDir/NEI2005/v2014
 NEI99_DOW_BCPI 1 D N F1999-%m2-01T00:00:00 none none BCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
 NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
 #
+#==============================================================================
+# --- CEDS vertical partitioning ---
+#==============================================================================
+ENERGY_LEVS   1 N Y - none none g_energy   ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+INDUSTRY_LEVS 1 N Y - none none g_industry ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+#
 ###############################################################################
 ###
 ### Masks (update if HEMCO_Config.rc changes)
@@ -2011,7 +1965,6 @@ NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2014
 # Country/region masks
 #==============================================================================
 CANADA_MASK 1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/Canada_mask.geos.1x1.nc
-ASIA_MASK   1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc
 CONUS_MASK  1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask.01x01.nc
 CHINA_MASK  1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/China_mask.generic.1x1.nc
 INDIA_MASK  1 N Y - none none MASK ./HcoDir/MASKS/v2019-05/India_mask.generic.1x1.nc

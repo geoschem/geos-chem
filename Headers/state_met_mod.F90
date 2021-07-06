@@ -126,6 +126,8 @@ MODULE State_Met_Mod
                                                 !   current time
      REAL(fp), POINTER :: SUNCOSmid     (:,:  ) ! COS(solar zenith angle) at
                                                 !  midpoint of chem timestep
+     REAL(fp), POINTER :: SUNCOSsum     (:,:  ) ! Sum of COS(SZA) for HEMCO OH
+                                                !  diurnal variability
      REAL(fp), POINTER :: SWGDN         (:,:  ) ! Incident radiation @ ground
                                                 !  [W/m2]
      REAL(fp), POINTER :: TO3           (:,:  ) ! Total overhead O3 column [DU]
@@ -409,6 +411,7 @@ CONTAINS
     State_Met%SNOMAS         => NULL()
     State_Met%SUNCOS         => NULL()
     State_Met%SUNCOSmid      => NULL()
+    State_Met%SUNCOSsum      => NULL()
     State_Met%SWGDN          => NULL()
     State_Met%TO3            => NULL()
     State_Met%TROPP          => NULL()
@@ -1688,6 +1691,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%SUNCOSmid,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SUNCOSsum [1] (for HEMCO)
+    !------------------------------------------------------------------------
+    metId = 'SUNCOSsum'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%SUNCOSsum,                                   &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4805,6 +4826,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'SUNCOSSUM' )
+          IF ( isDesc  ) Desc  = 'Sum of Cosine of solar zenith angle, current time (HEMCO)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'SWGDN' )
           IF ( isDesc  ) Desc  = 'Incident shortwave radiation at ground'
           IF ( isUnits ) Units = 'W m-2'
@@ -6134,6 +6160,8 @@ CONTAINS
     ELSE
        doRegister = .TRUE.
     ENDIF
+
+    doSlots = PRESENT( nSlots )
 
     IF ( PRESENT( zxyOrder ) ) THEN
        doZxy = zxyOrder

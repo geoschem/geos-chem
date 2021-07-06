@@ -72,7 +72,7 @@ fi
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
-
+printf "   3. CO2 w/ CMS-Flux emissions\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -81,6 +81,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=fullchem
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=TransportTracers
+    elif [[ ${sim_num} = "3" ]]; then
+	sim_name=CO2
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -301,12 +305,17 @@ mkdir -p ${rundir}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./input.nml                        ${rundir}
+cp ./logging.yml                      ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 cp ./GCHP.rc.template                 ${rundir}/GCHP.rc
 cp ./CAP.rc.template                  ${rundir}/CAP.rc
 cp ./runConfig.sh.template            ${rundir}/runConfig.sh
+# Only copy adjoint for CO2 simulation (for now)
+if [ "${sim_name}" == "CO2" ]; then
+    cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
+fi
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
@@ -323,6 +332,9 @@ mkdir ${rundir}/OutputDir
 chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    chmod 744 ${rundir}/runConfig_adj.sh
+fi
 chmod 744 ${rundir}/archiveRun.sh
 
 # Copy species database; append APM or TOMAS species if needed
@@ -374,6 +386,9 @@ cd ${rundir}
 # Replace token strings in certain files
 sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
 sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig_adj.sh
+fi
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
 sed -i -e "s|{MET}|${met_name}|"              input.geos
 sed -i -e "s|{SIM}|${sim_name}|"              input.geos
@@ -402,12 +417,19 @@ if [[ ${sim_extra_option} = "benchmark" ]]; then
 elif [[ ${sim_name} = "fullchem" ]]; then
     startdate="20190701"
     enddate="20190701"
+elif [ "${sim_type}" == "CO2" ]; then
+    startdate="20140901"
+    enddate="20140901"
 else
     startdate="20190101"
     enddate="20190201"
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig_adj.sh
+fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
@@ -417,6 +439,7 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     num_nodes=2
     num_cores_per_node=24
     grid_res=48
+    timeAvg_monthly="1"
     timeAvg_freq="7440000"
     inst_freq="7440000"
     start_time="000000"
@@ -424,12 +447,23 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency and duration is 31 days."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is monthly average."
+elif [ "${sim_type}" == "CO2" ]; then
+    total_cores=48
+    num_nodes=2
+    num_cores_per_node=24
+    grid_res=24
+    diag_freq="010000"
+    start_time="000000"
+    end_time="060000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="060000"
 else
     total_cores=24
     num_nodes=1
     num_cores_per_node=24
     grid_res=24
+    timeAvg_monthly=0
     timeAvg_freq="010000"
     inst_freq="010000"
     start_time="000000"
@@ -437,7 +471,7 @@ else
     dYYYYMMDD="00000000"
     dHHmmSS="010000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency and duration is hourly."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is hourly average."
 fi
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
 timeAvg_dur=${timeAvg_freq}
@@ -448,12 +482,28 @@ sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
 sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig.sh
 sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
 sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
 sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
 sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
 sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig_adj.sh
+fi
 sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
 sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
 sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc

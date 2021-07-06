@@ -181,14 +181,24 @@ CONTAINS
 !  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
 !  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
 !  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
-!  (5)  PMEAN     (REAL(fp)) : Altitude-weighted mean moist air pressure  [hPa]
-!  (6)  PMEAN_DRY (REAL(fp)) : Alt-weighted mean dry air partial pressure [hPa]
-!  (7)  DELP      (REAL(fp)) : Delta-P extent of grid box                 [hPa]
-!                              (Same for both moist and dry air since we
-!                              assume constant water vapor pressure
-!                              across box)
+!                              (Note that PMID_DRY and PEDGE_DRY represent local partial pressure of dry air 
+!                               (total pressure minus water vapor pressure), which is different
+!                               from the pressure that would occur in a dry hydrostatic atmosphere with the same
+!                               dry air mass distribution. The latter is needed for transport calculations
+!                               for which we have DELP_DRY. Despite similar names, DELP_DRY is fundamentally 
+!                               different from PEDGE_DRY. cdholmes 10/29/2020)
+!  (7)  DELP      (REAL(fp)) : Moist air Delta-P extent of grid box       [hPa]
+!                              (DELP is proportional to grid box moist air mass)
+!       DELP_DRY  (REAL(fp)) : Dry air Delta-P                     
+!                              (DELP_DRY is treated as proportional to grid box dry air mass,
+!                               but it is computed from dry surface pressure and Hybrid A's and B's.
+!                               This is for consistency with the assumptions about the vertical coordinate
+!                               in transport (TPCORE_FVDAS and the pressure fixer) to conserve mass. 
+!                               As a result, however, DELP_DRY is not consistent with the dry air mass 
+!                               computed from moist air mass and specific humidity, nor is it consistent
+!                               with the differences between consecutive PEDGE_DRY values. cdholmes 10/29/2020)
 !  (8)  AIRDEN    (REAL(fp)) : Mean grid box dry air density            [kg/m^3]
-!                              (defined as total dry air mass/box vol)
+!                              (defined as total dry air mass/box vol, computed from DELP_DRY (see note above))
 !  (9)  MAIRDEN   (REAL(fp)) : Mean grid box moist air density          [kg/m^3]
 !                              (defined as total moist air mass/box vol)
 !  (10) AD        (REAL(fp)) : Total dry air mass in grid box             [kg]
@@ -210,11 +220,10 @@ CONTAINS
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
     INTEGER             :: L_CG,      L_TP,       N
-    REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
-    REAL(fp)            :: Ev_mean,   PMEAN,      PMEAN_DRY, EsatA
-    REAL(fp)            :: EsatB,     EsatC,      EsatD
+    REAL(fp)            :: PEdge_Top, Esat 
+    REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
-    REAL(fp)            :: Pb,        Pt
+    REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
     LOGICAL             :: UpdtMR
 
     ! Arrays
@@ -309,8 +318,8 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                 ) &
     !$OMP PRIVATE( I,       J,         L,       Pedge_Top ) &
     !$OMP PRIVATE( EsatA,   EsatB,     EsatC,   EsatD     ) &
-    !$OMP PRIVATE( Esat,    SPHU_kgkg, Ev_mid,  Ev_edge   ) &
-    !$OMP PRIVATE( PMean,   Ev_mean,   PMean_Dry          )
+    !$OMP PRIVATE( Esat,    SPHU_kgkg                     ) &
+    !$OMP PRIVATE( XH2O, ADmoist                          )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -376,16 +385,8 @@ CONTAINS
        State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg / &
                                ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )
 
-       !=============================================================
-       ! Calculate water vapor partial pressures [hPa] from relative
-       ! humidity
-       !=============================================================
-
-       ! At vertical midpoint of grid box
-       Ev_mid  = State_Met%RH(I,J,L) * RHCONV * Esat
-
-       ! At bottom edge of grid box
-       Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid / State_Met%PMID(I,J,L)
+       ! Water vapor mole fraction [mol (H2O) / mol (moist air)]
+       XH2O = State_Met%AVGW(I,J,L) / ( 1.0e+0_fp + State_Met%AVGW(I,J,L) )
 
        !=============================================================
        ! Set grid box height [m]
@@ -416,13 +417,13 @@ CONTAINS
        ! Assume constant temperature and moisture across grid box.
        !
 
-       ! Grid box potential temperature [K]
+       ! Grid box potential temperature [K] at reference pressure 1000 hPa
        State_Met%THETA(I,J,L)  = State_Met%T(I,J,L) * &
                                  ( 1000.0_fp / State_Met%PMID(I,J,L) )**0.286
 
        ! Grid box virtual temperature [K]
-       State_Met%TV(I,J,L) = State_Met%T(I,J,L) / (1 - Ev_edge / &
-                             State_Met%PEDGE(I,J,L) * ( 1 - H2OMW / AIRMW ) )
+       State_Met%TV(I,J,L) = State_Met%T(I,J,L) / (1 - XH2O * &
+                             ( 1 - H2OMW / AIRMW ) )
 
        ! Grid box box height [m]
        State_Met%BXHEIGHT(I,J,L) = Rdg0 * State_Met%TV(I,J,L) * &
@@ -458,15 +459,15 @@ CONTAINS
        !==============================================================
 
        ! Partial pressure of dry air at lower edge of grid box [hPa]
-       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) - Ev_edge
+       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) * ( 1.e+0_fp - XH2O )
 
        ! Set dry air partial pressure for level State_Grid%NZ+1 lower edge
        IF ( L == State_Grid%NZ ) THEN
-          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top - Ev_edge
+          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top * ( 1.e+0_fp - XH2O )
        ENDIF
 
        ! Partial pressure of dry air at box centroid [hPa]
-       State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) - Ev_mid
+       State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) * ( 1.e+0_fp - XH2O )
 
        ! Set previous dry P difference to current dry P difference
        ! prior to updating with new met values
@@ -501,25 +502,9 @@ CONTAINS
        State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 ) * &
                              State_Grid%AREA_M2(I,J)
 
-       !==============================================================
-       ! Set grid box dry air partial pressures at grid box
-       ! altitude-weighted mean pressure [hPa]
-       ! Assume constant humidity across grid box.
-       !==============================================================
-
-       ! Mean altitude-weighted pressures in grid box [hPa] defined as
-       ! average P(z) over z. Use in the ideal gas law yields a
-       ! mean density equivalent to total mass per volume in grid box.
-       PMEAN = State_Met%DELP(I,J,L) / log( State_Met%PEDGE(I,J,L) / PEdge_Top )
-       Ev_mean   = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
-       PMEAN_DRY = PMEAN - Ev_mean
-
-       ! NOTE: Try the below definition in the future to change the
-       ! AIRDEN equation to use the ideal gas law, thereby removing
-       ! area-independence of AIRDEN
-       !State_Met%PMEAN_DRY( I,J,L ) = State_Met%DELP_DRY(I,J,L) / &
-       !                               log( State_Met%PEDGE(I,J,L) / &
-       !                                    PEdge_Top )
+       ! Mass of moist air [kg]
+       ADmoist             = ( State_Met%DELP(I,J,L) * G0_100 ) * &
+                             State_Grid%AREA_M2(I,J)
 
        !==============================================================
        ! Set grid box densities
@@ -544,23 +529,9 @@ CONTAINS
        State_Met%AIRNUMDEN(I,J,L) = State_Met%AIRDEN(I,J,L) * 1e-3_fp * &
                                     AVO / AIRMW
 
-       ! Set grid box moist air density [kg/m3] using the ideal gas law
-       ! and pressures derived from GMAO pressure
-       !
-       !  MAIRDEN = density of moist air [kg/m^3],
-       !  given by:
-       !
-       !            Partial      Molec     Partial       Molec
-       !            pressure   * wt of   + pressure of * wt of
-       !            of dry air   air       water vapor   water
-       ! Moist      [hPa]        [g/mol]   [hPa]         [g/mol]
-       ! Air     =  ------------------------------------------------
-       ! Density    Universal gas constant * Temp * 1000  * 0.01
-       !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
-       !
-       ! NOTE: MAIRDEN is used in wetscav_mod only
-       State_Met%MAIRDEN(I,J,L) = ( PMEAN_DRY * AIRMW + Ev_mean * H2OMW ) * &
-                                  PCONV * MCONV / RSTARG / State_Met%T(I,J,L)
+       ! Set grid box moist air density [kg/m3] 
+       ! Use moist air mass and volume                           
+       State_Met%MAIRDEN(I,J,L) = ADmoist / State_Met%AIRVOL(I,J,L)
 
        !==============================================================
        ! Define the various query fields of State_Met
@@ -938,7 +909,7 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-      ! Return if option not set
+    ! Return if option not set
 #ifdef MODEL_GEOS
     IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
 #endif
@@ -1248,6 +1219,9 @@ CONTAINS
     ! Compute cosine(SZA) quantities for the current time
     CALL COSSZA( DOY, HOUR, State_Grid, State_Met )
 
+    ! Compute sum of COSSZA for HEMCO
+    CALL Calc_SumCosZa ( State_Grid, State_Met )
+
   END SUBROUTINE GET_COSINE_SZA
 !EOC
 !------------------------------------------------------------------------------
@@ -1422,6 +1396,147 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE COSSZA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_sumcosza
+!
+! !DESCRIPTION:
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Calc_SumCosZa( State_Grid, State_Met )
+!
+! !USES:
+!
+    USE PhysConstants
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER, SAVE :: SAVEDOY = -1
+    INTEGER       :: I, J, L, N, NT, NDYSTEP
+    REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+    REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+    REAL(fp)      :: SUNTMP(State_Grid%NX,State_Grid%NY)
+
+    !=======================================================================
+    ! CALC_SUMCOSZA begins here!
+    !=======================================================================
+
+    !  Solar declination angle (low precision formula, good enough for us):
+    A0 = 0.006918
+    A1 = 0.399912
+    A2 = 0.006758
+    A3 = 0.002697
+    B1 = 0.070257
+    B2 = 0.000907
+    B3 = 0.000148
+    R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+
+    DEC = A0 - A1*cos(  R) + B1*sin(  R) &
+             - A2*cos(2*R) + B2*sin(2*R) &
+             - A3*cos(3*R) + B3*sin(3*R)
+
+    LHR0 = int(float( GET_NHMSb() )/10000.)
+
+    ! Only do the following at the start of a new day
+    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN
+
+       ! Zero arrays
+       State_Met%SUNCOSsum(:,:) = 0e+0_fp
+
+       ! NDYSTEP is # of chemistry time steps in this day
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()
+
+       ! NT is the elapsed time [s] since the beginning of the run
+       NT = GET_ELAPSED_SEC()
+
+       ! Loop forward through NDYSTEP "fake" timesteps for this day
+       DO N = 1, NDYSTEP
+
+          ! Zero SUNTMP array
+          SUNTMP = 0e+0_fp
+
+          ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP DEFAULT( SHARED )
+!!$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Grid box latitude center [radians]
+             YMID_R = State_Grid%YMid_R(I,J)
+
+             TIMLOC = real(LHR0) + real(NT)/3600.0 + &
+                      State_Grid%XMid(I,J) / 15.0
+
+             DO WHILE (TIMLOC .lt. 0)
+                TIMLOC = TIMLOC + 24.0
+             ENDDO
+
+             DO WHILE (TIMLOC .gt. 24.0)
+                TIMLOC = TIMLOC - 24.0
+             ENDDO
+
+             AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+
+             !===========================================================
+             ! The cosine of the solar zenith angle (SZA) is given by:
+             !
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+             !
+             ! where LAT = the latitude angle,
+             !       DEC = the solar declination angle,
+             !       AHR = the hour angle, all in radians.
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and
+             ! therefore does not contribute to any solar heating.
+             !===========================================================
+
+             ! Compute Cos(SZA)
+             SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +          &
+                           cos(YMID_R) * cos(DEC) * cos(AHR)
+
+             ! SUMCOSZA is the sum of SUNTMP at location (I,J)
+             ! Do not include negative values of SUNTMP
+             State_Met%SUNCOSsum(I,J) = State_Met%SUNCOSsum(I,J) + &
+                             MAX(SUNTMP(I,J),0e+0_fp)
+
+          ENDDO
+          ENDDO
+!!$OMP END PARALLEL DO
+
+          ! Increment elapsed time [sec]
+          NT = NT + GET_TS_CHEM()
+       ENDDO
+
+       ! Set saved day of year to current day of year
+       SAVEDOY = GET_DAY_OF_YEAR()
+
+    ENDIF
+
+  END SUBROUTINE Calc_SumCosZa
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

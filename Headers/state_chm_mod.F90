@@ -47,17 +47,18 @@ MODULE State_Chm_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local pointer to
-                                                     ! StateChm%SpcData for
-                                                     ! availability to IND_
+  TYPE(SpcPtr), PRIVATE, POINTER   :: SpcDataLocal(:)  ! Local pointer to
+                                                       ! StateChm%SpcData for
+                                                       ! availability to IND_
+  TYPE(SpcIndCt)                   :: SpcCount
 
-  TYPE(dictionary_t), PRIVATE    :: SpcDictLocal     ! Private copy of the
-                                                     ! Fortran Hash table for
-                                                     ! availability to IND_
+  TYPE(dictionary_t), PRIVATE      :: SpcDictLocal     ! Private copy of the
+                                                       ! Fortran Hash table for
+                                                       ! availability to IND_
 
 
-  INTEGER, PRIVATE               :: nChmState = 0    ! # chemistry states,
-                                                     ! this CPU
+  INTEGER, PRIVATE                 :: nChmState = 0    ! # chemistry states,
+                                                       ! this CPU
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -192,7 +193,12 @@ MODULE State_Chm_Mod
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
-     !-----------------------------------------------------------------------
+#ifdef ADJOINT
+     REAL(fp),          POINTER :: SpeciesAdj (:,:,:,:) ! Species adjoint variables
+     REAL(fp),          POINTER :: CostFuncMask(:,:,:)  ! cost function volume mask
+#endif
+
+     !----------------------------------------------------------------------
      ! Boundary conditions
      !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: BoundaryCond(:,:,:,:)! Boundary conditions
@@ -462,6 +468,12 @@ CONTAINS
     State_Chm%Spc_Units         =  ''
     State_Chm%BoundaryCond      => NULL()
 
+#ifdef ADJOINT
+    ! Chemical species adjoint variables
+    State_Chm%SpeciesAdj    => NULL()
+    State_Chm%CostFuncMask  => NULL()
+#endif
+
     ! RRTMG state
     State_Chm%RRTMG_iSeed       = 0
     State_Chm%RRTMG_iCld        = 0
@@ -604,7 +616,6 @@ CONTAINS
     CHARACTER(LEN=31)       :: fieldId(14)
 
     ! Objects
-    TYPE(SpcIndCt)          :: SpcCount
     TYPE(Species),  POINTER :: ThisSpc
     INTEGER,        POINTER :: CheckIds(:)
     REAL(fp),       POINTER :: Ptr2data(:,:,:)
@@ -833,6 +844,45 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+#ifdef ADJOINT
+    !========================================================================
+    ! Allocate and initialize chemical species fields
+    !========================================================================
+    chmID = 'SpeciesAdj'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%SpeciesAdj,                                  &
+         nSlots     = State_Chm%nSpecies,                                    &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize chemical species fields
+    !========================================================================
+    chmID = 'CostFuncMask'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%CostFuncMask,                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+#endif
 
     !========================================================================
     ! Boundary conditions (only needed for nested grid simulations)
@@ -3269,6 +3319,18 @@ CONTAINS
           IF ( isUnits ) Units  = 'varies'
           IF ( isRank  ) Rank   = 3
           IF ( isSpc   ) PerSpc = 'ALL'
+
+#ifdef ADJOINT
+       CASE ( 'SPECIESADJ' )
+          IF ( isDesc  ) Desc   = 'Adjoint variables for species'
+          IF ( isUnits ) Units  = 'varies'
+          IF ( isRank  ) Rank   = 3
+          IF ( isSpc   ) PerSpc = 'ALL'
+       CASE ( 'COSTFUNCMASK' )
+          IF ( isDesc    ) Desc  = 'Cost function volume mask'
+          IF ( isUnits   ) Units = 'none'
+          IF ( isRank    ) Rank  = 3
+#endif
 
        CASE( 'BOUNDARYCOND' )
           IF ( isDesc  ) Desc   = 'Transport boundary conditions for species'

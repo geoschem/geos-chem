@@ -48,23 +48,6 @@ MODULE CMN_DIAG_MOD
   INTEGER, PARAMETER :: MAX_DIAG = 80
   INTEGER, PARAMETER :: MAXFAM   = 40
 
-#elif defined(RRTMG)
-  !=================================================================
-  ! Settings for RRTMG radiative transfer model
-  !=================================================================
-
-  !number of rad flux and optics output types
-  !8 flux and 3*3=9 optics
-  INTEGER, PARAMETER :: PD72R=17
-
-  !total number of possible rad outputs (types*specs)
-  !there are 11 possible flux output 'species' but
-  !only 8 possible optics output 'species'
-  !for simplicity we take the largest and put up with
-  !some redundancy (should be 88+72=160)
-  INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
-  INTEGER, PARAMETER :: MAX_DIAG   = 187
-
 #else
   !=================================================================
   ! For non-TOMAS and non-RRTMG with BPCH_DIAG=y
@@ -81,10 +64,6 @@ MODULE CMN_DIAG_MOD
 #ifdef TOMAS
   INTEGER :: LD06, LD44, LD65, LD59, LD60, LD61
   INTEGER :: ND06, ND44, ND65, ND59, ND60, ND61
-#endif
-
-#ifdef RRTMG
-  INTEGER :: ND72
 #endif
 
   !=================================================================

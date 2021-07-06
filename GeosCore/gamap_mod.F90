@@ -77,10 +77,6 @@ MODULE GAMAP_MOD
   CHARACTER(LEN=16)              :: STAMP
   CHARACTER(LEN=40)              :: SIM_NAME
 
-  ! Used for ND72
-  CHARACTER(LEN=40)              :: NAME0, NAME1
-  CHARACTER(LEN=40)              :: FNAME0
-
   ! Species ID flags
   INTEGER :: id_NK1
 
@@ -339,135 +335,135 @@ CONTAINS
             ' to unit given below'                                   )
 155 FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-!    !-------------------------------------
-!    ! 0: Tracers [ppbv]
-!    !-------------------------------------
-!
-!    ! Write separator line
-!    CALL WRITE_SEPARATOR( IU_FILE, 0 )
-!
-!    ! Loop over tracers
-!    DO T = 1, NTRAC(45)
-!
-!       ! GAMAP tracer number
-!       N = ( SPACING * 0 ) + T
-!
-!       ! Write tracers [ppbv] to "tracerinfo.dat" file
-!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-!                         SCALE(T,45), UNIT(T,45), N )
-!    ENDDO
-!
-!    !-------------------------------------
-!    ! SPACING*1: Tracers [molec/cm2/s]
-!    !-------------------------------------
-!
-!    ! Write separator line
-!    CALL WRITE_SEPARATOR( IU_FILE, 100 )
-!
-!    ! Loop over tracers
-!    DO T = 1, NTRAC(45)
-!
-!       ! GAMAP tracer number
-!       N = ( SPACING * 1 ) + T
-!
-!       ! New scale
-!       SCALE_NEW = 1.0e0
-!
-!       ! New unit
-!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-!          UNIT_NEW = 'atoms C/cm2/s'
-!       ELSE
-!          UNIT_NEW = 'molec/cm2/s'
-!       ENDIF
-!
-!       ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
-!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-!                         SCALE_NEW,   UNIT_NEW, N )
-!    ENDDO
-!
-!    !-------------------------------------
-!    ! SPACING*2: Tracers [molec/cm2]
-!    !-------------------------------------
-!
-!    ! Write separator line
-!    CALL WRITE_SEPARATOR( IU_FILE, 200 )
-!
-!    ! Loop over tracers
-!    DO T = 1, NTRAC(45)
-!
-!       ! GAMAP tracer number
-!       N = ( SPACING * 2 ) + T
-!
-!       ! New scale
-!       SCALE_NEW = 1.0e0
-!
-!       ! New unit
-!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-!          UNIT_NEW = 'atoms C/cm2'
-!       ELSE
-!          UNIT_NEW = 'molec/cm2'
-!       ENDIF
-!
-!       ! Write tracers [molec/cm2] to "tracerinfo.dat"
-!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-!                         SCALE_NEW,   UNIT_NEW, N )
-!    ENDDO
-!
-!    !-------------------------------------
-!    ! SPACING*3: Tracers [kg/s]
-!    !-------------------------------------
-!
-!    ! Write separator line
-!    CALL WRITE_SEPARATOR( IU_FILE, 300 )
-!
-!    ! Loop over tracers
-!    DO T = 1, NTRAC(45)
-!
-!       ! GAMAP tracer number
-!       N = ( SPACING * 3 ) + T
-!
-!       ! New scale
-!       SCALE_NEW = 1.0e0
-!
-!       ! New unit
-!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-!          UNIT_NEW = 'kg C/s'
-!       ELSE
-!          UNIT_NEW = 'kg/s'
-!       ENDIF
-!
-!       ! Write tracers [kg/s] to "tracerinfo.dat"
-!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-!                         SCALE_NEW,   UNIT_NEW, N )
-!    ENDDO
-!
-!    !-------------------------------------
-!    ! SPACING*4: Tracers [kg]
-!    !-------------------------------------
-!
-!    ! Write separator line
-!    CALL WRITE_SEPARATOR( IU_FILE, 400 )
-!
-!    ! Loop over tracers
-!    DO T = 1, NTRAC(45)
-!
-!       ! GAMAP tracer number
-!       N = ( SPACING * 4 ) + T
-!
-!       ! New scale
-!       SCALE_NEW = 1.0e0
-!
-!       ! New unit
-!       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
-!          UNIT_NEW = 'kg C'
-!       ELSE
-!          UNIT_NEW = 'kg'
-!       ENDIF
-!
-!       ! Write tracers [kg] to "tracerinfo.dat"
-!       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
-!                         SCALE_NEW,   UNIT_NEW, N )
-!    ENDDO
+    !-------------------------------------
+    ! 0: Tracers [ppbv]
+    !-------------------------------------
+
+    ! Write separator line
+    CALL WRITE_SEPARATOR( IU_FILE, 0 )
+
+    ! Loop over tracers
+    DO T = 1, NTRAC(45)
+
+       ! GAMAP tracer number
+       N = ( SPACING * 0 ) + T
+
+       ! Write tracers [ppbv] to "tracerinfo.dat" file
+       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+                         SCALE(T,45), UNIT(T,45), N )
+    ENDDO
+
+    !-------------------------------------
+    ! SPACING*1: Tracers [molec/cm2/s]
+    !-------------------------------------
+
+    ! Write separator line
+    CALL WRITE_SEPARATOR( IU_FILE, 100 )
+
+    ! Loop over tracers
+    DO T = 1, NTRAC(45)
+
+       ! GAMAP tracer number
+       N = ( SPACING * 1 ) + T
+
+       ! New scale
+       SCALE_NEW = 1.0e0
+
+       ! New unit
+       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+          UNIT_NEW = 'atoms C/cm2/s'
+       ELSE
+          UNIT_NEW = 'molec/cm2/s'
+       ENDIF
+
+       ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
+       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+                         SCALE_NEW,   UNIT_NEW, N )
+    ENDDO
+
+    !-------------------------------------
+    ! SPACING*2: Tracers [molec/cm2]
+    !-------------------------------------
+
+    ! Write separator line
+    CALL WRITE_SEPARATOR( IU_FILE, 200 )
+
+    ! Loop over tracers
+    DO T = 1, NTRAC(45)
+
+       ! GAMAP tracer number
+       N = ( SPACING * 2 ) + T
+
+       ! New scale
+       SCALE_NEW = 1.0e0
+
+       ! New unit
+       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+          UNIT_NEW = 'atoms C/cm2'
+       ELSE
+          UNIT_NEW = 'molec/cm2'
+       ENDIF
+
+       ! Write tracers [molec/cm2] to "tracerinfo.dat"
+       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+                         SCALE_NEW,   UNIT_NEW, N )
+    ENDDO
+
+    !-------------------------------------
+    ! SPACING*3: Tracers [kg/s]
+    !-------------------------------------
+
+    ! Write separator line
+    CALL WRITE_SEPARATOR( IU_FILE, 300 )
+
+    ! Loop over tracers
+    DO T = 1, NTRAC(45)
+
+       ! GAMAP tracer number
+       N = ( SPACING * 3 ) + T
+
+       ! New scale
+       SCALE_NEW = 1.0e0
+
+       ! New unit
+       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+          UNIT_NEW = 'kg C/s'
+       ELSE
+          UNIT_NEW = 'kg/s'
+       ENDIF
+
+       ! Write tracers [kg/s] to "tracerinfo.dat"
+       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+                         SCALE_NEW,   UNIT_NEW, N )
+    ENDDO
+
+    !-------------------------------------
+    ! SPACING*4: Tracers [kg]
+    !-------------------------------------
+
+    ! Write separator line
+    CALL WRITE_SEPARATOR( IU_FILE, 400 )
+
+    ! Loop over tracers
+    DO T = 1, NTRAC(45)
+
+       ! GAMAP tracer number
+       N = ( SPACING * 4 ) + T
+
+       ! New scale
+       SCALE_NEW = 1.0e0
+
+       ! New unit
+       IF ( TRIM( UNIT(T,45) ) == 'ppbC' ) THEN
+          UNIT_NEW = 'kg C'
+       ELSE
+          UNIT_NEW = 'kg'
+       ENDIF
+
+       ! Write tracers [kg] to "tracerinfo.dat"
+       CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), &
+                         SCALE_NEW,   UNIT_NEW, N )
+    ENDDO
 
     !-------------------------------------
     ! All other diagnostics
@@ -1047,9 +1043,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef RRTMG
-    USE CMN_DIAG_MOD,       ONLY : PD72R
-#endif
     USE CMN_FJX_MOD,        ONLY : W_
     USE CMN_SIZE_MOD,       ONLY : NRHAER, NDUST, NSTRATAER
     USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -4734,170 +4727,6 @@ CONTAINS
        ENDDO
 
     ENDIF ! DO_TIMERSERIES
-
-#ifdef RRTMG
-    !-------------------------------------
-    ! Radiation outputs (ND72)
-    !-------------------------------------
-    IF ( ND72 > 0 .or. DO_TIMESERIES ) THEN
-
-       ! Number of tracers
-       IF ( Input_Opt%LUCX ) THEN
-          NTRAC(72) = (Input_Opt%NSPECRADMENU+1)*PD72R
-       ELSE
-          ! Skip strat aer
-          NTRAC(72) = (Input_Opt%NSPECRADMENU)*PD72R
-       ENDIF
-
-       ! Loop over tracers
-       DO T = 1, NTRAC(72)
-
-          ! Define quantities
-          INDEX(T,72) = T + ( SPACING * 72 )
-          MWT  (T,72) = 0e0
-          SCALE(T,72) = 1e0
-
-          !get number of current flux type
-          IF ( Input_Opt%LUCX ) THEN
-             T0 = ((T-1)/(Input_Opt%NSPECRADMENU+1))+1
-          ELSE
-             ! Skip strat aer
-             T0 = ((T-1)/(Input_Opt%NSPECRADMENU))+1
-          ENDIF
-
-          SELECT CASE( T0 )
-          CASE( 1  )
-             NAME0       = 'FSW'
-             NAME1       = 'TA'
-             FNAME0      = 'TOA SW All-sky'
-          CASE( 2  )
-             NAME0       = 'FSW'
-             NAME1       = 'SA'
-             FNAME0      = 'Surface SW All-sky'
-          CASE( 3  )
-             NAME0       = 'FLW'
-             NAME1       = 'TA'
-             FNAME0      = 'TOA LW All-sky'
-          CASE( 4  )
-             NAME0       = 'FLW'
-             NAME1       = 'SA'
-             FNAME0      = 'Surface LW All-sky'
-          CASE( 5  )
-             NAME0       = 'FSW'
-             NAME1       = 'TC'
-             FNAME0      = 'TOA SW Clear-sky'
-          CASE( 6  )
-             NAME0       = 'FSW'
-             NAME1       = 'SC'
-             FNAME0      = 'Flux SW Surface Clear-sky'
-          CASE( 7  )
-             NAME0       = 'FLW'
-             NAME1       = 'TC'
-             FNAME0      = 'TOA LW Clear-sky'
-          CASE( 8  )
-             NAME0       = 'FLW'
-             NAME1       = 'SC'
-             FNAME0      = 'Surface LW Clear-sky'
-          CASE( 9  )
-             NAME0      = 'AOD'
-             NAME1      = Input_Opt%STRWVSELECT(1)
-             FNAME0  = 'aer. op. depth ('//Input_Opt%STRWVSELECT(1)//'nm)'
-          CASE( 10 )
-             NAME0      = 'SSA'
-             NAME1      = Input_Opt%STRWVSELECT(1)
-             FNAME0  = 'Single scat. alb.('// Input_Opt%STRWVSELECT(1)//'nm)'
-          CASE( 11 )
-             NAME0      = 'ASM'
-             NAME1      = Input_Opt%STRWVSELECT(1)
-             FNAME0     = 'asym param ('//Input_Opt%STRWVSELECT(1)//'nm)'
-          CASE( 12  )
-             NAME0      = 'AOD'
-             NAME1      = Input_Opt%STRWVSELECT(2)
-             FNAME0     = 'aer. op. depth ('//Input_Opt%STRWVSELECT(2)//'nm)'
-          CASE( 13 )
-             NAME0      = 'SSA'
-             NAME1      = Input_Opt%STRWVSELECT(2)
-             FNAME0   = 'Single scat. alb.('//Input_Opt%STRWVSELECT(2)//'nm)'
-          CASE( 14 )
-             NAME0      = 'ASM'
-             NAME1      = Input_Opt%STRWVSELECT(2)
-             FNAME0     = 'asym param ('//Input_Opt%STRWVSELECT(2)//'nm)'
-          CASE( 15 )
-             NAME0      = 'AOD'
-             NAME1      = Input_Opt%STRWVSELECT(3)
-             FNAME0     = 'aer. op. depth ('//Input_Opt%STRWVSELECT(3)//'nm)'
-          CASE( 16 )
-             NAME0      = 'SSA'
-             NAME1      = Input_Opt%STRWVSELECT(3)
-             FNAME0   = 'Single scat. alb.('//Input_Opt%STRWVSELECT(3)//'nm)'
-          CASE( 17 )
-             NAME0      = 'ASM'
-             NAME1      = Input_Opt%STRWVSELECT(3)
-             FNAME0     = 'asym param ('//Input_Opt%STRWVSELECT(3)//'nm)'
-          END SELECT
-
-          ! Get name long-name (and sometimes, unit)
-          IF ( Input_Opt%LUCX ) THEN
-             T1=MOD((T-1),(Input_Opt%NSPECRADMENU+1))+1
-          ELSE
-             ! Skip strat aer
-             T1=MOD((T-1),(Input_Opt%NSPECRADMENU))+1
-          ENDIF
-
-          SELECT CASE( T1 )
-          CASE( 1  )
-             NAME (T,72) = TRIM(NAME0) // 'BA' // TRIM(NAME1)
-             FNAME(T,72) = 'Clear ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 2  )
-             NAME (T,72) = TRIM(NAME0) // 'O3' // TRIM(NAME1)
-             FNAME(T,72) = 'Ozone ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 3  )
-             NAME (T,72) = TRIM(NAME0) // 'CH' // TRIM(NAME1)
-             FNAME(T,72) = 'Methane ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 4  )
-             NAME (T,72) = TRIM(NAME0) // 'SU' // TRIM(NAME1)
-             FNAME(T,72) = 'Sulfate ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 5  )
-             NAME (T,72) = TRIM(NAME0) // 'NI' // TRIM(NAME1)
-             FNAME(T,72) = 'Nitrate ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 6  )
-             NAME (T,72) = TRIM(NAME0) // 'AM' // TRIM(NAME1)
-             FNAME(T,72) = 'Ammon. ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 7  )
-             NAME (T,72) = TRIM(NAME0) // 'BC' // TRIM(NAME1)
-             FNAME(T,72) = 'BC ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 8  )
-             NAME (T,72) = TRIM(NAME0) // 'OA' // TRIM(NAME1)
-             FNAME(T,72) = 'Organic ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 9  )
-             NAME (T,72) = TRIM(NAME0) // 'SS' // TRIM(NAME1)
-             FNAME(T,72) = 'Sea salt ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 10 )
-             NAME (T,72) = TRIM(NAME0) // 'DU' // TRIM(NAME1)
-             FNAME(T,72) = 'Dust ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 11 )
-             NAME (T,72) = TRIM(NAME0) // 'PM' // TRIM(NAME1)
-             FNAME(T,72) = 'All aerosol ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          CASE( 12 )
-             NAME (T,72) = TRIM(NAME0) // 'ST' // TRIM(NAME1)
-             FNAME(T,72) = 'Strat aer ' // TRIM(FNAME0)
-             UNIT (T,72) = 'W/m2'
-          END SELECT
-
-       ENDDO
-    ENDIF
-#endif
 
     ! Nullify pointer
     SpcInfo  => NULL()

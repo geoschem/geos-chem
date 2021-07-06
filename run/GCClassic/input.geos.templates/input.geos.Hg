@@ -13,6 +13,7 @@ Use GC classic timers?  : F
 %%% GRID MENU %%%       :
 Grid resolution         : {RES}
 Longitude min/max       : {LON_RANGE}
+ Center on 180E/W?      : {CENTER_180}
 Latitude  min/max       : {LAT_RANGE}
  Half-sized polar boxes?: {HALF_POLAR}
 Number of levels        : {NLEV}
@@ -80,7 +81,8 @@ Turn on Chemistry?      : T
 Use linear. strat. chem?: F
  => Use Linoz for O3?   : F
 Use UCX strat. chem?    : F
-Active strat. H2O?      : F
+ => Active strat. H2O?  : F
+ => Use static H2O BC   : F
 Overhead O3 for FAST-JX :---
  => Online O3 from model: F
  => O3 from met fields  : F
@@ -121,9 +123,8 @@ ObsPack output species  : NO CO O3
 #####                                                                     #####
 #####  BPCH_DIAG=y IS ALREADY TURNED ON BY DEFAULT FOR:                   #####
 #####  (1) TOMAS simulations                                              #####
-#####  (2) RRTMG simulations                                              #####
-#####  (3) Hg simulations                                                 #####
-#####  (4) POPs simulatons                                                #####
+#####  (2) Hg simulations                                                 #####
+#####  (3) POPs simulatons                                                #####
 #####                                                                     #####
 #####  FOR ALL OTHER SIMULATIONS, BPCH DIAGNOSTICS ARE TURNED OFF BY      #####
 #####  DEFAULT (i.e. BPCH_DIAG=n IS USED UNLESS YOU SPECIFY OTHERWISE).   #####
@@ -157,7 +158,6 @@ ND53: POPs Emissions    :  0   all
 ND59: TOMAS aerosol emis:  0   all
 ND60: TOMAS rate        :  0   all
 ND61: TOMAS 3D rate     :  0   all
-ND72: Radiative output  :  0   all
 ------------------------+------------------------------------------------------
 %%% PLANEFLIGHT MENU %%%:
 Turn on plane flt diag? : F

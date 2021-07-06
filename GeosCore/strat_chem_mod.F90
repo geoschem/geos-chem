@@ -89,10 +89,6 @@ MODULE Strat_Chem_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Species index of Bry species in input files
-  ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
-  INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
-
   ! BrPointers is a derived type to hold pointers to the Bry day
   ! and night data
   TYPE :: BrPointers
@@ -109,8 +105,8 @@ MODULE Strat_Chem_Mod
   !
   ! NOTE: Need to dynamically allocate these to avoid having to
   ! declare these with the SAVE attribute (bmy, 10/3/16)
-  TYPE(BrPointers), POINTER :: BrPtrDay(:)
-  TYPE(BrPointers), POINTER :: BrPtrNight(:)
+  TYPE(BrPointers), PUBLIC, POINTER :: BrPtrDay(:)
+  TYPE(BrPointers), PUBLIC, POINTER :: BrPtrNight(:)
 
   ! PL_Pointers is a derived type to hold pointers to the production
   ! and loss fields
@@ -120,11 +116,11 @@ MODULE Strat_Chem_Mod
   END TYPE PL_Pointers
 
   ! Monthly mean OH [v/v]
-  REAL(f4), POINTER     :: STRAT_OH(:,:,:) => NULL()
+  REAL(f4), PUBLIC, POINTER     :: STRAT_OH(:,:,:) => NULL()
 
   ! Vector holding the prod/loss arrays of all active strat chem
   ! species.
-  TYPE(PL_Pointers), POINTER :: PLVEC(:) => NULL()
+  TYPE(PL_Pointers), PUBLIC, POINTER :: PLVEC(:) => NULL()
 
   ! Toggle to specify whether or not production/loss rates must be provided
   ! for every strat chem species. If set to TRUE, the code will return with
@@ -143,16 +139,16 @@ MODULE Strat_Chem_Mod
 !
   ! Scalars
   REAL(fp)              :: dTchem          ! chemistry time step [s]
-  INTEGER               :: NSCHEM          ! Number of species upon which to
+  INTEGER, PUBLIC       :: NSCHEM          ! Number of species upon which to
                                            ! apply P's & k's in GEOS-Chem
   ! Arrays
-  CHARACTER(LEN=16), ALLOCATABLE :: TrName(:) !Tracer names in UCX/GMI
-  INTEGER, ALLOCATABLE  :: Strat_TrID_GC (:)  !Maps 1:NSCHEM to SC%Species
-  INTEGER, ALLOCATABLE  :: Strat_TrID_TND(:)  !Maps 1:NSCHEM to SCHEM_TEND
-  INTEGER, ALLOCATABLE  :: Strat_TrID(:)      !Maps 1:NSCHEM to UCX/GMI index
+  CHARACTER(LEN=16), ALLOCATABLE :: TrName(:)          !Tracer names in UCX/GMI
+  INTEGER, PUBLIC, ALLOCATABLE   :: Strat_TrID_GC (:)  !Maps 1:NSCHEM to SC%Species
+  INTEGER,         ALLOCATABLE   :: Strat_TrID_TND(:)  !Maps 1:NSCHEM to SCHEM_TEND
+  INTEGER,         ALLOCATABLE   :: Strat_TrID(:)      !Maps 1:NSCHEM to UCX/GMI index
 
   ! Species index of Bry species in GEOS-Chem species DB(may differ from br_nos)
-  INTEGER               :: GC_Bry_TrID(6)
+  INTEGER, PUBLIC       :: GC_Bry_TrID(6)
 
   ! Variables used to calculate the strat-trop exchange flux
   REAL(fp)              :: TauInit             ! Initial time
@@ -201,9 +197,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( MODEL_CESM )
-    USE CAM_LOGFILE,        ONLY : iulog
-#endif
 
     IMPLICIT NONE
 !
@@ -251,7 +244,7 @@ CONTAINS
     LOGICAL            :: LUCX
     LOGICAL            :: LCYCLE
     LOGICAL            :: ISBR2
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
     LOGICAL            :: SKIP
 #endif
 
@@ -290,7 +283,7 @@ CONTAINS
     AD                   => NULL()
     T                    => NULL()
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
     ! Skip strat chem if chemistry is over entire vertical domain
     SKIP = .FALSE.
     IF ( State_Grid%MaxChemLev == State_Grid%NZ ) THEN
@@ -307,11 +300,7 @@ CONTAINS
 
     STAMP = TIMESTAMP_STRING()
     IF ( Input_Opt%amIRoot ) THEN
-#if defined( MODEL_CESM )
-       WRITE( iulog, 10 ) STAMP
-#else
        WRITE( 6, 10 ) STAMP
-#endif
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
 
@@ -381,7 +370,6 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = Spc(:,:,:,id_O3)
 
-#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
        ! which we have explicit prod/loss rates from UCX/GMI
@@ -548,7 +536,6 @@ CONTAINS
           ENDDO       ! I
        ENDDO          ! J
        !$OMP END PARALLEL DO
-#endif
 
        !--------------------------------------------------------------------
        ! Ozone
@@ -562,14 +549,8 @@ CONTAINS
 
           ! Do Linoz or Synoz
           IF ( LLINOZ ) THEN
-#if defined( MODEL_CESM )
-              IF ( Input_Opt%amIRoot ) THEN
-                  Write(6,*) " Bypassing LINOZ for now"
-              ENDIF
-#else
              CALL Do_Linoz( Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC=errCode )
-#endif
           ELSE
              CALL Do_Synoz( Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC=errCode )
@@ -588,7 +569,6 @@ CONTAINS
                                     ( Spc(:,:,:,id_O3) - BEFORE )
        ENDIF
 
-#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Reactions with OH
        ! Currently:
@@ -747,7 +727,6 @@ CONTAINS
 
        ENDDO ! NN
        !$OMP END PARALLEL DO
-#endif
 
        ! Free pointers
        Spc => NULL()
@@ -863,7 +842,7 @@ CONTAINS
 
     ENDIF
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
     ! End of SKIP loop
     ENDIF ! SKIP
 #endif

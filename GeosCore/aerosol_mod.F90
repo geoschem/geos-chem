@@ -175,8 +175,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState
@@ -336,10 +336,9 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
-
     IF ( RC /= GC_SUCCESS ) RETURN
 #if !defined( MODEL_CESM )
-    CALL HCO_EvalFld( HcoState, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
     FND = .True.
     RC  = GC_SUCCESS
@@ -389,6 +388,9 @@ CONTAINS
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
+       ! Force SIA growth to 1.1 to treat as partially crystalline
+       SIA_GROWTH = 1.1_fp
+
        ! Growth factor for OCPI + SOA
        Rad_dry    = REAA(1,k_ORG)
        Rad_wet    = REAA(1,k_ORG) + 35e+0_fp * &
@@ -409,14 +411,17 @@ CONTAINS
        SSA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
-       ! Print debug info
-       IF ( prtDebug ) THEN
+       ! Print values to log file
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
           WRITE( 6, 100 ) SSA_GROWTH, ' for SALA'
 100       FORMAT(F5.2,A)
        ENDIF
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
 
     ENDIF
 

@@ -52,20 +52,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_UValbedo( Input_Opt, State_Met, RC )
+  SUBROUTINE Get_UValbedo( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Met_Mod,        ONLY : MetState
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -104,7 +105,7 @@ CONTAINS
     ENDIF
 
     ! Evalulate the UV albedo from HEMCO
-    CALL HCO_EvalFld( HcoState, 'UV_ALBEDO', State_Met%UVALBEDO, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'UV_ALBEDO', State_Met%UVALBEDO, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

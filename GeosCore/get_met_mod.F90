@@ -48,26 +48,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_2D( State_Grid, Q, v_name, t_index )
+  SUBROUTINE Get_Met_2D( Input_Opt, State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE Error_Mod,            ONLY : Error_Stop
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(OptInput),  INTENT(IN)            :: Input_Opt  ! Input options
     TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
     CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
     INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+    REAL(f4),        INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
                                                 State_Grid%NY)   !  data array
 !
 ! !REVISION HISTORY:
@@ -105,9 +107,9 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( HcoState, v_name, Ptr2D, RC, TIDX=T, FOUND=FND )
+    CALL HCO_GC_GetPtr( Input_Opt, State_Grid, v_name, Ptr2D, RC, TIDX=T, FOUND=FND )
 
-      ! Stop with error message
+    ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
        CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
                          'GET_MET_2D (get_met_mod.F90)' )
@@ -133,26 +135,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3D( State_Grid, Q, v_name, t_index )
+  SUBROUTINE Get_Met_3D( Input_Opt, State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE Error_Mod,            ONLY : Error_Stop
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
+
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
-    CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
-    INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
+    TYPE(OptInput),   INTENT(IN   )        :: Input_Opt  ! Input options
+    TYPE(GrdState),   INTENT(IN)           :: State_Grid ! Grid State object
+    CHARACTER(LEN=*), INTENT(IN)           :: v_name     ! netCDF variable name
+    INTEGER,          INTENT(IN), OPTIONAL :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+    REAL(f4),          INTENT(OUT)         :: Q(State_Grid%NX, & ! Temporary
                                                 State_Grid%NY, & !  data array
                                                 State_Grid%NZ)
 !
@@ -191,7 +196,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
+    CALL HCO_GC_GetPtr( Input_Opt, State_Grid, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -219,26 +224,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3De( State_Grid, Q, v_name, t_index )
+  SUBROUTINE Get_Met_3De( Input_Opt, State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE Error_Mod,            ONLY : Error_Stop
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(OptInput),   INTENT(IN   )        :: Input_Opt  ! Input options
     TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
     CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
     INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+    REAL(f4),        INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
                                                 State_Grid%NY, & ! data array
                                                 State_Grid%NZ+1)
 !
@@ -277,7 +284,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
+    CALL HCO_GC_GetPtr( Input_Opt, State_Grid, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
