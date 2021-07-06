@@ -1785,10 +1785,8 @@ CONTAINS
        gamma = 0.8_dp
        k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        !
-       !#### THERE SEEMS TO BE AN ISSUE WITH KHETI_SLA, THAT
-       !#### CAUSES NON-ZERO DIFFS.  LOOK AT THIS LATER (bmy, 7/1/21)
        ! HOCl + HBr on stratopsheric liquid aerosol
-       !k = k + H%xArea(SLA) * H%KHETI_SLA(HOCl_plus_HBr)
+       k = k + H%xArea(SLA) * H%KHETI_SLA(HOCl_plus_HBr)
        !
        ! HOCl + HBr on irregular ice cloud (ice and NAT surface)
        gamma = 0.3_dp
