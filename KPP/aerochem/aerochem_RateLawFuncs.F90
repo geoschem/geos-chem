@@ -47,16 +47,16 @@ MODULE aerochem_RateLawFuncs
 
   ! Indices for the KHETI_SLA array
   INTEGER,  PRIVATE, PARAMETER :: N2O5_plus_H2O  = 1
-  INTEGER,  PRIVATE, PARAMETER :: N2O5_plus_HCl  = 2
+  INTEGER,  PRIVATE, PARAMETER :: N2O5_plus_HCl  = 2  ! KHETI_SLA(2) = 0
   INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_H2O = 3
   INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_HCl = 4
   INTEGER,  PRIVATE, PARAMETER :: ClNO3_plus_HBr = 5
   INTEGER,  PRIVATE, PARAMETER :: BrNO3_plus_H2O = 6
   INTEGER,  PRIVATE, PARAMETER :: BrNO3_plus_HCl = 7
   INTEGER,  PRIVATE, PARAMETER :: HOCl_plus_HCl  = 8
-  INTEGER,  PRIVATE, PARAMETER :: HOCl_plus_HBr  = 9
+  INTEGER,  PRIVATE, PARAMETER :: HOCl_plus_HBr  = 9  ! KHETI_SLA(9) = 0
   INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HCl  = 10
-  INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HBr  = 11
+  INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HBr  = 11 ! KHETI_SLA(11)= 0
 
   ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
   REAL(dp), PRIVATE, PARAMETER :: CRITRH         = 35.0_dp
@@ -1016,11 +1016,10 @@ CONTAINS
     IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
     k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     !
-    !###BMY NOTE: THIS PRODUCES NUMERICAL DIFFS SO WILL INVESTIGATE LATER
     !IF ( .not. H%stratBox ) THEN
     !   !
     !   ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
-    !   CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+    !   CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
     !   brLiq = 1.0_dp - branchBr
     !   !
     !   ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
@@ -1065,6 +1064,8 @@ CONTAINS
        k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ELSE
        !
+       ! NOTE: No ClNO3 + HCl uptake in tropospheric liquid cloud
+       !
        ! ClNO3 + HCl uptake rate in tropospheric ice cloud
        CALL Gam_ClNO3_Ice( H, gammaIce, brIce, dum1, dum2 )
        k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, brIce )
@@ -1081,7 +1082,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: brBr, brLiq, brIce,    dum1 
+    REAL(dp) :: brBr, brLiq, brIce,    dum1
     REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
     brBr     = 0.0_dp
@@ -1813,7 +1814,7 @@ CONTAINS
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k =  kIIR1Ltd( C(ind_HOCl), C(ind_HBr), k )
   END FUNCTION HOClUptkByHBr
-  
+
   !=========================================================================
   ! Hetchem rate-law functions for iodine species
   ! (HI, HOI, I2O2, I2O3, I2O4, IONO2, IONO3)
