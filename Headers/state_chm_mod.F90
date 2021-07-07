@@ -1735,22 +1735,6 @@ CONTAINS
     !------------------------------------------------------------------
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-        ! PSO4s
-       chmId = 'PSO4s'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%PSO4s,                                    &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
        ! QQ3D
        chmId = 'QQ3D'
        CALL Init_and_Register(                                               &
@@ -1818,7 +1802,7 @@ CONTAINS
             State_Chm  = State_Chm,                                             &
             State_Grid = State_Grid,                                            &
             chmId      = chmId,                                                 &
-            Ptr2Data   = State_Chm%
+            Ptr2Data   = State_Chm%QQrain,                                      &
             RC         = RC                                                    )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3225,13 +3209,6 @@ CONTAINS
     ENDIF
 
 #ifdef LUO_WETDEP
-    IF ( ASSOCIATED( State_Chm%PSO4s ) ) THEN
-       DEALLOCATE( State_Chm%PSO4s, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%PSO4s', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%PSO4s => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Chm%QQ3D ) ) THEN
        DEALLOCATE( State_Chm%QQ3D, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%QQ3D', 2, RC )
@@ -4175,11 +4152,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
-
-       CASE( 'PSO4S' )
-          IF ( isDesc  ) Desc  = 'PSO4s'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
 
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'

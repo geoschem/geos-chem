@@ -2438,9 +2438,9 @@ CONTAINS
     REAL(fp)              :: PSO4_d  (NDSTBIN)
     REAL(fp)              :: PNIT_d  (NDSTBIN)
     REAL(fp)              :: PH2SO4_d(NDSTBIN)
-    REAL(fp)              :: KTN(NDSTBIN)
-    REAL(fp)              :: KTS(NDSTBIN)
-    REAL(fp)              :: KTH(NDSTBIN)
+    REAL(fp)              :: KTN     (NDSTBIN)
+    REAL(fp)              :: KTS     (NDSTBIN)
+    REAL(fp)              :: KTH     (NDSTBIN)
     !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
     ! dust size bins, based on a size- and area-weighted formulism
     ! (GET_DUST_ALK)
@@ -2452,21 +2452,11 @@ CONTAINS
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
     REAL(f4), POINTER     :: Ptr2D(:,:) => NULL()
-#ifdef LUO_WETDEP
-    REAL(fp), POINTER     :: pHRain(:,:,:)
-    REAL(fp), POINTER     :: QQpHRain(:,:,:)
-    REAL(fp), POINTER     :: QQRain(:,:,:)
-#endif
 
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
 
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
-
-!!#ifdef LUO_WETDEP
-!!    ! For Luo et al wetdep scheme
-!!    LOGICAL               :: Is_QQ3D
-!!#endif
 
     !=================================================================
     ! CHEM_SO2 begins here!
@@ -2482,6 +2472,7 @@ CONTAINS
     IS_FULLCHEM          =  Input_Opt%ITS_A_FULLCHEM_SIM
     IS_OFFLINE           =  Input_Opt%ITS_AN_AEROSOL_SIM
     LDSTUP               =  Input_Opt%LDSTUP
+    DTCHEM               =  GET_TS_CHEM()
     Spc                  => State_Chm%Species
     SSAlk                => State_Chm%SSAlk
     H2O2s                => State_Chm%H2O2AfterChem
@@ -2489,16 +2480,10 @@ CONTAINS
     State_Chm%isCloud    =  0.0_fp
     State_Chm%pHcloud    =  0.0_fp
     State_Chm%QLxpHcloud =  0.0_fp
-    DTCHEM               =  GET_TS_CHEM()  ! Timestep [s]
-
 #ifdef LUO_WETDEP
-    ! For Luo wetdep, point to fields of State_Chm and reset values
-    pHRain               => State_Chm%pHRain
-    QQpHRain             => State_Chm%QQpHRain
-    QQRain               => State_Chm%QQRain
-    pHRain               =  5.6_fp
-    QQpHRain             =  0.0_fp
-    QQRain               =  0.0_fp
+    State_Chm%pHrain     =  5.6_fp
+    State_Chm%QQpHrain   =  0.0_fp
+    State_Chm%QQrain     =  0.0_fp
 #endif
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
@@ -2874,12 +2859,8 @@ CONTAINS
        ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
 #ifdef LUO_WETDEP
        ! Luo et al wetdep scheme
-       !!IF ( Is_QQ3D ) THEN
-          LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp + &
-                MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
-       !!ELSE
-       !!   LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
-       !!NDIF
+       LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp + &
+            MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
 
        IF( LWC > 0.d0 ) THEN
          FC = FC * LWC / ( LWC + &
@@ -3013,13 +2994,8 @@ CONTAINS
           ! [moles/liter]
 	  ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          IF(Is_QQ3D)THEN
           SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
                      (1.D0-State_Chm%KRATE(I,J,L)) / ( AIRMW * LWC )
-          ELSE
-          SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
-                     0.7e+0_fp / ( AIRMW * LWC )
-          ENDIF
 #else
           SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
                      0.7e+0_fp / ( AIRMW * LWC ) +                 &
@@ -3030,12 +3006,8 @@ CONTAINS
           ! Get total ammonia (NH3 + NH4+) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NH4+
 #ifdef LUO_WETDEP
-          IF(Is_QQ3D)THEN
           TNH3     = ( Spc(I,J,L,id_NH4) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
                      Spc(I,J,L,id_NH3)
-          ELSE
-          TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + Spc(I,J,L,id_NH3)
-          ENDIF
 #else
           TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + Spc(I,J,L,id_NH3)
 #endif
@@ -3043,10 +3015,8 @@ CONTAINS
           ! Get total chloride (SALACL + HCL) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          IF(Is_QQ3D)THEN
-             CL  = ( Spc(I,J,L,id_SALACL) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
+          CL  = ( Spc(I,J,L,id_SALACL) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
                Spc(I,J,L,id_SALCCL)
-          ENDIF
 #else
           CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
                   Spc(I,J,L,id_SALCCL) 
@@ -3090,7 +3060,7 @@ CONTAINS
 #else
           TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *        &
                       ( 31.6_fp * 0.359_fp / 23.0_fp ) *                   &
-                      0.7e+0_fp / ( AIRMW * LWC )  +                       &
+                      0.7_fp / ( AIRMW * LWC )  +                          &
                       Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) *       &
                       ( 31.6_fp * 0.359_fp / 23.0_fp )                     &
                       / ( AIRMW * LWC )
@@ -3116,7 +3086,7 @@ CONTAINS
                        Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                        1.e+12_fp * State_Met%AD(I,J,L)             &
                        / ( AIRMW                                   &
-                         / State_Chm%SpcData(id_DST1)%Info%emMW_g )&
+                         / State_Chm%SpcData(id_DST1)%Info%MW_g   )&
                        / State_Met%AIRVOL(I,J,L)
 #else
           DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
@@ -3926,18 +3896,30 @@ CONTAINS
           ENDIF
        ENDIF
 #ifdef LUO_WETDEP
-       IF(SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))>1.D-30&
-          .AND.Is_QQ3D)THEN
-         pHRain(I,J,L) = SUM(pHCloud(I,J,L:)*State_Chm%QQ3D(I,J,L:)*&
-                             State_Met%BXHEIGHT(I,J,L:))/&
-                         SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))
-         QQpHRain(I,J,L) = SUM(pHCloud(I,J,L:)*State_Chm%QQ3D(I,J,L:)*&
-                               State_Met%BXHEIGHT(I,J,L:))
-         QQRain(I,J,L) = SUM(State_Chm%QQ3D(I,J,L:)*State_Met%BXHEIGHT(I,J,L:))
+       ! Luo et al 2020 wtdep
+       IF( SUM( State_Chm%QQ3D    (I,J,L:State_Grid%NZ) *                    &
+                State_Met%BXHEIGHT(I,J,L:State_Grid%NZ)   ) > 1.D-30 ) THEN
+
+         State_Chm%pHRain(I,J,L) =                                           &
+              SUM( State_Chm%pHCloud (I,J,L:State_Grid%NZ)    *              &
+                   State_Chm%QQ3D    (I,J,L:State_Grid%NZ)    *              &
+                   State_Met%BXHEIGHT(I,J,L:State_Grid%NZ) )  /              &
+              SUM( State_Chm%QQ3D    (I,J,L:State_Grid%NZ)    *              &
+                   State_Met%BXHEIGHT(I,J,L:State_Grid%NZ) )
+
+         State_Chm%QQpHRain(I,J,L) =                                         &
+              SUM( State_Chm%pHCloud (I,J,L:State_Grid%NZ)    *              &
+                   State_Chm%QQ3D    (I,J,L:State_Grid%NZ)    *              &
+                   State_Met%BXHEIGHT(I,J,L:State_Grid%NZ) )
+
+         State_Chm%QQRain(I,J,L) =                                           &
+              SUM( State_Chm%QQ3D    (I,J,L:State_Grid%NZ)    *              &
+                   State_Met%BXHEIGHT(I,J,L:State_Grid%NZ) )
        ELSE
-         pHRain(I,J,L) = 5.6D0
-         QQpHRain(I,J,L) = 0.D0
-         QQRain(I,J,L) = 0.D0
+          ! Default wetdep scheme
+         State_Chm%pHrain(I,J,L)   = 5.6D0
+         State_Chm%QQpHrain(I,J,L) = 0.D0
+         State_Chm%QQrain(I,J,L)   = 0.D0
        ENDIF
 #endif
 
@@ -3957,11 +3939,6 @@ CONTAINS
     SO2s       => NULL()
     NDENS_SALA => NULL()
     NDENS_SALC => NULL()
-#ifdef LUO_WETDEP
-    pHRain     => NULL()
-    QQpHRain   => NULL()
-    QQRain     => NULL()
-#endif
 
   END SUBROUTINE CHEM_SO2
 !EOC

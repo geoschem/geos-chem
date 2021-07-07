@@ -505,9 +505,9 @@ CONTAINS
                 DVZ = MAX( DVZ, DBLE( SpcInfo%DD_DvzMinVal(1) ) )
 #ifdef LUO_WETDEP
                 IF ( DBLE( SpcInfo%DD_DvzMinVal(1) ) > 0.0_fp ) THEN
-                IF ( TC0(I,J) < 253.0_fp ) THEN
-                   DVZ = DBLE( SpcInfo%DD_DvzMinVal(1) )
-                ENDIF
+                   IF ( State_Met%TS(I,J) < 253.0_fp ) THEN
+                      DVZ = DBLE( SpcInfo%DD_DvzMinVal(1) )
+                   ENDIF
                 ENDIF
 #endif
 
@@ -1270,15 +1270,14 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       IF(LWI(I,J)==2.or.LSNOW(I,J))THEN
-         Hplus(I,J) = 10.0**(-5.4)
-       ELSE IF(LWI(I,J)==1)THEN
-         Hplus(I,J) = 10.0**(-7.0)
+       IF ( LWI(I,J) == 2 )THEN
+          Hplus(I,J) = 10.0**(-5.4)
+       ELSE IF ( LWI(I,J)==1)THEN
+          Hplus(I,J) = 10.0**(-7.0)
        ELSE
-         Hplus(I,J) = 10.0**(-8.2)
+          Hplus(I,J) = 10.0**(-8.2)
        ENDIF
-       TEMPAQ(I,J)=MAX(253.D0,TEMP(I,J))
-
+       TEMPAQ(I,J) = MAX(253.D0,TEMP(I,J))
     ENDDO
     ENDDO
 
