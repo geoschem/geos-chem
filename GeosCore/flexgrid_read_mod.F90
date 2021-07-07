@@ -728,12 +728,20 @@ CONTAINS
     ! Read QI
     v_name = "QI"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    State_Met%QI = MAX( 0.0_4, Q )
+#else
     State_Met%QI = Q
+#endif
 
     ! Read QL
     v_name = "QL"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    State_Met%QL = MAX( 0.0_4, Q )
+#else
     State_Met%QL = Q
+#endif
 
     ! Read TAUCLI
     v_name = "TAUCLI"
