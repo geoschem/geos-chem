@@ -253,8 +253,11 @@ create_rundir "9\n2\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_2x25_TransportTracers_geosfp"
 create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
-dir="gc_2x25_metals_geosfp"
-create_rundir "11\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+# NOTE: The metals simulation runs from 2011-2013, the earlier part of
+# which is out of the range of the GEOS-FP met fields.  Disable
+# the metals simulation with GEOS-FP met for now (bmy, 07 Jul 2021)
+#dir="gc_2x25_metals_geosfp"
+#create_rundir "11\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 4x5 - MERRA2 - 72L
@@ -375,8 +378,11 @@ create_rundir "9\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_4x5_TransportTracers_geosfp"
 create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
-dir="gc_4x5_metals_geosfp"
-create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+# NOTE: The metals simulation runs from 2011-2013, the earlier part of
+# which is out of the range of the GEOS-FP met fields.  Disable
+# the metals simulation with GEOS-FP met for now (bmy, 07 Jul 2021)
+#dir="gc_4x5_metals_geosfp"
+#create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 4x5 and 47L (both MERRA2 and GEOSFP)
