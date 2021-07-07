@@ -528,8 +528,12 @@ CONTAINS
     ! Wetdep quantities
     State_Chm%H2O2AfterChem     => NULL()
     State_Chm%SO2AfterChem      => NULL()
-    State_Chm%PSO4s             => NULL()
     State_Chm%QQ3D              => NULL()
+    State_Chm%KRATE             => NULL()
+    State_Chm%QQ3D              => NULL()
+    State_Chm%pHRain            => NULL()
+    State_Chm%QQpHRain          => NULL()
+    State_Chm%QQRain            => NULL()
 
     ! Isoprene SOA
     State_Chm%IsorropAeropH     => NULL()
@@ -553,13 +557,6 @@ CONTAINS
     State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
-
-    ! For Luo et al wetdep
-    State_Chm%KRATE             => NULL()
-    State_Chm%QQ3D              => NULL()
-    State_Chm%pHRain            => NULL()
-    State_Chm%QQpHRain          => NULL()
-    State_Chm%QQRain            => NULL()
 
   END SUBROUTINE Zero_State_Chm
 !EOC

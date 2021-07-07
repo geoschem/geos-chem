@@ -1265,9 +1265,6 @@ CONTAINS
        ENDIF
     ENDDO
 
-    ! Initialize DVEL
-    DVEL = 0.0e+0_f8
-
 #ifdef LUO_WETDEP
     ! Luo wetdep code
     DO J = 1, State_Grid%NY

@@ -2479,35 +2479,6 @@ CONTAINS
     ThisLoc     = ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Copy fields from INPUT_OPT to local variables for use below
-    IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-    IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
-    LDSTUP      = Input_Opt%LDSTUP
-
-    ! Point to chemical species array [v/v dry]
-    Spc         => State_Chm%Species
-    pHCloud     => State_Chm%pHCloud
-    QLxpHCloud  => State_Chm%QLxpHCloud
-    isCloud     => State_Chm%isCloud ! jmm 3/1/19
-#ifdef LUO_WETDEP
-    pHRain      => State_Chm%pHRain
-    QQpHRain    => State_Chm%QQpHRain
-    QQRain      => State_Chm%QQRain
-#endif
-    SSAlk       => State_Chm%SSAlk
-    H2O2s       => State_Chm%H2O2AfterChem
-    SO2s        => State_Chm%SO2AfterChem
-
-    ! Reset cloud pH for safety
-    pHCloud     =  0.0_fp
-    isCloud     =  0.0_fp
-    QLxpHCloud  =  0.0_fp
-#ifdef LUO_WETDEP
-    pHRain      =  5.6_fp
-    QQpHRain    =  0.0_fp
-    QQRain      =  0.0_fp
-#endif
-
-    ! Initialize
     IS_FULLCHEM          =  Input_Opt%ITS_A_FULLCHEM_SIM
     IS_OFFLINE           =  Input_Opt%ITS_AN_AEROSOL_SIM
     LDSTUP               =  Input_Opt%LDSTUP
@@ -2516,14 +2487,19 @@ CONTAINS
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
-    State_Chm%pHCloud    =  0.0_fp
-    State_Chm%QLxpHCloud =  0.0_fp
+    State_Chm%pHcloud    =  0.0_fp
+    State_Chm%QLxpHcloud =  0.0_fp
     DTCHEM               =  GET_TS_CHEM()  ! Timestep [s]
 
-!!#ifdef LUO_WETDEP
-!!    ! For Luo et al wetdep scheme
-!!    Is_QQ3D              = ASSOCIATED( State_Chm%QQ3D )
-!!#endif
+#ifdef LUO_WETDEP
+    ! For Luo wetdep, point to fields of State_Chm and reset values
+    pHRain               => State_Chm%pHRain
+    QQpHRain             => State_Chm%QQpHRain
+    QQRain               => State_Chm%QQRain
+    pHRain               =  5.6_fp
+    QQpHRain             =  0.0_fp
+    QQRain               =  0.0_fp
+#endif
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
     F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
