@@ -197,6 +197,9 @@ create_rundir "9\n1\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_2x25_TransportTracers_merra2"
 create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_2x25_TransportTracers_LuoWd_merra2"
+create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 2x25 - GEOSFP - 72L
 #=============================================================================
@@ -250,6 +253,9 @@ create_rundir "9\n2\n2\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_2x25_TransportTracers_geosfp"
 create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_2x25_TransportTracers_LuoWd_geosfp"
+create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 4x5 - MERRA2 - 72L
 #=============================================================================
@@ -264,6 +270,9 @@ dir="gc_4x5_aerosol_merra2"
 create_rundir "2\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_merra2"
+create_rundir "1\n1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+
+dir="gc_4x5_fullchem_LuoWd_merra2"
 create_rundir "1\n1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_aciduptake_merra2"
@@ -308,6 +317,9 @@ create_rundir "9\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 dir="gc_4x5_TransportTracers_merra2"
 create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_4x5_TransportTracers_LuoWd_merra2"
+create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 4x5 - GEOSFP - 72L
 #=============================================================================
@@ -319,6 +331,9 @@ dir="gc_4x5_aerosol_geosfp"
 create_rundir "2\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_geosfp"
+create_rundir "1\n1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+
+dir="gc_4x5_fullchem_LuoWd_geosfp"
 create_rundir "1\n1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_aciduptake_geosfp"
@@ -364,6 +379,9 @@ dir="gc_4x5_tagO3_geosfp"
 create_rundir "9\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_TransportTracers_geosfp"
+create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
+dir="gc_4x5_TransportTracers_LuoWd_geosfp"
 create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
