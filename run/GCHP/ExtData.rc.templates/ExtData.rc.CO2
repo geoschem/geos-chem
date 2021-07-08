@@ -50,6 +50,7 @@ PRECCON  '1'         N Y F0;003000 none none         PRECCON    /dev/null
 PRECLSC  '1'         N Y F0;003000 none none         PRECLSC    /dev/null
 PRECSNO  '1'         N Y F0;003000 none none         PRECSNO    /dev/null
 PRECTOT  '1'         N Y F0;003000 none none         PRECTOT    /dev/null
+QV2M     '1'         N Y F0;003000 none none         QV2M       /dev/null
 SEAICE00 '1'         N Y F0;003000 none none         SEAICE00   /dev/null
 SEAICE10 '1'         N Y F0;003000 none none         SEAICE10   /dev/null
 SEAICE20 '1'         N Y F0;003000 none none         SEAICE20   /dev/null

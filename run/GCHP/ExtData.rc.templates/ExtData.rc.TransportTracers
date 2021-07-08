@@ -49,6 +49,7 @@ PRECCON  '1'         N Y F0;003000 none none         PRECCON    ./MetDir/%y4/%m2
 PRECLSC  '1'         N Y F0;003000 none none         PRECLSC    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECSNO  '1'         N Y F0;003000 none none         PRECSNO    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECTOT  '1'         N Y F0;003000 none none         PRECTOT    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+QV2M     '1'         N Y F0;003000 none none         QV2M       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE00 '1'         N Y F0;003000 none none         SEAICE00   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE10 '1'         N Y F0;003000 none none         SEAICE10   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE20 '1'         N Y F0;003000 none none         SEAICE20   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
