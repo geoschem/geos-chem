@@ -161,9 +161,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_MENO3, id_ETNO3
   INTEGER                        :: id_NK1
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
-#ifdef LUO_WETDEP
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
-#endif
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -1132,11 +1130,9 @@ CONTAINS
 
     ! for corr O3, krt,11/2017
     REAL(f8) :: RA_Alt, DUMMY2_Alt, DUMMY4_Alt, Z0OBK_Alt
+
 #ifdef LUO_WETDEP
-      REAL(f8) :: HSTAR3D(State_Grid%NX,State_Grid%NY,NUMDEP) ! Henry's law constant
-      REAL(f8) :: TEMPAQ(State_Grid%NX,State_Grid%NY) ! TEMP for AQ
-      REAL(f8) :: Hplus(State_Grid%NX,State_Grid%NY) ! Hplus for AQ
-      REAL(f8) :: HCSO2,HCH2O2,HCNH3,Ks1,Ks2
+    REAL(f8) :: HSTAR3D(State_Grid%NX,State_Grid%NY,NUMDEP)
 #endif
 
 #ifdef TOMAS
@@ -1170,9 +1166,6 @@ CONTAINS
     INTEGER,  POINTER :: ILAND(:,:,:)
     INTEGER,  POINTER :: IUSE(:,:,:)
     REAL(fp), POINTER :: XLAI(:,:,:)
-#ifdef LUO_WETDEP
-    REAL(fp), POINTER :: LWI(:,:)
-#endif
 
     ! For making sure that all inputs to BIOFIT are of the same type
     REAL(fp)          :: XLAI_FP
@@ -1214,9 +1207,6 @@ CONTAINS
     ILAND   => State_Met%ILAND
     IUSE    => State_Met%IUSE
     XLAI    => State_Met%XLAI
-#ifdef LUO_WETDEP
-    LWI     => State_Met%LWI
-#endif
     SpcInfo => NULL()
 
     ! Is this a POPs simmulation?
@@ -1266,86 +1256,8 @@ CONTAINS
     ENDDO
 
 #ifdef LUO_WETDEP
-    ! Luo wetdep code
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       IF ( LWI(I,J) == 2 )THEN
-          Hplus(I,J) = 10.0**(-5.4)
-       ELSE IF ( LWI(I,J)==1)THEN
-          Hplus(I,J) = 10.0**(-7.0)
-       ELSE
-          Hplus(I,J) = 10.0**(-8.2)
-       ENDIF
-       TEMPAQ(I,J) = MAX(253.D0,TEMP(I,J))
-    ENDDO
-    ENDDO
-
-    DO K = 1,NUMDEP
-
-       ! Get information about this species from the database
-       SpcId   =  NTRAIND(K)
-
-       IF(SpcId == id_SO2)THEN
-
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-
-            ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
-            HCSO2  = 1.22e+0_fp * EXP( 10.55e+0_fp * ( 298.15e+0_fp &
-                   / TEMPAQ(I,J) - 1.e+0_fp) )
-
-            Ks1 = 1.30e-2_fp * EXP( 6.75e+0_fp * ( 298.15e+0_fp &
-                / TEMPAQ(I,J) - 1.e+0_fp ) )
-
-            Ks2 = 6.31e-8_fp * EXP( 5.05e+0_fp * ( 298.15e+0_fp &
-                / TEMPAQ(I,J) - 1.e+0_fp ) )
-
-            HSTAR3D(I,J,K)=HCSO2*(1.e+0_fp+Ks1/Hplus(I,J)+Ks1*Ks2 &
-                          /(Hplus(I,J)*Hplus(I,J)))
-
-         ENDDO
-         ENDDO
-
-       ELSE IF(SpcId == id_H2O2)THEN
-
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            Ks1 = 2.20e-12_fp * EXP( -12.52e+0_fp * ( 298.15e+0_fp &
-                / TEMPAQ(I,J) - 1.e+0_fp ) )
-
-            HCH2O2 = 8.3e+4_fp * EXP( 24.82e+0_fp * (298.15e+0_fp &
-                   / TEMPAQ(I,J) - 1.e+0_fp) )
-            HSTAR3D(I,J,K)=HCH2O2*(1.e+0_fp+(Ks1/Hplus(I,J)))
-         ENDDO
-         ENDDO
-
-       ELSE IF(SpcId == id_NH3)THEN
-
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            HCNH3 = 59.8e+0_fp*exp(4200._fp*((1.e+0_fp/TEMPAQ(I,J)) &
-                  - (1.e+0_fp/298.15e+0_fp)))
-            Ks1 = 1.0e-14_fp*exp(-6710.e+0_fp*((1.e+0_fp/TEMPAQ(I,J)) &
-                - (1.e+0_fp/298.15e+0_fp)))
-            Ks2 = 1.7e-5_fp*exp(-4325.e+0_fp*((1.e+0_fp/TEMPAQ(I,J)) &
-                - (1.e+0_fp/298.15e+0_fp)))
-
-            HSTAR3D(I,J,K)=HCNH3*(1.e+0_fp+((Ks2*Hplus(I,J))/Ks1))
-         ENDDO
-         ENDDO
-
-       ELSE
-
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            HSTAR3D(I,J,K)=HSTAR(K)
-         ENDDO
-         ENDDO
-
-       ENDIF
-
-      ENDDO
+    ! Get the Henry's law constant as a function of lon, lat, and species
+    CALL Luo_Get_HStar3d( Input_Opt, State_Grid, State_Met, HStar3d, RC )
 #endif
 
     !***********************************************************************
@@ -2241,6 +2153,163 @@ CONTAINS
 
   END SUBROUTINE DEPVEL
 !EOC
+#ifdef LUO_WETDEP
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Luo_Get_Hstar3d
+!
+! !DESCRIPTION: Computes the Henry's law constants for SO2, NH3, and H2O2
+!  as a function of longitude & latitude.  For all other species, will
+!  return a constant Henry's law constant.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Luo_Get_Hstar3d( Input_Opt, State_Grid, State_Met, HStar3d, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    TYPE(GrdState), INTENT(IN)  :: State_Grid
+    TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(fp),       INTENT(OUT) :: Hstar3d(State_Grid%NX,State_Grid%NY,NUMDEP)
+    INTEGER,        INTENT(OUT) :: RC
+!
+! !REMARKS:
+!  For now, only used with the Luo et al 2020 wetdep option.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I,     J,     K,       spcId
+    REAL(f8)            :: coeff, Hplus, inv_tAq, Ks1,  Ks2, tAq, t298_taq
+!
+! !DEFINED PARAMETERS:
+!
+    REAL(f8), PARAMETER :: INV_T298  = 1.0_f8 / 298.15_f8
+    REAL(f8), PARAMETER :: HPLUS_ice = 10.0_f8**(-5.4_f8) ! pH ice/snow
+    REAL(f8), PARAMETER :: HPLUS_lnd = 10.0_f8**(-7.0_f8) ! pH land
+    REAL(f8), PARAMETER :: HPLUS_ocn = 10.0_f8**(-8.2_f8) ! pH ocean
+
+    !=======================================================================
+    ! Luo_Get_Hstar3D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       !====================================================================
+       ! For fullchem and aerosol simulations, the effective Henry's law 
+       ! constant for SO3, H2O2, and NH3 will be computed as a function
+       ! of lon & lat (i.e. as a function of temperature & land cover).
+       !
+       ! For all other species, assume that the effective Henry's law
+       ! constant does not vary with lon & lat.
+       !====================================================================
+
+       ! Loop over drydep species
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( K,       SpcId,    J,     I,   Hplus, tAq             )&
+       !$OMP PRIVATE( inv_tAq, t298_tAq, coeff, ks1, ks2                    )
+       DO K = 1, NUMDEP
+
+          ! Get the modelId from the drydep Id
+          SpcId = NTRAIND(K)
+
+          ! Loop over grid boxes
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Pick the proper Hplus value based on surface
+             !----------------------------------------------------------------
+             ! NOTE: Should be using these but the original code used LWI.  
+             ! Leave this comment here for now (bmy, 08 Jul 2021)
+             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
+             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
+             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
+             !----------------------------------------------------------------
+             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
+             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
+             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+
+             ! Temperature terms
+             tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
+             inv_tAq  = 1.0_f8    / tAq
+             t298_tAq = 298.15_f8 / tAq
+
+             ! Henry's constant [mol/l-atm] and Effective Henry's constant
+             IF ( SpcId == id_SO2 ) THEN
+
+                coeff = 1.22_f8    * EXP( 10.55_f8 * (t298_tAq - 1.0_f8)    )
+                Ks1   = 1.30e-2_f8 * EXP(  6.75_f8 * (t298_tAq - 1.0_f8)    )
+                Ks2   = 6.31e-8_fp * EXP(  5.05_f8 * (t298_tAq - 1.0_f8)    )
+
+                HSTAR3D(I,J,K) = coeff *                                     &
+                  ( 1.0_f8 + ( Ks1/Hplus ) + ( Ks1*Ks2 / ( HPlus*HPlus ) )  )
+
+             ELSE IF ( SpcId == id_H2O2 ) THEN
+
+                coeff = 8.3e+04_f8  * EXP(  24.82_f8 * (t298_tAq - 1.0_f8)  )
+                Ks1   = 2.20e-12_f8 * EXP( -12.52_f8 * (t298_tAq - 1.0_f8)  )
+
+                HSTAR3D(I,J,K) = coeff * ( 1.0_f8 + ( Ks1 / Hplus ) )
+
+             ELSE IF ( SpcId == id_NH3 ) THEN
+
+                coeff = 59.8_f8    * EXP(  4200.0_f8 * (inv_tAq - INV_T298) )
+                Ks1   = 1.0e-14_f8 * EXP( -6710.0_f8 * (inv_tAq - INV_T298) ) 
+                Ks2   = 1.7e-5_f8  * EXP( -4325.0_f8 * (inv_tAq - INV_T298) )
+             
+                HSTAR3D(I,J,K) = coeff *                                     &
+                                 ( 1.0_f8 + ( ( Ks2 * Hplus ) / Ks1 )       )
+                
+             ELSE
+
+                HSTAR3D(I,J,K) = HSTAR(K)
+
+             ENDIF
+
+          ENDDO
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ELSE
+
+       !====================================================================
+       ! None of the other simulation types include SO3, H2O2, and NH3,
+       ! so we can skip all of the computations above.  
+       !
+       ! For each species, we can return an effective Henry's law constant
+       ! that does not depend on lon & lat.
+       !====================================================================
+       DO K = 1, NUMDEP
+          HSTAR3D(:,:,K) = HSTAR(K)
+       ENDDO
+
+    ENDIF
+
+  END SUBROUTINE Luo_Get_Hstar3d
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4335,14 +4404,12 @@ CONTAINS
     id_ALD2   = 0
     id_MENO3  = 0
     id_ETNO3  = 0
-    id_HNO3   = IND_('HNO3'  )
-    id_PAN    = IND_('PAN'   )
-    id_IHN1   = IND_('IHN1'  )
-#ifdef LUO_WETDEP
-    id_H2O2   = IND_('H2O2'  )
-    id_SO2    = IND_('SO2'   )
-    id_NH3    = IND_('NH3'   )
-#endif
+    id_HNO3   = Ind_('HNO3'  )
+    id_PAN    = Ind_('PAN'   )
+    id_IHN1   = Ind_('IHN1'  )
+    id_H2O2   = Ind_('H2O2'  )
+    id_SO2    = Ind_('SO2'   )
+    id_NH3    = Ind_('NH3'   )
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species
