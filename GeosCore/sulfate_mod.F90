@@ -2381,6 +2381,7 @@ CONTAINS
     REAL(fp),  PARAMETER  :: HPLUS_45  = 3.16227766016837953e-5_fp  !pH = 4.5
     REAL(fp),  PARAMETER  :: HPLUS_50  = 1.0e-5_fp  !pH = 5.0
     REAL(fp),  PARAMETER  :: MINDAT    = 1.e-20_fp
+    REAL(fp),  PARAMETER  :: TNA_CONV  = 31.6_fp * 0.359_fp / 23.0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -2430,6 +2431,7 @@ CONTAINS
     REAL(fp)              :: SO4H3_vv, SO4H4_vv            !XW
     REAL(fp)              :: fupdateHOCl_0  !XW
     REAL(fp)              :: HCHOCl, KHOCl, f_srhocl, HOCl0 !XW
+    REAL(fp)              :: one_m_KRATE
 
     ! Arrays
     ! tdf 04/07/08
@@ -2564,7 +2566,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Load emissions into buffer first for ALK1, ALK2 
+    ! Load emissions into buffer first for ALK1, ALK2
     ! BEFORE entering loop (hplin, 9/27/20)
     CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALA )
     CALL LoadHcoValEmis ( Input_Opt, State_Grid, id_SALC, AltBuffer=.true. )
@@ -2602,7 +2604,7 @@ CONTAINS
     !$OMP PRIVATE( Mn_d,     FeIII,         MnII,      Fe_d_ant, Fe_d_nat   )&
     !$OMP PRIVATE( HCHOCl,   KHOCl,         f_srhocl,  HOCl0,    L6         )&
     !$OMP PRIVATE( L6S,      fupdateHOBr_0, SRhocl,    L6_1,     SO4H3_vv   )&
-    !$OMP PRIVATE( SO4H4_vv, fupdateHOCl_0, KaqO2,     TNA                  )&
+    !$OMP PRIVATE( SO4H4_vv, fupdateHOCl_0, KaqO2,     TNA,      one_m_KRATE)&
     !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
@@ -2615,6 +2617,12 @@ CONTAINS
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+#ifdef LUO_WETDEP
+       ! Save the value of 1.0 - KRATE in a variable,
+       ! as this only has to be computed once per grid box
+       one_m_KRATE = 1.0_fp - State_Chm%KRATE(I,J,L)
+#endif
 
        ! Initial SO2, H2O2, HOBr, and O3 [v/v]
        SO20   = Spc(I,J,L,id_SO2)
@@ -2859,15 +2867,19 @@ CONTAINS
        ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
 #ifdef LUO_WETDEP
        ! Luo et al wetdep scheme
-       LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp + &
-            MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
+       LWC = State_Met%QL(I,J,L)                                             &
+           * State_Met%AIRDEN(I,J,L)                                         &
+           * 1e-3_fp                                                         &
+           + MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
 
        IF( LWC > 0.d0 ) THEN
-         FC = FC * LWC / ( LWC + &
-              MAX(0.d0,State_Met%QI(I,J,L))* &
-              State_Met%AIRDEN(I,J,L) * 1e-3_fp)
+          FC = FC                                                            &
+             * LWC                                                           &
+             / ( LWC + MAX( 0.0_fp, State_Met%QI(I,J,L) )                    &
+                     *         State_Met%AIRDEN(I,J,L)                       &
+                     *         1e-3_fp                    )
        ELSE
-         LWC = 0.d0
+          LWC = 0.d0
        ENDIF
 #else
        ! Default scheme
@@ -2994,32 +3006,29 @@ CONTAINS
           ! [moles/liter]
 	  ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
-                     (1.D0-State_Chm%KRATE(I,J,L)) / ( AIRMW * LWC )
+          SO4nss = Spc(I,J,L,id_SO4)    * State_Met%AIRDEN(I,J,L) *         &
+                   one_m_KRATE          / ( AIRMW * LWC )
 #else
-          SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) * &
-                     0.7e+0_fp / ( AIRMW * LWC ) +                 &
-                     Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L)  &
-                     / ( AIRMW * LWC)
+          SO4nss = ( Spc(I,J,L,id_SO4)  * State_Met%AIRDEN(I,J,L) *         &
+                     0.7_fp             / ( AIRMW * LWC ) )         )       &
+                 + ( Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L) /         &
+                     ( AIRMW * LWC )                                )
 #endif
 
           ! Get total ammonia (NH3 + NH4+) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NH4+
 #ifdef LUO_WETDEP
-          TNH3     = ( Spc(I,J,L,id_NH4) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
-                     Spc(I,J,L,id_NH3)
+          TNH3 = ( Spc(I,J,L,id_NH4) * one_m_KRATE ) + Spc(I,J,L,id_NH3)
 #else
-          TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + Spc(I,J,L,id_NH3)
+          TNH3 = ( Spc(I,J,L,id_NH4) * 0.7_fp      ) + Spc(I,J,L,id_NH3)
 #endif
 
           ! Get total chloride (SALACL + HCL) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          CL  = ( Spc(I,J,L,id_SALACL) * (1.D0-State_Chm%KRATE(I,J,L)) ) + &
-               Spc(I,J,L,id_SALCCL)
+          CL = ( Spc(I,J,L,id_SALACL) * one_m_KRATE ) + Spc(I,J,L,id_SALCCL)
 #else
-          CL  = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) + &
-                  Spc(I,J,L,id_SALCCL) 
+          CL = ( Spc(I,J,L,id_SALACL) * 0.7_fp )      + Spc(I,J,L,id_SALCCL)
 #endif
           IF ( id_HCl > 0 ) THEN
              CL = CL + Spc(I,J,L,id_HCL)
@@ -3051,20 +3060,18 @@ CONTAINS
           ! seas salt. Note that we should not consider SO4ss here.
           ! Use a cloud scavenging ratio of 0.7 for fine aerosols
 #ifdef LUO_WETDEP
-          TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *        &
-                      ( 31.6_fp * 0.359_fp / 23.0_fp ) *                   &
-                      (1.D0-State_Chm%KRATE(I,J,L)) / ( AIRMW * LWC )  +   &
-                      Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) *       &
-                      ( 31.6_fp * 0.359_fp / 23.0_fp )                     &
-                      / ( AIRMW * LWC )
+          TNA = ( Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L)   *           &
+                  TNA_CONV           * one_m_KRATE               /           &
+                  ( AIRMW * LWC )                                  )         &
+              + ( Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L)   *           &
+                  TNA_CONV           / ( AIRMW * LWC )             )
 #else
-          TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *        &
-                      ( 31.6_fp * 0.359_fp / 23.0_fp ) *                   &
-                      0.7_fp / ( AIRMW * LWC )  +                          &
-                      Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) *       &
-                      ( 31.6_fp * 0.359_fp / 23.0_fp )                     &
-                      / ( AIRMW * LWC )
-#endif         
+          TNA = ( Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L)   *           &
+                  TNA_CONV           * 0.7_fp                    /           &
+                  ( AIRMW * LWC )                                  )         &
+              + ( Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L)   *           &
+                  TNA_CONV           / ( AIRMW * LWC )             )
+#endif
           ! Get total dust cation concentration [mol/L]
           ! Use a cloud scavenging ratio of 1 for dust
           ! to be consistent for how it was calculated for
@@ -3081,22 +3088,20 @@ CONTAINS
           !
           ! Get dust concentrations [v/v -> ng/m3]
 #ifdef LUO_WETDEP
-          DUST = ( Spc(I,J,L,id_DST1)*(1.D0-State_Chm%KRATE(I,J,L)) +         &
-                       Spc(I,J,L,id_DST2) +       &
-                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
-                       1.e+12_fp * State_Met%AD(I,J,L)             &
-                       / ( AIRMW                                   &
-                         / State_Chm%SpcData(id_DST1)%Info%MW_g   )&
-                       / State_Met%AIRVOL(I,J,L)
+          DUST = ( Spc(I,J,L,id_DST1)*one_m_KRATE + Spc(I,J,L,id_DST2) +     &
+                   Spc(I,J,L,id_DST3)             + Spc(I,J,L,id_DST4)   )   &
+               * 1.e+12_fp * State_Met%AD(I,J,L)                             &
+               / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g        )   &
+               / State_Met%AIRVOL(I,J,L)
 #else
-          DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
-                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
-                       1.e+12_fp * State_Met%AD(I,J,L)             &
-                       / ( AIRMW                                   &
-                         / State_Chm%SpcData(id_DST1)%Info%MW_g )&
-                       / State_Met%AIRVOL(I,J,L)
+          !NOTE: Should be 0.7_fp here!!
+          DUST = ( Spc(I,J,L,id_DST1)*0.7   + Spc(I,J,L,id_DST2) +           &
+                   Spc(I,J,L,id_DST3)       + Spc(I,J,L,id_DST4)   )         &
+               * 1.e+12_fp * State_Met%AD(I,J,L)                             &
+               / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g )          &
+               / State_Met%AIRVOL(I,J,L)
 #endif
-          
+
           ! Conversion from dust mass to Ca2+ and Mg2+ mol:
           !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
           !     (Engelbrecht et al., 2016)
@@ -3109,7 +3114,7 @@ CONTAINS
 #ifdef LUO_WETDEP
              TNO3 = ( Spc(I,J,L,id_HNO3)                                     &
                   +   Spc(I,J,L,id_NIT )                                     &
-                  +   Spc(I,J,L,id_NITs) ) * (1.D0-State_Chm%KRATE(I,J,L))
+                  +   Spc(I,J,L,id_NITs) ) * one_m_KRATE
 #else
              TNO3 = Spc(I,J,L,id_HNO3)                                       &
                   + ( Spc(I,J,L,id_NIT) * 0.7_fp )                           &
@@ -5066,9 +5071,9 @@ CONTAINS
     ! Non-volatile aerosol concentration [M]
     ! For now sulfate is the only non-volatile species
 #ifdef LUO_WETDEP
-    D = (1.5e+0_fp*SO4nss) - TNA - (2.e+0_fp*TDCA)
+    D = ( 1.5_fp * SO4nss ) - TNA - ( 2.0_fp * TDCA )
 #else
-    D = (2.e+0_fp*SO4nss) - TNA - (2.e+0_fp*TDCA)
+    D = ( 2.e_fp * SO4nss ) - TNA - ( 2.0_fp * TDCA )
 #endif
 
     ! Temperature dependent water equilibrium constant
@@ -6045,12 +6050,14 @@ CONTAINS
     ! NH3 dissociation contants
     REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
 #ifdef LUO_WETDEP
+    ! NOTE: These should end with _fp
     REAL(fp),  PARAMETER  :: Hnh3 = 59.8
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
     REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
 #else
+    ! NOTE: These should end with _fp
     REAL(fp),  PARAMETER  :: Hnh3 = 60.
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
     REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 #endif
 
@@ -6076,8 +6083,7 @@ CONTAINS
   END FUNCTION kNH3
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model
-!                  !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6088,16 +6094,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      FUNCTION dkNH3 ( P, T, LWC, HPLUS, NH3, Kw ) RESULT ( KNH3p )
+  FUNCTION dkNH3 ( P, T, LWC, HPLUS, NH3, Kw ) RESULT ( KNH3p )
 !
 
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),  INTENT(IN) :: T, P, LWC, HPLUS, NH3, Kw
+    REAL(fp),  INTENT(IN) :: T, P, LWC, HPLUS, NH3, Kw
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp)              :: KNH3p
+    REAL(fp)              :: KNH3p
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
@@ -6120,41 +6126,42 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-      ! NH3 dissociation contants
-      REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
+    ! NH3 dissociation contants
+    REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
 #ifdef LUO_WETDEP
+    ! NOTE: These should end with _fp
     REAL(fp),  PARAMETER  :: Hnh3 = 59.8
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
     REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
 #else
-      REAL(fp),  PARAMETER  :: Hnh3 = 60.
-      REAL(fp),  PARAMETER  :: Dhnh3 = 4200e+0_fp
-      REAL(fp),  PARAMETER  :: DhrKa1 = -450.
+    ! NOTE: These should end with _fp
+    REAL(fp),  PARAMETER  :: Hnh3 = 60.
+    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
+    REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 #endif
 
-      ! Variables
-      REAL(fp)              :: Hnh3_T, Ka1_T
+    ! Variables
+    REAL(fp)              :: Hnh3_T, Ka1_T
 
-      !=================================================================
-      ! dkNH3 begins here!
-      !=================================================================
+    !=================================================================
+    ! dkNH3 begins here!
+    !=================================================================
 
-      !NH3 dissolution constants
-      Hnh3_T = Hnh3*exp(Dhnh3*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
-      Ka1_T = Ka1*exp(DhrKa1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+    !NH3 dissolution constants
+    Hnh3_T = Hnh3*exp(Dhnh3*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
+    Ka1_T = Ka1*exp(DhrKa1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
-      !NH3 dissolutionnyn
+    !NH3 dissolutionnyn
 
-      KNH3p = Ka1_T * Hnh3_T * NH3 * Kw * P * ( 1.0e+0_fp +    &
-           Hnh3_T * 0.08205e+0_fp * T * LWC ) /                &
-           ( Hnh3_T * 0.08205e+0_fp * T * LWC * ( Kw + Ka1_T * &
-           HPLUS ) + Kw)**2
+    KNH3p = Ka1_T * Hnh3_T * NH3 * Kw * P * ( 1.0e+0_fp +    &
+         Hnh3_T * 0.08205e+0_fp * T * LWC ) /                &
+         ( Hnh3_T * 0.08205e+0_fp * T * LWC * ( Kw + Ka1_T * &
+         HPLUS ) + Kw)**2
 
-      END FUNCTION dkNH3
+  END FUNCTION dkNH3
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model
-!                  !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6165,16 +6172,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      FUNCTION kFA ( P, T, LWC, HPLUS, FA ) RESULT ( kFAp )
+  FUNCTION kFA ( P, T, LWC, HPLUS, FA ) RESULT ( kFAp )
 !
 
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),  INTENT(IN) :: T, P, LWC, HPLUS, FA
+    REAL(fp),  INTENT(IN) :: T, P, LWC, HPLUS, FA
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp)              :: KFAp
+    REAL(fp)              :: KFAp
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
@@ -6199,35 +6206,35 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-      ! HCOOH dissociation constants
-      REAL(fp),  PARAMETER  :: Kformate = 1.8e-4_fp ! equib const
-      REAL(fp),  PARAMETER  :: Hfa = 8800e+0_fp ! henry const
-      REAL(fp),  PARAMETER  :: Dhfa = 6100e+0_fp ! henry temp
-      REAL(fp),  PARAMETER  :: DhrKfa = 151.e+0_fp ! equib temp
+    ! HCOOH dissociation constants
+    REAL(fp),  PARAMETER  :: Kformate = 1.8e-4_fp ! equib const
+    REAL(fp),  PARAMETER  :: Hfa = 8800e+0_fp ! henry const
+    REAL(fp),  PARAMETER  :: Dhfa = 6100e+0_fp ! henry temp
+    REAL(fp),  PARAMETER  :: DhrKfa = 151.e+0_fp ! equib temp
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)              :: Hfa_T, Kfa_T
-      REAL(fp)              :: Hfaeff, xFA, pFA
+    REAL(fp)              :: Hfa_T, Kfa_T
+    REAL(fp)              :: Hfaeff, xFA, pFA
 
-      !=================================================================
-      ! kFA begins here!
-      !=================================================================
+    !=================================================================
+    ! kFA begins here!
+    !=================================================================
 
-      ! Formic acid dissolution constants
-      HFA_T = Hfa*exp(Dhfa*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
-      Kfa_T = Kformate*exp(DhrKfa*((1.0e+0_fp/T) &
-           - (1.0e+0_fp/298.0e+0_fp)))
+    ! Formic acid dissolution constants
+    HFA_T = Hfa*exp(Dhfa*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
+    Kfa_T = Kformate*exp(DhrKfa*((1.0e+0_fp/T) &
+         - (1.0e+0_fp/298.0e+0_fp)))
 
-      !HCOOH  dissolution
-      Hfaeff = Hfa_T*(1.0e+0_fp+(Kfa_T/HPLUS))
-      xFA = 1.0e+0_fp / ( 1.0e+0_fp &
-          + ( Hfaeff * 0.08205e+0_fp * T * LWC ) )
-      pFA = FA * P * xFA
+    !HCOOH  dissolution
+    Hfaeff = Hfa_T*(1.0e+0_fp+(Kfa_T/HPLUS))
+    xFA = 1.0e+0_fp / ( 1.0e+0_fp &
+         + ( Hfaeff * 0.08205e+0_fp * T * LWC ) )
+    pFA = FA * P * xFA
 
-      kFAp = Hfa_T * Kfa_T * pFA / HPLUS
+    kFAp = Hfa_T * Kfa_T * pFA / HPLUS
 
-      END FUNCTION kFA
+  END FUNCTION kFA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model
