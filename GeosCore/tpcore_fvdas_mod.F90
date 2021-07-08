@@ -417,6 +417,7 @@ CONTAINS
     USE PhysConstants
     USE ErrCode_Mod
     USE State_Diag_Mod, ONLY : DgnState
+    USE error_mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -784,6 +785,8 @@ CONTAINS
 ! we loop over the levels outside horizontal transport
 ! subroutines. (ccc, 4/1/09)
 !--------------------------------------------------------
+    dq1 = 0.e0
+
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
 !$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )

@@ -990,7 +990,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Hg2
-    HcoID = GetHemcoId( 'Hg2', HcoState, LOC, RC, ERR=.FALSE. )
+    HcoID = GetHemcoId( 'HGCL2', HcoState, LOC, RC, ERR=.FALSE. )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create diagnostic container
@@ -1012,7 +1012,7 @@ CONTAINS
     ENDIF
 
     ! HgP
-    HcoID = GetHemcoId( 'HgP', HcoState, LOC, RC, ERR=.FALSE. )
+    HcoID = GetHemcoId( 'Hg2ClP', HcoState, LOC, RC, ERR=.FALSE. )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create diagnostic container

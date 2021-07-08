@@ -2310,7 +2310,8 @@ CONTAINS
 
     ! FAST-JX is only used for fullchem and offline aerosol
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM  ) THEN
+         Input_Opt%ITS_AN_AEROSOL_SIM  .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
 
        ! Make sure either O3 from met or TOMS is selected
        IF ( .not. Input_Opt%USE_O3_FROM_MET .and. &

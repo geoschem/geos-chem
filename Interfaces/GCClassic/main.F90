@@ -2570,7 +2570,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
-    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  ) THEN
+    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  .or. ITS_A_MERCURY_SIM ) THEN
 
        ! Only execute this if we are doing chemistry
        ! and if it we are at a chemistry timestep
