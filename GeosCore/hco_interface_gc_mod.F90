@@ -2549,6 +2549,40 @@ CONTAINS
        RETURN
     ENDIF
 
+! start blowing snow
+    ! FRSEAICE (for blowing snow, huang & jaegle 04/12/20)
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE', &
+                     HMRC,     FIRST=FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%FRSEAICE )
+#endif
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( FRSEAICE_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! QV2M (for blowing snow, huang & jaegle 04/12/20)
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M', &
+                     HMRC,     FIRST=FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M_FOR_EMIS', &
+                     HMRC,     FIRST,          State_Met%QV2M )
+#endif
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( QV2M_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+! end blowing snow
+
     ! FRLAKE
 #if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE', &
