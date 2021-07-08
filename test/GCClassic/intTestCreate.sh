@@ -99,7 +99,7 @@ fi
 # now that the folder exists
 root=$(absolute_path ${root})
 
-# Remove everything in the test folde r
+# Remove everything in the test folder
 cleanup_files ${root}
 
 # Make the directory for the executables
@@ -110,7 +110,7 @@ mkdir -p ${root}/exe_files
 
 # Make the build directories
 if [[ ! -d ${root}/build ]]; then
-    for dir in apm bpch default rrtmg tomas15 tomas40; do
+    for dir in apm bpch default rrtmg tomas15 tomas40 luowd; do
 	echo " ... ${root}/build/${dir}"
 	mkdir -p ${root}/build/${dir}
     done
