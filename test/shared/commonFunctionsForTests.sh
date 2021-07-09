@@ -245,7 +245,7 @@ function gcclassic_exe_name() {
     exeFileName="gcclassic"
 
     # Append a suffix to the executable file name for specific directories
-    for suffix in apm bpch rrtmg tomas15 tomas40 luowd; do
+    for suffix in apm bpch luowd rrtmg tomas15 tomas40; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -282,14 +282,14 @@ function gcclassic_config_options() {
 	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "bpch" ]]; then
 	options="${baseOptions} -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "luowd" ]]; then
+	options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
 	options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas40" ]]; then
 	options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=40 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "luowd" ]]; then
-	options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     else
 	options="${baseOptions}"
     fi
@@ -320,14 +320,14 @@ function gcclassic_compiletest_name() {
 	result="GCClassic with APM"
     elif [[ ${dir} =~ "bpch" ]]; then
 	result="GCClassic with BPCH diagnostics"
+    elif [[ ${dir} =~ "luowd" ]]; then
+	result="GCClassic with Luo et al wetdep"
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	result="GCClassic with RRTMG"
     elif [[ ${dir} =~ "tomas15" ]]; then
 	result="GCClassic with TOMAS15"
     elif [[ ${dir} =~ "tomas40" ]]; then
 	result="GCClassic with TOMAS40"
-    elif [[ ${dir} =~ "luowd" ]]; then
-	result="GCClassic with Luo et al wetdep"
     else
 	result="GCClassic"
     fi
