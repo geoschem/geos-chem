@@ -3010,7 +3010,7 @@ CONTAINS
                    one_m_KRATE          / ( AIRMW * LWC )
 #else
           SO4nss = ( Spc(I,J,L,id_SO4)  * State_Met%AIRDEN(I,J,L) *         &
-                     0.7_fp             / ( AIRMW * LWC ) )         )       &
+                     0.7_fp             / ( AIRMW * LWC )           )       &
                  + ( Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L) /         &
                      ( AIRMW * LWC )                                )
 #endif
@@ -5073,7 +5073,7 @@ CONTAINS
 #ifdef LUO_WETDEP
     D = ( 1.5_fp * SO4nss ) - TNA - ( 2.0_fp * TDCA )
 #else
-    D = ( 2.e_fp * SO4nss ) - TNA - ( 2.0_fp * TDCA )
+    D = ( 2.0_fp * SO4nss ) - TNA - ( 2.0_fp * TDCA )
 #endif
 
     ! Temperature dependent water equilibrium constant
