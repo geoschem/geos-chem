@@ -3094,9 +3094,8 @@ CONTAINS
                / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g        )   &
                / State_Met%AIRVOL(I,J,L)
 #else
-          !NOTE: Should be 0.7_fp here!!
-          DUST = ( Spc(I,J,L,id_DST1)*0.7   + Spc(I,J,L,id_DST2) +           &
-                   Spc(I,J,L,id_DST3)       + Spc(I,J,L,id_DST4)   )         &
+          DUST = ( Spc(I,J,L,id_DST1)*0.7_fp + Spc(I,J,L,id_DST2) +          &
+                   Spc(I,J,L,id_DST3)        + Spc(I,J,L,id_DST4)   )        &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
                / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g )          &
                / State_Met%AIRVOL(I,J,L)
@@ -6048,21 +6047,18 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! NH3 dissociation contants
-    REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
+    REAL(fp),  PARAMETER  :: Ka1    =  1.7e-5_fp
+    REAL(fp),  PARAMETER  :: Dhnh3  =  4200.0_fp
 #ifdef LUO_WETDEP
-    ! NOTE: These should end with _fp
-    REAL(fp),  PARAMETER  :: Hnh3 = 59.8
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
-    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
+    REAL(fp),  PARAMETER  :: Hnh3   =  59.8_fp
+    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.0_fp
 #else
-    ! NOTE: These should end with _fp
-    REAL(fp),  PARAMETER  :: Hnh3 = 60.
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
-    REAL(fp),  PARAMETER  :: DhrKa1 = -450.
+    REAL(fp),  PARAMETER  :: Hnh3   =  60.0_fp
+    REAL(fp),  PARAMETER  :: DhrKa1 = -450.0_fp
 #endif
 
     ! Variables
-    REAL(fp)              :: Hnh3_T, Ka1_T
+    REAL(fp)              :: Hnh3_T,  Ka1_T
     REAL(fp)              :: Hnh3eff, xNH3, pNH3
 
     !=================================================================
@@ -6127,17 +6123,14 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! NH3 dissociation contants
-    REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
+    REAL(fp),  PARAMETER  :: Ka1    =  1.7e-5_fp
+    REAL(fp),  PARAMETER  :: Dhnh3  =  4200.0_fp
 #ifdef LUO_WETDEP
-    ! NOTE: These should end with _fp
-    REAL(fp),  PARAMETER  :: Hnh3 = 59.8
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
-    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.
+    REAL(fp),  PARAMETER  :: Hnh3   =  59.8_fp
+    REAL(fp),  PARAMETER  :: DhrKa1 = -4325.0_fp
 #else
-    ! NOTE: These should end with _fp
-    REAL(fp),  PARAMETER  :: Hnh3 = 60.
-    REAL(fp),  PARAMETER  :: Dhnh3 = 4200.0_fp
-    REAL(fp),  PARAMETER  :: DhrKa1 = -450.
+    REAL(fp),  PARAMETER  :: Hnh3   =  60.0_fp
+    REAL(fp),  PARAMETER  :: DhrKa1 = -450.0_fp
 #endif
 
     ! Variables
@@ -6208,9 +6201,9 @@ CONTAINS
 !
     ! HCOOH dissociation constants
     REAL(fp),  PARAMETER  :: Kformate = 1.8e-4_fp ! equib const
-    REAL(fp),  PARAMETER  :: Hfa = 8800e+0_fp ! henry const
-    REAL(fp),  PARAMETER  :: Dhfa = 6100e+0_fp ! henry temp
-    REAL(fp),  PARAMETER  :: DhrKfa = 151.e+0_fp ! equib temp
+    REAL(fp),  PARAMETER  :: Hfa      = 8800.0_fp ! henry const
+    REAL(fp),  PARAMETER  :: Dhfa     = 6100.0_fp ! henry temp
+    REAL(fp),  PARAMETER  :: DhrKfa   = 151.0_fp  ! equib temp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6358,9 +6351,9 @@ CONTAINS
 !
       ! CH3HCOOH dissociation constants
       REAL(fp),  PARAMETER  :: Kacetate = 1.75e-5_fp
-      REAL(fp),  PARAMETER  :: Haa = 4100e+0_fp
-      REAL(fp),  PARAMETER  :: Dhaa = 6200e+0_fp
-      REAL(fp),  PARAMETER  :: DhrKaa = 50.0e+0_fp
+      REAL(fp),  PARAMETER  :: Haa      = 4100.0_fp
+      REAL(fp),  PARAMETER  :: Dhaa     = 6200.0_fp
+      REAL(fp),  PARAMETER  :: DhrKaa   = 50.0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6433,9 +6426,9 @@ CONTAINS
 !
       ! HCOOH dissociation constants
       REAL(fp),  PARAMETER  :: Kacetate = 1.75e-5_fp
-      REAL(fp),  PARAMETER  :: Haa = 4100e+0_fp
-      REAL(fp),  PARAMETER  :: Dhaa = 6200e+0_fp
-      REAL(fp),  PARAMETER  :: DhrKaa = 50.0e+0_fp
+      REAL(fp),  PARAMETER  :: Haa      = 4100.0_fp
+      REAL(fp),  PARAMETER  :: Dhaa     = 6200.0_fp
+      REAL(fp),  PARAMETER  :: DhrKaa   = 50.0_fp
 !
 ! !LOCAL VARIABLES:
 !
