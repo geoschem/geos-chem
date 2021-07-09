@@ -2931,9 +2931,9 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
-NO:
+'NO':
   Background_VV: 4.0e-13
-  Formula: NO
+  Formula: 'NO'
   FullName: Nitrogen oxide
   Is_Advected: true
   Is_Gas: true
