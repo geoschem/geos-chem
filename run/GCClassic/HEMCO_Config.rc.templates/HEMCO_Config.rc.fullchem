@@ -2305,22 +2305,22 @@ Warnings:                    1
 # ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
 #==============================================================================
 (((AEIC
-0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115 20 1
-0 AEIC_CO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110     20 1
-0 AEIC_SOAP -                                        -        -             - -   -       SOAP 110/280 20 1
-0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111     20 1
-0 AEIC_SO4  -                                        -        -             - -   -       SO4  112     20 1
-0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113     20 1
-0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113     20 1
-0 AEIC_ACET $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  HC       2005/1-12/1/0 C xyz kg/m2/s ACET 114/101 20 1
-0 AEIC_ALD2 -                                        -        -             - -   -       ALD2 114/102 20 1
-0 AEIC_ALK4 -                                        -        -             - -   -       ALK4 114/103 20 1
-0 AEIC_C2H6 -                                        -        -             - -   -       C2H6 114/104 20 1
-0 AEIC_C3H8 -                                        -        -             - -   -       C3H8 114/105 20 1
-0 AEIC_CH2O -                                        -        -             - -   -       CH2O 114/106 20 1
-0 AEIC_PRPE -                                        -        -             - -   -       PRPE 114/107 20 1
-0 AEIC_MACR -                                        -        -             - -   -       MACR 114/108 20 1
-0 AEIC_RCHO -                                        -        -             - -   -       RCHO 114/109 20 1
+0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115    20 1
+0 AEIC_CO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110        20 1
+0 AEIC_SOAP -                                        -        -             - -   -       SOAP 110/280    20 1
+0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111        20 1
+0 AEIC_SO4  -                                        -        -             - -   -       SO4  112        20 1
+0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113        20 1
+0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113        20 1
+0 AEIC_ACET $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  HC       2005/1-12/1/0 C xyz kg/m2/s ACET 114/101/40 20 1
+0 AEIC_ALD2 -                                        -        -             - -   -       ALD2 114/102/41 20 1
+0 AEIC_ALK4 -                                        -        -             - -   -       ALK4 114/103/42 20 1
+0 AEIC_C2H6 -                                        -        -             - -   -       C2H6 114/104/45 20 1
+0 AEIC_C3H8 -                                        -        -             - -   -       C3H8 114/105/46 20 1
+0 AEIC_CH2O -                                        -        -             - -   -       CH2O 114/106    20 1
+0 AEIC_PRPE -                                        -        -             - -   -       PRPE 114/107/49 20 1
+0 AEIC_MACR -                                        -        -             - -   -       MACR 114/108/83 20 1
+0 AEIC_RCHO -                                        -        -             - -   -       RCHO 114/109/84 20 1
 )))AEIC
 
 #==============================================================================
@@ -3909,8 +3909,8 @@ Warnings:                    1
 43 CtoBENZ MATH:78.12/(6.0*12.0)   - - - xy unitless 1
 44 CtoC2H4 MATH:28.05/(2.0*12.0)   - - - xy unitless 1
 45 CtoC2H6 MATH:30.08/(2.0*12.0)   - - - xy unitless 1
-46 CtoC3H8 MATH:46.08/(3.0*12.0)   - - - xy unitless 1
-47 CtoEOH  MATH:46.06/(2.0*12.0)   - - - xy unitless 1
+46 CtoC3H8 MATH:44.11/(3.0*12.0)   - - - xy unitless 1
+47 CtoEOH  MATH:46.07/(2.0*12.0)   - - - xy unitless 1
 48 CtoMEK  MATH:72.11/(4.0*12.0)   - - - xy unitless 1
 49 CtoPRPE MATH:42.09/(3.0*12.0)   - - - xy unitless 1
 55 CtoTOLU MATH:92.15/(7.0*12.0)   - - - xy unitless 1
@@ -3920,6 +3920,8 @@ Warnings:                    1
 62 CtoMTPA MATH:136.26/(10.0*12.0) - - - xy unitless 1
 64 CtoMBOX MATH:86.13/(5.0*12.0)   - - - xy unitless 1
 67 CtoSESQ MATH:204.4/(15.0*12.0)  - - - xy unitless 1
+83 CtoMACR MATH:70.10/(4.0*12.0)   - - - xy unitless 1
+84 CtoRCHO MATH:58.09/(3.0*12.0)   - - - xy unitless 1
 
 # VOC speciations
 (((RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85

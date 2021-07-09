@@ -932,7 +932,7 @@ EOH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 46.08
+  MW_g: 46.07
   WD_RetFactor: 2.0e-2
 ETHLN:
   DD_F0: 1.0
