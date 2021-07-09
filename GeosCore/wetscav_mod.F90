@@ -651,11 +651,11 @@ CONTAINS
     REAL(fp),      POINTER   :: p_CLDICE
     REAL(fp),      POINTER   :: p_CLDLIQ
     REAL(fp),      POINTER   :: p_T
-#ifdef LUO_WETDEP
-    REAL(fp),      POINTER   :: p_pHCloud
-#endif
     REAL(fp),      POINTER   :: H2O2s(:,:,:)
     REAL(fp),      POINTER   :: SO2s(:,:,:)
+#ifdef LUO_WETDEP
+    REAL(fp),      POINTER   :: p_pHcloud
+#endif
 
     ! Objects
     TYPE(Species), POINTER   :: SpcInfo
@@ -720,26 +720,29 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! Set pointers
-          p_C_H2O  => State_Met%C_H2O (I,J,L)
-          p_CLDICE => State_Met%CLDICE(I,J,L)
-          p_CLDLIQ => State_Met%CLDLIQ(I,J,L)
-          p_T      => State_Met%T(I,J,L)
-          p_pHCloud => State_Chm%pHCloud(I,J,L)
+          p_C_H2O   => State_Met%C_H2O (I,J,L)
+          p_CLDICE  => State_Met%CLDICE(I,J,L)
+          p_CLDLIQ  => State_Met%CLDLIQ(I,J,L)
+          p_T       => State_Met%T(I,J,L)
+
+          ! Use a default cloud pH of 5.6, stored in State_Chm%phCloud
+          ! (unless this value is recomputed in sulfate chemistry)
+          p_pHcloud => State_Chm%pHcloud(I,J,L)
 
           LIQCOV = p_CLDLIQ / MAX(1.D-4,State_Met%CLDF(I,J,L))
           ICECOV = p_CLDICE / MAX(1.D-4,State_Met%CLDF(I,J,L))
 
           ! Compute Ki, the loss rate of a gas-phase species from
           ! the convective updraft (Eq. 1, Jacob et al, 2000)
-          CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, ICECOV, &
-                           LIQCOV, 5.d0, Kc, p_T, Ki )
+          CALL COMPUTE_Ki( SpcInfo,   p_C_H2O, ICECOV, LIQCOV,               &
+                           p_pHcloud, Kc,      p_T,    Ki                   )
 
           ! Free pointers
-          p_C_H2O  => NULL()
-          p_CLDICE => NULL()
-          p_CLDLIQ => NULL()
-          p_T      => NULL()
-          p_pHCloud => NULL()
+          p_C_H2O   => NULL()
+          p_CLDICE  => NULL()
+          p_CLDLIQ  => NULL()
+          p_T       => NULL()
+          p_pHcloud => NULL()
 
           ! Compute F, the fraction of scavenged H2O2.
           ! (Eq. 2, Jacob et al, 2000)
@@ -825,8 +828,8 @@ CONTAINS
 
           ! Compute Ki, the loss rate of a gas-phase species from
           ! the convective updraft (Eq. 1, Jacob et al, 2000)
-          CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, p_CLDICE, &
-                           p_CLDLIQ, Kc,      p_T,      Ki )
+          CALL COMPUTE_Ki( SpcInfo, p_C_H2O, p_CLDICE, p_CLDLIQ,             &
+                           Kc,      p_T,     Ki                             )
 
           ! Free pointers
           p_C_H2O  => NULL()
@@ -923,9 +926,6 @@ CONTAINS
     H2O2s     => NULL()
     SO2s      => NULL()
     SpcInfo   => NULL()
-#ifdef LUO_WETDEP
-    p_pHCloud => NULL()
-#endif
 
   END SUBROUTINE COMPUTE_F
 !EOC
@@ -943,10 +943,10 @@ CONTAINS
 ! !INTERFACE:
 !
 #ifdef LUO_WETDEP
-  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, pHCloud, &
-                         Kc, T, Ki )
+  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ,                     &
+                         pHCloud, Kc,    T,       Ki                        )
 #else
-  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki )
+  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki          )
 #endif
 !
 ! !USES:
@@ -965,7 +965,7 @@ CONTAINS
                                            !  condensate -> precip [1/s]
     REAL(fp),      INTENT(IN)  :: T        ! Temperature [K]
 #ifdef LUO_WETDEP
-    REAL(fp),      INTENT(IN)  :: pHCloud
+    REAL(fp),      INTENT(IN)  :: pHCloud  ! pH in cloud
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -987,12 +987,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(fp)            :: L2G,   I2G,    C_TOT
-    REAL(fp)            :: F_L,   F_I
-    REAL(f8)            :: K0,    CR,     pKa
+    REAL(fp) :: L2G,   I2G,   C_TOT, F_L, F_I
+    REAL(f8) :: K0,    CR,    pKa
 #ifdef LUO_WETDEP
-    REAL(f8)            :: Hplus, Henry
-    REAL(f8)            :: Ks1,   Ks2,    T_term
+    REAL(f8) :: Hplus, Henry, Ks1,   Ks2, T_term
 #endif
 
     !=================================================================
@@ -1261,18 +1259,18 @@ CONTAINS
     RC       =  GC_SUCCESS
 
     ! Set pointers
-    p_C_H2O  => State_Met%C_H2O(I,J,L)
-    p_CLDICE => State_Met%CLDICE(I,J,L)
-    p_CLDLIQ => State_Met%CLDLIQ(I,J,L)
-    p_T      => State_Met%T(I,J,L)
-#ifdef LUO_WETDEP
-    p_pHCloud => State_Chm%pHCloud(I,J,L)
-#endif
-    H2O2s    => State_Chm%H2O2AfterChem
-    SO2s     => State_Chm%SO2AfterChem
-    SpcInfo  => State_Chm%SpcData(N)%Info
+    p_C_H2O   => State_Met%C_H2O(I,J,L)
+    p_CLDICE  => State_Met%CLDICE(I,J,L)
+    p_CLDLIQ  => State_Met%CLDLIQ(I,J,L)
+    p_T       => State_Met%T(I,J,L)
+    H2O2s     => State_Chm%H2O2AfterChem
+    SO2s      => State_Chm%SO2AfterChem
+    SpcInfo   => State_Chm%SpcData(N)%Info
 
 #ifdef LUO_WETDEP
+    ! Set pointer
+    p_pHCloud => State_Chm%pHCloud(I,J,L)
+
     !=================================================================
     ! %%% SPECIAL CASE %%%
     !=================================================================
@@ -1288,8 +1286,8 @@ CONTAINS
 
        ! Compute Ki, the loss rate of a gas-phase species from
        ! the convective updraft (Eq. 1, Jacob et al, 2000)
-       CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, ICECLD, &
-                        LIQCLD, p_pHCloud, K_RAIN, p_T, Ki )
+       CALL COMPUTE_Ki( SpcInfo,   p_C_H2O, ICECLD, LIQCLD,                  &
+                        p_pHCloud, K_RAIN,  p_T,    Ki                      )
 
        ! Compute RAINFRAC, the fraction of rained-out H2O2
        ! (Eq. 10, Jacob et al, 2000)
