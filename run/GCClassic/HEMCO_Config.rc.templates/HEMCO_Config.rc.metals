@@ -141,90 +141,86 @@ Warnings:                    1
 0 NEI11_SURFACE_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TiF1 1007/801     2 1
 0 NEI11_SURFACE_Ti_F2 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_0.1x0.1_2011$MM$DD_all.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TiF2 1007/802     2 1
 #
-## %%%% NOTE: it seems that we have misisng days for several of these data files.
-## %%%% Therefore we are disabling these emissions by default until further notice.
-## %%%%    -- Bob Yantosca (25 Jun 2021)
-##
-## Electric Generating Units (ptegu)
-##
-#0 NEI11_INLN_PTEGU_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Al 2011-2013/1-12/1-31/0-23 R xy kg/m2/s AlF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Al_F2 -                                                                                -  -                        - -  -       AlF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc As 2011-2013/1-12/1-31/0-23 R xy kg/m2/s AsF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_As_F2 -                                                                                -  -                        - -  -       AsF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ca 2011-2013/1-12/1-31/0-23 R xy kg/m2/s CaF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Ca_F2 -                                                                                -  -                        - -  -       CaF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s CdF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Cd_F2 -                                                                                -  -                        - -  -       CdF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s FeF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Fe_F2 -                                                                                -  -                        - -  -       FeF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc PK 2011-2013/1-12/1-31/0-23 R xy kg/m2/s  KF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_K_F2  -                                                                                -  -                        - -  -        KF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mg 2011-2013/1-12/1-31/0-23 R xy kg/m2/s MgF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Mg_F2 -                                                                                -  -                        - -  -       MgF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mn 2011-2013/1-12/1-31/0-23 R xy kg/m2/s MnF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Mn_F2 -                                                                                -  -                        - -  -       MnF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ni 2011-2013/1-12/1-31/0-23 R xy kg/m2/s NiF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Ni_F2 -                                                                                -  -                        - -  -       NiF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s PbF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Pb_F2 -                                                                                -  -                        - -  -       PbF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Si F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SiF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Si_F2 -                                                                                -  -                        - -  -       SiF2 1007/802 3 1
-#0 NEI11_INLN_PTEGU_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TiF1 1007/801 3 1
-#0 NEI11_INLN_PTEGU_Ti_F2 -                                                                                -  -                        - -  -       TiF2 1007/802 3 1
-##
-## Non-EGU PM (non industrial pm; ptnonipm)
-##
-#0 NEI11_INLN_PTNONIPM_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AlF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Al_F2 -                                                                                   -  -                        - -  -       AlF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AsF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_As_F2 -                                                                                   -  -                        - -  -       AsF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CaF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Ca_F2 -                                                                                   -  -                        - -  -       CaF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CdF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Cd_F2 -                                                                                   -  -                        - -  -       CdF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s FeF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Fe_F2 -                                                                                   -  -                        - -  -       FeF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  KF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_K_F2  -                                                                                   -  -                        - -  -        KF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MgF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Mg_F2 -                                                                                   -  -                        - -  -       MgF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MnF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Mn_F2 -                                                                                   -  -                        - -  -       MnF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s NiF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Ni_F2 -                                                                                   -  -                        - -  -       NiF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s PbF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_Pb_F2 -                                                                                   -  -                        - -  -       PbF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_SI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s SiF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_SI_F2 -                                                                                   -  -                        - -  -       SiF2 1007/802 4 1
-#0 NEI11_INLN_PTNONIPM_TI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s TiF1 1007/801 4 1
-#0 NEI11_INLN_PTNONIPM_TI_F2 -                                                                                   -  -                        - -  -       TiF2 1007/802 4 1
-##
-## Oil & Gas
-##
-#0 NEI11_INLN_PTOILGAS_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AlF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Al_F2 -                                                                                    -  -                        - -  -       AlF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AsF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_As_F2 -                                                                                    -  -                        - -  -       AsF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CaF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Ca_F2 -                                                                                    -  -                        - -  -       CaF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CdF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Cd_F2 -                                                                                    -  -                        - -  -       CdF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s FeF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Fe_F2 -                                                                                    -  -                        - -  -       FeF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  KF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_K_F2  -                                                                                    -  -                        - -  -        KF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MgF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Mg_F2 -                                                                                    -  -                        - -  -       MgF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MnF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Mn_F2 -                                                                                    -  -                        - -  -       MnF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s NiF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Ni_F2 -                                                                                    -  -                        - -  -       NiF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s PbF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Pb_F2 -                                                                                    -  -                        - -  -       PbF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s SiF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Si_F2 -                                                                                    -  -                        - -  -       SiF2 1007/802 5 1
-#0 NEI11_INLN_PTOILGAS_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s TiF1 1007/801 5 1
-#0 NEI11_INLN_PTOILGAS_Ti_F2 -                                                                                    -  -                        - -  -       TiF2 1007/802 5 1
+# Electric Generating Units (ptegu)
+#
+0 NEI11_INLN_PTEGU_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Al 2011-2013/1-12/1-31/0-23 R xy kg/m2/s AlF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Al_F2 -                                                                                -  -                        - -  -       AlF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc As 2011-2013/1-12/1-31/0-23 R xy kg/m2/s AsF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_As_F2 -                                                                                -  -                        - -  -       AsF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ca 2011-2013/1-12/1-31/0-23 R xy kg/m2/s CaF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Ca_F2 -                                                                                -  -                        - -  -       CaF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Cd 2011-2013/1-12/1-31/0-23 R xy kg/m2/s CdF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Cd_F2 -                                                                                -  -                        - -  -       CdF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Fe 2011-2013/1-12/1-31/0-23 R xy kg/m2/s FeF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Fe_F2 -                                                                                -  -                        - -  -       FeF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc PK 2011-2013/1-12/1-31/0-23 R xy kg/m2/s  KF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_K_F2  -                                                                                -  -                        - -  -        KF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mg 2011-2013/1-12/1-31/0-23 R xy kg/m2/s MgF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Mg_F2 -                                                                                -  -                        - -  -       MgF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Mn 2011-2013/1-12/1-31/0-23 R xy kg/m2/s MnF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Mn_F2 -                                                                                -  -                        - -  -       MnF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ni 2011-2013/1-12/1-31/0-23 R xy kg/m2/s NiF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Ni_F2 -                                                                                -  -                        - -  -       NiF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Pb 2011-2013/1-12/1-31/0-23 R xy kg/m2/s PbF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Pb_F2 -                                                                                -  -                        - -  -       PbF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Si F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Si 2011-2013/1-12/1-31/0-23 R xy kg/m2/s SiF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Si_F2 -                                                                                -  -                        - -  -       SiF2 1007/802 3 1
+0 NEI11_INLN_PTEGU_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2011$MM$DD_ptegu.nc Ti 2011-2013/1-12/1-31/0-23 R xy kg/m2/s TiF1 1007/801 3 1
+0 NEI11_INLN_PTEGU_Ti_F2 -                                                                                -  -                        - -  -       TiF2 1007/802 3 1
+#
+# Non-EGU PM (non industrial pm; ptnonipm)
+#
+0 NEI11_INLN_PTNONIPM_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AlF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Al_F2 -                                                                                   -  -                        - -  -       AlF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AsF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_As_F2 -                                                                                   -  -                        - -  -       AsF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CaF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Ca_F2 -                                                                                   -  -                        - -  -       CaF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CdF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Cd_F2 -                                                                                   -  -                        - -  -       CdF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s FeF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Fe_F2 -                                                                                   -  -                        - -  -       FeF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  KF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_K_F2  -                                                                                   -  -                        - -  -        KF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MgF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Mg_F2 -                                                                                   -  -                        - -  -       MgF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MnF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Mn_F2 -                                                                                   -  -                        - -  -       MnF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s NiF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Ni_F2 -                                                                                   -  -                        - -  -       NiF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s PbF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_Pb_F2 -                                                                                   -  -                        - -  -       PbF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_SI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s SiF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_SI_F2 -                                                                                   -  -                        - -  -       SiF2 1007/802 4 1
+0 NEI11_INLN_PTNONIPM_TI_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_ptnonipm.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s TiF1 1007/801 4 1
+0 NEI11_INLN_PTNONIPM_TI_F2 -                                                                                   -  -                        - -  -       TiF2 1007/802 4 1
+#
+# Oil & Gas
+#
+0 NEI11_INLN_PTOILGAS_Al_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Al 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AlF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Al_F2 -                                                                                    -  -                        - -  -       AlF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_As_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc As 2011-2013/1-12/1-31/0-23 E xy kg/m2/s AsF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_As_F2 -                                                                                    -  -                        - -  -       AsF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Ca_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ca 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CaF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Ca_F2 -                                                                                    -  -                        - -  -       CaF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Cd_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Cd 2011-2013/1-12/1-31/0-23 E xy kg/m2/s CdF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Cd_F2 -                                                                                    -  -                        - -  -       CdF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Fe_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Fe 2011-2013/1-12/1-31/0-23 E xy kg/m2/s FeF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Fe_F2 -                                                                                    -  -                        - -  -       FeF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_K_F1  $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc PK 2011-2013/1-12/1-31/0-23 E xy kg/m2/s  KF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_K_F2  -                                                                                    -  -                        - -  -        KF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Mg_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mg 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MgF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Mg_F2 -                                                                                    -  -                        - -  -       MgF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Mn_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Mn 2011-2013/1-12/1-31/0-23 E xy kg/m2/s MnF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Mn_F2 -                                                                                    -  -                        - -  -       MnF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Ni_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ni 2011-2013/1-12/1-31/0-23 E xy kg/m2/s NiF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Ni_F2 -                                                                                    -  -                        - -  -       NiF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Pb_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Pb 2011-2013/1-12/1-31/0-23 E xy kg/m2/s PbF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Pb_F2 -                                                                                    -  -                        - -  -       PbF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Si_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Si 2011-2013/1-12/1-31/0-23 E xy kg/m2/s SiF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Si_F2 -                                                                                    -  -                        - -  -       SiF2 1007/802 5 1
+0 NEI11_INLN_PTOILGAS_Ti_F1 $ROOT/TRACE_METALS/v2021-06/USA/2011/$MM/NEI11_stack_0.1x0.1_2013$MM$DD_pt_oilgas.nc Ti 2011-2013/1-12/1-31/0-23 E xy kg/m2/s TiF1 1007/801 5 1
+0 NEI11_INLN_PTOILGAS_Ti_F2 -                                                                                    -  -                        - -  -       TiF2 1007/802 5 1
 
 )))NEI2011_Metal
 
