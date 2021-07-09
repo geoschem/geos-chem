@@ -792,7 +792,7 @@ PROGRAM GEOS_Chem
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
-  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM .OR. ITS_A_MERCURY_SIM ) THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors

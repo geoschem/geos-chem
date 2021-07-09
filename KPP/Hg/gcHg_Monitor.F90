@@ -23,65 +23,38 @@
 MODULE gcHg_Monitor
 
 
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(90) :: SPC_NAMES_0 = (/ &
-     'HGCL2          ','HG2CLP         ','RM0pBtM1       ', & ! index 1 - 3
-     'RMBtM0         ','RMBpBtM0       ','RMBpNO2tM0     ', & ! index 4 - 6
-     'RMBpNO2tM2     ','RMBpHO2tM2     ','RMBpCLOtM2     ', & ! index 7 - 9
-     'RMBpBROtM2     ','RMBpOHtM2      ','RMBpBRtM2      ', & ! index 10 - 12
-     'RMBpO3tM2      ','RMBOpCH4tM2    ','RMBOpCOtMB     ', & ! index 13 - 15
-     'RMBNpCLDtM0    ','RMBHpCLDtM0    ','RMBOHpCLDtM0   ', & ! index 16 - 18
-     'RMBBOpCLDtM0   ','RMBCOpCLDtM0   ','RMB2pCLDtM0    ', & ! index 19 - 21
-     'RMC2pCLDtM0    ','RMBNpCLDtMC2   ','RMBHpCLDtMC2   ', & ! index 22 - 24
-     'RMBOHpCLDtMC2  ','RMBBROpCLDtMC2 ','RMBCLOpCLDtMC2 ', & ! index 25 - 27
-     'RMB2pCLDtMC2   ','RMBpHVtM0      ','RMBNpHVtMBO    ', & ! index 28 - 30
-     'RMBNpHVtMB     ','RMBHpHVtMBO    ','RMBHpHVtM0     ', & ! index 31 - 33
-     'RMBHpHVtMB     ','RMBOHpHVtM0    ','RMBOHpHVtMO    ', & ! index 34 - 36
-     'RMBOHpHVtMB    ','RMB2pHVtMB     ','RMBBROpHVtMBO  ', & ! index 37 - 39
-     'RMORGpHVtM0    ','RM0pOtM1       ','RMOtM0         ', & ! index 40 - 42
-     'RMOpNO2tM2     ','RMOpO3tM2      ','RMOpCH4tM2     ', & ! index 43 - 45
-     'RMOOpCOtMO     ','RMOOHpCLDtM0   ','RMOOHpCLDtMC2  ', & ! index 46 - 48
-     'RMOpHVtM0      ','RMOOHpHVtM0    ','PM0pBtM1       ', & ! index 49 - 51
-     'PMBtM0         ','PMBpBtM0       ','PMBpO3tM2      ', & ! index 52 - 54
-     'PMBOpCH4tM2    ','PMBOpCOtMB     ','PMBOHpCLDtM0   ', & ! index 55 - 57
-     'PMC2pCLDtM0    ','PMBOHpCLDtMC2  ','PMBpHVtM0      ', & ! index 58 - 60
-     'PMBOHpHVtM0    ','PMBOHpHVtMO    ','PMBOHpHVtMB    ', & ! index 61 - 63
-     'PMORGpHVtM0    ','PM0pOtM1       ','PMOtM0         ', & ! index 64 - 66
-     'PMOpO3tM2      ','PMOpCH4tM2     ','PMOOpCOtMO     ', & ! index 67 - 69
-     'PMOOHpCLDtM0   ','PMOOHpCLDtMC2  ','PMOpHVtM0      ', & ! index 70 - 72
-     'PMOOHpHVtM0    ','HGBRCLO        ','HGBRBRO        ', & ! index 73 - 75
-     'HGCLCLO        ','HGCLBRO        ','HGCLBR         ', & ! index 76 - 78
-     'HGOHCLO        ','HGOHBRO        ','HGBR2          ', & ! index 79 - 81
-     'HGCLNO2        ','HGBRNO2        ','HGOHNO2        ', & ! index 82 - 84
-     'HGCLO          ','HGCLHO2        ','HGCLOH         ', & ! index 85 - 87
-     'HGCL           ','HGBRO          ','HGBRHO2        ' /)
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(19) :: SPC_NAMES_1 = (/ &
-     'HGOHO          ','HGOHHO2        ','HGOHOH         ', & ! index 91 - 93
-     'HG2ORGP        ','HGBR           ','Hg0            ', & ! index 94 - 96
-     'HGBROH         ','HGOH           ','Br             ', & ! index 97 - 99
-     'Cl             ','OH             ','NO2            ', & ! index 100 - 102
-     'NO             ','O3             ','HO2            ', & ! index 103 - 105
-     'BrO            ','ClO            ','CO             ', & ! index 106 - 108
-     'CH4            ' /)
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(109) :: SPC_NAMES = (/&
-    SPC_NAMES_0, SPC_NAMES_1 /)
+  CHARACTER(LEN=15), PARAMETER, DIMENSION(38) :: SPC_NAMES = (/ &
+     'HGCL2          ','HG2CLP         ','HGBRCLO        ', & ! index 1 - 3
+     'HGBRBRO        ','HGCLCLO        ','HGCLBRO        ', & ! index 4 - 6
+     'HGCLBR         ','HGOHCLO        ','HGOHBRO        ', & ! index 7 - 9
+     'HGCLNO2        ','HGBRNO2        ','HGBR2          ', & ! index 10 - 12
+     'HGOHNO2        ','HGCLO          ','HGCLHO2        ', & ! index 13 - 15
+     'HGCLOH         ','HGCL           ','HGBRO          ', & ! index 16 - 18
+     'HGBRHO2        ','HGOHO          ','HGOHHO2        ', & ! index 19 - 21
+     'HGOHOH         ','HG2ORGP        ','HGOH           ', & ! index 22 - 24
+     'Hg0            ','HGBROH         ','HGBR           ', & ! index 25 - 27
+     'Br             ','Cl             ','OH             ', & ! index 28 - 30
+     'NO2            ','NO             ','O3             ', & ! index 31 - 33
+     'HO2            ','BrO            ','ClO            ', & ! index 34 - 36
+     'CO             ','CH4            ' /)
 
   INTEGER, DIMENSION(1) :: LOOKAT
   INTEGER, DIMENSION(1) :: MONITOR
   CHARACTER(LEN=15), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_0 = (/ &
-     '   Hg0 + Br --> RM0pBtM1 + PM0pBtM1 + HGBR                                                          ', & ! index 1
-     '       HGBR --> RMBtM0 + PMBtM0 + Hg0                                                               ', & ! index 2
-     '  HGBR + Br --> RMBpBtM0 + PMBpBtM0 + Hg0                                                           ', & ! index 3
-     ' HGBR + NO2 --> RMBpNO2tM0 + Hg0                                                                    ', & ! index 4
-     ' HGBR + NO2 --> RMBpNO2tM2 + HGBRNO2                                                                ', & ! index 5
-     ' HGBR + HO2 --> RMBpHO2tM2 + HGBRHO2                                                                ', & ! index 6
-     ' HGBR + ClO --> RMBpCLOtM2 + HGBRCLO                                                                ', & ! index 7
-     ' HGBR + BrO --> RMBpBROtM2 + HGBRBRO                                                                ', & ! index 8
-     '  HGBR + OH --> RMBpOHtM2 + HGBROH                                                                  ', & ! index 9
-     '  HGBR + Br --> RMBpBRtM2 + HGBR2                                                                   ', & ! index 10
-     'HGBRO + CH4 --> RMBOpCH4tM2 + PMBOpCH4tM2 + HGBROH                                                  ', & ! index 11
-     ' HGBRO + CO --> RMBOpCOtMB + PMBOpCOtMB + HGBR                                                      ', & ! index 12
-     '  HGBR + O3 --> RMBpO3tM2 + PMBpO3tM2 + HGBRO                                                       ', & ! index 13
+     '   Hg0 + Br --> HGBR                                                                                ', & ! index 1
+     '       HGBR --> Hg0                                                                                 ', & ! index 2
+     '  HGBR + Br --> Hg0                                                                                 ', & ! index 3
+     ' HGBR + NO2 --> Hg0                                                                                 ', & ! index 4
+     ' HGBR + NO2 --> HGBRNO2                                                                             ', & ! index 5
+     ' HGBR + HO2 --> HGBRHO2                                                                             ', & ! index 6
+     ' HGBR + ClO --> HGBRCLO                                                                             ', & ! index 7
+     ' HGBR + BrO --> HGBRBRO                                                                             ', & ! index 8
+     '  HGBR + OH --> HGBROH                                                                              ', & ! index 9
+     '  HGBR + Br --> HGBR2                                                                               ', & ! index 10
+     'HGBRO + CH4 --> HGBROH                                                                              ', & ! index 11
+     ' HGBRO + CO --> HGBR                                                                                ', & ! index 12
+     '  HGBR + O3 --> HGBRO                                                                               ', & ! index 13
      '   Hg0 + Cl --> HGCL                                                                                ', & ! index 14
      '  HGCL + Cl --> Hg0                                                                                 ', & ! index 15
      ' HGCL + NO2 --> Hg0                                                                                 ', & ! index 16
@@ -94,42 +67,42 @@ MODULE gcHg_Monitor
      '  HGCL + O3 --> HGCLO                                                                               ', & ! index 23
      'HGCLO + CH4 --> HGCLOH                                                                              ', & ! index 24
      ' HGCLO + CO --> HGCL                                                                                ', & ! index 25
-     '   Hg0 + OH --> RM0pOtM1 + PM0pOtM1 + HGOH                                                          ', & ! index 26
-     '       HGOH --> RMOtM0 + PMOtM0 + Hg0                                                               ', & ! index 27
-     ' HGOH + NO2 --> RMOpNO2tM2 + HGOHNO2                                                                ', & ! index 28
+     '   Hg0 + OH --> HGOH                                                                                ', & ! index 26
+     '       HGOH --> Hg0                                                                                 ', & ! index 27
+     ' HGOH + NO2 --> HGOHNO2                                                                             ', & ! index 28
      ' HGOH + HO2 --> HGOHHO2                                                                             ', & ! index 29
      ' HGOH + ClO --> HGOHCLO                                                                             ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_1 = (/ &
      ' HGOH + BrO --> HGOHBRO                                                                             ', & ! index 31
      '  HGOH + Br --> HGBROH                                                                              ', & ! index 32
      '  HGOH + OH --> HGOHOH                                                                              ', & ! index 33
-     '  HGOH + O3 --> RMOpO3tM2 + PMOpO3tM2 + HGOHO                                                       ', & ! index 34
-     'HGOHO + CH4 --> RMOpCH4tM2 + PMOpCH4tM2 + HGOHOH                                                    ', & ! index 35
-     ' HGOHO + CO --> RMOOpCOtMO + PMOOpCOtMO + HGOH                                                      ', & ! index 36
-     '    HGBRNO2 --> RMBNpCLDtM0 + HG2ORGP                                                               ', & ! index 37
-     '    HGBRHO2 --> RMBHpCLDtM0 + HG2ORGP                                                               ', & ! index 38
-     '     HGBROH --> RMBOHpCLDtM0 + PMBOHpCLDtM0 + HG2ORGP                                               ', & ! index 39
-     '    HGBRBRO --> RMBBOpCLDtM0 + HG2ORGP                                                              ', & ! index 40
-     '    HGBRCLO --> RMBCOpCLDtM0 + HG2ORGP                                                              ', & ! index 41
-     '      HGBR2 --> RMB2pCLDtM0 + HG2ORGP                                                               ', & ! index 42
+     '  HGOH + O3 --> HGOHO                                                                               ', & ! index 34
+     'HGOHO + CH4 --> HGOHOH                                                                              ', & ! index 35
+     ' HGOHO + CO --> HGOH                                                                                ', & ! index 36
+     '    HGBRNO2 --> HG2ORGP                                                                             ', & ! index 37
+     '    HGBRHO2 --> HG2ORGP                                                                             ', & ! index 38
+     '     HGBROH --> HG2ORGP                                                                             ', & ! index 39
+     '    HGBRBRO --> HG2ORGP                                                                             ', & ! index 40
+     '    HGBRCLO --> HG2ORGP                                                                             ', & ! index 41
+     '      HGBR2 --> HG2ORGP                                                                             ', & ! index 42
      '    HGCLNO2 --> HG2ORGP                                                                             ', & ! index 43
      '    HGCLHO2 --> HG2ORGP                                                                             ', & ! index 44
      '     HGCLOH --> HG2ORGP                                                                             ', & ! index 45
      '    HGCLBRO --> HG2ORGP                                                                             ', & ! index 46
      '    HGCLCLO --> HG2ORGP                                                                             ', & ! index 47
      '     HGCLBR --> HG2ORGP                                                                             ', & ! index 48
-     '      HGCL2 --> RMC2pCLDtM0 + PMC2pCLDtM0 + HG2ORGP                                                 ', & ! index 49
+     '      HGCL2 --> HG2ORGP                                                                             ', & ! index 49
      '    HGOHNO2 --> HG2ORGP                                                                             ', & ! index 50
      '    HGOHHO2 --> HG2ORGP                                                                             ', & ! index 51
-     '     HGOHOH --> RMOOHpCLDtM0 + PMOOHpCLDtM0 + HG2ORGP                                               ', & ! index 52
+     '     HGOHOH --> HG2ORGP                                                                             ', & ! index 52
      '    HGOHBRO --> HG2ORGP                                                                             ', & ! index 53
      '    HGOHCLO --> HG2ORGP                                                                             ', & ! index 54
-     '    HGBRNO2 --> HG2CLP + RMBNpCLDtMC2                                                               ', & ! index 55
-     '    HGBRHO2 --> HG2CLP + RMBHpCLDtMC2                                                               ', & ! index 56
-     '     HGBROH --> HG2CLP + RMBOHpCLDtMC2 + PMBOHpCLDtMC2                                              ', & ! index 57
-     '    HGBRBRO --> HG2CLP + RMBBROpCLDtMC2                                                             ', & ! index 58
-     '    HGBRCLO --> HG2CLP + RMBCLOpCLDtMC2                                                             ', & ! index 59
-     '      HGBR2 --> HG2CLP + RMB2pCLDtMC2                                                               ' /)
+     '    HGBRNO2 --> HG2CLP                                                                              ', & ! index 55
+     '    HGBRHO2 --> HG2CLP                                                                              ', & ! index 56
+     '     HGBROH --> HG2CLP                                                                              ', & ! index 57
+     '    HGBRBRO --> HG2CLP                                                                              ', & ! index 58
+     '    HGBRCLO --> HG2CLP                                                                              ', & ! index 59
+     '      HGBR2 --> HG2CLP                                                                              ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_2 = (/ &
      '    HGCLNO2 --> HG2CLP                                                                              ', & ! index 61
      '    HGCLHO2 --> HG2CLP                                                                              ', & ! index 62
@@ -139,46 +112,37 @@ MODULE gcHg_Monitor
      '     HGCLBR --> HG2CLP                                                                              ', & ! index 66
      '    HGOHNO2 --> HG2CLP                                                                              ', & ! index 67
      '    HGOHHO2 --> HG2CLP                                                                              ', & ! index 68
-     '     HGOHOH --> HG2CLP + RMOOHpCLDtMC2 + PMOOHpCLDtMC2                                              ', & ! index 69
+     '     HGOHOH --> HG2CLP                                                                              ', & ! index 69
      '    HGOHBRO --> HG2CLP                                                                              ', & ! index 70
      '    HGOHCLO --> HG2CLP                                                                              ', & ! index 71
      '        NO2 --> NO + O3                                                                             ', & ! index 72
      '        BrO --> Br + O3                                                                             ', & ! index 73
      '        ClO --> Cl + O3                                                                             ', & ! index 74
-     '       HGBR --> RMBpHVtM0 + PMBpHVtM0 + Hg0 + Br                                                    ', & ! index 75
-     '    HGBRNO2 --> 0.9 RMBNpHVtMBO + 0.1 RMBNpHVtMB + 0.9 HGBRO + 0.1 HGBR + 0.1 NO2 + 0.9 NO          ', & ! index 76
-     '    HGBRHO2 --> 0.25 RMBHpHVtMBO + 0.67 RMBHpHVtM0 + 0.07 RMBHpHVtMB + 0.25 HGBRO + 0.07 HGBR + 0.67', & ! index 77
-     '     HGBROH --> 0.49 RMBOHpHVtM0 + 0.35 RMBOHpHVtMO + 0.15 RMBOHpHVtMB + 0.49 PMBOHpHVtM0 + 0.35 PMB', & ! index 78
-     '      HGBR2 --> RMB2pHVtMB + 0.6 HGBR + 0.4 Hg0 + 1.4 Br                                            ', & ! index 79
-     '    HGBRBRO --> RMBBROpHVtMBO + Hg0 + BrO                                                           ', & ! index 80
+     '       HGBR --> Hg0 + Br                                                                            ', & ! index 75
+     '    HGBRNO2 --> 0.9 HGBRO + 0.1 HGBR + 0.1 NO2 + 0.9 NO                                             ', & ! index 76
+     '    HGBRHO2 --> 0.25 HGBRO + 0.67 Hg0 + 0.01 HGBROH + 0.07 HGBR + 0.67 Br + 0.26 OH + 0.74 HO2      ', & ! index 77
+     '     HGBROH --> 0.35 HGOH + 0.49 Hg0 + 0.01 HGBROH + 0.15 HGBR + 0.85 Br + 0.65 OH                  ', & ! index 78
+     '      HGBR2 --> 0.4 Hg0 + 0.6 HGBR + 1.4 Br                                                         ', & ! index 79
+     '    HGBRBRO --> Hg0 + BrO                                                                           ', & ! index 80
      '    HGBRCLO --> Hg0 + Br + Cl                                                                       ', & ! index 81
      '    HGCLNO2 --> 0.9 HGCLO + 0.1 HGCL + 0.1 NO2 + 0.9 NO                                             ', & ! index 82
      '    HGCLHO2 --> 0.25 HGCLO + 0.01 HGCLOH + 0.07 HGCL + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ', & ! index 83
-     '     HGCLOH --> 0.01 HGCLOH + 0.15 HGCL + 0.49 Hg0 + 0.35 HGOH + 0.85 Cl + 0.65 OH                  ', & ! index 84
+     '     HGCLOH --> 0.01 HGCLOH + 0.15 HGCL + 0.35 HGOH + 0.49 Hg0 + 0.85 Cl + 0.65 OH                  ', & ! index 84
      '     HGCLBR --> HGCL + Br                                                                           ', & ! index 85
      '    HGCLBRO --> HGCL + BrO                                                                          ', & ! index 86
      '    HGCLCLO --> HGCL + ClO                                                                          ', & ! index 87
-     '       HGOH --> RMOpHVtM0 + PMOpHVtM0 + Hg0 + OH                                                    ', & ! index 88
+     '       HGOH --> Hg0 + OH                                                                            ', & ! index 88
      '    HGOHNO2 --> 0.9 HGOHO + 0.1 HGOH + 0.1 NO2 + 0.9 NO                                             ', & ! index 89
-     '    HGOHHO2 --> 0.25 HGOHO + 0.01 HGOHOH + 0.67 Hg0 + 0.07 HGOH + 0.67 Cl + 0.26 OH + 0.74 HO2      ' /)
+     '    HGOHHO2 --> 0.25 HGOHO + 0.01 HGOHOH + 0.07 HGOH + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(4) :: EQN_NAMES_3 = (/ &
-     '     HGOHOH --> RMOOHpHVtM0 + PMOOHpHVtM0 + Hg0 + 2 OH                                              ', & ! index 91
+     '     HGOHOH --> Hg0 + 2 OH                                                                          ', & ! index 91
      '    HGOHBRO --> HGOH + BrO                                                                          ', & ! index 92
      '    HGOHCLO --> HGOH + ClO                                                                          ', & ! index 93
-     '    HG2ORGP --> RMORGpHVtM0 + PMORGpHVtM0 + Hg0                                                     ' /)
+     '    HG2ORGP --> Hg0                                                                                 ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(94) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3 /)
 
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(23) :: FAM_NAMES = (/ &
-     'PM0pBtM1       ','PMBtM0         ','PMBpBtM0       ', & ! index 1 - 3
-     'PMBpO3tM2      ','PMBOpCH4tM2    ','PMBOpCOtMB     ', & ! index 4 - 6
-     'PMBOHpCLDtM0   ','PMC2pCLDtM0    ','PMBOHpCLDtMC2  ', & ! index 7 - 9
-     'PMBpHVtM0      ','PMBOHpHVtM0    ','PMBOHpHVtMO    ', & ! index 10 - 12
-     'PMBOHpHVtMB    ','PMORGpHVtM0    ','PM0pOtM1       ', & ! index 13 - 15
-     'PMOtM0         ','PMOpO3tM2      ','PMOpCH4tM2     ', & ! index 16 - 18
-     'PMOOpCOtMO     ','PMOOHpCLDtM0   ','PMOOHpCLDtMC2  ', & ! index 19 - 21
-     'PMOpHVtM0      ','PMOOHpHVtM0    ' /)
-
+  CHARACTER(LEN=15), DIMENSION(1) :: FAM_NAMES
 ! INLINED global variables
 
 ! End INLINED global variables

@@ -30,9 +30,9 @@ REORDER  - ON
 ### Parameters ----------------------------------------
 
 ! NSPEC - Number of chemical species
-  INTEGER, PARAMETER :: NSPEC = 109 
+  INTEGER, PARAMETER :: NSPEC = 38 
 ! NVAR - Number of Variable species
-  INTEGER, PARAMETER :: NVAR = 98 
+  INTEGER, PARAMETER :: NVAR = 27 
 ! NVARACT - Number of Active species
   INTEGER, PARAMETER :: NVARACT = 26 
 ! NFIX - Number of Fixed species
@@ -42,44 +42,21 @@ REORDER  - ON
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
-  INTEGER, PARAMETER :: NFIXST = 99 
+  INTEGER, PARAMETER :: NFIXST = 28 
 
 ### Species -------------------------------------------
 
 Variable species
-  1 = HGCL2 (r)  34 = RMBHpHVtMB (n) 67 = PMOpO3tM2 (n)
-  2 = HG2CLP (n) 35 = RMBOHpHVtM0 (n) 68 = PMOpCH4tM2 (n)
-  3 = RM0pBtM1 (n) 36 = RMBOHpHVtMO (n) 69 = PMOOpCOtMO (n)
-  4 = RMBtM0 (n) 37 = RMBOHpHVtMB (n) 70 = PMOOHpCLDtM0 (n)
-  5 = RMBpBtM0 (n) 38 = RMB2pHVtMB (n) 71 = PMOOHpCLDtMC2 (n)
-  6 = RMBpNO2tM0 (n) 39 = RMBBROpHVtMBO (n) 72 = PMOpHVtM0 (n)
-  7 = RMBpNO2tM2 (n) 40 = RMORGpHVtM0 (n) 73 = PMOOHpHVtM0 (n)
-  8 = RMBpHO2tM2 (n) 41 = RM0pOtM1 (n) 74 = HGBRCLO (r)
-  9 = RMBpCLOtM2 (n) 42 = RMOtM0 (n) 75 = HGBRBRO (r)
- 10 = RMBpBROtM2 (n) 43 = RMOpNO2tM2 (n) 76 = HGCLCLO (r)
- 11 = RMBpOHtM2 (n) 44 = RMOpO3tM2 (n) 77 = HGCLBRO (r)
- 12 = RMBpBRtM2 (n) 45 = RMOpCH4tM2 (n) 78 = HGCLBR (r)
- 13 = RMBpO3tM2 (n) 46 = RMOOpCOtMO (n) 79 = HGOHCLO (r)
- 14 = RMBOpCH4tM2 (n) 47 = RMOOHpCLDtM0 (n) 80 = HGOHBRO (r)
- 15 = RMBOpCOtMB (n) 48 = RMOOHpCLDtMC2 (n) 81 = HGBR2 (r) 
- 16 = RMBNpCLDtM0 (n) 49 = RMOpHVtM0 (n) 82 = HGCLNO2 (r)
- 17 = RMBHpCLDtM0 (n) 50 = RMOOHpHVtM0 (n) 83 = HGBRNO2 (r)
- 18 = RMBOHpCLDtM0 (n) 51 = PM0pBtM1 (n) 84 = HGOHNO2 (r)
- 19 = RMBBOpCLDtM0 (n) 52 = PMBtM0 (n) 85 = HGCLO (r) 
- 20 = RMBCOpCLDtM0 (n) 53 = PMBpBtM0 (n) 86 = HGCLHO2 (r)
- 21 = RMB2pCLDtM0 (n) 54 = PMBpO3tM2 (n) 87 = HGCLOH (r)
- 22 = RMC2pCLDtM0 (n) 55 = PMBOpCH4tM2 (n) 88 = HGCL (r)  
- 23 = RMBNpCLDtMC2 (n) 56 = PMBOpCOtMB (n) 89 = HGBRO (r) 
- 24 = RMBHpCLDtMC2 (n) 57 = PMBOHpCLDtM0 (n) 90 = HGBRHO2 (r)
- 25 = RMBOHpCLDtMC2 (n) 58 = PMC2pCLDtM0 (n) 91 = HGOHO (r) 
- 26 = RMBBROpCLDtMC2 (n) 59 = PMBOHpCLDtMC2 (n) 92 = HGOHHO2 (r)
- 27 = RMBCLOpCLDtMC2 (n) 60 = PMBpHVtM0 (n) 93 = HGOHOH (r)
- 28 = RMB2pCLDtMC2 (n) 61 = PMBOHpHVtM0 (n) 94 = HG2ORGP (r)
- 29 = RMBpHVtM0 (n) 62 = PMBOHpHVtMO (n) 95 = HGBR (r)  
- 30 = RMBNpHVtMBO (n) 63 = PMBOHpHVtMB (n) 96 = Hg0 (r)   
- 31 = RMBNpHVtMB (n) 64 = PMORGpHVtM0 (n) 97 = HGBROH (r)
- 32 = RMBHpHVtMBO (n) 65 = PM0pOtM1 (n) 98 = HGOH (r)  
- 33 = RMBHpHVtM0 (n) 66 = PMOtM0 (n)
+  1 = HGCL2 (r)  11 = HGBRNO2 (r) 21 = HGOHHO2 (r)
+  2 = HG2CLP (n) 12 = HGBR2 (r)  22 = HGOHOH (r)
+  3 = HGBRCLO (r) 13 = HGOHNO2 (r) 23 = HG2ORGP (r)
+  4 = HGBRBRO (r) 14 = HGCLO (r)  24 = HGOH (r)  
+  5 = HGCLCLO (r) 15 = HGCLHO2 (r) 25 = Hg0 (r)   
+  6 = HGCLBRO (r) 16 = HGCLOH (r) 26 = HGBROH (r)
+  7 = HGCLBR (r) 17 = HGCL (r)   27 = HGBR (r)  
+  8 = HGOHCLO (r) 18 = HGBRO (r) 
+  9 = HGOHBRO (r) 19 = HGBRHO2 (r)
+ 10 = HGCLNO2 (r) 20 = HGOHO (r) 
 
 Fixed species
   1 = Br (r)      5 = NO (n)      9 = ClO (r)   
