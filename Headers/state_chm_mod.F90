@@ -1344,24 +1344,6 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
-       ! phCloud
-       !---------------------------------------------------------------------
-       chmId = 'pHCloud'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%pHCloud,                                  &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !---------------------------------------------------------------------
        ! QLxphCloud
        !---------------------------------------------------------------------
        chmId = 'QLxpHCloud'
@@ -1570,11 +1552,6 @@ CONTAINS
           RETURN
        ENDIF
 
-#ifdef LUO_WETDEP
-       ! PhCloud needs to be set to 5.6 initially
-       State_Chm%pHCloud = 5.6_fp
-#endif
-
        chmId = 'TOMS1'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -1730,12 +1707,33 @@ CONTAINS
     ENDIF
 
 #ifdef LUO_WETDEP
-    !------------------------------------------------------------------
-    ! Gan Luo et al wetdep fields
-    !------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Gan Luo et al 2020 wetdep fields
+    !------------------------------------------------------------------------
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-       ! QQ3D
+       ! %%% phCloud %%%
+       chmId = 'pHCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%pHcloud,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Set default pHcloud value to 5.6, which is typical values of cloud
+       ! water pH in the atmosphere.  This pH value reflects dissolved CO2
+       ! in cloud water.  See geoschem/geos-chem Pull Request #779.
+       State_Chm%phCloud = 5.6_fp
+
+       ! %%% QQ3D %%%
        chmId = 'QQ3D'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -1751,14 +1749,15 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! %%% KRATE %%%
        chmId = 'KRATE'
-       CALL Init_and_Register(                                                  &
-            Input_Opt  = Input_Opt,                                             &
-            State_Chm  = State_Chm,                                             &
-            State_Grid = State_Grid,                                            &
-            chmId      = chmId,                                                 &
-            Ptr2Data   = State_Chm%KRATE,                                       &
-            RC         = RC                                                    )
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%KRATE,                                    &
+            RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -1766,14 +1765,15 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! %%% phRain %%%
        chmId = 'pHrain'
-       CALL Init_and_Register(                                                  &
-            Input_Opt  = Input_Opt,                                             &
-            State_Chm  = State_Chm,                                             &
-            State_Grid = State_Grid,                                            &
-            chmId      = chmId,                                                 &
-            Ptr2Data   = State_Chm%pHrain,                                      &
-            RC         = RC                                                    )
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%pHrain,                                   &
+            RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -1781,14 +1781,15 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! %%% QQpHrain %%%
        chmId = 'QQpHrain'
-       CALL Init_and_Register(                                                  &
-            Input_Opt  = Input_Opt,                                             &
-            State_Chm  = State_Chm,                                             &
-            State_Grid = State_Grid,                                            &
-            chmId      = chmId,                                                 &
-            Ptr2Data   = State_Chm%QQpHrain,                                    &
-            RC         = RC                                                    )
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QQpHrain,                                 &
+            RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -1796,14 +1797,15 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! %%% QQrain %%%
        chmId = 'QQrain'
-       CALL Init_and_Register(                                                  &
-            Input_Opt  = Input_Opt,                                             &
-            State_Chm  = State_Chm,                                             &
-            State_Grid = State_Grid,                                            &
-            chmId      = chmId,                                                 &
-            Ptr2Data   = State_Chm%QQrain,                                      &
-            RC         = RC                                                    )
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QQrain,                                   &
+            RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
