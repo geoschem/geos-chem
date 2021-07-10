@@ -785,11 +785,9 @@ CONTAINS
 ! we loop over the levels outside horizontal transport
 ! subroutines. (ccc, 4/1/09)
 !--------------------------------------------------------
-    dq1 = 0.e0
-
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km
