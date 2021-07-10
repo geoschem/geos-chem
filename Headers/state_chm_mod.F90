@@ -303,7 +303,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
      REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepFreq (:,:,:  ) ! Drydep freq [s-1]
-     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities 
+     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities
                                                         ! [m/s] - use REAL8 in drydep
 #if defined( MODEL_GEOS )
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
@@ -1533,25 +1533,6 @@ CONTAINS
           RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! phCloud
-       !--------------------------------------------------------------------
-       chmId = 'pHCloud'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%pHCloud,                                  &
-            noRegister = .TRUE.,                                             &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
        chmId = 'TOMS1'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -1706,32 +1687,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! phCloud
+    !------------------------------------------------------------------------
+    chmId = 'pHCloud'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%pHcloud,                                     &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Set default pHcloud value to 5.6, which is typical values of cloud
+    ! water pH in the atmosphere.  This pH value reflects dissolved CO2
+    ! in cloud water.  See geoschem/geos-chem Pull Request #779.
+    State_Chm%pHCloud = 5.6_fp
+
 #ifdef LUO_WETDEP
     !------------------------------------------------------------------------
     ! Gan Luo et al 2020 wetdep fields
     !------------------------------------------------------------------------
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-
-       ! %%% phCloud %%%
-       chmId = 'pHCloud'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%pHcloud,                                  &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       ! Set default pHcloud value to 5.6, which is typical values of cloud
-       ! water pH in the atmosphere.  This pH value reflects dissolved CO2
-       ! in cloud water.  See geoschem/geos-chem Pull Request #779.
-       State_Chm%phCloud = 5.6_fp
 
        ! %%% QQ3D %%%
        chmId = 'QQ3D'
